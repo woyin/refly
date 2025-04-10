@@ -38,6 +38,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [selectOpen, setSelectOpen] = useState(false);
 
   // Knowledge base state
   const { kbEnabled, setKbEnabled } = useKnowledgeBaseStoreShallow((state) => ({
@@ -95,12 +96,14 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
           {/* Project Selector Dropdown */}
           {enableProjectSelector ? (
             <Select
+              onDropdownVisibleChange={(visible) => setSelectOpen(visible)}
+              open={selectOpen}
               loading={loading}
               className={`project-selector transition-all overflow-hidden ${projectSelectorClassName}`}
               placeholder={t('project.selectProject')}
-              value={currentProject?.projectId}
+              value={currentProjectId}
               onChange={handleProjectChange}
-              bordered={false}
+              variant="borderless"
               dropdownStyle={{ minWidth: '250px' }}
               optionLabelProp="label"
               suffixIcon={!enableSelectProject ? null : <IconDown size={12} />}
@@ -128,7 +131,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
                   key={project.projectId}
                   value={project.projectId}
                   label={
-                    <span className="text-sm text-gray-600 truncate inline-block">
+                    <span className="w-full text-sm text-gray-600 truncate inline-block">
                       {project.name || t('common.untitled')}
                     </span>
                   }
