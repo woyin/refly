@@ -16,9 +16,9 @@ import { HomeRedirect } from '@refly-packages/ai-workspace-common/components/hom
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 import { isDesktop } from '@refly-packages/ai-workspace-common/utils/env';
 import { useForcedLightMode } from '@refly-packages/ai-workspace-common/hooks/use-forced-light-mode';
+import { UnsignedFrontPage } from '@refly-packages/ai-workspace-common/components/canvas/front-page/unsigned-front-page';
 
 // Lazy load components
-const Home = lazy(() => import('@/pages/home'));
 const Canvas = lazy(() => import('@/pages/canvas'));
 const Pricing = lazy(() => import('@/pages/pricing'));
 const ShareCanvasPage = lazy(() => import('@/pages/share'));
@@ -99,7 +99,7 @@ export const AppRouter = (props: { layout?: any }) => {
     <Layout>
       <Suspense fallback={<LightLoading />}>
         <Routes>
-          <Route path="/" element={<HomeRedirect defaultNode={<Home />} />} />
+          <Route path="/" element={<HomeRedirect defaultNode={<UnsignedFrontPage />} />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/share/canvas/:canvasId" element={<ShareCanvasPage />} />
           <Route path="/share/code/:shareId" element={<ShareCodePage />} />
