@@ -1663,6 +1663,10 @@ export type ActionResult = {
    */
   errors?: Array<string>;
   /**
+   * Pilot step ID
+   */
+  pilotStepId?: string;
+  /**
    * Message creation time
    */
   createdAt?: string;
@@ -2655,6 +2659,7 @@ export type SkillEventType =
   | 'structured_data'
   | 'token_usage'
   | 'create_node'
+  | 'invoke_skill'
   | 'error';
 
 export type SkillEvent = {
@@ -2708,6 +2713,10 @@ export type SkillEvent = {
    * Canvas node data. Only present when `event` is `create_node`.
    */
   node?: CanvasNode;
+  /**
+   * Invoke skill parameter. Only present when `event` is `invoke_skill`.
+   */
+  invokeSkillParam?: InvokeSkillRequest;
   /**
    * Error data. Only present when `event` is `error`.
    * @deprecated
@@ -3493,6 +3502,155 @@ export type DeleteSkillTriggerRequest = {
    * Trigger ID to delete
    */
   triggerId: string;
+};
+
+export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
+
+export type PilotStep = {
+  /**
+   * Pilot step ID
+   */
+  stepId?: string;
+  /**
+   * Pilot step name
+   */
+  name?: string;
+  /**
+   * Pilot step epoch
+   */
+  epoch?: number;
+  /**
+   * Pilot step entity ID
+   */
+  entityId?: string;
+  /**
+   * Pilot step entity type
+   */
+  entityType?: string;
+  /**
+   * Pilot step status
+   */
+  status?: PilotStepStatus;
+  /**
+   * Pilot step raw output
+   */
+  rawOutput?: string;
+  /**
+   * Pilot step action result
+   */
+  actionResult?: ActionResult;
+  /**
+   * Pilot step created at
+   */
+  createdAt?: string;
+  /**
+   * Pilot step updated at
+   */
+  updatedAt?: string;
+};
+
+export type PilotSessionStatus = 'init' | 'executing' | 'waiting' | 'finish' | 'failed';
+
+export type PilotSession = {
+  /**
+   * Pilot session ID
+   */
+  sessionId: string;
+  /**
+   * Pilot session title
+   */
+  title: string;
+  /**
+   * Pilot session input
+   */
+  input: SkillInput;
+  /**
+   * Pilot session status
+   */
+  status: PilotSessionStatus;
+  /**
+   * Pilot session target type
+   */
+  targetType: EntityType;
+  /**
+   * Pilot session target ID
+   */
+  targetId: string;
+  /**
+   * Pilot steps
+   */
+  steps?: Array<PilotStep>;
+  /**
+   * Pilot session created at
+   */
+  createdAt?: string;
+  /**
+   * Pilot session updated at
+   */
+  updatedAt?: string;
+};
+
+export type CreatePilotSessionRequest = {
+  /**
+   * Pilot session target ID
+   */
+  targetId: string;
+  /**
+   * Pilot session target type
+   */
+  targetType: EntityType;
+  /**
+   * Pilot session max epoch
+   */
+  maxEpoch?: number;
+  /**
+   * Pilot session title
+   */
+  title?: string;
+  /**
+   * Pilot session input
+   */
+  input: SkillInput;
+  /**
+   * Pilot session provider item ID
+   */
+  providerItemId: string;
+};
+
+export type UpdatePilotSessionRequest = {
+  /**
+   * Pilot session ID
+   */
+  sessionId: string;
+  /**
+   * Pilot session input
+   */
+  input?: SkillInput;
+  /**
+   * Pilot session max epoch
+   */
+  maxEpoch?: number;
+};
+
+export type UpsertPilotSessionResponse = BaseResponse & {
+  /**
+   * Upserted pilot session
+   */
+  data?: PilotSession;
+};
+
+export type ListPilotSessionsResponse = BaseResponse & {
+  /**
+   * Pilot session list
+   */
+  data?: Array<PilotSession>;
+};
+
+export type GetPilotSessionDetailResponse = BaseResponse & {
+  /**
+   * Pilot session detail
+   */
+  data?: PilotSession;
 };
 
 export type UpdateUserSettingsRequest = {
@@ -5424,6 +5582,60 @@ export type DeleteSkillTriggerData = {
 export type DeleteSkillTriggerResponse = BaseResponse;
 
 export type DeleteSkillTriggerError = unknown;
+
+export type CreatePilotSessionData = {
+  body: CreatePilotSessionRequest;
+};
+
+export type CreatePilotSessionResponse = UpsertPilotSessionResponse;
+
+export type CreatePilotSessionError = unknown;
+
+export type UpdatePilotSessionData = {
+  body: UpdatePilotSessionRequest;
+};
+
+export type UpdatePilotSessionResponse = UpsertPilotSessionResponse;
+
+export type UpdatePilotSessionError = unknown;
+
+export type ListPilotSessionsData = {
+  query?: {
+    /**
+     * Page number
+     */
+    page?: number;
+    /**
+     * Page size
+     */
+    pageSize?: number;
+    /**
+     * Target ID
+     */
+    targetId?: string;
+    /**
+     * Target type
+     */
+    targetType?: EntityType;
+  };
+};
+
+export type ListPilotSessionsResponse2 = ListPilotSessionsResponse;
+
+export type ListPilotSessionsError = unknown;
+
+export type GetPilotSessionDetailData = {
+  query: {
+    /**
+     * Pilot session ID
+     */
+    sessionId: string;
+  };
+};
+
+export type GetPilotSessionDetailResponse2 = GetPilotSessionDetailResponse;
+
+export type GetPilotSessionDetailError = unknown;
 
 export type GetSettingsResponse = GetUserSettingsResponse;
 

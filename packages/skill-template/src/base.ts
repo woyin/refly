@@ -85,6 +85,8 @@ export abstract class BaseSkill extends StructuredTool {
         eventData.event = 'structured_data';
       } else if (eventData.artifact) {
         eventData.event = 'artifact';
+      } else if (eventData.invokeSkillParam) {
+        eventData.event = 'invoke_skill';
       }
     }
 
@@ -228,6 +230,7 @@ export interface SkillEventMap {
   artifact: [data: SkillEvent];
   structured_data: [data: SkillEvent];
   token_usage: [data: SkillEvent];
+  invoke_skill: [data: SkillEvent];
   error: [data: SkillEvent];
 }
 

@@ -71,6 +71,7 @@ import {
   QUEUE_SKILL_TIMEOUT_CHECK,
   QUEUE_SYNC_REQUEST_USAGE,
   QUEUE_AUTO_NAME_CANVAS,
+  QUEUE_SYNC_PILOT_STEP,
 } from '../../utils';
 import { InvokeSkillJobData, SkillTimeoutCheckJobData } from './skill.dto';
 import { KnowledgeService } from '../knowledge/knowledge.service';
@@ -108,6 +109,7 @@ import { providerPO2DTO } from '@/modules/provider/provider.dto';
 import { codeArtifactPO2DTO } from '@/modules/code-artifact/code-artifact.dto';
 import { McpServerService } from '@/modules/mcp-server/mcp-server.service';
 import { mcpServerPO2DTO } from '@/modules/mcp-server/mcp-server.dto';
+import { SyncPilotStepJobData } from '@/modules/pilot/pilot.processor';
 
 function validateSkillTriggerCreateParam(param: SkillTriggerCreateParam) {
   if (param.triggerType === 'simpleEvent') {
@@ -150,6 +152,8 @@ export class SkillService {
     private requestUsageQueue: Queue<SyncRequestUsageJobData>,
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
     private autoNameCanvasQueue: Queue<AutoNameCanvasJobData>,
+    @InjectQueue(QUEUE_SYNC_PILOT_STEP)
+    private pilotStepQueue: Queue<SyncPilotStepJobData>,
   ) {
     this.skillEngine = new SkillEngine(this.logger, this.buildReflyService());
     this.skillInventory = createSkillInventory(this.skillEngine);
@@ -1341,6 +1345,14 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           uid: user.uid,
           tier,
           timestamp: new Date(),
+        });
+      }
+
+      // Sync pilot step if needed
+      if (result.pilotStepId) {
+        await this.pilotStepQueue.add('syncPilotStep', {
+          user: { uid: user.uid },
+          stepId: result.pilotStepId,
         });
       }
     }
