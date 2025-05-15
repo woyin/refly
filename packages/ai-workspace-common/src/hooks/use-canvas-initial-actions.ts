@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useFrontPageStoreShallow } from '../stores/front-page';
 import { genActionResultID } from '@refly/utils/id';
@@ -6,14 +6,21 @@ import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import { useCanvasContext } from '../context/canvas';
-import { useUpdatePilotSession } from '@refly-packages/ai-workspace-common/queries/queries';
-import { usePilotManagement } from './use-pilot-management';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
+import {
+  CreatePilotSessionRequest,
+  ModelInfo,
+  Skill,
+  SkillRuntimeConfig,
+  SkillTemplateConfig,
+} from '@refly/openapi-schema';
+import { message } from 'antd';
 
 export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addNode } = useAddNode();
   const { invokeAction } = useInvokeAction();
-  const { createPilotSession } = usePilotManagement();
   const { query, selectedSkill, runtimeConfig, tplConfig, reset } = useFrontPageStoreShallow(
     (state) => ({
       query: state.query,
@@ -27,9 +34,10 @@ export const useCanvasInitialActions = (canvasId: string) => {
   const { skillSelectedModel } = useChatStoreShallow((state) => ({
     skillSelectedModel: state.skillSelectedModel,
   }));
-
-  // Add hook to update pilot session
-  const updatePilotSessionMutation = useUpdatePilotSession();
+  const { setActiveSessionId, setIsPilotOpen } = usePilotStoreShallow((state) => ({
+    setActiveSessionId: state.setActiveSessionId,
+    setIsPilotOpen: state.setIsPilotOpen,
+  }));
 
   // Get canvas provider to check connection status
   const { provider } = useCanvasContext();
@@ -39,10 +47,10 @@ export const useCanvasInitialActions = (canvasId: string) => {
   const pendingActionRef = useRef<{
     source: string | null;
     query: string;
-    selectedSkill: any;
-    modelInfo: any;
-    tplConfig: any;
-    runtimeConfig: any;
+    selectedSkill: Skill;
+    modelInfo: ModelInfo;
+    tplConfig: SkillTemplateConfig;
+    runtimeConfig: SkillRuntimeConfig;
     isPilotActivated?: boolean;
   } | null>(null);
 
@@ -93,6 +101,23 @@ export const useCanvasInitialActions = (canvasId: string) => {
     }
   }, [canvasId, query, selectedSkill, searchParams, skillSelectedModel, tplConfig, runtimeConfig]);
 
+  const handleCreatePilotSession = useCallback(async (param: CreatePilotSessionRequest) => {
+    const { data, error } = await getClient().createPilotSession({
+      body: param,
+    });
+    if (error) {
+      message.error('Failed to create pilot session');
+      return;
+    }
+
+    if (data.data?.sessionId) {
+      setActiveSessionId(data.data?.sessionId);
+      setIsPilotOpen(true);
+    } else {
+      message.error('Failed to create pilot session');
+    }
+  }, []);
+
   // Execute the actions once connected
   useEffect(() => {
     // Only proceed if we're connected and have pending actions
@@ -105,18 +130,19 @@ export const useCanvasInitialActions = (canvasId: string) => {
         query,
         selectedSkill,
         tplConfig,
+        modelInfo,
         runtimeConfig,
         isPilotActivated,
       });
 
       if (isPilotActivated) {
-        createPilotSession({
+        handleCreatePilotSession({
           targetId: canvasId,
           targetType: 'canvas',
           title: query,
           input: { query },
           maxEpoch: 2,
-          providerItemId: selectedSkill.id,
+          providerItemId: modelInfo.providerItemId,
         });
 
         return;
@@ -160,5 +186,5 @@ export const useCanvasInitialActions = (canvasId: string) => {
       // Clear pending action
       pendingActionRef.current = null;
     }
-  }, [canvasId, isConnected, invokeAction, addNode, reset, updatePilotSessionMutation]);
+  }, [canvasId, isConnected, invokeAction, addNode, reset]);
 };

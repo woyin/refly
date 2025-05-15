@@ -1,25 +1,24 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { PilotSession } from '@refly/openapi-schema';
 
 interface PilotState {
   // state
   isPilotOpen: boolean;
-  activeSession: PilotSession | null;
+  activeSessionId: string | null;
 
   // method
   setIsPilotOpen: (val: boolean) => void;
-  setActiveSession: (session: PilotSession | null) => void;
+  setActiveSessionId: (sessionId: string | null) => void;
 }
 
 export const usePilotStore = create<PilotState>()(
   devtools((set) => ({
     isPilotOpen: false,
-    activeSession: null,
+    activeSessionId: null,
 
     setIsPilotOpen: (val: boolean) => set({ isPilotOpen: val }),
-    setActiveSession: (session: PilotSession | null) => set({ activeSession: session }),
+    setActiveSessionId: (sessionId: string | null) => set({ activeSessionId: sessionId }),
   })),
 );
 
