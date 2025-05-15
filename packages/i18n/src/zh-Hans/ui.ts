@@ -2518,6 +2518,10 @@ const translations = {
       privacy: '隐私',
     },
   },
+  pilot: {
+    name: 'Pilot',
+    description: 'Refly Pilot 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
+  },
   deck: {
     references: '引用',
     referencedBy: '被引用',

@@ -6,11 +6,14 @@ import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import { useCanvasContext } from '../context/canvas';
+import { useUpdatePilotSession } from '@refly-packages/ai-workspace-common/queries/queries';
+import { usePilotManagement } from './use-pilot-management';
 
 export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addNode } = useAddNode();
   const { invokeAction } = useInvokeAction();
+  const { createPilotSession } = usePilotManagement();
   const { query, selectedSkill, runtimeConfig, tplConfig, reset } = useFrontPageStoreShallow(
     (state) => ({
       query: state.query,
@@ -25,6 +28,9 @@ export const useCanvasInitialActions = (canvasId: string) => {
     skillSelectedModel: state.skillSelectedModel,
   }));
 
+  // Add hook to update pilot session
+  const updatePilotSessionMutation = useUpdatePilotSession();
+
   // Get canvas provider to check connection status
   const { provider } = useCanvasContext();
   const [isConnected, setIsConnected] = useState(false);
@@ -37,6 +43,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
     modelInfo: any;
     tplConfig: any;
     runtimeConfig: any;
+    isPilotActivated?: boolean;
   } | null>(null);
 
   // Update connection status when provider status changes
@@ -61,6 +68,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
   // Store parameters needed for actions when URL parameters are processed
   useEffect(() => {
     const source = searchParams.get('source');
+    const isPilotActivated = Boolean(searchParams.get('isPilotActivated'));
     const newParams = new URLSearchParams();
 
     // Copy all params except 'source'
@@ -80,6 +88,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
         modelInfo: skillSelectedModel,
         tplConfig,
         runtimeConfig,
+        isPilotActivated,
       };
     }
   }, [canvasId, query, selectedSkill, searchParams, skillSelectedModel, tplConfig, runtimeConfig]);
@@ -88,7 +97,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
   useEffect(() => {
     // Only proceed if we're connected and have pending actions
     if (isConnected && pendingActionRef.current && canvasId) {
-      const { query, selectedSkill, modelInfo, tplConfig, runtimeConfig } =
+      const { query, selectedSkill, modelInfo, tplConfig, runtimeConfig, isPilotActivated } =
         pendingActionRef.current;
 
       console.log('Canvas connected, executing initial action:', {
@@ -97,7 +106,21 @@ export const useCanvasInitialActions = (canvasId: string) => {
         selectedSkill,
         tplConfig,
         runtimeConfig,
+        isPilotActivated,
       });
+
+      if (isPilotActivated) {
+        createPilotSession({
+          targetId: canvasId,
+          targetType: 'canvas',
+          title: query,
+          input: { query },
+          maxEpoch: 2,
+          providerItemId: selectedSkill.id,
+        });
+
+        return;
+      }
 
       const resultId = genActionResultID();
       invokeAction(
@@ -137,5 +160,5 @@ export const useCanvasInitialActions = (canvasId: string) => {
       // Clear pending action
       pendingActionRef.current = null;
     }
-  }, [canvasId, isConnected, invokeAction, addNode, reset]);
+  }, [canvasId, isConnected, invokeAction, addNode, reset, updatePilotSessionMutation]);
 };

@@ -2690,6 +2690,11 @@ const translations = {
       privacy: 'Privacy',
     },
   },
+  pilot: {
+    name: 'Pilot',
+    description:
+      'Refly Pilot is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
+  },
   deck: {
     references: 'References',
     referencedBy: 'Referenced By',

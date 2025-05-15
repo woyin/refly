@@ -85,10 +85,13 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
     [setSelectedSkill, setTplConfig],
   );
 
-  const handleSendMessage = useCallback(() => {
-    if (!query?.trim()) return;
-    debouncedCreateCanvas('front-page');
-  }, [query, debouncedCreateCanvas]);
+  const handleSendMessage = useCallback(
+    (options?: { isPilotActivated?: boolean }) => {
+      if (!query?.trim()) return;
+      debouncedCreateCanvas('front-page', options);
+    },
+    [query, debouncedCreateCanvas],
+  );
 
   const findSkillByName = useCallback(
     (name: string) => {
