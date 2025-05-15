@@ -2,7 +2,9 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CommonModule } from '../common/common.module';
 import { CanvasModule } from '../canvas/canvas.module';
+import { SkillModule } from '@/modules/skill/skill.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
+import { ProviderModule } from '../provider/provider.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { PilotService } from './pilot.service';
 import { PilotController } from './pilot.controller';
@@ -13,6 +15,8 @@ import { QUEUE_RUN_PILOT } from '@/utils/const';
   imports: [
     CommonModule,
     CanvasModule,
+    SkillModule,
+    ProviderModule,
     KnowledgeModule,
     CodeArtifactModule,
     BullModule.registerQueue({
