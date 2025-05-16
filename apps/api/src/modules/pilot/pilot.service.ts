@@ -8,6 +8,7 @@ import {
   CreatePilotSessionRequest,
   UpdatePilotSessionRequest,
   EntityType,
+  ActionMeta,
 } from '@refly/openapi-schema';
 import { PilotEngine } from './pilot-engine';
 import { PilotSession } from '@/generated/client';
@@ -348,10 +349,8 @@ export class PilotService {
       throw new ProviderItemNotFoundError(`provider item ${pilotSession.providerItemId} not valid`);
     }
 
-    const chatModel = await this.providerService.prepareChatModel(
-      user,
-      JSON.parse(providerItem.config).modelId,
-    );
+    const modelId = JSON.parse(providerItem.config).modelId;
+    const chatModel = await this.providerService.prepareChatModel(user, modelId);
 
     const engine = new PilotEngine(chatModel, pilotSession);
     const rawSteps = await engine.run(canvasContentItems);
@@ -359,9 +358,9 @@ export class PilotService {
     if (rawSteps.length === 0) {
       await this.prisma.pilotSession.update({
         where: { sessionId },
-        data: { status: 'completed' },
+        data: { status: 'finish' },
       });
-      this.logger.log(`Pilot session ${sessionId} completed due to no steps`);
+      this.logger.log(`Pilot session ${sessionId} finished due to no steps`);
       return;
     }
 
@@ -386,11 +385,21 @@ export class PilotService {
           uid: user.uid,
           resultId,
           title: rawStep.name,
+          actionMeta: JSON.stringify({
+            type: 'skill',
+            name: skill.name,
+            icon: skill.icon,
+          } as ActionMeta),
           input: JSON.stringify({ query: rawStep.query } as SkillInput),
           status: 'waiting',
           context: JSON.stringify(context),
           history: JSON.stringify(history),
+          modelName: modelId,
+          tier: providerItem.tier,
+          errors: '[]',
           pilotStepId: stepId,
+          runtimeConfig: '{}',
+          providerItemId: providerItem.itemId,
         },
       });
       await this.prisma.pilotStep.create({
@@ -402,6 +411,7 @@ export class PilotService {
           entityId: actionResult.resultId,
           entityType: 'skillResponse',
           rawOutput: JSON.stringify(rawStep),
+          status: 'init',
         },
       });
     }
@@ -441,14 +451,14 @@ export class PilotService {
       where: { sessionId: step.sessionId },
     });
 
-    const isAllStepsCompleted = epochSteps.every((step) => step.status === 'completed');
+    const isAllStepsFinished = epochSteps.every((step) => step.status === 'finish');
     const reachedMaxEpoch = step.epoch >= session.maxEpoch;
 
-    if (isAllStepsCompleted) {
+    if (isAllStepsFinished) {
       await this.prisma.pilotSession.update({
         where: { sessionId: step.sessionId },
         data: {
-          status: reachedMaxEpoch ? 'completed' : 'executing',
+          status: reachedMaxEpoch ? 'finish' : 'executing',
           ...(!reachedMaxEpoch ? { currentEpoch: session.currentEpoch + 1 } : {}),
         },
       });

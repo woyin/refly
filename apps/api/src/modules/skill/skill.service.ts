@@ -544,41 +544,49 @@ export class SkillService {
     };
 
     if (existingResult) {
-      const [result] = await this.prisma.$transaction([
-        this.prisma.actionResult.create({
-          data: {
-            resultId,
-            uid,
-            version: (existingResult.version ?? 0) + 1,
-            type: 'skill',
-            tier: providerItem.tier ?? '',
-            status: 'executing',
-            title: param.input.query,
-            targetId: param.target?.entityId,
-            targetType: param.target?.entityType,
-            modelName: modelConfigMap.chat.modelId,
-            projectId: param.projectId ?? null,
-            actionMeta: JSON.stringify({
+      if (existingResult.pilotStepId) {
+        const result = await this.prisma.actionResult.update({
+          where: { pk: existingResult.pk },
+          data: { status: 'executing' },
+        });
+        data.result = actionResultPO2DTO(result);
+      } else {
+        const [result] = await this.prisma.$transaction([
+          this.prisma.actionResult.create({
+            data: {
+              resultId,
+              uid,
+              version: (existingResult.version ?? 0) + 1,
               type: 'skill',
-              name: param.skillName,
-              icon: skill.icon,
-            } as ActionMeta),
-            errors: JSON.stringify([]),
-            input: JSON.stringify(param.input),
-            context: JSON.stringify(purgeContext(param.context)),
-            tplConfig: JSON.stringify(param.tplConfig),
-            runtimeConfig: JSON.stringify(param.runtimeConfig),
-            history: JSON.stringify(purgeResultHistory(param.resultHistory)),
-            providerItemId: providerItem.itemId,
-          },
-        }),
-        // Delete existing step data
-        this.prisma.actionStep.updateMany({
-          where: { resultId },
-          data: { deletedAt: new Date() },
-        }),
-      ]);
-      data.result = actionResultPO2DTO(result);
+              tier: providerItem.tier ?? '',
+              status: 'executing',
+              title: param.input.query,
+              targetId: param.target?.entityId,
+              targetType: param.target?.entityType,
+              modelName: modelConfigMap.chat.modelId,
+              projectId: param.projectId ?? null,
+              actionMeta: JSON.stringify({
+                type: 'skill',
+                name: param.skillName,
+                icon: skill.icon,
+              } as ActionMeta),
+              errors: JSON.stringify([]),
+              input: JSON.stringify(param.input),
+              context: JSON.stringify(purgeContext(param.context)),
+              tplConfig: JSON.stringify(param.tplConfig),
+              runtimeConfig: JSON.stringify(param.runtimeConfig),
+              history: JSON.stringify(purgeResultHistory(param.resultHistory)),
+              providerItemId: providerItem.itemId,
+            },
+          }),
+          // Delete existing step data
+          this.prisma.actionStep.updateMany({
+            where: { resultId },
+            data: { deletedAt: new Date() },
+          }),
+        ]);
+        data.result = actionResultPO2DTO(result);
+      }
     } else {
       const result = await this.prisma.actionResult.create({
         data: {
@@ -1315,16 +1323,21 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
 
       const steps = resultAggregator.getSteps({ resultId, version });
+      const status = result.errors.length > 0 ? 'failed' : 'finish';
 
       await this.prisma.$transaction([
         this.prisma.actionResult.updateMany({
           where: { resultId, version },
           data: {
-            status: result.errors.length > 0 ? 'failed' : 'finish',
+            status,
             errors: JSON.stringify(result.errors),
           },
         }),
         this.prisma.actionStep.createMany({ data: steps }),
+        this.prisma.pilotStep.updateMany({
+          where: { stepId: result.pilotStepId },
+          data: { status },
+        }),
       ]);
 
       writeSSEResponse(res, { event: 'end', resultId, version });

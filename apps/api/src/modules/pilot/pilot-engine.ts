@@ -209,7 +209,7 @@ export class PilotEngine {
     private readonly session: PilotSession,
   ) {}
 
-  async run(contentItems: CanvasContentItem[]): Promise<PilotStep[]> {
+  async run(contentItems: CanvasContentItem[], maxStepsPerEpoch = 3): Promise<PilotStep[]> {
     const sessionInput: SkillInput = JSON.parse(this.session.input);
     const userQuestion = sessionInput.query;
     const combinedContent = formatCanvasContent(contentItems);
@@ -225,7 +225,7 @@ export class PilotEngine {
         this.logger.log(
           `No canvas content available. Bootstrapping research planning based solely on user question: "${userQuestion}"`,
         );
-        return this.generateResearchWithoutContent(userQuestion);
+        return this.generateResearchWithoutContent(userQuestion, maxStepsPerEpoch);
       }
 
       this.logger.log(
@@ -257,6 +257,7 @@ Analyze the user's question and available canvas content, then generate a struct
    - Use 'commonQnA' for general knowledge questions
    - Use 'codeArtifacts' for technical implementation details
    - Use 'generateDoc' to synthesize findings into reports or summaries
+7. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 
 ${generateSchemaInstructions()}
 
@@ -302,6 +303,7 @@ Analyze the user's question and available canvas content, then generate a struct
    - Use 'commonQnA' for general knowledge questions
    - Use 'codeArtifacts' for technical implementation details
    - Use 'generateDoc' to synthesize findings into reports or summaries
+7. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 
 ${schemaInstructions}
 
@@ -337,8 +339,12 @@ Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
   /**
    * Generates research steps based solely on the user question when no canvas content is available
    * @param userQuestion The user's research question
+   * @param maxStepsPerEpoch The maximum number of steps to generate
    */
-  private async generateResearchWithoutContent(userQuestion: string): Promise<PilotStep[]> {
+  private async generateResearchWithoutContent(
+    userQuestion: string,
+    maxStepsPerEpoch = 3,
+  ): Promise<PilotStep[]> {
     try {
       // First attempt: Use LLM structured output capability with empty context
       try {
@@ -361,6 +367,7 @@ Analyze the user's question and generate a structured research plan with specifi
    - Use 'commonQnA' for general knowledge questions
    - Use 'codeArtifacts' for technical implementation details or code examples
    - Use 'generateDoc' to synthesize findings into reports or summaries
+7. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 
 ${generateSchemaInstructions()}
 
@@ -368,7 +375,6 @@ Create a research plan that:
 1. Begins with broad information gathering
 2. Progresses to more specific aspects of the topic
 3. Concludes with steps to synthesize or apply the information
-4. Has at least 3-5 steps to thoroughly investigate the topic
 
 User Question: "${userQuestion}"
 
@@ -405,6 +411,7 @@ Analyze the user's question and generate a structured research plan to thoroughl
    - Use 'commonQnA' for general knowledge questions
    - Use 'codeArtifacts' for technical implementation details
    - Use 'generateDoc' to synthesize findings into reports or summaries
+7. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 
 ${schemaInstructions}
 

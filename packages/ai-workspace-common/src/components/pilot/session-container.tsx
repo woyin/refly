@@ -1,8 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PilotStep } from '@refly/openapi-schema';
-import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useReactFlow } from '@xyflow/react';
+import { ActionResult, PilotStep } from '@refly/openapi-schema';
+import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
 import { Button, Skeleton, Tooltip, Popover } from 'antd';
+import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useAddNode, useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { cn } from '@refly/utils/cn';
 import { ClockCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { PilotStepItem } from './pilot-step-item';
@@ -173,6 +176,7 @@ export const SessionContainer = memo(
     const [isPolling, setIsPolling] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [sessionStatus, setSessionStatus] = useState<string | null>(null);
+    const { getNodes } = useReactFlow<CanvasNode<any>>();
 
     const [isMaximized, setIsMaximized] = useState(false);
     const [isWideMode, setIsWideMode] = useState(false);
@@ -233,6 +237,8 @@ export const SessionContainer = memo(
       `,
       [isMaximized],
     );
+    const { invokeAction } = useInvokeAction();
+    const { addNode } = useAddNode();
 
     // Fetch the pilot session details
     const {
@@ -276,6 +282,54 @@ export const SessionContainer = memo(
       [onStepClick],
     );
 
+    const handleInvokeAction = useCallback(
+      (result: ActionResult, position: { x: number; y: number }) => {
+        const {
+          input,
+          resultId,
+          actionMeta,
+          modelInfo,
+          runtimeConfig,
+          tplConfig,
+          targetId,
+          targetType,
+        } = result;
+        console.log('result', result, position);
+
+        invokeAction(
+          {
+            query: input.query,
+            resultId,
+            selectedSkill: actionMeta,
+            modelInfo,
+            tplConfig,
+            runtimeConfig,
+          },
+          {
+            entityId: targetId,
+            entityType: targetType,
+          },
+        );
+        addNode({
+          type: 'skillResponse',
+          data: {
+            title: input.query,
+            entityId: resultId,
+            metadata: {
+              status: 'executing',
+              selectedSkill: actionMeta,
+              modelInfo,
+              runtimeConfig,
+              tplConfig,
+              pilotStepId: result.pilotStepId,
+              pilotSessionId: sessionId,
+            },
+          },
+        });
+      },
+      [invokeAction, addNode, sessionId],
+    );
+
     // Sort steps by epoch and creation time
     const sortedSteps = useMemo(() => {
       if (!session?.steps?.length) return [];
@@ -310,6 +364,35 @@ export const SessionContainer = memo(
         setIsPolling(false);
       }
     }, [shouldPoll, isPolling]);
+
+    // Process waiting steps and call handleInvokeAction for each one
+    useEffect(() => {
+      if (!sortedSteps?.length) return;
+
+      const nodes = getNodes();
+      const processedPilotStepIds = new Set(
+        nodes.map((node) => node?.data?.metadata?.pilotStepId).filter(Boolean),
+      );
+      const rightMostX = Math.max(...nodes.map((node) => node?.position?.x).filter(Boolean));
+
+      // Find steps with status "init" that have an actionResult and haven't been processed yet
+      const stepsToProcess = sortedSteps.filter(
+        (step) =>
+          step.status === 'init' && step.actionResult && !processedPilotStepIds.has(step.stepId),
+      );
+
+      if (stepsToProcess.length > 0) {
+        // Mark these steps as processed first to prevent duplicate processing
+        for (const [index, step] of stepsToProcess.entries()) {
+          if (step.actionResult) {
+            handleInvokeAction(step.actionResult, {
+              x: rightMostX + 800,
+              y: index * 500,
+            });
+          }
+        }
+      }
+    }, [sortedSteps, handleInvokeAction]);
 
     useEffect(() => {
       console.log('sessionId', sessionId);

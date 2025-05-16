@@ -85,8 +85,6 @@ export abstract class BaseSkill extends StructuredTool {
         eventData.event = 'structured_data';
       } else if (eventData.artifact) {
         eventData.event = 'artifact';
-      } else if (eventData.invokeSkillParam) {
-        eventData.event = 'invoke_skill';
       }
     }
 

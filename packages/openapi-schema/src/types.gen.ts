@@ -1188,11 +1188,11 @@ export type ActionMeta = {
   /**
    * Action type
    */
-  type?: ActionType;
+  type: ActionType;
   /**
    * Action name
    */
-  name?: string;
+  name: string;
   /**
    * Action icon
    */
@@ -2659,7 +2659,6 @@ export type SkillEventType =
   | 'structured_data'
   | 'token_usage'
   | 'create_node'
-  | 'invoke_skill'
   | 'error';
 
 export type SkillEvent = {
@@ -2713,10 +2712,6 @@ export type SkillEvent = {
    * Canvas node data. Only present when `event` is `create_node`.
    */
   node?: CanvasNode;
-  /**
-   * Invoke skill parameter. Only present when `event` is `invoke_skill`.
-   */
-  invokeSkillParam?: InvokeSkillRequest;
   /**
    * Error data. Only present when `event` is `error`.
    * @deprecated

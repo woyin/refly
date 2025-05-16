@@ -1624,6 +1624,7 @@ export const SkillMetaSchema = {
 export const ActionMetaSchema = {
   type: 'object',
   description: 'Action metadata',
+  required: ['type', 'name'],
   properties: {
     type: {
       type: 'string',
@@ -3732,7 +3733,6 @@ export const SkillEventTypeSchema = {
     'structured_data',
     'token_usage',
     'create_node',
-    'invoke_skill',
     'error',
   ],
 } as const;
@@ -3788,11 +3788,6 @@ export const SkillEventSchema = {
     node: {
       description: 'Canvas node data. Only present when `event` is `create_node`.',
       $ref: '#/components/schemas/CanvasNode',
-    },
-    invokeSkillParam: {
-      type: 'object',
-      description: 'Invoke skill parameter. Only present when `event` is `invoke_skill`.',
-      $ref: '#/components/schemas/InvokeSkillRequest',
     },
     error: {
       description: 'Error data. Only present when `event` is `error`.',
