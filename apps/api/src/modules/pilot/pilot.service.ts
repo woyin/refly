@@ -365,7 +365,7 @@ export class PilotService {
       return;
     }
 
-    const skills = this.skillService.listSkills();
+    const skills = this.skillService.listSkills(true);
 
     for (const rawStep of rawSteps) {
       const stepId = genPilotStepID();
