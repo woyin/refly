@@ -20,6 +20,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_RUN_PILOT } from '@/utils/const';
 import { RunPilotJobData } from './pilot.processor';
+import { ProviderItemNotFoundError } from '@refly/errors';
 
 @Injectable()
 export class PilotService {
@@ -340,10 +341,19 @@ export class PilotService {
     );
 
     const currentEpoch = pilotSession.currentEpoch;
-    const modelItemId = pilotSession.providerItemId;
-    const providerItem = await this.providerService.prepareChatModel(user, modelItemId);
+    const providerItemId = pilotSession.providerItemId;
+    const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
 
-    const engine = new PilotEngine(providerItem, pilotSession);
+    if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
+      throw new ProviderItemNotFoundError(`provider item ${pilotSession.providerItemId} not valid`);
+    }
+
+    const chatModel = await this.providerService.prepareChatModel(
+      user,
+      JSON.parse(providerItem.config).modelId,
+    );
+
+    const engine = new PilotEngine(chatModel, pilotSession);
     const rawSteps = await engine.run(canvasContentItems);
 
     if (rawSteps.length === 0) {

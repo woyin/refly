@@ -215,14 +215,17 @@ export class PilotEngine {
     const combinedContent = formatCanvasContent(contentItems);
 
     try {
-      if (!combinedContent) {
-        this.logger.warn('No content available for research planning');
-        return [];
-      }
-
       if (!userQuestion) {
         this.logger.warn('No user question provided for research planning');
         return [];
+      }
+
+      // If no content is available, bootstrap with just the user question
+      if (!combinedContent) {
+        this.logger.log(
+          `No canvas content available. Bootstrapping research planning based solely on user question: "${userQuestion}"`,
+        );
+        return this.generateResearchWithoutContent(userQuestion);
       }
 
       this.logger.log(
@@ -327,6 +330,106 @@ Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
       return validatedData;
     } catch (error) {
       this.logger.error(`Error generating research plan: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Generates research steps based solely on the user question when no canvas content is available
+   * @param userQuestion The user's research question
+   */
+  private async generateResearchWithoutContent(userQuestion: string): Promise<PilotStep[]> {
+    try {
+      // First attempt: Use LLM structured output capability with empty context
+      try {
+        const structuredLLM = this.model.withStructuredOutput(multiStepSchema);
+
+        const fullPrompt = `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
+
+## Your Task
+Analyze the user's question and generate a structured research plan with specific steps to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
+
+## Guidelines
+1. Break down the research into logical, sequential steps
+2. Select the most appropriate skill for each research step
+3. Craft specific and focused queries for each skill
+4. Use an empty array for contextItemIds since no context is available yet
+5. Build on information gained from previous steps in your plan
+6. Consider which skills would be most effective for different aspects of the research:
+   - Use 'webSearch' for recent information or specific facts
+   - Use 'librarySearch' for academic or in-depth research
+   - Use 'commonQnA' for general knowledge questions
+   - Use 'codeArtifacts' for technical implementation details or code examples
+   - Use 'generateDoc' to synthesize findings into reports or summaries
+
+${generateSchemaInstructions()}
+
+Create a research plan that:
+1. Begins with broad information gathering
+2. Progresses to more specific aspects of the topic
+3. Concludes with steps to synthesize or apply the information
+4. Has at least 3-5 steps to thoroughly investigate the topic
+
+User Question: "${userQuestion}"
+
+Note: No existing context items are available, so use empty arrays for contextItemIds.`;
+
+        const results = await structuredLLM.invoke(fullPrompt);
+
+        this.logger.log(`Generated bootstrap research plan: ${JSON.stringify(results)}`);
+
+        return results;
+      } catch (structuredError) {
+        this.logger.warn(
+          `Structured output for bootstrap plan failed: ${structuredError.message}, trying fallback approach`,
+        );
+        // Continue to fallback
+      }
+
+      // Second attempt: Manual JSON parsing approach
+      const schemaInstructions = generateSchemaInstructions();
+      const fullPrompt = `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
+
+## Your Task
+Analyze the user's question and generate a structured research plan to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
+
+## Guidelines
+1. Break down the research into logical, sequential steps
+2. Select the most appropriate skill for each research step
+3. Craft specific and focused queries for each skill
+4. Use empty arrays for contextItemIds since no context is available yet
+5. Build on information gained from previous steps
+6. Consider which skills would be most effective for different aspects of the research:
+   - Use 'webSearch' for recent information or specific facts
+   - Use 'librarySearch' for academic or in-depth research
+   - Use 'commonQnA' for general knowledge questions
+   - Use 'codeArtifacts' for technical implementation details
+   - Use 'generateDoc' to synthesize findings into reports or summaries
+
+${schemaInstructions}
+
+User Question: "${userQuestion}"
+
+Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
+
+      const response = await this.model.invoke(fullPrompt);
+      const responseText = response.content.toString();
+
+      // Extract and parse JSON
+      const extraction = extractJsonFromMarkdown(responseText);
+
+      if (extraction.error) {
+        throw new Error(`JSON extraction failed for bootstrap plan: ${extraction.error.message}`);
+      }
+
+      const validatedData = await multiStepSchema.parseAsync(extraction.result);
+
+      this.logger.log(
+        `Successfully generated bootstrap research plan with ${validatedData.length} steps`,
+      );
+      return validatedData;
+    } catch (error) {
+      this.logger.error(`Error generating bootstrap research plan: ${error.message}`);
       return [];
     }
   }
