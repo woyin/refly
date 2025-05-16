@@ -2697,6 +2697,7 @@ const translations = {
       'Refly Pilot is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
     noSessions: 'No pilot sessions found',
     loadFailed: 'Failed to load session details',
+    epoch: 'Epoch {{count}}',
     newSession: 'New Session',
     sessionHistory: 'Session History',
     sessionInputPlaceholder: 'Ask a question...',

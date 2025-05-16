@@ -2524,6 +2524,7 @@ const translations = {
     description: 'Refly Pilot 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
     noSessions: '暂无会话',
     loadFailed: '加载会话失败',
+    epoch: '第 {{count}} 轮',
     newSession: '新会话',
     sessionHistory: '会话历史',
     sessionInputPlaceholder: '问点什么...',

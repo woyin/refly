@@ -68,7 +68,7 @@ export const PilotStepItem = memo(({ step, onClick, isDetailed = false }: PilotS
         </div>
         <div className="flex items-center space-x-2">
           {step.epoch !== undefined && (
-            <Tag color="blue">{t('pilot.epoch', { count: step.epoch })}</Tag>
+            <Tag color="blue">{t('pilot.epoch', { count: step.epoch + 1 })}</Tag>
           )}
           {createdAt && (
             <Tooltip title={step.createdAt}>
