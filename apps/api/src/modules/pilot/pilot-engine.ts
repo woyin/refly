@@ -20,7 +20,11 @@ const pilotStepSchema = z
   })
   .describe('A single action step of the pilot');
 
-const multiStepSchema = z.array(pilotStepSchema).describe('A list of steps of the pilot');
+const multiStepSchema = z
+  .object({
+    steps: z.array(pilotStepSchema).describe('A list of steps of the pilot'),
+  })
+  .describe('A list of steps of the pilot');
 
 type PilotStep = z.infer<typeof pilotStepSchema>;
 
@@ -269,11 +273,11 @@ User Question: "${userQuestion}"
 Canvas Content:
 ${combinedContent}`;
 
-        const results = await structuredLLM.invoke(fullPrompt);
+        const { steps } = await structuredLLM.invoke(fullPrompt);
 
-        this.logger.log(`Generated research plan: ${JSON.stringify(results)}`);
+        this.logger.log(`Generated research plan: ${JSON.stringify(steps)}`);
 
-        return results;
+        return steps;
       } catch (structuredError) {
         this.logger.warn(
           `Structured output failed: ${structuredError.message}, trying fallback approach`,
@@ -326,10 +330,10 @@ Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
         );
       }
 
-      const validatedData = await multiStepSchema.parseAsync(extraction.result);
+      const { steps } = await multiStepSchema.parseAsync(extraction.result);
 
-      this.logger.log(`Successfully generated research plan with ${validatedData.length} steps`);
-      return validatedData;
+      this.logger.log(`Successfully generated research plan with ${steps?.length} steps`);
+      return steps;
     } catch (error) {
       this.logger.error(`Error generating research plan: ${error.message}`);
       return [];
@@ -380,11 +384,11 @@ User Question: "${userQuestion}"
 
 Note: No existing context items are available, so use empty arrays for contextItemIds.`;
 
-        const results = await structuredLLM.invoke(fullPrompt);
+        const { steps } = await structuredLLM.invoke(fullPrompt);
 
-        this.logger.log(`Generated bootstrap research plan: ${JSON.stringify(results)}`);
+        this.logger.log(`Generated bootstrap research plan: ${JSON.stringify(steps)}`);
 
-        return results;
+        return steps;
       } catch (structuredError) {
         this.logger.warn(
           `Structured output for bootstrap plan failed: ${structuredError.message}, trying fallback approach`,
@@ -429,12 +433,10 @@ Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
         throw new Error(`JSON extraction failed for bootstrap plan: ${extraction.error.message}`);
       }
 
-      const validatedData = await multiStepSchema.parseAsync(extraction.result);
+      const { steps } = await multiStepSchema.parseAsync(extraction.result);
 
-      this.logger.log(
-        `Successfully generated bootstrap research plan with ${validatedData.length} steps`,
-      );
-      return validatedData;
+      this.logger.log(`Successfully generated bootstrap research plan with ${steps?.length} steps`);
+      return steps;
     } catch (error) {
       this.logger.error(`Error generating bootstrap research plan: ${error.message}`);
       return [];

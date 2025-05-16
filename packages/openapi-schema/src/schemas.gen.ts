@@ -2178,6 +2178,10 @@ export const ActionResultSchema = {
       type: 'string',
       description: 'Pilot step ID',
     },
+    pilotSessionId: {
+      type: 'string',
+      description: 'Pilot session ID',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',

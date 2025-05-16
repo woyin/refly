@@ -146,6 +146,8 @@ model ActionResult {
   providerItemId String?      @map("provider_item_id")
   /// Pilot step id
   pilotStepId    String?      @map("pilot_step_id")
+  /// Pilot session id
+  pilotSessionId String?      @map("pilot_session_id")
   /// Create timestamp
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -272,9 +274,9 @@ model TokenUsage {
   /// Model tier
   tier          String   @map("tier")
   /// Model provider
-  modelProvider String   @map("model_provider")
+  modelProvider String   @default("") @map("model_provider")
   /// Model name
-  modelName     String   @map("model_name")
+  modelName     String   @default("") @map("model_name")
   /// Input tokens
   inputTokens   Int      @default(0) @map("input_tokens")
   /// Output tokens

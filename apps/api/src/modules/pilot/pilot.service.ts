@@ -336,13 +336,14 @@ export class PilotService {
       throw new Error('Pilot session not found');
     }
 
+    const { targetId, targetType, currentEpoch, maxEpoch, providerItemId } = pilotSession;
     const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
       user,
-      pilotSession.targetId,
+      targetId,
     );
 
-    const currentEpoch = pilotSession.currentEpoch;
-    const providerItemId = pilotSession.providerItemId;
+    this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
+
     const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
 
     if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
@@ -392,13 +393,17 @@ export class PilotService {
           } as ActionMeta),
           input: JSON.stringify({ query: rawStep.query } as SkillInput),
           status: 'waiting',
+          targetId,
+          targetType,
           context: JSON.stringify(context),
           history: JSON.stringify(history),
           modelName: modelId,
           tier: providerItem.tier,
           errors: '[]',
           pilotStepId: stepId,
+          pilotSessionId: sessionId,
           runtimeConfig: '{}',
+          tplConfig: '{}',
           providerItemId: providerItem.itemId,
         },
       });
@@ -453,6 +458,10 @@ export class PilotService {
 
     const isAllStepsFinished = epochSteps.every((step) => step.status === 'finish');
     const reachedMaxEpoch = step.epoch >= session.maxEpoch;
+    this.logger.log(
+      `Epoch (${session.currentEpoch}/${session.maxEpoch}) for session ${step.sessionId}: ` +
+        `steps are ${isAllStepsFinished ? 'finished' : 'not finished'}`,
+    );
 
     if (isAllStepsFinished) {
       await this.prisma.pilotSession.update({
@@ -471,10 +480,6 @@ export class PilotService {
           { removeOnComplete: true, removeOnFail: 100 },
         );
       }
-    } else {
-      this.logger.log(
-        `Epoch steps (${session.currentEpoch}) for session ${step.sessionId} are not completed, continue waiting`,
-      );
     }
   }
 }

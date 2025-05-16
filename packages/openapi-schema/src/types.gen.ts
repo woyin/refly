@@ -1667,6 +1667,10 @@ export type ActionResult = {
    */
   pilotStepId?: string;
   /**
+   * Pilot session ID
+   */
+  pilotSessionId?: string;
+  /**
    * Message creation time
    */
   createdAt?: string;

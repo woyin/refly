@@ -1275,7 +1275,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 String(runMeta.ls_model_name),
               );
               if (!providerItem) {
-                this.logger.error(`model not found: ${String(runMeta.ls_model_name)}`);
+                this.logger.warn(`model not found: ${String(runMeta.ls_model_name)}`);
               }
               const usage: TokenUsageItem = {
                 tier: providerItem?.tier,
@@ -1364,6 +1364,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
 
       // Sync pilot step if needed
+      this.logger.log(`Sync pilot step for result ${resultId}, pilotStepId: ${result.pilotStepId}`);
       if (result.pilotStepId) {
         await this.pilotStepQueue.add('syncPilotStep', {
           user: { uid: user.uid },
