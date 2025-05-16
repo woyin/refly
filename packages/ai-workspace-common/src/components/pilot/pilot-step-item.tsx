@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
-import { Tag, Tooltip } from 'antd';
+import { Tag } from 'antd';
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -9,6 +9,9 @@ import {
   LoadingOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
+import { time } from '@refly-packages/ai-workspace-common/utils/time';
+import { LOCALE } from '@refly/common-types';
+import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
 
 // Status icon mapping for pilot steps
 export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) => {
@@ -36,53 +39,51 @@ export interface PilotStepItemProps {
   isDetailed?: boolean;
 }
 
-export const PilotStepItem = memo(({ step, onClick, isDetailed = false }: PilotStepItemProps) => {
-  const { t } = useTranslation();
+export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
+  const { t, i18n } = useTranslation();
+  const language = i18n.languages?.[0];
 
   const handleClick = useMemo(() => {
     if (!onClick) return undefined;
     return () => onClick(step);
   }, [onClick, step]);
 
-  const createdAt = useMemo(() => {
-    if (!step.createdAt) return null;
-    try {
-      return new Date(step.createdAt).toLocaleTimeString();
-    } catch (e) {
-      console.error(e);
-      return null;
-    }
-  }, [step.createdAt]);
+  const { actionMeta, input } = step?.actionResult ?? {};
+  const skillName = actionMeta?.name;
+  const skillDisplayName = skillName ? t(`${skillName}.name`, { ns: 'skill' }) : '';
 
   return (
     <div
-      className={`border border-gray-200 dark:border-gray-700 rounded-md p-3 mb-3 bg-white dark:bg-gray-800 ${
-        onClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors' : ''
-      }`}
+      className="flex flex-col gap-1 border border-solid hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 rounded-md p-3 mb-3 bg-white dark:bg-gray-800 cursor-pointer transition-colors"
       onClick={handleClick}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between">
         <div className="flex items-center">
           <StepStatusIcon status={step.status} />
-          <span className="ml-2 font-medium text-sm">{step.name}</span>
+          <span className="ml-2 font-medium text-sm truncate max-w-64">{step.name}</span>
         </div>
         <div className="flex items-center space-x-2">
           {step.epoch !== undefined && (
             <Tag color="blue">{t('pilot.epoch', { count: step.epoch + 1 })}</Tag>
           )}
-          {createdAt && (
-            <Tooltip title={step.createdAt}>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{createdAt}</span>
-            </Tooltip>
-          )}
         </div>
       </div>
 
       {step.actionResult && (
-        <div className="mt-2 pl-6 text-sm text-gray-600 dark:text-gray-300 border-l-2 border-gray-200 dark:border-gray-600">
-          <div className={isDetailed ? '' : 'line-clamp-3'}>{step.actionResult.resultId}</div>
+        <div className="px-4 text-xs text-gray-600 dark:text-gray-300">
+          <div className="flex items-center gap-1">
+            {getSkillIcon(skillName)}
+            {skillDisplayName}
+          </div>
+          <div className="line-clamp-3 py-1">{input.query}</div>
         </div>
       )}
+
+      <div className="text-xs px-4 text-gray-500 dark:text-gray-400">
+        {time(step?.createdAt, language as LOCALE)
+          ?.utc()
+          ?.fromNow()}
+      </div>
     </div>
   );
 });

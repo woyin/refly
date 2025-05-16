@@ -174,7 +174,6 @@ export const SessionContainer = memo(
   ({ sessionId, canvasId, className, onStepClick }: SessionContainerProps) => {
     const { t } = useTranslation();
     const [isPolling, setIsPolling] = useState(false);
-    const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [sessionStatus, setSessionStatus] = useState<string | null>(null);
     const { getNodes } = useReactFlow<CanvasNode<any>>();
 
@@ -274,7 +273,6 @@ export const SessionContainer = memo(
 
     const handleStepClick = useCallback(
       (step: PilotStep) => {
-        setSelectedStepId(step.stepId);
         if (onStepClick) {
           onStepClick(step);
         }
@@ -439,7 +437,6 @@ export const SessionContainer = memo(
                         key={step.stepId}
                         step={step}
                         onClick={onStepClick ? handleStepClick : undefined}
-                        isDetailed={step.stepId === selectedStepId}
                       />
                     ))}
                   </div>
