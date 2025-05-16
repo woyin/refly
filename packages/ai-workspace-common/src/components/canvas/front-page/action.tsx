@@ -1,5 +1,5 @@
 import { Button, Tooltip, Switch } from 'antd';
-import { memo, useMemo, useRef, useCallback, useState } from 'react';
+import { memo, useMemo, useRef, useCallback } from 'react';
 import { IconLink, IconSend, IconQuestionCircle } from '@arco-design/web-react/icon';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
@@ -17,10 +17,6 @@ export interface CustomAction {
   onClick: () => void;
 }
 
-export interface SendMessageOptions {
-  isPilotActivated?: boolean;
-}
-
 interface ActionsProps {
   query: string;
   model: ModelInfo;
@@ -28,10 +24,12 @@ interface ActionsProps {
   runtimeConfig: SkillRuntimeConfig;
   setRuntimeConfig: (runtimeConfig: SkillRuntimeConfig) => void;
   className?: string;
-  handleSendMessage: (options?: SendMessageOptions) => void;
+  handleSendMessage: () => void;
   handleAbort: () => void;
   customActions?: CustomAction[];
   loading?: boolean;
+  isPilotActivated: boolean;
+  setIsPilotActivated: (activated: boolean) => void;
 }
 
 export const Actions = memo(
@@ -46,9 +44,10 @@ export const Actions = memo(
       loading,
       runtimeConfig,
       setRuntimeConfig,
+      isPilotActivated,
+      setIsPilotActivated,
     } = props;
     const { t } = useTranslation();
-    const [isPilotActivated, setIsPilotActivated] = useState(false);
 
     // hooks
     const isWeb = getRuntime() === 'web';
@@ -82,16 +81,14 @@ export const Actions = memo(
 
     // Toggle Pilot activation
     const togglePilot = useCallback(() => {
-      setIsPilotActivated((prev) => !prev);
-    }, []);
+      setIsPilotActivated(!isPilotActivated);
+    }, [isPilotActivated, setIsPilotActivated]);
 
     // Create a pilot session or directly send message
     const handleSend = useCallback(() => {
       if (!canSendMessage) return;
-
-      // Skip pilot and proceed with normal message sending
-      handleSendMessage({ isPilotActivated });
-    }, [isPilotActivated, canSendMessage, handleSendMessage]);
+      handleSendMessage();
+    }, [canSendMessage, handleSendMessage]);
 
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -169,7 +166,9 @@ export const Actions = memo(
       prevProps.query === nextProps.query &&
       prevProps.runtimeConfig === nextProps.runtimeConfig &&
       prevProps.setRuntimeConfig === nextProps.setRuntimeConfig &&
-      prevProps.model === nextProps.model
+      prevProps.model === nextProps.model &&
+      prevProps.isPilotActivated === nextProps.isPilotActivated &&
+      prevProps.setIsPilotActivated === nextProps.setIsPilotActivated
     );
   },
 );

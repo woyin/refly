@@ -8,7 +8,9 @@ import { ClockCircleOutlined, CloseCircleOutlined, SyncOutlined } from '@ant-des
 import { PilotStepItem } from './pilot-step-item';
 import { SessionStatusTag } from './session-status-tag';
 
-const POLLING_INTERVAL = 3000; // 3 seconds
+// Define the active statuses that require polling
+const ACTIVE_STATUSES = ['executing', 'waiting'];
+const POLLING_INTERVAL = 2000; // 2 seconds
 
 export interface SessionContainerProps {
   sessionId: string;
@@ -22,6 +24,7 @@ export const SessionContainer = memo(
     const { t } = useTranslation();
     const [isPolling, setIsPolling] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
+    const [sessionStatus, setSessionStatus] = useState<string | null>(null);
 
     // Fetch the pilot session details
     const {
@@ -34,38 +37,34 @@ export const SessionContainer = memo(
         query: { sessionId },
       },
       null,
-      { enabled: !!sessionId },
+      {
+        enabled: !!sessionId,
+        refetchInterval: isPolling ? POLLING_INTERVAL : false,
+      },
     );
 
     const session = useMemo(() => sessionData?.data, [sessionData]);
 
+    // Update session status whenever it changes
+    useEffect(() => {
+      if (session?.status) {
+        setSessionStatus(session.status);
+      }
+    }, [session?.status]);
+
     // Check if the session is in an active state that requires polling
     const shouldPoll = useMemo(() => {
-      if (!session) return false;
-      return session.status === 'executing' || session.status === 'waiting';
-    }, [session]);
+      return ACTIVE_STATUSES.includes(sessionStatus ?? '');
+    }, [sessionStatus]);
 
     // Set up polling based on session status
     useEffect(() => {
-      let intervalId: NodeJS.Timeout;
-
       if (shouldPoll && !isPolling) {
         setIsPolling(true);
-        intervalId = setInterval(() => {
-          refetch();
-        }, POLLING_INTERVAL);
+      } else if (!shouldPoll && isPolling) {
+        setIsPolling(false);
       }
-
-      // Clean up interval on component unmount or when polling should stop
-      return () => {
-        if (intervalId) {
-          clearInterval(intervalId);
-        }
-        if (!shouldPoll && isPolling) {
-          setIsPolling(false);
-        }
-      };
-    }, [shouldPoll, isPolling, refetch]);
+    }, [shouldPoll, isPolling]);
 
     const handleClose = useCallback(() => {
       if (onClose) {
@@ -133,7 +132,7 @@ export const SessionContainer = memo(
     }
 
     return (
-      <div className={cn('p-4 bg-white dark:bg-gray-800 rounded-lg shadow', className)}>
+      <div className={cn('p-4 bg-white dark:bg-gray-800 rounded-lg w-96 shadow', className)}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
