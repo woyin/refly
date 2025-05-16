@@ -2650,6 +2650,10 @@ const translations = {
       message: 'Need more requests? Get higher limits with Premium.',
       upgrade: 'Upgrade',
     },
+    session: {
+      noSession: 'No session available',
+      loadFailed: 'Failed to load session details',
+    },
   },
   hooks: {
     useBuildThreadAndRun: {

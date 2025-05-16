@@ -1,12 +1,146 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PilotStep } from '@refly/openapi-schema';
+import { PilotStep, PilotSession } from '@refly/openapi-schema';
 import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
-import { Button, Skeleton, Tooltip } from 'antd';
+import { Button, Skeleton, Tooltip, Empty, Popover } from 'antd';
 import { cn } from '@refly/utils/cn';
-import { ClockCircleOutlined, CloseCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { PilotStepItem } from './pilot-step-item';
 import { SessionStatusTag } from './session-status-tag';
+import { PilotList } from './pilot-list';
+import {
+  IconClose,
+  IconExitWideMode,
+  IconPilot,
+  IconWideMode,
+  IconThreadHistory,
+} from '@refly-packages/ai-workspace-common/components/common/icon';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
+const SessionHeader = memo(
+  ({
+    canvasId,
+    onClose,
+    onMaximize,
+    isMaximized,
+    onWideMode,
+    isWideMode,
+    onSessionClick,
+  }: {
+    canvasId: string;
+    onClose: () => void;
+    onMaximize: () => void;
+    isMaximized: boolean;
+    onWideMode: () => void;
+    isWideMode: boolean;
+    onSessionClick: (session: PilotSession) => void;
+  }) => {
+    const { t } = useTranslation();
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    console.log('canvasId', canvasId);
+
+    const handleSessionClick = useCallback(
+      (session: PilotSession) => {
+        onSessionClick(session);
+        setIsHistoryOpen(false);
+      },
+      [onSessionClick],
+    );
+
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 rounded-t-lg">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-[#0078FF] shadow-lg flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xs font-medium flex items-center justify-center">
+              <IconPilot className="w-4 h-4" />
+            </span>
+          </div>
+          <span className="text-sm font-medium leading-normal">
+            {t('pilot.name', { defaultValue: 'Pilot' })}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Popover
+            open={isHistoryOpen}
+            onOpenChange={setIsHistoryOpen}
+            placement="bottomRight"
+            trigger="click"
+            getPopupContainer={() => document.body}
+            arrow={false}
+            content={
+              <div className="w-80 max-h-[400px]">
+                <PilotList
+                  limit={10}
+                  targetId={canvasId}
+                  targetType="canvas"
+                  onSessionClick={handleSessionClick}
+                />
+              </div>
+            }
+          >
+            <Button
+              type="text"
+              size="small"
+              className={`flex items-center justify-center p-0 !w-7 h-7 ${isHistoryOpen ? 'text-primary-600' : 'text-gray-500 hover:text-gray-600'} min-w-0`}
+              icon={<IconThreadHistory className="w-4 h-4" />}
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            />
+          </Popover>
+          <Button
+            type="text"
+            size="small"
+            className={`flex items-center justify-center p-0 w-7 h-7 ${isWideMode ? 'text-primary-600' : 'text-gray-500 hover:text-gray-600'} min-w-0`}
+            onClick={onWideMode}
+          >
+            {isWideMode ? (
+              <IconExitWideMode className="w-4 h-4" />
+            ) : (
+              <IconWideMode className="w-4 h-4" />
+            )}
+          </Button>
+          <Button
+            type="text"
+            size="small"
+            className={`flex items-center justify-center p-0 w-7 h-7 ${isMaximized ? 'text-primary-600' : 'text-gray-500 hover:text-gray-600'} min-w-0`}
+            onClick={onMaximize}
+          >
+            {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
+          <Button
+            type="text"
+            size="small"
+            className="flex items-center justify-center p-0 w-7 h-7 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 min-w-0"
+            onClick={onClose}
+          >
+            <IconClose className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  },
+);
+
+SessionHeader.displayName = 'SessionHeader';
+
+export const NoSession = memo(({ loading, error }: { loading: boolean; error: boolean }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="p-4 bg-white dark:bg-gray-900 shadow h-full">
+      {loading && <Skeleton active paragraph={{ rows: 4 }} />}
+      {error && (
+        <p>{t('pilot.session.loadFailed', { defaultValue: 'Failed to load session details' })}</p>
+      )}
+      {!loading && !error && (
+        <div className="flex items-center justify-center h-full">
+          <Empty
+            description={t('pilot.session.noSession', { defaultValue: 'No session available' })}
+          />
+        </div>
+      )}
+    </div>
+  );
+});
+NoSession.displayName = 'NoSession';
 
 // Define the active statuses that require polling
 const ACTIVE_STATUSES = ['executing', 'waiting'];
@@ -14,17 +148,77 @@ const POLLING_INTERVAL = 2000; // 2 seconds
 
 export interface SessionContainerProps {
   sessionId: string;
+  canvasId: string;
   className?: string;
-  onClose?: () => void;
   onStepClick?: (step: PilotStep) => void;
 }
 
 export const SessionContainer = memo(
-  ({ sessionId, className, onClose, onStepClick }: SessionContainerProps) => {
+  ({ sessionId, canvasId, className, onStepClick }: SessionContainerProps) => {
     const { t } = useTranslation();
     const [isPolling, setIsPolling] = useState(false);
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [sessionStatus, setSessionStatus] = useState<string | null>(null);
+
+    const [isMaximized, setIsMaximized] = useState(false);
+    const [isWideMode, setIsWideMode] = useState(false);
+    const { setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
+      setIsPilotOpen: state.setIsPilotOpen,
+      setActiveSessionId: state.setActiveSessionId,
+    }));
+
+    const handleSessionClick = useCallback(
+      (session: PilotSession) => {
+        setActiveSessionId(session.sessionId);
+      },
+      [setActiveSessionId],
+    );
+
+    const handleMaximize = useCallback(() => {
+      setIsMaximized(!isMaximized);
+      if (isWideMode && !isMaximized) {
+        setIsWideMode(false);
+      }
+    }, [isMaximized, isWideMode]);
+
+    const handleWideMode = useCallback(() => {
+      setIsWideMode(!isWideMode);
+      if (isMaximized && !isWideMode) {
+        setIsMaximized(false);
+      }
+    }, [isWideMode, isMaximized]);
+
+    const containerStyles = useMemo(
+      () => ({
+        height: isMaximized ? '100vh' : 'calc(100vh - 72px)',
+        width: isMaximized ? 'calc(100vw)' : isWideMode ? '840px' : '420px',
+        position: isMaximized ? ('fixed' as const) : ('relative' as const),
+        top: isMaximized ? 0 : null,
+        right: isMaximized ? 0 : null,
+        zIndex: isMaximized ? 50 : 10,
+        transition: isMaximized
+          ? 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)'
+          : 'all 50ms cubic-bezier(0.4, 0, 0.2, 1)',
+        display: 'flex',
+        flexDirection: 'column' as const,
+        borderRadius: isMaximized ? 0 : '0.5rem',
+      }),
+      [isMaximized, isWideMode],
+    );
+
+    const containerClassName = useMemo(
+      () => `
+        flex-shrink-0 
+        bg-white dark:bg-gray-900
+        border 
+        border-gray-200 dark:border-gray-700
+        flex 
+        flex-col
+        will-change-transform
+        ${isMaximized ? 'fixed' : 'rounded-lg'}
+      `,
+      [isMaximized],
+    );
 
     // Fetch the pilot session details
     const {
@@ -45,32 +239,14 @@ export const SessionContainer = memo(
 
     const session = useMemo(() => sessionData?.data, [sessionData]);
 
-    // Update session status whenever it changes
-    useEffect(() => {
-      if (session?.status) {
-        setSessionStatus(session.status);
-      }
-    }, [session?.status]);
-
     // Check if the session is in an active state that requires polling
     const shouldPoll = useMemo(() => {
       return ACTIVE_STATUSES.includes(sessionStatus ?? '');
     }, [sessionStatus]);
 
-    // Set up polling based on session status
-    useEffect(() => {
-      if (shouldPoll && !isPolling) {
-        setIsPolling(true);
-      } else if (!shouldPoll && isPolling) {
-        setIsPolling(false);
-      }
-    }, [shouldPoll, isPolling]);
-
     const handleClose = useCallback(() => {
-      if (onClose) {
-        onClose();
-      }
-    }, [onClose]);
+      setIsPilotOpen(false);
+    }, [setIsPilotOpen]);
 
     const handleRefresh = useCallback(() => {
       refetch();
@@ -105,86 +281,86 @@ export const SessionContainer = memo(
       });
     }, [session?.steps]);
 
-    // Handle loading state
-    if (isLoading && !session) {
-      return (
-        <div className={cn('p-4 bg-white dark:bg-gray-800 rounded-lg shadow', className)}>
-          <Skeleton active paragraph={{ rows: 4 }} />
-        </div>
-      );
-    }
+    // Update session status whenever it changes
+    useEffect(() => {
+      if (session?.status) {
+        setSessionStatus(session.status);
+      }
+    }, [session?.status]);
 
-    // Handle error state
-    if (error || !session) {
-      return (
-        <div
-          className={cn('p-4 bg-white dark:bg-gray-800 rounded-lg shadow text-center', className)}
-        >
-          <CloseCircleOutlined className="text-red-500 text-2xl mb-2" />
-          <p className="text-gray-600 dark:text-gray-300">
-            {t('pilot.error.loadFailed', { defaultValue: 'Failed to load session details' })}
-          </p>
-          <Button type="primary" onClick={handleRefresh} className="mt-2">
-            {t('common.retry', { defaultValue: 'Retry' })}
-          </Button>
-        </div>
-      );
-    }
+    // Set up polling based on session status
+    useEffect(() => {
+      if (shouldPoll && !isPolling) {
+        setIsPolling(true);
+      } else if (!shouldPoll && isPolling) {
+        setIsPolling(false);
+      }
+    }, [shouldPoll, isPolling]);
+
+    useEffect(() => {
+      console.log('sessionId', sessionId);
+    }, []);
 
     return (
-      <div className={cn('p-4 bg-white dark:bg-gray-800 rounded-lg w-96 shadow', className)}>
+      <div className={cn(containerClassName, className)} style={containerStyles}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center">
-            <h2 className="text-lg font-medium">{session.title}</h2>
-            <SessionStatusTag status={session.status} className="ml-2" />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Tooltip title={t('common.refresh', { defaultValue: 'Refresh' })}>
-              <Button
-                icon={<SyncOutlined spin={isPolling} />}
-                type="text"
-                onClick={handleRefresh}
-                aria-label={t('common.refresh', { defaultValue: 'Refresh' })}
-              />
-            </Tooltip>
-            {onClose && (
-              <Tooltip title={t('common.close', { defaultValue: 'Close' })}>
-                <Button
-                  icon={<CloseCircleOutlined />}
-                  type="text"
-                  onClick={handleClose}
-                  aria-label={t('common.close', { defaultValue: 'Close' })}
-                />
-              </Tooltip>
-            )}
-          </div>
-        </div>
+        <SessionHeader
+          canvasId={canvasId}
+          onClose={handleClose}
+          onMaximize={handleMaximize}
+          isMaximized={isMaximized}
+          onWideMode={handleWideMode}
+          isWideMode={isWideMode}
+          onSessionClick={handleSessionClick}
+        />
 
-        {/* Steps Timeline */}
-        <div className="mt-4">
-          <h3 className="text-md font-medium mb-2">
-            {t('pilot.steps', { defaultValue: 'Steps' })}
-          </h3>
+        {!session ? (
+          <NoSession loading={isLoading} error={!!error} />
+        ) : (
+          <>
+            <div className="flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <h2 className="text-lg font-medium">{session.title}</h2>
+                <SessionStatusTag status={session.status} className="ml-2" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Tooltip title={t('common.refresh', { defaultValue: 'Refresh' })}>
+                  <Button
+                    icon={<SyncOutlined spin={isPolling} />}
+                    type="text"
+                    onClick={handleRefresh}
+                    aria-label={t('common.refresh', { defaultValue: 'Refresh' })}
+                  />
+                </Tooltip>
+              </div>
+            </div>
 
-          {sortedSteps.length > 0 ? (
-            <div className="space-y-2">
-              {sortedSteps.map((step) => (
-                <PilotStepItem
-                  key={step.stepId}
-                  step={step}
-                  onClick={onStepClick ? handleStepClick : undefined}
-                  isDetailed={step.stepId === selectedStepId}
-                />
-              ))}
+            {/* Steps Timeline */}
+            <div className="p-4 pt-3 flex-1 overflow-y-auto">
+              <h3 className="text-md font-medium mb-2">
+                {t('pilot.steps', { defaultValue: 'Steps' })}
+              </h3>
+
+              {sortedSteps.length > 0 ? (
+                <div className="space-y-2">
+                  {sortedSteps.map((step) => (
+                    <PilotStepItem
+                      key={step.stepId}
+                      step={step}
+                      onClick={onStepClick ? handleStepClick : undefined}
+                      isDetailed={step.stepId === selectedStepId}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                  <ClockCircleOutlined className="text-xl mb-2" />
+                  <p>{t('pilot.noSteps', { defaultValue: 'No steps available yet' })}</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-              <ClockCircleOutlined className="text-xl mb-2" />
-              <p>{t('pilot.noSteps', { defaultValue: 'No steps available yet' })}</p>
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     );
   },

@@ -422,7 +422,7 @@ export const NodePreviewContainer = memo(
         <div className="flex h-full w-full">
           <ScrollingComponent {...scrollingComponentProps}>
             {showSlideshow && !readonly && <Slideshow canvasId={canvasId} />}
-            {isPilotOpen && <Pilot />}
+            {isPilotOpen && <Pilot canvasId={canvasId} />}
             {nodePreviewsRendered}
           </ScrollingComponent>
         </div>

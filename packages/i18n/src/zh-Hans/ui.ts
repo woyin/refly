@@ -2491,6 +2491,10 @@ const translations = {
       message: '需要更多使用次数？升级到高级版解锁更高限制。',
       upgrade: '升级方案',
     },
+    session: {
+      noSession: '暂无会话',
+      loadFailed: '加载会话失败',
+    },
   },
   title: '欢迎 {{name}}，使用 react-i18next 完全类型安全的 React',
   description: {

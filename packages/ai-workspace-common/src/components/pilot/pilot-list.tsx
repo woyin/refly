@@ -96,7 +96,7 @@ export const PilotList = memo(
           dataSource={sessions}
           renderItem={(session) => (
             <List.Item
-              className="px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="!px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               onClick={() => handleSessionClick(session)}
             >
               <List.Item.Meta
