@@ -131,6 +131,7 @@ const translations = {
     create: 'Create',
     update: 'Update',
     validate: 'Validate',
+    refresh: 'Refresh',
   },
   pages: {
     share: {
@@ -2650,10 +2651,6 @@ const translations = {
       message: 'Need more requests? Get higher limits with Premium.',
       upgrade: 'Upgrade',
     },
-    session: {
-      noSession: 'No session available',
-      loadFailed: 'Failed to load session details',
-    },
   },
   hooks: {
     useBuildThreadAndRun: {
@@ -2698,6 +2695,23 @@ const translations = {
     name: 'Pilot',
     description:
       'Refly Pilot is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
+    noSessions: 'No pilot sessions found',
+    loadFailed: 'Failed to load session details',
+    newSession: 'New Session',
+    sessionHistory: 'Session History',
+    sessionInputPlaceholder: 'Ask a question...',
+    createPilotSessionFailed: 'Failed to create pilot session',
+    recentSessions: 'Recent Sessions',
+    createdAt: 'Created At',
+    steps: 'Steps',
+    noSteps: 'No steps available yet',
+    status: {
+      init: 'Init',
+      executing: 'Executing',
+      waiting: 'Waiting',
+      finish: 'Finish',
+      failed: 'Failed',
+    },
   },
   deck: {
     references: 'References',

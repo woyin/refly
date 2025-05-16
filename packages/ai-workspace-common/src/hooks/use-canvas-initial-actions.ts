@@ -81,7 +81,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
 
     // Copy all params except 'source'
     for (const [key, value] of searchParams.entries()) {
-      if (key !== 'source') {
+      if (!['source', 'isPilotActivated'].includes(key)) {
         newParams.append(key, value);
       }
     }
@@ -144,6 +144,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
           maxEpoch: 2,
           providerItemId: modelInfo.providerItemId,
         });
+        pendingActionRef.current = null;
 
         return;
       }

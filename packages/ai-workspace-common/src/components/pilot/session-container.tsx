@@ -1,8 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PilotStep, PilotSession } from '@refly/openapi-schema';
+import { PilotStep } from '@refly/openapi-schema';
 import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
-import { Button, Skeleton, Tooltip, Empty, Popover } from 'antd';
+import { Button, Skeleton, Tooltip, Popover } from 'antd';
 import { cn } from '@refly/utils/cn';
 import { ClockCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { PilotStepItem } from './pilot-step-item';
@@ -16,7 +16,10 @@ import {
   IconThreadHistory,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { RiChatNewLine } from 'react-icons/ri';
 import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
+import { SessionChat } from './session-chat';
+
 const SessionHeader = memo(
   ({
     canvasId,
@@ -33,15 +36,15 @@ const SessionHeader = memo(
     isMaximized: boolean;
     onWideMode: () => void;
     isWideMode: boolean;
-    onSessionClick: (session: PilotSession) => void;
+    onSessionClick: (sessionId: string) => void;
   }) => {
     const { t } = useTranslation();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     console.log('canvasId', canvasId);
 
     const handleSessionClick = useCallback(
-      (session: PilotSession) => {
-        onSessionClick(session);
+      (sessionId: string) => {
+        onSessionClick(sessionId);
         setIsHistoryOpen(false);
       },
       [onSessionClick],
@@ -59,7 +62,17 @@ const SessionHeader = memo(
             {t('pilot.name', { defaultValue: 'Pilot' })}
           </span>
         </div>
+
         <div className="flex items-center gap-2">
+          <Tooltip title={t('pilot.newSession', { defaultValue: 'New Session' })}>
+            <Button
+              type="text"
+              size="small"
+              className="flex items-center justify-center p-0 !w-7 h-7 text-gray-500 hover:text-gray-600 min-w-0"
+              icon={<RiChatNewLine className="w-4 h-4" />}
+              onClick={() => handleSessionClick(null)}
+            />
+          </Tooltip>
           <Popover
             open={isHistoryOpen}
             onOpenChange={setIsHistoryOpen}
@@ -68,23 +81,24 @@ const SessionHeader = memo(
             getPopupContainer={() => document.body}
             arrow={false}
             content={
-              <div className="w-80 max-h-[400px]">
-                <PilotList
-                  limit={10}
-                  targetId={canvasId}
-                  targetType="canvas"
-                  onSessionClick={handleSessionClick}
-                />
-              </div>
+              <PilotList
+                show={isHistoryOpen}
+                limit={10}
+                targetId={canvasId}
+                targetType="canvas"
+                onSessionClick={(session) => handleSessionClick(session.sessionId)}
+              />
             }
           >
-            <Button
-              type="text"
-              size="small"
-              className={`flex items-center justify-center p-0 !w-7 h-7 ${isHistoryOpen ? 'text-primary-600' : 'text-gray-500 hover:text-gray-600'} min-w-0`}
-              icon={<IconThreadHistory className="w-4 h-4" />}
-              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-            />
+            <Tooltip title={t('pilot.sessionHistory', { defaultValue: 'Session History' })}>
+              <Button
+                type="text"
+                size="small"
+                className={`flex items-center justify-center p-0 !w-7 h-7 ${isHistoryOpen ? 'text-primary-600' : 'text-gray-500 hover:text-gray-600'} min-w-0`}
+                icon={<IconThreadHistory className="w-4 h-4" />}
+                onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+              />
+            </Tooltip>
           </Popover>
           <Button
             type="text"
@@ -122,24 +136,24 @@ const SessionHeader = memo(
 
 SessionHeader.displayName = 'SessionHeader';
 
-export const NoSession = memo(({ loading, error }: { loading: boolean; error: boolean }) => {
-  const { t } = useTranslation();
-  return (
-    <div className="p-4 bg-white dark:bg-gray-900 shadow h-full">
-      {loading && <Skeleton active paragraph={{ rows: 4 }} />}
-      {error && (
-        <p>{t('pilot.session.loadFailed', { defaultValue: 'Failed to load session details' })}</p>
-      )}
-      {!loading && !error && (
-        <div className="flex items-center justify-center h-full">
-          <Empty
-            description={t('pilot.session.noSession', { defaultValue: 'No session available' })}
-          />
-        </div>
-      )}
-    </div>
-  );
-});
+export const NoSession = memo(
+  ({ loading, error, canvasId }: { loading: boolean; error: boolean; canvasId: string }) => {
+    const { t } = useTranslation();
+    return (
+      <div className="p-4 bg-white dark:bg-gray-900 shadow h-full">
+        {loading && <Skeleton active paragraph={{ rows: 4 }} />}
+        {error && (
+          <p>{t('pilot.loadFailed', { defaultValue: 'Failed to load session details' })}</p>
+        )}
+        {!loading && !error && (
+          <div className="h-full">
+            <SessionChat canvasId={canvasId} />
+          </div>
+        )}
+      </div>
+    );
+  },
+);
 NoSession.displayName = 'NoSession';
 
 // Define the active statuses that require polling
@@ -168,8 +182,8 @@ export const SessionContainer = memo(
     }));
 
     const handleSessionClick = useCallback(
-      (session: PilotSession) => {
-        setActiveSessionId(session.sessionId);
+      (sessionId: string) => {
+        setActiveSessionId(sessionId);
       },
       [setActiveSessionId],
     );
@@ -315,13 +329,13 @@ export const SessionContainer = memo(
         />
 
         {!session ? (
-          <NoSession loading={isLoading} error={!!error} />
+          <NoSession loading={isLoading} error={!!error} canvasId={canvasId} />
         ) : (
           <>
             <div className="flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center">
                 <h2 className="text-lg font-medium">{session.title}</h2>
-                <SessionStatusTag status={session.status} className="ml-2" />
+                <SessionStatusTag status={session.status} className="ml-2 h-5 flex items-center" />
               </div>
               <div className="flex items-center space-x-2">
                 <Tooltip title={t('common.refresh', { defaultValue: 'Refresh' })}>
@@ -337,23 +351,26 @@ export const SessionContainer = memo(
 
             {/* Steps Timeline */}
             <div className="p-4 pt-3 flex-1 overflow-y-auto">
-              <h3 className="text-md font-medium mb-2">
-                {t('pilot.steps', { defaultValue: 'Steps' })}
-              </h3>
+              <h3 className="text-md font-medium mb-2">{t('pilot.steps')}</h3>
 
               {sortedSteps.length > 0 ? (
-                <div className="space-y-2">
-                  {sortedSteps.map((step) => (
-                    <PilotStepItem
-                      key={step.stepId}
-                      step={step}
-                      onClick={onStepClick ? handleStepClick : undefined}
-                      isDetailed={step.stepId === selectedStepId}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="space-y-2">
+                    {sortedSteps.map((step) => (
+                      <PilotStepItem
+                        key={step.stepId}
+                        step={step}
+                        onClick={onStepClick ? handleStepClick : undefined}
+                        isDetailed={step.stepId === selectedStepId}
+                      />
+                    ))}
+                  </div>
+                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                    <p>{t('common.noMore', { defaultValue: 'No more' })}</p>
+                  </div>
+                </>
               ) : (
-                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                <div className="mt-8 text-center py-4 text-gray-500 dark:text-gray-400">
                   <ClockCircleOutlined className="text-xl mb-2" />
                   <p>{t('pilot.noSteps', { defaultValue: 'No steps available yet' })}</p>
                 </div>

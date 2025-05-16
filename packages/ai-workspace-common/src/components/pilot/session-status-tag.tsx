@@ -31,9 +31,9 @@ export const SessionStatusTag = memo(({ status, className }: SessionStatusTagPro
   return (
     <Tag color={color} className={className}>
       {status === 'executing' || status === 'waiting' ? (
-        <SyncOutlined spin className="mr-1" />
+        <SyncOutlined spin className="w-3 h-3" />
       ) : null}
-      {t(`pilot.status.${status}`, { defaultValue: status })}
+      <span className="text-[10px]">{t(`pilot.status.${status}`, { defaultValue: status })}</span>
     </Tag>
   );
 });

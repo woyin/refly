@@ -139,6 +139,7 @@ const translations = {
     create: '创建',
     update: '更新',
     validate: '验证',
+    refresh: '刷新',
   },
   verifyRules: {
     emailRequired: '邮箱地址不能为空',
@@ -2491,10 +2492,6 @@ const translations = {
       message: '需要更多使用次数？升级到高级版解锁更高限制。',
       upgrade: '升级方案',
     },
-    session: {
-      noSession: '暂无会话',
-      loadFailed: '加载会话失败',
-    },
   },
   title: '欢迎 {{name}}，使用 react-i18next 完全类型安全的 React',
   description: {
@@ -2525,6 +2522,23 @@ const translations = {
   pilot: {
     name: 'Pilot',
     description: 'Refly Pilot 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
+    noSessions: '暂无会话',
+    loadFailed: '加载会话失败',
+    newSession: '新会话',
+    sessionHistory: '会话历史',
+    sessionInputPlaceholder: '问点什么...',
+    createPilotSessionFailed: '创建会话失败',
+    recentSessions: '最近会话',
+    createdAt: '创建时间',
+    steps: '步骤',
+    noSteps: '暂无步骤',
+    status: {
+      init: '初始化',
+      executing: '运行中',
+      waiting: '等待中',
+      finish: '已完成',
+      failed: '失败',
+    },
   },
   deck: {
     references: '引用',
