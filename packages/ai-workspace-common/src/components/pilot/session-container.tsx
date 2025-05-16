@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, XYPosition } from '@xyflow/react';
 import { ActionResult, PilotStep } from '@refly/openapi-schema';
 import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
 import { Button, Skeleton, Tooltip, Popover } from 'antd';
@@ -283,7 +283,7 @@ export const SessionContainer = memo(
     );
 
     const handleInvokeAction = useCallback(
-      (result: ActionResult, position: { x: number; y: number }) => {
+      (result: ActionResult, offsetPosition: XYPosition) => {
         const {
           input,
           resultId,
@@ -294,7 +294,6 @@ export const SessionContainer = memo(
           targetId,
           targetType,
         } = result;
-        console.log('result', result, position);
 
         invokeAction(
           {
@@ -325,6 +324,7 @@ export const SessionContainer = memo(
               pilotSessionId: sessionId,
             },
           },
+          offsetPosition,
         });
       },
       [invokeAction, addNode, sessionId],
@@ -373,7 +373,6 @@ export const SessionContainer = memo(
       const processedPilotStepIds = new Set(
         nodes.map((node) => node?.data?.metadata?.pilotStepId).filter(Boolean),
       );
-      const rightMostX = Math.max(...nodes.map((node) => node?.position?.x).filter(Boolean));
 
       // Find steps with status "init" that have an actionResult and haven't been processed yet
       const stepsToProcess = sortedSteps.filter(
@@ -382,21 +381,17 @@ export const SessionContainer = memo(
       );
 
       if (stepsToProcess.length > 0) {
-        // Mark these steps as processed first to prevent duplicate processing
         for (const [index, step] of stepsToProcess.entries()) {
           if (step.actionResult) {
-            handleInvokeAction(step.actionResult, {
-              x: rightMostX + 800,
-              y: index * 500,
-            });
+            const offsetPosition: XYPosition = {
+              x: 0,
+              y: 300 * index,
+            };
+            handleInvokeAction(step.actionResult, offsetPosition);
           }
         }
       }
     }, [sortedSteps, handleInvokeAction]);
-
-    useEffect(() => {
-      console.log('sessionId', sessionId);
-    }, []);
 
     return (
       <div className={cn(containerClassName, className)} style={containerStyles}>
