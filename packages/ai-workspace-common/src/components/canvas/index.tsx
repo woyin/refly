@@ -63,7 +63,6 @@ import { useListenNodeOperationEvents } from '@refly-packages/ai-workspace-commo
 import { runtime } from '@refly-packages/ai-workspace-common/utils/env';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useFollowPilotSteps } from '@refly-packages/ai-workspace-common/hooks/use-follow-pilot-steps';
 import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
 import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
@@ -159,7 +158,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
 
   useCanvasInitialActions(canvasId);
-  useFollowPilotSteps();
+  // useFollowPilotSteps();
 
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const { addNode } = useAddNode();

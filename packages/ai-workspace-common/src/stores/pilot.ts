@@ -26,7 +26,6 @@ export const usePilotStore = create<PilotState>()(
         name: 'pilot-storage', // unique name for the localStorage key
         partialize: (state) => ({
           isPilotOpen: state.isPilotOpen,
-          activeSessionId: state.activeSessionId,
         }), // only persist these fields
       },
     ),
