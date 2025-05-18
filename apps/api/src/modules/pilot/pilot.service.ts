@@ -22,6 +22,7 @@ import { Queue } from 'bullmq';
 import { QUEUE_RUN_PILOT } from '@/utils/const';
 import { RunPilotJobData } from './pilot.processor';
 import { ProviderItemNotFoundError } from '@refly/errors';
+import { pilotSessionPO2DTO, pilotStepPO2DTO } from '@/modules/pilot/pilot.dto';
 
 @Injectable()
 export class PilotService {
@@ -336,6 +337,8 @@ export class PilotService {
       throw new Error('Pilot session not found');
     }
 
+    const { steps } = await this.getPilotSessionDetail(user, sessionId);
+
     const { targetId, targetType, currentEpoch, maxEpoch, providerItemId } = pilotSession;
     const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
       user,
@@ -353,7 +356,11 @@ export class PilotService {
     const modelId = JSON.parse(providerItem.config).modelId;
     const chatModel = await this.providerService.prepareChatModel(user, modelId);
 
-    const engine = new PilotEngine(chatModel, pilotSession);
+    const engine = new PilotEngine(
+      chatModel,
+      pilotSessionPO2DTO(pilotSession),
+      steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
+    );
     const rawSteps = await engine.run(canvasContentItems);
 
     if (rawSteps.length === 0) {

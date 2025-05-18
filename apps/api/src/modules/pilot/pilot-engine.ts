@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { extractJsonFromMarkdown } from '@refly/utils';
 import { CanvasContentItem } from '../canvas/canvas.dto';
-import { PilotSession } from '@/generated/client';
-import { SkillInput } from '@refly/openapi-schema';
+import { PilotSession, PilotStep, SkillInput } from '@refly/openapi-schema';
 
 const pilotStepSchema = z
   .object({
@@ -26,7 +25,7 @@ const multiStepSchema = z
   })
   .describe('A list of steps of the pilot');
 
-type PilotStep = z.infer<typeof pilotStepSchema>;
+type PilotStepRawOutput = z.infer<typeof pilotStepSchema>;
 
 /**
  * Generates a detailed schema guide with example for LLM
@@ -211,10 +210,14 @@ export class PilotEngine {
   constructor(
     private readonly model: BaseChatModel,
     private readonly session: PilotSession,
+    private readonly steps: PilotStep[],
   ) {}
 
-  async run(contentItems: CanvasContentItem[], maxStepsPerEpoch = 3): Promise<PilotStep[]> {
-    const sessionInput: SkillInput = JSON.parse(this.session.input);
+  async run(
+    contentItems: CanvasContentItem[],
+    maxStepsPerEpoch = 3,
+  ): Promise<PilotStepRawOutput[]> {
+    const sessionInput: SkillInput = this.session.input;
     const userQuestion = sessionInput.query;
     const combinedContent = formatCanvasContent(contentItems);
 
@@ -348,7 +351,7 @@ Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
   private async generateResearchWithoutContent(
     userQuestion: string,
     maxStepsPerEpoch = 3,
-  ): Promise<PilotStep[]> {
+  ): Promise<PilotStepRawOutput[]> {
     try {
       // First attempt: Use LLM structured output capability with empty context
       try {
