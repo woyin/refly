@@ -5,10 +5,11 @@
  * 1. Research stage (early): MUST use webSearch, librarySearch, commonQnA for information gathering
  * 2. Analysis stage (middle): MUST use commonQnA for analyzing gathered information
  * 3. Synthesis stage (optional): MUST use commonQnA for organizing and planning outputs
- * 4. Creation stage (final): MUST ONLY use generateDoc and codeArtifacts after sufficient context gathering
+ * 4. Creation stage (final): MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps after sufficient context gathering
  *
  * The workflow MUST follow the correct sequence: research → analysis → synthesis → creation
- * Final output tools (generateDoc, codeArtifacts) MUST NOT be used until sufficient context is gathered
+ * Final output tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps
+ * Final output tools MUST almost always reference previous context items (only in extremely rare cases can they generate without context dependency)
  * All codeArtifacts for visualizations MUST produce self-contained single-page HTML files
  */
 
@@ -33,6 +34,8 @@ export function exampleUserQuestions() {
 /**
  * Example 1: Market Research Workflow for Electric Vehicles
  * Demonstrates proper sequencing of tasks from research → analysis → creation
+ * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * and MUST reference previous context items
  */
 export function evMarketResearchExample(): PilotStepRawOutput[] {
   return [
@@ -93,7 +96,7 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
       priority: 3,
     },
 
-    // CREATION STAGE - Only after sufficient context has been gathered
+    // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'EV market comprehensive report',
       skillName: 'generateDoc',
@@ -129,6 +132,8 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
 /**
  * Example 2: Web Research and Comprehensive Analysis on Climate Change Impacts
  * Shows how to structure a complex research workflow with proper tool sequencing
+ * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * and MUST reference previous context items
  */
 export function climateChangeResearchExample(): PilotStepRawOutput[] {
   return [
@@ -216,7 +221,7 @@ export function climateChangeResearchExample(): PilotStepRawOutput[] {
       priority: 3,
     },
 
-    // CREATION STAGE - Only after thorough research and analysis
+    // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'Climate change comprehensive report',
       skillName: 'generateDoc',
@@ -241,6 +246,8 @@ export function climateChangeResearchExample(): PilotStepRawOutput[] {
 /**
  * Example 3: Deep Research and Presentation Creation for Renewable Energy Investment
  * Demonstrates thorough research before creating investment presentation
+ * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * and MUST reference previous context items
  */
 export function renewableEnergyExample(): PilotStepRawOutput[] {
   return [
@@ -357,7 +364,7 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
       priority: 4,
     },
 
-    // CREATION STAGE - Final outputs using all previous research and analysis
+    // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'Renewable investment data visualizations',
       skillName: 'codeArtifacts',
@@ -387,6 +394,8 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
 /**
  * Example 4: Interactive Data Visualization for Global City Livability
  * Shows proper sequencing from research to data processing to final interactive output
+ * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * and MUST reference previous context items
  */
 export function cityLivabilityExample(): PilotStepRawOutput[] {
   return [
@@ -510,7 +519,7 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
       priority: 4,
     },
 
-    // CREATION STAGE - Build final deliverables using all research and analysis
+    // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'City livability data dashboard',
       skillName: 'codeArtifacts',
@@ -603,6 +612,12 @@ Research projects are divided into epochs (iterations), with each epoch represen
    - Focus: Creating polished deliverables based on all previous work
 
 IMPORTANT: Always follow the sequence appropriate for the current epoch. Each epoch should primarily contain steps from its corresponding stage, but can include a few steps from adjacent stages as needed for smooth transition.
+
+CRITICAL RULES FOR CREATION TOOLS:
+- generateDoc and codeArtifacts MUST ONLY be used in the final 1-2 steps of the workflow
+- These tools MUST reference previous context items in almost all cases
+- Only in extremely rare cases can they generate without context dependency
+- Never use these tools until sufficient research and analysis has been completed
 
 ## Research Stage Examples (Early Epochs)
 User Question: "${exampleUserQuestions().marketResearch}"

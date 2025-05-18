@@ -40,8 +40,7 @@ export class PilotEngine {
       const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
       this.logger.log(
-        `Planning research steps for "${userQuestion}" with ${contentItems.length} content items. ` +
-          `Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}`,
+        `Planning research steps for "${userQuestion}" with ${contentItems.length} content items. Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}. Note: Creation tools (generateDoc, codeArtifacts) must ONLY be used in the final 1-2 steps and MUST reference previous context`,
       );
 
       // First attempt: Use LLM structured output capability
@@ -118,8 +117,7 @@ export class PilotEngine {
     const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
     this.logger.log(
-      `Bootstrap planning for "${userQuestion}" without content. ` +
-        `Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}`,
+      `Bootstrap planning for "${userQuestion}" without content. Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}`,
     );
 
     try {

@@ -112,7 +112,9 @@ In this late middle stage, focus on organizing and planning outputs:
 ## CURRENT EPOCH STAGE: CREATION (Final Stage)
 In this final stage, focus on creating polished outputs:
 
-- NOW APPROPRIATE: Use generateDoc and codeArtifacts
+- NOW APPROPRIATE: Use generateDoc and codeArtifacts, but ONLY in the final 1-2 steps
+- MUST reference previous context items in almost all cases
+- Only in extremely rare cases can they generate without context dependency
 - Create comprehensive documents based on all previous research
 - Generate complete code artifacts with proper formatting
 - Ensure outputs incorporate insights from all previous epochs
@@ -373,7 +375,7 @@ ${JSON.stringify(researchExample, null, 2)}
 ${JSON.stringify(analysisExample, null, 2)}
 \`\`\`
 
-3. Creation stage (final) - only after sufficient research and analysis:
+3. Creation stage (final) - ONLY in the final 1-2 steps and MUST reference previous context:
 \`\`\`json
 ${JSON.stringify(creationExample, null, 2)}
 \`\`\`
@@ -387,6 +389,9 @@ IMPORTANT:
 - Each step should be focused on a specific research sub-task
 - Make steps logical and progressive, building on previous steps when appropriate
 - Ensure each step has a clear purpose that contributes to answering the main research question
+- Creation tasks (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps
+- Creation tasks MUST reference previous context items in almost all cases
+- Only in extremely rare cases can creation tasks generate without context dependency
 - Ensure your response is a valid JSON array of steps that follow the schema exactly
 `;
 }
@@ -443,8 +448,8 @@ Follow these important guidelines about tool sequencing:
    - Remember that all tools can produce intermediate outputs as markdown text or code blocks
 
 3. **Final Output Generation Tools (Final Stages - ONLY AT THE END)**
-   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research
-   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered
+   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research, MUST be used only in the final 1-2 steps, and MUST reference previous context
+   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered, MUST be used only in the final 1-2 steps, and MUST reference previous context
 
 ## CRITICAL SEQUENCING RULES - STRICTLY FOLLOW THESE
 - First 60% of steps MUST be research tasks (webSearch, librarySearch, commonQnA for gathering information)
@@ -452,8 +457,9 @@ Follow these important guidelines about tool sequencing:
 - Next 20% should be analysis tasks (commonQnA for analyzing gathered information)
 - Last 20% can be creation tasks (generateDoc, codeArtifacts) and ONLY after sufficient research and analysis
 - NEVER use generateDoc or codeArtifacts in the first 60% of steps
+- MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps
+- generateDoc and codeArtifacts MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
 - Tasks must follow the strict sequence: Research → Analysis → Creation
-- Even with existing canvas content, still follow this sequence for new steps
 
 ## Step Generation Guidelines
 1. Break down the research into logical, sequential steps
@@ -465,7 +471,7 @@ Follow these important guidelines about tool sequencing:
 5. Assign the appropriate workflowStage value to each step (research, analysis, synthesis, creation)
 6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools MUST ONLY be used in the final 1-2 steps
+8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
 
 ## Schema Instructions:
 
@@ -535,8 +541,8 @@ Follow these important guidelines about tool sequencing:
    - Remember that all tools can produce intermediate outputs as markdown text or code blocks
 
 3. **Final Output Generation Tools (Final Stages - ONLY AT THE END)**
-   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research
-   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered
+   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research, MUST be used only in the final 1-2 steps, and MUST reference previous context
+   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered, MUST be used only in the final 1-2 steps, and MUST reference previous context
 
 ## CRITICAL SEQUENCING RULES - STRICTLY FOLLOW THESE
 - First 60% of steps MUST be research tasks (webSearch, librarySearch, commonQnA for gathering information)
@@ -544,6 +550,8 @@ Follow these important guidelines about tool sequencing:
 - Next 20% should be analysis tasks (commonQnA for analyzing gathered information)
 - Last 20% can be creation tasks (generateDoc, codeArtifacts) and ONLY after sufficient research and analysis
 - NEVER use generateDoc or codeArtifacts in the first 60% of steps
+- MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps
+- generateDoc and codeArtifacts MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
 - Tasks must follow the strict sequence: Research → Analysis → Creation
 
 ## Step Generation Guidelines
@@ -554,7 +562,7 @@ Follow these important guidelines about tool sequencing:
 5. Assign the appropriate workflowStage value to each step (research, analysis, synthesis, creation)
 6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. NEVER generate creation tasks until research and analysis are complete
+8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
 
 ${generateSchemaInstructions()}
 
@@ -624,8 +632,8 @@ Follow these important guidelines about tool sequencing:
    - Remember that all tools can produce intermediate outputs as markdown text or code blocks
 
 3. **Final Output Generation Tools (Final Stages - ONLY AT THE END)**
-   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research
-   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered
+   - **generateDoc**: Use for creating comprehensive documents ONLY after sufficient research, MUST be used only in the final 1-2 steps, and MUST reference previous context
+   - **codeArtifacts**: Use for generating complete code artifacts ONLY after proper context is gathered, MUST be used only in the final 1-2 steps, and MUST reference previous context
 
 ## CRITICAL SEQUENCING RULES - STRICTLY FOLLOW THESE
 - First 60% of steps MUST be research tasks (webSearch, librarySearch, commonQnA for gathering information)
@@ -633,6 +641,8 @@ Follow these important guidelines about tool sequencing:
 - Next 20% should be analysis tasks (commonQnA for analyzing gathered information)
 - Last 20% can be creation tasks (generateDoc, codeArtifacts) and ONLY after sufficient research and analysis
 - NEVER use generateDoc or codeArtifacts in the first 60% of steps
+- MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps
+- generateDoc and codeArtifacts MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
 - Tasks must follow the strict sequence: Research → Analysis → Creation
 
 ## Guidelines
@@ -643,7 +653,7 @@ Follow these important guidelines about tool sequencing:
 5. Assign the appropriate workflowStage value to each step (research, analysis, synthesis, creation)
 6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools MUST ONLY be used in the final 1-2 steps
+8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
 
 ${schemaInstructions}
 
