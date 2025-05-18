@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useReactFlow, XYPosition } from '@xyflow/react';
 import { ActionResult, PilotStep } from '@refly/openapi-schema';
 import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
-import { Button, Skeleton, Tooltip, Popover } from 'antd';
+import { Button, Skeleton, Tooltip, Popover, Empty } from 'antd';
 import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useAddNode, useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { cn } from '@refly/utils/cn';
-import { ClockCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { SyncOutlined } from '@ant-design/icons';
 import { PilotStepItem } from './pilot-step-item';
 import { SessionStatusTag } from './session-status-tag';
 import { PilotList } from './pilot-list';
@@ -26,6 +26,7 @@ import {
   convertContextItemsToNodeFilters,
   convertResultContextToItems,
 } from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { LuListTodo } from 'react-icons/lu';
 
 const SessionHeader = memo(
   ({
@@ -173,6 +174,68 @@ export interface SessionContainerProps {
   className?: string;
   onStepClick?: (step: PilotStep) => void;
 }
+
+// Add a styled pilot icon component with animation
+const AnimatedPilotIcon = memo(({ className }: { className?: string }) => {
+  // Define the keyframes in a style object
+  const floatingAnimationStyle = {
+    animation: 'floating 2s ease-in-out infinite',
+  };
+
+  // Add the keyframes to the document if they don't exist yet
+  useEffect(() => {
+    if (!document.getElementById('floating-keyframes')) {
+      const style = document.createElement('style');
+      style.id = 'floating-keyframes';
+      style.innerHTML = `
+        @keyframes floating {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Clean up on unmount
+      return () => {
+        const existingStyle = document.getElementById('floating-keyframes');
+        if (existingStyle) {
+          document.head.removeChild(existingStyle);
+        }
+      };
+    }
+  }, []);
+
+  return (
+    <div className="animate-pulse">
+      <IconPilot className={cn('text-primary-500', className)} style={floatingAnimationStyle} />
+    </div>
+  );
+});
+
+AnimatedPilotIcon.displayName = 'AnimatedPilotIcon';
+
+// Component for animated ellipsis that cycles through dots
+const AnimatedEllipsis = memo(() => {
+  const [dotCount, setDotCount] = useState(1);
+
+  useEffect(() => {
+    // Set up the interval to change dot counts every 600ms for a more natural rhythm
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev % 3) + 1);
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Use a fixed-width span to prevent layout shifts as the dots change
+  return (
+    <span className="inline-block min-w-[24px] text-left" aria-hidden="true">
+      {'.'.repeat(dotCount)}
+    </span>
+  );
+});
+
+AnimatedEllipsis.displayName = 'AnimatedEllipsis';
 
 export const SessionContainer = memo(
   ({ sessionId, canvasId, className, onStepClick }: SessionContainerProps) => {
@@ -438,28 +501,48 @@ export const SessionContainer = memo(
             </div>
 
             {/* Steps Timeline */}
-            <div className="p-4 pt-3 flex-1 overflow-y-auto">
-              <h3 className="text-md font-medium mb-2">{t('pilot.steps')}</h3>
+            <div className="p-4 flex-1 overflow-y-auto">
+              <div className="flex items-center justify-between mb-2 pl-2">
+                <div className="flex items-center gap-2">
+                  <LuListTodo className="w-4 h-4" />
+                  <span className="text-sm font-medium">{t('pilot.taskProgress')}</span>
+                </div>
+                {sortedSteps.length > 0 && (
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                    {sortedSteps.filter((step) => step.status === 'finish').length} /{' '}
+                    {sortedSteps.length}
+                  </span>
+                )}
+              </div>
 
               {sortedSteps.length > 0 ? (
                 <>
-                  <div className="space-y-2">
+                  <div className="space-y-1 pl-1">
                     {sortedSteps.map((step) => (
                       <PilotStepItem
                         key={step.stepId}
                         step={step}
+                        isActive={step.status === 'executing'}
                         onClick={onStepClick ? handleStepClick : undefined}
                       />
                     ))}
                   </div>
-                  <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                    <p>{t('common.noMore', { defaultValue: 'No more' })}</p>
-                  </div>
                 </>
-              ) : (
+              ) : session?.status === 'executing' ? (
                 <div className="mt-8 text-center py-4 text-gray-500 dark:text-gray-400">
-                  <ClockCircleOutlined className="text-xl mb-2" />
-                  <p>{t('pilot.noSteps', { defaultValue: 'No steps available yet' })}</p>
+                  <div className="flex justify-center items-center">
+                    <AnimatedPilotIcon className="w-12 h-12 mb-2" />
+                  </div>
+                  <p>
+                    {t('pilot.thinking')}
+                    <AnimatedEllipsis />
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <Empty
+                    description={t('pilot.noTasks', { defaultValue: 'No tasks available yet' })}
+                  />
                 </div>
               )}
             </div>

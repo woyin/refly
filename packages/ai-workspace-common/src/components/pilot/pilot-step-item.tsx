@@ -1,17 +1,15 @@
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
-import { Tag } from 'antd';
 import {
-  CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
-  LoadingOutlined,
   QuestionCircleOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
-import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { FaCheck } from 'react-icons/fa6';
 
 // Status icon mapping for pilot steps
 export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) => {
@@ -19,15 +17,35 @@ export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) =>
 
   switch (status) {
     case 'init':
-      return <ClockCircleOutlined className="text-blue-500" />;
+      return (
+        <div className="w-5 h-5 flex items-center justify-center">
+          <ClockCircleOutlined className="text-gray-400 dark:text-gray-500" />
+        </div>
+      );
     case 'executing':
-      return <LoadingOutlined className="text-blue-500" spin />;
+      return (
+        <div className="w-6 h-6 flex items-center justify-center">
+          <SyncOutlined spin className="text-yellow-500" />
+        </div>
+      );
     case 'finish':
-      return <CheckCircleOutlined className="text-green-500" />;
+      return (
+        <div className="w-5 h-5 flex items-center justify-center">
+          <FaCheck className="w-4 h-4 text-green-500" />
+        </div>
+      );
     case 'failed':
-      return <CloseCircleOutlined className="text-red-500" />;
+      return (
+        <div className="w-5 h-5 flex items-center justify-center">
+          <CloseCircleOutlined className="text-red-500" />
+        </div>
+      );
     default:
-      return <QuestionCircleOutlined className="text-gray-400" />;
+      return (
+        <div className="w-5 h-5 flex items-center justify-center">
+          <QuestionCircleOutlined className="text-gray-400" />
+        </div>
+      );
   }
 });
 
@@ -37,10 +55,11 @@ export interface PilotStepItemProps {
   step: PilotStep;
   onClick?: (step: PilotStep) => void;
   isDetailed?: boolean;
+  isActive?: boolean;
 }
 
-export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
-  const { t, i18n } = useTranslation();
+export const PilotStepItem = memo(({ step, onClick, isActive = false }: PilotStepItemProps) => {
+  const { i18n } = useTranslation();
   const language = i18n.languages?.[0];
 
   const handleClick = useMemo(() => {
@@ -48,42 +67,41 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
     return () => onClick(step);
   }, [onClick, step]);
 
-  const { actionMeta, input } = step?.actionResult ?? {};
-  const skillName = actionMeta?.name;
-  const skillDisplayName = skillName ? t(`${skillName}.name`, { ns: 'skill' }) : '';
+  // Set appropriate status-based styles
+  const getStatusStyles = () => {
+    const baseClasses = 'flex items-center px-2 py-1 flex-grow min-w-0';
+
+    if (step.status === 'finish') {
+      return `${baseClasses} text-gray-600 dark:text-gray-300`;
+    }
+
+    if (step.status === 'executing') {
+      return `${baseClasses} text-blue-600 dark:text-blue-400 font-medium`;
+    }
+
+    return `${baseClasses} text-gray-500 dark:text-gray-400`;
+  };
 
   return (
     <div
-      className="flex flex-col gap-1 border border-solid hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700 rounded-md p-3 mb-3 bg-white dark:bg-gray-800 cursor-pointer transition-colors"
+      className={`flex items-center py-1 cursor-pointer transition-colors w-full max-w-full ${isActive ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
       onClick={handleClick}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <StepStatusIcon status={step.status} />
-          <span className="ml-2 font-medium text-sm truncate max-w-64">{step.name}</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          {step.epoch !== undefined && (
-            <Tag color="blue">{t('pilot.epoch', { count: step.epoch + 1 })}</Tag>
-          )}
-        </div>
+      <div className="mr-2 flex-shrink-0">
+        <StepStatusIcon status={step.status} />
       </div>
 
-      {step.actionResult && (
-        <div className="px-4 text-xs text-gray-600 dark:text-gray-300">
-          <div className="flex items-center gap-1">
-            {getSkillIcon(skillName)}
-            {skillDisplayName}
-          </div>
-          <div className="line-clamp-3 py-1">{input.query}</div>
+      <div className={getStatusStyles()}>
+        <span className="truncate text-sm max-w-full block">{step?.name ?? ''}</span>
+      </div>
+
+      {step.status === 'executing' && (
+        <div className="text-xs mr-2 flex-shrink-0 text-gray-500 dark:text-gray-400">
+          {time(step?.createdAt, language as LOCALE)
+            ?.utc()
+            ?.fromNow()}
         </div>
       )}
-
-      <div className="text-xs px-4 text-gray-500 dark:text-gray-400">
-        {time(step?.createdAt, language as LOCALE)
-          ?.utc()
-          ?.fromNow()}
-      </div>
     </div>
   );
 });

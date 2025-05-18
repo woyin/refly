@@ -99,7 +99,7 @@ export const ToolbarButtons = memo(
         icon={
           <span
             className={`flex items-center justify-center text-sm font-semibold ${
-              isPilotOpen ? 'text-green-600' : 'text-gray-700'
+              isPilotOpen ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'
             }`}
           >
             <IconPilot className="w-4 h-4 mr-2" />

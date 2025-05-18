@@ -53,6 +53,7 @@ import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { ModelIcon } from '@lobehub/icons';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
+import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magicui/border-beam';
 
 const POLLING_WAIT_TIME = 15000;
 
@@ -617,7 +618,7 @@ export const SkillResponseNode = memo(
 
     return (
       <div
-        className={classNames({ nowheel: isOperating && isHovered })}
+        className={classNames({ nowheel: isOperating && isHovered, relative: true })}
         data-cy="skill-response-node"
       >
         <div
@@ -777,6 +778,8 @@ export const SkillResponseNode = memo(
             onResize={handleResize}
           />
         )}
+
+        <BorderBeam duration={8} size={100} />
       </div>
     );
   },

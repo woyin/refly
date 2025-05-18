@@ -2522,6 +2522,7 @@ const translations = {
   pilot: {
     name: 'Pilot',
     description: 'Refly Pilot 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
+    thinking: 'Pilot 正在思考',
     noSessions: '暂无会话',
     loadFailed: '加载会话失败',
     epoch: '第 {{count}} 轮',
@@ -2531,8 +2532,8 @@ const translations = {
     createPilotSessionFailed: '创建会话失败',
     recentSessions: '最近会话',
     createdAt: '创建时间',
-    steps: '步骤',
-    noSteps: '暂无步骤',
+    taskProgress: '任务进度',
+    noTasks: '暂无任务',
     status: {
       init: '初始化',
       executing: '运行中',

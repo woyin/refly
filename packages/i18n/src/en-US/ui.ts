@@ -2695,6 +2695,7 @@ const translations = {
     name: 'Pilot',
     description:
       'Refly Pilot is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
+    thinking: 'Pilot is thinking',
     noSessions: 'No pilot sessions found',
     loadFailed: 'Failed to load session details',
     epoch: 'Epoch {{count}}',
@@ -2704,8 +2705,8 @@ const translations = {
     createPilotSessionFailed: 'Failed to create pilot session',
     recentSessions: 'Recent Sessions',
     createdAt: 'Created At',
-    steps: 'Steps',
-    noSteps: 'No steps available yet',
+    taskProgress: 'Task Progress',
+    noTasks: 'No tasks available yet',
     status: {
       init: 'Init',
       executing: 'Executing',
