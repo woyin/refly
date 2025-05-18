@@ -260,6 +260,7 @@ export const SkillResponseNode = memo(
       actionMeta,
       tokenUsage,
       version,
+      pilotStepId,
     } = metadata ?? {};
     const currentSkill = actionMeta || selectedSkill;
 
@@ -618,7 +619,11 @@ export const SkillResponseNode = memo(
 
     return (
       <div
-        className={classNames({ nowheel: isOperating && isHovered, relative: true })}
+        className={classNames({
+          'rounded-lg': true,
+          nowheel: isOperating && isHovered,
+          relative: true,
+        })}
         data-cy="skill-response-node"
       >
         <div
@@ -778,8 +783,21 @@ export const SkillResponseNode = memo(
             onResize={handleResize}
           />
         )}
-
-        <BorderBeam duration={8} size={100} />
+        {['waiting', 'executing'].includes(status) && pilotStepId && (
+          <>
+            <BorderBeam
+              duration={2}
+              size={300}
+              className="from-transparent via-red-500 to-transparent"
+            />
+            <BorderBeam
+              duration={2}
+              delay={3}
+              size={300}
+              className="from-transparent via-blue-500 to-transparent"
+            />
+          </>
+        )}
       </div>
     );
   },
