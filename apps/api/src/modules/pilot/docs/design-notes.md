@@ -77,8 +77,8 @@ const todoSchema = z.object({
       dependencies: z.array(z.string()).optional().describe('IDs of tasks this depends on'),
       suggestedTool: z.enum(['commonQnA', 'webSearch', 'librarySearch', 'generateDoc', 'codeArtifacts'])
         .optional().describe('Suggested tool for this task'),
-      stage: z.enum(['research', 'analysis', 'synthesis', 'creation']).optional()
-        .describe('The workflow stage this task belongs to, helps enforce proper tool sequencing')
+      stage: z.enum(['research', 'analysis', 'synthesis', 'creation'])
+        .describe('The workflow stage this task belongs to - must follow proper sequencing: research (early) → analysis (middle) → synthesis (optional) → creation (final)')
     })
   ),
   currentEpoch: z.number().describe('The current epoch number'),
@@ -164,20 +164,25 @@ Analyze the user's request and generate a comprehensive todo.md file that:
 
 ## Available Tools and Sequencing Rules
 
-1. **Research and Context Gathering (Early Stages)**
-   - **webSearch**: Web-based information retrieval
-   - **librarySearch**: Knowledge base search
-   - **commonQnA**: General knowledge question answering
+1. **Research Stage (Early) - Priority 1-2**
+   - **webSearch**: MUST use for web-based information retrieval
+   - **librarySearch**: MUST use for knowledge base search
+   - **commonQnA**: MUST use for general knowledge question answering
 
-2. **Analysis and Intermediate Output (Mid Stages)**
-   - **commonQnA**: Analyze gathered information and provide structured insights
-   - All tools can produce intermediate outputs as markdown text or code blocks
+2. **Analysis Stage (Middle) - Priority 3**
+   - **commonQnA**: MUST use for analyzing gathered information and providing structured insights
+   - MUST NOT use generateDoc or codeArtifacts in this stage
 
-3. **Final Output Generation (Final Stages)**
-   - **generateDoc**: Comprehensive document generation
-   - **codeArtifacts**: Code and visualization artifact generation (HTML, React, SVG, Mermaid, etc.)
+3. **Synthesis Stage (Optional) - Priority 3-4**
+   - **commonQnA**: MUST use for organizing information and planning final outputs
+   - MUST NOT use generateDoc or codeArtifacts in this stage
 
-IMPORTANT: Tasks must follow proper sequencing. Always prioritize research and context gathering before synthesis or creation. The generateDoc and codeArtifacts tools should be used only in final stages after sufficient context has been gathered using research tools.
+4. **Creation Stage (Final) - Priority 4-5**
+   - **generateDoc**: MUST use for comprehensive document generation
+   - **codeArtifacts**: MUST use for code and visualization artifact generation
+   - All visualizations MUST be produced as self-contained single-page HTML files
+
+CRITICAL: Tasks MUST follow the proper sequence: research → analysis → synthesis → creation. NEVER skip stages. The generateDoc and codeArtifacts tools MUST ONLY be used in the final creation stage after sufficient context has been gathered through research and analysis.
 
 ## Format Requirements
 
@@ -213,7 +218,13 @@ The todo.md file should follow this structure:
 
 Your todo.md should be comprehensive yet focused on the most important aspects needed to fulfill the user's request.
 
-Remember: Research first, analyze second, create final outputs last. Ensure that generateDoc and codeArtifacts tasks have proper dependencies on research tasks.
+CRITICAL SEQUENCING REQUIREMENT: Follow strict workflow stages:
+1. Research first (webSearch, librarySearch, commonQnA for information gathering)
+2. Analysis second (commonQnA for analyzing gathered information)
+3. Synthesis optional (commonQnA for organizing and planning)
+4. Creation last (generateDoc, codeArtifacts for final outputs)
+
+NEVER use creation tools (generateDoc, codeArtifacts) without first completing sufficient research and analysis. All tasks MUST have the appropriate stage assigned and follow this sequence.
 ```
 
 ### 3.2. Epoch Planning Prompt
@@ -235,14 +246,16 @@ Analyze the current todo.md file and determine which pending tasks should be exe
 
 ## Tool Sequencing Rules
 
-1. **Follow Proper Task Sequencing**:
-   - Early epochs should focus on research (webSearch, librarySearch, commonQnA for gathering information)
-   - Middle epochs should focus on analysis (commonQnA for analyzing gathered data)
-   - Final epochs should focus on synthesis and creation (generateDoc, codeArtifacts)
+1. **STRICTLY Follow Proper Task Sequencing**:
+   - Research stage (early epochs): MUST use webSearch, librarySearch, commonQnA for information gathering
+   - Analysis stage (middle epochs): MUST use commonQnA for analyzing gathered information
+   - Synthesis stage (optional): MUST use commonQnA for organizing and planning outputs
+   - Creation stage (final epochs): MUST ONLY use generateDoc and codeArtifacts after sufficient context gathering
 
 2. **Context Requirements**:
-   - Tasks using generateDoc or codeArtifacts MUST have dependencies on prior research tasks
-   - Final creation tasks should only be scheduled when sufficient context has been gathered
+   - Tasks using generateDoc or codeArtifacts MUST have dependencies on prior research and analysis tasks
+   - Creation tasks MUST ONLY be scheduled when sufficient research and analysis has been completed
+   - All codeArtifacts tasks MUST produce self-contained single-page HTML files when creating visualizations
 
 3. **Output Format Guidelines**:
    - All tools can produce markdown text or code blocks for intermediate results
