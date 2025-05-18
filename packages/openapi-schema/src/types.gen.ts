@@ -1188,7 +1188,7 @@ export type ActionMeta = {
   /**
    * Action type
    */
-  type: ActionType;
+  type?: ActionType;
   /**
    * Action name
    */

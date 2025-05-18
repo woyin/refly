@@ -3977,7 +3977,6 @@ components:
       type: object
       description: Action metadata
       required:
-        - type
         - name
       properties:
         type:

@@ -1624,7 +1624,7 @@ export const SkillMetaSchema = {
 export const ActionMetaSchema = {
   type: 'object',
   description: 'Action metadata',
-  required: ['type', 'name'],
+  required: ['name'],
   properties: {
     type: {
       type: 'string',
