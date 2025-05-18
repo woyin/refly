@@ -2705,7 +2705,6 @@ const translations = {
     createPilotSessionFailed: 'Failed to create pilot session',
     recentSessions: 'Recent Sessions',
     createdAt: 'Created At',
-    taskProgress: 'Task Progress',
     noTasks: 'No tasks available yet',
     status: {
       init: 'Init',

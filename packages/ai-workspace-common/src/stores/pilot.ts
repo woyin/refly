@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
 interface PilotState {
@@ -13,13 +13,24 @@ interface PilotState {
 }
 
 export const usePilotStore = create<PilotState>()(
-  devtools((set) => ({
-    isPilotOpen: false,
-    activeSessionId: null,
+  devtools(
+    persist(
+      (set) => ({
+        isPilotOpen: false,
+        activeSessionId: null,
 
-    setIsPilotOpen: (val: boolean) => set({ isPilotOpen: val }),
-    setActiveSessionId: (sessionId: string | null) => set({ activeSessionId: sessionId }),
-  })),
+        setIsPilotOpen: (val: boolean) => set({ isPilotOpen: val }),
+        setActiveSessionId: (sessionId: string | null) => set({ activeSessionId: sessionId }),
+      }),
+      {
+        name: 'pilot-storage', // unique name for the localStorage key
+        partialize: (state) => ({
+          isPilotOpen: state.isPilotOpen,
+          activeSessionId: state.activeSessionId,
+        }), // only persist these fields
+      },
+    ),
+  ),
 );
 
 export const usePilotStoreShallow = <T>(selector: (state: PilotState) => T) => {

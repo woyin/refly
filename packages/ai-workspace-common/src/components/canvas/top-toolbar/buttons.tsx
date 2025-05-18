@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { MdOutlineImage } from 'react-icons/md';
 import {
   IconDownloadFile,
-  IconPilot,
   IconSearch,
   IconSlideshow,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
@@ -17,7 +16,6 @@ import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hove
 import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
 import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 
 export const ToolbarButtons = memo(
   ({
@@ -43,10 +41,6 @@ export const ToolbarButtons = memo(
       showSlideshow: state.showSlideshow,
       setShowSlideshow: state.setShowSlideshow,
     }));
-    const { isPilotOpen, setIsPilotOpen } = usePilotStoreShallow((state) => ({
-      isPilotOpen: state.isPilotOpen,
-      setIsPilotOpen: state.setIsPilotOpen,
-    }));
 
     const handleNodeSelect = useCallback(
       (item: IContextItem) => {
@@ -67,16 +61,6 @@ export const ToolbarButtons = memo(
       placement: 'bottom' as const,
     };
 
-    const pilotButtonConfig = {
-      title: t(`canvas.toolbar.${isPilotOpen ? 'hideLaunchpad' : 'showLaunchpad'}`, {
-        defaultValue: isPilotOpen ? 'Hide Pilot' : 'Show Pilot',
-      }),
-      description: t('canvas.toolbar.toggleLaunchpadTitle', {
-        defaultValue: 'Toggle the visibility of Pilot Panel',
-      }),
-      placement: 'bottom' as const,
-    };
-
     const previewButton = (
       <Button
         type="text"
@@ -90,24 +74,6 @@ export const ToolbarButtons = memo(
         }
         onClick={() => setShowPreview(!showPreview)}
         className="w-8 h-6 flex items-center justify-center mr-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-      />
-    );
-
-    const pilotButton = (
-      <Button
-        type="text"
-        icon={
-          <span
-            className={`flex items-center justify-center text-sm font-semibold ${
-              isPilotOpen ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <IconPilot className="w-4 h-4 mr-2" />
-            {t('pilot.name', { defaultValue: 'Pilot' })}
-          </span>
-        }
-        onClick={() => setIsPilotOpen(!isPilotOpen)}
-        className="!w-16 h-6 flex items-center justify-center"
       />
     );
 
@@ -137,16 +103,6 @@ export const ToolbarButtons = memo(
 
     return (
       <>
-        {!readonly && (
-          <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
-            {hoverCardEnabled ? (
-              <HoverCard {...pilotButtonConfig}>{pilotButton}</HoverCard>
-            ) : (
-              <Tooltip title={pilotButtonConfig.title}>{pilotButton}</Tooltip>
-            )}
-          </div>
-        )}
-
         <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
           {!readonly && <Tooltip title={t('canvas.toolbar.slideshow')}>{slideshowButton}</Tooltip>}
 

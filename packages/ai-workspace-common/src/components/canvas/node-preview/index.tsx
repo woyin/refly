@@ -22,8 +22,6 @@ import { EnhancedSkillResponse } from './skill-response/enhanced-skill-response'
 import { useReactFlow } from '@xyflow/react';
 import { useSearchParams } from 'react-router-dom';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
-import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 
 // DnD item type constant
 const ITEM_TYPE = 'node-preview';
@@ -373,9 +371,6 @@ export const NodePreviewContainer = memo(
         showSlideshow: state.showSlideshow,
       }),
     );
-    const { isPilotOpen } = usePilotStoreShallow((state) => ({
-      isPilotOpen: state.isPilotOpen,
-    }));
 
     // Compute fresh node previews using the utility function
     const nodePreviews = useMemo(() => {
@@ -422,7 +417,6 @@ export const NodePreviewContainer = memo(
         <div className="flex h-full w-full">
           <ScrollingComponent {...scrollingComponentProps}>
             {showSlideshow && !readonly && <Slideshow canvasId={canvasId} />}
-            {isPilotOpen && <Pilot canvasId={canvasId} />}
             {nodePreviewsRendered}
           </ScrollingComponent>
         </div>

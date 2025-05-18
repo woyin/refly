@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useState, useRef, memo } from 'react';
-import { Modal, Result, message } from 'antd';
+import { Button, Modal, Result, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
@@ -65,6 +65,9 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
 import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
+import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
+import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { ChevronUp } from 'lucide-react';
 
 const GRID_SIZE = 10;
 
@@ -906,6 +909,20 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       <div className="w-full h-screen relative flex flex-col overflow-hidden">
         {!readonly && (
           <CanvasToolbar onToolSelect={handleToolSelect} nodeLength={nodes?.length || 0} />
+        )}
+        {isPilotOpen ? (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 shadow-sm rounded-lg w-[550px] h-[280px] border border-solid border-gray-100 dark:border-gray-800">
+            <Pilot canvasId={canvasId} />
+          </div>
+        ) : (
+          <Button
+            type="text"
+            icon={<IconPilot className="w-4 h-4" />}
+            className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20"
+            onClick={() => setIsPilotOpen(true)}
+          >
+            {t('pilot.name', { defaultValue: 'Pilot' })} <ChevronUp className="w-4 h-4" />
+          </Button>
         )}
         <TopToolbar canvasId={canvasId} />
         <div className="flex-grow relative">

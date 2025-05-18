@@ -2532,7 +2532,6 @@ const translations = {
     createPilotSessionFailed: '创建会话失败',
     recentSessions: '最近会话',
     createdAt: '创建时间',
-    taskProgress: '任务进度',
     noTasks: '暂无任务',
     status: {
       init: '初始化',
