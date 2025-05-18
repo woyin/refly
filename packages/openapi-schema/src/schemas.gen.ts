@@ -5044,7 +5044,16 @@ export const PilotSessionStatusSchema = {
 
 export const PilotSessionSchema = {
   type: 'object',
-  required: ['sessionId', 'status', 'targetType', 'targetId', 'title', 'input'],
+  required: [
+    'sessionId',
+    'status',
+    'targetType',
+    'targetId',
+    'title',
+    'input',
+    'currentEpoch',
+    'maxEpoch',
+  ],
   properties: {
     sessionId: {
       type: 'string',
@@ -5069,6 +5078,14 @@ export const PilotSessionSchema = {
     targetId: {
       type: 'string',
       description: 'Pilot session target ID',
+    },
+    currentEpoch: {
+      type: 'number',
+      description: 'Pilot session current epoch',
+    },
+    maxEpoch: {
+      type: 'number',
+      description: 'Pilot session max epoch',
     },
     steps: {
       type: 'array',

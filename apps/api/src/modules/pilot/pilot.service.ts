@@ -14,7 +14,7 @@ import { PilotEngine } from './pilot-engine';
 import { PilotSession } from '@/generated/client';
 import { SkillService } from '@/modules/skill/skill.service';
 import { genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/utils';
-import { CanvasContentItem } from '@/modules/canvas/canvas.dto';
+import { CanvasContentItem } from '../canvas/canvas.dto';
 import { ProviderService } from '@/modules/provider/provider.service';
 import { CanvasService } from '@/modules/canvas/canvas.service';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -317,6 +317,7 @@ export class PilotService {
     const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
       user,
       targetId,
+      true,
     );
 
     this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);

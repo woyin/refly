@@ -3576,6 +3576,14 @@ export type PilotSession = {
    */
   targetId: string;
   /**
+   * Pilot session current epoch
+   */
+  currentEpoch: number;
+  /**
+   * Pilot session max epoch
+   */
+  maxEpoch: number;
+  /**
    * Pilot steps
    */
   steps?: Array<PilotStep>;

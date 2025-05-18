@@ -12,6 +12,7 @@ const pilotStepSchema = z
     skillName: z
       .enum(['commonQnA', 'webSearch', 'librarySearch', 'generateDoc', 'codeArtifacts'])
       .describe('The name of the skill to invoke'),
+    priority: z.number().min(1).max(5).describe('Priority level from 1 (highest) to 5 (lowest)'),
     query: z.string().describe('The query to ask the skill'),
     contextItemIds: z
       .array(z.string())
@@ -204,6 +205,148 @@ function formatCanvasContent(contentItems: CanvasContentItem[]): string {
     .join('\n\n---\n\n');
 }
 
+/**
+ * Formats the session and steps into a markdown TODO-list.
+ */
+function formatTodoMd(session: PilotSession, steps: PilotStep[]): string {
+  const completedSteps: PilotStep[] = steps.filter((step) => step.status === 'finish');
+  const pendingSteps: PilotStep[] = steps.filter((step) => step.status !== 'finish');
+
+  // Calculate the current epoch based on the session's metadata or default to 1
+  const currentEpoch = session?.currentEpoch ?? 0;
+  const totalEpochs = session?.maxEpoch ?? 2;
+
+  let markdown = `# Todo: ${session.title ?? 'Research Plan'}\n\n`;
+
+  // Add original request
+  markdown += `## Original Request\n${session.input?.query ?? ''}\n\n`;
+
+  // Add status
+  markdown += `## Status\n${session.status ?? 'pending'}\n\n`;
+
+  // Add current epoch
+  markdown += `## Current Epoch: ${currentEpoch + 1}/${totalEpochs + 1}\n\n`;
+
+  // Tasks section
+  markdown += '## Tasks\n\n';
+
+  // Completed tasks
+  markdown += '### Completed\n';
+  if (completedSteps?.length > 0) {
+    for (const step of completedSteps) {
+      markdown += `- [x] ${step.stepId}: ${step.name}\n`;
+    }
+  }
+  markdown += '\n';
+
+  // Pending tasks
+  markdown += '### Pending\n';
+  if (pendingSteps?.length > 0) {
+    for (const step of pendingSteps) {
+      const rawOutput: PilotStepRawOutput = JSON.parse(step.rawOutput ?? '{}');
+      const { skillName, priority, query } = rawOutput;
+
+      // Format: - [ ] task-id: task name (Priority: X)
+      markdown += `- [ ] ${step.name}: ${query} (Priority: ${priority ?? 3})\n`;
+
+      // Add tool suggestion if available
+      if (skillName) {
+        markdown += `  - Suggested Tool: ${skillName}\n`;
+      }
+
+      // // Add dependencies if available
+      // if (contextItemIds?.length > 0) {
+      //   const depsList = contextItemIds.map((dep) => `[${dep}]`).join(', ');
+      //   markdown += `  - Dependencies: ${depsList}\n`;
+      // }
+    }
+  }
+
+  return markdown;
+}
+
+/**
+ * Formats the canvas content items into a mermaid flowchart.
+ */
+function formatCanvasIntoMermaidFlowchart(contentItems: CanvasContentItem[]): string {
+  if (!contentItems?.length) {
+    return '```mermaid\ngraph TD\n    EmptyCanvas[Canvas is empty]\n```';
+  }
+
+  // Map of IDs to safe IDs for Mermaid (removing special characters)
+  const idMap = new Map<string, string>();
+
+  // Create safe IDs for Mermaid diagram
+  contentItems.forEach((item, index) => {
+    const itemId = item?.id || `unknown-${index}`;
+    // Create a safe ID that works in Mermaid (alphanumeric with underscores)
+    const safeId = `node_${index}_${itemId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    idMap.set(itemId, safeId);
+  });
+
+  // Start building the Mermaid diagram
+  let mermaidCode = '```mermaid\ngraph TD\n';
+
+  // Add nodes with proper styling based on type
+  for (const item of contentItems) {
+    const itemId = item?.id || 'unknown';
+    const safeId = idMap.get(itemId) || `node_${itemId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const title = item?.title?.replace(/"/g, '\\"') || 'Untitled';
+    const itemType = item?.type || 'unknown-type';
+
+    // Define node style based on type
+    let nodeStyle = '';
+    switch (itemType) {
+      case 'document':
+        nodeStyle = 'class="document" fill:#f9f9f9,stroke:#666';
+        break;
+      case 'skillResponse':
+        nodeStyle = 'class="skill" fill:#e6f7ff,stroke:#1890ff';
+        break;
+      case 'codeArtifact':
+        nodeStyle = 'class="code" fill:#f6ffed,stroke:#52c41a';
+        break;
+      default:
+        nodeStyle = 'class="default" fill:#fff,stroke:#d9d9d9';
+    }
+
+    // Add node with label and style
+    mermaidCode += `    ${safeId}["${title}"] style ${safeId} ${nodeStyle}\n`;
+  }
+
+  // Add connections based on inputIds
+  for (const item of contentItems) {
+    const itemId = item?.id || 'unknown';
+    const safeId = idMap.get(itemId) || `node_${itemId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+    // Check if item has input IDs (dependencies)
+    if (item?.inputIds?.length) {
+      for (const inputId of item.inputIds) {
+        const safeInputId = idMap.get(inputId);
+        // Only add connection if input ID exists in our map
+        if (safeInputId) {
+          mermaidCode += `    ${safeInputId} --> ${safeId}\n`;
+        }
+      }
+    }
+  }
+
+  // Add legend
+  mermaidCode += '    subgraph Legend\n';
+  mermaidCode +=
+    '        Document["Document"] style Document class="document" fill:#f9f9f9,stroke:#666\n';
+  mermaidCode +=
+    '        Skill["Skill Response"] style Skill class="skill" fill:#e6f7ff,stroke:#1890ff\n';
+  mermaidCode +=
+    '        Code["Code Artifact"] style Code class="code" fill:#f6ffed,stroke:#52c41a\n';
+  mermaidCode += '    end\n';
+
+  // End the Mermaid diagram
+  mermaidCode += '```';
+
+  return mermaidCode;
+}
+
 export class PilotEngine {
   private logger = new Logger(PilotEngine.name);
 
@@ -273,8 +416,14 @@ ${buildResearchStepExamples()}
 
 User Question: "${userQuestion}"
 
+Current Todo List:
+${formatTodoMd(this.session, this.steps)}
+
 Canvas Content:
-${combinedContent}`;
+${combinedContent}
+
+Canvas Structure:
+${formatCanvasIntoMermaidFlowchart(contentItems)}`;
 
         const { steps } = await structuredLLM.invoke(fullPrompt);
 
@@ -293,16 +442,13 @@ ${combinedContent}`;
       const fullPrompt = `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
 
 ## Your Task
-Analyze the user's question and available canvas content, then generate a structured research plan to thoroughly investigate the topic.
+Analyze the user's question and generate a structured research plan to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
 
 ## Guidelines
 1. Break down the research into logical, sequential steps
 2. Select the most appropriate skill for each research step
 3. Craft specific and focused queries for each skill
-4. Reference relevant context items from the canvas when appropriate
-   - Use the exact context IDs (e.g., "quantum-intro-123") from the Canvas Content section
-   - Include multiple context IDs when a step builds on multiple sources
-   - Reference different context items based on their relevance to each specific step
+4. Use empty arrays for contextItemIds since no context is available yet
 5. Build on information gained from previous steps
 6. Consider which skills would be most effective for different aspects of the research:
    - Use 'webSearch' for recent information or specific facts
@@ -316,8 +462,8 @@ ${schemaInstructions}
 
 User Question: "${userQuestion}"
 
-Canvas Content:
-${combinedContent}
+## Canvas Visualization
+(No canvas content available yet)
 
 Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
 
@@ -423,6 +569,9 @@ Analyze the user's question and generate a structured research plan to thoroughl
 ${schemaInstructions}
 
 User Question: "${userQuestion}"
+
+## Canvas Visualization
+(No canvas content available yet)
 
 Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
 

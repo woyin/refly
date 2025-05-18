@@ -20,6 +20,8 @@ import {
   UpsertCanvasRequest,
   User,
   CanvasNode,
+  SkillContext,
+  ActionResult,
 } from '@refly/openapi-schema';
 import { Prisma } from '@/generated/client';
 import { genCanvasID } from '@refly/utils';
@@ -726,7 +728,7 @@ export class CanvasService {
     );
   }
 
-  async getCanvasContentItems(user: User, canvasId: string) {
+  async getCanvasContentItems(user: User, canvasId: string, needAllNodes = false) {
     const canvas = await this.prisma.canvas.findFirst({
       where: { canvasId, uid: user.uid, deletedAt: null },
     });
@@ -735,7 +737,14 @@ export class CanvasService {
     }
 
     const results = await this.prisma.actionResult.findMany({
-      select: { title: true, input: true, version: true, resultId: true },
+      select: {
+        title: true,
+        input: true,
+        version: true,
+        resultId: true,
+        context: true,
+        history: true,
+      },
       where: { targetId: canvasId, targetType: 'canvas' },
     });
 
@@ -747,6 +756,8 @@ export class CanvasService {
           where: { resultId, version },
         });
         const answer = steps.map((s) => s.content.slice(0, 500)).join('\n');
+        const context: SkillContext = JSON.parse(result.context ?? '[]');
+        const history: ActionResult[] = JSON.parse(result.history ?? '[]');
 
         return {
           id: resultId,
@@ -754,25 +765,40 @@ export class CanvasService {
           contentPreview: answer,
           content: steps.map((s) => s.content).join('\n\n'),
           type: 'skillResponse',
+          inputIds: [
+            ...(context.resources ?? []).map((r) => r.resourceId),
+            ...(context.documents ?? []).map((d) => d.docId),
+            ...(context.codeArtifacts ?? []).map((d) => d.artifactId),
+            ...history.map((h) => h.resultId),
+          ],
         } as CanvasContentItem;
       }),
     );
 
     // If no action results, try to get all entities associated with the canvas
-    if (contentItems.length === 0) {
+    if (contentItems.length === 0 || needAllNodes) {
       const relations = await this.prisma.canvasEntityRelation.findMany({
         where: { canvasId, entityType: { in: ['resource', 'document'] }, deletedAt: null },
       });
 
-      const documents = await this.prisma.document.findMany({
-        select: { docId: true, title: true, contentPreview: true },
-        where: { docId: { in: relations.map((r) => r.entityId) } },
-      });
-
-      const resources = await this.prisma.resource.findMany({
-        select: { resourceId: true, title: true, contentPreview: true },
-        where: { resourceId: { in: relations.map((r) => r.entityId) } },
-      });
+      const [documents, resources] = await Promise.all([
+        this.prisma.document.findMany({
+          select: { docId: true, title: true, contentPreview: true },
+          where: {
+            docId: {
+              in: relations.filter((r) => r.entityType === 'document').map((r) => r.entityId),
+            },
+          },
+        }),
+        this.prisma.resource.findMany({
+          select: { resourceId: true, title: true, contentPreview: true },
+          where: {
+            resourceId: {
+              in: relations.filter((r) => r.entityType === 'resource').map((r) => r.entityId),
+            },
+          },
+        }),
+      ]);
 
       contentItems.push(
         ...documents.map((d) => ({

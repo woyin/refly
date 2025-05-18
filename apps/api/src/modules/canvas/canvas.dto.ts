@@ -27,6 +27,7 @@ export interface CanvasContentItem {
   type: EntityType;
   content?: string;
   contentPreview?: string;
+  inputIds?: string[];
 }
 
 export function canvasPO2DTO(canvas: CanvasModel & { minimapUrl?: string }): Canvas {
