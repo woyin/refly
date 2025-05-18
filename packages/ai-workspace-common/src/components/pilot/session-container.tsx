@@ -458,7 +458,7 @@ export const SessionContainer = memo(
           if (step.actionResult) {
             const offsetPosition: XYPosition = {
               x: 0,
-              y: 300 * index,
+              y: 250 * index,
             };
             handleInvokeAction(step.actionResult, offsetPosition);
           }
