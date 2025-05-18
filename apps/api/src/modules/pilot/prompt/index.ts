@@ -35,6 +35,104 @@ export const multiStepSchema = z
 export type PilotStepRawOutput = z.infer<typeof pilotStepSchema>;
 
 /**
+ * Determines the recommended workflow stage based on the current epoch
+ * @param currentEpoch Current epoch number (0-based)
+ * @param totalEpochs Total number of epochs (0-based)
+ * @returns The recommended workflow stage for the current epoch
+ */
+export function getRecommendedStageForEpoch(currentEpoch: number, totalEpochs: number): string {
+  // Normalize to handle edge cases
+  const normalizedCurrentEpoch = Math.max(0, currentEpoch);
+  const normalizedTotalEpochs = Math.max(1, totalEpochs);
+
+  // Calculate progress as a percentage
+  const progress = normalizedCurrentEpoch / normalizedTotalEpochs;
+
+  // Assign stages based on progress
+  if (progress < 0.4) {
+    return 'research';
+  } else if (progress < 0.7) {
+    return 'analysis';
+  } else if (progress < 0.85) {
+    return 'synthesis';
+  } else {
+    return 'creation';
+  }
+}
+
+/**
+ * Generates guidance for the current epoch stage
+ * @param stage The current workflow stage
+ * @returns Guidance text for the prompt
+ */
+export function generateStageGuidance(stage: string): string {
+  switch (stage) {
+    case 'research':
+      return `
+## CURRENT EPOCH STAGE: RESEARCH (Early Stage)
+In this early stage, focus exclusively on gathering information:
+
+- REQUIRED: Use primarily webSearch and librarySearch tools
+- Use commonQnA only for basic information gathering
+- DO NOT use analysis, synthesis, or creation tools yet
+- Focus on broad information gathering about the topic
+- Collect diverse perspectives and factual information
+- Explore different aspects of the question systematically
+- ALL steps in this epoch should have workflowStage="research"`;
+
+    case 'analysis':
+      return `
+## CURRENT EPOCH STAGE: ANALYSIS (Middle Stage)
+In this middle stage, focus on analyzing the information collected:
+
+- REQUIRED: Use primarily commonQnA for analysis
+- Build upon research collected in previous epochs
+- Identify patterns, contradictions, and insights
+- Evaluate the quality and reliability of information
+- Compare different perspectives and approaches
+- Synthesize preliminary findings
+- MOST steps in this epoch should have workflowStage="analysis"
+- NO creation steps allowed yet`;
+
+    case 'synthesis':
+      return `
+## CURRENT EPOCH STAGE: SYNTHESIS (Late Middle Stage)
+In this late middle stage, focus on organizing and planning outputs:
+
+- REQUIRED: Use primarily commonQnA for synthesis
+- Organize information into coherent frameworks
+- Identify the most important findings and insights
+- Plan the structure of final deliverables
+- Draft outlines for documents or code
+- MOST steps should have workflowStage="synthesis"
+- LIMITED creation steps allowed (max 1)`;
+
+    case 'creation':
+      return `
+## CURRENT EPOCH STAGE: CREATION (Final Stage)
+In this final stage, focus on creating polished outputs:
+
+- NOW APPROPRIATE: Use generateDoc and codeArtifacts
+- Create comprehensive documents based on all previous research
+- Generate complete code artifacts with proper formatting
+- Ensure outputs incorporate insights from all previous epochs
+- Polish and refine deliverables
+- MOST steps should have workflowStage="creation"
+- Some analysis/synthesis steps still acceptable if needed`;
+
+    default:
+      return `
+## CURRENT EPOCH STAGE: RESEARCH (Default Stage)
+Focus on gathering information:
+
+- Use primarily webSearch and librarySearch tools
+- Use commonQnA only for basic information gathering
+- DO NOT use creation tools yet
+- ALL steps in this epoch should have workflowStage="research"`;
+  }
+}
+
+/**
  * Formats the canvas content items into a detailed, structured string format
  */
 export function formatCanvasContent(contentItems: CanvasContentItem[]): string {
@@ -314,10 +412,22 @@ export function generatePlanningPrompt(
   const todoMd = formatTodoMd(session, steps);
   const canvasVisual = formatCanvasIntoMermaidFlowchart(contentItems);
 
+  // Calculate the current epoch based on the session's metadata or default to 0
+  const currentEpoch = session?.currentEpoch ?? 0;
+  const totalEpochs = session?.maxEpoch ?? 2;
+
+  // Determine recommended stage for current epoch
+  const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
+
+  // Generate stage-specific guidance
+  const stageGuidance = generateStageGuidance(recommendedStage);
+
   return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
 
 ## Your Task
 Analyze the user's question and available canvas content, then generate a structured research plan with specific steps to thoroughly investigate the topic.
+
+${stageGuidance}
 
 ## Tool Usage Guidelines
 
@@ -357,31 +467,59 @@ Follow these important guidelines about tool sequencing:
 7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
 8. Creation tools MUST ONLY be used in the final 1-2 steps
 
+## Schema Instructions:
+
 ${generateSchemaInstructions()}
 
-Here are examples with expected outputs:
+## Examples with expected outputs:
+
 ${buildResearchStepExamples()}
 
-User Question: "${userQuestion}"
-
-Current Todo List:
+## Current Todo List:
 ${todoMd}
 
-Canvas Content:
+## Canvas Content:
 ${combinedContent}
 
-Canvas Structure:
-${canvasVisual}`;
+## Canvas Structure:
+${canvasVisual}
+
+## User Question: 
+
+"${userQuestion}"
+`;
 }
 
 /**
  * Generates the bootstrap prompt when no canvas content exists
  */
-export function generateBootstrapPrompt(userQuestion: string, maxStepsPerEpoch: number): string {
+export function generateBootstrapPrompt(
+  userQuestion: string,
+  session: PilotSession,
+  steps: PilotStep[],
+  contentItems: CanvasContentItem[],
+  maxStepsPerEpoch: number,
+): string {
+  const combinedContent = formatCanvasContent(contentItems);
+  const todoMd = formatTodoMd(session, steps);
+  const canvasVisual = formatCanvasIntoMermaidFlowchart(contentItems);
+
+  // Calculate the current epoch based on the session's metadata or default to 0
+  const currentEpoch = session?.currentEpoch ?? 0;
+  const totalEpochs = session?.maxEpoch ?? 2;
+
+  // Determine recommended stage for current epoch
+  const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
+
+  // Generate stage-specific guidance
+  const stageGuidance = generateStageGuidance(recommendedStage);
+
   return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
 
 ## Your Task
 Analyze the user's question and generate a structured research plan with specific steps to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
+
+${stageGuidance}
 
 ## Tool Usage Guidelines
 
@@ -430,19 +568,47 @@ Create a research plan that:
 
 User Question: "${userQuestion}"
 
-Note: No existing context items are available, so use empty arrays for contextItemIds.`;
+Current Todo List:
+${todoMd}
+
+Canvas Content:
+${combinedContent}
+
+Canvas Structure:
+${canvasVisual}`;
 }
 
 /**
  * Generates the fallback prompt for manual JSON parsing
  */
-export function generateFallbackPrompt(userQuestion: string, maxStepsPerEpoch: number): string {
+export function generateFallbackPrompt(
+  userQuestion: string,
+  session: PilotSession,
+  steps: PilotStep[],
+  contentItems: CanvasContentItem[],
+  maxStepsPerEpoch: number,
+): string {
+  const combinedContent = formatCanvasContent(contentItems);
+  const todoMd = formatTodoMd(session, steps);
+  const canvasVisual = formatCanvasIntoMermaidFlowchart(contentItems);
   const schemaInstructions = generateSchemaInstructions();
+
+  // Calculate the current epoch based on the session's metadata or default to 0
+  const currentEpoch = session?.currentEpoch ?? 0;
+  const totalEpochs = session?.maxEpoch ?? 2;
+
+  // Determine recommended stage for current epoch
+  const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
+
+  // Generate stage-specific guidance
+  const stageGuidance = generateStageGuidance(recommendedStage);
 
   return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
 
 ## Your Task
 Analyze the user's question and generate a structured research plan to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
+
+${stageGuidance}
 
 ## Tool Usage Guidelines
 
@@ -486,8 +652,14 @@ ${buildResearchStepExamples()}
 
 User Question: "${userQuestion}"
 
-## Canvas Visualization
-(No canvas content available yet)
+## Current Todo List:
+${todoMd}
+
+Canvas Content:
+${combinedContent}
+
+Canvas Structure:
+${canvasVisual}
 
 Respond ONLY with a valid JSON array wrapped in \`\`\`json and \`\`\` tags.`;
 }

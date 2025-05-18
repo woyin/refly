@@ -556,8 +556,8 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
 
 /**
  * Builds formatted examples showing proper tool sequencing for LLM consumption
- * Combines detailed examples with abbreviated versions (using ... notation)
- * to demonstrate both complete workflows and shorter examples
+ * Includes examples for all workflow stages with clear labeling
+ * @param stage The current workflow stage ('research', 'analysis', 'synthesis', or 'creation')
  */
 export function buildFormattedExamples(): string {
   // Get the full workflow examples
@@ -566,136 +566,130 @@ export function buildFormattedExamples(): string {
   const renewableEnergySteps = renewableEnergyExample();
   const cityLivabilitySteps = cityLivabilityExample();
 
+  // Filter steps based on stage type
+  const getStageSteps = (steps: PilotStepRawOutput[], targetStage: string) => {
+    return steps.filter((step) => step.workflowStage === targetStage);
+  };
+
+  // Get examples for each stage
+  const researchSteps = getStageSteps(evMarketSteps, 'research').slice(0, 3);
+  const analysisSteps = getStageSteps(climateChangeSteps, 'analysis').slice(0, 3);
+  const synthesisSteps = getStageSteps(renewableEnergySteps, 'synthesis').slice(0, 2);
+  const creationSteps = getStageSteps(cityLivabilitySteps, 'creation').slice(0, 3);
+
   return `
-## Proper Tool Sequencing Requirements
+## Proper Tool Sequencing Based on Epoch Progress
 
-1. Research Stage (Early):
-   - MUST use: webSearch, librarySearch, commonQnA 
-   - Purpose: Information gathering and initial research
-   - Priority: Typically 1-2
+Research projects are divided into epochs (iterations), with each epoch representing progress through the workflow:
 
-2. Analysis Stage (Middle):
-   - MUST use: commonQnA
-   - Purpose: Analyze and synthesize gathered information
-   - Priority: Typically 3
+1. **Early Epochs (0-40% Progress)**
+   - Stage: RESEARCH
+   - Tools: webSearch, librarySearch, commonQnA for information gathering
+   - Focus: Collecting foundational information and diverse perspectives
 
-3. Synthesis Stage (Optional):
-   - MUST use: commonQnA
-   - Purpose: Organize and plan final outputs
-   - Priority: Typically 3-4
+2. **Middle Epochs (40-70% Progress)**
+   - Stage: ANALYSIS
+   - Tools: primarily commonQnA for analysis
+   - Focus: Analyzing gathered information, identifying patterns and insights
 
-4. Creation Stage (Final):
-   - MUST use: generateDoc, codeArtifacts
-   - Purpose: Create final deliverables ONLY after sufficient context gathering
-   - Priority: Typically 4-5
-   - For code artifacts: Always create self-contained single-page HTML files
+3. **Late Middle Epochs (70-85% Progress)**
+   - Stage: SYNTHESIS
+   - Tools: commonQnA for organization and planning
+   - Focus: Organizing findings and planning final deliverables
 
-IMPORTANT: The sequence MUST be research → analysis → synthesis → creation. Never skip stages.
+4. **Final Epochs (85-100% Progress)**
+   - Stage: CREATION
+   - Tools: generateDoc, codeArtifacts for final outputs
+   - Focus: Creating polished deliverables based on all previous work
 
-## Example 1: Electric Vehicle Market Research
+IMPORTANT: Always follow the sequence appropriate for the current epoch. Each epoch should primarily contain steps from its corresponding stage, but can include a few steps from adjacent stages as needed for smooth transition.
 
+## Research Stage Examples (Early Epochs)
 User Question: "${exampleUserQuestions().marketResearch}"
 
-Workflow Plan (abbreviated showing the essential structure):
-- Research stage (early): Use webSearch to gather market overview and manufacturer data
-- Research stage (early): Use webSearch/librarySearch for technology trends and adoption barriers
-- Analysis stage (middle): Use commonQnA to analyze market trends and adoption challenges
-- Creation stage (final): Use generateDoc and codeArtifacts for final report and visualizations
-
 Canvas Content:
-## Canvas Item 1 (ID: ev-market-overview-node-id, Type: document)
+### Canvas Item 1 (ID: ev-market-overview-node-id, Type: document)
 **Document Title:** Overview of Electric Vehicle Market
 **Document Preview:**
 This document provides a basic overview of the current state of the electric vehicle market, including trends and major players.
 **Context ID:** ev-market-overview-node-id
 
-Full workflow steps:
-${JSON.stringify(evMarketSteps, null, 2)}
+Examples of good research steps for early epochs:
+${JSON.stringify(researchSteps, null, 2)}
 
-## Example 2: Climate Change Impacts Analysis
-
+## Analysis Stage Examples (Middle Epochs)
 User Question: "${exampleUserQuestions().climateImpacts}"
 
-Workflow Plan (abbreviated showing the essential structure):
-- Research stage (early): Use webSearch for climate data, agriculture impacts, economic impacts
-- Research stage (early): Use librarySearch for additional case studies and policy research
-- Analysis stage (middle): Use commonQnA to synthesize findings and analyze future scenarios
-- Creation stage (final): Use generateDoc for comprehensive report and codeArtifacts for visualizations
-
 Canvas Content:
-## Canvas Item 1 (ID: climate-overview-node-id, Type: document)
+### Canvas Item 1 (ID: climate-overview-node-id, Type: document)
 **Document Title:** Introduction to Climate Change
 **Document Preview:**
 This document provides an overview of global climate change science and observed impacts on different systems.
 **Context ID:** climate-overview-node-id
 
-## Canvas Item 2 (ID: climate-agriculture-node-id, Type: skillResponse)
+### Canvas Item 2 (ID: climate-agriculture-node-id, Type: skillResponse)
 **Question:** How does climate change affect agriculture?
 **Answer:**
 Climate change affects agriculture through changing precipitation patterns, temperature increases, extreme weather events, and shifting growing seasons.
 **Context ID:** climate-agriculture-node-id
 
-Full workflow steps (first 5 of ${climateChangeSteps.length}):
-${JSON.stringify(climateChangeSteps.slice(0, 5), null, 2)}
-... (additional steps following the same pattern)
+Examples of good analysis steps for middle epochs:
+${JSON.stringify(analysisSteps, null, 2)}
 
-## Example 3: Renewable Energy Investment Presentation
-
+## Synthesis Stage Examples (Late Middle Epochs)
 User Question: "${exampleUserQuestions().renewableEnergy}"
 
-Workflow Plan (abbreviated showing the essential structure):
-- Research stage (early): Use webSearch for market overview and sector-specific research
-- Research stage (early): Use librarySearch for technological advancement data
-- Analysis stage (middle): Use commonQnA to analyze investment risks and ROI comparisons
-- Synthesis stage (optional): Use commonQnA to create presentation outline
-- Creation stage (final): Use codeArtifacts for visualizations and presentation
-
 Canvas Content:
-## Canvas Item 1 (ID: renewable-market-node-id, Type: document)
+### Canvas Item 1 (ID: renewable-market-node-id, Type: document)
 **Document Title:** Global Renewable Energy Market Overview
 **Document Preview:**
 This document provides an overview of the current state of the global renewable energy market, including trends, major players, and investment opportunities.
 **Context ID:** renewable-market-node-id
 
-## Canvas Item 2 (ID: renewable-solar-node-id, Type: skillResponse)
+### Canvas Item 2 (ID: renewable-solar-node-id, Type: skillResponse)
 **Question:** What are the key companies in solar energy?
 **Answer:**
 Major solar energy companies include First Solar, SunPower, JinkoSolar, Canadian Solar, and Tesla Solar with varying market shares and specializations.
 **Context ID:** renewable-solar-node-id
 
-Full workflow steps (first 5 of ${renewableEnergySteps.length}):
-${JSON.stringify(renewableEnergySteps.slice(0, 5), null, 2)}
-... (additional steps following the same pattern)
+Examples of good synthesis steps for late middle epochs:
+${JSON.stringify(synthesisSteps, null, 2)}
 
-## Example 4: City Livability Index Interactive Visualization
-
+## Creation Stage Examples (Final Epochs)
 User Question: "${exampleUserQuestions().cityLivability}"
 
-Workflow Plan (abbreviated showing the essential structure):
-- Research stage (early): Use webSearch for city data and various livability metrics
-- Analysis stage (middle): Use commonQnA for data standardization and livability score calculations
-- Synthesis stage (optional): Use commonQnA for visualization interface design
-- Creation stage (final): Use codeArtifacts to create self-contained HTML visualizations
-
 Canvas Content:
-## Canvas Item 1 (ID: cities-list-node-id, Type: document)
+### Canvas Item 1 (ID: cities-list-node-id, Type: document)
 **Document Title:** Major Global Cities Overview
 **Document Preview:**
 This document provides information about 50 major global cities, including basic demographic and geographic data.
 **Context ID:** cities-list-node-id
 
-## Canvas Item 2 (ID: livability-metrics-node-id, Type: skillResponse)
+### Canvas Item 2 (ID: livability-metrics-node-id, Type: skillResponse)
 **Question:** What metrics determine city livability?
 **Answer:**
 Key livability metrics include housing affordability, environmental quality, public transportation, safety, healthcare access, and education quality.
 **Context ID:** livability-metrics-node-id
 
-Full workflow steps (first 5 of ${cityLivabilitySteps.length}):
-${JSON.stringify(cityLivabilitySteps.slice(0, 5), null, 2)}
-... (additional steps following the same pattern)`;
+### Canvas Item 3 (ID: city-analysis-node-id, Type: skillResponse)
+**Question:** What are the key patterns in city livability data?
+**Answer:**
+Analysis shows correlations between public transportation quality, environmental factors, and overall livability scores. Cities with strong public infrastructure tend to score higher overall.
+**Context ID:** city-analysis-node-id
+
+Examples of good creation steps for final epochs:
+${JSON.stringify(creationSteps, null, 2)}`;
 }
 
-// Alias for backward compatibility
+// Alias for backward compatibility - now accepts stage parameter
 export function buildDetailedExamples(): string {
+  return buildFormattedExamples();
+}
+
+/**
+ * Builds examples relevant to the current research stage
+ * @param stage The current workflow stage ('research', 'analysis', 'synthesis', or 'creation')
+ */
+export function buildResearchStepExamples(): string {
   return buildFormattedExamples();
 }

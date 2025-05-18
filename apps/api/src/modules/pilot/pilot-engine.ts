@@ -9,6 +9,7 @@ import {
   generateBootstrapPrompt,
   generateFallbackPrompt,
   PilotStepRawOutput,
+  getRecommendedStageForEpoch,
 } from './prompt';
 
 export class PilotEngine {
@@ -33,16 +34,14 @@ export class PilotEngine {
         return [];
       }
 
-      // If no content is available, bootstrap with just the user question
-      if (!contentItems?.length) {
-        this.logger.log(
-          `No canvas content available. Bootstrapping research planning based solely on user question: "${userQuestion}"`,
-        );
-        return this.generateResearchWithoutContent(userQuestion, maxStepsPerEpoch);
-      }
+      // Get the current epoch information
+      const currentEpoch = this.session?.currentEpoch ?? 0;
+      const totalEpochs = this.session?.maxEpoch ?? 2;
+      const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
       this.logger.log(
-        `Planning research steps for "${userQuestion}" with ${contentItems.length} content items`,
+        `Planning research steps for "${userQuestion}" with ${contentItems.length} content items. ` +
+          `Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}`,
       );
 
       // First attempt: Use LLM structured output capability
@@ -71,7 +70,13 @@ export class PilotEngine {
       }
 
       // Second attempt: Manual JSON parsing approach
-      const fallbackPrompt = generateFallbackPrompt(userQuestion, maxStepsPerEpoch);
+      const fallbackPrompt = generateFallbackPrompt(
+        userQuestion,
+        this.session,
+        this.steps,
+        contentItems,
+        maxStepsPerEpoch,
+      );
 
       const response = await this.model.invoke(fallbackPrompt);
       const responseText = response.content.toString();
@@ -104,13 +109,32 @@ export class PilotEngine {
     userQuestion: string,
     maxStepsPerEpoch = 3,
   ): Promise<PilotStepRawOutput[]> {
+    // Create an empty list of content items for the bootstrap process
+    const emptyContentItems: CanvasContentItem[] = [];
+
+    // Get the current epoch information
+    const currentEpoch = this.session?.currentEpoch ?? 0;
+    const totalEpochs = this.session?.maxEpoch ?? 2;
+    const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
+
+    this.logger.log(
+      `Bootstrap planning for "${userQuestion}" without content. ` +
+        `Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}`,
+    );
+
     try {
       // First attempt: Use LLM structured output capability with empty context
       try {
         const structuredLLM = this.model.withStructuredOutput(multiStepSchema);
 
         // Use the bootstrap prompt with optimized guidelines
-        const fullPrompt = generateBootstrapPrompt(userQuestion, maxStepsPerEpoch);
+        const fullPrompt = generateBootstrapPrompt(
+          userQuestion,
+          this.session,
+          this.steps,
+          emptyContentItems,
+          maxStepsPerEpoch,
+        );
 
         const { steps } = await structuredLLM.invoke(fullPrompt);
 
@@ -125,7 +149,13 @@ export class PilotEngine {
       }
 
       // Second attempt: Manual JSON parsing approach
-      const fallbackPrompt = generateFallbackPrompt(userQuestion, maxStepsPerEpoch);
+      const fallbackPrompt = generateFallbackPrompt(
+        userQuestion,
+        this.session,
+        this.steps,
+        emptyContentItems,
+        maxStepsPerEpoch,
+      );
 
       const response = await this.model.invoke(fallbackPrompt);
       const responseText = response.content.toString();
