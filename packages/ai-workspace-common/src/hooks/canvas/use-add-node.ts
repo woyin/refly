@@ -235,9 +235,10 @@ export const useAddNode = () => {
       }, 10);
 
       if (
-        newNode.type === 'document' ||
-        (newNode.type === 'resource' && shouldPreview) ||
-        (['skillResponse', 'codeArtifact', 'website'].includes(newNode.type) && shouldPreview)
+        (newNode.type === 'document' ||
+          newNode.type === 'resource' ||
+          newNode.type === 'website') &&
+        shouldPreview
       ) {
         previewNode(newNode as unknown as CanvasNode);
         locateToNodePreviewEmitter.emit('locateToNodePreview', { canvasId, id: newNode.id });

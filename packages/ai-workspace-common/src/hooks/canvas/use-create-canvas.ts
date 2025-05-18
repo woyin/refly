@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { message } from 'antd';
-import { useTranslation } from 'react-i18next';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
 import { useSiderStore } from '@refly-packages/ai-workspace-common/stores/sider';
@@ -16,7 +14,6 @@ export const useCreateCanvas = ({
   afterCreateSuccess,
 }: { source?: string; projectId?: string; afterCreateSuccess?: () => void } = {}) => {
   const [isCreating, setIsCreating] = useState(false);
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const createCanvas = async (canvasTitle: string) => {
@@ -55,8 +52,6 @@ export const useCreateCanvas = ({
           ...canvasList,
         ].slice(0, DATA_NUM),
       );
-
-      message.success(t('canvas.action.addSuccess'));
 
       // Build the query string with source and pilot flag if needed
       const queryParams = new URLSearchParams();

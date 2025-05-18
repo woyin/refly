@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import { Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
 import {
@@ -7,9 +8,8 @@ import {
   QuestionCircleOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import { time } from '@refly-packages/ai-workspace-common/utils/time';
-import { LOCALE } from '@refly/common-types';
 import { FaCheck } from 'react-icons/fa6';
+import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
 
 // Status icon mapping for pilot steps
 export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) => {
@@ -54,54 +54,41 @@ StepStatusIcon.displayName = 'StepStatusIcon';
 export interface PilotStepItemProps {
   step: PilotStep;
   onClick?: (step: PilotStep) => void;
-  isDetailed?: boolean;
-  isActive?: boolean;
 }
 
-export const PilotStepItem = memo(({ step, onClick, isActive = false }: PilotStepItemProps) => {
-  const { i18n } = useTranslation();
-  const language = i18n.languages?.[0];
+export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
+  const { t } = useTranslation();
+  const { actionMeta } = step?.actionResult ?? {};
+  const skillName = actionMeta?.name;
+  const skillDisplayName = skillName ? t(`${skillName}.name`, { ns: 'skill' }) : '';
 
   const handleClick = useMemo(() => {
     if (!onClick) return undefined;
     return () => onClick(step);
   }, [onClick, step]);
 
-  // Set appropriate status-based styles
-  const getStatusStyles = () => {
-    const baseClasses = 'flex items-center px-2 py-1 flex-grow min-w-0';
-
-    if (step.status === 'finish') {
-      return `${baseClasses} text-gray-600 dark:text-gray-300`;
-    }
-
-    if (step.status === 'executing') {
-      return `${baseClasses} text-blue-600 dark:text-blue-400 font-medium`;
-    }
-
-    return `${baseClasses} text-gray-500 dark:text-gray-400`;
-  };
-
   return (
     <div
-      className={`flex items-center py-1 cursor-pointer transition-colors w-full max-w-full ${isActive ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+      className="flex items-center p-1 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
       onClick={handleClick}
     >
       <div className="mr-2 flex-shrink-0">
         <StepStatusIcon status={step.status} />
       </div>
 
-      <div className={getStatusStyles()}>
-        <span className="truncate text-sm max-w-full block">{step?.name ?? ''}</span>
-      </div>
+      <div className="flex items-center px-2 py-1 flex-grow min-w-0">
+        <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
 
-      {step.status === 'executing' && (
-        <div className="text-xs mr-2 flex-shrink-0 text-gray-500 dark:text-gray-400">
-          {time(step?.createdAt, language as LOCALE)
-            ?.utc()
-            ?.fromNow()}
-        </div>
-      )}
+        {step.actionResult && (
+          <>
+            <Divider type="vertical" className="h-3" />
+            <span className="flex items-center gap-1 text-xs opacity-70">
+              {getSkillIcon(skillName)}
+              {skillDisplayName}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 });
