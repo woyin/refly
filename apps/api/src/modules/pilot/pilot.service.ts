@@ -23,6 +23,7 @@ import { QUEUE_RUN_PILOT } from '@/utils/const';
 import { RunPilotJobData } from './pilot.processor';
 import { ProviderItemNotFoundError } from '@refly/errors';
 import { pilotSessionPO2DTO, pilotStepPO2DTO } from '@/modules/pilot/pilot.dto';
+import { findBestMatch } from '@/utils/similarity';
 
 @Injectable()
 export class PilotService {
@@ -206,25 +207,22 @@ export class PilotService {
     // For each contextItemId, find the closest matching contentItem using edit distance
     const matchedItems: CanvasContentItem[] = [];
 
+    const contentItemIds = contentItems.map((item) => item.id);
+
+    // Create a map of contentItemId to contentItem for efficient lookup
+    const contentItemMap = new Map<string, CanvasContentItem>();
+    for (const item of contentItems) {
+      contentItemMap.set(item.id, item);
+    }
+
     for (const contextItemId of contextItemIds) {
-      // Find the contentItem with the smallest edit distance to the contextItemId
-      let bestMatch: CanvasContentItem | null = null;
-      let smallestDistance = Number.POSITIVE_INFINITY;
-
-      for (const item of contentItems) {
-        if (!item?.id) continue;
-
-        const distance = this.calculateEditDistance(item.id, contextItemId);
-        if (distance < smallestDistance) {
-          smallestDistance = distance;
-          bestMatch = item;
-        }
-      }
+      // Find the best match with a similarity threshold of 3 from the contentItemIds
+      const bestMatch = findBestMatch(contextItemId, contentItemIds, { threshold: 3 });
 
       // If a match was found and it's reasonably close, add it to the matched items
       // (Using a threshold to avoid completely unrelated matches)
-      if (bestMatch && smallestDistance <= 10) {
-        matchedItems.push(bestMatch);
+      if (bestMatch) {
+        matchedItems.push(contentItemMap.get(bestMatch));
       }
     }
 
@@ -232,7 +230,7 @@ export class PilotService {
     for (const item of matchedItems) {
       switch (item?.type) {
         case 'resource':
-          context.resources?.push({
+          context.resources.push({
             resourceId: item.id,
             resource: {
               resourceId: item.id,
@@ -245,7 +243,7 @@ export class PilotService {
           });
           break;
         case 'document':
-          context.documents?.push({
+          context.documents.push({
             docId: item.id,
             document: {
               docId: item.id,
@@ -257,7 +255,7 @@ export class PilotService {
           });
           break;
         case 'codeArtifact':
-          context.codeArtifacts?.push({
+          context.codeArtifacts.push({
             artifactId: item.id,
             codeArtifact: {
               artifactId: item.id,
@@ -266,6 +264,12 @@ export class PilotService {
               type: 'text/markdown', // Default type if not specified
             },
             isCurrent: true,
+          });
+          break;
+        case 'skillResponse':
+          history.push({
+            resultId: item.id,
+            title: item.title ?? '',
           });
           break;
         default:
@@ -286,36 +290,6 @@ export class PilotService {
     }
 
     return { context, history };
-  }
-
-  // Calculate Levenshtein distance between two strings
-  private calculateEditDistance(a: string, b: string): number {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
-
-    const matrix: number[][] = [];
-
-    // Initialize the matrix
-    for (let i = 0; i <= a.length; i++) {
-      matrix[i] = [i];
-    }
-    for (let j = 0; j <= b.length; j++) {
-      matrix[0][j] = j;
-    }
-
-    // Fill in the rest of the matrix
-    for (let i = 1; i <= a.length; i++) {
-      for (let j = 1; j <= b.length; j++) {
-        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j] + 1, // deletion
-          matrix[i][j - 1] + 1, // insertion
-          matrix[i - 1][j - 1] + cost, // substitution
-        );
-      }
-    }
-
-    return matrix[a.length][b.length];
   }
 
   /**
