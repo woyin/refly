@@ -22,6 +22,10 @@ import { Maximize2, Minimize2 } from 'lucide-react';
 import { RiChatNewLine } from 'react-icons/ri';
 import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import { SessionChat } from './session-chat';
+import {
+  convertContextItemsToNodeFilters,
+  convertResultContextToItems,
+} from '@refly-packages/ai-workspace-common/utils/map-context-items';
 
 const SessionHeader = memo(
   ({
@@ -291,6 +295,8 @@ export const SessionContainer = memo(
           tplConfig,
           targetId,
           targetType,
+          context,
+          history,
         } = result;
 
         invokeAction(
@@ -307,23 +313,29 @@ export const SessionContainer = memo(
             entityType: targetType,
           },
         );
-        addNode({
-          type: 'skillResponse',
-          data: {
-            title: input.query,
-            entityId: resultId,
-            metadata: {
-              status: 'executing',
-              selectedSkill: actionMeta,
-              modelInfo,
-              runtimeConfig,
-              tplConfig,
-              pilotStepId: result.pilotStepId,
-              pilotSessionId: sessionId,
+
+        const contextItems = convertResultContextToItems(context, history);
+        addNode(
+          {
+            type: 'skillResponse',
+            data: {
+              title: input.query,
+              entityId: resultId,
+              metadata: {
+                status: 'executing',
+                selectedSkill: actionMeta,
+                modelInfo,
+                runtimeConfig,
+                tplConfig,
+                pilotStepId: result.pilotStepId,
+                pilotSessionId: sessionId,
+              },
             },
+            offsetPosition,
           },
-          offsetPosition,
-        });
+          convertContextItemsToNodeFilters(contextItems),
+          false,
+        );
       },
       [invokeAction, addNode, sessionId],
     );
