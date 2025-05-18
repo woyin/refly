@@ -27,6 +27,7 @@ import {
   convertContextItemsToNodeFilters,
   convertResultContextToItems,
 } from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { pilotEmitter } from '@refly-packages/ai-workspace-common/events/pilot';
 
 const SessionHeader = memo(
   ({
@@ -366,6 +367,12 @@ export const SessionContainer = memo(
           convertContextItemsToNodeFilters(contextItems),
           false,
         );
+        pilotEmitter.emit('pilotStepCreate', {
+          entityId: resultId,
+          entityType: targetType,
+          pilotStepId: result.pilotStepId,
+          pilotSessionId: sessionId,
+        });
       },
       [invokeAction, addNode, sessionId],
     );
