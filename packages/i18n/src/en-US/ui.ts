@@ -1243,7 +1243,6 @@ const translations = {
     action: {
       nodeAlreadyExists: 'The {{type}} with the same entity already exists',
       deleteSuccess: 'Canvas deleted successfully',
-      addSuccess: 'Canvas added successfully, start creating!',
       duplicateSuccess: 'Canvas duplicated successfully',
       nodeLimitReached:
         'Canvas has reached the maximum limit of {{max}} nodes. Please remove some nodes before adding new ones.',

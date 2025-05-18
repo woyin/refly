@@ -398,7 +398,7 @@ export class PilotService {
           entityId: actionResult.resultId,
           entityType: 'skillResponse',
           rawOutput: JSON.stringify(rawStep),
-          status: 'init',
+          status: 'executing',
         },
       });
     }

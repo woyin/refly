@@ -77,7 +77,7 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
       </div>
 
       <div className="flex items-center px-2 py-1 flex-grow min-w-0">
-        <span className="truncate text-sm max-w-full block max-w-[380px]">{step?.name ?? ''}</span>
+        <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
 
         {step.actionResult && (
           <>

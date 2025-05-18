@@ -27,7 +27,6 @@ import {
   convertContextItemsToNodeFilters,
   convertResultContextToItems,
 } from '@refly-packages/ai-workspace-common/utils/map-context-items';
-import { pilotEmitter } from '@refly-packages/ai-workspace-common/events/pilot';
 
 const SessionHeader = memo(
   ({
@@ -317,6 +316,7 @@ export const SessionContainer = memo(
 
     const handleInvokeAction = useCallback(
       (result: ActionResult, offsetPosition: XYPosition) => {
+        console.log('[handleInvokeAction] result', result);
         const {
           input,
           resultId,
@@ -367,12 +367,6 @@ export const SessionContainer = memo(
           convertContextItemsToNodeFilters(contextItems),
           false,
         );
-        pilotEmitter.emit('pilotStepCreate', {
-          entityId: resultId,
-          entityType: targetType,
-          pilotStepId: result.pilotStepId,
-          pilotSessionId: sessionId,
-        });
       },
       [invokeAction, addNode, sessionId],
     );
@@ -424,8 +418,12 @@ export const SessionContainer = memo(
       // Find steps with status "init" that have an actionResult and haven't been processed yet
       const stepsToProcess = sortedSteps.filter(
         (step) =>
-          step.status === 'init' && step.actionResult && !processedPilotStepIds.has(step.stepId),
+          (step.status === 'init' || step.status === 'executing') &&
+          step.actionResult &&
+          !processedPilotStepIds.has(step.stepId),
       );
+
+      console.log('[SessionContainer] stepsToProcess', stepsToProcess);
 
       if (stepsToProcess.length > 0) {
         for (const [index, step] of stepsToProcess.entries()) {
