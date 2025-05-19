@@ -45,7 +45,6 @@ import {
 } from '@refly/openapi-schema';
 import {
   BaseSkill,
-  ReflyService,
   SkillEngine,
   SkillEventMap,
   SkillRunnableConfig,
@@ -64,7 +63,6 @@ import {
 import { PrismaService } from '../common/prisma.service';
 import {
   QUEUE_SKILL,
-  buildSuccessResponse,
   writeSSEResponse,
   pick,
   QUEUE_SYNC_TOKEN_USAGE,
@@ -75,12 +73,8 @@ import {
 } from '../../utils';
 import { InvokeSkillJobData, SkillTimeoutCheckJobData } from './skill.dto';
 import { KnowledgeService } from '../knowledge/knowledge.service';
-import { documentPO2DTO, resourcePO2DTO, referencePO2DTO } from '../knowledge/knowledge.dto';
+import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import { ConfigService } from '@nestjs/config';
-import { SearchService } from '../search/search.service';
-import { RAGService } from '../rag/rag.service';
-import { LabelService } from '../label/label.service';
-import { labelClassPO2DTO, labelPO2DTO } from '../label/label.dto';
 import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
 import {
@@ -91,8 +85,6 @@ import {
   SkillNotFoundError,
 } from '@refly/errors';
 import { genBaseRespDataFromError } from '../../utils/exception';
-import { CanvasService } from '../canvas/canvas.service';
-import { canvasPO2DTO } from '../canvas/canvas.dto';
 import { actionResultPO2DTO } from '../action/action.dto';
 import { CollabService } from '../collab/collab.service';
 import { throttle } from 'lodash';
@@ -101,15 +93,13 @@ import { CollabContext } from '../collab/collab.dto';
 import { DirectConnection } from '@hocuspocus/server';
 import { MiscService } from '../misc/misc.service';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
-import { ParserFactory } from '../knowledge/parsers/factory';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { projectPO2DTO } from '@/modules/project/project.dto';
 import { ProviderService } from '@/modules/provider/provider.service';
 import { providerPO2DTO } from '@/modules/provider/provider.dto';
 import { codeArtifactPO2DTO } from '@/modules/code-artifact/code-artifact.dto';
-import { McpServerService } from '@/modules/mcp-server/mcp-server.service';
-import { mcpServerPO2DTO } from '@/modules/mcp-server/mcp-server.dto';
 import { SyncPilotStepJobData } from '@/modules/pilot/pilot.processor';
+import { SkillEngineService } from './skill-engine.service';
 
 function validateSkillTriggerCreateParam(param: SkillTriggerCreateParam) {
   if (param.triggerType === 'simpleEvent') {
@@ -132,17 +122,13 @@ export class SkillService {
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
-    private label: LabelService,
-    private search: SearchService,
     private knowledge: KnowledgeService,
-    private rag: RAGService,
-    private canvas: CanvasService,
     private subscription: SubscriptionService,
     private collabService: CollabService,
     private misc: MiscService,
     private codeArtifact: CodeArtifactService,
     private providerService: ProviderService,
-    private mcpServerService: McpServerService,
+    private skillEngineService: SkillEngineService,
 
     @InjectQueue(QUEUE_SKILL) private skillQueue: Queue<InvokeSkillJobData>,
     @InjectQueue(QUEUE_SKILL_TIMEOUT_CHECK)
@@ -155,117 +141,11 @@ export class SkillService {
     @InjectQueue(QUEUE_SYNC_PILOT_STEP)
     private pilotStepQueue: Queue<SyncPilotStepJobData>,
   ) {
-    this.skillEngine = new SkillEngine(this.logger, this.buildReflyService());
+    this.skillEngine = this.skillEngineService.getEngine();
+    this.logger.log(`Skill engine initialized: ${this.skillEngine}`);
+
     this.skillInventory = createSkillInventory(this.skillEngine);
   }
-
-  buildReflyService = (): ReflyService => {
-    return {
-      listMcpServers: async (user, req) => {
-        const servers = await this.mcpServerService.listMcpServers(user, req);
-        return buildSuccessResponse(servers.map(mcpServerPO2DTO));
-      },
-      createCanvas: async (user, req) => {
-        const canvas = await this.canvas.createCanvas(user, req);
-        return buildSuccessResponse(canvasPO2DTO(canvas));
-      },
-      listCanvases: async (user, param) => {
-        const canvasList = await this.canvas.listCanvases(user, param);
-        return buildSuccessResponse(canvasList.map((canvas) => canvasPO2DTO(canvas)));
-      },
-      deleteCanvas: async (user, param) => {
-        await this.canvas.deleteCanvas(user, param);
-        return buildSuccessResponse({});
-      },
-      getDocumentDetail: async (user, param) => {
-        const canvas = await this.knowledge.getDocumentDetail(user, param);
-        return buildSuccessResponse(documentPO2DTO(canvas));
-      },
-      createDocument: async (user, req) => {
-        const canvas = await this.knowledge.createDocument(user, req);
-        return buildSuccessResponse(documentPO2DTO(canvas));
-      },
-      listDocuments: async (user, param) => {
-        const canvasList = await this.knowledge.listDocuments(user, param);
-        return buildSuccessResponse(canvasList.map((canvas) => documentPO2DTO(canvas)));
-      },
-      deleteDocument: async (user, param) => {
-        await this.knowledge.deleteDocument(user, param);
-        return buildSuccessResponse({});
-      },
-      getResourceDetail: async (user, req) => {
-        const resource = await this.knowledge.getResourceDetail(user, req);
-        return buildSuccessResponse(resourcePO2DTO(resource));
-      },
-      createResource: async (user, req) => {
-        const resource = await this.knowledge.createResource(user, req);
-        return buildSuccessResponse(resourcePO2DTO(resource));
-      },
-      batchCreateResource: async (user, req) => {
-        const resources = await this.knowledge.batchCreateResource(user, req);
-        return buildSuccessResponse(resources.map(resourcePO2DTO));
-      },
-      updateResource: async (user, req) => {
-        const resource = await this.knowledge.updateResource(user, req);
-        return buildSuccessResponse(resourcePO2DTO(resource));
-      },
-      createLabelClass: async (user, req) => {
-        const labelClass = await this.label.createLabelClass(user, req);
-        return buildSuccessResponse(labelClassPO2DTO(labelClass));
-      },
-      createLabelInstance: async (user, req) => {
-        const labels = await this.label.createLabelInstance(user, req);
-        return buildSuccessResponse(labels.map((label) => labelPO2DTO(label)));
-      },
-      webSearch: async (user, req) => {
-        const result = await this.search.webSearch(user, req);
-        return buildSuccessResponse(result);
-      },
-      rerank: async (user, query, results, options) => {
-        const result = await this.rag.rerank(user, query, results, options);
-        return buildSuccessResponse(result);
-      },
-      search: async (user, req, options) => {
-        const result = await this.search.search(user, req, options);
-        return buildSuccessResponse(result);
-      },
-      addReferences: async (user, req) => {
-        const references = await this.knowledge.addReferences(user, req);
-        return buildSuccessResponse(references.map(referencePO2DTO));
-      },
-      deleteReferences: async (user, req) => {
-        await this.knowledge.deleteReferences(user, req);
-        return buildSuccessResponse({});
-      },
-      inMemorySearchWithIndexing: async (user, options) => {
-        const result = await this.rag.inMemorySearchWithIndexing(user, options);
-        return buildSuccessResponse(result);
-      },
-      crawlUrl: async (user, url) => {
-        try {
-          const parserFactory = new ParserFactory(this.config, this.providerService);
-          const jinaParser = await parserFactory.createWebParser(user, {
-            resourceId: `temp-${Date.now()}`,
-          });
-
-          const result = await jinaParser.parse(url);
-
-          return {
-            title: result.title,
-            content: result.content,
-            metadata: { ...result.metadata, url },
-          };
-        } catch (error) {
-          this.logger.error(`Failed to crawl URL ${url}: ${error.stack}`);
-          return {
-            title: '',
-            content: '',
-            metadata: { url, error: error.message },
-          };
-        }
-      },
-    };
-  };
 
   listSkills(includeAll = false): Skill[] {
     let skills = this.skillInventory.map((skill) => ({
@@ -1334,10 +1214,14 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           },
         }),
         this.prisma.actionStep.createMany({ data: steps }),
-        this.prisma.pilotStep.updateMany({
-          where: { stepId: result.pilotStepId },
-          data: { status },
-        }),
+        ...(result.pilotStepId
+          ? [
+              this.prisma.pilotStep.updateMany({
+                where: { stepId: result.pilotStepId },
+                data: { status },
+              }),
+            ]
+          : []),
       ]);
 
       writeSSEResponse(res, { event: 'end', resultId, version });
