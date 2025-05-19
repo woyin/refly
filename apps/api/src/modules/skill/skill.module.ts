@@ -24,6 +24,7 @@ import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { ProviderModule } from '@/modules/provider/provider.module';
 import { McpServerModule } from '@/modules/mcp-server/mcp-server.module';
 import { SkillEngineService } from './skill-engine.service';
+import { SkillInvokerService } from '@/modules/skill/skill-invoker.service';
 
 @Module({
   imports: [
@@ -46,7 +47,13 @@ import { SkillEngineService } from './skill-engine.service';
     BullModule.registerQueue({ name: QUEUE_AUTO_NAME_CANVAS }),
     BullModule.registerQueue({ name: QUEUE_SYNC_PILOT_STEP }),
   ],
-  providers: [SkillService, SkillEngineService, SkillProcessor, SkillTimeoutCheckProcessor],
+  providers: [
+    SkillService,
+    SkillEngineService,
+    SkillInvokerService,
+    SkillProcessor,
+    SkillTimeoutCheckProcessor,
+  ],
   controllers: [SkillController],
   exports: [SkillService],
 })
