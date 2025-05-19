@@ -109,7 +109,7 @@ export const PilotList = memo(
 
     return (
       <div
-        className={cn('rounded-lg shadow h-[300px] w-80 overflow-y-auto', className)}
+        className={cn('rounded-lg shadow h-[200px] w-80 overflow-y-auto', className)}
         id="scrollableDiv"
       >
         <InfiniteScroll
