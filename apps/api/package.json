@@ -1,10 +1,14 @@
 {
   "name": "@refly/api",
-  "version": "0.0.1",
-  "description": "",
+  "version": "0.6.0",
+  "description": "Refly Desktop Application - AI-powered productivity tool",
   "author": "",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "ReflyAI OpenSource License",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/refly-ai/refly.git"
+  },
   "main": "dist-electron/electron/main.js",
   "scripts": {
     "copy-env": "ncp .env.example .env",
@@ -21,7 +25,7 @@
     "dev:debug": "nodemon --inspect",
     "start": "node --env-file=.env dist/scripts/sync-db-schema.js && node --env-file=.env dist/main.js",
     "start:electron": "electron dist-electron/electron/main.js",
-    "package:electron": "electron-builder build --config electron-builder.yml",
+    "package:electron": "electron-builder build --mac --arm64",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -136,8 +140,10 @@
     "@types/supertest": "^2.0.11",
     "@types/uuid": "~9.0.0",
     "@types/ws": "~8.5.12",
+    "dotenv": "~16.4.5",
     "electron": "36.2.1",
     "electron-builder": "26.0.15",
+    "electron-notarize": "^1.2.2",
     "jest": "29.5.0",
     "nodemon": "~3.1.7",
     "source-map-support": "^0.5.20",
