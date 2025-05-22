@@ -14,6 +14,7 @@
     "build:electron": "prisma generate --schema=prisma/sqlite-schema.prisma && tsc --build tsconfig.electron.json && ncp prisma/ dist-electron/prisma/ && ncp src/generated dist-electron/generated",
     "prisma:generate": "prisma format && prisma generate",
     "gen-sqlite-schema": "ts-node src/scripts/gen-sqlite-schema.ts",
+    "format-schema": "prisma format && prisma format --schema=prisma/sqlite-schema.prisma",
     "sync-db-schema": "prisma format && prisma generate && node -r ts-node/register --env-file=.env src/scripts/sync-db-schema.ts && prisma format --schema=prisma/sqlite-schema.prisma",
     "dev": "nodemon",
     "dev:electron": "nodemon --config nodemon.electron.json",

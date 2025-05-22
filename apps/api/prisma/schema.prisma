@@ -139,7 +139,7 @@ model ActionResult {
   /// Project id
   projectId      String?      @map("project_id")
   /// Action result status
-  status         String       @default("waiting") @map("status")
+  status         ActionStatus @default(waiting) @map("status")
   /// Duplicate from another action result id
   duplicateFrom  String?      @map("duplicate_from")
   /// Provider item id
@@ -188,6 +188,13 @@ model ActionStep {
 
   @@index([resultId, version, order])
   @@map("action_steps")
+}
+
+enum ActionStatus {
+  waiting
+  executing
+  finish
+  failed
 }
 
 model TokenUsage {
