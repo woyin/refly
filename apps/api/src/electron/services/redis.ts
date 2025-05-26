@@ -3,6 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import getPort from 'get-port';
 import { app } from 'electron';
+import { createServiceLogger } from '../logger';
+
+const redisLogger = createServiceLogger('redis');
 
 let redisProcess: ChildProcess | null = null;
 
@@ -14,11 +17,15 @@ export const startRedisServer = async (): Promise<number> => {
   // Get a free port for Redis server
   const redisPort = await getPort();
   const redisServerPath = path.join(process.env.APP_ROOT, 'bin', 'redis-server');
-  console.log('redisServerPath', redisServerPath);
+  redisLogger.debug('Redis server configuration', {
+    redisServerPath,
+    redisPort,
+  });
 
   // Check if Redis server binary exists
   if (!fs.existsSync(redisServerPath)) {
-    console.error(`Redis server binary not found at ${redisServerPath}`);
+    const errorMsg = `Redis server binary not found at ${redisServerPath}`;
+    redisLogger.error(errorMsg);
     throw new Error('Redis server binary not found');
   }
 
@@ -30,13 +37,17 @@ export const startRedisServer = async (): Promise<number> => {
   // Ensure data directory exists
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
+    redisLogger.debug(`Created Redis data directory: ${dataDir}`);
   }
 
   // Write Redis config
-  fs.writeFileSync(
+  const configContent = `port ${redisPort}\ndir "${dataDir}"\ndbfilename dump.rdb\nsave 60 1\n`;
+  fs.writeFileSync(configPath, configContent);
+  redisLogger.debug('Redis configuration written', {
     configPath,
-    `port ${redisPort}\ndir "${dataDir}"\ndbfilename dump.rdb\nsave 60 1\n`,
-  );
+    dataDir,
+    configContent,
+  });
 
   // Start Redis server with the config file
   redisProcess = spawn(redisServerPath, [configPath], {
@@ -53,34 +64,37 @@ export const startRedisServer = async (): Promise<number> => {
     // Listen for Redis startup messages
     redisProcess.stdout?.on('data', (data) => {
       const output = data.toString();
-      console.log(`Redis: ${output}`);
+      redisLogger.debug(`Redis stdout: ${output.trim()}`);
 
       // When Redis reports it's ready to accept connections, resolve with the port
       if (output.includes('Ready to accept connections')) {
-        console.log(`Redis server running on port ${redisPort}`);
+        redisLogger.info(`Redis server running on port ${redisPort}`);
         resolve(redisPort);
       }
     });
 
     redisProcess.stderr?.on('data', (data) => {
       const errorOutput = data.toString();
-      console.error(`Redis error: ${errorOutput}`);
+      redisLogger.error(`Redis stderr: ${errorOutput.trim()}`);
       startupError += errorOutput;
     });
 
     redisProcess.on('error', (error) => {
-      console.error('Failed to start Redis server:', error);
+      redisLogger.error('Failed to start Redis server:', error);
       reject(error);
     });
 
     redisProcess.on('exit', (code) => {
       if (code !== 0 && code !== null) {
-        console.error(`Redis server exited with code ${code}`);
+        redisLogger.error(`Redis server exited with code ${code}`, {
+          exitCode: code,
+          startupError,
+        });
 
         // Check for specific error cases
         if (startupError.includes('Address already in use')) {
           // Port conflict - try again with a different port
-          console.log('Redis port conflict, retrying with a different port...');
+          redisLogger.warn('Redis port conflict, retrying with a different port...');
           if (redisProcess) {
             redisProcess = null;
             startRedisServer().then(resolve).catch(reject);
@@ -94,7 +108,7 @@ export const startRedisServer = async (): Promise<number> => {
     // Set a timeout in case Redis doesn't start properly
     setTimeout(() => {
       if (redisProcess?.killed === false) {
-        console.log("Redis startup timeout reached, assuming it's running");
+        redisLogger.warn("Redis startup timeout reached, assuming it's running");
         resolve(redisPort); // Assume it's running even if we didn't see the "ready" message
       }
     }, 5000);
@@ -107,11 +121,12 @@ export const startRedisServer = async (): Promise<number> => {
 export const shutdownRedisServer = () => {
   // Clean up Redis process
   if (redisProcess && !redisProcess.killed) {
-    console.log('Shutting down Redis server...');
+    redisLogger.info('Shutting down Redis server...');
     try {
       process.kill(redisProcess.pid!, 'SIGTERM');
+      redisLogger.info('Redis server shutdown signal sent');
     } catch (err) {
-      console.error('Error shutting down Redis server:', err);
+      redisLogger.error('Error shutting down Redis server:', err);
     }
     redisProcess = null;
   }

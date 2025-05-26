@@ -1,5 +1,6 @@
 {
   "name": "refly-monorepo",
+  "version": "0.6.0",
   "private": true,
   "engines": {
     "pnpm": ">=8"
@@ -8,6 +9,7 @@
     "type": "git",
     "url": "git+https://github.com/refly-ai/refly.git"
   },
+  "main": "apps/api/dist-electron/electron/main.js",
   "scripts": {
     "commit": "cz",
     "dev": "turbo run dev",
@@ -20,11 +22,14 @@
     "build:web": "turbo run build --filter=@refly/web",
     "build:extension": "turbo run build --filter=@refly/extension",
     "build:electron": "turbo run build:electron --filter=@refly/api",
-    "package:electron": "turbo run package:electron --filter=@refly/api",
+    "package:electron": "electron-builder --mac --x64",
+    "package:electron:dir": "electron-builder --mac --x64 --dir",
+    "copy-package-dist": "node scripts/copy-package-dist.js",
     "copy-env": "turbo run copy-env",
     "copy-env:develop": "turbo run copy-env:develop",
     "codegen": "turbo run codegen",
     "clean": "turbo run clean",
+    "clean:node-modules": "node scripts/cleanup-node-modules.js",
     "cy:open": "cypress open",
     "cy:install": "cypress install",
     "lint": "biome lint .",
@@ -44,6 +49,10 @@
     "commitizen": "^4.2.4",
     "cypress": "14.0.1",
     "cz-conventional-changelog": "^3.3.0",
+    "dotenv": "~16.4.5",
+    "electron": "36.2.1",
+    "electron-builder": "26.0.15",
+    "electron-notarize": "^1.2.2",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "ncp": "^2.0.0",

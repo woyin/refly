@@ -9,17 +9,11 @@ directories:
   buildResources: build
   output: packed
 # Other settings that may help reduce build size and time
-npmRebuild: false
-buildDependenciesFromSource: false
+npmRebuild: true
+buildDependenciesFromSource: true
 compression: normal
-asarUnpack: # only if you need to run prisma migrate:
-  - prisma
-  - dist-electron/bin/**/*
-  - "**/node_modules/sharp/**/*"
-  - "**/node_modules/@img/**/*"
 files:
-  - "!{.vscode,.yarn,.github}"
-  - "!electron.vite.config.{js,ts,mjs,cjs}"
+  - "!{.vscode,.yarn,.github,.turbo,.cursor,.husky}"
   # - package.json
   # - node_modules
   # - apps/api/**/*
@@ -41,28 +35,41 @@ files:
 #   - node_modules/@prisma/engines/query*
 #   - node_modules/@prisma/engines/libquery*
 #   - THIRD-PARTY-LICENSES.txt
-win:
-  target:
-    - nsis
-  signAndEditExecutable: false
-  verifyUpdateCodeSignature: false
-  # had to add artifactName here because electron-builder was generating latest.yml with hyphens instead of spaces,
-  # which screwed up auto updates
-  artifactName: ${productName}-Setup-${version}.${ext}
-linux:
-  target:
-    - snap
-    - AppImage
-  asarUnpack: # only if you need to run prisma migrate:
-    - prisma
-    - apps/api/dist-electron/bin/**/*
+# win:
+#   target:
+#     - nsis
+#   asar:
+#     smartUnpack: false
+#   asarUnpack: # only if you need to run prisma migrate:
+#     - prisma
+#     - apps/api/dist-electron/bin/**/*
+#   signAndEditExecutable: true
+#   verifyUpdateCodeSignature: true
+#   # had to add artifactName here because electron-builder was generating latest.yml with hyphens instead of spaces,
+#   # which screwed up auto updates
+#   artifactName: ${productName}-Setup-${version}.${ext}
+# linux:
+#   target:
+#     - snap
+#     - AppImage
+#   asarUnpack: # only if you need to run prisma migrate:
+#     - prisma
+#     - apps/api/dist-electron/bin/**/*
 mac:
   asar: false
   category: public.app-category.productivity
   #  gatekeeperAssess: true
   target:
     - target: dmg
+      arch:
+        - x64
+        - arm64
     - target: zip # zip is required because of electron-userland/electron-builder#2199
+      arch:
+        - x64
+        - arm64
+  asarUnpack:
+    - apps/api/dist-electron/bin/**/*
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.

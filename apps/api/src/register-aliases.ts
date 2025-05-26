@@ -16,13 +16,18 @@ function getPreloadModules(): string[] {
 }
 
 if (!getPreloadModules().includes('tsconfig-paths/register')) {
+  const packagesRoot = path.resolve(__dirname, 'packages');
+  // if (process.env.MODE === 'desktop') {
+  //   packagesRoot = path.resolve(__dirname, 'packages');
+  // }
+
   moduleAlias.addAliases({
-    '@refly/openapi-schema': path.resolve(__dirname, '../../../packages/openapi-schema/dist'),
-    '@refly/errors': path.resolve(__dirname, '../../../packages/errors/dist'),
-    '@refly/common-types': path.resolve(__dirname, '../../../packages/common-types/dist'),
-    '@refly/utils': path.resolve(__dirname, '../../../packages/utils/dist'),
-    '@refly/providers': path.resolve(__dirname, '../../../packages/providers/dist'),
-    '@refly/skill-template': path.resolve(__dirname, '../../../packages/skill-template/dist'),
+    '@refly/openapi-schema': path.resolve(packagesRoot, 'openapi-schema/dist'),
+    '@refly/errors': path.resolve(packagesRoot, 'errors/dist'),
+    '@refly/common-types': path.resolve(packagesRoot, 'common-types/dist'),
+    '@refly/utils': path.resolve(packagesRoot, 'utils/dist'),
+    '@refly/providers': path.resolve(packagesRoot, 'providers/dist'),
+    '@refly/skill-template': path.resolve(packagesRoot, 'skill-template/dist'),
     '@': __dirname,
   });
 }

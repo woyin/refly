@@ -3,6 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import getPort from 'get-port';
 import { app } from 'electron';
+import { createServiceLogger } from '../logger';
+
+const qdrantLogger = createServiceLogger('qdrant');
 
 let qdrantProcess: ChildProcess | null = null;
 
@@ -16,11 +19,16 @@ export const startQdrantServer = async (): Promise<{ httpPort: number; grpcPort:
   const grpcPort = await getPort({ port: httpPort + 1 }); // Try to get consecutive ports if possible
 
   const qdrantServerPath = path.join(process.env.APP_ROOT, 'bin', 'qdrant');
-  console.log('qdrantServerPath', qdrantServerPath);
+  qdrantLogger.debug('Qdrant server configuration', {
+    qdrantServerPath,
+    httpPort,
+    grpcPort,
+  });
 
   // Check if Qdrant server binary exists
   if (!fs.existsSync(qdrantServerPath)) {
-    console.error(`Qdrant server binary not found at ${qdrantServerPath}`);
+    const errorMsg = `Qdrant server binary not found at ${qdrantServerPath}`;
+    qdrantLogger.error(errorMsg);
     throw new Error('Qdrant server binary not found');
   }
 
@@ -35,6 +43,7 @@ export const startQdrantServer = async (): Promise<{ httpPort: number; grpcPort:
   for (const dir of [qdrantDataDir, qdrantStoragePath, qdrantSnapshotsPath, qdrantConfigDir]) {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
+      qdrantLogger.debug(`Created Qdrant directory: ${dir}`);
     }
   }
 
@@ -42,9 +51,7 @@ export const startQdrantServer = async (): Promise<{ httpPort: number; grpcPort:
   const configPath = path.join(qdrantConfigDir, 'config.yaml');
 
   // Write Qdrant config
-  fs.writeFileSync(
-    configPath,
-    `log_level: INFO
+  const configContent = `log_level: INFO
 
 storage:
   # Where to store all the data
@@ -71,8 +78,14 @@ service:
 
 # Disable telemetry
 telemetry_disabled: true
-`,
-  );
+`;
+
+  fs.writeFileSync(configPath, configContent);
+  qdrantLogger.debug('Qdrant configuration written', {
+    configPath,
+    qdrantStoragePath,
+    qdrantSnapshotsPath,
+  });
 
   // Start Qdrant server with the config file
   qdrantProcess = spawn(qdrantServerPath, ['--config-path', configPath], {
@@ -89,7 +102,7 @@ telemetry_disabled: true
     // Listen for Qdrant startup messages
     qdrantProcess.stdout?.on('data', (data) => {
       const output = data.toString();
-      console.log(`Qdrant: ${output}`);
+      qdrantLogger.debug(`Qdrant stdout: ${output.trim()}`);
 
       // When Qdrant reports it's ready to accept connections
       if (
@@ -97,30 +110,35 @@ telemetry_disabled: true
         output.includes('Starting') ||
         output.includes('Started')
       ) {
-        console.log(`Qdrant server running on HTTP port ${httpPort} and gRPC port ${grpcPort}`);
+        qdrantLogger.info(
+          `Qdrant server running on HTTP port ${httpPort} and gRPC port ${grpcPort}`,
+        );
         resolve({ httpPort, grpcPort });
       }
     });
 
     qdrantProcess.stderr?.on('data', (data) => {
       const errorOutput = data.toString();
-      console.error(`Qdrant error: ${errorOutput}`);
+      qdrantLogger.error(`Qdrant stderr: ${errorOutput.trim()}`);
       startupError += errorOutput;
     });
 
     qdrantProcess.on('error', (error) => {
-      console.error('Failed to start Qdrant server:', error);
+      qdrantLogger.error('Failed to start Qdrant server:', error);
       reject(error);
     });
 
     qdrantProcess.on('exit', (code) => {
       if (code !== 0 && code !== null) {
-        console.error(`Qdrant server exited with code ${code}`);
+        qdrantLogger.error(`Qdrant server exited with code ${code}`, {
+          exitCode: code,
+          startupError,
+        });
 
         // Check for specific error cases
         if (startupError.includes('Address already in use')) {
           // Port conflict - try again with different ports
-          console.log('Qdrant port conflict, retrying with different ports...');
+          qdrantLogger.warn('Qdrant port conflict, retrying with different ports...');
           if (qdrantProcess) {
             qdrantProcess = null;
             startQdrantServer().then(resolve).catch(reject);
@@ -134,7 +152,7 @@ telemetry_disabled: true
     // Set a timeout in case Qdrant doesn't start properly
     setTimeout(() => {
       if (qdrantProcess?.killed === false) {
-        console.log("Qdrant startup timeout reached, assuming it's running");
+        qdrantLogger.warn("Qdrant startup timeout reached, assuming it's running");
         resolve({ httpPort, grpcPort }); // Assume it's running even if we didn't see the "ready" message
       }
     }, 8000); // Give Qdrant a bit more time to start up
@@ -147,11 +165,12 @@ telemetry_disabled: true
 export const shutdownQdrantServer = () => {
   // Clean up Qdrant process
   if (qdrantProcess && !qdrantProcess.killed) {
-    console.log('Shutting down Qdrant server...');
+    qdrantLogger.info('Shutting down Qdrant server...');
     try {
       process.kill(qdrantProcess.pid!, 'SIGTERM');
+      qdrantLogger.info('Qdrant server shutdown signal sent');
     } catch (err) {
-      console.error('Error shutting down Qdrant server:', err);
+      qdrantLogger.error('Error shutting down Qdrant server:', err);
     }
     qdrantProcess = null;
   }
