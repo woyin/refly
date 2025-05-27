@@ -1,7 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('node:path');
-const isNumber = require('is-number');
-const log = require('electron-log/main');
+import { app, BrowserWindow, ipcMain } from 'electron';
+import path from 'node:path';
+import log from 'electron-log/main';
 
 // Optional, initialize the logger for any renderer process
 log.initialize();
@@ -19,8 +18,6 @@ const createWindow = () => {
 
   win.loadFile(path.join(__dirname, 'index.html'));
 };
-
-log.info('isNumber', isNumber('123'));
 
 app.whenReady().then(() => {
   ipcMain.handle('ping', () => 'pong');

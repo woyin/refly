@@ -51,19 +51,13 @@ win:
 #     - prisma
 #     - apps/api/dist-electron/bin/**/*
 mac:
-  asar: false
+  # asar: false
   identity: null
   category: public.app-category.productivity
   #  gatekeeperAssess: true
   target:
     - target: dmg
-      arch:
-        - x64
-        - arm64
-    - target: zip # zip is required because of electron-userland/electron-builder#2199
-      arch:
-        - x64
-        - arm64
+    - target: zip # zip is required because of electron-userland/electron-builder#2199s
   asarUnpack:
     - apps/api/dist-electron/bin/**/*
   extendInfo:
