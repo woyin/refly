@@ -1,0 +1,21 @@
+{
+  "name": "refly-desktop",
+  "version": "1.0.0",
+  "description": "Hello World!",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:dir": "electron-builder --win --x64 --dir",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "electron": "36.2.1",
+    "electron-builder": "26.0.15",
+    "electron-notarize": "^1.2.2"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.0",
+    "is-number": "^7.0.0"
+  }
+}
