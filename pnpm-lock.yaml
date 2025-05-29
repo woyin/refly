@@ -7,6 +7,16 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.10.1
+        version: 1.11.2
+      '@rekog/mcp-nest':
+        specifier: ^1.5.2
+        version: 1.5.2(@modelcontextprotocol/sdk@1.11.2)(@nestjs/common@10.3.10)(@nestjs/core@10.3.10)(express@4.19.2)(reflect-metadata@0.1.14)(zod-to-json-schema@3.24.5)(zod@3.23.8)
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.9.0
@@ -6775,7 +6785,7 @@ packages:
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
       zod: 3.23.8
-      zod-to-json-schema: 3.24.3(zod@3.23.8)
+      zod-to-json-schema: 3.24.5(zod@3.23.8)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -9687,6 +9697,27 @@ packages:
       rollup: 4.18.1
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /@rekog/mcp-nest@1.5.2(@modelcontextprotocol/sdk@1.11.2)(@nestjs/common@10.3.10)(@nestjs/core@10.3.10)(express@4.19.2)(reflect-metadata@0.1.14)(zod-to-json-schema@3.24.5)(zod@3.23.8):
+    resolution: {integrity: sha512-q5gEHKPHVIevOzr6f6qc0gt7+J6VvELdU/o9fqNj6kJfHNXIBK0VSyXyv7Aq7lrh99sT4P/PpVKreVlML6pRlg==}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': '>=1.10.0'
+      '@nestjs/common': '>=9.0.0'
+      '@nestjs/core': '>=9.0.0'
+      express: '>=4.0.0'
+      reflect-metadata: '>=0.1.14'
+      zod: '>=3.0.0'
+      zod-to-json-schema: '>=3.23.0'
+    dependencies:
+      '@modelcontextprotocol/sdk': 1.11.2
+      '@nestjs/common': 10.3.10(reflect-metadata@0.1.14)(rxjs@7.8.1)
+      '@nestjs/core': 10.3.10(@nestjs/common@10.3.10)(@nestjs/platform-express@10.4.4)(@nestjs/websockets@10.3.10)(reflect-metadata@0.1.14)(rxjs@7.8.1)
+      express: 4.19.2
+      path-to-regexp: 8.2.0
+      reflect-metadata: 0.1.14
+      zod: 3.23.8
+      zod-to-json-schema: 3.24.5(zod@3.23.8)
     dev: false
 
   /@remirror/core-constants@3.0.0:
