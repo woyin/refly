@@ -1,12 +1,6 @@
 import path from 'node:path';
 
-export enum AppMode {
-  Server = 'server',
-  Desktop = 'desktop',
-}
-
 export default () => ({
-  mode: process.env.MODE || AppMode.Server,
   port: Number.parseInt(process.env.PORT) || 5800,
   wsPort: Number.parseInt(process.env.WS_PORT) || 5801,
   origin: process.env.ORIGIN || 'http://localhost:5700',

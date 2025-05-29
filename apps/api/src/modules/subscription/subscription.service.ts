@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import Stripe from 'stripe';
 import { InjectStripeClient, StripeWebhookHandler } from '@golevelup/nestjs-stripe';
 import { PrismaService } from '../common/prisma.service';
@@ -49,32 +49,39 @@ export class SubscriptionService implements OnModuleInit {
     private readonly redis: RedisService,
     private readonly config: ConfigService,
     @InjectStripeClient() private readonly stripeClient: Stripe,
+    @Optional()
     @InjectQueue(QUEUE_CHECK_CANCELED_SUBSCRIPTIONS)
-    private readonly checkCanceledSubscriptionsQueue: Queue,
+    private readonly checkCanceledSubscriptionsQueue?: Queue,
   ) {}
 
   async onModuleInit() {
-    const initPromise = this.setupSubscriptionCheckJobs();
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => {
-        reject(`Subscription cronjob timed out after ${this.INIT_TIMEOUT}ms`);
-      }, this.INIT_TIMEOUT);
-    });
+    if (this.checkCanceledSubscriptionsQueue) {
+      const initPromise = this.setupSubscriptionCheckJobs();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(`Subscription cronjob timed out after ${this.INIT_TIMEOUT}ms`);
+        }, this.INIT_TIMEOUT);
+      });
 
-    try {
-      await Promise.race([initPromise, timeoutPromise]);
-      this.logger.log('Subscription cronjob scheduled successfully');
-    } catch (error) {
-      this.logger.error(`Failed to schedule subscription cronjob: ${error}`);
-      throw error;
+      try {
+        await Promise.race([initPromise, timeoutPromise]);
+        this.logger.log('Subscription cronjob scheduled successfully');
+      } catch (error) {
+        this.logger.error(`Failed to schedule subscription cronjob: ${error}`);
+        throw error;
+      }
+    } else {
+      this.logger.log('Subscription queue not available, skipping cronjob setup');
     }
   }
 
   private async setupSubscriptionCheckJobs() {
+    if (!this.checkCanceledSubscriptionsQueue) return;
+
     // Remove any existing recurring jobs
     const existingJobs = await this.checkCanceledSubscriptionsQueue.getJobSchedulers();
     await Promise.all(
-      existingJobs.map((job) => this.checkCanceledSubscriptionsQueue.removeJobScheduler(job.id)),
+      existingJobs.map((job) => this.checkCanceledSubscriptionsQueue!.removeJobScheduler(job.id)),
     );
 
     // Add the new recurring job with concurrency options

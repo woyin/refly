@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { randomUUID } from 'node:crypto';
@@ -25,8 +25,8 @@ import { Redis } from '@hocuspocus/extension-redis';
 import { QUEUE_SYNC_CANVAS_ENTITY } from '../../utils/const';
 import ms from 'ms';
 import pLimit from 'p-limit';
-import { AppMode } from '@/modules/config/app.config';
 import { OSS_INTERNAL, ObjectStorageService } from '@/modules/common/object-storage';
+import { isDesktop } from '@/utils/env';
 
 @Injectable()
 export class CollabService {
@@ -40,7 +40,7 @@ export class CollabService {
     private config: ConfigService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
     @Inject(FULLTEXT_SEARCH) private fts: FulltextSearchService,
-    @InjectQueue(QUEUE_SYNC_CANVAS_ENTITY) private canvasQueue: Queue,
+    @Optional() @InjectQueue(QUEUE_SYNC_CANVAS_ENTITY) private canvasQueue?: Queue,
   ) {
     this.server = Server.configure({
       port: this.config.get<number>('wsPort'),
@@ -53,7 +53,7 @@ export class CollabService {
       onDisconnect: async (payload) => {
         this.logger.log(`onDisconnect ${payload.documentName}`);
       },
-      extensions: [new Redis({ redis: this.redis })],
+      extensions: isDesktop ? [] : [new Redis({ redis: this.redis.getClient() })],
     });
   }
 
@@ -77,7 +77,7 @@ export class CollabService {
   async authenticate({ token, documentName }: { token: string; documentName: string }) {
     // First validate the UID
     let uid: string | null = null;
-    if (this.config.get('mode') === AppMode.Desktop) {
+    if (isDesktop) {
       uid = this.config.get('local.uid');
     } else {
       // Validate the token from Redis
@@ -290,7 +290,7 @@ export class CollabService {
     });
 
     // Add sync canvas entity job with debouncing
-    await this.canvasQueue.add(
+    await this.canvasQueue?.add(
       'syncCanvasEntity',
       { canvasId: canvas.canvasId },
       {

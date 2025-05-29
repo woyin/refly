@@ -14,7 +14,7 @@ import { RedisService } from '../common/redis.service';
 import { OperationTooFrequent, ParamsError } from '@refly/errors';
 import { MiscService } from '../misc/misc.service';
 import { ConfigService } from '@nestjs/config';
-import { AppMode } from '@/modules/config/app.config';
+import { isDesktop } from '@/utils/env';
 
 @Injectable()
 export class UserService implements OnModuleInit {
@@ -29,7 +29,7 @@ export class UserService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    if (this.config.get('mode') === AppMode.Desktop) {
+    if (isDesktop) {
       const localUid = this.config.get('local.uid');
       const localUser = await this.prisma.user.findUnique({
         where: { uid: localUid },

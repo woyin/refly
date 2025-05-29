@@ -11,26 +11,31 @@ import {
 import { SubscriptionController } from './subscription.controller';
 import { CommonModule } from '../common/common.module';
 import { QUEUE_CHECK_CANCELED_SUBSCRIPTIONS } from '../../utils/const';
+import { isDesktop } from '@/utils/env';
 
 @Module({
   imports: [
     CommonModule,
     StripeModule.externallyConfigured(StripeModule, 0),
-    BullModule.registerQueue({
-      name: QUEUE_CHECK_CANCELED_SUBSCRIPTIONS,
-      prefix: 'subscription_cron',
-      defaultJobOptions: {
-        removeOnComplete: true,
-        removeOnFail: false,
-      },
-    }),
+    ...(isDesktop
+      ? []
+      : [
+          BullModule.registerQueue({
+            name: QUEUE_CHECK_CANCELED_SUBSCRIPTIONS,
+            prefix: 'subscription_cron',
+            defaultJobOptions: {
+              removeOnComplete: true,
+              removeOnFail: false,
+            },
+          }),
+        ]),
   ],
   providers: [
     SubscriptionService,
     SyncTokenUsageProcessor,
     SyncStorageUsageProcessor,
     SyncRequestUsageProcessor,
-    CheckCanceledSubscriptionsProcessor,
+    ...(isDesktop ? [] : [CheckCanceledSubscriptionsProcessor]),
   ],
   controllers: [SubscriptionController],
   exports: [SubscriptionService],

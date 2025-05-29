@@ -33,6 +33,7 @@ import { CodeArtifactModule } from './code-artifact/code-artifact.module';
 import { PagesModule } from './pages/pages.module';
 import { ProjectModule } from './project/project.module';
 import { McpServerModule } from './mcp-server/mcp-server.module';
+import { isDesktop } from '@/utils/env';
 
 class CustomThrottlerGuard extends ThrottlerGuard {
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
@@ -59,21 +60,6 @@ class CustomThrottlerGuard extends ThrottlerGuard {
       cache: true,
       expandVariables: true,
     }),
-    ThrottlerModule.forRootAsync({
-      imports: [CommonModule],
-      inject: [RedisService],
-      useFactory: async (redis: RedisService) => ({
-        throttlers: [
-          {
-            name: 'default',
-            ttl: seconds(1),
-            limit: 50,
-          },
-        ],
-        getTracker: (req) => (req.ips?.length ? req.ips[0] : req.ip),
-        storage: new ThrottlerStorageRedisService(redis),
-      }),
-    }),
     LoggerModule.forRoot({
       pinoHttp: {
         redact: {
@@ -88,17 +74,6 @@ class CustomThrottlerGuard extends ThrottlerGuard {
         }),
         transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
       },
-    }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        connection: {
-          host: configService.get('redis.host'),
-          port: configService.get('redis.port'),
-          password: configService.get('redis.password') || undefined,
-        },
-      }),
-      inject: [ConfigService],
     }),
     StripeModule.forRootAsync(StripeModule, {
       imports: [ConfigModule],
@@ -135,13 +110,45 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     PagesModule,
     ProjectModule,
     McpServerModule,
+    ...(isDesktop
+      ? []
+      : [
+          BullModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+              connection: {
+                host: configService.get('redis.host'),
+                port: configService.get('redis.port'),
+                password: configService.get('redis.password') || undefined,
+              },
+            }),
+            inject: [ConfigService],
+          }),
+          ThrottlerModule.forRootAsync({
+            imports: [CommonModule],
+            inject: [RedisService],
+            useFactory: async (redis: RedisService) => ({
+              throttlers: [
+                {
+                  name: 'default',
+                  ttl: seconds(1),
+                  limit: 50,
+                },
+              ],
+              getTracker: (req) => (req.ips?.length ? req.ips[0] : req.ip),
+              storage: new ThrottlerStorageRedisService(redis.getClient()),
+            }),
+          }),
+        ]),
   ],
   controllers: [AppController],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
-  ],
+  providers: isDesktop
+    ? []
+    : [
+        {
+          provide: APP_GUARD,
+          useClass: CustomThrottlerGuard,
+        },
+      ],
 })
 export class AppModule {}
