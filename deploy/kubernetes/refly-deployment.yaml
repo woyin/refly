@@ -89,8 +89,8 @@ data:
   ORIGIN: 'http://refly-web'
 
   # Static Endpoint Configuration
-  # STATIC_PUBLIC_ENDPOINT: /api/v1/misc/public
-  # STATIC_PRIVATE_ENDPOINT: /api/v1/misc
+  STATIC_PUBLIC_ENDPOINT: /api/v1/misc/public
+  STATIC_PRIVATE_ENDPOINT: /api/v1/misc
 
   # Redis Configuration
   # host: redis
@@ -98,7 +98,7 @@ data:
   # password: ''
   REDIS_HOST: refly-redis
   REDIS_PORT: '6379'
-  # REDIS_PASSWORD: 'U9Uj6ngoG2x5MAhR283h'm
+  # REDIS_PASSWORD: ''
 
   # Database Configuration
   # user: refly_admin
@@ -166,7 +166,7 @@ data:
 
   # Email Authentication
   EMAIL_AUTH_ENABLED: 'false'
-  EMAIL_SENDER: info@example.com
+  EMAIL_SENDER: 'info@example.com'
 
   # Resend API Key. Required if email verification is enabled.
   # You can get your own key from https://resend.com/
