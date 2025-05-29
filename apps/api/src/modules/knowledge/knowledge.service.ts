@@ -12,10 +12,10 @@ import {
   Document as DocumentModel,
   StaticFile as StaticFileModel,
   User as UserModel,
-} from '@/generated/client';
+} from '@prisma/client';
 import { RAGService } from '../rag/rag.service';
 import { PrismaService } from '../common/prisma.service';
-import { FULLTEXT_SEARCH, FulltextSearchService } from '@/modules/common/fulltext-search';
+import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-search';
 import {
   UpsertResourceRequest,
   ResourceMeta,
@@ -78,10 +78,10 @@ import { DeleteCanvasNodesJobData } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
 import { ConfigService } from '@nestjs/config';
 import { ParseResult, ParserOptions } from './parsers/base';
-import { OSS_INTERNAL, ObjectStorageService } from '@/modules/common/object-storage';
-import { ProviderService } from '@/modules/provider/provider.service';
-import { DocxParser } from '@/modules/knowledge/parsers/docx.parser';
-import { PdfParser } from '@/modules/knowledge/parsers/pdf.parser';
+import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
+import { ProviderService } from '../provider/provider.service';
+import { DocxParser } from '../knowledge/parsers/docx.parser';
+import { PdfParser } from '../knowledge/parsers/pdf.parser';
 
 @Injectable()
 export class KnowledgeService {

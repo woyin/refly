@@ -2,8 +2,7 @@ import path from 'node:path';
 import getPort from 'get-port';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { app } from 'electron';
-import { AppModule } from '@/modules/app.module';
+import { AppModule } from './modules/app.module';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { ConfigService } from '@nestjs/config';
@@ -12,19 +11,25 @@ import { GlobalExceptionFilter } from '@/utils/filters/global-exception.filter';
 import { setTraceID } from '@/utils/middleware/set-trace-id';
 import { CustomWsAdapter } from '@/utils/adapters/ws-adapter';
 import { execSync } from 'node:child_process';
-import { createServiceLogger } from '../logger';
-
-const apiLogger = createServiceLogger('api');
+import { findNodeModules } from '@/utils/runtime';
 
 let nestApp: NestExpressApplication | null = null;
 
-export const startApiServer = async () => {
-  process.env.DATABASE_URL = `file:${app.getPath('userData')}/refly.db`;
+export const startApiServerForElectron = async (userDataPath: string, logger: any) => {
+  process.env.MODE = 'desktop';
+  process.env.DATABASE_URL = `file:${userDataPath}/refly.db`;
+  process.env.VECTOR_STORE_BACKEND = 'lancedb';
+  process.env.LANCEDB_URI = path.join(userDataPath, 'lancedb');
 
-  // TODO: Properly look for prisma binary in distribution
-  const prismaPath = path.join(process.env.APP_ROOT, '..', 'node_modules', '.bin', 'prisma');
-  const prismaSchemaPath = path.join(process.env.APP_ROOT, 'prisma', 'sqlite-schema.prisma');
-  apiLogger.debug('Prisma configuration', {
+  const nodeModulesPath = findNodeModules(__dirname);
+
+  if (!nodeModulesPath) {
+    throw new Error('Could not find node_modules directory');
+  }
+
+  const prismaPath = path.join(nodeModulesPath, '.bin', 'prisma');
+  const prismaSchemaPath = path.join(__dirname, 'prisma', 'sqlite-schema.prisma');
+  logger.debug('Prisma configuration', {
     prismaPath,
     prismaSchemaPath,
     databaseUrl: process.env.DATABASE_URL,
@@ -32,7 +37,7 @@ export const startApiServer = async () => {
 
   // TODO: Cache the migration result to optimize launch time
   try {
-    apiLogger.info('Running Prisma database migration');
+    logger.info('Running Prisma database migration');
     execSync(`${prismaPath} db push --schema=${prismaSchemaPath}`, {
       stdio: 'inherit',
       env: {
@@ -40,17 +45,17 @@ export const startApiServer = async () => {
         DATABASE_URL: process.env.DATABASE_URL,
       },
     });
-    apiLogger.info('Prisma database migration completed successfully');
+    logger.info('Prisma database migration completed successfully');
   } catch (error) {
-    apiLogger.error('Failed to run Prisma database migration:', error);
+    logger.error('Failed to run Prisma database migration:', error);
     throw error;
   }
 
   process.env.FULLTEXT_SEARCH_BACKEND = 'prisma';
   process.env.OBJECT_STORAGE_BACKEND = 'fs';
-  process.env.OBJECT_STORAGE_FS_ROOT = path.join(app.getPath('userData'), 'objectStorage');
+  process.env.OBJECT_STORAGE_FS_ROOT = path.join(userDataPath, 'objectStorage');
 
-  apiLogger.info('Creating NestJS application');
+  logger.info('Creating NestJS application');
   nestApp = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
     bufferLogs: false,
@@ -75,16 +80,16 @@ export const startApiServer = async () => {
   nestApp.useGlobalFilters(new GlobalExceptionFilter(configService));
 
   const wsPort = await getPort();
-  nestApp.useWebSocketAdapter(new CustomWsAdapter(app, wsPort));
+  nestApp.useWebSocketAdapter(new CustomWsAdapter(nestApp, wsPort));
   process.env.RF_COLLAB_URL = `ws://localhost:${wsPort}`;
-  apiLogger.info(`Collab server running at ${process.env.RF_COLLAB_URL}`);
+  logger.info(`Collab server running at ${process.env.RF_COLLAB_URL}`);
 
   // Use a free port for internal API server
   const port = await getPort();
   nestApp.listen(port);
   process.env.RF_API_BASE_URL = `http://localhost:${port}`;
 
-  apiLogger.info(`API server running at ${process.env.RF_API_BASE_URL}`);
+  logger.info(`API server running at ${process.env.RF_API_BASE_URL}`);
 
   // Set the static endpoints for the desktop app
   const publicStaticEndpoint = `http://localhost:${port}/v1/misc/public`;
@@ -95,7 +100,7 @@ export const startApiServer = async () => {
   configService.set('static.public.endpoint', publicStaticEndpoint);
   configService.set('static.private.endpoint', privateStaticEndpoint);
 
-  apiLogger.info('API server configuration completed', {
+  logger.info('API server configuration completed', {
     publicStaticEndpoint,
     privateStaticEndpoint,
     collabUrl: process.env.RF_COLLAB_URL,
@@ -105,10 +110,10 @@ export const startApiServer = async () => {
   return nestApp;
 };
 
-export const shutdownApiServer = async () => {
+export const shutdownApiServer = async (logger: any) => {
   if (nestApp) {
-    apiLogger.info('Shutting down API server');
+    logger.info('Shutting down API server');
     await nestApp.close();
-    apiLogger.info('API server shut down successfully');
+    logger.info('API server shut down successfully');
   }
 };

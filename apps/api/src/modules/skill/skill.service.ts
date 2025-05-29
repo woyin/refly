@@ -10,7 +10,7 @@ import {
   Prisma,
   SkillTrigger as SkillTriggerModel,
   ActionResult as ActionResultModel,
-} from '@/generated/client';
+} from '@prisma/client';
 import { Response } from 'express';
 import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/core/dist/messages';
 import {
@@ -102,12 +102,12 @@ import { MiscService } from '../misc/misc.service';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { projectPO2DTO } from '@/modules/project/project.dto';
-import { ProviderService } from '@/modules/provider/provider.service';
-import { providerPO2DTO } from '@/modules/provider/provider.dto';
-import { codeArtifactPO2DTO } from '@/modules/code-artifact/code-artifact.dto';
-import { McpServerService } from '@/modules/mcp-server/mcp-server.service';
-import { mcpServerPO2DTO } from '@/modules/mcp-server/mcp-server.dto';
+import { projectPO2DTO } from '../project/project.dto';
+import { ProviderService } from '../provider/provider.service';
+import { providerPO2DTO } from '../provider/provider.dto';
+import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
+import { McpServerService } from '../mcp-server/mcp-server.service';
+import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
 
 function validateSkillTriggerCreateParam(param: SkillTriggerCreateParam) {
   if (param.triggerType === 'simpleEvent') {

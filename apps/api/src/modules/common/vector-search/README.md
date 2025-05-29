@@ -30,7 +30,7 @@ A flexible, backend-agnostic vector search service that supports multiple vector
 The service is automatically available when you import the common module:
 
 ```typescript
-import { VECTOR_SEARCH } from '@/modules/common/vector-search/tokens';
+import { VECTOR_SEARCH } from '../common/vector-search/tokens';
 ```
 
 ## Configuration
@@ -60,8 +60,8 @@ vectorStore:
 
 ```typescript
 import { Injectable, Inject } from '@nestjs/common';
-import { VectorSearchService } from '@/modules/common/vector-search';
-import { VECTOR_SEARCH } from '@/modules/common/vector-search/tokens';
+import { VectorSearchService } from '../common/vector-search';
+import { VECTOR_SEARCH } from '../common/vector-search/tokens';
 
 @Injectable()
 export class MyService {

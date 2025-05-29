@@ -9,7 +9,7 @@ import { HybridSearchParam, ContentPayload, DocumentPayload } from './rag.dto';
 import { VectorSearchService, VectorPoint, VectorFilter } from '../common/vector-search';
 import { VECTOR_SEARCH } from '../common/vector-search/tokens';
 import { genResourceUuid } from '../../utils';
-import { ProviderService } from '@/modules/provider/provider.service';
+import { ProviderService } from '../provider/provider.service';
 
 // Define Avro schema for vector points (must match the one used for serialization)
 const avroSchema = avro.Type.forSchema({

@@ -1,5 +1,5 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { PrismaService } from '@/modules/common/prisma.service';
+import { PrismaService } from '../common/prisma.service';
 import {
   BatchUpsertProviderItemsRequest,
   DeleteProviderItemRequest,
@@ -19,7 +19,7 @@ import {
   User,
   UserPreferences,
 } from '@refly/openapi-schema';
-import { Provider as ProviderModel, ProviderItem as ProviderItemModel } from '@/generated/client';
+import { Provider as ProviderModel, ProviderItem as ProviderItemModel } from '@prisma/client';
 import { genProviderItemID, genProviderID, providerInfoList, pick } from '@refly/utils';
 import {
   ProviderNotFoundError,
@@ -30,7 +30,7 @@ import {
   ChatModelNotConfiguredError,
 } from '@refly/errors';
 import { SingleFlightCache } from '@/utils/cache';
-import { EncryptionService } from '@/modules/common/encryption.service';
+import { EncryptionService } from '../common/encryption.service';
 import pLimit from 'p-limit';
 import {
   getEmbeddings,
@@ -40,8 +40,8 @@ import {
   getChatModel,
 } from '@refly/providers';
 import { ConfigService } from '@nestjs/config';
-import { VectorSearchService } from '@/modules/common/vector-search';
-import { VECTOR_SEARCH } from '@/modules/common/vector-search/tokens';
+import { VectorSearchService } from '../common/vector-search';
+import { VECTOR_SEARCH } from '../common/vector-search/tokens';
 
 interface GlobalProviderConfig {
   providers: ProviderModel[];

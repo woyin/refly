@@ -8,7 +8,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { QUEUE_CHECK_CANCELED_SUBSCRIPTIONS } from '../../utils/const';
 import { PrismaService } from '../common/prisma.service';
 import Stripe from 'stripe';
-import { TokenUsageMeter } from '@/generated/client';
+import { TokenUsageMeter } from '@prisma/client';
 import { SubscriptionInterval, SubscriptionPlanType } from '@refly/openapi-schema';
 
 describe('SubscriptionService', () => {
@@ -166,7 +166,7 @@ describe('SubscriptionService', () => {
     it('should return usage status correctly', async () => {
       const mockUser = { uid: 'test-uid' };
       const mockMeter: TokenUsageMeter = {
-        pk: BigInt(1),
+        pk: 1 as any,
         meterId: 'test-meter-id',
         uid: 'test-uid',
         subscriptionId: 'test-subscription-id',
@@ -200,7 +200,7 @@ describe('SubscriptionService', () => {
     it('should handle quota exceeded', async () => {
       const mockUser = { uid: 'test-uid' };
       const mockMeter: TokenUsageMeter = {
-        pk: BigInt(1),
+        pk: 1 as any,
         meterId: 'test-meter-id',
         uid: 'test-uid',
         subscriptionId: 'test-subscription-id',

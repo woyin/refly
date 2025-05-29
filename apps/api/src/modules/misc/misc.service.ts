@@ -36,10 +36,10 @@ import {
 } from '@refly/errors';
 import { FileObject } from '../misc/misc.dto';
 import { createId } from '@paralleldrive/cuid2';
-import { StaticFile } from '@/generated/client';
-import { PandocParser } from '@/modules/knowledge/parsers/pandoc.parser';
+import { StaticFile } from '@prisma/client';
+import { PandocParser } from '../knowledge/parsers/pandoc.parser';
 import pLimit from 'p-limit';
-import { isDesktop } from '@/utils/env';
+import { isDesktop } from '@/utils/runtime';
 
 @Injectable()
 export class MiscService implements OnModuleInit {
@@ -349,7 +349,7 @@ export class MiscService implements OnModuleInit {
     }
 
     // Check for file permission if not in desktop mode
-    if (!isDesktop) {
+    if (!isDesktop()) {
       if (existingFile && existingFile.uid !== user.uid) {
         this.logger.warn(`User ${user.uid} is not allowed to upload file with ${param.storageKey}`);
         throw new ForbiddenException();
@@ -558,7 +558,7 @@ export class MiscService implements OnModuleInit {
       throw new NotFoundException();
     }
 
-    if (!isDesktop && file.uid !== user.uid) {
+    if (!isDesktop() && file.uid !== user.uid) {
       throw new NotFoundException();
     }
 

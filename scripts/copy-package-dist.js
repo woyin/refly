@@ -5,7 +5,7 @@
  * It's designed to make workspace packages easily accessible to the electron asar file.
  *
  * Purpose:
- * - Copies only packages listed in register-aliases.ts to 'apps/api/dist-electron/packages/\*\/dist'
+ * - Copies only packages listed in register-aliases.ts to 'apps/api/dist/packages/\*\/dist'
  * - Ensures electron can locate and use workspace packages in the bundled application
  * - Maintains the same directory structure for consistent imports
  *
@@ -75,7 +75,7 @@ async function copyWithFilter(source, dest) {
 async function copyPackageDist() {
   const rootDir = path.resolve(__dirname, '..');
   const packagesDir = path.join(rootDir, 'packages');
-  const targetDir = path.join(rootDir, 'apps', 'api', 'dist-electron', 'packages');
+  const targetDir = path.join(rootDir, 'apps', 'api', 'dist', 'packages');
 
   console.log('🚀 Starting package dist copy process...');
   console.log(`📁 Source: ${packagesDir}`);

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@/modules/common/prisma.service';
+import { PrismaService } from '../../prisma.service';
 import { SearchDomain, SearchRequest, SearchResult, User } from '@refly/openapi-schema';
 import { FulltextDocument, FulltextSearchBackend } from './interface';
 

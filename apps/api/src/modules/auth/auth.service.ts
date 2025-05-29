@@ -6,7 +6,7 @@ import { Profile } from 'passport';
 import { CookieOptions, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { User as UserModel, VerificationSession } from '@/generated/client';
+import { User as UserModel, VerificationSession } from '@prisma/client';
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -39,7 +39,7 @@ import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
 import { ProviderService } from '../provider/provider.service';
-import { isDesktop } from '@/utils/env';
+import { isDesktop } from '@/utils/runtime';
 
 @Injectable()
 export class AuthService {
@@ -422,7 +422,7 @@ export class AuthService {
   async addSendVerificationEmailJob(sessionId: string) {
     if (this.emailQueue) {
       await this.emailQueue.add('verifyEmail', { sessionId });
-    } else if (isDesktop) {
+    } else if (isDesktop()) {
       // In desktop mode, send email directly since queue is not available
       await this.sendVerificationEmail(sessionId);
     } else {

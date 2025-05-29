@@ -5,12 +5,12 @@ import { MiscService } from './misc.service';
 import { CommonModule } from '../common/common.module';
 import { QUEUE_IMAGE_PROCESSING, QUEUE_CLEAN_STATIC_FILES } from '../../utils';
 import { ImageProcessor, CleanStaticFilesProcessor } from '../misc/misc.processor';
-import { isDesktop } from '@/utils/env';
+import { isDesktop } from '@/utils/runtime';
 
 @Module({
   imports: [
     CommonModule,
-    ...(isDesktop
+    ...(isDesktop()
       ? []
       : [
           BullModule.registerQueue({ name: QUEUE_IMAGE_PROCESSING }),
@@ -25,7 +25,7 @@ import { isDesktop } from '@/utils/env';
         ]),
   ],
   controllers: [MiscController],
-  providers: [MiscService, ...(isDesktop ? [] : [ImageProcessor, CleanStaticFilesProcessor])],
+  providers: [MiscService, ...(isDesktop() ? [] : [ImageProcessor, CleanStaticFilesProcessor])],
   exports: [MiscService],
 })
 export class MiscModule {}

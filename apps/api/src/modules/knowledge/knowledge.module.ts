@@ -19,8 +19,8 @@ import {
   QUEUE_CLEAR_CANVAS_ENTITY,
   QUEUE_POST_DELETE_KNOWLEDGE_ENTITY,
 } from '@/utils';
-import { ProviderModule } from '@/modules/provider/provider.module';
-import { isDesktop } from '@/utils/env';
+import { ProviderModule } from '../provider/provider.module';
+import { isDesktop } from '@/utils/runtime';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { isDesktop } from '@/utils/env';
     MiscModule,
     ProviderModule,
     SubscriptionModule,
-    ...(isDesktop
+    ...(isDesktop()
       ? []
       : [
           BullModule.registerQueue({ name: QUEUE_RESOURCE }),
@@ -42,7 +42,7 @@ import { isDesktop } from '@/utils/env';
   controllers: [KnowledgeController],
   providers: [
     KnowledgeService,
-    ...(isDesktop
+    ...(isDesktop()
       ? []
       : [ResourceProcessor, DeleteKnowledgeEntityProcessor, PostDeleteKnowledgeEntityProcessor]),
   ],

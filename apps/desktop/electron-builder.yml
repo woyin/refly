@@ -58,8 +58,6 @@ mac:
   target:
     - target: dmg
     - target: zip # zip is required because of electron-userland/electron-builder#2199s
-  asarUnpack:
-    - apps/api/dist-electron/bin/**/*
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.

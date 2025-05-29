@@ -4,8 +4,10 @@
   "description": "Hello World!",
   "main": "dist/main.js",
   "scripts": {
-    "start": "electron .",
-    "build": "electron-builder",
+    "dev": "nodemon",
+    "start": "tsc && electron .",
+    "copy-renderer": "ncp ../web/dist dist/renderer",
+    "build": "tsc && electron-builder",
     "build:mac": "tsc && electron-builder --mac --dir",
     "build:mac:x64": "tsc && electron-builder --mac --x64 --dir",
     "build:mac:arm64": "tsc && electron-builder --mac --arm64 --dir",
@@ -20,6 +22,7 @@
     "electron-notarize": "^1.2.2"
   },
   "dependencies": {
+    "@refly/api": "workspace:*",
     "electron-log": "^5.4.0",
     "get-port": "^7.1.0",
     "is-number": "^7.0.0"

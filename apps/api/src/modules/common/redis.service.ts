@@ -1,4 +1,4 @@
-import { isDesktop } from '@/utils/env';
+import { isDesktop } from '@/utils/runtime';
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -18,7 +18,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(private configService: ConfigService) {
-    if (!isDesktop) {
+    if (!isDesktop()) {
       this.client = new Redis({
         host: configService.getOrThrow('redis.host'),
         port: configService.getOrThrow('redis.port'),
@@ -55,7 +55,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    if (isDesktop || !this.client) {
+    if (isDesktop() || !this.client) {
       this.logger.log('Skip redis initialization in desktop mode');
       return;
     }

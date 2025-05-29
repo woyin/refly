@@ -20,9 +20,9 @@ import { SubscriptionModule } from '../subscription/subscription.module';
 import { CollabModule } from '../collab/collab.module';
 import { MiscModule } from '../misc/misc.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
-import { ProviderModule } from '@/modules/provider/provider.module';
-import { McpServerModule } from '@/modules/mcp-server/mcp-server.module';
-import { isDesktop } from '@/utils/env';
+import { ProviderModule } from '../provider/provider.module';
+import { McpServerModule } from '../mcp-server/mcp-server.module';
+import { isDesktop } from '@/utils/runtime';
 
 @Module({
   imports: [
@@ -38,7 +38,7 @@ import { isDesktop } from '@/utils/env';
     CodeArtifactModule,
     ProviderModule,
     McpServerModule,
-    ...(isDesktop
+    ...(isDesktop()
       ? []
       : [
           BullModule.registerQueue({ name: QUEUE_SKILL }),
@@ -48,7 +48,7 @@ import { isDesktop } from '@/utils/env';
           BullModule.registerQueue({ name: QUEUE_AUTO_NAME_CANVAS }),
         ]),
   ],
-  providers: [SkillService, ...(isDesktop ? [] : [SkillProcessor, SkillTimeoutCheckProcessor])],
+  providers: [SkillService, ...(isDesktop() ? [] : [SkillProcessor, SkillTimeoutCheckProcessor])],
   controllers: [SkillController],
   exports: [SkillService],
 })

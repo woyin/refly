@@ -17,7 +17,7 @@ import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { ActionModule } from '../action/action.module';
 import { ProviderModule } from '../provider/provider.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
-import { isDesktop } from '@/utils/env';
+import { isDesktop } from '@/utils/runtime';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { isDesktop } from '@/utils/env';
     ProviderModule,
     CodeArtifactModule,
     SubscriptionModule,
-    ...(isDesktop
+    ...(isDesktop()
       ? []
       : [
           BullModule.registerQueue({
@@ -43,7 +43,7 @@ import { isDesktop } from '@/utils/env';
   controllers: [CanvasController],
   providers: [
     CanvasService,
-    ...(isDesktop
+    ...(isDesktop()
       ? []
       : [
           SyncCanvasEntityProcessor,

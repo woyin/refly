@@ -7,11 +7,11 @@ import { Request } from 'express';
 import { WebSocket } from 'ws';
 import { Server, Hocuspocus } from '@hocuspocus/server';
 import { RAGService } from '../rag/rag.service';
-import { CodeArtifact, Prisma } from '@/generated/client';
+import { CodeArtifact, Prisma } from '@prisma/client';
 import { UpsertCodeArtifactRequest, User } from '@refly/openapi-schema';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../common/redis.service';
-import { FULLTEXT_SEARCH, FulltextSearchService } from '@/modules/common/fulltext-search';
+import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-search';
 import { PrismaService } from '../common/prisma.service';
 import {
   genCodeArtifactID,
@@ -25,8 +25,8 @@ import { Redis } from '@hocuspocus/extension-redis';
 import { QUEUE_SYNC_CANVAS_ENTITY } from '../../utils/const';
 import ms from 'ms';
 import pLimit from 'p-limit';
-import { OSS_INTERNAL, ObjectStorageService } from '@/modules/common/object-storage';
-import { isDesktop } from '@/utils/env';
+import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
+import { isDesktop } from '@/utils/runtime';
 
 @Injectable()
 export class CollabService {
@@ -53,7 +53,7 @@ export class CollabService {
       onDisconnect: async (payload) => {
         this.logger.log(`onDisconnect ${payload.documentName}`);
       },
-      extensions: isDesktop ? [] : [new Redis({ redis: this.redis.getClient() })],
+      extensions: isDesktop() ? [] : [new Redis({ redis: this.redis.getClient() })],
     });
   }
 
@@ -77,7 +77,7 @@ export class CollabService {
   async authenticate({ token, documentName }: { token: string; documentName: string }) {
     // First validate the UID
     let uid: string | null = null;
-    if (isDesktop) {
+    if (isDesktop()) {
       uid = this.config.get('local.uid');
     } else {
       // Validate the token from Redis

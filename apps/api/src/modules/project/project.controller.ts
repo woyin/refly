@@ -24,7 +24,7 @@ import {
   User,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '@/utils/response';
-import { projectPO2DTO } from '@/modules/project/project.dto';
+import { projectPO2DTO } from '../project/project.dto';
 
 @Controller('v1/project')
 export class ProjectController {

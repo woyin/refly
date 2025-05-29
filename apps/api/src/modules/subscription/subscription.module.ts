@@ -11,13 +11,13 @@ import {
 import { SubscriptionController } from './subscription.controller';
 import { CommonModule } from '../common/common.module';
 import { QUEUE_CHECK_CANCELED_SUBSCRIPTIONS } from '../../utils/const';
-import { isDesktop } from '@/utils/env';
+import { isDesktop } from '@/utils/runtime';
 
 @Module({
   imports: [
     CommonModule,
     StripeModule.externallyConfigured(StripeModule, 0),
-    ...(isDesktop
+    ...(isDesktop()
       ? []
       : [
           BullModule.registerQueue({
@@ -35,7 +35,7 @@ import { isDesktop } from '@/utils/env';
     SyncTokenUsageProcessor,
     SyncStorageUsageProcessor,
     SyncRequestUsageProcessor,
-    ...(isDesktop ? [] : [CheckCanceledSubscriptionsProcessor]),
+    ...(isDesktop() ? [] : [CheckCanceledSubscriptionsProcessor]),
   ],
   controllers: [SubscriptionController],
   exports: [SubscriptionService],

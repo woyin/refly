@@ -21,7 +21,7 @@ import {
   User,
   CanvasNode,
 } from '@refly/openapi-schema';
-import { Prisma } from '@/generated/client';
+import { Prisma } from '@prisma/client';
 import { genCanvasID } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
@@ -31,10 +31,10 @@ import { SubscriptionService } from '../subscription/subscription.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { ActionService } from '../action/action.service';
 import { generateCanvasTitle, CanvasContentItem } from './canvas-title-generator';
-import { RedisService } from '@/modules/common/redis.service';
-import { ObjectStorageService, OSS_INTERNAL } from '@/modules/common/object-storage';
-import { ProviderService } from '@/modules/provider/provider.service';
-import { isDesktop } from '@/utils/env';
+import { RedisService } from '../common/redis.service';
+import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
+import { ProviderService } from '../provider/provider.service';
+import { isDesktop } from '@/utils/runtime';
 
 @Injectable()
 export class CanvasService {
@@ -501,7 +501,7 @@ export class CanvasService {
           },
         },
       );
-    } else if (isDesktop) {
+    } else if (isDesktop()) {
       // In desktop mode, process deletion directly
       await this.postDeleteCanvas({
         uid,
