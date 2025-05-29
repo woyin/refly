@@ -52,9 +52,15 @@ export default () => ({
     },
   },
   vectorStore: {
-    host: process.env.QDRANT_HOST || 'localhost',
-    port: Number.parseInt(process.env.QDRANT_PORT) || 6333,
-    apiKey: process.env.QDRANT_API_KEY,
+    backend: process.env.VECTOR_STORE_BACKEND || 'qdrant', // 'qdrant' or 'lancedb'
+    qdrant: {
+      host: process.env.QDRANT_HOST || 'localhost',
+      port: Number.parseInt(process.env.QDRANT_PORT) || 6333,
+      apiKey: process.env.QDRANT_API_KEY,
+    },
+    lancedb: {
+      uri: process.env.LANCEDB_URI || './data/lancedb',
+    },
   },
   fulltextSearch: {
     backend: process.env.FULLTEXT_SEARCH_BACKEND || 'prisma',

@@ -48,3 +48,4 @@ prisma/app.db
 packed
 
 .qdrant-initialized
+data/lancedb
