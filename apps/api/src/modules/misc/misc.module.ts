@@ -5,7 +5,7 @@ import { MiscService } from './misc.service';
 import { CommonModule } from '../common/common.module';
 import { QUEUE_IMAGE_PROCESSING, QUEUE_CLEAN_STATIC_FILES } from '../../utils';
 import { ImageProcessor, CleanStaticFilesProcessor } from '../misc/misc.processor';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Module({
   imports: [

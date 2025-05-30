@@ -11,7 +11,7 @@ import {
 import { SubscriptionController } from './subscription.controller';
 import { CommonModule } from '../common/common.module';
 import { QUEUE_CHECK_CANCELED_SUBSCRIPTIONS } from '../../utils/const';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Module({
   imports: [

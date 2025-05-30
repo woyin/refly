@@ -14,7 +14,7 @@ import { GoogleOauthStrategy } from './strategy/google-oauth.strategy';
 
 import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
 import { ProviderModule } from '../provider/provider.module';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Module({
   imports: [

@@ -25,7 +25,7 @@ import { QUEUE_SYNC_CANVAS_ENTITY } from '../../utils/const';
 import ms from 'ms';
 import pLimit from 'p-limit';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Injectable()
 export class CollabService {

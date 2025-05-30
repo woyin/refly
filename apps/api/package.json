@@ -15,7 +15,7 @@
     "copy-env:develop": "ncp .env.development .env",
     "build": "prisma generate && tsc --build --verbose && tsc-alias --project tsconfig.json && ncp prisma/ dist/prisma/",
     "build:fast": "pnpm prisma:generate && swc src -d dist --config-file .swcrc --strip-leading-paths && ncp prisma/ dist/prisma/",
-    "build:electron": "pnpm prisma:generate:sqlite && tsc --build --verbose && tsc-alias --project tsconfig.json && ncp prisma/ dist/prisma/",
+    "build:electron": "pnpm prisma:generate:sqlite && tsc --build --verbose && tsc-alias --project tsconfig.json",
     "prisma:generate": "prisma format && prisma generate",
     "prisma:generate:sqlite": "prisma format --schema=prisma/sqlite-schema.prisma && prisma generate --schema=prisma/sqlite-schema.prisma",
     "gen-sqlite-schema": "ts-node src/scripts/gen-sqlite-schema.ts",

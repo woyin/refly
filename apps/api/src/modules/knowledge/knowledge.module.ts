@@ -18,9 +18,9 @@ import {
   QUEUE_SYNC_STORAGE_USAGE,
   QUEUE_CLEAR_CANVAS_ENTITY,
   QUEUE_POST_DELETE_KNOWLEDGE_ENTITY,
-} from '@/utils';
+} from '../../utils/const';
 import { ProviderModule } from '../provider/provider.module';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Module({
   imports: [

@@ -5,7 +5,7 @@ import { MiscService } from '../misc/misc.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
-import { streamToBuffer } from '@/utils';
+import { streamToBuffer } from '../../utils';
 import { User } from '@refly/openapi-schema';
 import { CanvasNotFoundError, PageNotFoundError } from '@refly/errors';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';

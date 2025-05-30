@@ -39,7 +39,7 @@ import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
 import { ProviderService } from '../provider/provider.service';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Injectable()
 export class AuthService {

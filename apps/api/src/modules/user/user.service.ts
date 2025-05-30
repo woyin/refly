@@ -14,7 +14,7 @@ import { RedisService } from '../common/redis.service';
 import { OperationTooFrequent, ParamsError } from '@refly/errors';
 import { MiscService } from '../misc/misc.service';
 import { ConfigService } from '@nestjs/config';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Injectable()
 export class UserService implements OnModuleInit {

@@ -8,7 +8,7 @@ import {
 } from '@refly/openapi-schema';
 import { McpServer as McpServerModel } from '../../generated/client';
 import { McpServerNotFoundError, ParamsError } from '@refly/errors';
-import { SingleFlightCache } from '@/utils/cache';
+import { SingleFlightCache } from '../../utils/cache';
 import { EncryptionService } from '../common/encryption.service';
 import { Connection, MultiServerMCPClient, createMcpClientConfig } from '@refly/skill-template';
 

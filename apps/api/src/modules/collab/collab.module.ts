@@ -6,7 +6,7 @@ import { RAGModule } from '../rag/rag.module';
 import { QUEUE_SYNC_CANVAS_ENTITY } from '../../utils/const';
 import { CollabService } from './collab.service';
 import { CollabController } from './collab.controller';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Module({
   imports: [

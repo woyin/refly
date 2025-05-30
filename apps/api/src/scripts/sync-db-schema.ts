@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { findNodeModules } from '@/utils/runtime';
+import { findNodeModules } from '../utils/runtime';
 
 // Start looking for node_modules from the directory of this script
 const nodeModulesPath =

@@ -17,7 +17,7 @@ import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { ActionModule } from '../action/action.module';
 import { ProviderModule } from '../provider/provider.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Module({
   imports: [

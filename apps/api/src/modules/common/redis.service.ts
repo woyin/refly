@@ -1,4 +1,4 @@
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';

@@ -39,7 +39,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { StaticFile } from '../../generated/client';
 import { PandocParser } from '../knowledge/parsers/pandoc.parser';
 import pLimit from 'p-limit';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Injectable()
 export class MiscService implements OnModuleInit {

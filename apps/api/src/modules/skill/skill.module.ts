@@ -22,7 +22,7 @@ import { MiscModule } from '../misc/misc.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { ProviderModule } from '../provider/provider.module';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Module({
   imports: [

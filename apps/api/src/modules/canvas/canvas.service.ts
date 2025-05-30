@@ -34,7 +34,7 @@ import { generateCanvasTitle, CanvasContentItem } from './canvas-title-generator
 import { RedisService } from '../common/redis.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../utils/runtime';
 
 @Injectable()
 export class CanvasService {

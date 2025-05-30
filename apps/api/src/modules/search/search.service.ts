@@ -22,10 +22,10 @@ import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-searc
 import { ParamsError } from '@refly/errors';
 import { detectLanguage, TimeTracker } from '@refly/utils';
 import { searchResultsToSources, sourcesToSearchResults } from '@refly/utils';
-import { SerperWebSearcher } from '@/utils/web-search/serper';
+import { SerperWebSearcher } from '../../utils/web-search/serper';
 import { ProviderService } from '../provider/provider.service';
-import { SearXNGWebSearcher } from '@/utils/web-search/searxng';
-import { BaseWebSearcher } from '@/utils/web-search/base';
+import { SearXNGWebSearcher } from '../../utils/web-search/searxng';
+import { BaseWebSearcher } from '../../utils/web-search/base';
 
 interface ProcessedSearchRequest extends SearchRequest {
   user?: User; // search user on behalf of

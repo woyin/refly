@@ -9,7 +9,7 @@ import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ACCESS_TOKEN_COOKIE } from '@refly/utils';
-import { isDesktop } from '@/utils/runtime';
+import { isDesktop } from '../../../utils/runtime';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {

@@ -32,7 +32,7 @@ import {
   EmbeddingNotConfiguredError,
   ChatModelNotConfiguredError,
 } from '@refly/errors';
-import { SingleFlightCache } from '@/utils/cache';
+import { SingleFlightCache } from '../../utils/cache';
 import { EncryptionService } from '../common/encryption.service';
 import pLimit from 'p-limit';
 import {
