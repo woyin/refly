@@ -29,15 +29,6 @@ importers:
       dotenv:
         specifier: ~16.4.5
         version: 16.4.7
-      electron:
-        specifier: 36.2.1
-        version: 36.2.1
-      electron-builder:
-        specifier: 26.0.15
-        version: 26.0.15(electron-builder-squirrel-windows@26.0.15)
-      electron-notarize:
-        specifier: ^1.2.2
-        version: 1.2.2
       husky:
         specifier: ^9.1.6
         version: 9.1.6

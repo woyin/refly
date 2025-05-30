@@ -16,6 +16,24 @@ asarUnpack:
   - node_modules/@prisma/engines/**/*
 files:
   - "!{.vscode,.yarn,.github,.turbo,.cursor,.husky}"
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!src'
+  - '!scripts'
+  - '!local'
+  - '!docs'
+  - '!packages'
+  - '!stats.html'
+  - '!*.md'
+  - '!*.log'
+  - '!*.chunks.jsonl'
+  - '!**/*.{map,ts,tsx,jsx,less,scss,sass,css.d.ts,d.cts,d.mts,md,markdown,yaml,yml}'
+  - '!**/{test,tests,__tests__,coverage}/**'
+  - '!**/*.{spec,test}.{js,jsx,ts,tsx}'
+  - '!**/{.DS_Store,Thumbs.db}'
+  - '!**/{LICENSE,LICENSE.txt,LICENSE-MIT.txt,*.LICENSE.txt,NOTICE.txt,README.md,CHANGELOG.md}'
 extraResources:
   - from: ../api/prisma/sqlite-schema.prisma
     to: prisma/sqlite-schema.prisma

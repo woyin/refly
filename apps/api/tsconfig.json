@@ -23,7 +23,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["jest", "node", "express", "multer", "electron"],
+    "types": ["jest", "node", "express", "multer"],
     "resolveJsonModule": true
   },
   "include": ["src/**/*", "*.json"],

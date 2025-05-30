@@ -9,13 +9,10 @@
     "type": "git",
     "url": "git+https://github.com/refly-ai/refly.git"
   },
-  "main": "apps/api/dist-electron/electron/main.js",
   "scripts": {
     "commit": "cz",
     "dev": "turbo run dev",
-    "dev:electron": "turbo run dev:electron --filter=@refly/api",
     "start": "turbo run start",
-    "start:electron": "turbo run start:electron --filter=@refly/api",
     "build": "turbo run build",
     "build:api": "turbo run build --filter=@refly/api",
     "build:api:fast": "turbo run build:fast --filter=@refly/api",
@@ -50,9 +47,6 @@
     "cypress": "14.0.1",
     "cz-conventional-changelog": "^3.3.0",
     "dotenv": "~16.4.5",
-    "electron": "36.2.1",
-    "electron-builder": "26.0.15",
-    "electron-notarize": "^1.2.2",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
     "ncp": "^2.0.0",
