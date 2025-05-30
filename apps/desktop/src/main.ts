@@ -79,9 +79,6 @@ const createWindow = async () => {
     await showErrorDialog(error);
   }
 
-  const viteDevServerURL = 'http://localhost:5173';
-  const rendererRoot = path.join(__dirname, 'renderer');
-
   const win = new BrowserWindow({
     width: 1920,
     height: 1080,
@@ -90,10 +87,11 @@ const createWindow = async () => {
     },
   });
 
-  if (process.env.NODE_ENV === 'development') {
-    win.loadURL(viteDevServerURL);
+  if (app.isPackaged) {
+    win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   } else {
-    win.loadFile(path.join(rendererRoot, 'index.html'));
+    const viteDevServerURL = 'http://localhost:5173';
+    win.loadURL(viteDevServerURL);
   }
 };
 
