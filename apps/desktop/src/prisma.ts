@@ -37,7 +37,7 @@ export async function runPrismaCommand({ command, dbUrl }) {
   }
 
   try {
-    const exitCode = await new Promise((resolve, _) => {
+    const exitCode = await new Promise((resolve, reject) => {
       const prismaPath = path.resolve(app.getAppPath(), 'node_modules/prisma/build/index.js');
       log.info('Prisma path', prismaPath);
 
@@ -48,20 +48,49 @@ export async function runPrismaCommand({ command, dbUrl }) {
           PRISMA_SCHEMA_ENGINE_BINARY: sePath,
           PRISMA_QUERY_ENGINE_LIBRARY: qePath,
         },
-        stdio: 'inherit',
+        stdio: 'pipe',
       });
+
+      // Capture and log stdout
+      if (child.stdout) {
+        child.stdout.on('data', (data) => {
+          const output = data.toString().trim();
+          if (output) {
+            log.info(`[Prisma stdout]: ${output}`);
+          }
+        });
+      }
+
+      // Capture and log stderr
+      if (child.stderr) {
+        child.stderr.on('data', (data) => {
+          const output = data.toString().trim();
+          if (output) {
+            log.error(`[Prisma stderr]: ${output}`);
+          }
+        });
+      }
 
       child.on('error', (err) => {
         log.error('Child process got error:', err);
+        reject(err);
       });
 
-      child.on('close', (code) => {
+      child.on('close', (code, signal) => {
+        if (signal) {
+          log.warn(`Child process terminated by signal: ${signal}`);
+        }
+        log.info(`Child process exited with code: ${code}`);
         resolve(code);
+      });
+
+      child.on('exit', (code, signal) => {
+        log.info(`Child process exit event - code: ${code}, signal: ${signal}`);
       });
     });
 
     if (exitCode !== 0) {
-      const errorMsg = `command '${command.join(' ')}' failed with exit code ${exitCode}`;
+      const errorMsg = `Prisma command '${command.join(' ')}' failed with exit code ${exitCode}`;
       throw new Error(errorMsg);
     }
 

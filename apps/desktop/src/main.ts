@@ -42,17 +42,12 @@ async function prepareDatabase() {
   }
 
   // TODO: Cache the migration result to optimize launch time
-  try {
-    log.info('Running Prisma database migration');
-    await runPrismaCommand({
-      command: ['db', 'push', `--schema=${prismaSchemaPath}`],
-      dbUrl: process.env.DATABASE_URL,
-    });
-    log.info('Prisma database migration completed successfully');
-  } catch (error) {
-    log.error('Failed to run Prisma database migration:', error);
-    throw error;
-  }
+  log.info('Running Prisma database migration');
+  await runPrismaCommand({
+    command: ['db', 'push', '--skip-generate', `--schema=${prismaSchemaPath}`],
+    dbUrl: process.env.DATABASE_URL,
+  });
+  log.info('Prisma database migration completed successfully');
 }
 
 async function startServices() {
