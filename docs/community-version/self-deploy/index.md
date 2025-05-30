@@ -67,17 +67,15 @@ cd refly/deploy/kubernetes
 kubectl apply -f refly-deployment.yaml
 ```
 
-Finally, you can access the Refly application in `http://${HOST_IP}:5700`, where `${HOST_IP}` is the IP address of the host machine.
+Finally, you can access the Refly application in `http://${HOST_IP}:5700` (`http://${HOST_IP}:30001` in Kubernetes), where `${HOST_IP}` is the IP address of the host machine.
 
 ::: info
 If you cannot access the Refly application, please check the following:
 
 - The `HOST_IP` is correct.
 - The application is running properly. If not, jump to [Troubleshooting](#troubleshooting).
-- The port `5700` is not being blocked by any application firewall. Check this especially if you are using a cloud server.
+- The port `5700`(`30001`) is not being blocked by any application firewall. Check this especially if you are using a cloud server.
 :::
-
-
 
 ## Start Using Refly {#start-using-refly}
 

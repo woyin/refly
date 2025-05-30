@@ -980,6 +980,22 @@ spec:
       terminationGracePeriodSeconds: 10
       nodeSelector:
         kubernetes.io/os: linux
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command: [ 'sh', '-c', "until pg_isready -h refly-postgres -U postgres -d mydb; do echo waiting for postgres; sleep 2; done;" ]
+      - name: wait-for-redis
+        image: redis:6-alpine
+        command: [ 'sh', '-c', "until redis-cli -h refly-redis -p 6379 ping | grep 'PONG'; do echo waiting for redis; sleep 2; done;" ]
+      - name: wait-for-qdrant
+        image: curlimages/curl:7.68.0
+        command: [ 'sh', '-c', "until curl -s http://refly-qdrant:6333/healthz | grep -q 'healthz check passed'; do echo waiting for qdrant; sleep 2; done;" ]
+      - name: wait-for-elasticsearch
+        image: curlimages/curl:7.68.0
+        command: [ 'sh', '-c', "until curl -s http://refly-elasticsearch:9200 >/dev/null ; do echo waiting for elasticsearch; sleep 2; done;" ]
+      - name: wait-for-minio
+        image: curlimages/curl:7.68.0
+        command: [ 'sh', '-c', "until curl -f http://minio-service:9000/minio/health/live; do echo waiting for minio; sleep 2; done;" ]
       containers:
       - name: refly-api
         image: reflyai/refly-api:0.6.0
@@ -1190,6 +1206,10 @@ spec:
       terminationGracePeriodSeconds: 10
       nodeSelector:
         kubernetes.io/os: linux
+      initContainers:
+      - name: wait-for-refly-api
+        image: curlimages/curl:7.68.0
+        command: [ 'sh', '-c', "until curl -s http://refly-api:5800; do echo waiting for refly api; sleep 2; done;" ]
       containers:
       - name: refly-web
         image: reflyai/refly-web:0.6.0
@@ -1253,4 +1273,4 @@ spec:
   - name: web-http
     port: 80
     targetPort: 80
-    nodePort: 5700
+    nodePort: 30001
