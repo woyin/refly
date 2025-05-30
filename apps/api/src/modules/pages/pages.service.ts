@@ -16,7 +16,7 @@ import {
   Page as PageModel,
   PageNodeRelation as PageNodeRelationModel,
   Prisma,
-} from '@prisma/client';
+} from '../../generated/client';
 
 // Generate unique IDs
 const genPageId = (): string => `page-${createId()}`;

@@ -1,4 +1,4 @@
-import { join, dirname } from 'node:path';
+import path from 'node:path';
 import { existsSync } from 'node:fs';
 
 /**
@@ -17,13 +17,13 @@ export const findNodeModules = (startDir: string, maxDepth = 10): string | null 
   let depth = 0;
 
   while (depth < maxDepth) {
-    const nodeModulesPath = join(currentDir, 'node_modules');
+    const nodeModulesPath = path.join(currentDir, 'node_modules');
 
     if (existsSync(nodeModulesPath)) {
       return nodeModulesPath;
     }
 
-    const parentDir = dirname(currentDir);
+    const parentDir = path.dirname(currentDir);
 
     // If we've reached the root directory
     if (parentDir === currentDir) {

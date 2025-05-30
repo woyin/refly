@@ -12,29 +12,13 @@ directories:
 npmRebuild: true
 buildDependenciesFromSource: true
 compression: normal
+asarUnpack:
+  - node_modules/@prisma/engines/**/*
 files:
   - "!{.vscode,.yarn,.github,.turbo,.cursor,.husky}"
-  # - package.json
-  # - node_modules
-  # - apps/api/**/*
-  # - packages/**/*
-  # - "!packages/ai-workspace-common/**/*"
-  # - "!packages/wxt/**/*"
-  # @prisma is not needed in the packed app unless using prisma migrate
-  # - "!**/node_modules/@prisma/engines/introspection-engine*"
-  # - "!**/node_modules/@prisma/engines/schema-engine*"
-  # - "!**/node_modules/@prisma/engines/prisma-fmt*"
-  # - "!**/node_modules/@prisma/engines/query_engine-*"
-  # - "!**/node_modules/@prisma/engines/libquery_engine*"
-  # - "!**/node_modules/prisma/query_engine*"
-  # - "!**/node_modules/prisma/libquery_engine*"
-# extraFiles:
-#   - localization/locales/**/*
-# extraResources: # Only if you need to run prisma migrate
-#   - node_modules/@prisma/engines/schema-engine*
-#   - node_modules/@prisma/engines/query*
-#   - node_modules/@prisma/engines/libquery*
-#   - THIRD-PARTY-LICENSES.txt
+extraResources:
+  - from: ../api/prisma/sqlite-schema.prisma
+    to: prisma/sqlite-schema.prisma
 win:
   target:
     - nsis
@@ -43,13 +27,10 @@ win:
   # had to add artifactName here because electron-builder was generating latest.yml with hyphens instead of spaces,
   # which screwed up auto updates
   artifactName: ${productName}-Setup-${version}.${ext}
-# linux:
-#   target:
-#     - snap
-#     - AppImage
-#   asarUnpack: # only if you need to run prisma migrate:
-#     - prisma
-#     - apps/api/dist-electron/bin/**/*
+linux:
+  target:
+    - snap
+    - AppImage
 mac:
   # asar: false
   identity: null

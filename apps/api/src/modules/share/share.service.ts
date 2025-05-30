@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { createId } from '@paralleldrive/cuid2';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { ShareRecord } from '@prisma/client';
+import { ShareRecord } from '../../generated/client';
 import * as Y from 'yjs';
 import {
   ActionResult,

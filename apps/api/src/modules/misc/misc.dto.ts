@@ -1,5 +1,8 @@
 import { ModelInfo, ModelTier, SubscriptionPlan, FileVisibility } from '@refly/openapi-schema';
-import { ModelInfo as ModelInfoPO, SubscriptionPlan as SubscriptionPlanPO } from '@prisma/client';
+import {
+  ModelInfo as ModelInfoPO,
+  SubscriptionPlan as SubscriptionPlanPO,
+} from '../../generated/client';
 import { pick } from '@refly/utils';
 
 export interface FileObject {

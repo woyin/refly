@@ -1,4 +1,7 @@
-import { ProviderItem as ProviderItemModel, Provider as ProviderModel } from '@prisma/client';
+import {
+  ProviderItem as ProviderItemModel,
+  Provider as ProviderModel,
+} from '../../generated/client';
 import { pick } from '@/utils';
 import {
   Provider,

@@ -7,7 +7,7 @@ import { Request } from 'express';
 import { WebSocket } from 'ws';
 import { Server, Hocuspocus } from '@hocuspocus/server';
 import { RAGService } from '../rag/rag.service';
-import { CodeArtifact, Prisma } from '@prisma/client';
+import { CodeArtifact, Prisma } from '../../generated/client';
 import { UpsertCodeArtifactRequest, User } from '@refly/openapi-schema';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../common/redis.service';
@@ -21,7 +21,6 @@ import {
 } from '@refly/utils';
 import { streamToBuffer } from '../../utils/stream';
 import { CollabContext, isCanvasContext, isDocumentContext } from './collab.dto';
-import { Redis } from '@hocuspocus/extension-redis';
 import { QUEUE_SYNC_CANVAS_ENTITY } from '../../utils/const';
 import ms from 'ms';
 import pLimit from 'p-limit';
@@ -42,6 +41,11 @@ export class CollabService {
     @Inject(FULLTEXT_SEARCH) private fts: FulltextSearchService,
     @Optional() @InjectQueue(QUEUE_SYNC_CANVAS_ENTITY) private canvasQueue?: Queue,
   ) {
+    const extensions = [];
+    // if (!isDesktop()) {
+    //   extensions.push(new Redis({ redis: this.redis.getClient() }));
+    // }
+
     this.server = Server.configure({
       port: this.config.get<number>('wsPort'),
       onAuthenticate: (payload) => this.authenticate(payload),
@@ -53,7 +57,7 @@ export class CollabService {
       onDisconnect: async (payload) => {
         this.logger.log(`onDisconnect ${payload.documentName}`);
       },
-      extensions: isDesktop() ? [] : [new Redis({ redis: this.redis.getClient() })],
+      extensions,
     });
   }
 

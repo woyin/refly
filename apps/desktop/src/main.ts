@@ -1,24 +1,59 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import log from 'electron-log/main';
 import { startApiServerForElectron, shutdownApiServer } from '@refly/api';
+import { runPrismaCommand } from './prisma';
+import { prepareEnvironment } from './runtime';
 
 // Optional, initialize the logger for any renderer process
 log.initialize();
 
-process.env.APP_ROOT = __dirname;
-process.env.MODE = 'desktop';
-
-export const VITE_DEV_SERVER_URL = 'http://localhost:5173';
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'renderer');
-
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
-  ? path.join(process.env.APP_ROOT, 'public')
-  : RENDERER_DIST;
-
-log.info(`Starting Refly Desktop Application, app root: ${process.env.APP_ROOT}`);
+log.info(`Starting Refly Desktop Application, app root: ${app.getAppPath()}`);
 
 let servicesStarted = false;
+
+prepareEnvironment();
+
+async function showErrorDialog(error: any) {
+  await dialog.showMessageBox({
+    type: 'error',
+    title: 'Application Startup Error',
+    message: 'Failed to start required services',
+    detail: `Error: ${
+      error instanceof Error ? error.message : String(error)
+    }\n\nThe application cannot continue without these services.`,
+    buttons: ['Exit'],
+    defaultId: 0,
+  });
+
+  app.quit();
+}
+
+async function prepareDatabase() {
+  const prismaRoot = app.isPackaged
+    ? path.join(app.getAppPath().replace('app.asar', ''), 'prisma')
+    : path.join(app.getAppPath(), 'node_modules', '@refly', 'api', 'prisma');
+  const prismaSchemaPath = path.join(prismaRoot, 'sqlite-schema.prisma');
+  log.info('Prisma schema path', prismaSchemaPath);
+
+  if (!fs.existsSync(prismaSchemaPath)) {
+    throw new Error(`Prisma schema path does not exist: ${prismaSchemaPath}`);
+  }
+
+  // TODO: Cache the migration result to optimize launch time
+  try {
+    log.info('Running Prisma database migration');
+    await runPrismaCommand({
+      command: ['db', 'push', `--schema=${prismaSchemaPath}`],
+      dbUrl: process.env.DATABASE_URL,
+    });
+    log.info('Prisma database migration completed successfully');
+  } catch (error) {
+    log.error('Failed to run Prisma database migration:', error);
+    throw error;
+  }
+}
 
 async function startServices() {
   if (servicesStarted) {
@@ -26,63 +61,44 @@ async function startServices() {
     return;
   }
 
-  try {
-    log.info('Starting API server...');
-    await Promise.race([
-      startApiServerForElectron(app.getPath('userData'), log),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('API server startup timeout')), 60000),
-      ),
-    ]);
-    log.info('API server started successfully');
+  log.info('Starting API server...');
+  await Promise.race([
+    startApiServerForElectron(log),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('API server startup timeout')), 30000),
+    ),
+  ]);
 
-    servicesStarted = true;
-    log.info('All services started successfully');
-  } catch (error) {
-    log.error('Critical error starting services:', error);
-
-    // Show error dialog to user instead of silent quit
-    const { dialog } = require('electron');
-    const result = await dialog.showMessageBox({
-      type: 'error',
-      title: 'Service Startup Error',
-      message: 'Failed to start required services',
-      detail: `Error: ${error instanceof Error ? error.message : String(error)}\n\nThe application cannot continue without these services. Would you like to retry or exit?`,
-      buttons: ['Retry', 'Exit'],
-      defaultId: 0,
-      cancelId: 1,
-    });
-
-    if (result.response === 0) {
-      // Retry
-      log.info('User chose to retry service startup');
-      servicesStarted = false;
-      return startServices();
-    } else {
-      // Exit
-      log.info('User chose to exit after service startup failure');
-      app.quit();
-    }
-  }
+  servicesStarted = true;
+  log.info('All services started successfully');
 }
 
 const createWindow = async () => {
-  // Start services before creating window
-  await startServices();
+  try {
+    // Prepare database and perform migrations
+    await prepareDatabase();
+
+    // Start services before creating window
+    await startServices();
+  } catch (error) {
+    await showErrorDialog(error);
+  }
+
+  const viteDevServerURL = 'http://localhost:5173';
+  const rendererRoot = path.join(__dirname, 'renderer');
 
   const win = new BrowserWindow({
     width: 1920,
     height: 1080,
-    icon: path.join(process.env.VITE_PUBLIC, 'logo.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
 
   if (process.env.NODE_ENV === 'development') {
-    win.loadURL(VITE_DEV_SERVER_URL);
+    win.loadURL(viteDevServerURL);
   } else {
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'));
+    win.loadFile(path.join(rendererRoot, 'index.html'));
   }
 };
 

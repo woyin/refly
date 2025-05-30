@@ -2,7 +2,7 @@ import { ActionDetail } from '../action/action.dto';
 import { PrismaService } from '../common/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { ActionResultNotFoundError } from '@refly/errors';
-import { ActionResult } from '@prisma/client';
+import { ActionResult } from '../../generated/client';
 import { EntityType, GetActionResultData, User } from '@refly/openapi-schema';
 import { batchReplaceRegex, genActionResultID, pick } from '@refly/utils';
 import pLimit from 'p-limit';

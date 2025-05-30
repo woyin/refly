@@ -19,6 +19,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private configService: ConfigService) {
     if (!isDesktop()) {
+      this.logger.log('Initializing Redis client');
       this.client = new Redis({
         host: configService.getOrThrow('redis.host'),
         port: configService.getOrThrow('redis.port'),
@@ -26,6 +27,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         password: configService.get('redis.password'),
       });
     } else {
+      this.logger.log('Skip redis initialization in desktop mode');
       this.initInMemoryCleanup();
     }
   }

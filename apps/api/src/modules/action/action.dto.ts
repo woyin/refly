@@ -7,7 +7,10 @@ import {
   ModelInfo,
   ModelTier,
 } from '@refly/openapi-schema';
-import { ActionResult as ActionResultModel, ActionStep as ActionStepModel } from '@prisma/client';
+import {
+  ActionResult as ActionResultModel,
+  ActionStep as ActionStepModel,
+} from '../../generated/client';
 import { pick } from '../../utils';
 
 export type ActionDetail = ActionResultModel & {

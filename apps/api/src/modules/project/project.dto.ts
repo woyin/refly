@@ -4,7 +4,7 @@ import {
   Canvas as CanvasModel,
   Document as DocumentModel,
   Resource as ResourceModel,
-} from '@prisma/client';
+} from '../../generated/client';
 import { pick } from '@/utils';
 
 export const projectPO2DTO = (

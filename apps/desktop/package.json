@@ -22,9 +22,11 @@
     "electron-notarize": "^1.2.2"
   },
   "dependencies": {
+    "@prisma/engines": "5.16.1",
     "@refly/api": "workspace:*",
     "electron-log": "^5.4.0",
     "get-port": "^7.1.0",
-    "is-number": "^7.0.0"
+    "is-number": "^7.0.0",
+    "prisma": "5.16.1"
   }
 }

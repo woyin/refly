@@ -21,7 +21,7 @@ import {
   User,
   CanvasNode,
 } from '@refly/openapi-schema';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../generated/client';
 import { genCanvasID } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';

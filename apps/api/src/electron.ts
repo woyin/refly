@@ -7,54 +7,13 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
-import { GlobalExceptionFilter } from '@/utils/filters/global-exception.filter';
-import { setTraceID } from '@/utils/middleware/set-trace-id';
-import { CustomWsAdapter } from '@/utils/adapters/ws-adapter';
-import { execSync } from 'node:child_process';
-import { findNodeModules } from '@/utils/runtime';
+import { GlobalExceptionFilter } from './utils/filters/global-exception.filter';
+import { setTraceID } from './utils/middleware/set-trace-id';
+import { CustomWsAdapter } from './utils/adapters/ws-adapter';
 
 let nestApp: NestExpressApplication | null = null;
 
-export const startApiServerForElectron = async (userDataPath: string, logger: any) => {
-  process.env.MODE = 'desktop';
-  process.env.DATABASE_URL = `file:${userDataPath}/refly.db`;
-  process.env.VECTOR_STORE_BACKEND = 'lancedb';
-  process.env.LANCEDB_URI = path.join(userDataPath, 'lancedb');
-
-  const nodeModulesPath = findNodeModules(__dirname);
-
-  if (!nodeModulesPath) {
-    throw new Error('Could not find node_modules directory');
-  }
-
-  const prismaPath = path.join(nodeModulesPath, '.bin', 'prisma');
-  const prismaSchemaPath = path.join(__dirname, 'prisma', 'sqlite-schema.prisma');
-  logger.debug('Prisma configuration', {
-    prismaPath,
-    prismaSchemaPath,
-    databaseUrl: process.env.DATABASE_URL,
-  });
-
-  // TODO: Cache the migration result to optimize launch time
-  try {
-    logger.info('Running Prisma database migration');
-    execSync(`${prismaPath} db push --schema=${prismaSchemaPath}`, {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        DATABASE_URL: process.env.DATABASE_URL,
-      },
-    });
-    logger.info('Prisma database migration completed successfully');
-  } catch (error) {
-    logger.error('Failed to run Prisma database migration:', error);
-    throw error;
-  }
-
-  process.env.FULLTEXT_SEARCH_BACKEND = 'prisma';
-  process.env.OBJECT_STORAGE_BACKEND = 'fs';
-  process.env.OBJECT_STORAGE_FS_ROOT = path.join(userDataPath, 'objectStorage');
-
+export const startApiServerForElectron = async (logger: any) => {
   logger.info('Creating NestJS application');
   nestApp = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,

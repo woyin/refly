@@ -10,7 +10,7 @@ import {
   Prisma,
   SkillTrigger as SkillTriggerModel,
   ActionResult as ActionResultModel,
-} from '@prisma/client';
+} from '../../generated/client';
 import { Response } from 'express';
 import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/core/dist/messages';
 import {

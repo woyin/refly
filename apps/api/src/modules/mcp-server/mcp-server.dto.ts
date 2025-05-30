@@ -1,4 +1,4 @@
-import { McpServer } from '@prisma/client';
+import { McpServer } from '../../generated/client';
 import { McpServerDTO, McpServerType } from '@refly/openapi-schema';
 import { pick } from '@/utils';
 

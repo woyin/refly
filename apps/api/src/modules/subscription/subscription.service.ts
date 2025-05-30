@@ -29,7 +29,7 @@ import {
   Subscription as SubscriptionModel,
   ModelInfo as ModelInfoModel,
   Prisma,
-} from '@prisma/client';
+} from '../../generated/client';
 import { ConfigService } from '@nestjs/config';
 import { OperationTooFrequent, ParamsError } from '@refly/errors';
 import { QUEUE_CHECK_CANCELED_SUBSCRIPTIONS } from '../../utils/const';
