@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { StripeModule } from '@golevelup/nestjs-stripe';
 import { BullModule } from '@nestjs/bullmq';
 import { SubscriptionService } from './subscription.service';
+import { SubscriptionWebhooks } from './subscription.webhook';
 import {
   SyncTokenUsageProcessor,
   SyncStorageUsageProcessor,
@@ -16,7 +17,6 @@ import { isDesktop } from '../../utils/runtime';
 @Module({
   imports: [
     CommonModule,
-    StripeModule.externallyConfigured(StripeModule, 0),
     ...(isDesktop()
       ? []
       : [
@@ -28,6 +28,7 @@ import { isDesktop } from '../../utils/runtime';
               removeOnFail: false,
             },
           }),
+          StripeModule.externallyConfigured(StripeModule, 0),
         ]),
   ],
   providers: [
@@ -35,7 +36,7 @@ import { isDesktop } from '../../utils/runtime';
     SyncTokenUsageProcessor,
     SyncStorageUsageProcessor,
     SyncRequestUsageProcessor,
-    ...(isDesktop() ? [] : [CheckCanceledSubscriptionsProcessor]),
+    ...(isDesktop() ? [] : [CheckCanceledSubscriptionsProcessor, SubscriptionWebhooks]),
   ],
   controllers: [SubscriptionController],
   exports: [SubscriptionService],

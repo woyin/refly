@@ -72,21 +72,6 @@ class CustomThrottlerGuard extends ThrottlerGuard {
         transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
       },
     }),
-    StripeModule.forRootAsync(StripeModule, {
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        apiKey: configService.get('stripe.apiKey'),
-        webhookConfig: {
-          stripeSecrets: {
-            account: configService.get('stripe.webhookSecret.account'),
-            accountTest: configService.get('stripe.webhookSecret.accountTest'),
-          },
-          decorators: [SkipThrottle()],
-          requestBodyProperty: 'rawBody',
-        },
-      }),
-      inject: [ConfigService],
-    }),
     AuthModule,
     UserModule,
     RAGModule,
@@ -132,6 +117,21 @@ class CustomThrottlerGuard extends ThrottlerGuard {
               ],
               getTracker: (req) => (req.ips?.length ? req.ips[0] : req.ip),
             }),
+          }),
+          StripeModule.forRootAsync(StripeModule, {
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService) => ({
+              apiKey: configService.get('stripe.apiKey'),
+              webhookConfig: {
+                stripeSecrets: {
+                  account: configService.get('stripe.webhookSecret.account'),
+                  accountTest: configService.get('stripe.webhookSecret.accountTest'),
+                },
+                decorators: [SkipThrottle()],
+                requestBodyProperty: 'rawBody',
+              },
+            }),
+            inject: [ConfigService],
           }),
         ]),
   ],

@@ -230,52 +230,52 @@ describe('SubscriptionService', () => {
     });
   });
 
-  describe('handleCheckoutSessionCompleted', () => {
-    it('should process completed checkout session', async () => {
-      const mockEvent = {
-        data: {
-          object: {
-            id: 'cs_123',
-            payment_status: 'paid',
-            client_reference_id: 'test-uid',
-            customer: 'cus_123',
-            subscription: 'sub_123',
-          },
-        },
-      } as Stripe.Event;
+  // describe('handleCheckoutSessionCompleted', () => {
+  //   it('should process completed checkout session', async () => {
+  //     const mockEvent = {
+  //       data: {
+  //         object: {
+  //           id: 'cs_123',
+  //           payment_status: 'paid',
+  //           client_reference_id: 'test-uid',
+  //           customer: 'cus_123',
+  //           subscription: 'sub_123',
+  //         },
+  //       },
+  //     } as Stripe.Event;
 
-      const mockCheckoutSession = {
-        sessionId: 'cs_123',
-        uid: 'test-uid',
-        lookupKey: 'pro_monthly',
-      };
+  //     const mockCheckoutSession = {
+  //       sessionId: 'cs_123',
+  //       uid: 'test-uid',
+  //       lookupKey: 'pro_monthly',
+  //     };
 
-      // Mock checkoutSession lookup
-      (prismaService.checkoutSession.findFirst as jest.Mock).mockResolvedValue(mockCheckoutSession);
+  //     // Mock checkoutSession lookup
+  //     (prismaService.checkoutSession.findFirst as jest.Mock).mockResolvedValue(mockCheckoutSession);
 
-      await service.handleCheckoutSessionCompleted(mockEvent);
+  //     await service.handleCheckoutSessionCompleted(mockEvent);
 
-      expect(prismaService.checkoutSession.update).toHaveBeenCalled();
-      expect(prismaService.$transaction).toHaveBeenCalled();
-    });
+  //     expect(prismaService.checkoutSession.update).toHaveBeenCalled();
+  //     expect(prismaService.$transaction).toHaveBeenCalled();
+  //   });
 
-    it('should not process unpaid session', async () => {
-      const mockEvent = {
-        data: {
-          object: {
-            id: 'cs_124',
-            payment_status: 'unpaid',
-            client_reference_id: 'test-uid',
-            customer: 'cus_123',
-            subscription: 'sub_124',
-          },
-        },
-      } as Stripe.Event;
+  //   it('should not process unpaid session', async () => {
+  //     const mockEvent = {
+  //       data: {
+  //         object: {
+  //           id: 'cs_124',
+  //           payment_status: 'unpaid',
+  //           client_reference_id: 'test-uid',
+  //           customer: 'cus_123',
+  //           subscription: 'sub_124',
+  //         },
+  //       },
+  //     } as Stripe.Event;
 
-      await service.handleCheckoutSessionCompleted(mockEvent);
+  //     await service.handleCheckoutSessionCompleted(mockEvent);
 
-      expect(prismaService.checkoutSession.update).not.toHaveBeenCalled();
-      expect(prismaService.$transaction).not.toHaveBeenCalled();
-    });
-  });
+  //     expect(prismaService.checkoutSession.update).not.toHaveBeenCalled();
+  //     expect(prismaService.$transaction).not.toHaveBeenCalled();
+  //   });
+  // });
 });

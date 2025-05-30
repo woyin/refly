@@ -2,9 +2,14 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import log from 'electron-log/main';
+import { prepareEnvironment } from './runtime';
+
+// Set up environment variables BEFORE importing @refly/api
+// This ensures environment variables are set properly before any modules are loaded
+prepareEnvironment();
+
 import { startApiServerForElectron, shutdownApiServer } from '@refly/api';
 import { runPrismaCommand } from './prisma';
-import { prepareEnvironment } from './runtime';
 
 // Optional, initialize the logger for any renderer process
 log.initialize();
@@ -12,8 +17,6 @@ log.initialize();
 log.info(`Starting Refly Desktop Application, app root: ${app.getAppPath()}`);
 
 let servicesStarted = false;
-
-prepareEnvironment();
 
 async function showErrorDialog(error: any) {
   await dialog.showMessageBox({

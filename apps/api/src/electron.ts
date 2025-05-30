@@ -6,21 +6,21 @@ import { AppModule } from './modules/app.module';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from 'nestjs-pino';
 import { GlobalExceptionFilter } from './utils/filters/global-exception.filter';
 import { setTraceID } from './utils/middleware/set-trace-id';
 import { CustomWsAdapter } from './utils/adapters/ws-adapter';
+import { LoggerService } from '@nestjs/common';
 
 let nestApp: NestExpressApplication | null = null;
 
-export const startApiServerForElectron = async (logger: any) => {
-  logger.info('Creating NestJS application');
+export const startApiServerForElectron = async (logger: LoggerService) => {
+  logger.log(`Creating NestJS application, mode: ${process.env.MODE}`);
   nestApp = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
     bufferLogs: false,
   });
 
-  nestApp.useLogger(nestApp.get(Logger));
+  nestApp.useLogger(logger);
   const configService = nestApp.get(ConfigService);
   configService.set('mode', 'desktop');
 
@@ -41,14 +41,14 @@ export const startApiServerForElectron = async (logger: any) => {
   const wsPort = await getPort();
   nestApp.useWebSocketAdapter(new CustomWsAdapter(nestApp, wsPort));
   process.env.RF_COLLAB_URL = `ws://localhost:${wsPort}`;
-  logger.info(`Collab server running at ${process.env.RF_COLLAB_URL}`);
+  logger.log(`Collab server running at ${process.env.RF_COLLAB_URL}`);
 
   // Use a free port for internal API server
   const port = await getPort();
-  nestApp.listen(port);
+  await nestApp.listen(port);
   process.env.RF_API_BASE_URL = `http://localhost:${port}`;
 
-  logger.info(`API server running at ${process.env.RF_API_BASE_URL}`);
+  logger.log(`API server running at ${process.env.RF_API_BASE_URL}`);
 
   // Set the static endpoints for the desktop app
   const publicStaticEndpoint = `http://localhost:${port}/v1/misc/public`;
@@ -59,7 +59,7 @@ export const startApiServerForElectron = async (logger: any) => {
   configService.set('static.public.endpoint', publicStaticEndpoint);
   configService.set('static.private.endpoint', privateStaticEndpoint);
 
-  logger.info('API server configuration completed', {
+  logger.log('API server configuration completed', {
     publicStaticEndpoint,
     privateStaticEndpoint,
     collabUrl: process.env.RF_COLLAB_URL,
@@ -69,10 +69,10 @@ export const startApiServerForElectron = async (logger: any) => {
   return nestApp;
 };
 
-export const shutdownApiServer = async (logger: any) => {
+export const shutdownApiServer = async (logger: LoggerService) => {
   if (nestApp) {
-    logger.info('Shutting down API server');
+    logger.log('Shutting down API server');
     await nestApp.close();
-    logger.info('API server shut down successfully');
+    logger.log('API server shut down successfully');
   }
 };
