@@ -13,7 +13,11 @@ npmRebuild: true
 buildDependenciesFromSource: true
 compression: normal
 asarUnpack:
-  - node_modules/@prisma/engines/**/*
+  # Only unpack specific native modules that need to be unpacked
+  - "node_modules/@lancedb/lancedb-*/*"
+  - "node_modules/@prisma/engines/**/*"
+  - "**/node_modules/sharp/**/*"
+  - "**/node_modules/@img/**/*"
 files:
   - "!{.vscode,.yarn,.github,.turbo,.cursor,.husky}"
   - '!electron.vite.config.{js,ts,mjs,cjs}'
@@ -23,17 +27,21 @@ files:
   - '!src'
   - '!scripts'
   - '!local'
-  - '!docs'
-  - '!packages'
-  - '!stats.html'
-  - '!*.md'
-  - '!*.log'
-  - '!*.chunks.jsonl'
-  - '!**/*.{map,ts,tsx,jsx,less,scss,sass,css.d.ts,d.cts,d.mts,md,markdown,yaml,yml}'
+  - '!**/*.chunks.jsonl'
+  - '!**/*.{map,ts,tsx,jsx,css.d.ts,d.cts,d.mts,md,markdown,log,yaml,yml,tsbuildinfo}'
   - '!**/{test,tests,__tests__,coverage}/**'
   - '!**/*.{spec,test}.{js,jsx,ts,tsx}'
   - '!**/{.DS_Store,Thumbs.db}'
   - '!**/{LICENSE,LICENSE.txt,LICENSE-MIT.txt,*.LICENSE.txt,NOTICE.txt,README.md,CHANGELOG.md}'
+  - '!node_modules/@refly/api/src/**'
+  - '!node_modules/@refly/api/dist/generated/client/*.node'
+  - '!node_modules/@img/sharp-wasm32/**'
+  - '!node_modules/@sentry/cli*'
+  - '!node_modules/@esbuild/**'
+  - '!node_modules/esbuild/**'
+  - '!node_modules/swagger-ui-dist/**'
+  - '!node_modules/@sentry/cli-*/**'
+  - '!node_modules/prisma/*.node'
 extraResources:
   - from: ../api/prisma/sqlite-schema.prisma
     to: prisma/sqlite-schema.prisma
@@ -50,7 +58,6 @@ linux:
     - snap
     - AppImage
 mac:
-  # asar: false
   identity: null
   category: public.app-category.productivity
   #  gatekeeperAssess: true

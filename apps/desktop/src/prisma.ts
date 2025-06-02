@@ -19,7 +19,7 @@ const platformToExecutables = {
   },
 };
 
-export async function runPrismaCommand({ command, dbUrl }) {
+function getPrismaBinaryPath() {
   const asarUnpackedRoot = app.getAppPath().replace('app.asar', 'app.asar.unpacked');
 
   const qePath = path.join(asarUnpackedRoot, platformToExecutables[process.platform].queryEngine);
@@ -36,6 +36,20 @@ export async function runPrismaCommand({ command, dbUrl }) {
     throw new Error(`Schema engine path does not exist: ${sePath}`);
   }
 
+  return {
+    qePath,
+    sePath,
+  };
+}
+
+export function preparePrismaEnv() {
+  const { qePath, sePath } = getPrismaBinaryPath();
+
+  process.env.PRISMA_SCHEMA_ENGINE_BINARY = sePath;
+  process.env.PRISMA_QUERY_ENGINE_LIBRARY = qePath;
+}
+
+export async function runPrismaCommand({ command, dbUrl }) {
   try {
     const exitCode = await new Promise((resolve, reject) => {
       const prismaPath = path.resolve(app.getAppPath(), 'node_modules/prisma/build/index.js');
@@ -45,8 +59,6 @@ export async function runPrismaCommand({ command, dbUrl }) {
         env: {
           ...process.env,
           DATABASE_URL: dbUrl,
-          PRISMA_SCHEMA_ENGINE_BINARY: sePath,
-          PRISMA_QUERY_ENGINE_LIBRARY: qePath,
         },
         stdio: 'pipe',
       });
