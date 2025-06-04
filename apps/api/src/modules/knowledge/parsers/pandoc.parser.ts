@@ -55,49 +55,6 @@ export class PandocParser extends BaseParser {
     return stderr.toLowerCase().includes('warning');
   }
 
-  private convertHtmlTablesToMarkdown(html: string): string {
-    // Simple conversion of HTML tables to markdown pipe tables
-    // This is a basic implementation - for production you might want to use a proper HTML parser
-
-    // Convert table tags
-    const markdown = html
-      .replace(/<table[^>]*>/gi, '\n')
-      .replace(/<\/table>/gi, '\n')
-      .replace(/<thead[^>]*>/gi, '')
-      .replace(/<\/thead>/gi, '')
-      .replace(/<tbody[^>]*>/gi, '')
-      .replace(/<\/tbody>/gi, '')
-      .replace(/<tr[^>]*>/gi, '|')
-      .replace(/<\/tr>/gi, '|\n')
-      .replace(/<th[^>]*>/gi, ' ')
-      .replace(/<\/th>/gi, ' |')
-      .replace(/<td[^>]*>/gi, ' ')
-      .replace(/<\/td>/gi, ' |')
-      .replace(/\|(\s*\|)+/g, '|') // Remove empty cells
-      .replace(/\|\s*\n/g, '|\n'); // Clean up line endings
-
-    // Add table header separator for markdown tables
-    const lines = markdown.split('\n');
-    const processedLines: string[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('|') && line.endsWith('|')) {
-        processedLines.push(line);
-        // Add separator after first table row (header)
-        if (i + 1 < lines.length && lines[i + 1].trim().startsWith('|')) {
-          const cellCount = (line.match(/\|/g) || []).length - 1;
-          const separator = `|${' --- |'.repeat(Math.max(1, cellCount))}`;
-          processedLines.push(separator);
-        }
-      } else if (line) {
-        processedLines.push(line);
-      }
-    }
-
-    return processedLines.join('\n');
-  }
-
   private convertGridTablesToPipeTables(content: string): string {
     // Convert grid tables to pipe tables for better frontend compatibility
     const lines = content.split('\n');
@@ -279,18 +236,16 @@ export class PandocParser extends BaseParser {
             // Post-process the content for better table handling if needed
             let processedContent = stdout;
 
-            // If we used HTML output for DOCX, convert tables to markdown
-            if (this.options.format === 'docx' && stdout.includes('<table')) {
-              processedContent = this.convertHtmlTablesToMarkdown(stdout);
-              this.logger.debug('Converted HTML tables to markdown format');
-            } else if (this.options.format === 'docx' && stdout.includes('[TABLE]')) {
+            // Check for DOCX table placeholders
+            if (this.options.format === 'docx' && stdout.includes('[TABLE]')) {
               this.logger.warn(
                 'DOCX contains [TABLE] placeholders - tables may not be properly extracted',
               );
-            } else if (this.options.format === 'docx') {
-              // Check if we have tables in markdown format already
-              const hasTableBorders = /\+[-=+]+\+/.test(stdout);
+            }
 
+            // Convert grid tables to pipe tables for better compatibility
+            if (this.options.format === 'docx') {
+              const hasTableBorders = /\+[-=+]+\+/.test(stdout);
               if (hasTableBorders) {
                 this.logger.debug('Converting grid tables to pipe tables for better compatibility');
                 processedContent = this.convertGridTablesToPipeTables(stdout);
