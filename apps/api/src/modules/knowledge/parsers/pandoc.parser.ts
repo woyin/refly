@@ -67,13 +67,28 @@ export class PandocParser extends BaseParser {
     const mediaDir = path.join(tempDir, 'media');
 
     try {
-      const pandocArgs = ['-f', this.options.format, '-t', 'commonmark-raw_html', '--wrap=none'];
+      // Improved pandoc arguments for better table handling
+      const pandocArgs = [
+        '-f',
+        this.options.format,
+        '-t',
+        'commonmark-raw_html+pipe_tables+grid_tables+multiline_tables',
+        '--wrap=none',
+        '--columns=10000', // Prevent text wrapping in tables
+      ];
+
+      // For DOCX files, add specific table-handling options
+      if (this.options.format === 'docx') {
+        pandocArgs.push('--preserve-tabs');
+        pandocArgs.push('--markdown-headings=atx');
+      }
 
       // Only add extract-media option if enabled
       if (this.options.extractMedia) {
         pandocArgs.push('--extract-media', tempDir);
       }
 
+      this.logger.debug(`Running pandoc with args: ${pandocArgs.join(' ')}`);
       const pandoc = spawn('pandoc', pandocArgs);
 
       return new Promise((resolve, reject) => {
@@ -101,11 +116,14 @@ export class PandocParser extends BaseParser {
               }
             }
 
+            // Post-process the content for better table handling if needed
+            const processedContent = stdout;
+
             // Only process images if extractMedia is enabled
             const images = this.options.extractMedia ? await this.readImagesFromDir(mediaDir) : {};
 
             resolve({
-              content: stdout,
+              content: processedContent,
               images,
               metadata: { format: this.options.format },
             });
