@@ -423,6 +423,7 @@ export class Agent extends BaseSkill {
             );
             // Wrap each MCP tool to process its output for token optimization
             actualMcpTools = toolsFromMcp.map((tool) => this.wrapMcpTool(tool));
+
             this.engine.logger.log(
               `Wrapped ${actualMcpTools.length} MCP tools for token optimization.`,
             );
