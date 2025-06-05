@@ -150,11 +150,17 @@ function createTrace(userId?: string, metadata: Record<string, any> = {}) {
         });
 
         return {
-          update: (data: { output?: any; statusMessage?: string; level?: string }) => {
+          update: (data: {
+            output?: any;
+            statusMessage?: string;
+            level?: string;
+            metadata?: any;
+          }) => {
             span.update({
               output: data.output,
               statusMessage: data.statusMessage,
               level: data.level || 'DEFAULT',
+              metadata: data.metadata,
               endTime: new Date(),
             });
           },
@@ -222,11 +228,18 @@ export function wrapChatModelWithMonitoring(
           }
         : calculateAccurateTokenUsage(input, result.content || '');
 
+      const outputData: Record<string, any> = {
+        usage,
+        ...(result.content && { content: result.content }),
+      };
+
+      // Capture tool_calls information if present
+      if (result.tool_calls && Array.isArray(result.tool_calls) && result.tool_calls.length > 0) {
+        outputData.tool_calls = result.tool_calls;
+      }
+
       span.update({
-        output: {
-          content: result.content,
-          usage,
-        },
+        output: outputData,
         level: 'DEFAULT',
       });
       return result;
@@ -258,6 +271,7 @@ export function wrapChatModelWithMonitoring(
           async start(controller) {
             const chunks = [];
             let finalUsage = null;
+            let toolCalls = [];
 
             try {
               for await (const chunk of stream) {
@@ -274,18 +288,30 @@ export function wrapChatModelWithMonitoring(
                       chunk.usage_metadata.input_tokens + chunk.usage_metadata.output_tokens,
                   };
                 }
+
+                // Capture tool_calls from streaming chunks
+                if (chunk.tool_calls && Array.isArray(chunk.tool_calls)) {
+                  toolCalls = [...toolCalls, ...chunk.tool_calls];
+                }
               }
 
               // Log the complete output with usage
               const fullContent = chunks.map((c) => c.content).join('');
               const usage = finalUsage || calculateAccurateTokenUsage(input, fullContent);
 
+              const outputData: Record<string, any> = {
+                content: fullContent,
+                chunkCount: chunks.length,
+                usage,
+              };
+
+              // Add tool_calls to output if present
+              if (toolCalls.length > 0) {
+                outputData.tool_calls = toolCalls;
+              }
+
               span.update({
-                output: {
-                  content: fullContent,
-                  chunkCount: chunks.length,
-                  usage,
-                },
+                output: outputData,
                 level: 'DEFAULT',
               });
 
