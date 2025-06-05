@@ -81,11 +81,10 @@ export const AvailableTools = (tools: MCPTool[]) => {
       return `
 Tool Name: ${tool.id}
 Description: ${tool.description || tool.inputSchema.title || 'No description available.'}
-Input Schema (arguments MUST be a JSON object conforming to these properties):
 `;
     })
-    .join('\n\n'); // Clearer separator
-  return `You have access to the following tools:\n\n${availableTools}`;
+    .join('');
+  return `You have access to the following tools:\n${availableTools}`;
 };
 
 export const buildSystemPrompt = (userSystemPrompt: string, tools: MCPTool[]): string => {
