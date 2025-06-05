@@ -501,7 +501,7 @@ export class Agent extends BaseSkill {
         { messages: requestMessages },
         {
           ...config,
-          recursionLimit: 50,
+          recursionLimit: 10,
           metadata: {
             ...config.metadata,
             ...currentSkill,
