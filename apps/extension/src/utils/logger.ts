@@ -35,7 +35,7 @@ class DevLogger {
   private initializeLogger() {
     // Only show initialization log when debug mode is enabled
     if (this.isDevelopment) {
-      console.log(`🔧 [Refly Logger] Debug mode: ON ✅`);
+      console.log('🔧 [Refly Logger] Debug mode: ON ✅');
     }
   }
 
@@ -46,12 +46,10 @@ class DevLogger {
         if (e.key === 'reflydebug') {
           const wasEnabled = this.isDevelopment;
           this.isDevelopment = this.checkDevelopmentMode();
-          
+
           // Only log when debug mode is enabled (either before or after change)
           if (wasEnabled || this.isDevelopment) {
-            console.log(
-              `🔧 [Refly Logger] Debug mode: ${this.isDevelopment ? 'ON ✅' : 'OFF ❌'}`,
-            );
+            console.log(`🔧 [Refly Logger] Debug mode: ${this.isDevelopment ? 'ON ✅' : 'OFF ❌'}`);
           }
         }
       });
