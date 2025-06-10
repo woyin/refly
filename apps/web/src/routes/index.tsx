@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { Route, Routes, useMatch, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
@@ -97,28 +97,30 @@ export const AppRouter = (props: { layout?: any }) => {
 
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<HomeRedirect defaultNode={<Home />} />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/share/canvas/:canvasId" element={<ShareCanvasPage />} />
-        <Route path="/share/code/:shareId" element={<ShareCodePage />} />
-        <Route path="/share/answer/:shareId" element={<SkillResponseSharePage />} />
-        <Route path="/share/doc/:shareId" element={<DocumentSharePage />} />
-        <Route path="/share/pages/:shareId" element={<SharePagePage />} />
-        <Route path="/artifact-gallery" element={<ArtifactGalleryPage />} />
-        <Route path="/use-cases-gallery" element={<UseCasesGalleryPage />} />
-        <Route path="/preview/canvas/:shareId" element={<TemplatePreviewPage />} />
-        <Route path="/canvas/" element={<Navigate to="/canvas/empty" replace />} />
-        <Route
-          path="/canvas/:canvasId"
-          element={<BetaProtectedRoute component={Canvas} hasBetaAccess={hasBetaAccess} />}
-        />
-        <Route path="/project/:projectId" element={<ProjectPage />} />
-        <Route
-          path="/request-access"
-          element={<RequestAccessRoute hasBetaAccess={hasBetaAccess} />}
-        />
-      </Routes>
+      <Suspense fallback={<LightLoading />}>
+        <Routes>
+          <Route path="/" element={<HomeRedirect defaultNode={<Home />} />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/share/canvas/:canvasId" element={<ShareCanvasPage />} />
+          <Route path="/share/code/:shareId" element={<ShareCodePage />} />
+          <Route path="/share/answer/:shareId" element={<SkillResponseSharePage />} />
+          <Route path="/share/doc/:shareId" element={<DocumentSharePage />} />
+          <Route path="/share/pages/:shareId" element={<SharePagePage />} />
+          <Route path="/artifact-gallery" element={<ArtifactGalleryPage />} />
+          <Route path="/use-cases-gallery" element={<UseCasesGalleryPage />} />
+          <Route path="/preview/canvas/:shareId" element={<TemplatePreviewPage />} />
+          <Route path="/canvas/" element={<Navigate to="/canvas/empty" replace />} />
+          <Route
+            path="/canvas/:canvasId"
+            element={<BetaProtectedRoute component={Canvas} hasBetaAccess={hasBetaAccess} />}
+          />
+          <Route path="/project/:projectId" element={<ProjectPage />} />
+          <Route
+            path="/request-access"
+            element={<RequestAccessRoute hasBetaAccess={hasBetaAccess} />}
+          />
+        </Routes>
+      </Suspense>
     </Layout>
   );
 };
