@@ -20,9 +20,11 @@ export const SuspenseLoading = () => {
 };
 
 export const LightLoading = () => {
+  const { t } = useTranslation();
   return (
     <div className="h-screen w-screen flex justify-center items-center">
-      <LoadingOutlined />
+      <LoadingOutlined className="mr-2" />
+      <span>{t('common.loading')}</span>
     </div>
   );
 };
