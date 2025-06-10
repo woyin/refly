@@ -56,5 +56,10 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": "biome check --write --unsafe --no-errors-on-unmatched"
+  },
+  "pnpm": {
+    "overrides": {
+      "node-abi": "4.9.0"
+    }
   }
 }
