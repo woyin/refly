@@ -3,8 +3,6 @@ appId: ai.refly.desktop
 copyright: Copyright 2025 Refly
 # Temporarily commenting out the afterSign hook to allow build to proceed
 # afterSign: notarize.js
-dmg:
-  writeUpdateInfo: false
 directories:
   buildResources: build
   output: packed
@@ -48,15 +46,23 @@ extraResources:
 win:
   target:
     - nsis
+    - portable
   signAndEditExecutable: false
   verifyUpdateCodeSignature: false
   # had to add artifactName here because electron-builder was generating latest.yml with hyphens instead of spaces,
   # which screwed up auto updates
-  artifactName: ${productName}-Setup-${version}.${ext}
-linux:
-  target:
-    - snap
-    - AppImage
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  buildUniversalInstaller: false
+portable:
+  artifactName: ${productName}-${version}-${arch}-portable.${ext}
+  buildUniversalInstaller: false
 mac:
   identity: null
   category: public.app-category.productivity
@@ -70,3 +76,5 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   entitlementsInherit: build/entitlements.mac.plist
+dmg:
+  writeUpdateInfo: false
