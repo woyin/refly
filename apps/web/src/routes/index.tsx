@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { Route, Routes, useMatch, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
@@ -11,7 +11,7 @@ import {
   RequestAccessRoute,
 } from '@refly-packages/ai-workspace-common/components/request-access/protected-route';
 import { useHandleUrlParamsCallback } from '@refly-packages/ai-workspace-common/hooks/use-handle-url-params-callback';
-import { SuspenseLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
+import { LightLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
 import { HomeRedirect } from '@refly-packages/ai-workspace-common/components/home-redirect';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 import { isDesktop } from '@refly-packages/ai-workspace-common/utils/env';
@@ -85,42 +85,40 @@ export const AppRouter = (props: { layout?: any }) => {
 
   if (!isPublicAccessPage && !isPricing && !isDesktop()) {
     if (!userStore.isCheckingLoginStatus === undefined || userStore.isCheckingLoginStatus) {
-      return <SuspenseLoading />;
+      return <LightLoading />;
     }
 
     if (!notShowLoginBtn && !routeLogin) {
-      return <SuspenseLoading />;
+      return <LightLoading />;
     }
   }
 
   const hasBetaAccess = true;
 
   return (
-    <Suspense fallback={<SuspenseLoading />}>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<HomeRedirect defaultNode={<Home />} />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/share/canvas/:canvasId" element={<ShareCanvasPage />} />
-          <Route path="/share/code/:shareId" element={<ShareCodePage />} />
-          <Route path="/share/answer/:shareId" element={<SkillResponseSharePage />} />
-          <Route path="/share/doc/:shareId" element={<DocumentSharePage />} />
-          <Route path="/share/pages/:shareId" element={<SharePagePage />} />
-          <Route path="/artifact-gallery" element={<ArtifactGalleryPage />} />
-          <Route path="/use-cases-gallery" element={<UseCasesGalleryPage />} />
-          <Route path="/preview/canvas/:shareId" element={<TemplatePreviewPage />} />
-          <Route path="/canvas/" element={<Navigate to="/canvas/empty" replace />} />
-          <Route
-            path="/canvas/:canvasId"
-            element={<BetaProtectedRoute component={Canvas} hasBetaAccess={hasBetaAccess} />}
-          />
-          <Route path="/project/:projectId" element={<ProjectPage />} />
-          <Route
-            path="/request-access"
-            element={<RequestAccessRoute hasBetaAccess={hasBetaAccess} />}
-          />
-        </Routes>
-      </Layout>
-    </Suspense>
+    <Layout>
+      <Routes>
+        <Route path="/" element={<HomeRedirect defaultNode={<Home />} />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/share/canvas/:canvasId" element={<ShareCanvasPage />} />
+        <Route path="/share/code/:shareId" element={<ShareCodePage />} />
+        <Route path="/share/answer/:shareId" element={<SkillResponseSharePage />} />
+        <Route path="/share/doc/:shareId" element={<DocumentSharePage />} />
+        <Route path="/share/pages/:shareId" element={<SharePagePage />} />
+        <Route path="/artifact-gallery" element={<ArtifactGalleryPage />} />
+        <Route path="/use-cases-gallery" element={<UseCasesGalleryPage />} />
+        <Route path="/preview/canvas/:shareId" element={<TemplatePreviewPage />} />
+        <Route path="/canvas/" element={<Navigate to="/canvas/empty" replace />} />
+        <Route
+          path="/canvas/:canvasId"
+          element={<BetaProtectedRoute component={Canvas} hasBetaAccess={hasBetaAccess} />}
+        />
+        <Route path="/project/:projectId" element={<ProjectPage />} />
+        <Route
+          path="/request-access"
+          element={<RequestAccessRoute hasBetaAccess={hasBetaAccess} />}
+        />
+      </Routes>
+    </Layout>
   );
 };
