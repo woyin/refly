@@ -35,16 +35,16 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.0",
+    "@biomejs/biome": "^1.9.4",
     "@types/node": "20.14.8",
     "commitizen": "^4.2.4",
     "cypress": "14.0.1",
     "cz-conventional-changelog": "^3.3.0",
-    "husky": "^9.1.6",
-    "lint-staged": "^15.2.10",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "ncp": "^2.0.0",
     "rimraf": "^5.0.10",
-    "turbo": "^2.1.2",
+    "turbo": "^2.5.4",
     "typescript": "5.3.3",
     "vitest": "^2.1.9"
   },
