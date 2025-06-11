@@ -6,6 +6,7 @@ import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { useListMcpServersSuspense } from '@refly-packages/ai-workspace-common/queries/suspense';
 import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
 // McpServerDTO is used implicitly through the API response
 
 interface McpSelectorPanelProps {
@@ -22,6 +23,11 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
   const [loading, setLoading] = useState(false);
 
   // Get selected MCP servers from store
+  const { sessionId } = useAuthStoreShallow((state) => ({
+    sessionId: state.sessionId,
+  }));
+
+  // Get selected MCP servers from store
   const { selectedMcpServers, setSelectedMcpServers } = useLaunchpadStoreShallow((state) => ({
     selectedMcpServers: state.selectedMcpServers,
     setSelectedMcpServers: state.setSelectedMcpServers,
@@ -29,7 +35,7 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
 
   // Fetch MCP servers from API
   const { data, refetch } = useListMcpServersSuspense({ query: { enabled: true } }, [], {
-    enabled: isOpen,
+    enabled: isOpen && !!sessionId,
     refetchOnWindowFocus: false,
   });
 
@@ -112,7 +118,7 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
     });
 
     return sortedMcpServers.map((server) => {
-      const displayDescription = server.description || '';
+      const displayDescription = server.url || server.command || '';
       return (
         <div
           key={server.name}
