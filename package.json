@@ -12,6 +12,7 @@
   "scripts": {
     "commit": "cz",
     "dev": "turbo run dev",
+    "dev:electron": "turbo run dev:electron",
     "start": "turbo run start",
     "build": "turbo run build",
     "build:api": "turbo run build --filter=@refly/api",

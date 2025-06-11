@@ -5,6 +5,7 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "nodemon",
+    "dev:electron": "nodemon",
     "start": "tsc && electron .",
     "copy-renderer": "ncp ../web/dist dist/renderer",
     "build": "tsc && electron-builder",
