@@ -326,13 +326,11 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     canvasList,
     projectsList,
     setCollapse,
-    showSettingModal,
     setShowSettingModal,
     setShowLibraryModal,
     setShowCanvasListModal,
     setSettingsModalActiveTab,
   } = useSiderStoreShallow((state) => ({
-    showSettingModal: state.showSettingModal,
     collapse: state.collapse,
     canvasList: state.canvasList,
     projectsList: state.projectsList,
@@ -606,8 +604,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             </div>
           )}
         </div>
-
-        <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
       </div>
     </Sider>
   );
@@ -620,9 +616,14 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
   }));
   const isProject = useMatch('/project/:projectId');
   const projectId = location.pathname.split('/').pop();
+  const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
+    showSettingModal: state.showSettingModal,
+    setShowSettingModal: state.setShowSettingModal,
+  }));
 
   return (
     <>
+      <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
       <SettingsGuideModal />
       <TourModal />
       <StorageExceededModal />
