@@ -31,7 +31,9 @@ import {
   useUpdateMcpServer,
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
-import { useListMcpServersSuspense } from '@refly-packages/ai-workspace-common/queries/suspense';
+import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
+import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 import { McpServerForm } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerForm';
 import { McpServerBatchImport } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerBatchImport';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
@@ -41,6 +43,8 @@ interface McpServerListProps {
 }
 
 export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
+  const isPublicAccessPage = usePublicAccessPage();
+  const { sessionId } = useAuthStoreShallow((state) => ({ sessionId: state.sessionId }));
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
@@ -54,8 +58,8 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   }, []);
 
   // Fetch MCP servers
-  const { data, refetch } = useListMcpServersSuspense({}, [], {
-    enabled: visible,
+  const { data, refetch, isLoading, isRefetching } = useListMcpServers({}, [], {
+    enabled: visible && !!sessionId && !isPublicAccessPage,
     refetchOnWindowFocus: false,
   });
 
@@ -412,10 +416,11 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
         }}
       >
         <Table
-          dataSource={mcpServers}
-          columns={columns}
           rowKey="name"
+          columns={columns}
+          dataSource={mcpServers}
           pagination={false}
+          loading={isLoading || isRefetching}
           className="mcp-server-table"
           style={{ borderRadius: '8px' }}
           scroll={{ y: 'calc(100vh - 300px)' }}

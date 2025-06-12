@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button, Empty, Skeleton, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, CheckCircle2 } from 'lucide-react';
 import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
-import { useListMcpServersSuspense } from '@refly-packages/ai-workspace-common/queries/suspense';
+import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 // McpServerDTO is used implicitly through the API response
 
 interface McpSelectorPanelProps {
@@ -18,8 +20,13 @@ interface McpSelectorPanelProps {
  * Displays a list of available MCP servers for selection
  */
 export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onClose }) => {
+  const isPublicAccessPage = usePublicAccessPage();
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
+
+  // Get selected MCP servers from store
+  const { sessionId } = useAuthStoreShallow((state) => ({
+    sessionId: state.sessionId,
+  }));
 
   // Get selected MCP servers from store
   const { selectedMcpServers, setSelectedMcpServers } = useLaunchpadStoreShallow((state) => ({
@@ -28,10 +35,16 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
   }));
 
   // Fetch MCP servers from API
-  const { data, refetch } = useListMcpServersSuspense({ query: { enabled: true } }, [], {
-    enabled: isOpen,
-    refetchOnWindowFocus: false,
-  });
+  const { data, refetch, isLoading, isRefetching } = useListMcpServers(
+    { query: { enabled: true } },
+    [],
+    {
+      enabled: isOpen && !!sessionId && !isPublicAccessPage,
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  const loading = isLoading || isRefetching;
 
   const mcpServers = data?.data || [];
 
@@ -46,21 +59,8 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
 
   // Refresh MCP server list
   const handleRefresh = () => {
-    setLoading(true);
-    // 添加延迟以确保 Loading 状态能够被显示
-    setTimeout(() => {
-      refetch().finally(() => {
-        setLoading(false);
-      });
-    }, 300);
+    refetch();
   };
-
-  // Refresh MCP server list when panel opens
-  useEffect(() => {
-    if (isOpen) {
-      handleRefresh();
-    }
-  }, [isOpen]);
 
   // Don't render if panel is closed
   if (!isOpen) return null;
@@ -112,7 +112,7 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
     });
 
     return sortedMcpServers.map((server) => {
-      const displayDescription = server.description || '';
+      const displayDescription = server.url || server.command || '';
       return (
         <div
           key={server.name}
