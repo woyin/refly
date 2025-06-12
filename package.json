@@ -3,7 +3,8 @@
   "version": "0.6.0",
   "private": true,
   "engines": {
-    "pnpm": ">=8"
+    "pnpm": ">=9",
+    "node": ">=20.19.0"
   },
   "repository": {
     "type": "git",
@@ -57,7 +58,7 @@
     "typescript": "5.3.3",
     "vitest": "^2.1.9"
   },
-  "packageManager": "pnpm@8.15.8",
+  "packageManager": "pnpm@9.15.9",
   "config": {
     "commitizen": {
       "path": "cz-conventional-changelog"
