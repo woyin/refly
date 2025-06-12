@@ -1,6 +1,6 @@
 import { Button, Tooltip, Switch } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { IconLink, IconSend } from '@arco-design/web-react/icon';
+import { LinkOutlined, SendOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { getRuntime } from '@refly/utils/env';
@@ -79,7 +79,14 @@ export const Actions = memo(
     return (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center">
-          <ModelSelector model={model} setModel={setModel} briefMode={false} trigger={['click']} />
+          {userStore.isLogin && (
+            <ModelSelector
+              model={model}
+              setModel={setModel}
+              briefMode={false}
+              trigger={['click']}
+            />
+          )}
 
           {detectedUrls?.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
@@ -94,7 +101,7 @@ export const Actions = memo(
                   count: detectedUrls?.length,
                 })}
               >
-                <IconLink className="text-sm text-gray-500 flex items-center justify-center cursor-pointer" />
+                <LinkOutlined className="text-sm text-gray-500 flex items-center justify-center cursor-pointer" />
               </Tooltip>
             </div>
           )}
@@ -117,7 +124,7 @@ export const Actions = memo(
               onClick={handleSendMessage}
               loading={loading}
             >
-              <IconSend />
+              <SendOutlined />
               <span>{t('copilot.chatActions.send')}</span>
             </Button>
           )}

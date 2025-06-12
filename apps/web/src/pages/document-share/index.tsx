@@ -58,11 +58,13 @@ const DocumentSharePage = () => {
       {collapse && <PoweredByRefly onClick={toggleSidebar} />}
 
       {/* Main content */}
-      <div className="flex h-full w-full grow bg-white overflow-auto">
+      <div className="flex h-full w-full grow bg-white dark:bg-black overflow-auto">
         <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto w-full">
-          {title && <h1 className="text-3xl font-bold text-gray-800 mt-6 mb-4">{title}</h1>}
+          {title && (
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mt-6 mb-4">{title}</h1>
+          )}
 
-          <div className="flex-grow prose prose-lg max-w-full">
+          <div className="flex-grow prose prose-lg max-w-full pb-16">
             {content && <Markdown content={content} mode="readonly" />}
           </div>
         </div>

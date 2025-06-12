@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter } from 'node:events';
 import pLimit from 'p-limit';
 import { Queue } from 'bullmq';
@@ -10,7 +10,7 @@ import {
   Prisma,
   SkillTrigger as SkillTriggerModel,
   ActionResult as ActionResultModel,
-} from '@/generated/client';
+} from '../../generated/client';
 import { Response } from 'express';
 import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/core/dist/messages';
 import {
@@ -102,10 +102,12 @@ import { MiscService } from '../misc/misc.service';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { projectPO2DTO } from '@/modules/project/project.dto';
-import { ProviderService } from '@/modules/provider/provider.service';
-import { providerPO2DTO } from '@/modules/provider/provider.dto';
-import { codeArtifactPO2DTO } from '@/modules/code-artifact/code-artifact.dto';
+import { projectPO2DTO } from '../project/project.dto';
+import { ProviderService } from '../provider/provider.service';
+import { providerPO2DTO } from '../provider/provider.dto';
+import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
+import { McpServerService } from '../mcp-server/mcp-server.service';
+import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
 
 function validateSkillTriggerCreateParam(param: SkillTriggerCreateParam) {
   if (param.triggerType === 'simpleEvent') {
@@ -138,14 +140,21 @@ export class SkillService {
     private misc: MiscService,
     private codeArtifact: CodeArtifactService,
     private providerService: ProviderService,
-    @InjectQueue(QUEUE_SKILL) private skillQueue: Queue<InvokeSkillJobData>,
+    private mcpServerService: McpServerService,
+
+    @Optional() @InjectQueue(QUEUE_SKILL) private skillQueue?: Queue<InvokeSkillJobData>,
+    @Optional()
     @InjectQueue(QUEUE_SKILL_TIMEOUT_CHECK)
-    private timeoutCheckQueue: Queue<SkillTimeoutCheckJobData>,
-    @InjectQueue(QUEUE_SYNC_TOKEN_USAGE) private usageReportQueue: Queue<SyncTokenUsageJobData>,
+    private timeoutCheckQueue?: Queue<SkillTimeoutCheckJobData>,
+    @Optional()
+    @InjectQueue(QUEUE_SYNC_TOKEN_USAGE)
+    private usageReportQueue?: Queue<SyncTokenUsageJobData>,
+    @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
-    private requestUsageQueue: Queue<SyncRequestUsageJobData>,
+    private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
+    @Optional()
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
-    private autoNameCanvasQueue: Queue<AutoNameCanvasJobData>,
+    private autoNameCanvasQueue?: Queue<AutoNameCanvasJobData>,
   ) {
     this.skillEngine = new SkillEngine(this.logger, this.buildReflyService());
     this.skillInventory = createSkillInventory(this.skillEngine);
@@ -153,6 +162,10 @@ export class SkillService {
 
   buildReflyService = (): ReflyService => {
     return {
+      listMcpServers: async (user, req) => {
+        const servers = await this.mcpServerService.listMcpServers(user, req);
+        return buildSuccessResponse(servers.map(mcpServerPO2DTO));
+      },
       createCanvas: async (user, req) => {
         const canvas = await this.canvas.createCanvas(user, req);
         return buildSuccessResponse(canvasPO2DTO(canvas));
@@ -485,9 +498,11 @@ export class SkillService {
     }
 
     param.skillName ||= 'commonQnA';
-    const skill = this.skillInventory.find((s) => s.name === param.skillName);
+    let skill = this.skillInventory.find((s) => s.name === param.skillName);
     if (!skill) {
-      throw new SkillNotFoundError(`skill ${param.skillName} not found`);
+      // throw new SkillNotFoundError(`skill ${param.skillName} not found`);
+      param.skillName = 'commonQnA';
+      skill = this.skillInventory.find((s) => s.name === param.skillName);
     }
 
     const purgeContext = (context: SkillContext) => {
@@ -738,7 +753,13 @@ export class SkillService {
 
   async sendInvokeSkillTask(user: User, param: InvokeSkillRequest) {
     const data = await this.skillInvokePreCheck(user, param);
-    await this.skillQueue.add('invokeSkill', data);
+
+    if (this.skillQueue) {
+      await this.skillQueue.add('invokeSkill', data);
+    } else {
+      // In desktop mode or when queue is not available, invoke directly
+      await this.invokeSkillFromQueue(data);
+    }
 
     return data.result;
   }
@@ -814,6 +835,7 @@ export class SkillService {
       resultHistory,
       projectId,
       eventListener,
+      selectedMcpServers,
     } = data;
     const userPo = await this.prisma.user.findUnique({
       select: { uiLocale: true, outputLocale: true },
@@ -840,6 +862,7 @@ export class SkillService {
         tplConfig,
         runtimeConfig,
         resultId: data.result?.resultId,
+        selectedMcpServers,
       },
     };
 
@@ -957,11 +980,14 @@ export class SkillService {
     }
 
     if (tier) {
-      await this.requestUsageQueue.add('syncRequestUsage', {
-        uid: user.uid,
-        tier,
-        timestamp: new Date(),
-      });
+      if (this.requestUsageQueue) {
+        await this.requestUsageQueue.add('syncRequestUsage', {
+          uid: user.uid,
+          tier,
+          timestamp: new Date(),
+        });
+      }
+      // In desktop mode, we could handle usage tracking differently if needed
     }
 
     let aborted = false;
@@ -1140,6 +1166,49 @@ export class SkillService {
         const chunk: AIMessageChunk = event.data?.chunk ?? event.data?.output;
 
         switch (event.event) {
+          case 'on_tool_end':
+          case 'on_tool_start': {
+            // Extract tool_call_chunks from AIMessageChunk
+            if (event.metadata.langgraph_node === 'tools' && event.data?.output) {
+              // Update result content and forward stream events to client
+
+              const [, , eventName] = event.name?.split('__') ?? event.name;
+
+              const content = event.data?.output
+                ? `
+<tool_use>
+<name>${`${eventName}`}</name>
+<arguments>
+${event.data?.input ? JSON.stringify({ params: event.data?.input?.input }) : ''}
+</arguments>
+<result>
+${event.data?.output ? JSON.stringify({ response: event.data?.output?.content ?? '' }) : ''}
+</result>
+</tool_use>
+`
+                : `
+<tool_use>
+<name>${`${eventName}`}</name>
+<arguments>
+${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
+</arguments>
+</tool_use>
+`;
+              resultAggregator.handleStreamContent(runMeta, content, '');
+
+              writeSSEResponse(res, {
+                event: 'stream',
+                resultId,
+                content,
+                step: runMeta?.step,
+                structuredData: {
+                  toolCallId: event.run_id,
+                  name: event.name,
+                },
+              });
+            }
+            break;
+          }
           case 'on_chat_model_stream': {
             const content = chunk.content.toString();
             const reasoningContent = chunk?.additional_kwargs?.reasoning_content?.toString() || '';
@@ -1234,7 +1303,9 @@ export class SkillService {
                 usage,
                 timestamp: new Date(),
               };
-              await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
+              if (this.usageReportQueue) {
+                await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
+              }
             }
             break;
         }
@@ -1277,19 +1348,25 @@ export class SkillService {
           where: { canvasId: data.target.entityId, uid: user.uid },
         });
         if (canvas && !canvas.title) {
-          await this.autoNameCanvasQueue.add('autoNameCanvas', {
-            uid: user.uid,
-            canvasId: canvas.canvasId,
-          });
+          if (this.autoNameCanvasQueue) {
+            await this.autoNameCanvasQueue.add('autoNameCanvas', {
+              uid: user.uid,
+              canvasId: canvas.canvasId,
+            });
+          }
+          // In desktop mode, we could handle auto-naming differently if needed
         }
       }
 
       if (tier) {
-        await this.requestUsageQueue.add('syncRequestUsage', {
-          uid: user.uid,
-          tier,
-          timestamp: new Date(),
-        });
+        if (this.requestUsageQueue) {
+          await this.requestUsageQueue.add('syncRequestUsage', {
+            uid: user.uid,
+            tier,
+            timestamp: new Date(),
+          });
+        }
+        // In desktop mode, we could handle usage tracking differently if needed
       }
     }
   }
@@ -1313,6 +1390,13 @@ export class SkillService {
 
     if (trigger.bullJobId) {
       this.logger.warn(`Trigger already bind to a bull job: ${trigger.triggerId}, skip start it`);
+      return;
+    }
+
+    if (!this.skillQueue) {
+      this.logger.warn(
+        `Skill queue not available, cannot start timer trigger: ${trigger.triggerId}`,
+      );
       return;
     }
 
@@ -1359,6 +1443,13 @@ export class SkillService {
   async stopTimerTrigger(_user: User, trigger: SkillTriggerModel) {
     if (!trigger.bullJobId) {
       this.logger.warn(`No bull job found for trigger: ${trigger.triggerId}, cannot stop it`);
+      return;
+    }
+
+    if (!this.skillQueue) {
+      this.logger.warn(
+        `Skill queue not available, cannot stop timer trigger: ${trigger.triggerId}`,
+      );
       return;
     }
 

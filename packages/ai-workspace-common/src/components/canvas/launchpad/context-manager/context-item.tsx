@@ -1,5 +1,5 @@
 import { Button, Popover } from 'antd';
-import { IconClose } from '@arco-design/web-react/icon';
+import { CloseOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useReactFlow } from '@xyflow/react';
 import { getContextItemIcon } from './utils/icon';
@@ -7,7 +7,7 @@ import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context
 import cn from 'classnames';
 import { ContextPreview } from './context-preview';
 import { useCallback } from 'react';
-import { Message } from '@arco-design/web-react';
+import { message } from 'antd';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
@@ -60,7 +60,7 @@ export const ContextItem = ({
       );
 
       if (!sourceNode) {
-        Message.warning({
+        message.warning({
           content: t('canvas.contextManager.nodeNotFound'),
         });
         return;
@@ -86,11 +86,11 @@ export const ContextItem = ({
     >
       <Button
         className={cn(
-          'max-w-40 h-6 px-1 flex items-center border border-gray-200 rounded transition-all duration-300',
+          'max-w-40 h-6 px-1 flex items-center border border-gray-200 dark:border-gray-700 rounded transition-all duration-300',
           {
             'border-green-500': isActive,
             'border-red-300 bg-red-50 text-red-500': isLimit,
-            'bg-gray-100 border-gray-200': disabled,
+            'bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700': disabled,
           },
         )}
         onClick={() => handleItemClick()}
@@ -109,7 +109,7 @@ export const ContextItem = ({
             {title || t(`canvas.nodeTypes.${type}`)}
           </span>
           {!canNotRemove && !readonly && (
-            <IconClose
+            <CloseOutlined
               className={cn('flex-shrink-0 text-xs cursor-pointer', {
                 'text-gray-300': disabled,
                 'text-red-500': isLimit,
