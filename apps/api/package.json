@@ -13,7 +13,7 @@
   "scripts": {
     "copy-env": "ncp .env.example .env",
     "copy-env:develop": "ncp .env.development .env",
-    "build": "prisma generate && tsc --build --verbose && tsc-alias --project tsconfig.json && ncp prisma/ dist/prisma/",
+    "build": "prisma generate && tsc --build --verbose && tsc-alias --project tsconfig.json && ncp prisma/ dist/prisma/ && ncp src/generated dist/generated",
     "build:fast": "pnpm prisma:generate && swc src -d dist --config-file .swcrc --strip-leading-paths && ncp prisma/ dist/prisma/ && ncp src/generated dist/generated",
     "build:electron": "pnpm prisma:generate:sqlite && tsc --build --verbose && tsc-alias --project tsconfig.json && ncp src/generated dist/generated",
     "prisma:generate": "prisma format && prisma generate",
