@@ -43,6 +43,7 @@ import {
   getChatModel,
   initializeMonitoring,
 } from '@refly/providers';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ConfigService } from '@nestjs/config';
 import { VectorSearchService } from '../common/vector-search';
 import { VECTOR_SEARCH } from '../common/vector-search/tokens';
@@ -442,7 +443,7 @@ export class ProviderService implements OnModuleInit {
     return null;
   }
 
-  async prepareChatModel(user: User, modelId: string) {
+  async prepareChatModel(user: User, modelId: string): Promise<BaseChatModel> {
     const item = await this.findLLMProviderItemByModelID(user, modelId);
     if (!item) {
       throw new ChatModelNotConfiguredError();
