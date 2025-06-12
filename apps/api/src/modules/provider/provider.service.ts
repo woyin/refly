@@ -1,5 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from '@/modules/common/prisma.service';
+import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
+import { PrismaService } from '../common/prisma.service';
 import {
   BatchUpsertProviderItemsRequest,
   DeleteProviderItemRequest,
@@ -19,7 +19,10 @@ import {
   User,
   UserPreferences,
 } from '@refly/openapi-schema';
-import { Provider as ProviderModel, ProviderItem as ProviderItemModel } from '@/generated/client';
+import {
+  Provider as ProviderModel,
+  ProviderItem as ProviderItemModel,
+} from '../../generated/client';
 import { genProviderItemID, genProviderID, providerInfoList, pick } from '@refly/utils';
 import {
   ProviderNotFoundError,
@@ -29,8 +32,8 @@ import {
   EmbeddingNotConfiguredError,
   ChatModelNotConfiguredError,
 } from '@refly/errors';
-import { SingleFlightCache } from '@/utils/cache';
-import { EncryptionService } from '@/modules/common/encryption.service';
+import { SingleFlightCache } from '../../utils/cache';
+import { EncryptionService } from '../common/encryption.service';
 import pLimit from 'p-limit';
 import {
   getEmbeddings,
@@ -40,8 +43,10 @@ import {
   getChatModel,
   initializeMonitoring,
 } from '@refly/providers';
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ConfigService } from '@nestjs/config';
-import { QdrantService } from '@/modules/common/qdrant.service';
+import { VectorSearchService } from '../common/vector-search';
+import { VECTOR_SEARCH } from '../common/vector-search/tokens';
 
 interface GlobalProviderConfig {
   providers: ProviderModel[];
@@ -57,7 +62,8 @@ export class ProviderService implements OnModuleInit {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly qdrantService: QdrantService,
+    @Inject(VECTOR_SEARCH)
+    private readonly vectorSearchService: VectorSearchService,
     private readonly configService: ConfigService,
     private readonly encryptionService: EncryptionService,
   ) {
@@ -437,7 +443,7 @@ export class ProviderService implements OnModuleInit {
     return null;
   }
 
-  async prepareChatModel(user: User, modelId: string) {
+  async prepareChatModel(user: User, modelId: string): Promise<BaseChatModel> {
     const item = await this.findLLMProviderItemByModelID(user, modelId);
     if (!item) {
       throw new ChatModelNotConfiguredError();
@@ -736,7 +742,7 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (item.category === 'embedding') {
-      if (!(await this.qdrantService.isCollectionEmpty())) {
+      if (!(await this.vectorSearchService.isCollectionEmpty())) {
         throw new EmbeddingNotAllowedToChangeError();
       }
     }
