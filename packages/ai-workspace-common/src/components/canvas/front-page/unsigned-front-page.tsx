@@ -4,9 +4,13 @@ import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
 import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/skill-display';
-import { getSkillIcon, IconDown, IconLanguage, IconPlus } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Form } from '@arco-design/web-react';
-import { Button } from 'antd';
+import {
+  getSkillIcon,
+  IconDown,
+  IconLanguage,
+  IconPlus,
+} from '@refly-packages/ai-workspace-common/components/common/icon';
+import { Button, Form } from 'antd';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions } from './action';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
@@ -16,9 +20,9 @@ import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/compone
 import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';
 
-
 import cn from 'classnames';
 import Logo from '@/assets/logo.svg';
+import { FaGithub } from 'react-icons/fa6';
 
 export const UnsignedFrontPage = memo(() => {
   const { t, i18n } = useTranslation();
@@ -28,6 +32,21 @@ export const UnsignedFrontPage = memo(() => {
   const skills = useListSkills();
   const templateLanguage = i18n.language;
   const templateCategoryId = '';
+
+  const [starCount, setStarCount] = useState('');
+
+  useEffect(() => {
+    // Fetch GitHub star count
+    fetch('https://api.github.com/repos/refly-ai/refly')
+      .then((res) => res.json())
+      .then((data) => {
+        const stars = data.stargazers_count;
+        setStarCount(stars >= 1000 ? `${(stars / 1000).toFixed(1)}k` : stars.toString());
+      })
+      .catch(() => {
+        // Keep default value if fetch fails
+      });
+  }, []);
 
   const {
     query,
@@ -149,17 +168,25 @@ export const UnsignedFrontPage = memo(() => {
           'skew-y-12',
         )}
       />
-      <div
-        className="px-10 h-[52px] flex items-center justify-between dark:bg-gray-900/90"
-      >
-        <div className="flex flex-row items-center gap-1.5">
+      <div className="px-10 h-[52px] flex items-center justify-between dark:bg-gray-900/90">
+        <div className="flex flex-row items-center gap-2">
           <img src={Logo} alt="Refly" className="h-8 w-8" />
           <span className="text-xl font-bold text-black dark:text-white" translate="no">
             Refly
           </span>
+          {starCount && (
+            <Button
+              type="default"
+              icon={<FaGithub className="h-3.5 w-3.5" />}
+              onClick={() => window.open('https://github.com/refly-ai/refly', '_blank')}
+              className="flex h-6 rounded-md items-center gap-1 bg-white px-1.5 text-xs font-bold dark:bg-gray-900"
+            >
+              {starCount}
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-3">
-        <UILocaleList>  
+          <UILocaleList>
             <Button
               type="text"
               size="middle"
@@ -292,7 +319,9 @@ export const UnsignedFrontPage = memo(() => {
                 <div
                   key={scenario.id}
                   className={`bg-white/90 backdrop-blur-sm rounded-md ring-1 dark:bg-gray-800/90 ${
-                    activeScenarioId === scenario.id ? 'ring-green-500' : 'ring-gray-200 dark:ring-gray-700'
+                    activeScenarioId === scenario.id
+                      ? 'ring-green-500'
+                      : 'ring-gray-200 dark:ring-gray-700'
                   } py-2 px-3 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer`}
                   onClick={() =>
                     handlePresetScenario(scenario.id, scenario.skillName, scenario.query)
@@ -300,7 +329,9 @@ export const UnsignedFrontPage = memo(() => {
                 >
                   <div className="flex items-center mb-1">
                     <div className="text-2xl mr-2">{scenario.icon}</div>
-                    <h5 className="text-sm font-medium text-gray-800 dark:text-gray-100">{scenario.title}</h5>
+                    <h5 className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      {scenario.title}
+                    </h5>
                   </div>
                   <p className="text-xs text-gray-600">{scenario.description}</p>
                 </div>
@@ -312,8 +343,12 @@ export const UnsignedFrontPage = memo(() => {
             <div className="h-full flex flex-col mt-10">
               <div className="flex justify-between items-center pt-6 mx-2">
                 <div>
-                  <h3 className="text-base font-medium dark:text-gray-100">{t('frontPage.fromCommunity')}</h3>
-                  <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">{t('frontPage.fromCommunityDesc')}</p>
+                  <h3 className="text-base font-medium dark:text-gray-100">
+                    {t('frontPage.fromCommunity')}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 dark:text-gray-400">
+                    {t('frontPage.fromCommunityDesc')}
+                  </p>
                 </div>
               </div>
               <div className="flex-1">
