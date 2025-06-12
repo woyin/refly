@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Tooltip, Select, Form, Badge } from 'antd';
+import { Button, Tooltip, Dropdown, Form, Badge } from 'antd';
+import type { MenuProps } from 'antd';
 import { SwapOutlined, ToolOutlined } from '@ant-design/icons';
 
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
@@ -96,18 +97,19 @@ const NodeHeader = memo(
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const skills = useListSkills();
 
-    const onSkillChange = useCallback(
-      (value: string) => {
-        const selectedSkill = skills.find((skill) => skill.name === value) || null;
-        setSelectedSkill(selectedSkill);
-      },
-      [skills, setSelectedSkill],
-    );
+    const menuItems: MenuProps['items'] = useMemo(() => {
+      const defaultItem = {
+        key: 'default',
+        label: (
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{t('canvas.skill.askAI')}</span>
+            <span className="text-xs text-gray-500">{t('canvas.skill.askAIDescription')}</span>
+          </div>
+        ),
+      };
 
-    const skillOptions = useMemo(() => {
-      return skills.map((skill) => ({
-        value: skill.name,
-        name: t(`${skill.name}.name`, { ns: 'skill' }),
+      const skillItems = skills.map((skill) => ({
+        key: skill.name,
         label: (
           <div className="flex flex-col">
             <span className="text-sm font-medium">{t(`${skill.name}.name`, { ns: 'skill' })}</span>
@@ -116,9 +118,19 @@ const NodeHeader = memo(
             </span>
           </div>
         ),
-        textLabel: t(`${skill.name}.name`, { ns: 'skill' }),
       }));
+
+      return [defaultItem, ...skillItems];
     }, [t, skills]);
+
+    const handleMenuClick: MenuProps['onClick'] = useCallback(
+      ({ key }) => {
+        const selectedSkill =
+          key === 'default' ? null : skills.find((skill) => skill.name === key) || null;
+        setSelectedSkill(selectedSkill);
+      },
+      [skills, setSelectedSkill],
+    );
 
     return (
       <div className="flex justify-between items-center">
@@ -138,35 +150,35 @@ const NodeHeader = memo(
                   })
             }
           >
-            <div className="cursor-pointer">
-              <Select
-                value={selectedSkillName || 'default'}
-                suffixIcon={<SwapOutlined className="text-gray-400" />}
-                bordered={false}
+            <Dropdown
+              menu={{
+                items: menuItems,
+                onClick: handleMenuClick,
+              }}
+              trigger={['click']}
+              disabled={readonly}
+              placement="bottomLeft"
+              dropdownRender={(menu) => (
+                <div style={{ minWidth: '240px', maxHeight: '300px', overflowY: 'auto' }}>
+                  {menu}
+                </div>
+              )}
+            >
+              <Button
+                type="text"
+                className="py-0 px-1 border-none shadow-none hover:bg-transparent focus:bg-transparent"
                 disabled={readonly}
-                className="p-0 node-chat-panel-skill-select"
-                onChange={onSkillChange}
-                dropdownMatchSelectWidth={false}
-                dropdownStyle={{ minWidth: '240px' }}
-                optionLabelProp="name"
-                options={[
-                  {
-                    value: 'default',
-                    name: t('canvas.skill.askAI'),
-                    label: (
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{t('canvas.skill.askAI')}</span>
-                        <span className="text-xs text-gray-500">
-                          {t('canvas.skill.askAIDescription')}
-                        </span>
-                      </div>
-                    ),
-                  },
-                  ...skillOptions,
-                ]}
-                placeholder={t('canvas.skill.askAI')}
-              />
-            </div>
+              >
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium">
+                    {selectedSkillName
+                      ? t(`${selectedSkillName}.name`, { ns: 'skill' })
+                      : t('canvas.skill.askAI')}
+                  </span>
+                  <SwapOutlined className="text-gray-400" />
+                </div>
+              </Button>
+            </Dropdown>
           </Tooltip>
         </div>
         {selectedSkillName && !readonly && (
