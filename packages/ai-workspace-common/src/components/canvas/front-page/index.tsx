@@ -189,7 +189,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
             {t('frontPage.welcome')}
           </h3>
 
-          <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-700 overflow-hidden">
+          <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-600 overflow-hidden">
             {subscriptionEnabled && !userProfile?.subscription && <PremiumBanner />}
             <div className="p-4">
               {selectedSkill && (
@@ -284,22 +284,28 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
               {presetScenarios.map((scenario) => (
                 <div
                   key={scenario.id}
-                  className={`bg-white/90 backdrop-blur-sm rounded-md ring-1 dark:bg-gray-800/90 ${
+                  className={`group bg-white/90 backdrop-blur-sm rounded-md ring-1 dark:bg-gray-800/90 ${
                     activeScenarioId === scenario.id
-                      ? 'ring-green-500'
-                      : 'ring-gray-200 dark:ring-gray-700'
-                  } py-2 px-3 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer`}
+                      ? 'ring-green-500 bg-green-50/90 dark:bg-green-900/20'
+                      : 'ring-gray-200 dark:ring-gray-600'
+                  } py-2 px-3 cursor-pointer transition-all duration-200 ease-in-out 
+                  hover:ring-green-400 hover:bg-green-50/90
+                  dark:hover:bg-green-800/20 dark:hover:ring-green-500`}
                   onClick={() =>
                     handlePresetScenario(scenario.id, scenario.skillName, scenario.query)
                   }
                 >
                   <div className="flex items-center mb-1">
-                    <div className="text-2xl mr-2">{scenario.icon}</div>
-                    <h5 className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                    <div className="text-2xl mr-2 transition-transform duration-200 ease-in-out">
+                      {scenario.icon}
+                    </div>
+                    <h5 className="text-sm font-medium text-gray-800 dark:text-gray-100 transition-colors duration-200 group-hover:text-green-700 dark:group-hover:text-green-300">
                       {scenario.title}
                     </h5>
                   </div>
-                  <p className="text-xs text-gray-600">{scenario.description}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 transition-colors duration-200 group-hover:text-gray-700 dark:group-hover:text-gray-300">
+                    {scenario.description}
+                  </p>
                 </div>
               ))}
             </div>
