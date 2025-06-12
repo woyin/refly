@@ -84,8 +84,8 @@ Make sure all dependencies are ready:
 
 ```shell
 docker version
-node -v # v20.19.0
-pnpm -v # 10.9.0 or higher
+node -v # v20.19.0 or higher
+pnpm -v # 9.15.9
 ```
 
 ## Developing
