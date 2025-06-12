@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
   const isDev = mode === 'development';
 
   return {
-    base: './',
+    base: process.env.MODE === 'desktop' ? './' : '/',
     plugins: [
       react(),
       preload(),
