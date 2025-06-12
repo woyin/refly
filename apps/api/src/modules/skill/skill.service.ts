@@ -835,6 +835,7 @@ export class SkillService {
       resultHistory,
       projectId,
       eventListener,
+      selectedMcpServers,
     } = data;
     const userPo = await this.prisma.user.findUnique({
       select: { uiLocale: true, outputLocale: true },
@@ -861,6 +862,7 @@ export class SkillService {
         tplConfig,
         runtimeConfig,
         resultId: data.result?.resultId,
+        selectedMcpServers,
       },
     };
 

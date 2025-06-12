@@ -95,7 +95,7 @@ pnpm -v # 10.9.0 或以上
 1. 启动所有中间件服务：
 
 ```bash
-docker compose -f deploy/docker/docker-compose.middleware.yml up -d
+docker compose -f deploy/docker/docker-compose.middleware.yml -p refly up -d
 docker ps | grep refly_ # 检查所有中间件容器是否健康
 ```
 

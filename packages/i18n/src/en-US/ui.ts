@@ -1101,6 +1101,7 @@ const translations = {
       codeArtifact: 'Code Artifact',
       website: 'Website',
       mindMap: 'Mind Map',
+      group: 'Group',
     },
     presetScenarios: {
       title: 'Preset Scenarios',
@@ -1365,6 +1366,7 @@ const translations = {
       downloadFile: 'Download File',
       editGroupNamePlaceholder: 'Please enter the group name',
       addToSlideshow: 'Add to Slideshow',
+      more: 'More Options',
     },
     nodeStatus: {
       isCreatingDocument: 'Creating Document...',
@@ -2551,6 +2553,7 @@ const translations = {
       noContextChat: 'No Context Chat',
       wholeSpaceChat: 'Whole Space Chat',
       recommendQuestions: 'Recommend Questions',
+      chooseMcp: 'Choose MCP',
       replace: 'Replace Selection',
       reject: 'Reject',
       copy: 'Copy Answer',
@@ -2604,6 +2607,11 @@ const translations = {
       title: 'Recommended Questions',
       refresh: 'Refresh',
       empty: 'No recommended questions',
+    },
+    mcpSelector: {
+      title: 'Choose MCP Servers',
+      empty: 'No MCP servers available',
+      selected: 'Selected',
     },
     contextItem: {
       current: 'Current ',

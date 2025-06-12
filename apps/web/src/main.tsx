@@ -33,8 +33,12 @@ import '@refly-packages/ai-workspace-common/i18n/config';
 import { getEnv, setRuntime } from '@refly/utils/env';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useAppStoreShallow } from '@refly-packages/ai-workspace-common/stores/app';
 import { theme } from 'antd';
-import { SuspenseLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
+import {
+  LightLoading,
+  SuspenseLoading,
+} from '@refly-packages/ai-workspace-common/components/common/loading';
 import { sentryEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
 
@@ -120,7 +124,7 @@ if (sentryEnabled) {
   initSentry();
 }
 
-// Update App component to remove Suspense (moved to router definition)
+// Update App component to manage initial loading state
 export const App = () => {
   const setRuntime = useUserStoreShallow((state) => state.setRuntime);
   const { isDarkMode, initTheme, isForcedLightMode } = useThemeStoreShallow((state) => ({
@@ -129,15 +133,31 @@ export const App = () => {
     isForcedLightMode: state.isForcedLightMode,
   }));
 
+  const { isInitialLoading, setInitialLoading } = useAppStoreShallow((state) => ({
+    isInitialLoading: state.isInitialLoading,
+    setInitialLoading: state.setInitialLoading,
+  }));
+
   useEffect(() => {
     setRuntime('web');
-    // 初始化主题
+    // Initialize theme
     initTheme();
-  }, [setRuntime, initTheme]);
+
+    // Set initial loading to false after app is ready
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [setRuntime, initTheme, setInitialLoading]);
 
   useEffect(() => {
     preloadMonacoEditor();
   }, []);
+
+  if (isInitialLoading) {
+    return <SuspenseLoading />;
+  }
 
   // Use light theme when forced, otherwise use the user's preference
   const shouldUseDarkTheme = isDarkMode && !isForcedLightMode;
@@ -166,7 +186,7 @@ export const App = () => {
   );
 };
 
-// Update router creation to use createBrowserRouter with proper route definitions
+// Update router creation to use LightLoading for route transitions
 const router = createBrowserRouter([
   {
     path: '*',
@@ -179,7 +199,7 @@ const router = createBrowserRouter([
           return null;
         },
         element: (
-          <Suspense fallback={<SuspenseLoading />}>
+          <Suspense fallback={<LightLoading />}>
             <AppRouter layout={AppLayout} />
           </Suspense>
         ),

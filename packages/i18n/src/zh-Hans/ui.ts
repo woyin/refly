@@ -924,6 +924,7 @@ const translations = {
       codeArtifact: '代码组件',
       website: '网站',
       mindMap: '思维导图',
+      group: '分组',
     },
     presetScenarios: {
       title: '预设场景',
@@ -1172,6 +1173,7 @@ const translations = {
       downloadFile: '下载文件',
       editGroupNamePlaceholder: '请输入分组名称',
       addToSlideshow: '插入幻灯片',
+      more: '更多选项',
     },
     nodeStatus: {
       isCreatingDocument: '创建中...',
@@ -2392,6 +2394,7 @@ const translations = {
       noContextChat: '不带上下文聊天',
       wholeSpaceChat: '在整个空间聊天',
       recommendQuestions: '推荐问题',
+      chooseMcp: '选择 MCP',
       replace: '替换选中',
       reject: '拒绝',
       copy: '复制回答',
@@ -2445,6 +2448,11 @@ const translations = {
       title: '推荐问题',
       refresh: '换一批',
       empty: '暂无推荐问题',
+    },
+    mcpSelector: {
+      title: '选择 MCP 服务器',
+      empty: '没有可用的 MCP 服务器',
+      selected: '已选择',
     },
     contextItem: {
       current: '当前',

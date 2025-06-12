@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import {
   BatchUpsertProviderItemsRequest,
@@ -41,6 +41,7 @@ import {
   FallbackReranker,
   getReranker,
   getChatModel,
+  initializeMonitoring,
 } from '@refly/providers';
 import { ConfigService } from '@nestjs/config';
 import { VectorSearchService } from '../common/vector-search';
@@ -54,7 +55,7 @@ interface GlobalProviderConfig {
 const PROVIDER_ITEMS_BATCH_LIMIT = 50;
 
 @Injectable()
-export class ProviderService {
+export class ProviderService implements OnModuleInit {
   private logger = new Logger(ProviderService.name);
   private globalProviderCache: SingleFlightCache<GlobalProviderConfig>;
 
@@ -66,6 +67,30 @@ export class ProviderService {
     private readonly encryptionService: EncryptionService,
   ) {
     this.globalProviderCache = new SingleFlightCache(this.fetchGlobalProviderConfig.bind(this));
+  }
+
+  async onModuleInit() {
+    // Initialize monitoring when module starts
+    try {
+      const langfuseConfig = {
+        publicKey: this.configService.get('langfuse.publicKey'),
+        secretKey: this.configService.get('langfuse.secretKey'),
+        baseUrl: this.configService.get('langfuse.host'),
+        enabled: !!(
+          this.configService.get('langfuse.publicKey') &&
+          this.configService.get('langfuse.secretKey')
+        ),
+      };
+
+      if (langfuseConfig.enabled) {
+        initializeMonitoring(langfuseConfig);
+        this.logger.log('Langfuse monitoring initialized successfully');
+      } else {
+        this.logger.warn('Langfuse monitoring disabled - missing configuration');
+      }
+    } catch (error) {
+      this.logger.error('Failed to initialize monitoring:', error);
+    }
   }
 
   async fetchGlobalProviderConfig(): Promise<GlobalProviderConfig> {
@@ -426,7 +451,8 @@ export class ProviderService {
     const { provider, config } = item;
     const chatConfig: LLMModelConfig = JSON.parse(config);
 
-    return getChatModel(provider, chatConfig);
+    // Pass user context for monitoring
+    return getChatModel(provider, chatConfig, undefined, { userId: user.uid });
   }
 
   /**
@@ -444,7 +470,8 @@ export class ProviderService {
     const { provider, config } = providerItem;
     const embeddingConfig: EmbeddingModelConfig = JSON.parse(config);
 
-    return getEmbeddings(provider, embeddingConfig);
+    // Pass user context for monitoring
+    return getEmbeddings(provider, embeddingConfig, { userId: user.uid });
   }
 
   /**
