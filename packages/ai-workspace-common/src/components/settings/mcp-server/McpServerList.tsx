@@ -59,11 +59,13 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
 
   // Fetch MCP servers
   const { data, refetch, isLoading, isRefetching } = useListMcpServers({}, [], {
-    enabled: visible && !!sessionId && !isPublicAccessPage,
+    enabled: visible && !isPublicAccessPage,
     refetchOnWindowFocus: false,
   });
 
   const mcpServers = useMemo(() => data?.data || [], [data]);
+
+  console.log('mcpServers', { sessionId, isPublicAccessPage, visible });
 
   // Load tool data from localStorage
   useEffect(() => {

@@ -34,12 +34,14 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
     setSelectedMcpServers: state.setSelectedMcpServers,
   }));
 
+  console.log('selectedMcpServers', { sessionId, isPublicAccessPage, isOpen });
+
   // Fetch MCP servers from API
   const { data, refetch, isLoading, isRefetching } = useListMcpServers(
     { query: { enabled: true } },
     [],
     {
-      enabled: isOpen && !!sessionId && !isPublicAccessPage,
+      enabled: isOpen && !isPublicAccessPage,
       refetchOnWindowFocus: false,
     },
   );
