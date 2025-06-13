@@ -32,17 +32,17 @@ import {
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
-import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 import { McpServerForm } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerForm';
 import { McpServerBatchImport } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerBatchImport';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
+import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 
 interface McpServerListProps {
   visible: boolean;
 }
 
 export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
-  const isPublicAccessPage = usePublicAccessPage();
+  const isLogin = useUserStoreShallow((state) => state.isLogin);
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
@@ -57,7 +57,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
 
   // Fetch MCP servers
   const { data, refetch, isLoading, isRefetching } = useListMcpServers({}, [], {
-    enabled: visible && !isPublicAccessPage,
+    enabled: visible && isLogin,
     refetchOnWindowFocus: false,
   });
 
