@@ -32,7 +32,6 @@ import {
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 import { McpServerForm } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerForm';
 import { McpServerBatchImport } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerBatchImport';
@@ -44,7 +43,6 @@ interface McpServerListProps {
 
 export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   const isPublicAccessPage = usePublicAccessPage();
-  const { sessionId } = useAuthStoreShallow((state) => ({ sessionId: state.sessionId }));
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
@@ -64,8 +62,6 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   });
 
   const mcpServers = useMemo(() => data?.data || [], [data]);
-
-  console.log('mcpServers', { sessionId, isPublicAccessPage, visible });
 
   // Load tool data from localStorage
   useEffect(() => {
