@@ -8,17 +8,26 @@ export interface JinaEmbeddingsConfig {
   apiKey: string;
 }
 
-// Utility function to split text by maximum length
-function splitTextByLength(text: string, maxLength: number): string[] {
+/**
+ * Split text into chunks by maximum character length
+ * @param text The text to split
+ * @param maxLength Maximum length for each chunk
+ * @returns Array of text chunks
+ */
+const splitTextIntoChunks = (text: string, maxLength: number): string[] => {
   const chunks: string[] = [];
   for (let i = 0; i < text.length; i += maxLength) {
     chunks.push(text.slice(i, i + maxLength));
   }
   return chunks;
-}
+};
 
-// Utility function to average embeddings
-function averageEmbeddings(embeddings: number[][]): number[] {
+/**
+ * Calculate the average of multiple embeddings
+ * @param embeddings Array of embedding vectors
+ * @returns Averaged embedding vector
+ */
+const calculateAverageEmbedding = (embeddings: number[][]): number[] => {
   if (embeddings.length === 0) {
     throw new Error('No embeddings to average');
   }
@@ -33,7 +42,7 @@ function averageEmbeddings(embeddings: number[][]): number[] {
   }
 
   return averaged;
-}
+};
 
 export class JinaEmbeddings extends Embeddings {
   private config: JinaEmbeddingsConfig;
@@ -83,7 +92,7 @@ export class JinaEmbeddings extends Embeddings {
         results.push(body.data[0].embedding);
       } else {
         // Document exceeds limit, split into chunks and process sequentially
-        const chunks = splitTextByLength(document, maxLength);
+        const chunks = splitTextIntoChunks(document, maxLength);
         const chunkEmbeddings: number[][] = [];
 
         for (const chunk of chunks) {
@@ -92,7 +101,7 @@ export class JinaEmbeddings extends Embeddings {
         }
 
         // Average all chunk embeddings to represent the document
-        const averagedEmbedding = averageEmbeddings(chunkEmbeddings);
+        const averagedEmbedding = calculateAverageEmbedding(chunkEmbeddings);
         results.push(averagedEmbedding);
       }
     }
@@ -112,7 +121,7 @@ export class JinaEmbeddings extends Embeddings {
       return body.data[0].embedding;
     } else {
       // Query exceeds limit, split into chunks and process sequentially
-      const chunks = splitTextByLength(query, maxLength);
+      const chunks = splitTextIntoChunks(query, maxLength);
       const chunkEmbeddings: number[][] = [];
 
       for (const chunk of chunks) {
@@ -121,7 +130,7 @@ export class JinaEmbeddings extends Embeddings {
       }
 
       // Average all chunk embeddings to represent the query
-      return averageEmbeddings(chunkEmbeddings);
+      return calculateAverageEmbedding(chunkEmbeddings);
     }
   }
 }
