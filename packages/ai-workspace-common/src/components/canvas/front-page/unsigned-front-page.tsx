@@ -157,7 +157,7 @@ export const UnsignedFrontPage = memo(() => {
   }, [reset]);
 
   return (
-    <div className="relative h-full overflow-hidden bg-white/90">
+    <div className="relative h-full overflow-hidden bg-white/95">
       <AnimatedGridPattern
         numSquares={20}
         maxOpacity={0.1}
@@ -168,24 +168,46 @@ export const UnsignedFrontPage = memo(() => {
           'skew-y-12',
         )}
       />
-      <div className="px-10 h-[52px] flex items-center justify-between dark:bg-gray-900/90">
+      <div className="px-10 py-4 h-[60px] flex items-center justify-between dark:bg-gray-900/95">
         <div className="flex flex-row items-center gap-2">
-          <img src={Logo} alt="Refly" className="h-8 w-8" />
-          <span className="text-xl font-bold text-black dark:text-white" translate="no">
-            Refly
-          </span>
+          <div className="flex flex-row items-center gap-2 mr-4">
+            <img src={Logo} alt="Refly" className="h-8 w-8" />
+            <span className="text-xl font-bold text-black dark:text-white" translate="no">
+              Refly
+            </span>
+          </div>
+
+          <Button
+            type="text"
+            size="middle"
+            onClick={() => window.open('https://docs.refly.ai', '_blank')}
+          >
+            Docs
+          </Button>
+          <Button type="text" size="middle" onClick={() => window.open('/pricing', '_self')}>
+            Pricing
+          </Button>
+          <Button
+            type="text"
+            size="middle"
+            onClick={() => window.open('/privacy', '_self')}
+            className="px-3 text-gray-600 hover:text-green-600 dark:text-gray-300 dark:hover:text-green-300"
+          >
+            Privacy
+          </Button>
+        </div>
+        <div className="flex items-center gap-3">
           {starCount && (
             <Button
-              type="default"
-              icon={<FaGithub className="h-3.5 w-3.5" />}
+              type="text"
+              size="middle"
+              icon={<FaGithub className="h-4 w-4" />}
               onClick={() => window.open('https://github.com/refly-ai/refly', '_blank')}
-              className="flex h-6 rounded-md items-center gap-1 bg-white px-1.5 text-xs font-bold dark:bg-gray-900"
+              className="px-3 text-gray-600 hover:text-green-600 dark:text-gray-300 dark:hover:text-green-300"
             >
               {starCount}
             </Button>
           )}
-        </div>
-        <div className="flex items-center gap-3">
           <UILocaleList>
             <Button
               type="text"
@@ -207,7 +229,7 @@ export const UnsignedFrontPage = memo(() => {
       </div>
 
       <div
-        className="w-full h-[calc(100%-52px)] bg-white/90 overflow-y-auto dark:bg-gray-900/90"
+        className="w-full h-[calc(100%-52px)] bg-white/95 overflow-y-auto dark:bg-gray-900/95"
         id="front-page-scrollable-div"
       >
         <div
@@ -225,7 +247,7 @@ export const UnsignedFrontPage = memo(() => {
             {t('frontPage.welcome')}
           </h3>
 
-          <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-700">
+          <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-600">
             <div className="p-4">
               {selectedSkill && (
                 <div className="flex w-full justify-between">
@@ -318,22 +340,28 @@ export const UnsignedFrontPage = memo(() => {
               {presetScenarios.map((scenario) => (
                 <div
                   key={scenario.id}
-                  className={`bg-white/90 backdrop-blur-sm rounded-md ring-1 dark:bg-gray-800/90 ${
+                  className={`group bg-white/90 backdrop-blur-sm rounded-md ring-1 dark:bg-gray-800/90 ${
                     activeScenarioId === scenario.id
-                      ? 'ring-green-500'
-                      : 'ring-gray-200 dark:ring-gray-700'
-                  } py-2 px-3 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer`}
+                      ? 'ring-green-500 bg-green-50/90 dark:bg-green-900/20'
+                      : 'ring-gray-200 dark:ring-gray-600'
+                  } py-2 px-3 cursor-pointer transition-all duration-200 ease-in-out 
+                  hover:ring-green-400 hover:bg-green-50/90
+                  dark:hover:bg-green-800/20 dark:hover:ring-green-500`}
                   onClick={() =>
                     handlePresetScenario(scenario.id, scenario.skillName, scenario.query)
                   }
                 >
                   <div className="flex items-center mb-1">
-                    <div className="text-2xl mr-2">{scenario.icon}</div>
-                    <h5 className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                    <div className="text-2xl mr-2 transition-transform duration-200 ease-in-out">
+                      {scenario.icon}
+                    </div>
+                    <h5 className="text-sm font-medium text-gray-800 dark:text-gray-100 transition-colors duration-200 group-hover:text-green-700 dark:group-hover:text-green-300">
                       {scenario.title}
                     </h5>
                   </div>
-                  <p className="text-xs text-gray-600">{scenario.description}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 transition-colors duration-200 group-hover:text-gray-700 dark:group-hover:text-gray-300">
+                    {scenario.description}
+                  </p>
                 </div>
               ))}
             </div>

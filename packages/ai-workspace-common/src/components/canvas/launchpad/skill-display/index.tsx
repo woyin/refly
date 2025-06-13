@@ -12,7 +12,7 @@ const skillItemTitleClasses =
 
 const skillItemClasses =
   'h-7 px-1.5 rounded-md border border-solid border-gray-200 bg-white flex items-center justify-center ' +
-  'dark:bg-gray-800 dark:border-gray-700 ' +
+  'dark:bg-gray-800 dark:border-gray-600 ' +
   'text-xs font-medium text-gray-500 dark:text-gray-400 ' +
   'transition-all duration-200 ease-in-out cursor-pointer ' +
   'hover:bg-gray-100 hover:border-gray-300 hover:text-green-600 ' +

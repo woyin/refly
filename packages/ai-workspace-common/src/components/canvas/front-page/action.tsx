@@ -18,8 +18,8 @@ export interface CustomAction {
 
 interface ActionsProps {
   query: string;
-  model: ModelInfo;
-  setModel: (model: ModelInfo) => void;
+  model: ModelInfo | null;
+  setModel: (model: ModelInfo | null) => void;
   runtimeConfig: SkillRuntimeConfig;
   setRuntimeConfig: (runtimeConfig: SkillRuntimeConfig) => void;
   className?: string;
