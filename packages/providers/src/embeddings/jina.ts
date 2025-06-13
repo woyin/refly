@@ -8,6 +8,33 @@ export interface JinaEmbeddingsConfig {
   apiKey: string;
 }
 
+// Utility function to split text by maximum length
+function splitTextByLength(text: string, maxLength: number): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += maxLength) {
+    chunks.push(text.slice(i, i + maxLength));
+  }
+  return chunks;
+}
+
+// Utility function to average embeddings
+function averageEmbeddings(embeddings: number[][]): number[] {
+  if (embeddings.length === 0) {
+    throw new Error('No embeddings to average');
+  }
+
+  const embeddingLength = embeddings[0].length;
+  const averaged = new Array(embeddingLength).fill(0);
+
+  for (const embedding of embeddings) {
+    for (let i = 0; i < embeddingLength; i++) {
+      averaged[i] += embedding[i] / embeddings.length;
+    }
+  }
+
+  return averaged;
+}
+
 export class JinaEmbeddings extends Embeddings {
   private config: JinaEmbeddingsConfig;
 
@@ -46,53 +73,55 @@ export class JinaEmbeddings extends Embeddings {
   }
 
   async embedDocuments(documents: string[]): Promise<number[][]> {
-    const maxLen = 2048;
+    const maxLength = 2048;
     const results: number[][] = [];
 
-    for (const doc of documents) {
-      if (doc.length <= maxLen) {
-        // no split
-        const body = await this.fetch([doc]);
+    for (const document of documents) {
+      if (document.length <= maxLength) {
+        // Document is within limit, process directly
+        const body = await this.fetch([document]);
         results.push(body.data[0].embedding);
       } else {
-        // split by max length
-        const chunks = splitByMaxLength(doc, maxLen);
-        const body = await this.fetch(chunks);
-        // merge all chunks embedding (use average)
-        const embeddings = body.data.map((point: { embedding: number[] }) => point.embedding);
-        const merged = embeddings[0].map(
-          (_, i) => embeddings.reduce((sum, emb) => sum + emb[i], 0) / embeddings.length,
-        );
-        results.push(merged);
+        // Document exceeds limit, split into chunks and process sequentially
+        const chunks = splitTextByLength(document, maxLength);
+        const chunkEmbeddings: number[][] = [];
+
+        for (const chunk of chunks) {
+          const body = await this.fetch([chunk]);
+          chunkEmbeddings.push(body.data[0].embedding);
+        }
+
+        // Average all chunk embeddings to represent the document
+        const averagedEmbedding = averageEmbeddings(chunkEmbeddings);
+        results.push(averagedEmbedding);
       }
     }
+
     return results;
   }
 
   async embedQuery(query: string): Promise<number[]> {
-    const maxLen = 2048;
-    if (query.length <= maxLen) {
+    const maxLength = 2048;
+
+    if (query.length <= maxLength) {
+      // Query is within limit, process directly
       const body = await this.fetch([query]);
       if (body.data.length === 0) {
         throw new Error('No embedding returned');
       }
       return body.data[0].embedding;
     } else {
-      const chunks = splitByMaxLength(query, maxLen);
-      const body = await this.fetch(chunks);
-      const embeddings = body.data.map((point: { embedding: number[] }) => point.embedding);
-      // merge all chunks embedding (use average)
-      return embeddings[0].map(
-        (_, i) => embeddings.reduce((sum, emb) => sum + emb[i], 0) / embeddings.length,
-      );
+      // Query exceeds limit, split into chunks and process sequentially
+      const chunks = splitTextByLength(query, maxLength);
+      const chunkEmbeddings: number[][] = [];
+
+      for (const chunk of chunks) {
+        const body = await this.fetch([chunk]);
+        chunkEmbeddings.push(body.data[0].embedding);
+      }
+
+      // Average all chunk embeddings to represent the query
+      return averageEmbeddings(chunkEmbeddings);
     }
   }
-}
-
-function splitByMaxLength(text: string, maxLen: number): string[] {
-  const result: string[] = [];
-  for (let i = 0; i < text.length; i += maxLen) {
-    result.push(text.slice(i, i + maxLen));
-  }
-  return result;
 }
