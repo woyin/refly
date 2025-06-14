@@ -9,12 +9,58 @@ export interface JinaEmbeddingsConfig {
 }
 
 /**
- * Split text into chunks by maximum character length
+ * Split text into chunks by sentence boundaries while respecting maximum length
+ * @param text The text to split
+ * @param maxLength Maximum length for each chunk
+ * @returns Array of text chunks with preserved sentence boundaries
+ */
+const splitTextIntoChunks = (text: string, maxLength: number): string[] => {
+  if (text.length <= maxLength) {
+    return [text];
+  }
+
+  const chunks: string[] = [];
+
+  // Split by sentence boundaries (periods, exclamation marks, question marks)
+  // Also handle Chinese punctuation
+  const sentences = text.split(/(?<=[.!?。！？])\s+/);
+
+  let currentChunk = '';
+
+  for (const sentence of sentences) {
+    // If adding this sentence would exceed the limit
+    if (currentChunk.length + sentence.length > maxLength) {
+      if (currentChunk.length > 0) {
+        // Save current chunk and start a new one
+        chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+      } else {
+        // Single sentence is too long, fall back to character splitting
+        const subChunks = splitByCharacterLength(sentence, maxLength);
+        chunks.push(...subChunks);
+        currentChunk = '';
+      }
+    } else {
+      // Add sentence to current chunk
+      currentChunk += (currentChunk.length > 0 ? ' ' : '') + sentence;
+    }
+  }
+
+  // Add the last chunk if it has content
+  if (currentChunk.trim().length > 0) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks.filter((chunk) => chunk.length > 0);
+};
+
+/**
+ * Fallback function to split text by character length when sentence splitting fails
  * @param text The text to split
  * @param maxLength Maximum length for each chunk
  * @returns Array of text chunks
  */
-const splitTextIntoChunks = (text: string, maxLength: number): string[] => {
+const splitByCharacterLength = (text: string, maxLength: number): string[] => {
   const chunks: string[] = [];
   for (let i = 0; i < text.length; i += maxLength) {
     chunks.push(text.slice(i, i + maxLength));
