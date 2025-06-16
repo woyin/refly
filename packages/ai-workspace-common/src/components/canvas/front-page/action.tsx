@@ -13,6 +13,7 @@ import {
   IconDown,
   IconPilot,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 
 export interface CustomAction {
   content?: string;
@@ -32,8 +33,6 @@ interface ActionsProps {
   handleAbort: () => void;
   customActions?: CustomAction[];
   loading?: boolean;
-  isPilotActivated: boolean;
-  setIsPilotActivated: (activated: boolean) => void;
 }
 
 export const Actions = memo(
@@ -48,8 +47,6 @@ export const Actions = memo(
       loading,
       runtimeConfig,
       setRuntimeConfig,
-      isPilotActivated,
-      setIsPilotActivated,
     } = props;
     const { t } = useTranslation();
 
@@ -58,6 +55,10 @@ export const Actions = memo(
 
     const userStore = useUserStoreShallow((state) => ({
       isLogin: state.isLogin,
+    }));
+    const { isPilotActivated, setIsPilotActivated } = useChatStoreShallow((state) => ({
+      isPilotActivated: state.isPilotActivated,
+      setIsPilotActivated: state.setIsPilotActivated,
     }));
 
     const canSendEmptyMessage = useMemo(() => query?.trim(), [query]);
@@ -222,9 +223,7 @@ export const Actions = memo(
       prevProps.query === nextProps.query &&
       prevProps.runtimeConfig === nextProps.runtimeConfig &&
       prevProps.setRuntimeConfig === nextProps.setRuntimeConfig &&
-      prevProps.model === nextProps.model &&
-      prevProps.isPilotActivated === nextProps.isPilotActivated &&
-      prevProps.setIsPilotActivated === nextProps.setIsPilotActivated
+      prevProps.model === nextProps.model
     );
   },
 );

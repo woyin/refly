@@ -141,7 +141,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
           targetType: 'canvas',
           title: query,
           input: { query },
-          maxEpoch: 5,
+          maxEpoch: 2,
           providerItemId: modelInfo.providerItemId,
         });
         pendingActionRef.current = null;

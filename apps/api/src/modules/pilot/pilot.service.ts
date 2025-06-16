@@ -320,6 +320,11 @@ export class PilotService {
       true,
     );
 
+    if (currentEpoch >= maxEpoch) {
+      this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
+      return;
+    }
+
     this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
 
     const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
@@ -437,6 +442,11 @@ export class PilotService {
     const session = await this.prisma.pilotSession.findUnique({
       where: { sessionId: step.sessionId },
     });
+
+    if (!session) {
+      this.logger.warn(`Pilot session ${step.sessionId} not found`);
+      return;
+    }
 
     const isAllStepsFinished = epochSteps.every((step) => step.status === 'finish');
     const reachedMaxEpoch = step.epoch >= session.maxEpoch;

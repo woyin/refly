@@ -13,7 +13,7 @@ import {
 import { Form, Button } from 'antd';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions } from './action';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStore, useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
@@ -31,7 +31,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const [form] = Form.useForm();
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
-  const [isPilotActivated, setIsPilotActivated] = useState(false);
 
   const skills = useListSkills();
   const templateLanguage = i18n.language;
@@ -89,8 +88,9 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
+    const { isPilotActivated } = useChatStore.getState();
     debouncedCreateCanvas('front-page', { isPilotActivated });
-  }, [query, debouncedCreateCanvas, isPilotActivated]);
+  }, [query, debouncedCreateCanvas]);
 
   const findSkillByName = useCallback(
     (name: string) => {
@@ -268,8 +268,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
                   handleSendMessage={handleSendMessage}
                   handleAbort={() => {}}
                   loading={isCreating}
-                  isPilotActivated={isPilotActivated}
-                  setIsPilotActivated={setIsPilotActivated}
                   customActions={[
                     {
                       icon: <IconPlus className="flex items-center justify-center" />,
