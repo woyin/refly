@@ -4820,6 +4820,13 @@ export const InvokeSkillRequestSchema = {
       type: 'string',
       description: 'Trigger ID',
     },
+    selectedMcpServers: {
+      type: 'array',
+      description: 'Selected MCP servers',
+      items: {
+        type: 'string',
+      },
+    },
   },
 } as const;
 

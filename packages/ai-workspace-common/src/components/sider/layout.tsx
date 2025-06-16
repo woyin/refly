@@ -326,13 +326,11 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     canvasList,
     projectsList,
     setCollapse,
-    showSettingModal,
     setShowSettingModal,
     setShowLibraryModal,
     setShowCanvasListModal,
     setSettingsModalActiveTab,
   } = useSiderStoreShallow((state) => ({
-    showSettingModal: state.showSettingModal,
     collapse: state.collapse,
     canvasList: state.canvasList,
     projectsList: state.projectsList,
@@ -585,7 +583,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             onClick={() =>
               window.open('https://github.com/refly-ai/refly/releases/tag/v0.6.0', '_blank')
             }
-            className="mb-2 flex items-start text-[#00968F] hover:bg-gray-50 whitespace-normal h-auto cursor-pointer dark:hover:bg-dark dark:text-gray-300"
+            className="mb-2 flex items-start text-[#00968F] hover:bg-gray-50 rounded-md whitespace-normal h-auto cursor-pointer dark:text-gray-300"
           >
             <span className="flex items-start gap-2 leading-6 w-full ">
               <Tag
@@ -606,8 +604,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             </div>
           )}
         </div>
-
-        <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
       </div>
     </Sider>
   );
@@ -620,9 +616,14 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
   }));
   const isProject = useMatch('/project/:projectId');
   const projectId = location.pathname.split('/').pop();
+  const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
+    showSettingModal: state.showSettingModal,
+    setShowSettingModal: state.setShowSettingModal,
+  }));
 
   return (
     <>
+      <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
       <SettingsGuideModal />
       <TourModal />
       <StorageExceededModal />

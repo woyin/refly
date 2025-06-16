@@ -3,15 +3,18 @@ import {
   END,
   StateGraphArgs,
   StateGraph,
-  MessagesAnnotation,
+  MessagesAnnotation, // Restored import
   // ToolNode, // Moved to prebuilt
 } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt'; // Correct import for ToolNode
+// ListMcpServersResponse will be imported later with other types from '@refly/openapi-schema'
 import { z } from 'zod';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
 import { safeStringifyJSON, isValidUrl } from '@refly/utils';
 import {
   Icon,
+  // ListMcpServersResponse is imported here with other types from the same package
+  ListMcpServersResponse,
   SkillInvocationConfig,
   SkillTemplateConfigDefinition,
   Source,
@@ -33,11 +36,53 @@ import * as commonQnA from '../scheduler/module/commonQnA';
 import { checkModelContextLenSupport } from '../scheduler/utils/model';
 import { MultiServerMCPClient } from '../adapters';
 import { buildSystemPrompt } from '../mcp/core/prompt';
+import { MCPTool, MCPToolInputSchema } from '../mcp/core/prompt';
 import { convertMcpServersToClientConfig } from '../utils/mcp-utils';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+// Removed duplicate imports for MCPTool, MCPToolInputSchema, and zodToJsonSchema as they are already imported above
 
 import type { AIMessage, BaseMessage } from '@langchain/core/messages';
-import type { Runnable } from '@langchain/core/runnables';
+import type { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import type { StructuredToolInterface } from '@langchain/core/tools'; // For MCP Tools
+
+// Constants for tool output processing
+const DEFAULT_MAX_STRING_OUTPUT_LENGTH = 2000;
+const DEFAULT_MAX_ARRAY_OUTPUT_LENGTH = 5;
+const DEFAULT_MAX_OBJECT_PROPERTY_STRING_LENGTH = 500;
+const TRUNCATION_SUFFIX = '... [Truncated]';
+// const ARRAY_TRUNCATION_SUFFIX_TEMPLATE = (omittedCount: number) => `... [${omittedCount} more items truncated]`; // Example if needed
+
+/**
+ * Converts LangChain StructuredToolInterface array to MCPTool array.
+ * This is used to prepare tools for the system prompt, matching the MCPTool interface.
+ */
+function convertToMCPTools(langchainTools: StructuredToolInterface[]): MCPTool[] {
+  return langchainTools.map((tool) => {
+    // tool.schema is expected to be a Zod schema object
+    const zodSchema = tool.schema;
+    // Convert Zod schema to JSON schema.
+    // The `as any` is used because zodToJsonSchema returns a generic JSONSchema7Type,
+    // and we need to access properties like title, description, etc., which might not be strictly typed.
+    const jsonSchema = zodToJsonSchema(zodSchema) as any;
+
+    const inputSchema: MCPToolInputSchema = {
+      type: jsonSchema.type || 'object', // Default to 'object' if not specified
+      title: jsonSchema.title || tool.name, // Use JSON schema title or fallback to tool name
+      description: jsonSchema.description || tool.description || '', // Use JSON schema description, fallback to tool description, then empty string
+      properties: jsonSchema.properties || {}, // Default to empty object for properties
+      required: jsonSchema.required || [], // Default to empty array for required fields
+    };
+
+    return {
+      id: tool.name, // Using tool name as a placeholder for ID
+      serverId: '', // Placeholder, as server info is not directly available in this function's scope
+      serverName: '', // Placeholder
+      name: tool.name,
+      description: tool.description || '', // Fallback to empty string if description is undefined
+      inputSchema,
+    };
+  });
+}
 
 interface CachedAgentComponents {
   mcpClient: MultiServerMCPClient | null;
@@ -46,6 +91,8 @@ interface CachedAgentComponents {
   toolNodeInstance: ToolNode<typeof MessagesAnnotation.State> | null;
   compiledLangGraphApp: any;
   mcpAvailable: boolean;
+  mcpServerNamesList: string[]; // Add mcpServerNamesList property
+  mcpServerList: ListMcpServersResponse['data'];
 }
 
 export class Agent extends BaseSkill {
@@ -195,13 +242,112 @@ export class Agent extends BaseSkill {
     return { requestMessages, sources };
   };
 
-  private async getOrInitializeAgentComponents(user: User): Promise<CachedAgentComponents> {
-    const userId = user?.uid ?? user?.email ?? JSON.stringify(user);
-
-    if (this.userAgentComponentsCache.has(userId)) {
-      this.engine.logger.log(`Using cached agent components for user ${userId}`);
-      return this.userAgentComponentsCache.get(userId)!;
+  // Method to process/truncate tool output values recursively
+  private processToolOutputValue(value: any, toolName: string, depth = 0): any {
+    // Max recursion depth to prevent infinite loops in complex objects
+    if (depth > 5) {
+      this.engine.logger.warn(
+        `[ToolWrapper] Max recursion depth reached for tool ${toolName}. Returning raw value.`,
+      );
+      return value;
     }
+
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      if (value.length > DEFAULT_MAX_STRING_OUTPUT_LENGTH) {
+        this.engine.logger.log(
+          `[ToolWrapper] Truncating string output for tool: ${toolName}, original length: ${value.length}`,
+        );
+        return value.substring(0, DEFAULT_MAX_STRING_OUTPUT_LENGTH) + TRUNCATION_SUFFIX;
+      }
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      const originalLength = value.length;
+      let processedArray = value;
+      if (originalLength > DEFAULT_MAX_ARRAY_OUTPUT_LENGTH) {
+        this.engine.logger.log(
+          `[ToolWrapper] Truncating array output for tool: ${toolName}, from ${originalLength} to ${DEFAULT_MAX_ARRAY_OUTPUT_LENGTH} items.`,
+        );
+        processedArray = value.slice(0, DEFAULT_MAX_ARRAY_OUTPUT_LENGTH);
+      }
+      // Recursively process items in the (potentially truncated) array
+      const finalArray = processedArray.map((item) =>
+        this.processToolOutputValue(item, toolName, depth + 1),
+      );
+      // Optionally, if the array was truncated, one could append a string or marker if the schema allows for mixed types
+      // For example: if (originalLength > DEFAULT_MAX_ARRAY_OUTPUT_LENGTH) finalArray.push(ARRAY_TRUNCATION_SUFFIX_TEMPLATE(originalLength - DEFAULT_MAX_ARRAY_OUTPUT_LENGTH));
+      // However, this changes the array's content type. Logging the truncation is safer for now.
+      return finalArray;
+    }
+
+    if (typeof value === 'object') {
+      const processedObject: { [key: string]: any } = {};
+      for (const key in value) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) {
+          const propertyValue = value[key];
+          if (typeof propertyValue === 'string') {
+            if (propertyValue.length > DEFAULT_MAX_OBJECT_PROPERTY_STRING_LENGTH) {
+              this.engine.logger.log(
+                `[ToolWrapper] Truncating object property string '${key}' for tool: ${toolName}, original length: ${propertyValue.length}`,
+              );
+              processedObject[key] =
+                propertyValue.substring(0, DEFAULT_MAX_OBJECT_PROPERTY_STRING_LENGTH) +
+                TRUNCATION_SUFFIX;
+            } else {
+              processedObject[key] = propertyValue;
+            }
+          } else {
+            // Recursively process non-string properties (like nested objects or arrays)
+            processedObject[key] = this.processToolOutputValue(propertyValue, toolName, depth + 1);
+          }
+        }
+      }
+      return processedObject;
+    }
+
+    // For numbers, booleans, etc., return as is
+    return value;
+  }
+
+  // Method to wrap an MCP tool for output processing
+  private wrapMcpTool(originalTool: StructuredToolInterface): StructuredToolInterface {
+    const toolName = originalTool.name;
+    const originalInvoke = originalTool.invoke.bind(originalTool);
+
+    const wrappedTool: StructuredToolInterface = {
+      ...originalTool, // Spread to copy name, description, schema, etc.
+      invoke: async (
+        input: z.input<typeof originalTool.schema>,
+        config?: RunnableConfig,
+      ): Promise<z.output<typeof originalTool.schema>> => {
+        // 1. Optional: Input processing can be added here if needed
+        // this.engine.logger.log(`[ToolWrapper] Input for tool ${toolName}: ${safeStringifyJSON(input)}`);
+
+        const rawResult = await originalInvoke(input, config);
+
+        // 2. Output processing
+        // this.engine.logger.log(`[ToolWrapper] Original output for tool ${toolName}: ${safeStringifyJSON(rawResult)}`); // Can be very verbose
+        const processedResult = this.processToolOutputValue(rawResult, toolName);
+        this.engine.logger.log(
+          `[ToolWrapper] Output processed for tool ${toolName}. Raw type: ${typeof rawResult}, Processed type: ${typeof processedResult}`,
+        );
+
+        return processedResult as z.output<typeof originalTool.schema>; // Cast as Zod output type, assuming processing maintains schema compatibility or is acceptable
+      },
+    };
+    return wrappedTool;
+  }
+
+  private async getOrInitializeAgentComponents(
+    user: User,
+    selectedMcpServers: string[] = [],
+  ): Promise<CachedAgentComponents> {
+    const userId = user?.uid ?? user?.email ?? JSON.stringify(user);
 
     this.engine.logger.log(`Initializing new agent components for user ${userId}`);
 
@@ -209,24 +355,50 @@ export class Agent extends BaseSkill {
     let actualMcpTools: StructuredToolInterface[] = []; // Use StructuredToolInterface
     let actualToolNodeInstance: ToolNode<typeof MessagesAnnotation.State> | null = null;
     let mcpSuccessfullyInitializedAndToolsAvailable = false;
-
+    let mcpServerList: ListMcpServersResponse['data'] = [];
     try {
       // Attempt to initialize MCP components
-      const mcpServersResponse = await this.engine.service.listMcpServers(user, {
-        enabled: true,
-      });
-      const mcpServerList = mcpServersResponse?.data; // Access the 'data' property
+      mcpServerList = await this.engine.service
+        .listMcpServers(user, {
+          enabled: true,
+        })
+        .then((data) => data?.data?.filter((item) => selectedMcpServers?.includes?.(item.name)))
+        .catch(() => [] as ListMcpServersResponse['data']);
+
+      const cachedAgentComponents = this.userAgentComponentsCache.get(userId);
+      const currentMcpServerNames = (mcpServerList?.map((server) => server.name) ?? []).sort();
+
+      if (cachedAgentComponents) {
+        const cachedMcpServerNames = cachedAgentComponents.mcpServerNamesList;
+
+        if (JSON.stringify(currentMcpServerNames) === JSON.stringify(cachedMcpServerNames)) {
+          this.engine.logger.log(
+            `Using cached agent components for user ${userId} as MCP server list is unchanged.`,
+          );
+          return cachedAgentComponents;
+        } else {
+          this.engine.logger.warn(
+            `MCP server list changed for user ${userId}. Cached: ${JSON.stringify(
+              cachedMcpServerNames ?? [],
+            )}, Current: ${JSON.stringify(currentMcpServerNames)}. Re-initializing components.`,
+          );
+        }
+      }
+
+      await this.dispose(userId);
 
       if (!mcpServerList || mcpServerList.length === 0) {
         this.engine.logger.warn(
           `No MCP servers found for user ${userId}. Proceeding without MCP tools.`,
         );
       } else {
-        // Pass mcpServersResponse (which is ListMcpServersResponse) to convertMcpServersToClientConfig
-        const mcpClientConfig = convertMcpServersToClientConfig(mcpServersResponse);
-        const tempMcpClient = new MultiServerMCPClient(mcpClientConfig);
+        let tempMcpClient: MultiServerMCPClient;
 
         try {
+          // Pass mcpServersResponse (which is ListMcpServersResponse) to convertMcpServersToClientConfig
+          const mcpClientConfig = convertMcpServersToClientConfig({ data: mcpServerList });
+          tempMcpClient = new MultiServerMCPClient(mcpClientConfig);
+
           await tempMcpClient.initializeConnections();
           this.engine.logger.log('MCP connections initialized successfully for new components');
 
@@ -249,7 +421,12 @@ export class Agent extends BaseSkill {
                 .map((tool) => tool.name)
                 .join(', ')}`,
             );
-            actualMcpTools = toolsFromMcp;
+            // Wrap each MCP tool to process its output for token optimization
+            actualMcpTools = toolsFromMcp.map((tool) => this.wrapMcpTool(tool));
+
+            this.engine.logger.log(
+              `Wrapped ${actualMcpTools.length} MCP tools for token optimization.`,
+            );
             mcpClientToCache = tempMcpClient;
             mcpSuccessfullyInitializedAndToolsAvailable = true;
           }
@@ -266,7 +443,7 @@ export class Agent extends BaseSkill {
                 closeError,
               ),
             );
-          throw mcpError;
+          await this.dispose(userId);
         }
       }
 
@@ -337,9 +514,12 @@ export class Agent extends BaseSkill {
         toolNodeInstance: actualToolNodeInstance,
         compiledLangGraphApp: compiledGraph, // Store the compiled graph
         mcpAvailable: mcpSuccessfullyInitializedAndToolsAvailable,
+        mcpServerNamesList: currentMcpServerNames,
+        mcpServerList: mcpServerList,
       };
 
-      this.userAgentComponentsCache.set(userId, components);
+      // disable userAgentComponentsCache
+      // this.userAgentComponentsCache.set(userId, components);
 
       this.engine.logger.log(`Agent components initialized and cached for user ${userId}`);
       return components;
@@ -358,6 +538,7 @@ export class Agent extends BaseSkill {
       if (error instanceof Error && error.stack) {
         this.engine.logger.error('Error stack for new components initialization:', error.stack);
       }
+      await this.dispose(userId);
       throw new Error('Failed to initialize agent components');
     }
   }
@@ -366,19 +547,25 @@ export class Agent extends BaseSkill {
     state: GraphState,
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
-    const { currentSkill, user } = config.configurable;
+    const { currentSkill, user, selectedMcpServers = [] } = config.configurable;
+
     const project = config.configurable?.project as
       | { projectId: string; customInstructions?: string }
       | undefined;
     const customInstructions = project?.projectId ? project?.customInstructions : undefined;
 
     console.log('\n=== GETTING OR INITIALIZING CACHED LANGGRAPH AGENT FLOW ===');
-    const { compiledLangGraphApp, mcpAvailable } = await this.getOrInitializeAgentComponents(user);
+    const {
+      compiledLangGraphApp,
+      mcpAvailable,
+      mcpTools,
+    } = // mcpServerList removed as it's not used by convertToMCPTools now
+      await this.getOrInitializeAgentComponents(user, selectedMcpServers);
 
     const module: SkillPromptModule = {
       buildSystemPrompt: mcpAvailable
-        ? () =>
-            buildSystemPrompt(
+        ? () => {
+            return buildSystemPrompt(
               'You are an advanced AI assistant with specialized expertise in leveraging the Model Context Protocol (MCP) to solve complex problems efficiently. Your intelligence manifests through precise tool orchestration, context-aware execution, and proactive optimization of MCP server capabilities. ' +
                 'When a tool call is made, you will receive a ToolMessage with the result. ' +
                 'If an MCP server call fails or returns malformed data, the ToolMessage will contain the error details. ' +
@@ -387,7 +574,9 @@ export class Agent extends BaseSkill {
                 'If the error seems to be a transient issue (e.g., network error, temporary unavailability), you should retry the call, perhaps after a brief conceptual pause. ' +
                 "You must continuously retry and adapt your approach to achieve the user's expected outcome. Never abandon the operation prematurely. " +
                 'After several (e.g., 3-5) persistent failures for the same tool call despite your best efforts to correct it, and if no alternative tools or approaches are viable, you may then inform the user about the specific difficulty encountered and suggest a different course of action or ask for clarification.',
-            )
+              convertToMCPTools(mcpTools), // Use the conversion function, mcpServerList removed
+            );
+          }
         : commonQnA.buildCommonQnASystemPrompt,
       buildContextUserPrompt: commonQnA.buildCommonQnAContextUserPrompt,
       buildUserPrompt: commonQnA.buildCommonQnAUserPrompt,
@@ -425,7 +614,7 @@ export class Agent extends BaseSkill {
         { messages: requestMessages },
         {
           ...config,
-          recursionLimit: 50,
+          recursionLimit: 10,
           metadata: {
             ...config.metadata,
             ...currentSkill,
@@ -435,6 +624,7 @@ export class Agent extends BaseSkill {
       return { messages: result.messages };
     } finally {
       this.engine.logger.log('agentNode execution finished.');
+      this.dispose();
     }
   };
 
@@ -449,11 +639,20 @@ export class Agent extends BaseSkill {
     return workflow.compile();
   }
 
-  public async dispose(): Promise<void> {
+  public async dispose(_userId?: string): Promise<void> {
+    if (_userId) {
+      const components = this.userAgentComponentsCache.get(_userId);
+
+      await components?.mcpClient?.close?.();
+
+      this.userAgentComponentsCache.delete(_userId);
+      return;
+    }
+
     this.engine.logger.log(`Disposing Agent (${this.name}) and closing all cached MCP clients...`);
     for (const [userId, components] of this.userAgentComponentsCache) {
       try {
-        await components.mcpClient?.close();
+        await components.mcpClient?.close?.();
         this.engine.logger.log(`Closed MCP client for user ${userId}`);
       } catch (e) {
         this.engine.logger.error(`Error closing MCP client for user ${userId} during dispose:`, e);

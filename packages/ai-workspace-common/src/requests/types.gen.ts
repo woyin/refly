@@ -3413,6 +3413,10 @@ export type InvokeSkillRequest = {
    * Trigger ID
    */
   triggerId?: string;
+  /**
+   * Selected MCP servers
+   */
+  selectedMcpServers?: Array<string>;
 };
 
 export type InvokeSkillResponse = BaseResponse & {

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import pLimit from 'p-limit';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -6,7 +6,7 @@ import {
   Prisma,
   SkillTrigger as SkillTriggerModel,
   ActionResult as ActionResultModel,
-} from '@/generated/client';
+} from '../../generated/client';
 import { Response } from 'express';
 import {
   CreateSkillInstanceRequest,
@@ -51,10 +51,10 @@ import {
 } from '@refly/errors';
 import { actionResultPO2DTO } from '../action/action.dto';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { ProviderService } from '@/modules/provider/provider.service';
-import { providerPO2DTO } from '@/modules/provider/provider.dto';
-import { codeArtifactPO2DTO } from '@/modules/code-artifact/code-artifact.dto';
-import { SkillInvokerService } from '@/modules/skill/skill-invoker.service';
+import { ProviderService } from '../provider/provider.service';
+import { providerPO2DTO } from '../provider/provider.dto';
+import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
+import { SkillInvokerService } from './skill-invoker.service';
 
 function validateSkillTriggerCreateParam(param: SkillTriggerCreateParam) {
   if (param.triggerType === 'simpleEvent') {
@@ -80,8 +80,7 @@ export class SkillService {
     private codeArtifact: CodeArtifactService,
     private providerService: ProviderService,
     private skillInvokerService: SkillInvokerService,
-
-    @InjectQueue(QUEUE_SKILL) private skillQueue: Queue<InvokeSkillJobData>,
+    @Optional() @InjectQueue(QUEUE_SKILL) private skillQueue?: Queue<InvokeSkillJobData>,
   ) {
     this.skillInventory = this.skillInvokerService.getSkillInventory();
     this.logger.log(`Skill inventory initialized: ${this.skillInventory.length}`);
@@ -319,9 +318,11 @@ export class SkillService {
     }
 
     param.skillName ||= 'commonQnA';
-    const skill = this.skillInventory.find((s) => s.name === param.skillName);
+    let skill = this.skillInventory.find((s) => s.name === param.skillName);
     if (!skill) {
-      throw new SkillNotFoundError(`skill ${param.skillName} not found`);
+      // throw new SkillNotFoundError(`skill ${param.skillName} not found`);
+      param.skillName = 'commonQnA';
+      skill = this.skillInventory.find((s) => s.name === param.skillName);
     }
 
     const purgeContext = (context: SkillContext) => {
@@ -580,7 +581,13 @@ export class SkillService {
 
   async sendInvokeSkillTask(user: User, param: InvokeSkillRequest) {
     const data = await this.skillInvokePreCheck(user, param);
-    await this.skillQueue.add('invokeSkill', data);
+
+    if (this.skillQueue) {
+      await this.skillQueue.add('invokeSkill', data);
+    } else {
+      // In desktop mode or when queue is not available, invoke directly
+      await this.invokeSkillFromQueue(data);
+    }
 
     return data.result;
   }
@@ -621,6 +628,13 @@ export class SkillService {
 
     if (trigger.bullJobId) {
       this.logger.warn(`Trigger already bind to a bull job: ${trigger.triggerId}, skip start it`);
+      return;
+    }
+
+    if (!this.skillQueue) {
+      this.logger.warn(
+        `Skill queue not available, cannot start timer trigger: ${trigger.triggerId}`,
+      );
       return;
     }
 
@@ -667,6 +681,13 @@ export class SkillService {
   async stopTimerTrigger(_user: User, trigger: SkillTriggerModel) {
     if (!trigger.bullJobId) {
       this.logger.warn(`No bull job found for trigger: ${trigger.triggerId}, cannot stop it`);
+      return;
+    }
+
+    if (!this.skillQueue) {
+      this.logger.warn(
+        `Skill queue not available, cannot stop timer trigger: ${trigger.triggerId}`,
+      );
       return;
     }
 

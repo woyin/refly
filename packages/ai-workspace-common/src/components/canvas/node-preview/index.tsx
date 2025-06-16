@@ -22,6 +22,7 @@ import { EnhancedSkillResponse } from './skill-response/enhanced-skill-response'
 import { useReactFlow } from '@xyflow/react';
 import { useSearchParams } from 'react-router-dom';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
 
 // DnD item type constant
 const ITEM_TYPE = 'node-preview';
@@ -371,6 +372,10 @@ export const NodePreviewContainer = memo(
         showSlideshow: state.showSlideshow,
       }),
     );
+
+    useEffect(() => {
+      preloadMonacoEditor();
+    }, []);
 
     // Compute fresh node previews using the utility function
     const nodePreviews = useMemo(() => {

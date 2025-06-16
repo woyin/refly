@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
 import * as Y from 'yjs';
 import { EventEmitter } from 'node:events';
@@ -75,15 +75,21 @@ export class SkillInvokerService {
     private readonly providerService: ProviderService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly skillEngineService: SkillEngineService,
+    @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
-    private requestUsageQueue: Queue<SyncRequestUsageJobData>,
+    private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
+    @Optional()
     @InjectQueue(QUEUE_SKILL_TIMEOUT_CHECK)
-    private timeoutCheckQueue: Queue<SkillTimeoutCheckJobData>,
-    @InjectQueue(QUEUE_SYNC_TOKEN_USAGE) private usageReportQueue: Queue<SyncTokenUsageJobData>,
+    private timeoutCheckQueue?: Queue<SkillTimeoutCheckJobData>,
+    @Optional()
+    @InjectQueue(QUEUE_SYNC_TOKEN_USAGE)
+    private usageReportQueue?: Queue<SyncTokenUsageJobData>,
+    @Optional()
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
-    private autoNameCanvasQueue: Queue<AutoNameCanvasJobData>,
+    private autoNameCanvasQueue?: Queue<AutoNameCanvasJobData>,
+    @Optional()
     @InjectQueue(QUEUE_SYNC_PILOT_STEP)
-    private pilotStepQueue: Queue<SyncPilotStepJobData>,
+    private pilotStepQueue?: Queue<SyncPilotStepJobData>,
   ) {
     this.skillEngine = this.skillEngineService.getEngine();
     this.skillInventory = createSkillInventory(this.skillEngine);
@@ -118,7 +124,7 @@ export class SkillInvokerService {
     }
   }
 
-  private async buildLangchainMessages(
+  async buildLangchainMessages(
     user: User,
     result: ActionResult,
     steps: ActionStep[],
@@ -172,6 +178,7 @@ export class SkillInvokerService {
       resultHistory,
       projectId,
       eventListener,
+      selectedMcpServers,
     } = data;
     const userPo = await this.prisma.user.findUnique({
       select: { uiLocale: true, outputLocale: true },
@@ -198,6 +205,7 @@ export class SkillInvokerService {
         tplConfig,
         runtimeConfig,
         resultId: data.result?.resultId,
+        selectedMcpServers,
       },
     };
 
@@ -244,11 +252,14 @@ export class SkillInvokerService {
     }
 
     if (tier) {
-      await this.requestUsageQueue.add('syncRequestUsage', {
-        uid: user.uid,
-        tier,
-        timestamp: new Date(),
-      });
+      if (this.requestUsageQueue) {
+        await this.requestUsageQueue.add('syncRequestUsage', {
+          uid: user.uid,
+          tier,
+          timestamp: new Date(),
+        });
+      }
+      // In desktop mode, we could handle usage tracking differently if needed
     }
 
     let aborted = false;
@@ -460,7 +471,6 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
               writeSSEResponse(res, {
                 event: 'stream',
                 resultId,
-                reasoningContent: '',
                 content,
                 step: runMeta?.step,
                 structuredData: {
@@ -540,7 +550,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 String(runMeta.ls_model_name),
               );
               if (!providerItem) {
-                this.logger.warn(`model not found: ${String(runMeta.ls_model_name)}`);
+                this.logger.error(`model not found: ${String(runMeta.ls_model_name)}`);
               }
               const usage: TokenUsageItem = {
                 tier: providerItem?.tier,
@@ -565,7 +575,9 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 usage,
                 timestamp: new Date(),
               };
-              await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
+              if (this.usageReportQueue) {
+                await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
+              }
             }
             break;
         }
@@ -588,25 +600,16 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
 
       const steps = resultAggregator.getSteps({ resultId, version });
-      const status = result.errors.length > 0 ? 'failed' : 'finish';
 
       await this.prisma.$transaction([
         this.prisma.actionResult.updateMany({
           where: { resultId, version },
           data: {
-            status,
+            status: result.errors.length > 0 ? 'failed' : 'finish',
             errors: JSON.stringify(result.errors),
           },
         }),
         this.prisma.actionStep.createMany({ data: steps }),
-        ...(result.pilotStepId
-          ? [
-              this.prisma.pilotStep.updateMany({
-                where: { stepId: result.pilotStepId },
-                data: { status },
-              }),
-            ]
-          : []),
       ]);
 
       writeSSEResponse(res, { event: 'end', resultId, version });
@@ -617,28 +620,25 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           where: { canvasId: data.target.entityId, uid: user.uid },
         });
         if (canvas && !canvas.title) {
-          await this.autoNameCanvasQueue.add('autoNameCanvas', {
-            uid: user.uid,
-            canvasId: canvas.canvasId,
-          });
+          if (this.autoNameCanvasQueue) {
+            await this.autoNameCanvasQueue.add('autoNameCanvas', {
+              uid: user.uid,
+              canvasId: canvas.canvasId,
+            });
+          }
+          // In desktop mode, we could handle auto-naming differently if needed
         }
       }
 
       if (tier) {
-        await this.requestUsageQueue.add('syncRequestUsage', {
-          uid: user.uid,
-          tier,
-          timestamp: new Date(),
-        });
-      }
-
-      // Sync pilot step if needed
-      this.logger.log(`Sync pilot step for result ${resultId}, pilotStepId: ${result.pilotStepId}`);
-      if (result.pilotStepId) {
-        await this.pilotStepQueue.add('syncPilotStep', {
-          user: { uid: user.uid },
-          stepId: result.pilotStepId,
-        });
+        if (this.requestUsageQueue) {
+          await this.requestUsageQueue.add('syncRequestUsage', {
+            uid: user.uid,
+            tier,
+            timestamp: new Date(),
+          });
+        }
+        // In desktop mode, we could handle usage tracking differently if needed
       }
     }
   }

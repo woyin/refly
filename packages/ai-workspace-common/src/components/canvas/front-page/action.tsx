@@ -1,6 +1,7 @@
 import { Button, Tooltip, Switch } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { IconLink, IconSend, IconQuestionCircle } from '@arco-design/web-react/icon';
+import { IconQuestionCircle } from '@arco-design/web-react/icon';
+import { LinkOutlined, SendOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { getRuntime } from '@refly/utils/env';
@@ -19,8 +20,8 @@ export interface CustomAction {
 
 interface ActionsProps {
   query: string;
-  model: ModelInfo;
-  setModel: (model: ModelInfo) => void;
+  model: ModelInfo | null;
+  setModel: (model: ModelInfo | null) => void;
   runtimeConfig: SkillRuntimeConfig;
   setRuntimeConfig: (runtimeConfig: SkillRuntimeConfig) => void;
   className?: string;
@@ -95,7 +96,14 @@ export const Actions = memo(
     return (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center">
-          <ModelSelector model={model} setModel={setModel} briefMode={false} trigger={['click']} />
+          {userStore.isLogin && (
+            <ModelSelector
+              model={model}
+              setModel={setModel}
+              briefMode={false}
+              trigger={['click']}
+            />
+          )}
 
           <div
             onClick={togglePilot}
@@ -128,7 +136,7 @@ export const Actions = memo(
                   count: detectedUrls?.length,
                 })}
               >
-                <IconLink className="text-sm text-gray-500 flex items-center justify-center cursor-pointer" />
+                <LinkOutlined className="text-sm text-gray-500 flex items-center justify-center cursor-pointer" />
               </Tooltip>
             </div>
           )}
@@ -151,7 +159,7 @@ export const Actions = memo(
               onClick={handleSend}
               loading={loading}
             >
-              <IconSend />
+              <SendOutlined />
               <span>{t('copilot.chatActions.send')}</span>
             </Button>
           )}

@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@/modules/common/prisma.service';
+import { PrismaService } from '../common/prisma.service';
 import {
   DeleteMcpServerRequest,
   ListMcpServersData,
   UpsertMcpServerRequest,
   User,
 } from '@refly/openapi-schema';
-import { McpServer as McpServerModel } from '@/generated/client';
+import { McpServer as McpServerModel } from '../../generated/client';
 import { McpServerNotFoundError, ParamsError } from '@refly/errors';
-import { SingleFlightCache } from '@/utils/cache';
-import { EncryptionService } from '@/modules/common/encryption.service';
+import { SingleFlightCache } from '../../utils/cache';
+import { EncryptionService } from '../common/encryption.service';
 import { Connection, MultiServerMCPClient, createMcpClientConfig } from '@refly/skill-template';
 
 /**
@@ -125,6 +125,11 @@ export class McpServerService {
         type,
         deletedAt: null,
       },
+      orderBy: [
+        { enabled: 'desc' }, // true comes before false when ordered descending
+        { updatedAt: 'desc' }, // Most recent updates first
+        { name: 'asc' }, // Then by name alphabetically
+      ],
     });
 
     // Decrypt sensitive information
@@ -153,6 +158,7 @@ export class McpServerService {
     const existingServer = await this.prisma.mcpServer.findFirst({
       where: {
         name,
+        uid: user.uid,
       },
     });
 
@@ -235,7 +241,7 @@ export class McpServerService {
     const server = await this.prisma.mcpServer.findFirst({
       where: {
         name,
-        OR: [{ uid: user.uid }, { isGlobal: true }],
+        uid: user.uid,
         deletedAt: null,
       },
     });
@@ -297,7 +303,7 @@ export class McpServerService {
     const server = await this.prisma.mcpServer.findFirst({
       where: {
         name,
-        OR: [{ uid: user.uid }, { isGlobal: true }],
+        uid: user.uid,
         deletedAt: null,
       },
     });

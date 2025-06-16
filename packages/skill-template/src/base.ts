@@ -254,6 +254,7 @@ export interface SkillRunnableConfig extends RunnableConfig {
     tplConfig?: SkillTemplateConfig;
     runtimeConfig?: SkillRuntimeConfig;
     emitter?: EventEmitter<SkillEventMap>;
+    selectedMcpServers?: string[];
   };
   metadata?: SkillRunnableMeta;
 }

@@ -6,6 +6,7 @@
 *.tsbuildinfo
 
 dist
+packed
 .turbo
 .windsurf
 
@@ -31,3 +32,4 @@ mise.toml
 
 # docs
 docs/.vitepress/cache/*
+.self-docs/*

@@ -7,7 +7,7 @@ import './index.scss';
 import { useTranslation } from 'react-i18next';
 import { FaLightbulb } from 'react-icons/fa';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { IconCheck, IconQuestionCircle } from '@arco-design/web-react/icon';
+import { CheckOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
@@ -108,7 +108,7 @@ const PlanItem = (props: {
       <div
         className={`
         subscribe-content-plans-item
-        ${title === 'free' && 'item-free bg-gray-50 dark:bg-gray-900'}
+        ${title === 'free' && 'item-free bg-gray-50 dark:bg-gray-800'}
         ${title === 'plus' && 'item-plus bg-[#E8F4FC] dark:bg-[#1A2A3A]'}
         ${title === 'pro' && 'item-pro bg-green-50 dark:bg-green-900'}
         ${title === 'max' && 'item-max bg-[#FFF5EB] dark:bg-[#33241A]'}
@@ -207,11 +207,11 @@ const PlanItem = (props: {
           <Divider className="mt-2 mb-4" />
           {(features || [])?.map((feature, index) => (
             <div className="plane-features-item" key={index}>
-              <div className="text-gray-500">
-                <IconCheck style={{ color: 'green', strokeWidth: 6 }} /> {feature.name}
+              <div className="text-gray-500 dark:text-gray-400">
+                <CheckOutlined style={{ color: 'green', strokeWidth: 6 }} /> {feature.name}
                 {feature.tooltip && (
                   <Tooltip title={<div>{feature.tooltip}</div>}>
-                    <IconQuestionCircle className="ml-1" />
+                    <QuestionCircleOutlined className="ml-1" />
                   </Tooltip>
                 )}
               </div>

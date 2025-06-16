@@ -31,15 +31,18 @@ import {
   useUpdateMcpServer,
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
-import { useListMcpServersSuspense } from '@refly-packages/ai-workspace-common/queries/suspense';
+import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { McpServerForm } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerForm';
 import { McpServerBatchImport } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerBatchImport';
+import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
+import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 
 interface McpServerListProps {
   visible: boolean;
 }
 
 export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
+  const isLogin = useUserStoreShallow((state) => state.isLogin);
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
@@ -48,9 +51,13 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   const [serverToDelete, setServerToDelete] = useState<McpServerDTO | null>(null);
   const [serverTools, setServerTools] = useState<Record<string, any[]>>({});
 
+  useEffect(() => {
+    preloadMonacoEditor();
+  }, []);
+
   // Fetch MCP servers
-  const { data, refetch } = useListMcpServersSuspense({}, [], {
-    enabled: visible,
+  const { data, refetch, isLoading, isRefetching } = useListMcpServers({}, [], {
+    enabled: visible && isLogin,
     refetchOnWindowFocus: false,
   });
 
@@ -323,7 +330,14 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
         <Switch
           checked={enabled}
           onChange={(checked) => handleEnableSwitch(checked, record)}
-          loading={updateMutation.isPending || validateMutation.isPending}
+          loading={
+            (updateMutation.isPending &&
+              (updateMutation.variables as { body: { name?: string } })?.body?.name ===
+                record.name) ||
+            (validateMutation.isPending &&
+              (validateMutation.variables as { body: { name?: string } })?.body?.name ===
+                record.name)
+          }
           disabled={record.isGlobal}
         />
       ),
@@ -400,10 +414,11 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
         }}
       >
         <Table
-          dataSource={mcpServers}
-          columns={columns}
           rowKey="name"
+          columns={columns}
+          dataSource={mcpServers}
           pagination={false}
+          loading={isLoading || isRefetching}
           className="mcp-server-table"
           style={{ borderRadius: '8px' }}
           scroll={{ y: 'calc(100vh - 300px)' }}

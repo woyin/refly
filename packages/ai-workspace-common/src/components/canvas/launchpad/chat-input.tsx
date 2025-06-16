@@ -1,13 +1,14 @@
 import { AutoComplete, AutoCompleteProps, Input } from 'antd';
 import { memo, useRef, useMemo, useState, useCallback, forwardRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { RefTextAreaType } from '@arco-design/web-react/es/Input/textarea';
+import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { useSearchStoreShallow } from '@refly-packages/ai-workspace-common/stores/search';
 import type { Skill } from '@refly/openapi-schema';
 import { useSkillStoreShallow } from '@refly-packages/ai-workspace-common/stores/skill';
 import { cn } from '@refly/utils/cn';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 
 const TextArea = Input.TextArea;
 
@@ -49,13 +50,14 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const [isMac, setIsMac] = useState(false);
+    const isLogin = useUserStoreShallow((state) => state.isLogin);
 
     useEffect(() => {
       // Detect if user is on macOS
       setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
     }, []);
 
-    const inputRef = useRef<RefTextAreaType>(null);
+    const inputRef = useRef<TextAreaRef>(null);
     const hasMatchedOptions = useRef(false);
 
     const searchStore = useSearchStoreShallow((state) => ({
@@ -163,7 +165,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
           }
 
           // Ctrl/Meta + Enter should always send the message regardless of skill selector
-          if ((e.ctrlKey || e.metaKey) && query?.trim()) {
+          if ((e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
             e.preventDefault();
             handleSendMessage();
             return;
@@ -180,7 +182,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
             // enter should send message when the query contains '//'
             if (query?.includes('//')) {
               e.preventDefault();
-              if (query?.trim()) {
+              if (query?.trim() || !isLogin) {
                 handleSendMessage();
               }
               return;
@@ -188,7 +190,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
 
             // Otherwise send message on Enter
             e.preventDefault();
-            if (query?.trim()) {
+            if (query?.trim() || !isLogin) {
               handleSendMessage();
             }
           }
