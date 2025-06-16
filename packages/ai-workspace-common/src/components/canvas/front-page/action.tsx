@@ -1,6 +1,5 @@
-import { Button, Tooltip, Switch } from 'antd';
+import { Button, Tooltip, Switch, Dropdown, MenuProps, Tag } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { IconQuestionCircle } from '@arco-design/web-react/icon';
 import { LinkOutlined, SendOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
@@ -9,7 +8,11 @@ import { ModelSelector } from '@refly-packages/ai-workspace-common/components/ca
 import { ModelInfo } from '@refly/openapi-schema';
 import { cn, extractUrlsWithLinkify } from '@refly/utils/index';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
-import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
+import {
+  IconAskAI,
+  IconDown,
+  IconPilot,
+} from '@refly-packages/ai-workspace-common/components/common/icon';
 
 export interface CustomAction {
   content?: string;
@@ -80,10 +83,50 @@ export const Actions = memo(
       [runtimeConfig, setRuntimeConfig],
     );
 
-    // Toggle Pilot activation
-    const togglePilot = useCallback(() => {
-      setIsPilotActivated(!isPilotActivated);
-    }, [isPilotActivated, setIsPilotActivated]);
+    // Handle dropdown menu click
+    const handleMenuClick = useCallback(
+      ({ key }: { key: string }) => {
+        const isAgent = key === 'agent';
+        setIsPilotActivated(isAgent);
+      },
+      [setIsPilotActivated],
+    );
+
+    // Dropdown menu items
+    const menuItems: MenuProps['items'] = useMemo(
+      () => [
+        {
+          key: 'ask',
+          icon: <IconAskAI className="h-4 w-4" />,
+          label: (
+            <div className="flex flex-col py-0 px-1">
+              <span className="font-medium text-sm">{t('mode.ask')}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {t('mode.askDescription')}
+              </span>
+            </div>
+          ),
+        },
+        {
+          key: 'agent',
+          icon: <IconPilot className="h-4 w-4" />,
+          label: (
+            <div className="flex flex-col py-0 px-1">
+              <span className="font-medium text-sm flex items-center">
+                {t('mode.agent')}{' '}
+                <Tag color="orange" className="ml-2 py-0 px-1 text-[10px]">
+                  Beta
+                </Tag>
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {t('mode.agentDescription')}
+              </span>
+            </div>
+          ),
+        },
+      ],
+      [t],
+    );
 
     // Create a pilot session or directly send message
     const handleSend = useCallback(() => {
@@ -96,7 +139,30 @@ export const Actions = memo(
     return (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center">
-          {userStore.isLogin && (
+          <Dropdown
+            menu={{
+              items: menuItems,
+              onClick: handleMenuClick,
+              selectedKeys: [isPilotActivated ? 'agent' : 'ask'],
+            }}
+            trigger={['click']}
+            placement="bottomLeft"
+          >
+            <div
+              className={cn(
+                'flex items-center mr-2 px-2 py-1 gap-0.5 text-xs font-medium cursor-pointer transition-colors duration-200',
+                'text-gray-600 dark:text-gray-300',
+                'border border-solid rounded-lg border-gray-200 dark:border-gray-600',
+                'hover:bg-gray-100 dark:hover:bg-gray-700',
+              )}
+            >
+              <IconPilot className="mr-1 text-sm" />
+              <span>{isPilotActivated ? t('mode.agent') : t('mode.ask')}</span>
+              <IconDown className="text-xs ml-1" />
+            </div>
+          </Dropdown>
+
+          {userStore.isLogin && !isPilotActivated && (
             <ModelSelector
               model={model}
               setModel={setModel}
@@ -104,24 +170,6 @@ export const Actions = memo(
               trigger={['click']}
             />
           )}
-
-          <div
-            onClick={togglePilot}
-            className={cn(
-              'flex items-center ml-2 px-2 py-1 gap-0.5 text-xs font-medium cursor-pointer transition-colors duration-200',
-              'border border-solid rounded-lg',
-              'hover:bg-gray-100 dark:hover:bg-gray-800',
-              isPilotActivated
-                ? 'text-green-500 border-green-500 dark:text-green-400 dark:border-green-400'
-                : 'text-gray-700 border-gray-200 dark:text-gray-400 dark:border-gray-600',
-            )}
-          >
-            <IconPilot className="mr-1 text-sm" />
-            <span>{t('pilot.name')}</span>
-            <Tooltip title={t('pilot.description')}>
-              <IconQuestionCircle className="text-xs cursor-pointer" />
-            </Tooltip>
-          </div>
 
           {detectedUrls?.length > 0 && (
             <div className="flex items-center gap-1 ml-2">

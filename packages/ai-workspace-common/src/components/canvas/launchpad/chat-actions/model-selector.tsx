@@ -1,12 +1,11 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
 import { Button, Divider, Dropdown, DropdownProps, MenuProps, Skeleton, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { DownOutlined } from '@ant-design/icons';
 import { ModelIcon } from '@lobehub/icons';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
 import { LLMModelConfig, ModelInfo, TokenUsageMeter } from '@refly/openapi-schema';
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
-import { IconError } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconDown, IconError } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LuInfo, LuSettings2 } from 'react-icons/lu';
 import {
   SettingsModalActiveTab,
@@ -59,7 +58,7 @@ const SelectedModelDisplay = memo(
         icon={<ModelIcon model={model.name} type={'color'} />}
       >
         {model.label}
-        <DownOutlined />
+        <IconDown />
       </Button>
     );
   },

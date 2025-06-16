@@ -142,6 +142,12 @@ const translations = {
     validate: '验证',
     refresh: '刷新',
   },
+  mode: {
+    ask: '提问',
+    agent: 'Agent',
+    askDescription: '单次回答问题',
+    agentDescription: '多步解决复杂问题',
+  },
   verifyRules: {
     emailRequired: '邮箱地址不能为空',
     emailInvalid: '请输入有效的邮箱地址',

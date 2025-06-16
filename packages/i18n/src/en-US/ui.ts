@@ -134,6 +134,12 @@ const translations = {
     validate: 'Validate',
     refresh: 'Refresh',
   },
+  mode: {
+    ask: 'Ask',
+    agent: 'Agent',
+    askDescription: 'Answer your question in a single step',
+    agentDescription: 'Solve complex problems with multiple steps',
+  },
   pages: {
     share: {
       sharedAt: 'Shared at',
