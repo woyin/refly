@@ -124,7 +124,7 @@ export class SkillInvokerService {
     }
   }
 
-  async buildLangchainMessages(
+  private async buildLangchainMessages(
     user: User,
     result: ActionResult,
     steps: ActionStep[],
@@ -600,16 +600,25 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
 
       const steps = resultAggregator.getSteps({ resultId, version });
+      const status = result.errors.length > 0 ? 'failed' : 'finish';
 
       await this.prisma.$transaction([
         this.prisma.actionResult.updateMany({
           where: { resultId, version },
           data: {
-            status: result.errors.length > 0 ? 'failed' : 'finish',
+            status,
             errors: JSON.stringify(result.errors),
           },
         }),
         this.prisma.actionStep.createMany({ data: steps }),
+        ...(result.pilotStepId
+          ? [
+              this.prisma.pilotStep.updateMany({
+                where: { stepId: result.pilotStepId },
+                data: { status },
+              }),
+            ]
+          : []),
       ]);
 
       writeSSEResponse(res, { event: 'end', resultId, version });
@@ -639,6 +648,15 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           });
         }
         // In desktop mode, we could handle usage tracking differently if needed
+      }
+
+      // Sync pilot step if needed
+      this.logger.log(`Sync pilot step for result ${resultId}, pilotStepId: ${result.pilotStepId}`);
+      if (result.pilotStepId && this.pilotStepQueue) {
+        await this.pilotStepQueue.add('syncPilotStep', {
+          user: { uid: user.uid },
+          stepId: result.pilotStepId,
+        });
       }
     }
   }
