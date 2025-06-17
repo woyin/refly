@@ -5118,7 +5118,7 @@ export const PilotSessionSchema = {
 
 export const CreatePilotSessionRequestSchema = {
   type: 'object',
-  required: ['targetId', 'targetType', 'input', 'providerItemId'],
+  required: ['targetId', 'targetType', 'input'],
   properties: {
     targetId: {
       type: 'string',

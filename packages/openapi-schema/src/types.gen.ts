@@ -3629,7 +3629,7 @@ export type CreatePilotSessionRequest = {
   /**
    * Pilot session provider item ID
    */
-  providerItemId: string;
+  providerItemId?: string;
 };
 
 export type UpdatePilotSessionRequest = {

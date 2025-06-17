@@ -125,16 +125,6 @@ export const useCanvasInitialActions = (canvasId: string) => {
       const { query, selectedSkill, modelInfo, tplConfig, runtimeConfig, isPilotActivated } =
         pendingActionRef.current;
 
-      console.log('Canvas connected, executing initial action:', {
-        canvasId,
-        query,
-        selectedSkill,
-        tplConfig,
-        modelInfo,
-        runtimeConfig,
-        isPilotActivated,
-      });
-
       if (isPilotActivated) {
         handleCreatePilotSession({
           targetId: canvasId,
@@ -142,7 +132,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
           title: query,
           input: { query },
           maxEpoch: 2,
-          providerItemId: modelInfo.providerItemId,
+          // providerItemId: modelInfo.providerItemId,
         });
         pendingActionRef.current = null;
 

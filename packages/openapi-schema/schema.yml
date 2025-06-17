@@ -6435,7 +6435,6 @@ components:
         - targetId
         - targetType
         - input
-        - providerItemId
       properties:
         targetId:
           type: string
