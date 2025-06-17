@@ -335,6 +335,13 @@ export class PilotService {
 
     this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
 
+    // Get user's output locale preference
+    const userPo = await this.prisma.user.findUnique({
+      select: { outputLocale: true },
+      where: { uid: user.uid },
+    });
+    const locale = userPo?.outputLocale;
+
     const agentPi = await this.providerService.findProviderItemById(
       user,
       pilotSession.providerItemId,
@@ -358,7 +365,7 @@ export class PilotService {
       pilotSessionPO2DTO(pilotSession),
       steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     );
-    const rawSteps = await engine.run(canvasContentItems);
+    const rawSteps = await engine.run(canvasContentItems, 3, locale);
 
     if (rawSteps.length === 0) {
       await this.prisma.pilotSession.update({
