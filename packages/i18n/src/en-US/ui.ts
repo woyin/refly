@@ -132,6 +132,13 @@ const translations = {
     create: 'Create',
     update: 'Update',
     validate: 'Validate',
+    refresh: 'Refresh',
+  },
+  mode: {
+    ask: 'Ask',
+    agent: 'Agent',
+    askDescription: 'Answer your question in a single step',
+    agentDescription: 'Solve complex problems with multiple steps',
   },
   pages: {
     share: {
@@ -1244,7 +1251,6 @@ const translations = {
     action: {
       nodeAlreadyExists: 'The {{type}} with the same entity already exists',
       deleteSuccess: 'Canvas deleted successfully',
-      addSuccess: 'Canvas added successfully, start creating!',
       duplicateSuccess: 'Canvas duplicated successfully',
       nodeLimitReached:
         'Canvas has reached the maximum limit of {{max}} nodes. Please remove some nodes before adding new ones.',
@@ -2260,6 +2266,7 @@ const translations = {
     defaultModel: {
       title: 'Default Model',
       chat: 'Default Q&A Model',
+      agent: 'Default Agent Model',
       queryAnalysis: 'Question Analysis & Context Processing',
       titleGeneration: 'Smart Title Generator',
       noModel: 'Not Set',
@@ -2268,6 +2275,7 @@ const translations = {
       updateFailed: 'Update failed, please try again!',
       description: {
         chat: "We'll use this model to answer your questions when you don't specify a particular one.",
+        agent: 'This model will be used when you toggle the agent mode.',
         queryAnalysis:
           'Helps understand your questions better and optimizes the input context. (Choose a fast and economical model for efficiency.)',
         titleGeneration: 'Creates suitable titles for your documents or canvases.',
@@ -2697,6 +2705,29 @@ const translations = {
       contact: 'Contact',
       terms: 'Terms',
       privacy: 'Privacy',
+    },
+  },
+  pilot: {
+    name: 'Agent',
+    description:
+      'Refly Agent is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
+    thinking: 'Agent is thinking',
+    noSessions: 'No agent sessions found',
+    loadFailed: 'Failed to load session details',
+    epoch: 'Epoch {{count}}',
+    newSession: 'New Session',
+    sessionHistory: 'Session History',
+    sessionInputPlaceholder: 'Ask a question...',
+    createPilotSessionFailed: 'Failed to create agent session',
+    recentSessions: 'Recent Sessions',
+    createdAt: 'Created At',
+    noTasks: 'No tasks available yet',
+    status: {
+      init: 'Init',
+      executing: 'Executing',
+      waiting: 'Waiting',
+      finish: 'Finish',
+      failed: 'Failed',
     },
   },
   deck: {

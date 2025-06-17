@@ -140,6 +140,13 @@ const translations = {
     create: '创建',
     update: '更新',
     validate: '验证',
+    refresh: '刷新',
+  },
+  mode: {
+    ask: '提问',
+    agent: 'Agent',
+    askDescription: '单次回答问题',
+    agentDescription: '多步解决复杂问题',
   },
   verifyRules: {
     emailRequired: '邮箱地址不能为空',
@@ -1061,7 +1068,6 @@ const translations = {
     action: {
       nodeAlreadyExists: '该{{type}}已存在于当前画布中',
       deleteSuccess: '删除画布成功',
-      addSuccess: '画布添加好啦，开始创作吧~',
       duplicateSuccess: '复制画布成功',
       nodeLimitReached: '画布已达到最大节点数限制 ({{max}})，请删除一些节点后再添加新节点。',
       approachingNodeLimit: '画布节点数量接近上限 ({{current}}/{{max}})，建议移除不必要的节点。',
@@ -2050,6 +2056,7 @@ const translations = {
     defaultModel: {
       title: '默认模型',
       chat: '默认问答模型',
+      agent: '默认 Agent 模型',
       queryAnalysis: '问题分析与上下文处理',
       titleGeneration: '智能标题生成',
       noModel: '未设置',
@@ -2058,6 +2065,7 @@ const translations = {
       updateFailed: '更新失败，请重试！',
       description: {
         chat: '当您没有指定具体模型时，我们将用这个模型为您解答问题。',
+        agent: '当您开启 Agent 模式时，将会使用此模型。',
         queryAnalysis:
           '帮助更好地理解您的问题，同时优化处理输入的上下文内容（推荐使用处理速度快且经济的模型）。',
         titleGeneration: '为文档或画布自动生成合适的标题。',
@@ -2525,6 +2533,28 @@ const translations = {
       contact: '联系我们',
       terms: '条款',
       privacy: '隐私',
+    },
+  },
+  pilot: {
+    name: 'Agent',
+    description: 'Refly Agent 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
+    thinking: 'Agent 正在思考',
+    noSessions: '暂无会话',
+    loadFailed: '加载会话失败',
+    epoch: '第 {{count}} 轮',
+    newSession: '新会话',
+    sessionHistory: '会话历史',
+    sessionInputPlaceholder: '问点什么...',
+    createPilotSessionFailed: '创建会话失败',
+    recentSessions: '最近会话',
+    createdAt: '创建时间',
+    noTasks: '暂无任务',
+    status: {
+      init: '初始化',
+      executing: '运行中',
+      waiting: '等待中',
+      finish: '已完成',
+      failed: '失败',
     },
   },
   deck: {

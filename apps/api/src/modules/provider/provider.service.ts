@@ -524,11 +524,13 @@ export class ProviderService implements OnModuleInit {
       throw new ProviderItemNotFoundError(`provider item ${modelItemId} not valid`);
     }
 
+    const agentItem = await this.findDefaultProviderItem(user, 'agent', userPo);
     const titleGenerationItem = await this.findDefaultProviderItem(user, 'titleGeneration', userPo);
     const queryAnalysisItem = await this.findDefaultProviderItem(user, 'queryAnalysis', userPo);
 
     const modelConfigMap: Record<ModelScene, ProviderItemModel> = {
       chat: chatItem,
+      agent: agentItem,
       titleGeneration: titleGenerationItem,
       queryAnalysis: queryAnalysisItem,
     };
@@ -540,7 +542,7 @@ export class ProviderService implements OnModuleInit {
     user: User,
     scene: ModelScene,
     userPo?: { preferences: string },
-  ): Promise<ProviderItemModel> {
+  ): Promise<ProviderItemModel | null> {
     const { preferences } =
       userPo ||
       (await this.prisma.user.findUnique({
