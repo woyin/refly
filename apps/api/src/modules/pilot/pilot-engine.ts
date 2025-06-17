@@ -37,7 +37,7 @@ export class PilotEngine {
 
       // Get the current epoch information
       const currentEpoch = this.session?.currentEpoch ?? 0;
-      const totalEpochs = this.session?.maxEpoch ?? 2;
+      const totalEpochs = this.session?.maxEpoch ?? 3;
       const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
       this.logger.log(

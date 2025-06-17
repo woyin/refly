@@ -48,7 +48,7 @@ export const SessionChat = ({ canvasId }: { canvasId: string }) => {
       targetType: 'canvas',
       title: inputValue,
       input: { query: inputValue },
-      maxEpoch: 2,
+      maxEpoch: 3,
       providerItemId: skillSelectedModel.providerItemId,
     });
   };
