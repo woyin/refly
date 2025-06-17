@@ -32,9 +32,9 @@ export const useSelectionContext = ({
     addContextItem: state.addContextItem,
   }));
 
-  const { showReflyPilot, setShowReflyPilot } = useCanvasStoreShallow((state) => ({
-    showReflyPilot: state.showReflyPilot,
-    setShowReflyPilot: state.setShowReflyPilot,
+  const { showLinearThread, setShowLinearThread } = useCanvasStoreShallow((state) => ({
+    showLinearThread: state.showLinearThread,
+    setShowLinearThread: state.setShowLinearThread,
   }));
 
   const handleSelection = useCallback(() => {
@@ -149,8 +149,8 @@ export const useSelectionContext = ({
       const selectedContextItems = contextStore.contextItems;
       const nodeType = item?.type;
 
-      if (resultId === ContextTarget.Global && !showReflyPilot) {
-        setShowReflyPilot(true);
+      if (resultId === ContextTarget.Global && !showLinearThread) {
+        setShowLinearThread(true);
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
 

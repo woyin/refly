@@ -3,29 +3,29 @@ import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/store
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { ThreadContainer } from './thread-container';
-import { useReflyPilotReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-refly-pilot-reset';
+import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import { SkillTemplateConfig } from '@refly/openapi-schema';
 import {
   useContextPanelStoreShallow,
   ContextTarget,
 } from '@refly-packages/ai-workspace-common/stores/context-panel';
 
-export const ReflyPilot = memo(() => {
+export const LinearThreadContainer = memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { canvasId } = useCanvasContext();
   const tplConfigRef = useRef<SkillTemplateConfig | null>(null);
 
   // Use the reset hook to handle canvas ID changes
-  const { resetReflyPilot } = useReflyPilotReset(canvasId);
+  const { resetReflyPilot } = useLinearThreadReset(canvasId);
 
   const {
-    setShowReflyPilot,
+    setShowLinearThread,
     linearThreadMessages,
     addLinearThreadMessage,
     tplConfig,
     setTplConfig,
   } = useCanvasStoreShallow((state) => ({
-    setShowReflyPilot: state.setShowReflyPilot,
+    setShowLinearThread: state.setShowLinearThread,
     linearThreadMessages: state.linearThreadMessages,
     addLinearThreadMessage: state.addLinearThreadMessage,
     clearLinearThreadMessages: state.clearLinearThreadMessages,
@@ -100,9 +100,9 @@ export const ReflyPilot = memo(() => {
       addLinearThreadMessage(fullMessage);
 
       // Ensure Refly Pilot is visible
-      setShowReflyPilot(true);
+      setShowLinearThread(true);
     },
-    [addLinearThreadMessage, setShowReflyPilot, setActiveResultId],
+    [addLinearThreadMessage, setShowLinearThread, setActiveResultId],
   );
 
   // Handler for generating new message IDs
@@ -117,8 +117,8 @@ export const ReflyPilot = memo(() => {
 
   // Handler for closing the Refly Pilot
   const handleClose = useCallback(() => {
-    setShowReflyPilot(false);
-  }, [setShowReflyPilot]);
+    setShowLinearThread(false);
+  }, [setShowLinearThread]);
 
   // Handler for updating tplConfig
   const handleUpdateTplConfig = useCallback(
@@ -151,4 +151,4 @@ export const ReflyPilot = memo(() => {
   );
 });
 
-ReflyPilot.displayName = 'ReflyPilot';
+LinearThreadContainer.displayName = 'LinearThreadContainer';
