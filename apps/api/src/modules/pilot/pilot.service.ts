@@ -45,6 +45,14 @@ export class PilotService {
    */
   async createPilotSession(user: User, request: CreatePilotSessionRequest) {
     const sessionId = genPilotSessionID();
+
+    // TODO: maybe later we can use the provider item specified in the request
+    const providerItem = await this.providerService.findDefaultProviderItem(user, 'agent');
+
+    if (!providerItem) {
+      throw new ProviderItemNotFoundError(`provider item ${request.providerItemId} not valid`);
+    }
+
     const session = await this.prisma.pilotSession.create({
       data: {
         sessionId,
@@ -54,7 +62,7 @@ export class PilotService {
         input: JSON.stringify(request.input),
         targetType: request.targetType,
         targetId: request.targetId,
-        providerItemId: request.providerItemId,
+        providerItemId: providerItem.itemId,
         status: 'executing',
       },
     });
@@ -313,7 +321,7 @@ export class PilotService {
 
     const { steps } = await this.getPilotSessionDetail(user, sessionId);
 
-    const { targetId, targetType, currentEpoch, maxEpoch, providerItemId } = pilotSession;
+    const { targetId, targetType, currentEpoch, maxEpoch } = pilotSession;
     const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
       user,
       targetId,
@@ -327,17 +335,26 @@ export class PilotService {
 
     this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
 
-    const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
+    const agentPi = await this.providerService.findProviderItemById(
+      user,
+      pilotSession.providerItemId,
+    );
+    if (!agentPi || agentPi.category !== 'llm' || !agentPi.enabled) {
+      throw new ProviderItemNotFoundError(
+        `provider item ${pilotSession.providerItemId} not valid for agent`,
+      );
+    }
+    const agentModelId = JSON.parse(agentPi.config).modelId;
+    const agentModel = await this.providerService.prepareChatModel(user, agentModelId);
 
-    if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
+    const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
+    if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
       throw new ProviderItemNotFoundError(`provider item ${pilotSession.providerItemId} not valid`);
     }
-
-    const modelId = JSON.parse(providerItem.config).modelId;
-    const chatModel = await this.providerService.prepareChatModel(user, modelId);
+    const chatModelId = JSON.parse(chatPi.config).modelId;
 
     const engine = new PilotEngine(
-      chatModel,
+      agentModel,
       pilotSessionPO2DTO(pilotSession),
       steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     );
@@ -384,14 +401,14 @@ export class PilotService {
           targetType,
           context: JSON.stringify(context),
           history: JSON.stringify(history),
-          modelName: modelId,
-          tier: providerItem.tier,
+          modelName: chatModelId,
+          tier: chatPi.tier,
           errors: '[]',
           pilotStepId: stepId,
           pilotSessionId: sessionId,
           runtimeConfig: '{}',
           tplConfig: '{}',
-          providerItemId: providerItem.itemId,
+          providerItemId: chatPi.itemId,
         },
       });
       await this.prisma.pilotStep.create({

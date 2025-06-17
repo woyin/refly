@@ -2460,7 +2460,7 @@ export const ProviderConfigSchema = {
 export const ModelSceneSchema = {
   type: 'string',
   description: 'Model usage scene',
-  enum: ['chat', 'queryAnalysis', 'titleGeneration'],
+  enum: ['chat', 'agent', 'queryAnalysis', 'titleGeneration'],
 } as const;
 
 export const DefaultModelConfigSchema = {
@@ -2469,6 +2469,10 @@ export const DefaultModelConfigSchema = {
   properties: {
     chat: {
       description: 'Default chat model to use',
+      $ref: '#/components/schemas/ProviderItem',
+    },
+    agent: {
+      description: 'Default agent model to use',
       $ref: '#/components/schemas/ProviderItem',
     },
     queryAnalysis: {

@@ -294,6 +294,7 @@ export class SkillService {
 
     const modelConfigMap: Record<ModelScene, LLMModelConfig> = {
       chat: JSON.parse(modelProviderMap.chat.config) as LLMModelConfig,
+      agent: JSON.parse(modelProviderMap.agent.config) as LLMModelConfig,
       titleGeneration: JSON.parse(modelProviderMap.titleGeneration.config) as LLMModelConfig,
       queryAnalysis: JSON.parse(modelProviderMap.queryAnalysis.config) as LLMModelConfig,
     };

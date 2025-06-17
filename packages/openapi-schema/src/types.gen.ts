@@ -1890,7 +1890,7 @@ export type ProviderConfig = {
 /**
  * Model usage scene
  */
-export type ModelScene = 'chat' | 'queryAnalysis' | 'titleGeneration';
+export type ModelScene = 'chat' | 'agent' | 'queryAnalysis' | 'titleGeneration';
 
 /**
  * Default model config
@@ -1900,6 +1900,10 @@ export type DefaultModelConfig = {
    * Default chat model to use
    */
   chat?: ProviderItem;
+  /**
+   * Default agent model to use
+   */
+  agent?: ProviderItem;
   /**
    * Query analysis and context processing model
    */

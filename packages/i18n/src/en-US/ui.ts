@@ -2266,6 +2266,7 @@ const translations = {
     defaultModel: {
       title: 'Default Model',
       chat: 'Default Q&A Model',
+      agent: 'Default Agent Model',
       queryAnalysis: 'Question Analysis & Context Processing',
       titleGeneration: 'Smart Title Generator',
       noModel: 'Not Set',
@@ -2274,6 +2275,7 @@ const translations = {
       updateFailed: 'Update failed, please try again!',
       description: {
         chat: "We'll use this model to answer your questions when you don't specify a particular one.",
+        agent: 'This model will be used when you toggle the agent mode.',
         queryAnalysis:
           'Helps understand your questions better and optimizes the input context. (Choose a fast and economical model for efficiency.)',
         titleGeneration: 'Creates suitable titles for your documents or canvases.',
@@ -2706,17 +2708,17 @@ const translations = {
     },
   },
   pilot: {
-    name: 'Pilot',
+    name: 'Agent',
     description:
-      'Refly Pilot is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
-    thinking: 'Pilot is thinking',
-    noSessions: 'No pilot sessions found',
+      'Refly Agent is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
+    thinking: 'Agent is thinking',
+    noSessions: 'No agent sessions found',
     loadFailed: 'Failed to load session details',
     epoch: 'Epoch {{count}}',
     newSession: 'New Session',
     sessionHistory: 'Session History',
     sessionInputPlaceholder: 'Ask a question...',
-    createPilotSessionFailed: 'Failed to create pilot session',
+    createPilotSessionFailed: 'Failed to create agent session',
     recentSessions: 'Recent Sessions',
     createdAt: 'Created At',
     noTasks: 'No tasks available yet',

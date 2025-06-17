@@ -4654,6 +4654,7 @@ components:
       description: Model usage scene
       enum:
         - chat
+        - agent
         - queryAnalysis
         - titleGeneration
     DefaultModelConfig:
@@ -4662,6 +4663,9 @@ components:
       properties:
         chat:
           description: Default chat model to use
+          $ref: '#/components/schemas/ProviderItem'
+        agent:
+          description: Default agent model to use
           $ref: '#/components/schemas/ProviderItem'
         queryAnalysis:
           description: Query analysis and context processing model

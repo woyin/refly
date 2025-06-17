@@ -2056,6 +2056,7 @@ const translations = {
     defaultModel: {
       title: '默认模型',
       chat: '默认问答模型',
+      agent: '默认 Agent 模型',
       queryAnalysis: '问题分析与上下文处理',
       titleGeneration: '智能标题生成',
       noModel: '未设置',
@@ -2064,6 +2065,7 @@ const translations = {
       updateFailed: '更新失败，请重试！',
       description: {
         chat: '当您没有指定具体模型时，我们将用这个模型为您解答问题。',
+        agent: '当您开启 Agent 模式时，将会使用此模型。',
         queryAnalysis:
           '帮助更好地理解您的问题，同时优化处理输入的上下文内容（推荐使用处理速度快且经济的模型）。',
         titleGeneration: '为文档或画布自动生成合适的标题。',
@@ -2534,9 +2536,9 @@ const translations = {
     },
   },
   pilot: {
-    name: 'Pilot',
-    description: 'Refly Pilot 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
-    thinking: 'Pilot 正在思考',
+    name: 'Agent',
+    description: 'Refly Agent 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
+    thinking: 'Agent 正在思考',
     noSessions: '暂无会话',
     loadFailed: '加载会话失败',
     epoch: '第 {{count}} 轮',
