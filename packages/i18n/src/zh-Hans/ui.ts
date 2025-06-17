@@ -633,7 +633,7 @@ const translations = {
   },
   frontPage: {
     welcome: {
-      part1: '开源',
+      part1: '全球首个开源',
       part2: 'Vibe Workflow',
       part3: '平台',
     },

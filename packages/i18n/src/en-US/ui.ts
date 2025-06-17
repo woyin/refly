@@ -808,7 +808,7 @@ const translations = {
   },
   frontPage: {
     welcome: {
-      part1: 'The Open Source',
+      part1: 'The World #1 Open Source',
       part2: 'Vibe Workflow',
       part3: 'Platform',
     },
