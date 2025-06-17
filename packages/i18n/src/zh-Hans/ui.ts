@@ -227,7 +227,7 @@ const translations = {
   },
   tabMeta: {
     landingPage: {
-      title: 'AI 原生创作引擎',
+      title: '开源 Vibe Workflow 平台',
       description:
         '快速总结与形成洞察、自动化归档以及智能语义搜索——Refly 能够为你打造第二大脑，拓展你的知识视野，并赋予你超乎寻常的能力。',
     },
@@ -246,7 +246,7 @@ const translations = {
     },
   },
   landingPage: {
-    slogan: 'AI Native 创作引擎',
+    slogan: '开源 Vibe Workflow 平台',
     simplySlogan: '创作引擎',
     description:
       '基于自由画布的创作平台，通过多线程对话、代码组件、知识库整合、上下文记忆和智能搜索，轻松将想法转化为优质内容。',
@@ -256,8 +256,8 @@ const translations = {
       first: '由多线程对话、代码组件、知识库集成、上下文记忆和智能搜索驱动，',
       second: 'Refly 是将创意转化为优质内容的最佳方式。',
     },
-    messageText: 'v0.6.0 发布：新首页、模型定制和幻灯片 🚀',
-    simpleMessageText: 'v0.6.0: 模型自定义和幻灯片 🚀',
+    messageText: 'v0.7.0 发布：Agent 和 MCP 🚀',
+    simpleMessageText: 'v0.7.0: Agent 和 MCP 🚀',
     tryForFree: '开始使用',
     tryItNow: '立即体验',
     creationEngine: '创作引擎',
@@ -632,7 +632,12 @@ const translations = {
     ],
   },
   frontPage: {
-    welcome: '今天我能为您完成什么工作？',
+    welcome: {
+      part1: '开源',
+      part2: 'Vibe Workflow',
+      part3: '平台',
+    },
+    githubStar: '在 GitHub 为我们点 Star!',
     fromCommunity: '来自社区',
     fromCommunityDesc: '探索将 Refly 用于工作或更广泛领域的途径。',
   },
@@ -1467,7 +1472,7 @@ const translations = {
       skill: '技能',
     },
     homePage: {
-      title: 'AI 原生创作引擎',
+      title: '开源 Vibe Workflow 平台',
       searchPlaceholder: '输入搜索内容...',
       selectedWeblink: {
         title: '基于选中网页提问：',

@@ -6,7 +6,7 @@ info:
     email: support@refly.ai
   version: 0.2.0
 externalDocs:
-  description: The AI Native Creation Engine
+  description: The Open Source Vibe Workflow Platform
   url: https://refly.ai
 servers:
   - url: /v1
