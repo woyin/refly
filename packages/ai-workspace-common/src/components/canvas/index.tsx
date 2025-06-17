@@ -57,7 +57,7 @@ import { useUserStore, useUserStoreShallow } from '@refly-packages/ai-workspace-
 import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
 import { useCanvasSync } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-sync';
 import { EmptyGuide } from './empty-guide';
-import { useReflyPilotReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-refly-pilot-reset';
+import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
 import { useListenNodeOperationEvents } from '@refly-packages/ai-workspace-common/hooks/canvas/use-listen-node-events';
 import { runtime } from '@refly-packages/ai-workspace-common/utils/env';
@@ -273,7 +273,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   );
 
   // Use the reset hook to handle canvas ID changes
-  useReflyPilotReset(canvasId);
+  useLinearThreadReset(canvasId);
 
   useEffect(() => {
     return () => {

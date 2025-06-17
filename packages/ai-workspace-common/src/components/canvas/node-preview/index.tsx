@@ -23,6 +23,7 @@ import { useReactFlow } from '@xyflow/react';
 import { useSearchParams } from 'react-router-dom';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
+import { LinearThreadContainer } from '@refly-packages/ai-workspace-common/components/canvas/linear-thread';
 
 // DnD item type constant
 const ITEM_TYPE = 'node-preview';
@@ -365,13 +366,13 @@ export const NodePreviewContainer = memo(
   }) => {
     const { readonly } = useCanvasContext();
     const { getNodes } = useReactFlow<CanvasNode<any>>();
-    const { rawNodePreviews, reorderNodePreviews, showSlideshow } = useCanvasStoreShallow(
-      (state) => ({
+    const { showLinearThread, rawNodePreviews, reorderNodePreviews, showSlideshow } =
+      useCanvasStoreShallow((state) => ({
+        showLinearThread: state.showLinearThread,
         rawNodePreviews: state.config[canvasId]?.nodePreviews ?? [],
         reorderNodePreviews: state.reorderNodePreviews,
         showSlideshow: state.showSlideshow,
-      }),
-    );
+      }));
 
     useEffect(() => {
       preloadMonacoEditor();
@@ -422,6 +423,7 @@ export const NodePreviewContainer = memo(
         <div className="flex h-full w-full">
           <ScrollingComponent {...scrollingComponentProps}>
             {showSlideshow && !readonly && <Slideshow canvasId={canvasId} />}
+            {showLinearThread && <LinearThreadContainer />}
             {nodePreviewsRendered}
           </ScrollingComponent>
         </div>

@@ -3,6 +3,7 @@ import { Button, Tooltip, Popover } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { MdOutlineImage } from 'react-icons/md';
 import {
+  IconAskAI,
   IconDownloadFile,
   IconSearch,
   IconSlideshow,
@@ -37,10 +38,13 @@ export const ToolbarButtons = memo(
     const { hoverCardEnabled } = useHoverCard();
     const { readonly } = useCanvasContext();
 
-    const { showSlideshow, setShowSlideshow } = useCanvasStoreShallow((state) => ({
-      showSlideshow: state.showSlideshow,
-      setShowSlideshow: state.setShowSlideshow,
-    }));
+    const { showSlideshow, showLinearThread, setShowSlideshow, setShowLinearThread } =
+      useCanvasStoreShallow((state) => ({
+        showSlideshow: state.showSlideshow,
+        showLinearThread: state.showLinearThread,
+        setShowSlideshow: state.setShowSlideshow,
+        setShowLinearThread: state.setShowLinearThread,
+      }));
 
     const handleNodeSelect = useCallback(
       (item: IContextItem) => {
@@ -61,6 +65,16 @@ export const ToolbarButtons = memo(
       placement: 'bottom' as const,
     };
 
+    const linearThreadButtonConfig = {
+      title: t(`canvas.toolbar.${showLinearThread ? 'hideLaunchpad' : 'showLaunchpad'}`, {
+        defaultValue: showLinearThread ? 'Hide Pilot' : 'Show Pilot',
+      }),
+      description: t('canvas.toolbar.toggleLaunchpadTitle', {
+        defaultValue: 'Toggle the visibility of Pilot Panel',
+      }),
+      placement: 'bottom' as const,
+    };
+
     const previewButton = (
       <Button
         type="text"
@@ -74,6 +88,24 @@ export const ToolbarButtons = memo(
         }
         onClick={() => setShowPreview(!showPreview)}
         className="w-8 h-6 flex items-center justify-center mr-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+      />
+    );
+
+    const linearThreadButton = (
+      <Button
+        type="text"
+        icon={
+          <span
+            className={`flex items-center justify-center text-sm font-semibold ${
+              showLinearThread ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            <IconAskAI className="w-4 h-4 mr-2" />
+            {t('canvas.toolbar.askAI')}
+          </span>
+        }
+        onClick={() => setShowLinearThread(!showLinearThread)}
+        className="!w-20 h-6 flex items-center justify-center"
       />
     );
 
@@ -103,6 +135,16 @@ export const ToolbarButtons = memo(
 
     return (
       <>
+        {!readonly && (
+          <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
+            {hoverCardEnabled ? (
+              <HoverCard {...linearThreadButtonConfig}>{linearThreadButton}</HoverCard>
+            ) : (
+              <Tooltip title={linearThreadButtonConfig.title}>{linearThreadButton}</Tooltip>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
           {!readonly && <Tooltip title={t('canvas.toolbar.slideshow')}>{slideshowButton}</Tooltip>}
 
