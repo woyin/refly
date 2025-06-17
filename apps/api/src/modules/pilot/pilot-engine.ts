@@ -24,6 +24,7 @@ export class PilotEngine {
   async run(
     contentItems: CanvasContentItem[],
     maxStepsPerEpoch = 3,
+    locale?: string,
   ): Promise<PilotStepRawOutput[]> {
     const sessionInput = this.session.input;
     const userQuestion = sessionInput.query;
@@ -54,6 +55,7 @@ export class PilotEngine {
           this.steps,
           contentItems,
           maxStepsPerEpoch,
+          locale,
         );
 
         const { steps } = await structuredLLM.invoke(fullPrompt);
@@ -75,6 +77,7 @@ export class PilotEngine {
         this.steps,
         contentItems,
         maxStepsPerEpoch,
+        locale,
       );
 
       const response = await this.model.invoke(fallbackPrompt);
@@ -103,10 +106,12 @@ export class PilotEngine {
    * Generates research steps based solely on the user question when no canvas content is available
    * @param userQuestion The user's research question
    * @param maxStepsPerEpoch The maximum number of steps to generate
+   * @param locale The user's preferred output locale
    */
   private async generateResearchWithoutContent(
     userQuestion: string,
     maxStepsPerEpoch = 3,
+    locale?: string,
   ): Promise<PilotStepRawOutput[]> {
     // Create an empty list of content items for the bootstrap process
     const emptyContentItems: CanvasContentItem[] = [];
@@ -132,6 +137,7 @@ export class PilotEngine {
           this.steps,
           emptyContentItems,
           maxStepsPerEpoch,
+          locale,
         );
 
         const { steps } = await structuredLLM.invoke(fullPrompt);
@@ -153,6 +159,7 @@ export class PilotEngine {
         this.steps,
         emptyContentItems,
         maxStepsPerEpoch,
+        locale,
       );
 
       const response = await this.model.invoke(fallbackPrompt);

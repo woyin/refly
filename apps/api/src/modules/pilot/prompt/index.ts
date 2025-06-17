@@ -412,6 +412,7 @@ export function generatePlanningPrompt(
   steps: PilotStep[],
   contentItems: CanvasContentItem[],
   maxStepsPerEpoch: number,
+  locale?: string,
 ): string {
   const combinedContent = formatCanvasContent(contentItems);
   const todoMd = formatTodoMd(session, steps);
@@ -427,11 +428,16 @@ export function generatePlanningPrompt(
   // Generate stage-specific guidance
   const stageGuidance = generateStageGuidance(recommendedStage);
 
+  // Generate locale-specific instructions
+  const localeInstructions = locale
+    ? `\n## Output Language Instructions\nPlease generate all step names, queries, and any text content in ${locale}. The research plan should be tailored for ${locale} language output.\n`
+    : '';
+
   return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
 
 ## Your Task
 Analyze the user's question and available canvas content, then generate a structured research plan with specific steps to thoroughly investigate the topic.
-
+${localeInstructions}
 ${stageGuidance}
 
 ## Tool Usage Guidelines
@@ -505,6 +511,7 @@ export function generateBootstrapPrompt(
   steps: PilotStep[],
   contentItems: CanvasContentItem[],
   maxStepsPerEpoch: number,
+  locale?: string,
 ): string {
   const combinedContent = formatCanvasContent(contentItems);
   const todoMd = formatTodoMd(session, steps);
@@ -520,11 +527,16 @@ export function generateBootstrapPrompt(
   // Generate stage-specific guidance
   const stageGuidance = generateStageGuidance(recommendedStage);
 
+  // Generate locale-specific instructions
+  const localeInstructions = locale
+    ? `\n## Output Language Instructions\nPlease generate all step names, queries, and any text content in ${locale}. The research plan should be tailored for ${locale} language output.\n`
+    : '';
+
   return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
 
 ## Your Task
 Analyze the user's question and generate a structured research plan with specific steps to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
-
+${localeInstructions}
 ${stageGuidance}
 
 ## Tool Usage Guidelines
@@ -595,6 +607,7 @@ export function generateFallbackPrompt(
   steps: PilotStep[],
   contentItems: CanvasContentItem[],
   maxStepsPerEpoch: number,
+  locale?: string,
 ): string {
   const combinedContent = formatCanvasContent(contentItems);
   const todoMd = formatTodoMd(session, steps);
@@ -611,11 +624,16 @@ export function generateFallbackPrompt(
   // Generate stage-specific guidance
   const stageGuidance = generateStageGuidance(recommendedStage);
 
+  // Generate locale-specific instructions
+  const localeInstructions = locale
+    ? `\n## Output Language Instructions\nPlease generate all step names, queries, and any text content in ${locale}. The research plan should be tailored for ${locale} language output.\n`
+    : '';
+
   return `You are an expert research assistant capable of breaking down complex questions into clear, actionable research steps.
 
 ## Your Task
 Analyze the user's question and generate a structured research plan to thoroughly investigate the topic. Since no existing content or context is available, create a plan that starts from scratch.
-
+${localeInstructions}
 ${stageGuidance}
 
 ## Tool Usage Guidelines

@@ -111,6 +111,12 @@ export default () => ({
     idleTimeout: Number.parseInt(process.env.SKILL_IDLE_TIMEOUT) || 1000 * 60, // 1 minute
     executionTimeout: Number.parseInt(process.env.SKILL_EXECUTION_TIMEOUT) || 1000 * 60 * 3, // 3 minutes
   },
+  defaultModel: {
+    chat: process.env.DEFAULT_MODEL_CHAT,
+    agent: process.env.DEFAULT_MODEL_AGENT,
+    queryAnalysis: process.env.DEFAULT_MODEL_QUERY_ANALYSIS,
+    titleGeneration: process.env.DEFAULT_MODEL_TITLE_GENERATION,
+  },
   stripe: {
     apiKey: process.env.STRIPE_API_KEY,
     webhookSecret: {
