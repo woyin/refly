@@ -6,12 +6,12 @@
     <b>
         <a href="https://www.refly.ai" target="_blank">Refly.AI</a><br>
     </b>
-    ⭐️  AI Native 内容创作引擎 ⭐️ <br>
+    ⭐️  开源 Vibe Workflow 平台 ⭐️ <br>
 </h1>
 
-Refly 是一个开源的 AI 原生创作引擎，集成了 13+ 主流 AI 模型。其直观的自由画布界面支持多线程对话、多模态输入（文本/图片/文件）、RAG 检索流程、浏览器插件剪藏、上下文记忆、AI 文档编辑、代码生成（HTML/SVG/Mermaid/React）以及网站可视化引擎等功能，让您轻松地将创意转化为完整作品，并通过交互式可视化和网页应用进行展示。
+Refly 是一个开创性的开源 Vibe Workflow 平台，旨在解决您最复杂的挑战。只需要动动嘴，您就可以轻松地设计、构建和复用智能工作流，借助 AI 智能体和可无限扩展的 MCP 工具，完成高质量的工作结果交付，从而大幅提升生产力。
 
-[🚀 v0.6.0 正式发布！新首页、模型自定义和幻灯片 🚀⚡️](https://docs.refly.ai/zh/changelog/v0.6.0)
+[🚀 v0.7.0 正式发布！Agent 和 MCP 服务器 🚀⚡️](https://docs.refly.ai/zh/changelog/v0.7.0)
 
 [Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/zh/guide/self-deploy) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
 
@@ -233,7 +233,7 @@ kubectl apply -f refly-deployment.yaml
 15. [Resend](https://github.com/resend/react-email) - 用于构建邮件发送功能的库。
 16. 其他上游依赖。
 
-非常感谢社区提供如此强大而简单的库，使我们能够更专注于产品逻辑的实现。我们希望将来我们的项目也能为大家提供更易用的 AI Native 内容创作引擎。
+非常感谢社区提供如此强大而简单的库，使我们能够更专注于产品逻辑的实现。我们希望将来我们的项目也能为大家提供更易用的 Vibe Workflow 平台。
 
 ## 安全问题
 

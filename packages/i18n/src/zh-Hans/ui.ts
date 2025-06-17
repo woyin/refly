@@ -140,6 +140,13 @@ const translations = {
     create: '创建',
     update: '更新',
     validate: '验证',
+    refresh: '刷新',
+  },
+  mode: {
+    ask: '提问',
+    agent: 'Agent',
+    askDescription: '单次回答问题',
+    agentDescription: '多步解决复杂问题',
   },
   verifyRules: {
     emailRequired: '邮箱地址不能为空',
@@ -220,7 +227,7 @@ const translations = {
   },
   tabMeta: {
     landingPage: {
-      title: 'AI 原生创作引擎',
+      title: '开源 Vibe Workflow 平台',
       description:
         '快速总结与形成洞察、自动化归档以及智能语义搜索——Refly 能够为你打造第二大脑，拓展你的知识视野，并赋予你超乎寻常的能力。',
     },
@@ -239,7 +246,7 @@ const translations = {
     },
   },
   landingPage: {
-    slogan: 'AI Native 创作引擎',
+    slogan: '开源 Vibe Workflow 平台',
     simplySlogan: '创作引擎',
     description:
       '基于自由画布的创作平台，通过多线程对话、代码组件、知识库整合、上下文记忆和智能搜索，轻松将想法转化为优质内容。',
@@ -249,8 +256,8 @@ const translations = {
       first: '由多线程对话、代码组件、知识库集成、上下文记忆和智能搜索驱动，',
       second: 'Refly 是将创意转化为优质内容的最佳方式。',
     },
-    messageText: 'v0.6.0 发布：新首页、模型定制和幻灯片 🚀',
-    simpleMessageText: 'v0.6.0: 模型自定义和幻灯片 🚀',
+    messageText: 'v0.7.0 发布：Agent 和 MCP 🚀',
+    simpleMessageText: 'v0.7.0: Agent 和 MCP 🚀',
     tryForFree: '开始使用',
     tryItNow: '立即体验',
     creationEngine: '创作引擎',
@@ -625,7 +632,12 @@ const translations = {
     ],
   },
   frontPage: {
-    welcome: '今天我能为您完成什么工作？',
+    welcome: {
+      part1: '全球首个开源',
+      part2: 'Vibe Workflow',
+      part3: '平台',
+    },
+    githubStar: '在 GitHub 为我们点 Star!',
     fromCommunity: '来自社区',
     fromCommunityDesc: '探索将 Refly 用于工作或更广泛领域的途径。',
   },
@@ -1061,7 +1073,6 @@ const translations = {
     action: {
       nodeAlreadyExists: '该{{type}}已存在于当前画布中',
       deleteSuccess: '删除画布成功',
-      addSuccess: '画布添加好啦，开始创作吧~',
       duplicateSuccess: '复制画布成功',
       nodeLimitReached: '画布已达到最大节点数限制 ({{max}})，请删除一些节点后再添加新节点。',
       approachingNodeLimit: '画布节点数量接近上限 ({{current}}/{{max}})，建议移除不必要的节点。',
@@ -1461,7 +1472,7 @@ const translations = {
       skill: '技能',
     },
     homePage: {
-      title: 'AI 原生创作引擎',
+      title: '开源 Vibe Workflow 平台',
       searchPlaceholder: '输入搜索内容...',
       selectedWeblink: {
         title: '基于选中网页提问：',
@@ -2050,6 +2061,7 @@ const translations = {
     defaultModel: {
       title: '默认模型',
       chat: '默认问答模型',
+      agent: '默认 Agent 模型',
       queryAnalysis: '问题分析与上下文处理',
       titleGeneration: '智能标题生成',
       noModel: '未设置',
@@ -2058,6 +2070,7 @@ const translations = {
       updateFailed: '更新失败，请重试！',
       description: {
         chat: '当您没有指定具体模型时，我们将用这个模型为您解答问题。',
+        agent: '当您开启 Agent 模式时，将会使用此模型。',
         queryAnalysis:
           '帮助更好地理解您的问题，同时优化处理输入的上下文内容（推荐使用处理速度快且经济的模型）。',
         titleGeneration: '为文档或画布自动生成合适的标题。',
@@ -2525,6 +2538,28 @@ const translations = {
       contact: '联系我们',
       terms: '条款',
       privacy: '隐私',
+    },
+  },
+  pilot: {
+    name: 'Agent',
+    description: 'Refly Agent 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
+    thinking: 'Agent 正在思考',
+    noSessions: '暂无会话',
+    loadFailed: '加载会话失败',
+    epoch: '第 {{count}} 轮',
+    newSession: '新会话',
+    sessionHistory: '会话历史',
+    sessionInputPlaceholder: '问点什么...',
+    createPilotSessionFailed: '创建会话失败',
+    recentSessions: '最近会话',
+    createdAt: '创建时间',
+    noTasks: '暂无任务',
+    status: {
+      init: '初始化',
+      executing: '运行中',
+      waiting: '等待中',
+      finish: '已完成',
+      failed: '失败',
     },
   },
   deck: {

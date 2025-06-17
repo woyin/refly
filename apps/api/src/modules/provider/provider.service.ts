@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import {
   BatchUpsertProviderItemsRequest,
+  DefaultModelConfig,
   DeleteProviderItemRequest,
   DeleteProviderRequest,
   EmbeddingModelConfig,
@@ -47,6 +48,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ConfigService } from '@nestjs/config';
 import { VectorSearchService } from '../common/vector-search';
 import { VECTOR_SEARCH } from '../common/vector-search/tokens';
+import { providerItemPO2DTO } from '@/modules/provider/provider.dto';
 
 interface GlobalProviderConfig {
   providers: ProviderModel[];
@@ -393,7 +395,7 @@ export class ProviderService implements OnModuleInit {
   async prepareGlobalProviderItemsForUser(user: User) {
     const { items } = await this.globalProviderCache.get();
 
-    await this.prisma.providerItem.createMany({
+    const providerItems = await this.prisma.providerItem.createManyAndReturn({
       data: items
         .filter((item) => item.enabled)
         .map((item) => ({
@@ -402,6 +404,71 @@ export class ProviderService implements OnModuleInit {
           ...pick(item, ['providerId', 'category', 'name', 'enabled', 'config', 'tier']),
           ...(item.tier ? { groupName: item.tier.toUpperCase() } : {}),
         })),
+    });
+
+    const { preferences } = await this.prisma.user.findUnique({
+      where: { uid: user.uid },
+      select: {
+        preferences: true,
+      },
+    });
+
+    const defaultModel = this.configService.get('defaultModel');
+    const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+    const defaultModelConfig: DefaultModelConfig = { ...userPreferences.defaultModel };
+
+    if (defaultModel.chat && !userPreferences.defaultModel?.chat) {
+      const chatItem = providerItems.find((item) => {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.chat;
+      });
+      if (chatItem) {
+        defaultModelConfig.chat = providerItemPO2DTO(chatItem);
+      }
+    }
+
+    if (defaultModel.agent && !userPreferences.defaultModel?.agent) {
+      const agentItem = providerItems.find((item) => {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.agent;
+      });
+      if (agentItem) {
+        defaultModelConfig.agent = providerItemPO2DTO(agentItem);
+      }
+    }
+
+    if (defaultModel.queryAnalysis && !userPreferences.defaultModel?.queryAnalysis) {
+      const queryAnalysisItem = providerItems.find((item) => {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.queryAnalysis;
+      });
+      if (queryAnalysisItem) {
+        defaultModelConfig.queryAnalysis = providerItemPO2DTO(queryAnalysisItem);
+      }
+    }
+
+    if (defaultModel.titleGeneration && !userPreferences.defaultModel?.titleGeneration) {
+      const titleGenerationItem = providerItems.find((item) => {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.titleGeneration;
+      });
+      if (titleGenerationItem) {
+        defaultModelConfig.titleGeneration = providerItemPO2DTO(titleGenerationItem);
+      }
+    }
+
+    this.logger.log(
+      `Update defaultModel preferences for user ${user.uid}: ${JSON.stringify(userPreferences)}`,
+    );
+
+    await this.prisma.user.update({
+      where: { uid: user.uid },
+      data: {
+        preferences: JSON.stringify({
+          ...userPreferences,
+          defaultModel: defaultModelConfig,
+        }),
+      },
     });
   }
 
@@ -428,6 +495,18 @@ export class ProviderService implements OnModuleInit {
     // Fallback to global provider items
     const { items: globalItems } = await this.globalProviderCache.get();
     return globalItems.filter((item) => item.category === category);
+  }
+
+  async findGlobalProviderItemByModelID(modelId: string) {
+    const { items: globalItems } = await this.globalProviderCache.get();
+    const item = globalItems.find((item) => {
+      const config: LLMModelConfig = JSON.parse(item.config);
+      return config.modelId === modelId;
+    });
+    if (!item) {
+      return null;
+    }
+    return providerItemPO2DTO(item);
   }
 
   async findLLMProviderItemByModelID(user: User, modelId: string) {
@@ -524,11 +603,13 @@ export class ProviderService implements OnModuleInit {
       throw new ProviderItemNotFoundError(`provider item ${modelItemId} not valid`);
     }
 
+    const agentItem = await this.findDefaultProviderItem(user, 'agent', userPo);
     const titleGenerationItem = await this.findDefaultProviderItem(user, 'titleGeneration', userPo);
     const queryAnalysisItem = await this.findDefaultProviderItem(user, 'queryAnalysis', userPo);
 
     const modelConfigMap: Record<ModelScene, ProviderItemModel> = {
       chat: chatItem,
+      agent: agentItem,
       titleGeneration: titleGenerationItem,
       queryAnalysis: queryAnalysisItem,
     };
@@ -540,7 +621,7 @@ export class ProviderService implements OnModuleInit {
     user: User,
     scene: ModelScene,
     userPo?: { preferences: string },
-  ): Promise<ProviderItemModel> {
+  ): Promise<ProviderItemModel | null> {
     const { preferences } =
       userPo ||
       (await this.prisma.user.findUnique({
@@ -551,19 +632,25 @@ export class ProviderService implements OnModuleInit {
       }));
 
     const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
-    const { defaultModel } = userPreferences;
+    const { defaultModel: userDefaultModel } = userPreferences;
 
     let itemId: string | null = null;
-    if (scene === 'chat' && defaultModel?.chat) {
-      itemId = defaultModel.chat.itemId;
+
+    // First, try to get from user preferences
+    if (scene === 'chat' && userDefaultModel?.chat) {
+      itemId = userDefaultModel.chat.itemId;
     }
-    if (scene === 'titleGeneration' && defaultModel?.titleGeneration) {
-      itemId = defaultModel.titleGeneration.itemId || defaultModel.chat.itemId;
+    if (scene === 'titleGeneration' && userDefaultModel?.titleGeneration) {
+      itemId = userDefaultModel.titleGeneration.itemId || userDefaultModel.chat?.itemId;
     }
-    if (scene === 'queryAnalysis' && defaultModel?.queryAnalysis) {
-      itemId = defaultModel.queryAnalysis.itemId || defaultModel.chat.itemId;
+    if (scene === 'queryAnalysis' && userDefaultModel?.queryAnalysis) {
+      itemId = userDefaultModel.queryAnalysis.itemId || userDefaultModel.chat?.itemId;
+    }
+    if (scene === 'agent' && userDefaultModel?.agent) {
+      itemId = userDefaultModel.agent.itemId;
     }
 
+    // If found in user preferences, try to use it
     if (itemId) {
       const providerItem = await this.prisma.providerItem.findUnique({
         where: { itemId, uid: user.uid, deletedAt: null },
@@ -573,9 +660,46 @@ export class ProviderService implements OnModuleInit {
       }
     }
 
-    // Fallback to the first available item
+    // Fallback to global default model configuration
+    const globalDefaultModel = this.configService.get('defaultModel');
+    let globalModelId: string | null = null;
+
+    if (scene === 'chat' && globalDefaultModel?.chat) {
+      globalModelId = globalDefaultModel.chat;
+    }
+    if (scene === 'titleGeneration' && globalDefaultModel?.titleGeneration) {
+      globalModelId = globalDefaultModel.titleGeneration || globalDefaultModel.chat;
+    }
+    if (scene === 'queryAnalysis' && globalDefaultModel?.queryAnalysis) {
+      globalModelId = globalDefaultModel.queryAnalysis || globalDefaultModel.chat;
+    }
+    if (scene === 'agent' && globalDefaultModel?.agent) {
+      globalModelId = globalDefaultModel.agent;
+    }
+
+    // Try to find provider item with the global model ID
+    if (globalModelId) {
+      const availableItems = await this.findProviderItemsByCategory(user, 'llm');
+      const globalModelItem = availableItems.find((item) => {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        return config.modelId === globalModelId;
+      });
+
+      if (globalModelItem) {
+        this.logger.log(
+          `Using global default model ${globalModelId} for scene ${scene} for user ${user.uid}`,
+        );
+        return globalModelItem;
+      } else {
+        this.logger.warn(
+          `Global default model ${globalModelId} for scene ${scene} not found in user's available models`,
+        );
+      }
+    }
+
+    // Final fallback to the first available item
     this.logger.log(
-      `Default provider item for scene ${scene} not found, fallback to the first available model`,
+      `Default provider item for scene ${scene} not found in user preferences or global config, fallback to the first available model`,
     );
     const availableItems = await this.findProviderItemsByCategory(user, 'llm');
     if (availableItems.length > 0) {

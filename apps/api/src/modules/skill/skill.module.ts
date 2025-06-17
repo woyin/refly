@@ -13,6 +13,7 @@ import {
   QUEUE_SKILL_TIMEOUT_CHECK,
   QUEUE_SYNC_REQUEST_USAGE,
   QUEUE_AUTO_NAME_CANVAS,
+  QUEUE_SYNC_PILOT_STEP,
 } from '../../utils';
 import { LabelModule } from '../label/label.module';
 import { SkillProcessor, SkillTimeoutCheckProcessor } from '../skill/skill.processor';
@@ -22,6 +23,8 @@ import { MiscModule } from '../misc/misc.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { ProviderModule } from '../provider/provider.module';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
+import { SkillEngineService } from './skill-engine.service';
+import { SkillInvokerService } from './skill-invoker.service';
 import { isDesktop } from '../../utils/runtime';
 
 @Module({
@@ -46,9 +49,15 @@ import { isDesktop } from '../../utils/runtime';
           BullModule.registerQueue({ name: QUEUE_SYNC_TOKEN_USAGE }),
           BullModule.registerQueue({ name: QUEUE_SYNC_REQUEST_USAGE }),
           BullModule.registerQueue({ name: QUEUE_AUTO_NAME_CANVAS }),
+          BullModule.registerQueue({ name: QUEUE_SYNC_PILOT_STEP }),
         ]),
   ],
-  providers: [SkillService, ...(isDesktop() ? [] : [SkillProcessor, SkillTimeoutCheckProcessor])],
+  providers: [
+    SkillService,
+    SkillEngineService,
+    SkillInvokerService,
+    ...(isDesktop() ? [] : [SkillProcessor, SkillTimeoutCheckProcessor]),
+  ],
   controllers: [SkillController],
   exports: [SkillService],
 })
