@@ -186,7 +186,7 @@ export function formatTodoMd(session: PilotSession, steps: PilotStep[]): string 
 
   // Calculate the current epoch based on the session's metadata or default to 1
   const currentEpoch = session?.currentEpoch ?? 0;
-  const totalEpochs = session?.maxEpoch ?? 2;
+  const totalEpochs = session?.maxEpoch ?? 3;
 
   let markdown = `# Todo: ${session.title ?? 'Research Plan'}\n\n`;
 
@@ -420,7 +420,7 @@ export function generatePlanningPrompt(
 
   // Calculate the current epoch based on the session's metadata or default to 0
   const currentEpoch = session?.currentEpoch ?? 0;
-  const totalEpochs = session?.maxEpoch ?? 2;
+  const totalEpochs = session?.maxEpoch ?? 3;
 
   // Determine recommended stage for current epoch
   const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
@@ -519,7 +519,7 @@ export function generateBootstrapPrompt(
 
   // Calculate the current epoch based on the session's metadata or default to 0
   const currentEpoch = session?.currentEpoch ?? 0;
-  const totalEpochs = session?.maxEpoch ?? 2;
+  const totalEpochs = session?.maxEpoch ?? 3;
 
   // Determine recommended stage for current epoch
   const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
@@ -616,7 +616,7 @@ export function generateFallbackPrompt(
 
   // Calculate the current epoch based on the session's metadata or default to 0
   const currentEpoch = session?.currentEpoch ?? 0;
-  const totalEpochs = session?.maxEpoch ?? 2;
+  const totalEpochs = session?.maxEpoch ?? 3;
 
   // Determine recommended stage for current epoch
   const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);

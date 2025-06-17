@@ -57,7 +57,7 @@ export class PilotService {
       data: {
         sessionId,
         uid: user.uid,
-        maxEpoch: request.maxEpoch ?? 2,
+        maxEpoch: request.maxEpoch ?? 3,
         title: request.title || request.input?.query || 'New Pilot Session',
         input: JSON.stringify(request.input),
         targetType: request.targetType,
@@ -330,6 +330,14 @@ export class PilotService {
 
     if (currentEpoch >= maxEpoch) {
       this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
+
+      if (pilotSession.status !== 'finish') {
+        await this.prisma.pilotSession.update({
+          where: { sessionId },
+          data: { status: 'finish' },
+        });
+      }
+
       return;
     }
 
