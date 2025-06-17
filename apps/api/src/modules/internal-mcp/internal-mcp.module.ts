@@ -5,7 +5,12 @@ import { McpServerService } from '../mcp-server/mcp-server.service';
 import { PrismaService } from '@/modules/common/prisma.service';
 import { EncryptionService } from '@/modules/common/encryption.service';
 import { InternalMcpService } from '@/modules/internal-mcp/internal-mcp.service';
-import { McpServerTools } from '@/modules/internal-mcp/internal-mcp.tools';
+import { McpServerTools } from '@/modules/internal-mcp/tools/mcp-server.tools';
+import { SearchTools } from '@/modules/internal-mcp/tools/search.tools';
+import { SearchService } from '@/modules/search/search.service';
+import { RAGModule } from '@/modules/rag/rag.module';
+import { ProviderModule } from '@/modules/provider/provider.module';
+import { CommonModule } from '@/modules/common/common.module';
 
 @Module({
   imports: [
@@ -16,6 +21,9 @@ import { McpServerTools } from '@/modules/internal-mcp/internal-mcp.tools';
       transport: McpTransportType.STREAMABLE_HTTP, // Use Streamable HTTP transport
       // Default endpoint is /mcp
     }),
+    CommonModule,
+    RAGModule,
+    ProviderModule,
   ],
   providers: [
     InternalMcpService,
@@ -23,6 +31,8 @@ import { McpServerTools } from '@/modules/internal-mcp/internal-mcp.tools';
     PrismaService,
     EncryptionService,
     McpServerTools,
+    SearchTools,
+    SearchService,
     JwtAuthGuard,
   ],
   exports: [InternalMcpService],

@@ -51,8 +51,8 @@ export class InternalMcpService {
     return {
       content: [
         {
-          type: 'application/json',
-          text: JSON.stringify(filteredData),
+          type: 'text',
+          text: JSON.stringify(filteredData, null, 2),
         },
       ],
     };

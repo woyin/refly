@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Tool, Context } from '@rekog/mcp-nest';
 import { z } from 'zod';
 import { Request } from 'express';
-import { McpServerService } from '../mcp-server/mcp-server.service';
-import { InternalMcpService } from './internal-mcp.service';
+import { McpServerService } from '../../mcp-server/mcp-server.service';
+import { InternalMcpService } from '../internal-mcp.service';
 import { User as UserModel } from '@/generated/client';
-import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
-import { UpsertMcpServerRequest, DeleteMcpServerRequest } from '@refly/openapi-schema';
+import { mcpServerPO2DTO } from '../../mcp-server/mcp-server.dto';
+import { UpsertMcpServerRequest } from '@refly/openapi-schema';
 
 @Injectable()
 export class McpServerTools {
@@ -144,36 +144,36 @@ export class McpServerTools {
     }
   }
 
-  /**
-   * Delete MCP server configuration
-   */
-  @Tool({
-    name: 'delete_mcp_server',
-    description: 'Delete MCP server configuration',
-    parameters: z.object({
-      pk: z.string().describe('Server primary key'),
-    }),
-  })
-  async deleteMcpServer(params: DeleteMcpServerRequest, _context: Context, request: Request) {
-    try {
-      const user = request.user as UserModel;
+  // /**
+  //  * Delete MCP server configuration
+  //  */
+  // @Tool({
+  //   name: 'delete_mcp_server',
+  //   description: 'Delete MCP server configuration',
+  //   parameters: z.object({
+  //     pk: z.string().describe('Server primary key'),
+  //   }),
+  // })
+  // async deleteMcpServer(params: DeleteMcpServerRequest, _context: Context, request: Request) {
+  //   try {
+  //     const user = request.user as UserModel;
 
-      if (!user || !user.uid) {
-        return {
-          content: [{ type: 'text', text: 'Error: User authentication failed' }],
-        };
-      }
+  //     if (!user || !user.uid) {
+  //       return {
+  //         content: [{ type: 'text', text: 'Error: User authentication failed' }],
+  //       };
+  //     }
 
-      this.logger.log(
-        `Tool 'delete_mcp_server' called by user ${user.uid}, params: ${JSON.stringify(params)}`,
-      );
+  //     this.logger.log(
+  //       `Tool 'delete_mcp_server' called by user ${user.uid}, params: ${JSON.stringify(params)}`,
+  //     );
 
-      await this.mcpServerService.deleteMcpServer(user, params);
-      return this.internalMcpService.formatSuccessResponse({ success: true });
-    } catch (error) {
-      return this.internalMcpService.formatErrorResponse(error);
-    }
-  }
+  //     await this.mcpServerService.deleteMcpServer(user, params);
+  //     return this.internalMcpService.formatSuccessResponse({ success: true });
+  //   } catch (error) {
+  //     return this.internalMcpService.formatErrorResponse(error);
+  //   }
+  // }
 
   /**
    * Validate MCP server configuration
