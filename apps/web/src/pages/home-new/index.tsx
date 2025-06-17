@@ -17,6 +17,7 @@ import Header from '@/components/landing-page-partials/Header';
 import SimpleFooter from '@/components/landing-page-partials/SimpleFooter';
 
 import cn from 'classnames';
+import { Title } from '@refly-packages/ai-workspace-common/components/canvas/front-page/title';
 
 const UnsignedFrontPage = memo(() => {
   const { t, i18n } = useTranslation();
@@ -154,14 +155,7 @@ const UnsignedFrontPage = memo(() => {
               canvasTemplateEnabled ? '' : 'flex flex-col justify-center',
             )}
           >
-            <h3
-              className={cn(
-                'text-3xl font-bold text-center text-gray-800 mb-6 mx-2 dark:text-gray-100',
-                canvasTemplateEnabled ? 'mt-32' : '',
-              )}
-            >
-              {t('frontPage.welcome')}
-            </h3>
+            <Title />
 
             <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-600">
               <div className="p-4">

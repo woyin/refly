@@ -385,9 +385,9 @@ const translations = {
   },
   tabMeta: {
     landingPage: {
-      title: 'The AI Native Creation Engine',
+      title: 'The Open Source Vibe Workflow Platform',
       description:
-        'Refly is a free-form canvas creation platform powered by multi-threaded dialogue, knowledge integration, context memory, intelligent search and WYSIWYG AI editor, easily transforms ideas into quality content.',
+        'Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.',
     },
     threadLibrary: {
       title: 'Threads',
@@ -400,13 +400,13 @@ const translations = {
     },
   },
   landingPage: {
-    title: 'The AI Native Creation Engine',
+    title: 'The Open Source Vibe Workflow Platform',
     subTitle:
       'Powered by multi-threaded dialogue, knowledge integration, context memory, and intelligent search, Refly is the best way to transform ideas into quality content.',
     getStarted: 'Get Started',
     login: 'Login',
-    simplySlogan: 'Creation Engine',
-    slogan: 'The AI Native Creation Engine',
+    simplySlogan: 'Vibe Workflow',
+    slogan: 'The Open Source Vibe Workflow Platform',
     description:
       'Refly is the best way to transform ideas into quality content through multi-threaded dialogue, knowledge integration, context memory, and intelligent search.',
     anotherDescription:
@@ -416,8 +416,8 @@ const translations = {
         'Powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, ',
       second: 'Refly is the best way to transform ideas into quality content.',
     },
-    messageText: 'v0.6.0 Released: New Homepage, Model Customization and Slideshow 🚀',
-    simpleMessageText: 'v0.6.0: Model Customization and Slideshow 🚀',
+    messageText: 'v0.7.0 Released: Agent and MCP 🚀',
+    simpleMessageText: 'v0.7.0: Agent and MCP 🚀',
     tryForFree: 'Get Started',
     tryItNow: 'Try It Now',
     creationEngine: 'Creation Engine',
@@ -639,7 +639,7 @@ const translations = {
         contactUs: 'Contact us',
       },
       description:
-        'Refly is a free-form canvas creation platform powered by multi-threaded dialogue, knowledge integration, context memory, intelligent search and WYSIWYG AI editor, easily transforms ideas into quality content.',
+        'Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.',
       right: 'Refly.ai. All rights reserved.',
       product: {
         title: 'Products',
@@ -807,7 +807,13 @@ const translations = {
     ],
   },
   frontPage: {
-    welcome: 'What can I do for you today?',
+    welcome: {
+      part1: 'The Open Source',
+      part2: 'Vibe Workflow',
+      part3: 'Platform',
+    },
+    vibeWorkflow: 'Vibe Workflow',
+    githubStar: 'Star us on GitHub!',
     fromCommunity: 'From the community',
     fromCommunityDesc: 'Discover a way to use Refly for work, or even beyond.',
   },
@@ -1667,7 +1673,7 @@ const translations = {
       skill: 'skill',
     },
     homePage: {
-      title: 'The AI Native Creation Engine',
+      title: 'The Open Source Vibe Workflow Platform',
       searchPlaceholder: 'Search for Refly',
       selectedWeblink: {
         title: 'Ask a Question Based on the Selected Web Page:',
