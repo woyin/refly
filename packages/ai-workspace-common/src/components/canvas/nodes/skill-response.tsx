@@ -57,8 +57,7 @@ import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magic
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-
-const POLLING_WAIT_TIME = 15000;
+import { useActionResultStoreShallow } from '@refly-packages/ai-workspace-common/stores/action-result';
 
 export const NodeHeader = memo(
   ({
@@ -269,16 +268,15 @@ export const SkillResponseNode = memo(
     const currentSkill = actionMeta || selectedSkill;
 
     const { startPolling, resetFailedState } = useActionPolling();
+    const { isStreaming } = useActionResultStoreShallow((state) => ({
+      isStreaming: !!state.streamResults[entityId],
+    }));
 
     useEffect(() => {
-      if (
-        createdAt &&
-        Date.now() - new Date(createdAt).getTime() >= POLLING_WAIT_TIME &&
-        status === 'executing'
-      ) {
+      if (!isStreaming && status === 'executing') {
         startPolling(entityId, version);
       }
-    }, [createdAt, status, startPolling, entityId, version]);
+    }, [isStreaming, status, startPolling, entityId, version]);
 
     const sources = Array.isArray(structuredData?.sources) ? structuredData?.sources : [];
 

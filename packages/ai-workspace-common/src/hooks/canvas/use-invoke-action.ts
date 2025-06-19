@@ -7,6 +7,8 @@ import {
   Entity,
   InvokeSkillRequest,
   SkillEvent,
+  ActionStatus,
+  ActionResult,
 } from '@refly/openapi-schema';
 import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
 import { getRuntime } from '@refly/utils/env';
@@ -565,7 +567,7 @@ export const useInvokeAction = () => {
   }));
 
   const invokeAction = useCallback(
-    (payload: SkillNodeMeta, target: Entity) => {
+    async (payload: SkillNodeMeta, target: Entity) => {
       deletedNodeIdsRef.current = new Set();
 
       payload.resultId ||= genActionResultID();
@@ -633,7 +635,7 @@ export const useInvokeAction = () => {
         projectId,
       };
 
-      onUpdateResult(resultId, {
+      const initialResult: ActionResult = {
         resultId,
         version,
         type: 'skill',
@@ -646,15 +648,18 @@ export const useInvokeAction = () => {
         history: resultHistory,
         tplConfig,
         runtimeConfig,
-        status: 'waiting',
+        status: 'waiting' as ActionStatus,
         steps: [],
         errors: [],
-      });
+      };
+
+      onUpdateResult(resultId, initialResult);
+      useActionResultStore.getState().addStreamResult(resultId, initialResult);
 
       globalAbortControllerRef.current = new AbortController();
 
       // Create timeout handler for this action
-      const { resetTimeout, cleanup } = createTimeoutHandler(resultId, version);
+      const { resetTimeout, cleanup: timeoutCleanup } = createTimeoutHandler(resultId, version);
 
       // Wrap event handlers to reset timeout
       const wrapEventHandler =
@@ -666,7 +671,7 @@ export const useInvokeAction = () => {
 
       resetTimeout();
 
-      ssePost({
+      await ssePost({
         controller: globalAbortControllerRef.current,
         payload: param,
         onStart: wrapEventHandler(onStart),
@@ -676,13 +681,22 @@ export const useInvokeAction = () => {
         onSkillArtifact: wrapEventHandler(onSkillArtifact),
         onSkillStructedData: wrapEventHandler(onSkillStructedData),
         onSkillCreateNode: wrapEventHandler(onSkillCreateNode),
-        onSkillEnd: wrapEventHandler(onSkillEnd),
+        onSkillEnd: wrapEventHandler((event) => {
+          onSkillEnd(event);
+          useActionResultStore.getState().removeStreamResult(resultId);
+        }),
         onCompleted: wrapEventHandler(onCompleted),
-        onSkillError: wrapEventHandler(onSkillError),
+        onSkillError: wrapEventHandler((event) => {
+          onSkillError(event);
+          useActionResultStore.getState().removeStreamResult(resultId);
+        }),
         onSkillTokenUsage: wrapEventHandler(onSkillTokenUsage),
       });
 
-      return cleanup;
+      return () => {
+        timeoutCleanup();
+        useActionResultStore.getState().removeStreamResult(resultId);
+      };
     },
     [addNode, setNodeDataByEntity, onUpdateResult, createTimeoutHandler, selectedMcpServers],
   );
