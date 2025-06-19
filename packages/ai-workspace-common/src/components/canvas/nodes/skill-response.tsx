@@ -274,7 +274,7 @@ export const SkillResponseNode = memo(
     }));
 
     useEffect(() => {
-      if (!isStreaming && status === 'executing') {
+      if (!isStreaming && (status === 'executing' || status === 'waiting')) {
         startPolling(entityId, version);
       }
       if (isStreaming && status !== 'executing' && status !== 'waiting') {
