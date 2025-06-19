@@ -114,7 +114,7 @@ export const NodeHeader = memo(
           <div className="flex items-center gap-2">
             {showIcon && (
               <div className="w-6 h-6 rounded bg-[#F79009] shadow-lg flex items-center justify-center flex-shrink-0">
-                <IconResponse className="w-4 h-4 text-white dark:text-gray-900" />
+                <IconResponse className="w-4 h-4 text-white" />
               </div>
             )}
             {isEditing ? (
@@ -268,13 +268,17 @@ export const SkillResponseNode = memo(
     const currentSkill = actionMeta || selectedSkill;
 
     const { startPolling, resetFailedState } = useActionPolling();
-    const { isStreaming } = useActionResultStoreShallow((state) => ({
+    const { isStreaming, removeStreamResult } = useActionResultStoreShallow((state) => ({
       isStreaming: !!state.streamResults[entityId],
+      removeStreamResult: state.removeStreamResult,
     }));
 
     useEffect(() => {
       if (!isStreaming && status === 'executing') {
         startPolling(entityId, version);
+      }
+      if (isStreaming && status !== 'executing' && status !== 'waiting') {
+        removeStreamResult(entityId);
       }
     }, [isStreaming, status, startPolling, entityId, version]);
 

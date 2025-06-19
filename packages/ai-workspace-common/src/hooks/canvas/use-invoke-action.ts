@@ -61,10 +61,13 @@ export const useInvokeAction = () => {
     };
   }, []);
 
-  const { createTimeoutHandler } = useActionPolling();
+  const { createTimeoutHandler, stopPolling } = useActionPolling();
   const onUpdateResult = useUpdateActionResult();
 
-  const onSkillStart = (_skillEvent: SkillEvent) => {};
+  const onSkillStart = (skillEvent: SkillEvent) => {
+    const { resultId } = skillEvent;
+    stopPolling(resultId);
+  };
 
   const onSkillLog = (skillEvent: SkillEvent) => {
     const { resultId, step, log } = skillEvent;
@@ -681,21 +684,14 @@ export const useInvokeAction = () => {
         onSkillArtifact: wrapEventHandler(onSkillArtifact),
         onSkillStructedData: wrapEventHandler(onSkillStructedData),
         onSkillCreateNode: wrapEventHandler(onSkillCreateNode),
-        onSkillEnd: wrapEventHandler((event) => {
-          onSkillEnd(event);
-          useActionResultStore.getState().removeStreamResult(resultId);
-        }),
+        onSkillEnd: wrapEventHandler(onSkillEnd),
         onCompleted: wrapEventHandler(onCompleted),
-        onSkillError: wrapEventHandler((event) => {
-          onSkillError(event);
-          useActionResultStore.getState().removeStreamResult(resultId);
-        }),
+        onSkillError: wrapEventHandler(onSkillError),
         onSkillTokenUsage: wrapEventHandler(onSkillTokenUsage),
       });
 
       return () => {
         timeoutCleanup();
-        useActionResultStore.getState().removeStreamResult(resultId);
       };
     },
     [addNode, setNodeDataByEntity, onUpdateResult, createTimeoutHandler, selectedMcpServers],

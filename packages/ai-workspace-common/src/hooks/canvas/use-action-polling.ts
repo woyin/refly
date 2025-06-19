@@ -54,14 +54,11 @@ export const useActionPolling = () => {
       const { pollingStateMap, resultMap } = useActionResultStore.getState();
       const pollingState = pollingStateMap[resultId];
 
-      console.log('pollActionResult', resultId, version, pollingState);
-
       if (!pollingState?.isPolling) {
         return;
       }
 
       try {
-        console.log('getActionResult', resultId, version);
         const { data: result } = await getClient().getActionResult({
           query: { resultId, version },
         });
