@@ -75,11 +75,14 @@ const StepsList = memo(
 );
 
 const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNodePreviewProps) => {
-  const { result, isStreaming, updateActionResult } = useActionResultStoreShallow((state) => ({
-    result: state.resultMap[resultId],
-    isStreaming: !!state.streamResults[resultId],
-    updateActionResult: state.updateActionResult,
-  }));
+  const { result, traceId, isStreaming, updateActionResult } = useActionResultStoreShallow(
+    (state) => ({
+      result: state.resultMap[resultId],
+      traceId: state.traceIdMap[resultId],
+      isStreaming: !!state.streamResults[resultId],
+      updateActionResult: state.updateActionResult,
+    }),
+  );
   const knowledgeBaseStore = useKnowledgeBaseStoreShallow((state) => ({
     sourceListDrawerVisible: state.sourceListDrawer.visible,
   }));
@@ -260,6 +263,9 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   }
 
   const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
+  const errDescription = useMemo(() => {
+    return `${errCode} ${errMsg} ${rawError ? `: ${String(rawError)}` : ''}`;
+  }, [errCode, errMsg, rawError]);
 
   return (
     <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto">
@@ -309,20 +315,22 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
           {result?.status === 'failed' && (
             <div className="mt-2 flex flex-col gap-2 border border-solid border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <div className="font-medium text-base flex items-center gap-2">
-                    <IconError className="text-sm flex items-center justify-center text-yellow-500" />
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="font-medium text-sm flex items-center gap-2">
+                    <IconError className="flex items-center justify-center text-yellow-500 flex-shrink-0" />
                     {t('canvas.skillResponse.error.defaultTitle')}
                   </div>
                   {errCode && (
                     <div className="space-y-2">
-                      <p className="text-gray-700 dark:text-gray-200 text-sm">
-                        [{errCode}] {errMsg} {rawError ? `: ${String(rawError)}` : ''}
+                      <p className="text-gray-700 dark:text-gray-200 text-xs break-words">
+                        {errDescription}
                       </p>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">
-                        Request ID: ea79eee8bb0710bd86f4a5af663088b7
-                      </p>
+                      {traceId && (
+                        <p className="text-gray-500 dark:text-gray-400 text-xs break-all">
+                          Trace ID: {traceId}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -334,7 +342,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
                   className="text-xs"
                   onClick={() => {
                     if (errCode) {
-                      navigator.clipboard.writeText(errCode);
+                      navigator.clipboard.writeText(`${errDescription}\nTrace ID: ${traceId}`);
                       message.success(t('components.markdown.copySuccess'));
                     }
                   }}

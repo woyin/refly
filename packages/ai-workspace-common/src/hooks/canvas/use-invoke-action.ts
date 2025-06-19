@@ -518,11 +518,18 @@ export const useInvokeAction = () => {
     const runtime = getRuntime();
     const { originError, resultId } = skillEvent;
 
-    const { resultMap } = useActionResultStore.getState();
+    const { resultMap, setTraceId } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
     if (!result) {
       return;
+    }
+
+    // Set traceId if available (check for traceId in different possible locations)
+    const traceId = skillEvent?.error?.traceId;
+
+    if (traceId) {
+      setTraceId(resultId, traceId);
     }
 
     const updatedResult = {
