@@ -1998,6 +1998,32 @@ const translations = {
       stdioWebDisabledTooltip: 'Stdio protocol is not supported in the web version.',
       jsonModeStdioWarning:
         "When configuring via JSON, please note: The 'stdio' type is not supported in the web version and may lead to unexpected behavior.",
+      // Community MCP
+      community: {
+        title: 'Community MCP Configurations',
+        description: 'Discover and install community MCP configurations',
+        searchPlaceholder: 'Search configurations...',
+        filterByType: 'Filter by type',
+        allTypes: 'All Types',
+        install: 'Install',
+        installing: 'Installing...',
+        installed: 'Installed',
+        installSuccess: 'Successfully installed {{name}}',
+        installError: 'Failed to install {{name}}',
+        viewDocumentation: 'View documentation',
+        noDescription: 'No description available',
+        loadError: 'Failed to load community configurations',
+        loadErrorDescription: 'Please check your network connection and try again.',
+        noConfigurations: 'No community configurations found',
+        author: 'by {{author}}',
+        version: 'v{{version}}',
+        types: {
+          sse: 'Server-Sent Events (SSE)',
+          streamable: 'Streamable API',
+          stdio: 'Standard I/O (Stdio)',
+          websocket: 'WebSocket',
+        },
+      },
     },
     appearance: {
       title: 'Appearance Settings',
