@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReactFlow, XYPosition } from '@xyflow/react';
 import { ActionResult, PilotSession, PilotStep } from '@refly/openapi-schema';
-import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode } from '@refly/canvas-common';
 import { Button, Skeleton, Tooltip, Popover, Empty, Divider, Progress } from 'antd';
 import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
 import {

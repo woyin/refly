@@ -1,5 +1,6 @@
 import { Position, useReactFlow } from '@xyflow/react';
-import { CanvasNode, MemoNodeProps } from '../shared/types';
+import { CanvasNode } from '@refly/canvas-common';
+import { MemoNodeProps } from '../shared/types';
 import { CustomHandle } from '../shared/custom-handle';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';

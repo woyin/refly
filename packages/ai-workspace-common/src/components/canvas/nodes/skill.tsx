@@ -1,5 +1,5 @@
 import { Edge, NodeProps, Position, useReactFlow } from '@xyflow/react';
-import { CanvasNode, CanvasNodeData, SkillNodeMeta } from './shared/types';
+import { CanvasNode, CanvasNodeData, SkillNodeMeta } from '@refly/canvas-common';
 import { Node } from '@xyflow/react';
 import { Form } from 'antd';
 import { CustomHandle } from './shared/custom-handle';

@@ -1,9 +1,6 @@
 import { useState, memo, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  CanvasNode,
-  CodeArtifactNodeMeta,
-} from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode, CodeArtifactNodeMeta } from '@refly/canvas-common';
 import CodeViewerLayout from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/code-viewer-layout';
 import CodeViewer from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/code-viewer';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';

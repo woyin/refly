@@ -1,8 +1,5 @@
 import { memo, useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  CanvasNode,
-  ResponseNodeMeta,
-} from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 import { LinearThreadContent } from '@refly-packages/ai-workspace-common/components/canvas/linear-thread/linear-thread';
 import { LinearThreadMessage } from '@refly-packages/ai-workspace-common/stores/canvas';
 import { cn } from '@refly/utils/cn';

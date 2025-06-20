@@ -2,7 +2,7 @@ import { memo, useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { Position, NodeProps, useReactFlow } from '@xyflow/react';
 import { CustomHandle } from './shared/custom-handle';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import { CanvasNode, CommonNodeProps } from './shared/types';
+import { CanvasNode, CommonNodeProps } from '@refly/canvas-common';
 import { GroupActionButtons } from '../group-action-menu/group-action-buttons';
 import { GroupName } from '../group-action-menu/group-name';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';

@@ -9,10 +9,7 @@ import {
   IconSlideshow,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import {
-  CanvasNode,
-  SkillNodeMeta,
-} from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode, SkillNodeMeta } from '@refly/canvas-common';
 import { MessageSquareDiff, Group, Target, Layout } from 'lucide-react';
 import { genActionResultID, genSkillID } from '@refly/utils/id';
 import { CanvasNodeType } from '@refly/openapi-schema';
@@ -21,7 +18,7 @@ import { useGroupNodes } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
-import { CanvasNodeData } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/types';
+import { CanvasNodeData } from '@refly/canvas-common';
 import {
   IContextItem,
   useContextPanelStore,

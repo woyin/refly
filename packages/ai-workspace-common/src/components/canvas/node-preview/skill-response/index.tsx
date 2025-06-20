@@ -4,10 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useActionResultStoreShallow } from '@refly-packages/ai-workspace-common/stores/action-result';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ActionResult, ActionStep } from '@refly/openapi-schema';
-import {
-  CanvasNode,
-  ResponseNodeMeta,
-} from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { ActionStepCard } from './action-step';

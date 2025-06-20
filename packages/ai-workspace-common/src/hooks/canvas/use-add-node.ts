@@ -6,18 +6,19 @@ import { useTranslation } from 'react-i18next';
 import { genUniqueId } from '@refly/utils/id';
 import { useCanvasStore } from '@refly-packages/ai-workspace-common/stores/canvas';
 import {
+  CanvasNode,
   CanvasNodeData,
+  CanvasNodeFilter,
   getNodeDefaultMetadata,
   prepareNodeData,
-} from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+} from '@refly/canvas-common';
 import { useEdgeStyles } from '../../components/canvas/constants';
-import { CanvasNodeFilter, useNodeSelection } from './use-node-selection';
+import { useNodeSelection } from './use-node-selection';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { useNodePosition } from './use-node-position';
 import { purgeContextItems } from '@refly-packages/ai-workspace-common/utils/map-context-items';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
 import { adoptUserNodes } from '@xyflow/system';
 
 // Define the maximum number of nodes allowed in a canvas

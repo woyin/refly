@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CloseOutlined, ToolOutlined } from '@ant-design/icons';
 import { Badge, Button, Form } from 'antd';
 import { ModelInfo, Skill, SkillRuntimeConfig, SkillTemplateConfig } from '@refly/openapi-schema';
-import { CanvasNode, CanvasNodeData, SkillNodeMeta } from '../nodes/shared/types';
+import { CanvasNode, CanvasNodeData, SkillNodeMeta } from '@refly/canvas-common';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {

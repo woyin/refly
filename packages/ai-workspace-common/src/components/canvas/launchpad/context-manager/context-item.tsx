@@ -10,7 +10,7 @@ import { useCallback } from 'react';
 import { message } from 'antd';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
-import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const ContextItem = ({

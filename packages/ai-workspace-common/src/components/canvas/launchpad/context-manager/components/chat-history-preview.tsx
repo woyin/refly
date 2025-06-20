@@ -11,10 +11,7 @@ import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context
 import { getResultDisplayContent } from '@refly-packages/ai-workspace-common/components/common/result-display';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
-import {
-  CanvasNode,
-  ResponseNodeMeta,
-} from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
 
 // Define props interface
