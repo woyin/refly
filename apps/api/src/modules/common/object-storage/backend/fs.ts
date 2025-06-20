@@ -63,12 +63,7 @@ export class FsStorageBackend implements ObjectStorageBackend {
     throw new Error('presignedGetObject is not supported for FS storage backend');
   }
 
-  async putObject(key: string, data: Readable | Buffer | string): Promise<ObjectInfo | null> {
-    if (!data) {
-      this.logger.warn(`Object data is empty for key ${key}, skip putObject`);
-      return null;
-    }
-
+  async putObject(key: string, data: Readable | Buffer | string): Promise<ObjectInfo> {
     try {
       const filePath = this.getFilePath(key);
 
