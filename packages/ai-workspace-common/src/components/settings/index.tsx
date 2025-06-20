@@ -68,7 +68,7 @@ const McpServerTab = ({ visible }: { visible: boolean }) => {
     },
     {
       key: 'community',
-      label: 'Community',
+      label: 'MCP Store',
       icon: <AppstoreOutlined />,
     },
   ];
