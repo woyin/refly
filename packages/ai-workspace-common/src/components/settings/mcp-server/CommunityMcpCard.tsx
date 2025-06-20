@@ -153,7 +153,7 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
           {/* Left side - Logo, title and description */}
           <div className="flex items-center flex-1 min-w-0">
             {/* Logo with favicon or placeholder */}
-            <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 cursor-pointer">
               {faviconUrl ? (
                 <img
                   src={faviconUrl}
