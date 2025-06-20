@@ -90,12 +90,7 @@ export class MinioStorageBackend implements ObjectStorageBackend {
     key: string,
     stream: Readable | Buffer | string,
     metaData?: Record<string, string>,
-  ): Promise<ObjectInfo | null> {
-    if (!stream) {
-      this.logger.warn(`Object stream is empty for key ${key}, skip putObject`);
-      return null;
-    }
-
+  ): Promise<ObjectInfo> {
     try {
       await this.client.putObject(this.config.bucket, key, stream, metaData);
 
