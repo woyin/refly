@@ -1,5 +1,12 @@
 import { McpServerDTO, McpServerType } from '@refly/openapi-schema';
 
+// Authorization type for community MCP
+export interface CommunityMcpAuthorization {
+  type: 'apiKey';
+  apiKeyIn: 'url' | 'authorizationBearer' | 'headers';
+  paramName?: string; // For headers type
+}
+
 // Community MCP configuration type
 export interface CommunityMcpConfig {
   name: string;
@@ -20,6 +27,8 @@ export interface CommunityMcpConfig {
   author?: string;
   version?: string;
   tags?: string[];
+  icon?: string;
+  authorization?: CommunityMcpAuthorization[];
 }
 
 // Community MCP response type
@@ -107,4 +116,19 @@ export interface McpServerJsonEditorProps {
 // Props for MCP server batch import component
 export interface McpServerBatchImportProps {
   onSuccess: () => void;
+}
+
+// Props for community MCP API key configuration modal
+export interface CommunityMcpApiKeyModalProps {
+  visible: boolean;
+  config: CommunityMcpConfig;
+  onClose: () => void;
+  onSuccess: (apiKey: string) => void;
+  loading?: boolean;
+}
+
+// API key configuration data
+export interface ApiKeyConfiguration {
+  apiKey: string;
+  [key: string]: any; // Additional configuration fields if needed
 }

@@ -1,9 +1,8 @@
-import { McpServerType } from '@refly/openapi-schema';
+import { McpServerType, UpsertMcpServerRequest } from '@refly/openapi-schema';
 import type { CommunityMcpConfig } from './types';
-import type { UpsertMcpServerRequest } from '@refly/openapi-schema';
 
 // Map server type from universal format to Refly format or infer from other fields
-export const mapServerType = (type: string, serverConfig?: any): McpServerType => {
+export const mapServerType = (type: string, serverConfig?: CommunityMcpConfig): McpServerType => {
   const typeMap: Record<string, McpServerType> = {
     sse: 'sse',
     streamable: 'streamable',
@@ -43,56 +42,128 @@ export const mapServerType = (type: string, serverConfig?: any): McpServerType =
   return 'streamable';
 };
 
-// Convert community MCP config to UpsertMcpServerRequest format
+// Convert community MCP configuration to server request format
 export const convertCommunityConfigToServerRequest = (
   config: CommunityMcpConfig,
+  apiKey?: string,
 ): UpsertMcpServerRequest => {
-  // Map the type using the existing logic
-  const mappedType = mapServerType(config.type, config);
+  // Apply API key configuration if provided
+  const configuredConfig = apiKey ? applyCommunityMcpApiKey(config, apiKey) : config;
 
-  // Convert config to UpsertMcpServerRequest format
+  // Map the type correctly using utility function
+  const mappedType = mapServerType(configuredConfig.type, configuredConfig);
+
   const serverRequest: UpsertMcpServerRequest = {
-    name: config.name,
+    name: configuredConfig.name,
     type: mappedType,
-    enabled: true, // Default to enabled for community installs
+    enabled: true,
+    // Add default reconnection settings for stability
+    ...(mappedType !== 'stdio' && {
+      reconnect: {
+        enabled: true,
+        maxAttempts: 3,
+        delayMs: 1000,
+      },
+    }),
   };
 
-  // Add type-specific fields
-  if (mappedType === 'stdio') {
-    if (config.command) {
-      serverRequest.command = config.command;
-    }
-    if (config.args?.length) {
-      serverRequest.args = config.args;
-    }
-    if (config.env && Object.keys(config.env).length > 0) {
-      serverRequest.env = config.env;
-    }
-  } else {
-    // For sse and streamable types
-    if (config.url) {
-      serverRequest.url = config.url;
-    }
-    if (config.headers && Object.keys(config.headers).length > 0) {
-      serverRequest.headers = config.headers;
-    }
+  // Add URL/command based on type
+  if (configuredConfig.url) {
+    serverRequest.url = configuredConfig.url;
+  }
+  if (configuredConfig.command) {
+    serverRequest.command = configuredConfig.command;
+  }
+  if (configuredConfig.args) {
+    serverRequest.args = configuredConfig.args;
   }
 
-  // Add additional configuration if present
-  if (config.config && Object.keys(config.config).length > 0) {
-    serverRequest.config = config.config;
+  // Add environment variables
+  if (configuredConfig.env) {
+    serverRequest.env = configuredConfig.env;
   }
 
-  // Add default reconnection settings for non-stdio types
-  if (mappedType !== 'stdio') {
-    serverRequest.reconnect = {
-      enabled: true,
-      maxAttempts: 3,
-      delayMs: 1000,
-    };
+  // Add headers
+  if (configuredConfig.headers) {
+    serverRequest.headers = configuredConfig.headers;
+  }
+
+  // Add additional config
+  if (configuredConfig.config) {
+    serverRequest.config = configuredConfig.config;
   }
 
   return serverRequest;
+};
+
+// Apply API key configuration to community MCP configuration
+export const applyCommunityMcpApiKey = (
+  config: CommunityMcpConfig,
+  apiKey: string,
+): CommunityMcpConfig => {
+  if (!config.authorization?.length) {
+    return config;
+  }
+
+  const configured = { ...config };
+
+  // Process authorization configuration
+  if (config.authorization?.length) {
+    for (const auth of config.authorization) {
+      if (auth.type === 'apiKey') {
+        switch (auth.apiKeyIn) {
+          case 'url': {
+            // Replace ${API_KEY} placeholder in URL
+            if (configured.url) {
+              configured.url = configured.url.replace('${API_KEY}', apiKey);
+            }
+            break;
+          }
+          case 'authorizationBearer': {
+            // Add Authorization Bearer header
+            configured.headers = {
+              ...configured.headers,
+              Authorization: `Bearer ${apiKey}`,
+            };
+            break;
+          }
+          case 'headers': {
+            // Add custom header (using paramName or default to 'X-API-Key')
+            const headerName = auth.paramName || 'X-API-Key';
+            configured.headers = {
+              ...configured.headers,
+              [headerName]: apiKey,
+            };
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return configured;
+};
+
+// Check if community MCP config requires API key
+export const requiresApiKey = (config: CommunityMcpConfig): boolean => {
+  return config.authorization?.some((auth) => auth.type === 'apiKey') ?? false;
+};
+
+// Get auth method display text for a community MCP config
+export const getAuthMethodText = (config: CommunityMcpConfig): string => {
+  const auth = config.authorization?.find((a) => a.type === 'apiKey');
+  if (!auth) return '';
+
+  switch (auth.apiKeyIn) {
+    case 'url':
+      return 'URL Parameter';
+    case 'authorizationBearer':
+      return 'Bearer Token';
+    case 'headers':
+      return `Header (${auth.paramName || 'X-API-Key'})`;
+    default:
+      return 'API Key';
+  }
 };
 
 // Check if a community config is already installed based on name
@@ -117,4 +188,25 @@ export const generateUniqueName = (
   }
 
   return uniqueName;
+};
+
+// Get description with locale support from translation function
+export const getConfigDescription = (
+  config: CommunityMcpConfig,
+  t: (key: string) => string,
+): string => {
+  if (!config.description) {
+    return '';
+  }
+
+  // If description is already a string, return it directly
+  if (typeof config.description === 'string') {
+    return config.description;
+  }
+
+  // If description is an object, get the appropriate language
+  const currentLanguage = t('language');
+  const languageKey = currentLanguage === '简体中文' ? 'zh-CN' : 'en';
+
+  return config.description[languageKey] || config.description.en || '';
 };

@@ -1,19 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Row, Col, Input, Select, Alert, Empty, message, Typography } from 'antd';
+import { Row, Col, Input, Select, Alert, Empty, Typography } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-
-import { McpServerDTO } from '@refly/openapi-schema';
-import {
-  useListCommunityMcpConfigs,
-  useCreateMcpServer,
-} from '@refly-packages/ai-workspace-common/queries';
+import type { McpServerDTO } from '@refly/openapi-schema';
+import { useListCommunityMcpConfigs } from '@refly-packages/ai-workspace-common/queries';
 import {
   CommunityMcpCard,
   CommunityMcpCardSkeleton,
 } from '@refly-packages/ai-workspace-common/components/settings/mcp-server';
 import { CommunityMcpConfig } from './types';
-import { convertCommunityConfigToServerRequest, generateUniqueName } from './utils';
 
 interface CommunityMcpListProps {
   visible: boolean;
@@ -29,7 +24,6 @@ export const CommunityMcpList: React.FC<CommunityMcpListProps> = ({
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
-  const [installingServers, setInstallingServers] = useState<Set<string>>(new Set());
 
   // Fetch community configurations
   const {
@@ -68,49 +62,10 @@ export const CommunityMcpList: React.FC<CommunityMcpListProps> = ({
     return installedServers.some((server) => server.name === config.name);
   };
 
-  // Initialize the create MCP server mutation
-  const createMcpServer = useCreateMcpServer(undefined, {
-    onSuccess: () => {
-      onInstallSuccess(); // Refresh the servers list
-    },
-    onError: (error) => {
-      console.error('Installation error:', error);
-    },
-  });
-
-  // Handle community MCP installation
-  const handleInstallCommunity = async (config: CommunityMcpConfig) => {
-    try {
-      setInstallingServers((prev) => new Set(prev).add(config.name));
-
-      // Convert community config to server request format
-      const serverRequest = convertCommunityConfigToServerRequest(config);
-
-      // Check for name conflicts and generate unique name if needed
-      let finalServerRequest = serverRequest;
-      if (isServerInstalled(config)) {
-        const uniqueName = generateUniqueName(config.name, installedServers);
-        finalServerRequest = { ...serverRequest, name: uniqueName };
-      }
-
-      // Create the MCP server
-      await createMcpServer.mutateAsync({
-        body: finalServerRequest,
-      });
-
-      message.success(
-        t('settings.mcpServer.community.installSuccess', { name: finalServerRequest.name }),
-      );
-    } catch (error) {
-      message.error(t('settings.mcpServer.community.installError', { name: config.name }));
-      console.error('Installation error:', error);
-    } finally {
-      setInstallingServers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(config.name);
-        return newSet;
-      });
-    }
+  // Handle successful installation from CommunityMcpCard
+  const handleInstallSuccess = () => {
+    // Notify parent to refresh the servers list
+    onInstallSuccess();
   };
 
   if (!visible) return null;
@@ -252,8 +207,7 @@ export const CommunityMcpList: React.FC<CommunityMcpListProps> = ({
                 <CommunityMcpCard
                   config={config}
                   isInstalled={isServerInstalled(config)}
-                  isInstalling={installingServers.has(config.name)}
-                  onInstall={handleInstallCommunity}
+                  onInstall={handleInstallSuccess}
                 />
               </Col>
             ))}

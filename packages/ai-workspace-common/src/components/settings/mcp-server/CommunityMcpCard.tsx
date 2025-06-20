@@ -2,25 +2,35 @@ import React, { memo, useState } from 'react';
 import { Card, Button, Badge, Typography, Tooltip, Space, message } from 'antd';
 import { DownloadOutlined, CheckOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useCreateMcpServer } from '@refly-packages/ai-workspace-common/queries';
+import {
+  useCreateMcpServer,
+  useValidateMcpServer,
+} from '@refly-packages/ai-workspace-common/queries';
 
 import { CommunityMcpCardProps } from './types';
-import { convertCommunityConfigToServerRequest } from './utils';
+import {
+  convertCommunityConfigToServerRequest,
+  requiresApiKey,
+  getConfigDescription,
+} from './utils';
+import { CommunityMcpApiKeyModal } from './CommunityMcpApiKeyModal';
 
 const { Text, Title, Paragraph } = Typography;
 
 export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
   ({ config, isInstalled, isInstalling, onInstall }) => {
     const [installing, setInstalling] = useState(false);
+    const [validating, setValidating] = useState(false);
     const [faviconError, setFaviconError] = useState(false);
+    const [apiKeyModalVisible, setApiKeyModalVisible] = useState(false);
     const { t } = useTranslation();
 
     // Initialize the create MCP server mutation
-    const createMcpServer = useCreateMcpServer(undefined, {
+    const createMcpServer = useCreateMcpServer([], {
       onSuccess: () => {
         message.success(t('settings.mcpServer.community.installSuccess', { name: config.name }));
         setInstalling(false);
-        onInstall?.(config); // Trigger refresh of installed servers
+        onInstall?.(config);
       },
       onError: (error) => {
         console.error('Installation error:', error);
@@ -29,64 +39,99 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
       },
     });
 
-    // Get favicon URL from documentation
+    // Initialize the validate MCP server mutation
+    const validateMcpServer = useValidateMcpServer([], {
+      onSuccess: () => {
+        message.success(t('settings.mcpServer.community.validateSuccess'));
+        setValidating(false);
+      },
+      onError: (error) => {
+        console.error('Validation error:', error);
+        message.error(t('settings.mcpServer.community.validateError'));
+        setValidating(false);
+      },
+    });
+
+    // Get favicon URL with fallback
     const getFaviconUrl = () => {
-      if (!config.documentation || faviconError) {
+      if (faviconError || !config.icon) {
         return null;
       }
-
-      try {
-        const url = new URL(config.documentation);
-        // Use Google's favicon service with higher resolution for better quality
-        return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
-      } catch {
-        return null;
-      }
+      return config.icon;
     };
 
-    // Get localized description
-    const getDescription = () => {
-      if (typeof config.description === 'string') {
-        return config.description;
-      }
-      const currentLanguage = t('language');
-      if (currentLanguage === 'Chinese' && config.description?.['zh-CN']) {
-        return config.description['zh-CN'];
-      }
-      if (config.description?.en) {
-        return config.description.en;
-      }
-      return t('settings.mcpServer.community.noDescription');
-    };
+    // Get description with locale support
+    const description = getConfigDescription(config, t);
 
-    // Get type color and style
+    // Get type color for badge
     const getTypeColor = (type: string) => {
       switch (type) {
-        case 'stdio':
-          return '#52c41a'; // Green
         case 'sse':
-          return '#1677ff'; // Blue
+          return '#1890ff';
+        case 'streamable':
+          return '#52c41a';
+        case 'stdio':
+          return '#fa8c16';
         case 'websocket':
-          return '#fa8c16'; // Orange
+          return '#722ed1';
         default:
-          return '#8c8c8c'; // Gray
+          return '#d9d9d9';
       }
     };
 
     // Handle installation
     const handleInstall = async () => {
+      // Check if API key is required using utility function
+      if (requiresApiKey(config)) {
+        // Show API key configuration modal
+        setApiKeyModalVisible(true);
+        return;
+      }
+
+      // Direct installation for configs that don't require API key
+      await performInstallation();
+    };
+
+    // Perform the actual installation
+    const performInstallation = async (apiKey?: string) => {
       try {
+        // Convert community config to server request format with API key
+        const serverRequest = convertCommunityConfigToServerRequest(config, apiKey);
+
+        // Step 1: Validate MCP server connection
+        setValidating(true);
+        message.info(t('settings.mcpServer.community.validating'));
+
+        await validateMcpServer.mutateAsync({
+          body: serverRequest,
+        });
+
+        // Step 2: Install the MCP server if validation successful
+        setValidating(false);
         setInstalling(true);
 
-        // Convert community config to server request format
-        const serverRequest = convertCommunityConfigToServerRequest(config);
-
-        // Create the MCP server
         await createMcpServer.mutateAsync({
           body: serverRequest,
         });
-      } catch (error) {
+
+        // Only show success message for direct installation (no API key modal)
+        // API key modal will show its own success message
+        if (!apiKey) {
+          message.success(t('settings.mcpServer.community.installSuccess', { name: config.name }));
+        }
+
+        setApiKeyModalVisible(false);
+        // Always call onInstall on success to refresh parent state
+        onInstall?.(config);
+      } catch (error: any) {
         console.error('Installation error:', error);
+        // Always show error message regardless of source
+        const errorMessage = validating
+          ? t('settings.mcpServer.community.validateError')
+          : t('settings.mcpServer.community.installError', { name: config.name });
+        message.error(errorMessage);
+      } finally {
+        setValidating(false);
         setInstalling(false);
       }
     };
@@ -104,6 +149,15 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
             borderColor: '#52c41a',
             backgroundColor: '#f6ffed',
           },
+        };
+      }
+
+      if (validating) {
+        return {
+          type: 'primary' as const,
+          loading: true,
+          disabled: true,
+          children: t('settings.mcpServer.community.validating'),
         };
       }
 
@@ -128,153 +182,164 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
     const faviconUrl = getFaviconUrl();
 
     return (
-      <Card
-        hoverable={!isInstalled && !isInstalling}
-        className="community-mcp-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-        style={{
-          height: '100px',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'all 0.3s ease',
-          borderRadius: '8px',
-          overflow: 'hidden',
-        }}
-        styles={{
-          body: {
-            padding: '16px',
+      <>
+        <Card
+          hoverable={!isInstalled && !isInstalling}
+          className="community-mcp-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+          style={{
+            height: '100px',
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
-          },
-        }}
-      >
-        {/* Main content layout */}
-        <div className="flex items-center justify-between h-full">
-          {/* Left side - Logo, title and description */}
-          <div className="flex items-center flex-1 min-w-0">
-            {/* Logo with favicon or placeholder */}
-            <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 cursor-pointer">
-              {faviconUrl ? (
-                <img
-                  src={faviconUrl}
-                  alt={`${config.name} icon`}
-                  className="w-8 h-8 object-contain rounded-lg"
-                  style={{
-                    imageRendering: '-webkit-optimize-contrast',
-                  }}
-                  onError={() => setFaviconError(true)}
-                  onLoad={() => setFaviconError(false)}
-                />
-              ) : (
-                <div className="w-6 h-6 rounded-lg bg-gray-300 dark:bg-gray-500" />
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              {/* Title and badge row */}
-              <div className="flex items-center mb-1">
-                <Title
-                  level={5}
-                  className="truncate text-gray-900 dark:text-gray-100"
-                  style={{
-                    margin: 0,
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    marginRight: '8px',
-                  }}
-                  title={config.name}
-                >
-                  {config.name}
-                </Title>
-                <Badge
-                  color={getTypeColor(config.type)}
-                  text={config.type?.toUpperCase()}
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 500,
-                    flexShrink: 0,
-                  }}
-                />
+            transition: 'all 0.3s ease',
+            borderRadius: '8px',
+            overflow: 'hidden',
+          }}
+          styles={{
+            body: {
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+            },
+          }}
+        >
+          {/* Main content layout */}
+          <div className="flex items-center justify-between h-full">
+            {/* Left side - Logo, title and description */}
+            <div className="flex items-center flex-1 min-w-0">
+              {/* Logo with favicon or placeholder */}
+              <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 cursor-pointer">
+                {faviconUrl ? (
+                  <img
+                    src={faviconUrl}
+                    alt={`${config.name} icon`}
+                    className="w-8 h-8 object-contain rounded-lg"
+                    style={{
+                      imageRendering: '-webkit-optimize-contrast',
+                    }}
+                    onError={() => setFaviconError(true)}
+                    onLoad={() => setFaviconError(false)}
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-lg bg-gray-300 dark:bg-gray-500" />
+                )}
               </div>
 
-              {/* Description */}
-              <Paragraph
-                className="text-gray-600 dark:text-gray-400"
-                style={{
-                  margin: 0,
-                  fontSize: '12px',
-                  lineHeight: '1.3',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  height: '32px',
-                }}
-                title={getDescription()}
-              >
-                {getDescription()}
-              </Paragraph>
-
-              {/* Metadata */}
-              {(config.author || config.version) && (
-                <div className="flex items-center mt-1">
-                  <Space size={6}>
-                    {config.author && (
-                      <Text type="secondary" style={{ fontSize: '11px' }}>
-                        # {config.author}
-                      </Text>
-                    )}
-                    {config.version && (
-                      <Text type="secondary" style={{ fontSize: '11px' }}>
-                        v{config.version}
-                      </Text>
-                    )}
-                  </Space>
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                {/* Title and badge row */}
+                <div className="flex items-center mb-1">
+                  <Title
+                    level={5}
+                    className="truncate text-gray-900 dark:text-gray-100"
+                    style={{
+                      margin: 0,
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      marginRight: '8px',
+                    }}
+                    title={config.name}
+                  >
+                    {config.name}
+                  </Title>
+                  <Badge
+                    color={getTypeColor(config.type)}
+                    text={config.type?.toUpperCase()}
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 500,
+                      flexShrink: 0,
+                    }}
+                  />
                 </div>
+
+                {/* Description */}
+                <Paragraph
+                  className="text-gray-600 dark:text-gray-400"
+                  style={{
+                    margin: 0,
+                    fontSize: '12px',
+                    lineHeight: '1.3',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    height: '32px',
+                  }}
+                  title={description}
+                >
+                  {description}
+                </Paragraph>
+
+                {/* Metadata */}
+                {(config.author || config.version) && (
+                  <div className="flex items-center mt-1">
+                    <Space size={6}>
+                      {config.author && (
+                        <Text type="secondary" style={{ fontSize: '11px' }}>
+                          # {config.author}
+                        </Text>
+                      )}
+                      {config.version && (
+                        <Text type="secondary" style={{ fontSize: '11px' }}>
+                          v{config.version}
+                        </Text>
+                      )}
+                    </Space>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right side - Actions */}
+            <div className="flex items-center ml-3 flex-shrink-0">
+              {/* Documentation button */}
+              {config.documentation && (
+                <Tooltip title={t('settings.mcpServer.community.viewDocumentation')}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<ExclamationCircleOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (config.documentation) {
+                        window.open(config.documentation, '_blank');
+                      }
+                    }}
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mr-2"
+                    style={{
+                      padding: '2px',
+                      fontSize: '12px',
+                    }}
+                  />
+                </Tooltip>
               )}
+
+              {/* Install button */}
+              <Button
+                size="small"
+                {...buttonProps}
+                style={{
+                  minWidth: '70px',
+                  height: '28px',
+                  fontWeight: 500,
+                  fontSize: '12px',
+                  ...buttonProps.style,
+                }}
+              />
             </div>
           </div>
+        </Card>
 
-          {/* Right side - Actions */}
-          <div className="flex items-center ml-3 flex-shrink-0">
-            {/* Documentation button */}
-            {config.documentation && (
-              <Tooltip title={t('settings.mcpServer.community.viewDocumentation')}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ExclamationCircleOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (config.documentation) {
-                      window.open(config.documentation, '_blank');
-                    }
-                  }}
-                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mr-2"
-                  style={{
-                    padding: '2px',
-                    fontSize: '12px',
-                  }}
-                />
-              </Tooltip>
-            )}
-
-            {/* Install button */}
-            <Button
-              size="small"
-              {...buttonProps}
-              style={{
-                minWidth: '70px',
-                height: '28px',
-                fontWeight: 500,
-                fontSize: '12px',
-                ...buttonProps.style,
-              }}
-            />
-          </div>
-        </div>
-      </Card>
+        {/* API Key Configuration Modal */}
+        <CommunityMcpApiKeyModal
+          visible={apiKeyModalVisible}
+          config={config}
+          onClose={() => setApiKeyModalVisible(false)}
+          onSuccess={(apiKey: string) => performInstallation(apiKey)}
+          loading={installing}
+        />
+      </>
     );
   },
 );
