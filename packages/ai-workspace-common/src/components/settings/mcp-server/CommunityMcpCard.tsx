@@ -12,6 +12,7 @@ const { Text, Title, Paragraph } = Typography;
 export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
   ({ config, isInstalled, isInstalling, onInstall }) => {
     const [installing, setInstalling] = useState(false);
+    const [faviconError, setFaviconError] = useState(false);
     const { t } = useTranslation();
 
     // Initialize the create MCP server mutation
@@ -27,6 +28,21 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
         setInstalling(false);
       },
     });
+
+    // Get favicon URL from documentation
+    const getFaviconUrl = () => {
+      if (!config.documentation || faviconError) {
+        return null;
+      }
+
+      try {
+        const url = new URL(config.documentation);
+        // Use Google's favicon service with higher resolution for better quality
+        return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
+      } catch {
+        return null;
+      }
+    };
 
     // Get localized description
     const getDescription = () => {
@@ -109,6 +125,7 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
     };
 
     const buttonProps = getInstallButtonProps();
+    const faviconUrl = getFaviconUrl();
 
     return (
       <Card
@@ -135,9 +152,22 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
         <div className="flex items-center justify-between h-full">
           {/* Left side - Logo, title and description */}
           <div className="flex items-center flex-1 min-w-0">
-            {/* Logo placeholder */}
-            <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center mr-3 flex-shrink-0">
-              <div className="w-5 h-5 rounded bg-gray-400 dark:bg-gray-500" />
+            {/* Logo with favicon or placeholder */}
+            <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden shadow-sm">
+              {faviconUrl ? (
+                <img
+                  src={faviconUrl}
+                  alt={`${config.name} icon`}
+                  className="w-8 h-8 object-contain rounded-lg"
+                  style={{
+                    imageRendering: '-webkit-optimize-contrast',
+                  }}
+                  onError={() => setFaviconError(true)}
+                  onLoad={() => setFaviconError(false)}
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-lg bg-gray-300 dark:bg-gray-500" />
+              )}
             </div>
 
             {/* Content */}
