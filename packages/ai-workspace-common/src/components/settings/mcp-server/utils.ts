@@ -57,14 +57,6 @@ export const convertCommunityConfigToServerRequest = (
     name: configuredConfig.name,
     type: mappedType,
     enabled: true,
-    // Add default reconnection settings for stability
-    ...(mappedType !== 'stdio' && {
-      reconnect: {
-        enabled: true,
-        maxAttempts: 3,
-        delayMs: 1000,
-      },
-    }),
   };
 
   // Add URL/command based on type
@@ -83,9 +75,18 @@ export const convertCommunityConfigToServerRequest = (
     serverRequest.env = configuredConfig.env;
   }
 
-  // Add headers
-  if (configuredConfig.headers) {
-    serverRequest.headers = configuredConfig.headers;
+  // Add headers - ensure it's not null/undefined for sse and streamable types
+  if (mappedType === 'sse' || mappedType === 'streamable') {
+    serverRequest.headers = configuredConfig.headers || {};
+  }
+
+  // Add reconnection settings only for non-stdio types
+  if (mappedType !== 'stdio') {
+    serverRequest.reconnect = {
+      enabled: true,
+      maxAttempts: 3,
+      delayMs: 1000,
+    };
   }
 
   // Add additional config
