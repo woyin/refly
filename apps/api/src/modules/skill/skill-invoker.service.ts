@@ -262,13 +262,7 @@ export class SkillInvokerService {
       // In desktop mode, we could handle usage tracking differently if needed
     }
 
-    let aborted = false;
-
-    if (res) {
-      res.on('close', () => {
-        aborted = true;
-      });
-    }
+    const aborted = false;
 
     // const job = await this.timeoutCheckQueue.add(
     //   `idle_timeout_check:${resultId}`,
