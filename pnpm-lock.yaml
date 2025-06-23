@@ -152,6 +152,9 @@ importers:
       '@qdrant/js-client-rest':
         specifier: ^1.9.0
         version: 1.11.0(typescript@5.8.3)
+      '@refly/canvas-common':
+        specifier: workspace:*
+        version: link:../../packages/canvas-common
       '@refly/errors':
         specifier: workspace:*
         version: link:../../packages/errors

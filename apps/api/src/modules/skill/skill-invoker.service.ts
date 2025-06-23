@@ -414,7 +414,9 @@ export class SkillInvokerService {
       { leading: true, trailing: true },
     );
 
-    writeSSEResponse(res, { event: 'start', resultId, version });
+    if (res) {
+      writeSSEResponse(res, { event: 'start', resultId, version });
+    }
 
     try {
       for await (const event of skill.streamEvents(input, { ...config, version: 'v2' })) {
@@ -462,16 +464,18 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 `;
               resultAggregator.handleStreamContent(runMeta, content, '');
 
-              writeSSEResponse(res, {
-                event: 'stream',
-                resultId,
-                content,
-                step: runMeta?.step,
-                structuredData: {
-                  toolCallId: event.run_id,
-                  name: event.name,
-                },
-              });
+              if (res) {
+                writeSSEResponse(res, {
+                  event: 'stream',
+                  resultId,
+                  content,
+                  step: runMeta?.step,
+                  structuredData: {
+                    toolCallId: event.run_id,
+                    name: event.name,
+                  },
+                });
+              }
             }
             break;
           }
@@ -479,21 +483,23 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
             const content = chunk.content.toString();
             const reasoningContent = chunk?.additional_kwargs?.reasoning_content?.toString() || '';
 
-            if ((content || reasoningContent) && res && !runMeta?.suppressOutput) {
+            if ((content || reasoningContent) && !runMeta?.suppressOutput) {
               if (runMeta?.artifact) {
                 const { entityId } = runMeta.artifact;
                 const artifact = artifactMap[entityId];
 
                 // Send create_node event to client if not created
                 if (!artifact.nodeCreated) {
-                  writeSSEResponse(res, {
-                    event: 'create_node',
-                    resultId,
-                    node: {
-                      type: artifact.type,
-                      data: { entityId, title: artifact.title },
-                    },
-                  });
+                  if (res) {
+                    writeSSEResponse(res, {
+                      event: 'create_node',
+                      resultId,
+                      node: {
+                        type: artifact.type,
+                        data: { entityId, title: artifact.title },
+                      },
+                    });
+                  }
                   artifact.nodeCreated = true;
                 }
 
@@ -509,30 +515,34 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 
                   // Send stream and stream_artifact event to client
                   resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
-                  writeSSEResponse(res, {
-                    event: 'stream',
-                    resultId,
-                    content,
-                    reasoningContent: reasoningContent || undefined,
-                    step: runMeta?.step,
-                    artifact: {
-                      entityId: artifact.entityId,
-                      type: artifact.type,
-                      title: artifact.title,
-                      status: 'generating',
-                    },
-                  });
+                  if (res) {
+                    writeSSEResponse(res, {
+                      event: 'stream',
+                      resultId,
+                      content,
+                      reasoningContent: reasoningContent || undefined,
+                      step: runMeta?.step,
+                      artifact: {
+                        entityId: artifact.entityId,
+                        type: artifact.type,
+                        title: artifact.title,
+                        status: 'generating',
+                      },
+                    });
+                  }
                 }
               } else {
                 // Update result content and forward stream events to client
                 resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
-                writeSSEResponse(res, {
-                  event: 'stream',
-                  resultId,
-                  content,
-                  reasoningContent,
-                  step: runMeta?.step,
-                });
+                if (res) {
+                  writeSSEResponse(res, {
+                    event: 'stream',
+                    resultId,
+                    content,
+                    reasoningContent,
+                    step: runMeta?.step,
+                  });
+                }
               }
             }
             break;

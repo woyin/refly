@@ -10,6 +10,11 @@ import {
   EntityType,
   ActionMeta,
 } from '@refly/openapi-schema';
+import {
+  prepareAddNode,
+  convertContextItemsToNodeFilters,
+  convertResultContextToItems,
+} from '@refly/canvas-common';
 import { PilotEngine } from './pilot-engine';
 import { PilotSession } from '@/generated/client';
 import { SkillService } from '@/modules/skill/skill.service';
@@ -437,6 +442,55 @@ export class PilotService {
           rawOutput: JSON.stringify(rawStep),
           status: 'executing',
         },
+      });
+
+      const contextItems = convertResultContextToItems(context, history);
+
+      if (targetType === 'canvas') {
+        await this.canvasService.applyUpdatesToCanvasDoc(user, targetId, (doc) => {
+          const nodes = doc.getArray('nodes');
+          const edges = doc.getArray('edges');
+
+          const { newNode, newEdges } = prepareAddNode({
+            node: {
+              type: 'skillResponse',
+              data: {
+                title: rawStep.name,
+                entityId: resultId,
+                metadata: {
+                  status: 'executing',
+                  contextItems,
+                  tplConfig: '{}',
+                  runtimeConfig: '{}',
+                  modelInfo: {
+                    modelId: chatModelId,
+                  },
+                },
+              },
+            },
+            nodes: nodes.toJSON(),
+            edges: edges.toJSON(),
+            connectTo: convertContextItemsToNodeFilters(contextItems),
+          });
+
+          nodes.push([newNode]);
+          edges.push(newEdges);
+        });
+      }
+
+      await this.skillService.sendInvokeSkillTask(user, {
+        resultId,
+        input: { query: rawStep.query },
+        target: {
+          entityId: targetId,
+          entityType: targetType as EntityType,
+        },
+        modelName: chatModelId,
+        modelItemId: chatPi.itemId,
+        context,
+        resultHistory: history,
+        skillName: skill.name,
+        selectedMcpServers: [],
       });
     }
 

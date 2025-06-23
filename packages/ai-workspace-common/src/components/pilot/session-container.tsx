@@ -432,7 +432,7 @@ export const SessionContainer = memo(
               x: 0,
               y: 250 * index,
             };
-            handleInvokeAction(step.actionResult, offsetPosition);
+            // handleInvokeAction(step.actionResult, offsetPosition);
           }
         }
       }
