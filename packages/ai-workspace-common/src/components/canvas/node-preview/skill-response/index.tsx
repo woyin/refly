@@ -250,6 +250,11 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     };
   }, [node.id]);
 
+  const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
+  const errDescription = useMemo(() => {
+    return `${errCode} ${errMsg} ${rawError ? `: ${String(rawError)}` : ''}`;
+  }, [errCode, errMsg, rawError]);
+
   if (!result && !loading) {
     return (
       <div className="h-full w-full flex items-center justify-center">
@@ -261,11 +266,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       </div>
     );
   }
-
-  const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
-  const errDescription = useMemo(() => {
-    return `${errCode} ${errMsg} ${rawError ? `: ${String(rawError)}` : ''}`;
-  }, [errCode, errMsg, rawError]);
 
   return (
     <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto">
