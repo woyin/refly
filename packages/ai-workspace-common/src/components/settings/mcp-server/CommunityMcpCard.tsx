@@ -343,7 +343,7 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
           config={config}
           onClose={() => setApiKeyModalVisible(false)}
           onSuccess={(apiKey: string) => performInstallation(apiKey)}
-          loading={installing}
+          loading={installing || validating}
         />
       </>
     );
