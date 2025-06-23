@@ -301,10 +301,10 @@ export const SkillResponseNode = memo(
       : '';
 
     const skill = {
-      name: currentSkill?.name || 'CommonQnA',
+      name: currentSkill?.name || 'commonQnA',
       icon: currentSkill?.icon,
     };
-    const skillName = currentSkill?.name || 'CommonQnA';
+    const skillName = currentSkill?.name || 'commonQnA';
     const model = modelInfo?.label;
 
     // Get query and response content from result
