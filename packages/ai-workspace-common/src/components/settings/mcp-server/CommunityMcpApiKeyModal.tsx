@@ -51,7 +51,11 @@ export const CommunityMcpApiKeyModal: React.FC<CommunityMcpApiKeyModalProps> = m
 
     // Validate MCP server mutation
     const validateMutation = useValidateMcpServer(undefined, {
-      onSuccess: () => {
+      onSuccess: (response) => {
+        if (!response?.data?.success) {
+          throw new Error(response?.data?.errMsg || 'Installation failed');
+        }
+
         message.success(t('settings.mcpServer.community.validateSuccess'));
         setValidating(false);
       },
