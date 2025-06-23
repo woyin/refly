@@ -16,10 +16,8 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
-import {
-  IContextItem,
-  useContextPanelStore,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
+import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';

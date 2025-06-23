@@ -6,8 +6,8 @@ import { cn } from '@refly/utils/cn';
 import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
 import { ChatPanel } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
+import { IContextItem } from '@refly/common-types';
 import {
-  IContextItem,
   useContextPanelStore,
   useContextPanelStoreShallow,
 } from '@refly-packages/ai-workspace-common/stores/context-panel';

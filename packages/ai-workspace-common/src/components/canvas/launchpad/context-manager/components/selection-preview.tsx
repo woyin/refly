@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { IconQuote } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { getContextItemIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager/utils/icon';
 import { LuChevronRight } from 'react-icons/lu';

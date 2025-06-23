@@ -31,7 +31,7 @@ import { IconCodeArtifact } from '@refly-packages/ai-workspace-common/components
 import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { genSkillID } from '@refly/utils/id';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { useChatStore } from '@refly-packages/ai-workspace-common/stores/chat';
 import { CodeArtifact, CodeArtifactType, Skill } from '@refly/openapi-schema';
 import Renderer from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/render';

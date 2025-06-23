@@ -3,7 +3,7 @@ import { useReactFlow } from '@xyflow/react';
 import { CanvasNode, CanvasNodeData, CanvasNodeFilter } from '@refly/canvas-common';
 import { useCanvasSync } from './use-canvas-sync';
 import { purgeContextItems } from '@refly-packages/ai-workspace-common/utils/map-context-items';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 
 export const useSetNodeDataByEntity = () => {
   const { getNodes, setNodes } = useReactFlow<CanvasNode<any>>();

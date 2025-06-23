@@ -7,7 +7,7 @@ import {
   IconThreadHistory,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { getResultDisplayContent } from '@refly-packages/ai-workspace-common/components/common/result-display';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';

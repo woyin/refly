@@ -19,10 +19,8 @@ import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { CanvasNodeData } from '@refly/canvas-common';
-import {
-  IContextItem,
-  useContextPanelStore,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
+import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
 import { convertContextItemsToNodeFilters } from '@refly-packages/ai-workspace-common/utils/map-context-items';
 import { useNodeCluster } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-cluster';
 import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';

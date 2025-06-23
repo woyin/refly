@@ -26,7 +26,7 @@ import {
   useNodeSize,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
 import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { genSkillID } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import cn from 'classnames';

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { Edge, useReactFlow } from '@xyflow/react';
 import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';

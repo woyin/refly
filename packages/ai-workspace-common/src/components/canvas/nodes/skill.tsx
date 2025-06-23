@@ -16,7 +16,7 @@ import { cleanupNodeEvents } from '@refly-packages/ai-workspace-common/events/no
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { createNodeEventName } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { useEdgeStyles } from '@refly-packages/ai-workspace-common/components/canvas/constants';
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { useMemo, memo, useState, useCallback, useEffect, useRef } from 'react';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';

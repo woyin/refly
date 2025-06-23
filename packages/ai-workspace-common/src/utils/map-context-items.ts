@@ -1,6 +1,6 @@
 import { ActionResult, CanvasNodeType, SkillContext } from '@refly/openapi-schema';
 import { Node, Edge } from '@xyflow/react';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { getClientOrigin } from '@refly/utils/url';
 import { CanvasNodeFilter } from '@refly/canvas-common';
 import { omit } from '@refly/utils';

@@ -3,7 +3,7 @@ import { CloseOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useReactFlow } from '@xyflow/react';
 import { getContextItemIcon } from './utils/icon';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import cn from 'classnames';
 import { ContextPreview } from './context-preview';
 import { useCallback } from 'react';
