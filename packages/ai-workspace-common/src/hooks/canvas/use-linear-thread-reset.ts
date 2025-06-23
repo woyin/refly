@@ -6,10 +6,10 @@ import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/st
 import { useSkillStoreShallow } from '@refly-packages/ai-workspace-common/stores/skill';
 
 /**
- * Hook to handle resetting Refly Pilot state when canvas ID changes
+ * Hook to handle resetting linear thread state when canvas ID changes
  * This includes clearing thread messages, context items, and other related state
  */
-export const useReflyPilotReset = (canvasId: string) => {
+export const useLinearThreadReset = (canvasId: string) => {
   const prevCanvasIdRef = useRef<string | null>(null);
 
   const { clearLinearThreadMessages, setTplConfig } = useCanvasStoreShallow((state) => ({

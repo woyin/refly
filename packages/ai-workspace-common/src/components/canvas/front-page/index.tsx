@@ -14,7 +14,7 @@ import { Form, Button, Badge } from 'antd';
 import { ToolOutlined } from '@ant-design/icons';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions } from './action';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStore, useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
@@ -27,6 +27,7 @@ import { useCanvasTemplateModalShallow } from '@refly-packages/ai-workspace-comm
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
 import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { Title } from './title';
 import cn from 'classnames';
 
 export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
@@ -35,6 +36,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
   const [mcpSelectorOpen, setMcpSelectorOpen] = useState<boolean>(false);
+
   const skills = useListSkills();
   const templateLanguage = i18n.language;
   const templateCategoryId = '';
@@ -96,7 +98,8 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
-    debouncedCreateCanvas('front-page');
+    const { isPilotActivated } = useChatStore.getState();
+    debouncedCreateCanvas('front-page', { isPilotActivated });
   }, [query, debouncedCreateCanvas]);
 
   const findSkillByName = useCallback(
@@ -194,14 +197,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
             canvasTemplateEnabled ? '' : 'flex flex-col justify-center',
           )}
         >
-          <h3
-            className={cn(
-              'text-3xl font-bold text-center text-gray-800 mb-6 mx-2 dark:text-gray-100',
-              canvasTemplateEnabled ? 'mt-48' : '',
-            )}
-          >
-            {t('frontPage.welcome')}
-          </h3>
+          <Title />
 
           <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-600 overflow-hidden">
             <McpSelectorPanel isOpen={mcpSelectorOpen} onClose={() => setMcpSelectorOpen(false)} />
