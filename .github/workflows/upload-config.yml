@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'config/**'
   workflow_dispatch:
 
 jobs:
