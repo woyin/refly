@@ -26,10 +26,12 @@ import { McpServerModule } from '../mcp-server/mcp-server.module';
 import { SkillEngineService } from './skill-engine.service';
 import { SkillInvokerService } from './skill-invoker.service';
 import { isDesktop } from '../../utils/runtime';
+import { AuthModule } from '@/modules/auth/auth.module';
 
 @Module({
   imports: [
     CommonModule,
+    AuthModule,
     LabelModule,
     SearchModule,
     CanvasModule,

@@ -15,6 +15,7 @@ import { ParserFactory } from '@/modules/knowledge/parsers/factory';
 import { documentPO2DTO, referencePO2DTO, resourcePO2DTO } from '@/modules/knowledge/knowledge.dto';
 import { labelClassPO2DTO, labelPO2DTO } from '@/modules/label/label.dto';
 import { ConfigService } from '@nestjs/config';
+import { AuthService } from '@/modules/auth/auth.service';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -27,6 +28,7 @@ export class SkillEngineService implements OnModuleInit {
   private canvasService: CanvasService;
   private providerService: ProviderService;
   private mcpServerService: McpServerService;
+  private authService: AuthService;
 
   private engine: SkillEngine;
 
@@ -43,6 +45,7 @@ export class SkillEngineService implements OnModuleInit {
     this.canvasService = this.moduleRef.get(CanvasService, { strict: false });
     this.providerService = this.moduleRef.get(ProviderService, { strict: false });
     this.mcpServerService = this.moduleRef.get(McpServerService, { strict: false });
+    this.authService = this.moduleRef.get(AuthService, { strict: false });
   }
 
   buildReflyService = (): ReflyService => {
@@ -149,6 +152,11 @@ export class SkillEngineService implements OnModuleInit {
             metadata: { url, error: error.message },
           };
         }
+      },
+      generateJwtToken: async (user) => {
+        // Use the same JWT generation method as AuthService.login()
+        const tokenData = await this.authService.login(user);
+        return tokenData.accessToken;
       },
     };
   };

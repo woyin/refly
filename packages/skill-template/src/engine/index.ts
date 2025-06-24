@@ -127,6 +127,9 @@ export interface ReflyService {
     user: User,
     url: string,
   ) => Promise<{ title?: string; content?: string; metadata?: Record<string, any> }>;
+
+  // Generate JWT token for user (same as AuthService.login)
+  generateJwtToken: (user: User) => Promise<string>;
 }
 
 export interface SkillEngineOptions {
