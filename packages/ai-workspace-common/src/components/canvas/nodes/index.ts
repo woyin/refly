@@ -186,10 +186,10 @@ export const getNodeCommonStyles = ({
   box-border
   transition-all
   duration-200
-  border-[2px]
+  border-[1px]
   border-solid
   overflow-hidden
-  ${selected ? 'border-[#00968F] dark:border-gray-700' : 'border-transparent'}
+  ${selected ? 'border-[#00968F] border-solid border-2' : 'border-transparent'}
   ${
     isHovered
       ? 'shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.08),0px_4px_6px_-2px_rgba(16,24,40,0.03)]'

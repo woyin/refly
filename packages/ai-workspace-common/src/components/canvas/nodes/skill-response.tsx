@@ -53,11 +53,11 @@ import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { ModelIcon } from '@lobehub/icons';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
+import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magicui/border-beam';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-
-const POLLING_WAIT_TIME = 15000;
+import { useActionResultStoreShallow } from '@refly-packages/ai-workspace-common/stores/action-result';
 
 export const NodeHeader = memo(
   ({
@@ -114,7 +114,7 @@ export const NodeHeader = memo(
           <div className="flex items-center gap-2">
             {showIcon && (
               <div className="w-6 h-6 rounded bg-[#F79009] shadow-lg flex items-center justify-center flex-shrink-0">
-                <IconResponse className="w-4 h-4 text-white dark:text-gray-900" />
+                <IconResponse className="w-4 h-4 text-white" />
               </div>
             )}
             {isEditing ? (
@@ -263,20 +263,24 @@ export const SkillResponseNode = memo(
       actionMeta,
       tokenUsage,
       version,
+      pilotStepId,
     } = metadata ?? {};
     const currentSkill = actionMeta || selectedSkill;
 
     const { startPolling, resetFailedState } = useActionPolling();
+    const { isStreaming, removeStreamResult } = useActionResultStoreShallow((state) => ({
+      isStreaming: !!state.streamResults[entityId],
+      removeStreamResult: state.removeStreamResult,
+    }));
 
     useEffect(() => {
-      if (
-        createdAt &&
-        Date.now() - new Date(createdAt).getTime() >= POLLING_WAIT_TIME &&
-        status === 'executing'
-      ) {
+      if (!isStreaming && (status === 'executing' || status === 'waiting')) {
         startPolling(entityId, version);
       }
-    }, [createdAt, status, startPolling, entityId, version]);
+      if (isStreaming && status !== 'executing' && status !== 'waiting') {
+        removeStreamResult(entityId);
+      }
+    }, [isStreaming, status, startPolling, entityId, version]);
 
     const sources = Array.isArray(structuredData?.sources) ? structuredData?.sources : [];
 
@@ -645,7 +649,11 @@ export const SkillResponseNode = memo(
 
     return (
       <div
-        className={classNames({ nowheel: isOperating && isHovered })}
+        className={classNames({
+          'rounded-lg': true,
+          nowheel: isOperating && isHovered,
+          relative: true,
+        })}
         data-cy="skill-response-node"
       >
         <div
@@ -813,6 +821,21 @@ export const SkillResponseNode = memo(
             sizeMode={sizeMode}
             onResize={handleResize}
           />
+        )}
+        {['waiting', 'executing'].includes(status) && pilotStepId && (
+          <>
+            <BorderBeam
+              duration={2}
+              size={300}
+              className="from-transparent via-red-500 to-transparent"
+            />
+            <BorderBeam
+              duration={2}
+              delay={3}
+              size={300}
+              className="from-transparent via-blue-500 to-transparent"
+            />
+          </>
         )}
       </div>
     );

@@ -52,12 +52,13 @@ export const NodeContextMenu: FC<NodeContextMenuProps> = ({
     };
 
     if (open) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Use capture phase to ensure we catch all events before they can be stopped
+      document.addEventListener('mousedown', handleClickOutside, true);
       document.addEventListener('keydown', handleEscape);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside, true);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [open, dragCreateInfo, setNodes, setEdges]);

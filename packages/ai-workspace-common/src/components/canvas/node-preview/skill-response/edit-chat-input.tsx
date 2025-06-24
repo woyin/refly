@@ -328,7 +328,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
   return (
     <div className="ai-copilot-chat-container">
-      <div className={cn('border border-solid border-gray-200 rounded-lg')}>
+      <div className={cn('border border-solid border-gray-200 dark:border-gray-700 rounded-lg')}>
         <McpSelectorPanel isOpen={mcpSelectorOpen} onClose={() => setMcpSelectorOpen(false)} />
 
         {!hideSelectedSkillHeader && (

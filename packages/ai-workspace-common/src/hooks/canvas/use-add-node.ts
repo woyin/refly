@@ -45,10 +45,9 @@ export const useAddNode = () => {
   const { t } = useTranslation();
   const edgeStyles = useEdgeStyles();
   const { setSelectedNode } = useNodeSelection();
-  const { setNodeCenter } = useNodePosition();
   const { getState, setState } = useStoreApi();
   const { canvasId } = useCanvasContext();
-  const { calculatePosition, layoutBranchAndUpdatePositions } = useNodePosition();
+  const { calculatePosition, layoutBranchAndUpdatePositions, setNodeCenter } = useNodePosition();
   const { previewNode } = useNodePreviewControl({ canvasId });
   const { setNodes, setEdges } = useReactFlow();
 
@@ -60,7 +59,13 @@ export const useAddNode = () => {
 
   const addNode = useCallback(
     (
-      node: { type: CanvasNodeType; data: CanvasNodeData<any>; position?: XYPosition; id?: string },
+      node: {
+        type: CanvasNodeType;
+        data: CanvasNodeData<any>;
+        position?: XYPosition;
+        id?: string;
+        offsetPosition?: XYPosition;
+      },
       connectTo?: CanvasNodeFilter[],
       shouldPreview = true,
       needSetCenter = false,
@@ -143,6 +148,11 @@ export const useAddNode = () => {
         defaultPosition: node.position,
         edges,
       });
+
+      if (node.offsetPosition && !node.position) {
+        newPosition.x += node.offsetPosition.x || 0;
+        newPosition.y += node.offsetPosition.y || 0;
+      }
 
       // Get default metadata and apply global nodeSizeMode
       const defaultMetadata = getNodeDefaultMetadata(node.type);
@@ -268,9 +278,10 @@ export const useAddNode = () => {
       }, 10);
 
       if (
-        newNode.type === 'document' ||
-        (newNode.type === 'resource' && shouldPreview) ||
-        (['skillResponse', 'codeArtifact', 'website'].includes(newNode.type) && shouldPreview)
+        (newNode.type === 'document' ||
+          newNode.type === 'resource' ||
+          newNode.type === 'website') &&
+        shouldPreview
       ) {
         previewNode(newNode as unknown as CanvasNode);
         locateToNodePreviewEmitter.emit('locateToNodePreview', { canvasId, id: newNode.id });

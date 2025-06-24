@@ -31,16 +31,18 @@ import {
   useUpdateMcpServer,
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
-import { useListMcpServersSuspense } from '@refly-packages/ai-workspace-common/queries/suspense';
+import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { McpServerForm } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerForm';
 import { McpServerBatchImport } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerBatchImport';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
+import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 
 interface McpServerListProps {
   visible: boolean;
 }
 
 export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
+  const isLogin = useUserStoreShallow((state) => state.isLogin);
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
@@ -54,8 +56,8 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   }, []);
 
   // Fetch MCP servers
-  const { data, refetch } = useListMcpServersSuspense({}, [], {
-    enabled: visible,
+  const { data, refetch, isLoading, isRefetching } = useListMcpServers({}, [], {
+    enabled: visible && isLogin,
     refetchOnWindowFocus: false,
   });
 
@@ -380,12 +382,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
       style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '0 1px' }}
     >
       <div className="flex justify-between items-center mb-5" style={{ padding: '0 4px' }}>
-        <h2
-          style={{ fontSize: '18px', fontWeight: 500, margin: 0 }}
-          className="text-gray-900 dark:text-gray-100"
-        >
-          {t('settings.mcpServer.title')}
-        </h2>
+        <div />
         <Space>
           {/* Batch import button */}
           <McpServerBatchImport onSuccess={refetch} />
@@ -412,10 +409,11 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
         }}
       >
         <Table
-          dataSource={mcpServers}
-          columns={columns}
           rowKey="name"
+          columns={columns}
+          dataSource={mcpServers}
           pagination={false}
+          loading={isLoading || isRefetching}
           className="mcp-server-table"
           style={{ borderRadius: '8px' }}
           scroll={{ y: 'calc(100vh - 300px)' }}

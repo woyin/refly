@@ -48,7 +48,7 @@ export interface CanvasState {
   nodeSizeMode: 'compact' | 'adaptive';
   autoLayout: boolean;
   showTemplates: boolean;
-  showReflyPilot: boolean;
+  showLinearThread: boolean;
   showSlideshow: boolean;
   linearThreadMessages: (LinearThreadMessage & CacheInfo)[];
   tplConfig: Record<string, any> | null;
@@ -74,7 +74,7 @@ export interface CanvasState {
   setNodeSizeMode: (mode: 'compact' | 'adaptive') => void;
   setAutoLayout: (enabled: boolean) => void;
   setShowTemplates: (show: boolean) => void;
-  setShowReflyPilot: (show: boolean) => void;
+  setShowLinearThread: (show: boolean) => void;
   setShowSlideshow: (show: boolean) => void;
   addLinearThreadMessage: (message: Omit<LinearThreadMessage, 'timestamp'>) => void;
   removeLinearThreadMessage: (id: string) => void;
@@ -103,7 +103,7 @@ const defaultCanvasState = () => ({
   nodeSizeMode: 'compact' as const,
   autoLayout: false,
   showTemplates: true,
-  showReflyPilot: false,
+  showLinearThread: false,
   showSlideshow: false,
   linearThreadMessages: [],
   tplConfig: null,
@@ -269,9 +269,9 @@ export const useCanvasStore = create<CanvasState>()(
         set((state) => {
           state.showTemplates = show;
         }),
-      setShowReflyPilot: (show) =>
+      setShowLinearThread: (show) =>
         set((state) => {
-          state.showReflyPilot = show;
+          state.showLinearThread = show;
         }),
       setShowSlideshow: (show) =>
         set((state) => {
@@ -325,7 +325,7 @@ export const useCanvasStore = create<CanvasState>()(
         showLaunchpad: state.showLaunchpad,
         clickToPreview: state.clickToPreview,
         nodeSizeMode: state.nodeSizeMode,
-        showReflyPilot: state.showReflyPilot,
+        showLinearThread: state.showLinearThread,
         linearThreadMessages: state.linearThreadMessages,
         showSlideshow: state.showSlideshow,
         canvasPage: state.canvasPage,
