@@ -219,6 +219,31 @@ export class Agent extends BaseSkill {
         .then((data) => data?.data?.filter((item) => selectedMcpServers?.includes?.(item.name)))
         .catch(() => [] as ListMcpServersResponse['data']);
 
+      // Create default refly-mcp-server configuration
+      const reflyMcpServer = {
+        pk: -1, // Use negative ID to indicate this is a virtual server
+        name: 'refly-mcp-server',
+        type: 'streamable' as const,
+        isGlobal: true,
+        uid: null,
+        url: '/mcp', // Default MCP endpoint from internal module
+        command: null,
+        args: null,
+        env: null,
+        headers: null,
+        reconnect: null,
+        config: {
+          description: 'Refly internal MCP server providing search capabilities',
+          internal: true,
+        },
+        enabled: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        deletedAt: null,
+      };
+
+      mcpServerList.push(reflyMcpServer);
+
       const cachedAgentComponents = this.userAgentComponentsCache.get(userId);
       const currentMcpServerNames = (mcpServerList?.map((server) => server.name) ?? []).sort();
 
