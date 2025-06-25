@@ -2252,6 +2252,16 @@ const translations = {
         embedding: 'Embedding',
       },
     },
+    copilot: {
+      mcpSelector: {
+        title: 'MCP Selector',
+        empty: 'No MCP servers available',
+        browseMcpStore: 'Go to Store',
+      },
+      recommendQuestions: {
+        refresh: 'Refresh',
+      },
+    },
     modelConfig: {
       title: 'Model Config',
       chatModels: 'Chat Models',

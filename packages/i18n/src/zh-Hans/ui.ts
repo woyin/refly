@@ -2520,6 +2520,7 @@ const translations = {
       title: '选择 MCP 服务器',
       empty: '没有可用的 MCP 服务器',
       selected: '已选择',
+      browseMcpStore: '去商店添加',
     },
     contextItem: {
       current: '当前',
