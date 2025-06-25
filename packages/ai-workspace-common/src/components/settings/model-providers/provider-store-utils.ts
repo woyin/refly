@@ -6,7 +6,7 @@ import { CommunityProviderConfig } from './provider-store-types';
  */
 export const convertCommunityConfigToProviderRequest = (
   config: CommunityProviderConfig,
-  userConfig: {
+  userConfig?: {
     apiKey?: string;
     baseUrl?: string;
     [key: string]: any;
@@ -16,10 +16,10 @@ export const convertCommunityConfigToProviderRequest = (
     name: config.name,
     providerKey: config.providerKey,
     categories: config.categories,
-    apiKey: userConfig.apiKey || '',
-    baseUrl: userConfig.baseUrl || config.baseUrl || '',
+    apiKey: userConfig?.apiKey || '',
+    baseUrl: userConfig?.baseUrl || config.baseUrl || '',
     enabled: true,
-    ...userConfig,
+    ...(userConfig || {}),
   };
 };
 
@@ -33,6 +33,15 @@ export const isProviderInstalled = (
   return installedProviders.some(
     (provider) => provider.providerKey === config.providerKey && provider.name === config.name,
   );
+};
+
+/**
+ * Check if a community provider requires API key
+ */
+export const requiresApiKey = (config: CommunityProviderConfig): boolean => {
+  // Most providers require API key except for local/self-hosted ones
+  const noApiKeyProviders = ['ollama', 'localai', 'text-generation-webui'];
+  return !noApiKeyProviders.includes(config.providerKey);
 };
 
 /**

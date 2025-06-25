@@ -51,6 +51,8 @@ export interface CommunityProviderCardProps {
   isInstalled: boolean;
   isInstalling?: boolean;
   onInstall?: (config: CommunityProviderConfig) => void;
+  onInstallStart?: (config: CommunityProviderConfig) => void;
+  onInstallError?: (config: CommunityProviderConfig, error: any) => void;
   onViewDetails?: (config: CommunityProviderConfig) => void;
 }
 

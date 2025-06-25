@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Input, Empty, Row, Col, Typography, Tag } from 'antd';
+import { Input, Empty, Row, Col, Typography, Tag, message } from 'antd';
 import { LuSearch } from 'react-icons/lu';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import {
   CommunityProviderListProps,
   CommunityProviderFilterState,
   CommunityProviderResponse,
+  CommunityProviderConfig,
 } from './provider-store-types';
 import { CommunityProviderCard } from './CommunityProviderCard';
 import { filterProviders, sortProviders, isProviderInstalled } from './provider-store-utils';
@@ -21,6 +22,9 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
   onInstallSuccess,
 }) => {
   const { t } = useTranslation();
+
+  // Track installation states for individual providers
+  const [installingProviders, setInstallingProviders] = useState<Set<string>>(new Set());
 
   // Fetch community providers
   const { data: communityData, isLoading, error, refetch } = useListCommunityProviders();
@@ -46,14 +50,52 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
     setFilters((prev) => ({ ...prev, ...newFilters }));
   }, []);
 
+  // Handle install start
+  const handleInstallStart = useCallback((config: CommunityProviderConfig) => {
+    setInstallingProviders((prev) => new Set(prev).add(config.providerId));
+  }, []);
+
   // Handle install success
   const handleInstallSuccess = useCallback(
-    (_config: any) => {
+    (config: CommunityProviderConfig) => {
+      setInstallingProviders((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(config.providerId);
+        return newSet;
+      });
+
+      message.success({
+        content: `${config.name} 安装成功！`,
+        duration: 3,
+      });
+
       onInstallSuccess();
       refetch(); // Refresh community providers to update install status
     },
     [onInstallSuccess, refetch],
   );
+
+  // Handle install error
+  const handleInstallError = useCallback((config: CommunityProviderConfig, error: any) => {
+    setInstallingProviders((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(config.providerId);
+      return newSet;
+    });
+
+    console.error('Failed to install provider:', error);
+    message.error({
+      content: `${config.name} 安装失败，请重试`,
+      duration: 4,
+    });
+  }, []);
+
+  // Clear installing states when component unmounts or becomes invisible
+  useEffect(() => {
+    if (!visible) {
+      setInstallingProviders(new Set());
+    }
+  }, [visible]);
 
   // Refetch when visible
   useEffect(() => {
@@ -77,7 +119,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
           <button
             type="button"
             onClick={() => refetch()}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
             {t('common.retry')}
           </button>
@@ -97,6 +139,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
             placeholder={t('settings.modelProviders.searchPlaceholder')}
             value={filters.searchText}
             onChange={(e) => handleFiltersChange({ searchText: e.target.value })}
+            className="transition-all duration-200 focus:shadow-md"
           />
         </div>
 
@@ -158,15 +201,23 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
           <>
             {/* Provider cards grid - maximum 2 per row */}
             <Row gutter={[24, 24]}>
-              {filteredProviders.map((provider) => (
-                <Col key={provider.providerId} xs={24} sm={24} md={12}>
-                  <CommunityProviderCard
-                    config={provider}
-                    isInstalled={isProviderInstalled(provider, installedProviders)}
-                    onInstall={handleInstallSuccess}
-                  />
-                </Col>
-              ))}
+              {filteredProviders.map((provider) => {
+                const isInstalled = isProviderInstalled(provider, installedProviders);
+                const isInstalling = installingProviders.has(provider.providerId);
+
+                return (
+                  <Col key={provider.providerId} xs={24} sm={24} md={12}>
+                    <CommunityProviderCard
+                      config={provider}
+                      isInstalled={isInstalled}
+                      isInstalling={isInstalling}
+                      onInstall={handleInstallSuccess}
+                      onInstallStart={handleInstallStart}
+                      onInstallError={handleInstallError}
+                    />
+                  </Col>
+                );
+              })}
             </Row>
           </>
         )}
