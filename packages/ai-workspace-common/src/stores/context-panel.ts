@@ -3,7 +3,7 @@ import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
 import { IContextItem } from '@refly/common-types';
-import { purgeContextItems } from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { purgeContextItems } from '@refly/canvas-common';
 
 export interface FilterErrorInfo {
   [key: string]: {

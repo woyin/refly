@@ -22,7 +22,7 @@ import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-up
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { genActionResultID } from '@refly/utils/id';
-import { convertContextItemsToNodeFilters } from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useReactFlow } from '@xyflow/react';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';

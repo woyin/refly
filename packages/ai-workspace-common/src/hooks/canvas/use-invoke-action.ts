@@ -16,8 +16,11 @@ import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useActionResultStore } from '@refly-packages/ai-workspace-common/stores/action-result';
 import { aggregateTokenUsage, genActionResultID } from '@refly/utils/index';
-import { CanvasNodeData, SkillNodeMeta } from '@refly/canvas-common';
-import { convertContextItemsToInvokeParams } from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import {
+  CanvasNodeData,
+  SkillNodeMeta,
+  convertContextItemsToInvokeParams,
+} from '@refly/canvas-common';
 import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
 import { useActionPolling } from './use-action-polling';
 import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';

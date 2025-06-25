@@ -21,7 +21,7 @@ import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canva
 import { CanvasNodeData } from '@refly/canvas-common';
 import { IContextItem } from '@refly/common-types';
 import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
-import { convertContextItemsToNodeFilters } from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useNodeCluster } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-cluster';
 import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';
 import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';

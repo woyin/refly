@@ -8,10 +8,7 @@ import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { ActionStepCard } from './action-step';
-import {
-  convertResultContextToItems,
-  purgeContextItems,
-} from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { convertResultContextToItems, purgeContextItems } from '@refly/canvas-common';
 
 import { PreviewChatInput } from './preview-chat-input';
 import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';

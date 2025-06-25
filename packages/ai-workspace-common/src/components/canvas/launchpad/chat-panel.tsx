@@ -25,7 +25,7 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { useSyncSelectedNodesToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-sync-selected-nodes-to-context';
 import { PiMagicWand } from 'react-icons/pi';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { convertContextItemsToNodeFilters } from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { IoClose } from 'react-icons/io5';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
