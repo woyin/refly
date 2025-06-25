@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { ReflyService, SkillEngine } from '@refly/skill-template';
+import { ReflyService, SkillEngine, SkillEngineOptions } from '@refly/skill-template';
 import { CanvasService } from '@/modules/canvas/canvas.service';
 import { KnowledgeService } from '@/modules/knowledge/knowledge.service';
 import { LabelService } from '@/modules/label/label.service';
@@ -163,7 +163,32 @@ export class SkillEngineService implements OnModuleInit {
 
   public getEngine() {
     if (!this.engine) {
-      this.engine = new SkillEngine(this.logger, this.buildReflyService());
+      // Get all configuration from config service
+      const appConfig = {
+        port: this.config.get('port'),
+        wsPort: this.config.get('wsPort'),
+        origin: this.config.get('origin'),
+        static: this.config.get('static'),
+        local: this.config.get('local'),
+        image: this.config.get('image'),
+        redis: this.config.get('redis'),
+        objectStorage: this.config.get('objectStorage'),
+        vectorStore: this.config.get('vectorStore'),
+        fulltextSearch: this.config.get('fulltextSearch'),
+        auth: this.config.get('auth'),
+        encryption: this.config.get('encryption'),
+        skill: this.config.get('skill'),
+        defaultModel: this.config.get('defaultModel'),
+        stripe: this.config.get('stripe'),
+        quota: this.config.get('quota'),
+        langfuse: this.config.get('langfuse'),
+      };
+
+      const options = {
+        config: appConfig,
+      } as SkillEngineOptions;
+
+      this.engine = new SkillEngine(this.logger, this.buildReflyService(), options);
     }
     return this.engine;
   }

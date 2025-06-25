@@ -263,10 +263,15 @@ export class Agent extends BaseSkill {
       const authorizationToken = `Bearer ${realJwtToken}`;
       this.engine.logger.log('Using real JWT token generated via AuthService');
 
+      // Get port from configuration, fallback to default 5800
+      const serverPort = this.engine.getConfig('port') || 5800;
+      const serverOrigin = this.engine.getConfig('origin') || `http://localhost:${serverPort}`;
+      const mcpUrl = `${serverOrigin}/mcp`;
+
       // Create default refly-mcp-server configuration with dynamic token
       const reflyMcpServer = {
         name: 'mcp',
-        url: 'http://localhost:5800/mcp',
+        url: mcpUrl,
         command: null,
         enabled: false,
         isGlobal: false,
@@ -534,7 +539,7 @@ export class Agent extends BaseSkill {
         { messages: requestMessages },
         {
           ...config,
-          recursionLimit: 10,
+          recursionLimit: 20,
           metadata: {
             ...config.metadata,
             ...currentSkill,
