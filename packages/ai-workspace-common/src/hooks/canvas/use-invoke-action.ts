@@ -12,15 +12,10 @@ import {
 } from '@refly/openapi-schema';
 import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
 import { getRuntime } from '@refly/utils/env';
-import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useActionResultStore } from '@refly-packages/ai-workspace-common/stores/action-result';
-import { aggregateTokenUsage, genActionResultID } from '@refly/utils/index';
-import {
-  CanvasNodeData,
-  SkillNodeMeta,
-  convertContextItemsToInvokeParams,
-} from '@refly/canvas-common';
+import { aggregateTokenUsage, genActionResultID, detectActualTypeFromType } from '@refly/utils';
+import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
 import { useActionPolling } from './use-action-polling';
 import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
@@ -30,15 +25,10 @@ import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
 import { useFindWebsite } from './use-find-website';
 import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
-import { useReactFlow } from '@xyflow/react';
-import { detectActualTypeFromType } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/artifact-type-util';
 import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
-import { usePilotStore } from '@refly-packages/ai-workspace-common/stores/pilot';
 import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
 
 export const useInvokeAction = () => {
-  const { addNode } = useAddNode();
-  const { getNodes } = useReactFlow();
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
   const globalAbortControllerRef = { current: null as AbortController | null };
@@ -147,54 +137,14 @@ export const useInvokeAction = () => {
     return steps.map((step) => (step.name === updatedStep.name ? updatedStep : step));
   };
 
-  const onSkillStreamArtifact = (resultId: string, artifact: Artifact, content: string) => {
+  const onSkillStreamArtifact = (_resultId: string, artifact: Artifact, content: string) => {
     // Handle code artifact content if this is a code artifact stream
     if (artifact && artifact.type === 'codeArtifact') {
       // Get the code content and attributes as an object
-      const {
-        content: codeContent,
-        title,
-        language,
-        type,
-      } = getArtifactContentAndAttributes(content);
+      const { content: codeContent, type } = getArtifactContentAndAttributes(content);
 
       // Check if the node exists and create it if not
-      const currentNodes = getNodes();
-      const existingNode = currentNodes?.find(
-        (node) => node.data?.entityId === artifact.entityId && node.type === artifact.type,
-      );
-
       const actualType = detectActualTypeFromType(type as CodeArtifactType);
-
-      const throttleState = streamUpdateThrottleRef.current[resultId];
-      if (
-        !existingNode &&
-        !throttleState?.codeArtifactCreated &&
-        !deletedNodeIdsRef.current.has(artifact.entityId)
-      ) {
-        addNode(
-          {
-            type: artifact.type,
-            data: {
-              // Use extracted title if available, fallback to artifact.title
-              title: title || artifact.title,
-              entityId: artifact.entityId,
-              metadata: {
-                status: 'generating',
-                language: language || 'typescript', // Use extracted language or default
-                type: actualType || 'text/markdown', // Use extracted type if available
-                title: title || artifact?.title || '',
-              },
-            },
-          },
-          [
-            {
-              type: 'skillResponse',
-              entityId: resultId,
-            },
-          ],
-        );
-      }
 
       // Check if artifact is closed using the ARTIFACT_TAG_CLOSED_REGEX
       const isArtifactClosed = ARTIFACT_TAG_CLOSED_REGEX.test(content);
@@ -431,33 +381,8 @@ export const useInvokeAction = () => {
     onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
   };
 
-  const onSkillCreateNode = (skillEvent: SkillEvent) => {
-    const { node, resultId } = skillEvent;
-    if (node.data?.entityId && deletedNodeIdsRef.current.has(node.data.entityId)) {
-      return;
-    }
-
-    const { activeSessionId } = usePilotStore.getState();
-
-    addNode(
-      {
-        type: node.type,
-        data: {
-          ...node.data,
-          metadata: {
-            status: 'executing',
-            ...node.data?.metadata,
-          },
-        } as CanvasNodeData,
-      },
-      [
-        {
-          type: 'skillResponse',
-          entityId: resultId,
-        },
-      ],
-      !activeSessionId, // Only open preview when pilot is not active
-    );
+  const onSkillCreateNode = (_skillEvent: SkillEvent) => {
+    // This event is deprecated, we don't need to handle it
   };
 
   const onSkillEnd = (skillEvent: SkillEvent) => {
@@ -701,7 +626,7 @@ export const useInvokeAction = () => {
         timeoutCleanup();
       };
     },
-    [addNode, setNodeDataByEntity, onUpdateResult, createTimeoutHandler, selectedMcpServers],
+    [setNodeDataByEntity, onUpdateResult, createTimeoutHandler, selectedMcpServers],
   );
 
   return { invokeAction, abortAction };

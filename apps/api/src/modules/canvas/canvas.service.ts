@@ -38,6 +38,7 @@ import { RedisService } from '../common/redis.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
+import { CanvasNodeFilter, prepareAddNode } from '@refly/canvas-common';
 
 @Injectable()
 export class CanvasService {
@@ -443,6 +444,35 @@ export class CanvasService {
     }
 
     await this.executeCanvasTransaction(canvasId, user, canvas, tx);
+  }
+
+  /**
+   * Add a node to the canvas document
+   * @param user - The user who is adding the node
+   * @param canvasId - The id of the canvas to add the node to
+   * @param node - The node to add
+   * @param connectTo - The nodes to connect to
+   */
+  async addNodeToCanvasDoc(
+    user: User,
+    canvasId: string,
+    node: CanvasNode,
+    connectTo?: CanvasNodeFilter[],
+  ) {
+    await this.applyUpdatesToCanvasDoc(user, canvasId, (doc) => {
+      const nodes = doc.getArray('nodes');
+      const edges = doc.getArray('edges');
+
+      const { newNode, newEdges } = prepareAddNode({
+        node,
+        nodes: nodes.toJSON(),
+        edges: edges.toJSON(),
+        connectTo,
+      });
+
+      nodes.push([newNode]);
+      edges.push(newEdges);
+    });
   }
 
   async updateCanvas(user: User, param: UpsertCanvasRequest) {

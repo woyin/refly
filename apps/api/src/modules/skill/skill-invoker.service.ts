@@ -14,7 +14,7 @@ import {
   TokenUsageItem,
 } from '@refly/openapi-schema';
 import { InvokeSkillJobData, SkillTimeoutCheckJobData } from './skill.dto';
-import { PrismaService } from '@/modules/common/prisma.service';
+import { PrismaService } from '../common/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import {
   detectLanguage,
@@ -31,16 +31,13 @@ import {
   createSkillInventory,
 } from '@refly/skill-template';
 import { throttle } from 'lodash';
-import { MiscService } from '@/modules/misc/misc.service';
+import { MiscService } from '../misc/misc.service';
 import { ResultAggregator } from '@/utils/result';
 import { DirectConnection } from '@hocuspocus/server';
 import { getWholeParsedContent } from '@refly/utils';
 import { ProjectNotFoundError } from '@refly/errors';
-import { projectPO2DTO } from '@/modules/project/project.dto';
-import {
-  SyncRequestUsageJobData,
-  SyncTokenUsageJobData,
-} from '@/modules/subscription/subscription.dto';
+import { projectPO2DTO } from '../project/project.dto';
+import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
 import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SKILL_TIMEOUT_CHECK,
@@ -52,13 +49,14 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { writeSSEResponse } from '@/utils/response';
 import { genBaseRespDataFromError } from '@/utils/exception';
-import { SyncPilotStepJobData } from '@/modules/pilot/pilot.processor';
-import { AutoNameCanvasJobData } from '@/modules/canvas/canvas.dto';
-import { ProviderService } from '@/modules/provider/provider.service';
-import { CodeArtifactService } from '@/modules/code-artifact/code-artifact.service';
-import { CollabContext } from '@/modules/collab/collab.dto';
-import { CollabService } from '@/modules/collab/collab.service';
-import { SkillEngineService } from '@/modules/skill/skill-engine.service';
+import { SyncPilotStepJobData } from '../pilot/pilot.processor';
+import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
+import { ProviderService } from '../provider/provider.service';
+import { CodeArtifactService } from '../code-artifact/code-artifact.service';
+import { CollabContext } from '../collab/collab.dto';
+import { CollabService } from '../collab/collab.service';
+import { SkillEngineService } from '../skill/skill-engine.service';
+import { CanvasService } from '../canvas/canvas.service';
 
 @Injectable()
 export class SkillInvokerService {
@@ -71,6 +69,7 @@ export class SkillInvokerService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly miscService: MiscService,
+    private readonly canvasService: CanvasService,
     private readonly collabService: CollabService,
     private readonly providerService: ProviderService,
     private readonly codeArtifactService: CodeArtifactService,
@@ -243,8 +242,12 @@ export class SkillInvokerService {
     return config;
   }
 
+  private;
+
   private async _invokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
-    const { input, result } = data;
+    const { input, result, target } = data;
+    this.logger.log(`invoke skill with data: ${JSON.stringify(data)}`);
+
     const { resultId, version, actionMeta, tier } = result;
 
     if (input.images?.length > 0) {
@@ -295,6 +298,7 @@ export class SkillInvokerService {
 
     const resultAggregator = new ResultAggregator();
 
+    // NOTE: Artifacts include both code artifacts and documents
     type ArtifactOutput = Artifact & {
       nodeCreated: boolean; // Whether the canvas node is created
       content: string; // Accumulated content
@@ -329,6 +333,7 @@ export class SkillInvokerService {
             }
             return;
           case 'artifact':
+            this.logger.log(`artifact event received: ${JSON.stringify(artifact)}`);
             if (artifact) {
               resultAggregator.addSkillEvent(data);
 
@@ -338,6 +343,29 @@ export class SkillInvokerService {
               } else {
                 // Only update artifact status
                 artifactMap[entityId].status = status;
+              }
+
+              if (!artifactMap[entityId].nodeCreated) {
+                this.logger.log(
+                  `add node to canvas ${target.entityId}, artifact: ${JSON.stringify(artifact)}`,
+                );
+
+                await this.canvasService.addNodeToCanvasDoc(
+                  user,
+                  target.entityId,
+                  {
+                    type: artifact.type,
+                    data: {
+                      title: artifact.title,
+                      entityId: artifact.entityId,
+                      metadata: {
+                        status: 'generating',
+                      },
+                    },
+                  },
+                  [{ type: 'skillResponse', entityId: resultId }],
+                );
+                artifactMap[entityId].nodeCreated = true;
               }
 
               // Open direct connection to yjs doc if artifact type is document
@@ -487,21 +515,6 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
               if (runMeta?.artifact) {
                 const { entityId } = runMeta.artifact;
                 const artifact = artifactMap[entityId];
-
-                // Send create_node event to client if not created
-                if (!artifact.nodeCreated) {
-                  if (res) {
-                    writeSSEResponse(res, {
-                      event: 'create_node',
-                      resultId,
-                      node: {
-                        type: artifact.type,
-                        data: { entityId, title: artifact.title },
-                      },
-                    });
-                  }
-                  artifact.nodeCreated = true;
-                }
 
                 // Update artifact content based on type
                 artifact.content += content;
@@ -655,8 +668,10 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
 
       // Sync pilot step if needed
-      this.logger.log(`Sync pilot step for result ${resultId}, pilotStepId: ${result.pilotStepId}`);
       if (result.pilotStepId && this.pilotStepQueue) {
+        this.logger.log(
+          `Sync pilot step for result ${resultId}, pilotStepId: ${result.pilotStepId}`,
+        );
         await this.pilotStepQueue.add('syncPilotStep', {
           user: { uid: user.uid },
           stepId: result.pilotStepId,

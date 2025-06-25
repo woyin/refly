@@ -6,10 +6,10 @@ import { getNodeDefaultMetadata, prepareNodeData } from './nodes';
 import { genUniqueId } from '@refly/utils';
 import { purgeContextItems } from './context';
 
-export interface AddNodeParam {
+export interface AddNodeParam<T = any> {
   node: {
     type: CanvasNodeType;
-    data: CanvasNodeData<any>;
+    data: CanvasNodeData<T>;
     position?: XYPosition;
     id?: string;
     offsetPosition?: XYPosition;

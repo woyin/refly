@@ -11,7 +11,6 @@ import {
   ActionMeta,
 } from '@refly/openapi-schema';
 import {
-  prepareAddNode,
   convertContextItemsToNodeFilters,
   convertResultContextToItems,
 } from '@refly/canvas-common';
@@ -447,35 +446,27 @@ export class PilotService {
       const contextItems = convertResultContextToItems(context, history);
 
       if (targetType === 'canvas') {
-        await this.canvasService.applyUpdatesToCanvasDoc(user, targetId, (doc) => {
-          const nodes = doc.getArray('nodes');
-          const edges = doc.getArray('edges');
-
-          const { newNode, newEdges } = prepareAddNode({
-            node: {
-              type: 'skillResponse',
-              data: {
-                title: rawStep.name,
-                entityId: resultId,
-                metadata: {
-                  status: 'executing',
-                  contextItems,
-                  tplConfig: '{}',
-                  runtimeConfig: '{}',
-                  modelInfo: {
-                    modelId: chatModelId,
-                  },
+        await this.canvasService.addNodeToCanvasDoc(
+          user,
+          targetId,
+          {
+            type: 'skillResponse',
+            data: {
+              title: rawStep.name,
+              entityId: resultId,
+              metadata: {
+                status: 'executing',
+                contextItems,
+                tplConfig: '{}',
+                runtimeConfig: '{}',
+                modelInfo: {
+                  modelId: chatModelId,
                 },
               },
             },
-            nodes: nodes.toJSON(),
-            edges: edges.toJSON(),
-            connectTo: convertContextItemsToNodeFilters(contextItems),
-          });
-
-          nodes.push([newNode]);
-          edges.push(newEdges);
-        });
+          },
+          convertContextItemsToNodeFilters(contextItems),
+        );
       }
 
       await this.skillService.sendInvokeSkillTask(user, {
