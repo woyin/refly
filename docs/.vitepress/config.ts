@@ -118,7 +118,10 @@ const sidebar = {
     },
     {
       text: 'Community',
-      items: [{ text: 'Contact Us', link: '/community/contact-us' }],
+      items: [
+        { text: 'Contact Us', link: '/community/contact-us' },
+        { text: 'MCP Store Onboarding', link: '/community/mcp-onboarding' },
+      ],
     },
     {
       text: 'About',
@@ -231,7 +234,10 @@ const sidebar = {
     },
     {
       text: '社区',
-      items: [{ text: '联系我们', link: '/zh/community/contact-us' }],
+      items: [
+        { text: '联系我们', link: '/zh/community/contact-us' },
+        { text: 'MCP Store 入驻指南', link: '/zh/community/mcp-onboarding' },
+      ],
     },
     {
       text: '关于',
