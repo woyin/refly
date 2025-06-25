@@ -3,6 +3,7 @@ import { Modal, Form, Input, Button, Alert, Space, Typography } from 'antd';
 import { KeyOutlined, ExclamationCircleOutlined, LinkOutlined } from '@ant-design/icons';
 
 import { CommunityProviderConfig } from './provider-store-types';
+import { useTranslation } from 'react-i18next';
 
 const { Text, Link } = Typography;
 
@@ -23,6 +24,7 @@ interface CommunityProviderApiKeyModalProps {
 export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModalProps> = memo(
   ({ visible, config, onClose, onSuccess, loading: externalLoading }) => {
     const [form] = Form.useForm<ApiKeyConfiguration>();
+    const { t } = useTranslation();
 
     // Handle installation with API key
     const handleInstall = async (values: ApiKeyConfiguration) => {
@@ -56,7 +58,7 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
         title={
           <Space>
             <KeyOutlined />
-            配置 API Key
+            {t('settings.modelProviders.community.configureApiKey')}
           </Space>
         }
         open={visible}
@@ -93,7 +95,9 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
                     >
                       <Space size={4}>
                         <LinkOutlined />
-                        <span className="text-xs">文档</span>
+                        <span className="text-xs">
+                          {t('settings.modelProviders.community.documentation')}
+                        </span>
                       </Space>
                     </Link>
                   )}
@@ -107,8 +111,8 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
           <Alert
             type="info"
             icon={<ExclamationCircleOutlined />}
-            message="需要 API Key"
-            description="此提供商需要您提供 API Key 才能使用。请从提供商官网获取 API Key 并填写在下方。"
+            message={t('settings.modelProviders.community.apiKeyRequired')}
+            description={t('settings.modelProviders.community.apiKeyRequiredDescription')}
             showIcon
           />
 
@@ -116,20 +120,20 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
           <Form form={form} layout="vertical" onFinish={handleInstall} disabled={isLoading}>
             <Form.Item
               name="apiKey"
-              label="API Key"
+              label={t('settings.modelProviders.community.apiKeyLabel')}
               rules={[
                 {
                   required: true,
-                  message: '请输入 API Key',
+                  message: t('settings.modelProviders.community.apiKeyPlaceholder'),
                 },
                 {
                   min: 1,
-                  message: '请输入有效的 API Key',
+                  message: t('settings.modelProviders.community.apiKeyPlaceholder'),
                 },
               ]}
             >
               <Input.Password
-                placeholder="请输入您的 API Key"
+                placeholder={t('settings.modelProviders.community.apiKeyPlaceholder')}
                 prefix={<KeyOutlined />}
                 size="large"
               />
@@ -138,19 +142,26 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
             {/* Optional base URL field */}
             <Form.Item
               name="baseUrl"
-              label="Base URL (可选)"
-              extra="如需使用自定义服务地址，请填写此项"
+              label={t('settings.modelProviders.community.baseUrlLabel')}
+              extra={t('settings.modelProviders.community.baseUrlDescription')}
             >
-              <Input placeholder={config.baseUrl || '使用默认地址'} size="large" />
+              <Input
+                placeholder={
+                  config.baseUrl || t('settings.modelProviders.community.baseUrlPlaceholder')
+                }
+                size="large"
+              />
             </Form.Item>
 
             {/* Footer buttons */}
             <div className="flex justify-end space-x-2 pt-4">
               <Button onClick={handleClose} disabled={isLoading}>
-                取消
+                {t('settings.modelProviders.community.cancel')}
               </Button>
               <Button type="primary" htmlType="submit" loading={isLoading} disabled={isLoading}>
-                {isLoading ? '安装中...' : '安装'}
+                {isLoading
+                  ? t('settings.modelProviders.community.installing')
+                  : t('settings.modelProviders.community.install')}
               </Button>
             </div>
           </Form>
