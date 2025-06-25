@@ -265,7 +265,7 @@ export class Agent extends BaseSkill {
 
       // Get port from configuration, fallback to default 5800
       const serverPort = this.engine.getConfig('port') || 5800;
-      const serverOrigin = this.engine.getConfig('origin') || `http://localhost:${serverPort}`;
+      const serverOrigin = `http://localhost:${serverPort}`;
       const mcpUrl = `${serverOrigin}/mcp`;
 
       // Create default refly-mcp-server configuration with dynamic token
