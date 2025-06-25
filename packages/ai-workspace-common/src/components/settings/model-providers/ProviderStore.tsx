@@ -261,7 +261,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
             {/* Provider cards grid - maximum 2 per row */}
             <Row gutter={[24, 24]}>
               {filteredProviders.map((provider) => (
-                <Col key={provider.id} xs={24} sm={24} md={12}>
+                <Col key={provider.providerId} xs={24} sm={24} md={12}>
                   <CommunityProviderCard
                     config={provider}
                     isInstalled={isProviderInstalled(provider, installedProviders)}

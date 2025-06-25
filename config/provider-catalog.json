@@ -1,84 +1,114 @@
 {
-  "servers": [
+  "providers": [
     {
-      "name": "GitHub",
-      "icon": "https://static.refly.ai/icons/github.svg",
+      "providerId": "openai-gpt",
+      "name": "OpenAI",
+      "providerKey": "openai",
+      "baseUrl": "https://api.openai.com/v1",
       "description": {
-        "en": "Access the GitHub API, enabling file operations, repository management, search functionality, and more.",
-        "zh-CN": "访问 GitHub API，支持文件操作、仓库管理、搜索功能等。"
+        "en": "Industry-leading language models including GPT-4, GPT-3.5, and more.",
+        "zh-CN": "业界领先的语言模型，包括 GPT-4、GPT-3.5 等。"
       },
-      "type": "streamable",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "authorization": [
-        {
-          "type": "apiKey",
-          "apiKeyIn": "authorizationBearer"
-        }
-      ],
-      "documentation": "https://github.com/github/github-mcp-server"
+      "categories": ["llm", "embedding"]
     },
     {
-      "name": "Firecrawl",
-      "icon": "https://firecrawl.com/favicon.ico",
+      "providerId": "anthropic-claude",
+      "name": "Anthropic",
+      "providerKey": "anthropic",
+      "baseUrl": "https://api.anthropic.com",
       "description": {
-        "en": "Firecrawl is an API service that takes a URL, crawls it, and converts it into clean markdown. We crawl all accessible subpages and give you clean markdown for each. No sitemap required.",
-        "zh-CN": "Firecrawl 是一个 API 服务，它接受一个 URL，爬取它，并将其转换为干净的 Markdown。我们爬取所有可访问的子页面，并为您提供每个页面的干净 Markdown。无需 sitemap。"
+        "en": "Advanced AI assistant built by Anthropic. Claude excels at analysis, writing, math, coding, and creative tasks.",
+        "zh-CN": "Anthropic 开发的先进 AI 助手。Claude 在分析、写作、数学、编程和创意任务方面表现出色。"
       },
-      "type": "sse",
-      "url": "https://mcp.firecrawl.dev/${API_KEY}/sse",
-      "authorization": [
-        {
-          "type": "apiKey",
-          "apiKeyIn": "url"
-        }
-      ],
-      "documentation": "https://docs.firecrawl.dev/mcp"
+      "categories": ["llm"]
     },
     {
-      "name": "DeepWiki",
-      "icon": "https://deepwiki.org/favicon.ico",
+      "providerId": "google-gemini",
+      "name": "Google",
+      "providerKey": "google",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
       "description": {
-        "en": "DeepWiki provides up-to-date documentation you can talk to, for every repo in the world.",
-        "zh-CN": "DeepWiki 提供与每个仓库相关的最新文档，您可以与之对话。"
+        "en": "Google's most capable AI model with multimodal capabilities.",
+        "zh-CN": "Google 最强大的 AI 模型，具有多模态能力。"
       },
-      "type": "sse",
-      "url": "https://mcp.deepwiki.com/sse",
-      "authorization": [],
-      "documentation": "https://deepwiki.com/"
+      "categories": ["llm"]
     },
     {
-      "name": "Gitee",
-      "icon": "https://gitee.com/favicon.ico",
+      "providerId": "azure-openai",
+      "name": "Azure OpenAI",
+      "providerKey": "azure-openai",
+      "baseUrl": "https://your-resource.openai.azure.com",
       "description": {
-        "en": "Gitee is a Git-based code hosting and development collaboration platform.",
-        "zh-CN": "Gitee 是基于 Git 的代码托管和研发协作平台。"
+        "en": "OpenAI models hosted on Microsoft Azure with enterprise-grade security.",
+        "zh-CN": "托管在 Microsoft Azure 上的 OpenAI 模型，具有企业级安全性。"
       },
-      "type": "streamable",
-      "url": "https://api.gitee.com/mcp",
-      "authorization": [
-        {
-          "type": "apiKey",
-          "apiKeyIn": "authorizationBearer"
-        }
-      ],
-      "documentation": "https://gitee.com/oschina/mcp-gitee"
+      "categories": ["llm", "embedding"]
     },
     {
-      "name": "Zapier",
-      "icon": "https://static.refly.ai/icons/zapier.svg",
+      "providerId": "cohere",
+      "name": "Cohere",
+      "providerKey": "cohere",
+      "baseUrl": "https://api.cohere.ai/v1",
       "description": {
-        "en": "Zapier is a platform that allows you to connect your apps and automate your workflows.",
-        "zh-CN": "Zapier 是一个平台，允许您连接您的应用程序并自动化您的流程。"
+        "en": "Enterprise-focused language models with strong multilingual capabilities.",
+        "zh-CN": "专注于企业的语言模型，具有强大的多语言能力。"
       },
-      "type": "sse",
-      "url": "https://actions.zapier.com/mcp/${API_KEY}/sse",
-      "authorization": [
-        {
-          "type": "apiKey",
-          "apiKeyIn": "url"
-        }
-      ],
-      "documentation": "https://actions.zapier.com/docs/platform/cursor/#configuring-zapier-mcp-in-cursor"
+      "categories": ["llm", "embedding", "reranker"]
+    },
+    {
+      "providerId": "ollama",
+      "name": "Ollama",
+      "providerKey": "ollama",
+      "baseUrl": "http://localhost:11434/v1",
+      "description": {
+        "en": "Run large language models locally on your machine.",
+        "zh-CN": "在您的机器上本地运行大型语言模型。"
+      },
+      "categories": ["llm", "embedding"]
+    },
+    {
+      "providerId": "jina",
+      "name": "Jina",
+      "providerKey": "jina",
+      "baseUrl": "https://api.jina.ai/v1",
+      "description": {
+        "en": "Multimodal AI for search, recommendation, and generative tasks.",
+        "zh-CN": "用于搜索、推荐和生成任务的多模态 AI。"
+      },
+      "categories": ["embedding", "reranker"]
+    },
+    {
+      "providerId": "fireworks",
+      "name": "Fireworks",
+      "providerKey": "fireworks",
+      "baseUrl": "https://api.fireworks.ai/inference/v1",
+      "description": {
+        "en": "Fast inference for open source LLMs and custom models.",
+        "zh-CN": "为开源 LLM 和定制模型提供快速推理。"
+      },
+      "categories": ["llm", "embedding"]
+    },
+    {
+      "providerId": "moonshot",
+      "name": "Moonshot AI",
+      "providerKey": "moonshot",
+      "baseUrl": "https://api.moonshot.cn/v1",
+      "description": {
+        "en": "Chinese AI company offering advanced language models.",
+        "zh-CN": "中国 AI 公司，提供先进的语言模型。"
+      },
+      "categories": ["llm"]
+    },
+    {
+      "providerId": "deepseek",
+      "name": "DeepSeek",
+      "providerKey": "deepseek",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "description": {
+        "en": "Advanced reasoning models with strong coding capabilities.",
+        "zh-CN": "具有强大编程能力的先进推理模型。"
+      },
+      "categories": ["llm"]
     }
   ]
 }

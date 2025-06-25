@@ -14,9 +14,10 @@ export interface ProviderConfigField {
 
 // Community provider configuration type
 export interface CommunityProviderConfig {
-  id: string;
+  providerId: string;
   name: string;
   providerKey: string;
+  baseUrl?: string;
   description:
     | string
     | {
@@ -25,36 +26,12 @@ export interface CommunityProviderConfig {
       };
   icon?: string;
   categories: ProviderCategory[];
-  pricing: ProviderPricingModel;
+  pricing?: ProviderPricingModel;
   popularity?: number;
   author?: string;
   version?: string;
   documentation?: string;
   website?: string;
-
-  // Installation configuration
-  config: {
-    apiKey: {
-      required: boolean;
-      placeholder?: string;
-      description?: string;
-    };
-    baseUrl?: {
-      required: boolean;
-      defaultValue?: string;
-      placeholder?: string;
-    };
-    additionalFields?: {
-      [key: string]: ProviderConfigField;
-    };
-  };
-
-  // Supported models
-  models?: {
-    llm?: string[];
-    embedding?: string[];
-    reranker?: string[];
-  };
 
   tags?: string[];
 }

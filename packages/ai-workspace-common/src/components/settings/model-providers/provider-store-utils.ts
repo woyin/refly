@@ -17,7 +17,7 @@ export const convertCommunityConfigToProviderRequest = (
     providerKey: config.providerKey,
     categories: config.categories,
     apiKey: userConfig.apiKey || '',
-    baseUrl: userConfig.baseUrl || config.config.baseUrl?.defaultValue,
+    baseUrl: userConfig.baseUrl || config.baseUrl || '',
     enabled: true,
     ...userConfig,
   };
@@ -57,7 +57,7 @@ export const getLocalizedDescription = (
 /**
  * Get provider pricing badge color
  */
-export const getPricingBadgeColor = (pricing: string): string => {
+export const getPricingBadgeColor = (pricing?: string): string => {
   switch (pricing) {
     case 'free':
       return '#52c41a'; // Green
