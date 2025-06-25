@@ -1,22 +1,16 @@
 import { CommunityProviderResponse } from '../components/settings/model-providers/provider-store-types';
-import { mockCommunityProviders } from './provider-community-mock';
+// Remove import of mock data since we're switching to real API
+// import { mockCommunityProviders } from './provider-community-mock';
 
-// const COMMUNITY_PROVIDER_API_URL = 'https://static.refly.ai/provider-config/provider-catalog.json';
+const COMMUNITY_PROVIDER_API_URL = 'https://static.refly.ai/provider-config/provider-catalog.json';
 
 /**
  * Fetch community provider configurations
- * Currently using mock data for development
+ * Using real API endpoint
  */
 export const fetchCommunityProviderConfigs = async (): Promise<CommunityProviderResponse> => {
   try {
-    // Simulate network delay for realistic behavior
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    // Return mock data
-    return mockCommunityProviders;
-
-    // TODO: Replace with actual API call when endpoint is ready
-    /*
+    // Use real API call instead of mock data
     const response = await fetch(COMMUNITY_PROVIDER_API_URL, {
       method: 'GET',
       headers: {
@@ -55,6 +49,14 @@ export const fetchCommunityProviderConfigs = async (): Promise<CommunityProvider
         lastUpdated: new Date().toISOString(),
       },
     };
+
+    // Commented out mock data usage
+    /*
+    // Simulate network delay for realistic behavior
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Return mock data
+    return mockCommunityProviders;
     */
   } catch (error) {
     console.error('Error fetching community provider configs:', error);
@@ -64,18 +66,10 @@ export const fetchCommunityProviderConfigs = async (): Promise<CommunityProvider
 
 /**
  * Check community provider API health
- * Currently using mock data, always returns true
+ * Using real API health check
  */
 export const checkCommunityProviderApiHealth = async (): Promise<boolean> => {
   try {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Return true for mock data
-    return true;
-
-    // TODO: Replace with actual API health check when endpoint is ready
-    /*
     const response = await fetch(COMMUNITY_PROVIDER_API_URL, {
       method: 'HEAD',
       headers: {
@@ -83,6 +77,14 @@ export const checkCommunityProviderApiHealth = async (): Promise<boolean> => {
       },
     });
     return response.ok;
+
+    // Commented out mock implementation
+    /*
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Return true for mock data
+    return true;
     */
   } catch (error) {
     console.error('Community provider API health check failed:', error);
