@@ -420,7 +420,7 @@ export const ModelProviders = ({ visible }: ModelProvidersProps) => {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`
-              cursor-pointer relative px-4 py-2.5 flex items-center gap-1.5 text-sm font-medium transition-all duration-200 ease-in-out
+              cursor-pointer relative px-4 py-2.5 flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 ease-in-out 
               ${
                 activeTab === tab.key
                   ? 'text-blue-600 dark:text-blue-400'

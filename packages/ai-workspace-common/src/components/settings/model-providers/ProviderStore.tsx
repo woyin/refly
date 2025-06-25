@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Input, Select, Empty, Row, Col, Typography, Tag } from 'antd';
+import { Input, Empty, Row, Col, Typography, Tag } from 'antd';
 import { LuSearch } from 'react-icons/lu';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
+import { useTranslation } from 'react-i18next';
 
 import { useListCommunityProviders } from '@refly-packages/ai-workspace-common/queries';
 import {
@@ -10,21 +11,17 @@ import {
   CommunityProviderResponse,
 } from './provider-store-types';
 import { CommunityProviderCard } from './CommunityProviderCard';
-import {
-  filterProviders,
-  sortProviders,
-  isProviderInstalled,
-  getAvailableTags,
-} from './provider-store-utils';
+import { filterProviders, sortProviders, isProviderInstalled } from './provider-store-utils';
 
 const { Text } = Typography;
-const { Option } = Select;
 
 export const ProviderStore: React.FC<CommunityProviderListProps> = ({
   visible,
   installedProviders,
   onInstallSuccess,
 }) => {
+  const { t } = useTranslation();
+
   // Fetch community providers
   const { data: communityData, isLoading, error, refetch } = useListCommunityProviders();
 
@@ -35,27 +32,6 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
     selectedPricing: 'all',
     selectedTags: [],
   });
-
-  // Get available filter options with explicit type checking
-  const availableCategories = useMemo(() => {
-    const data = communityData as CommunityProviderResponse | undefined;
-    if (!data?.providers) return [];
-    const categorySet = new Set<string>();
-    for (const provider of data.providers) {
-      if (provider.categories) {
-        for (const category of provider.categories) {
-          categorySet.add(category);
-        }
-      }
-    }
-    return Array.from(categorySet).sort();
-  }, [communityData]);
-
-  const availableTags = useMemo(() => {
-    const data = communityData as CommunityProviderResponse | undefined;
-    if (!data?.providers) return [];
-    return getAvailableTags(data.providers);
-  }, [communityData]);
 
   // Filter and sort providers
   const filteredProviders = useMemo(() => {
@@ -97,13 +73,13 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Empty description="Failed to load community providers">
+        <Empty description={t('settings.mcpServer.community.loadError')}>
           <button
             type="button"
             onClick={() => refetch()}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            Retry
+            {t('common.retry')}
           </button>
         </Empty>
       </div>
@@ -111,88 +87,17 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
   }
 
   return (
-    <div className="provider-store p-6 pt-0 h-full overflow-hidden flex flex-col">
+    <div className="h-full overflow-hidden flex flex-col">
       {/* Search and filters */}
       <div className="mb-8 space-y-5">
         {/* Search bar */}
-        <div className="relative">
+        <div className="relative flex-1 max-w-xs">
           <Input
             prefix={<LuSearch className="h-4 w-4 text-gray-400" />}
-            placeholder="Search providers..."
+            placeholder={t('settings.modelProviders.searchPlaceholder')}
             value={filters.searchText}
             onChange={(e) => handleFiltersChange({ searchText: e.target.value })}
-            className="w-full"
-            size="large"
-            style={{
-              borderRadius: '10px',
-              height: '44px',
-            }}
           />
-        </div>
-
-        {/* Filter row */}
-        <div className="flex items-center gap-4 flex-wrap">
-          {/* Category filter */}
-          <div className="flex items-center gap-2">
-            <Text type="secondary" className="text-sm">
-              Category:
-            </Text>
-            <Select
-              value={filters.selectedCategory}
-              onChange={(value) => handleFiltersChange({ selectedCategory: value })}
-              className="min-w-24"
-              size="small"
-            >
-              <Option value="all">All</Option>
-              {availableCategories.map((category) => (
-                <Option key={category} value={category}>
-                  {category.toUpperCase()}
-                </Option>
-              ))}
-            </Select>
-          </div>
-
-          {/* Pricing filter */}
-          <div className="flex items-center gap-2">
-            <Text type="secondary" className="text-sm">
-              Pricing:
-            </Text>
-            <Select
-              value={filters.selectedPricing}
-              onChange={(value) => handleFiltersChange({ selectedPricing: value })}
-              className="min-w-24"
-              size="small"
-            >
-              <Option value="all">All</Option>
-              <Option value="free">Free</Option>
-              <Option value="paid">Paid</Option>
-              <Option value="freemium">Freemium</Option>
-            </Select>
-          </div>
-
-          {/* Tags filter */}
-          {availableTags.length > 0 && (
-            <div className="flex items-center gap-2">
-              <Text type="secondary" className="text-sm">
-                Tags:
-              </Text>
-              <Select
-                mode="multiple"
-                value={filters.selectedTags}
-                onChange={(value) => handleFiltersChange({ selectedTags: value })}
-                placeholder="Select tags"
-                className="min-w-32"
-                size="small"
-                maxTagCount={2}
-              >
-                {availableTags.map((tag) => (
-                  <Option key={tag} value={tag}>
-                    {tag}
-                  </Option>
-                ))}
-              </Select>
-            </div>
-          )}
         </div>
 
         {/* Active filters display */}
@@ -202,21 +107,21 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
           filters.selectedTags.length > 0) && (
           <div className="flex items-center gap-2 flex-wrap">
             <Text type="secondary" className="text-sm">
-              Active filters:
+              {t('settings.mcpServer.community.filterByType')}:
             </Text>
             {filters.searchText && (
               <Tag closable onClose={() => handleFiltersChange({ searchText: '' })}>
-                Search: {filters.searchText}
+                {t('common.search')}: {filters.searchText}
               </Tag>
             )}
             {filters.selectedCategory !== 'all' && (
               <Tag closable onClose={() => handleFiltersChange({ selectedCategory: 'all' })}>
-                Category: {filters.selectedCategory}
+                {t('settings.modelProviders.category')}: {filters.selectedCategory}
               </Tag>
             )}
             {filters.selectedPricing !== 'all' && (
               <Tag closable onClose={() => handleFiltersChange({ selectedPricing: 'all' })}>
-                Pricing: {filters.selectedPricing}
+                {t('settings.subscription.currentPlan')}: {filters.selectedPricing}
               </Tag>
             )}
             {filters.selectedTags.map((tag) => (
@@ -245,19 +150,12 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
               filters.selectedCategory !== 'all' ||
               filters.selectedPricing !== 'all' ||
               filters.selectedTags.length > 0
-                ? 'No providers match your filters'
-                : 'No providers available'
+                ? t('settings.mcpServer.community.noConfigurations')
+                : t('settings.mcpServer.community.noConfigurations')
             }
           />
         ) : (
           <>
-            {/* Results count */}
-            <div className="mb-6">
-              <Text type="secondary" className="text-sm">
-                {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''} found
-              </Text>
-            </div>
-
             {/* Provider cards grid - maximum 2 per row */}
             <Row gutter={[24, 24]}>
               {filteredProviders.map((provider) => (
@@ -270,18 +168,6 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
                 </Col>
               ))}
             </Row>
-
-            {/* Footer */}
-            <div className="text-center text-gray-400 text-sm mt-8 pb-4">
-              {(communityData as CommunityProviderResponse | undefined)?.meta && (
-                <Text type="secondary">
-                  Last updated:{' '}
-                  {new Date(
-                    (communityData as CommunityProviderResponse).meta.lastUpdated,
-                  ).toLocaleDateString()}
-                </Text>
-              )}
-            </div>
           </>
         )}
       </div>

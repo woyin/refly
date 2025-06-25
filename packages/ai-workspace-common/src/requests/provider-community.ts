@@ -2,7 +2,7 @@ import { CommunityProviderResponse } from '../components/settings/model-provider
 // Remove import of mock data since we're switching to real API
 // import { mockCommunityProviders } from './provider-community-mock';
 
-const COMMUNITY_PROVIDER_API_URL = 'https://static.refly.ai/provider-config/provider-catalog.json';
+const COMMUNITY_PROVIDER_API_URL = 'https://static.refly.ai/config/provider-catalog.json';
 
 /**
  * Fetch community provider configurations
