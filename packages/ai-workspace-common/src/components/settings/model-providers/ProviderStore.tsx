@@ -23,9 +23,6 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // Track installation states for individual providers
-  const [installingProviders, setInstallingProviders] = useState<Set<string>>(new Set());
-
   // Fetch community providers
   const { data: communityData, isLoading, error, refetch } = useListCommunityProviders();
 
@@ -50,52 +47,19 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
     setFilters((prev) => ({ ...prev, ...newFilters }));
   }, []);
 
-  // Handle install start
-  const handleInstallStart = useCallback((config: CommunityProviderConfig) => {
-    setInstallingProviders((prev) => new Set(prev).add(config.providerId));
-  }, []);
-
   // Handle install success
   const handleInstallSuccess = useCallback(
     (config: CommunityProviderConfig) => {
-      setInstallingProviders((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(config.providerId);
-        return newSet;
-      });
-
       message.success({
-        content: `${config.name} 安装成功！`,
+        content: t('settings.modelProviders.community.installSuccess', { name: config.name }),
         duration: 3,
       });
 
       onInstallSuccess();
       refetch(); // Refresh community providers to update install status
     },
-    [onInstallSuccess, refetch],
+    [onInstallSuccess, refetch, t],
   );
-
-  // Handle install error
-  const handleInstallError = useCallback((config: CommunityProviderConfig, error: any) => {
-    setInstallingProviders((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(config.providerId);
-      return newSet;
-    });
-
-    console.error('Failed to install provider:', error);
-    message.error({
-      content: `${config.name} 安装失败，请重试`,
-      duration: 4,
-    });
-  }, []);
-
-  // Clear installing states when component unmounts or becomes invisible
-  useEffect(() => {
-    if (!visible) {
-      setInstallingProviders(new Set());
-    }
-  }, [visible]);
 
   // Refetch when visible
   useEffect(() => {
@@ -203,17 +167,13 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
             <Row gutter={[24, 24]}>
               {filteredProviders.map((provider) => {
                 const isInstalled = isProviderInstalled(provider, installedProviders);
-                const isInstalling = installingProviders.has(provider.providerId);
 
                 return (
                   <Col key={provider.providerId} xs={24} sm={24} md={12}>
                     <CommunityProviderCard
                       config={provider}
                       isInstalled={isInstalled}
-                      isInstalling={isInstalling}
-                      onInstall={handleInstallSuccess}
-                      onInstallStart={handleInstallStart}
-                      onInstallError={handleInstallError}
+                      onInstallSuccess={handleInstallSuccess}
                     />
                   </Col>
                 );

@@ -1,6 +1,7 @@
 import React, { memo, useState, useCallback } from 'react';
 import { Card, Button, Typography, Space, Avatar, message } from 'antd';
 import { DownloadOutlined, CheckOutlined, LinkOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 import { CommunityProviderConfig } from './provider-store-types';
 import { convertCommunityConfigToProviderRequest, requiresApiKey } from './provider-store-utils';
@@ -20,6 +21,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
     const [isCurrentlyInstalling, setIsCurrentlyInstalling] = useState(false);
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
     const { mutateAsync: createProvider } = useCreateProvider();
+    const { t } = useTranslation();
 
     // Handle installation with user configuration (API key, etc.)
     const handleInstallWithConfig = useCallback(
@@ -30,17 +32,19 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
           const request = convertCommunityConfigToProviderRequest(config, userConfig);
           await createProvider(request);
 
-          message.success(`成功安装 ${config.name}`);
+          message.success(
+            t('settings.modelProviders.community.installSuccess', { name: config.name }),
+          );
           setShowApiKeyModal(false);
           onInstallSuccess?.(config);
         } catch (error) {
           console.error('Installation error:', error);
-          message.error(`安装 ${config.name} 失败`);
+          message.error(t('settings.modelProviders.community.installError', { name: config.name }));
         } finally {
           setIsCurrentlyInstalling(false);
         }
       },
-      [config, createProvider, onInstallSuccess],
+      [config, createProvider, onInstallSuccess, t],
     );
 
     // Handle install button click
@@ -71,7 +75,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
         return {
           type: 'default' as const,
           icon: <CheckOutlined />,
-          children: '已安装',
+          children: t('settings.modelProviders.community.installed'),
           disabled: true,
           style: {
             color: '#52c41a',
@@ -85,7 +89,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
         return {
           type: 'primary' as const,
           loading: true,
-          children: '安装中...',
+          children: t('settings.modelProviders.community.installing'),
           disabled: true,
         };
       }
@@ -93,7 +97,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
       return {
         type: 'primary' as const,
         icon: <DownloadOutlined />,
-        children: '安装',
+        children: t('settings.modelProviders.community.install'),
         onClick: handleInstall,
       };
     };
@@ -163,7 +167,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
                 height: '2.8em',
               }}
             >
-              {description || '暂无描述'}
+              {description || t('settings.modelProviders.community.noDescription')}
             </Text>
           </div>
 
@@ -191,26 +195,14 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
                 >
                   <Space size={4}>
                     <LinkOutlined style={{ fontSize: '12px' }} />
-                    <span>查看文档</span>
+                    <span>{t('settings.modelProviders.community.viewDocumentation')}</span>
                   </Space>
                 </span>
               )}
             </div>
 
             {/* Install Button */}
-            <Button
-              size="small"
-              {...buttonProps}
-              style={{
-                height: '30px',
-                fontSize: '12px',
-                fontWeight: 500,
-                borderRadius: '6px',
-                minWidth: '72px',
-                padding: '0 12px',
-                ...buttonProps.style,
-              }}
-            />
+            <Button {...buttonProps} size="small" className="ml-auto" />
           </div>
         </Card>
 
