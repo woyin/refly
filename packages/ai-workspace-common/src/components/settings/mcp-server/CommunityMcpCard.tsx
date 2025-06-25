@@ -14,6 +14,7 @@ import {
   getConfigDescription,
 } from './utils';
 import { CommunityMcpApiKeyModal } from './CommunityMcpApiKeyModal';
+import { Favicon } from '../../common/favicon';
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -27,7 +28,10 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
     // Initialize the create MCP server mutation
     const createMcpServer = useCreateMcpServer([], {
-      onSuccess: () => {
+      onSuccess: (response) => {
+        if (!response?.data?.success) {
+          throw response.data.errMsg;
+        }
         message.success(t('settings.mcpServer.community.installSuccess', { name: config.name }));
         setInstalling(false);
         onInstall?.(config);
@@ -41,7 +45,10 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
     // Initialize the validate MCP server mutation
     const validateMcpServer = useValidateMcpServer([], {
-      onSuccess: () => {
+      onSuccess: (response) => {
+        if (!response?.data?.success) {
+          throw response.data.errMsg;
+        }
         message.success(t('settings.mcpServer.community.validateSuccess'));
         setValidating(false);
       },
@@ -58,6 +65,22 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
         return null;
       }
       return config.icon;
+    };
+
+    // Get URL for favicon service (prioritize documentation then main URL)
+    const getFaviconServiceUrl = () => {
+      // Priority 1: Use documentation URL if available
+      if (config.documentation) {
+        return config.documentation;
+      }
+
+      // Priority 2: Use main URL if available
+      if (config.url) {
+        return config.url;
+      }
+
+      // Fallback: use a generic URL
+      return `https://${config.name?.toLowerCase().replace(/\s+/g, '-') || 'example'}.com`;
     };
 
     // Get description with locale support
@@ -180,6 +203,7 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
     const buttonProps = getInstallButtonProps();
     const faviconUrl = getFaviconUrl();
+    const faviconServiceUrl = getFaviconServiceUrl();
 
     return (
       <>
@@ -221,7 +245,7 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
                     onLoad={() => setFaviconError(false)}
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-lg bg-gray-300 dark:bg-gray-500" />
+                  <Favicon url={faviconServiceUrl} size={32} />
                 )}
               </div>
 
@@ -337,7 +361,7 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
           config={config}
           onClose={() => setApiKeyModalVisible(false)}
           onSuccess={(apiKey: string) => performInstallation(apiKey)}
-          loading={installing}
+          loading={installing || validating}
         />
       </>
     );
