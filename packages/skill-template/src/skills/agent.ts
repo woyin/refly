@@ -238,16 +238,17 @@ export class Agent extends BaseSkill {
   private async getOrInitializeAgentComponents(
     user: User,
     selectedMcpServers: string[] = [],
+    _config?: SkillRunnableConfig, // Reserved for future use to get auth token from request context
   ): Promise<CachedAgentComponents> {
     const userId = user?.uid ?? user?.email ?? JSON.stringify(user);
 
     this.engine.logger.log(`Initializing new agent components for user ${userId}`);
-
     let mcpClientToCache: MultiServerMCPClient | null = null;
     let actualMcpTools: StructuredToolInterface[] = []; // Use StructuredToolInterface
     let actualToolNodeInstance: ToolNode<typeof MessagesAnnotation.State> | null = null;
     let mcpSuccessfullyInitializedAndToolsAvailable = false;
     let mcpServerList: ListMcpServersResponse['data'] = [];
+
     try {
       // Attempt to initialize MCP components
       mcpServerList = await this.engine.service
@@ -256,6 +257,37 @@ export class Agent extends BaseSkill {
         })
         .then((data) => data?.data?.filter((item) => selectedMcpServers?.includes?.(item.name)))
         .catch(() => [] as ListMcpServersResponse['data']);
+
+      // Generate real JWT token using the same method as AuthService
+      const realJwtToken = await this.engine.service.generateJwtToken(user);
+      const authorizationToken = `Bearer ${realJwtToken}`;
+      this.engine.logger.log('Using real JWT token generated via AuthService');
+
+      // Get port from configuration, fallback to default 5800
+      const serverPort = this.engine.getConfig('port') || 5800;
+      const serverOrigin = `http://localhost:${serverPort}`;
+      const mcpUrl = `${serverOrigin}/mcp`;
+
+      // Create default refly-mcp-server configuration with dynamic token
+      const reflyMcpServer = {
+        name: 'mcp',
+        url: mcpUrl,
+        command: null,
+        enabled: false,
+        isGlobal: false,
+        type: 'streamable' as const,
+        args: [],
+        env: {},
+        headers: {
+          Authorization: authorizationToken,
+        },
+        reconnect: {},
+        config: {},
+        createdAt: '',
+        updatedAt: '',
+      };
+
+      mcpServerList.push(reflyMcpServer);
 
       const cachedAgentComponents = this.userAgentComponentsCache.get(userId);
       const currentMcpServerNames = (mcpServerList?.map((server) => server.name) ?? []).sort();
@@ -284,7 +316,7 @@ export class Agent extends BaseSkill {
           `No MCP servers found for user ${userId}. Proceeding without MCP tools.`,
         );
       } else {
-        let tempMcpClient: MultiServerMCPClient;
+        let tempMcpClient: MultiServerMCPClient | undefined;
 
         try {
           // Pass mcpServersResponse (which is ListMcpServersResponse) to convertMcpServersToClientConfig
@@ -299,14 +331,16 @@ export class Agent extends BaseSkill {
             this.engine.logger.warn(
               `No MCP tools found for user ${userId} after initializing client. Proceeding without MCP tools.`,
             );
-            await tempMcpClient
-              .close()
-              .catch((closeError) =>
-                this.engine.logger.error(
-                  'Error closing MCP client when no tools found after connection:',
-                  closeError,
-                ),
-              );
+            if (tempMcpClient) {
+              await tempMcpClient
+                .close()
+                .catch((closeError) =>
+                  this.engine.logger.error(
+                    'Error closing MCP client when no tools found after connection:',
+                    closeError,
+                  ),
+                );
+            }
           } else {
             this.engine.logger.log(
               `Loaded ${toolsFromMcp.length} MCP tools: ${toolsFromMcp
@@ -324,14 +358,16 @@ export class Agent extends BaseSkill {
             'Error during MCP client operation (initializeConnections or getTools):',
             mcpError,
           );
-          await tempMcpClient
-            .close()
-            .catch((closeError) =>
-              this.engine.logger.error(
-                'Error closing MCP client after operation failure:',
-                closeError,
-              ),
-            );
+          if (tempMcpClient) {
+            await tempMcpClient
+              .close()
+              .catch((closeError) =>
+                this.engine.logger.error(
+                  'Error closing MCP client after operation failure:',
+                  closeError,
+                ),
+              );
+          }
           await this.dispose(userId);
         }
       }
@@ -449,7 +485,7 @@ export class Agent extends BaseSkill {
       mcpAvailable,
       mcpTools,
     } = // mcpServerList removed as it's not used by convertToMCPTools now
-      await this.getOrInitializeAgentComponents(user, selectedMcpServers);
+      await this.getOrInitializeAgentComponents(user, selectedMcpServers, config);
 
     const module: SkillPromptModule = {
       buildSystemPrompt: mcpAvailable
@@ -503,7 +539,7 @@ export class Agent extends BaseSkill {
         { messages: requestMessages },
         {
           ...config,
-          recursionLimit: 10,
+          recursionLimit: 20,
           metadata: {
             ...config.metadata,
             ...currentSkill,
