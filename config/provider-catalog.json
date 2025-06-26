@@ -5,11 +5,11 @@
       "providerKey": "openai",
       "baseUrl": "https://litellm.powerformer.net/v1",
       "description": {
-        "en": "litellm is a universal API for all LLMs.",
-        "zh-CN": "litellm 是所有 LLM 的通用 API。"
+        "en": "LiteLLM is a lightweight library to simplify LLM completion and embedding calls, providing a consistent interface for over 100 LLMs.",
+        "zh-CN": "LiteLLM 是一个轻量级库，用于简化 LLM 的补全和嵌入调用，为 100 多个 LLM 提供一致的接口。"
       },
-      "categories": ["llm"],
-      "documentation": "https://github.com/BerriAI/litellm",
+      "categories": ["llm", "embedding"],
+      "documentation": "https://docs.litellm.ai/",
       "icon": "https://static.refly.ai/icons/providers/litellm.png"
     },
     {
@@ -17,20 +17,20 @@
       "providerKey": "openai",
       "baseUrl": "https://api.siliconflow.cn/v1",
       "description": {
-        "en": "SiliconFlow is a universal API for all LLMs.",
-        "zh-CN": "SiliconFlow 是所有 LLM 的通用 API。"
+        "en": "SiliconFlow provides a one-stop cloud service platform with high-performance inference for top-tier large language and embedding models.",
+        "zh-CN": "SiliconFlow 提供一站式云服务平台，为顶级大语言模型和嵌入模型提供高性能推理服务。"
       },
-      "categories": ["llm"],
+      "categories": ["llm", "embedding"],
       "documentation": "https://docs.siliconflow.cn/",
       "icon": "https://static.refly.ai/icons/providers/siliconflow.png"
     },
     {
-      "name": "7牛云AI",
+      "name": "七牛云AI",
       "providerKey": "openai",
       "baseUrl": "https://api.qnaigc.com/v1",
       "description": {
-        "en": "Qiniu Cloud AI provides powerful LLM services with high performance and reliability.",
-        "zh-CN": "7牛云AI 提供高性能、高可靠性的大语言模型服务。"
+        "en": "Qiniu AI provides efficient, stable, and secure model inference services, supporting mainstream open-source large models.",
+        "zh-CN": "七牛云AI 提供高效、稳定、安全的模型推理服务，支持主流开源大模型。"
       },
       "categories": ["llm"],
       "documentation": "https://developer.qiniu.com/aitokenapi",
@@ -41,23 +41,23 @@
       "providerKey": "openai",
       "baseUrl": "https://aihubmix.com/v1",
       "description": {
-        "en": "AiHubMix is a comprehensive AI model aggregation platform providing access to multiple LLMs.",
-        "zh-CN": "AiHubMix 是一个综合性的AI模型聚合平台，提供多种大语言模型的访问服务。"
+        "en": "AiHubMix is a reliable AI model API routing service that provides a unified interface for various large language and embedding models.",
+        "zh-CN": "AiHubMix 是一个可靠的 AI 模型 API 路由服务，为各种大语言模型和嵌入模型提供统一的接口。"
       },
-      "categories": ["llm"],
+      "categories": ["llm", "embedding"],
       "documentation": "https://doc.aihubmix.com/",
       "icon": "https://static.refly.ai/icons/providers/aihubmix.png"
     },
     {
       "name": "ocool AI",
       "providerKey": "openai",
-      "baseUrl": "https://api.hk.ocoolai.com",
+      "baseUrl": "https://api.ocoolai.com",
       "description": {
-        "en": "ocool AI provides high-quality LLM services with multiple regional endpoints for optimal performance.",
-        "zh-CN": "ocool AI 提供高质量的大语言模型服务，支持多个地区端点以获得最佳性能。"
+        "en": "ocool AI provides a platform for accessing a wide range of large language and embedding models through an OpenAI-compatible API.",
+        "zh-CN": "ocool AI 提供一个通过 OpenAI 兼容 API 访问各种大语言模型和嵌入模型的平台。"
       },
-      "categories": ["llm"],
-      "documentation": "https://docs.ocoolai.com/",
+      "categories": ["llm", "embedding"],
+      "documentation": "https://documentation.ocoolai.com/",
       "icon": "https://static.refly.ai/icons/providers/ocoolai.png"
     },
     {
@@ -65,22 +65,22 @@
       "providerKey": "openai",
       "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
       "description": {
-        "en": "Alibaba Cloud Bailian provides powerful AI models including Qwen series for text generation, embedding, and vision understanding.",
-        "zh-CN": "阿里云百炼提供强大的AI模型，包括通义千问系列，支持文本生成、向量嵌入和视觉理解。"
+        "en": "Alibaba Cloud Bailian provides powerful AI models, including the Qwen series, and supports OpenAI-compatible APIs for both text generation and embedding.",
+        "zh-CN": "阿里云百炼提供强大的AI模型（包括通义千问系列），并为文本生成和向量嵌入提供兼容 OpenAI 的 API。"
       },
-      "categories": ["llm", "embedding", "vision"],
+      "categories": ["llm", "embedding"],
       "documentation": "https://help.aliyun.com/zh/model-studio/",
       "icon": "https://static.refly.ai/icons/providers/alibaba-bailian.png"
     },
     {
       "name": "DeepSeek",
       "providerKey": "openai",
-      "baseUrl": "https://api.deepseek.com",
+      "baseUrl": "https://api.deepseek.com/v1",
       "description": {
-        "en": "DeepSeek provides advanced AI models including DeepSeek-V3 and reasoning models with OpenAI-compatible API.",
-        "zh-CN": "DeepSeek 提供先进的AI模型，包括DeepSeek-V3和推理模型，兼容OpenAI API。"
+        "en": "DeepSeek provides advanced AI models with strong capabilities in coding and reasoning, accessible through an OpenAI-compatible API.",
+        "zh-CN": "DeepSeek 提供在编程和推理方面具有强大能力的先进 AI 模型，可通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["llm", "reasoning"],
+      "categories": ["llm"],
       "documentation": "https://api-docs.deepseek.com/",
       "icon": "https://static.refly.ai/icons/providers/deepseek.png"
     },
@@ -89,14 +89,11 @@
       "providerKey": "openrouter",
       "baseUrl": "https://openrouter.ai/api/v1",
       "description": {
-        "en": "OpenRouter provides unified access to 400+ AI models from various providers through a single OpenAI-compatible API, offering model routing, uptime optimization, and competitive pricing.",
-        "zh-Hans": "OpenRouter 通过单一的 OpenAI 兼容 API 提供对来自各种提供商的 400+ AI 模型的统一访问，提供模型路由、正常运行时间优化和有竞争力的价格。"
+        "en": "OpenRouter provides unified access to hundreds of AI models (including embedding models) from various providers through a single OpenAI-compatible API.",
+        "zh-CN": "OpenRouter 通过单一的 OpenAI 兼容 API 提供对来自各种提供商的数百个 AI 模型（包括嵌入模型）的统一访问。"
       },
-      "categories": ["AI Models", "Model Aggregator"],
-      "documentation": {
-        "en": "https://openrouter.ai/docs",
-        "zh-Hans": "https://openrouter.ai/docs"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://openrouter.ai/docs",
       "icon": "https://static.refly.ai/icons/providers/openrouter.png"
     },
     {
@@ -104,14 +101,11 @@
       "providerKey": "huggingface",
       "baseUrl": "https://api-inference.huggingface.co",
       "description": {
-        "en": "Hugging Face Inference API provides free serverless inference for thousands of models hosted on the Hub, including text generation, image classification, embeddings, and more.",
-        "zh-Hans": "Hugging Face 推理 API 为托管在 Hub 上的数千个模型提供免费的无服务器推理，包括文本生成、图像分类、嵌入等。"
+        "en": "Hugging Face Inference provides access to a vast library of open-source AI models for various tasks, including text generation and embedding, through its Inference Providers API.",
+        "zh-CN": "Hugging Face Inference 通过其 Inference Providers API 提供对庞大的开源 AI 模型库的访问，支持文本生成和嵌入等多种任务。"
       },
-      "categories": ["AI Models", "Open Source", "Free Tier"],
-      "documentation": {
-        "en": "https://huggingface.co/docs/api-inference/",
-        "zh-Hans": "https://huggingface.co/docs/api-inference/"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://huggingface.co/docs/inference-providers/index",
       "icon": "https://static.refly.ai/icons/providers/huggingface.png"
     },
     {
@@ -119,29 +113,23 @@
       "providerKey": "replicate",
       "baseUrl": "https://api.replicate.com/v1",
       "description": {
-        "en": "Replicate lets you run machine learning models with a cloud API. Run and fine-tune models, deploy custom models at scale, all with one line of code. Thousands of community models available.",
-        "zh-Hans": "Replicate 让您通过云端 API 运行机器学习模型。运行和微调模型，大规模部署自定义模型，仅需一行代码。提供数千个社区模型。"
+        "en": "Replicate provides a platform to run thousands of open-source AI models, including text generation and embedding, with a cloud API.",
+        "zh-CN": "Replicate 提供一个平台，让您可以通过云 API 运行数以千计的开源 AI 模型，包括文本生成和嵌入。"
       },
-      "categories": ["AI Models", "ML Platform", "Community Models"],
-      "documentation": {
-        "en": "https://replicate.com/docs",
-        "zh-Hans": "https://replicate.com/docs"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://replicate.com/docs",
       "icon": "https://static.refly.ai/icons/providers/replicate.png"
     },
     {
       "name": "Groq",
-      "providerKey": "groq",
+      "providerKey": "openai",
       "baseUrl": "https://api.groq.com/openai/v1",
       "description": {
-        "en": "Groq is an AI solutions company delivering ultra-low latency inference with the first ever LPU™ Inference Engine. Groq API enables developers to integrate state-of-the-art LLMs such as Llama-3 into low latency applications.",
-        "zh-Hans": "Groq 是一家AI解决方案公司，通过首个LPU™推理引擎提供超低延迟推理。Groq API使开发者能够将Llama-3等最先进的LLM集成到低延迟应用中。"
+        "en": "Groq provides ultra-low latency inference for large language models using its LPU™ Inference Engine, accessible via an OpenAI-compatible API.",
+        "zh-CN": "Groq 使用其 LPU™ 推理引擎为大型语言模型提供超低延迟推理，可通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["AI Models", "High Performance", "Low Latency"],
-      "documentation": {
-        "en": "https://docs.api.groq.com/",
-        "zh-Hans": "https://docs.api.groq.com/"
-      },
+      "categories": ["llm"],
+      "documentation": "https://console.groq.com/docs/overview",
       "icon": "https://static.refly.ai/icons/providers/groq.png"
     },
     {
@@ -149,44 +137,35 @@
       "providerKey": "cohere",
       "baseUrl": "https://api.cohere.ai/v1",
       "description": {
-        "en": "Cohere allows developers and enterprises to build LLM-powered applications with world-class models. The Command family of models powers conversational agents, summarization, copywriting, and similar use cases.",
-        "zh-Hans": "Cohere 允许开发者和企业使用世界一流的模型构建 LLM 驱动的应用程序。Command 系列模型为对话代理、摘要、文案写作和类似用例提供支持。"
+        "en": "Cohere provides enterprise-grade large language models for text generation (Command) and state-of-the-art text and image embedding models (Embed).",
+        "zh-CN": "Cohere 提供企业级的大型语言模型，用于文本生成（Command 系列）和最先进的文本与图像嵌入模型（Embed 系列）。"
       },
-      "categories": ["AI Models", "Language Models", "Enterprise"],
-      "documentation": {
-        "en": "https://docs.cohere.com/",
-        "zh-Hans": "https://docs.cohere.com/"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://docs.cohere.com",
       "icon": "https://static.refly.ai/icons/providers/cohere.png"
     },
     {
       "name": "Mistral AI",
-      "providerKey": "mistral",
+      "providerKey": "openai",
       "baseUrl": "https://api.mistral.ai/v1",
       "description": {
-        "en": "Mistral AI creates powerful, efficient, and customizable AI models with a strong focus on performance and controlled generation. Mistral models excel at reasoning, knowledge, and coding tasks.",
-        "zh-Hans": "Mistral AI 创建强大、高效且可定制的AI模型，专注于性能和可控生成。Mistral模型在推理、知识和编码任务方面表现出色。"
+        "en": "Mistral AI offers powerful and efficient open-source and commercial models for text generation and embedding, accessible via an OpenAI-compatible API.",
+        "zh-CN": "Mistral AI 提供强大而高效的开源及商业模型，用于文本生成和嵌入，可通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["AI Models", "Language Models", "High Performance"],
-      "documentation": {
-        "en": "https://docs.mistral.ai/",
-        "zh-Hans": "https://docs.mistral.ai/"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://docs.mistral.ai/",
       "icon": "https://static.refly.ai/icons/providers/mistral.png"
     },
     {
       "name": "Perplexity",
-      "providerKey": "perplexity",
+      "providerKey": "openai",
       "baseUrl": "https://api.perplexity.ai",
       "description": {
-        "en": "Perplexity's Sonar provides real-time web search-powered AI responses with citations. It offers lightweight, fast, and affordable AI with advanced research capabilities and multi-step reasoning.",
-        "zh-Hans": "Perplexity 的 Sonar 提供基于实时网络搜索的AI响应，并附带引用。它提供轻量级、快速且经济实惠的AI，具备先进的研究能力和多步骤推理。"
+        "en": "Perplexity provides AI models with real-time web search capabilities, delivering up-to-date and cited answers, accessible via an OpenAI-compatible API.",
+        "zh-CN": "Perplexity 提供具备实时网络搜索能力的 AI 模型，可提供带引用的最新答案，通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["AI Models", "Search AI", "Research"],
-      "documentation": {
-        "en": "https://docs.perplexity.ai/",
-        "zh-Hans": "https://docs.perplexity.ai/"
-      },
+      "categories": ["llm"],
+      "documentation": "https://docs.perplexity.ai/",
       "icon": "https://static.refly.ai/icons/providers/perplexity.png"
     },
     {
@@ -194,23 +173,23 @@
       "providerKey": "openai",
       "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
       "description": {
-        "en": "Zhipu AI provides advanced GLM models including GLM-4, GLM-4V for multimodal tasks, and CogView for image generation.",
-        "zh-CN": "智谱AI 提供先进的GLM模型，包括GLM-4、多模态GLM-4V和图像生成CogView等。"
+        "en": "Zhipu AI provides advanced GLM models for text generation and embedding, accessible via an OpenAI-compatible API.",
+        "zh-CN": "智谱AI 提供先进的 GLM 模型，用于文本生成和向量嵌入，可通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["llm", "vision", "image-generation"],
+      "categories": ["llm", "embedding"],
       "documentation": "https://open.bigmodel.cn/dev/api",
       "icon": "https://static.refly.ai/icons/providers/zhipuai.png"
     },
     {
       "name": "Anthropic Claude",
       "providerKey": "anthropic",
-      "baseUrl": "https://api.anthropic.com",
+      "baseUrl": "https://api.anthropic.com/v1",
       "description": {
-        "en": "Anthropic Claude offers highly performant AI models including Claude 4 Opus and Sonnet for advanced reasoning, coding, and analysis.",
-        "zh-CN": "Anthropic Claude 提供高性能AI模型，包括Claude 4 Opus和Sonnet，专长于高级推理、编程和分析。"
+        "en": "Anthropic provides the Claude family of large language models, known for their performance, reliability, and safety, accessible via a native API.",
+        "zh-CN": "Anthropic 提供 Claude 系列大型语言模型，以其性能、可靠性和安全性而闻名，可通过原生 API 进行访问。"
       },
-      "categories": ["llm", "reasoning", "coding"],
-      "documentation": "https://docs.anthropic.com/",
+      "categories": ["llm", "embedding"],
+      "documentation": "https://docs.anthropic.com/en/docs/overview",
       "icon": "https://static.refly.ai/icons/providers/anthropic.png"
     },
     {
@@ -218,11 +197,11 @@
       "providerKey": "openai",
       "baseUrl": "https://api.moonshot.cn/v1",
       "description": {
-        "en": "Moonshot AI offers Kimi models with long context capabilities, including Moonshot-v1 series for extended conversations and reasoning.",
-        "zh-CN": "Moonshot AI 提供 Kimi 长上下文模型，包括 Moonshot-v1 系列，支持长对话和推理。"
+        "en": "Moonshot AI offers Kimi, an intelligent assistant with ultra-long context capabilities, providing powerful text generation and reasoning.",
+        "zh-CN": "月之暗面（Moonshot AI）提供 Kimi 智能助手，拥有超长无损上下文能力，提供强大的文本生成和推理功能。"
       },
-      "categories": ["llm", "long-context"],
-      "documentation": "https://platform.moonshot.cn/docs/",
+      "categories": ["llm"],
+      "documentation": "https://platform.moonshot.cn/docs",
       "icon": "https://static.refly.ai/icons/providers/moonshot.png"
     },
     {
@@ -230,10 +209,10 @@
       "providerKey": "openai",
       "baseUrl": "https://api.perplexity.ai",
       "description": {
-        "en": "Perplexity Sonar provides real-time web search and Q&A capabilities with access to current information and citations.",
-        "zh-CN": "Perplexity Sonar 提供实时网络搜索和问答功能，可获取最新信息并提供引用。"
+        "en": "Perplexity provides real-time, conversational AI search with up-to-date information and citations, powered by its advanced models.",
+        "zh-CN": "Perplexity 提供实时的对话式 AI 搜索，能够获取最新信息并提供引用，由其先进的模型驱动。"
       },
-      "categories": ["llm", "search", "real-time"],
+      "categories": ["llm"],
       "documentation": "https://docs.perplexity.ai/",
       "icon": "https://static.refly.ai/icons/providers/perplexity.png"
     },
@@ -242,236 +221,107 @@
       "providerKey": "google",
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
       "description": {
-        "en": "Google Gemini provides advanced multimodal AI capabilities including text, image, video, and audio understanding with state-of-the-art reasoning.",
-        "zh-CN": "Google Gemini 提供先进的多模态AI能力，包括文本、图像、视频和音频理解，具备最先进的推理能力。"
+        "en": "Google Gemini offers a family of powerful, multimodal models for advanced reasoning, text generation, and embedding tasks.",
+        "zh-CN": "Google Gemini 提供一系列功能强大的多模态模型，用于高级推理、文本生成和向量嵌入任务。"
       },
-      "categories": ["llm"],
+      "categories": ["llm", "embedding"],
       "documentation": "https://ai.google.dev/gemini-api/docs",
       "icon": "https://static.refly.ai/icons/providers/google.png"
     },
     {
       "name": "DeepSeek",
-      "providerKey": "deepseek",
-      "baseUrl": "https://api.deepseek.com/v1",
+      "providerKey": "openai",
+      "baseUrl": "https://api.deepseek.com",
       "description": {
-        "en": "DeepSeek is an AI company focused on developing advanced language models including DeepSeek-V3 and DeepSeek-R1 reasoning models with strong capabilities in mathematics, coding, and reasoning.",
-        "zh-Hans": "DeepSeek 是一家专注于开发先进语言模型的AI公司，包括 DeepSeek-V3 和 DeepSeek-R1 推理模型，在数学、编程和推理方面具有强大能力。"
+        "en": "DeepSeek provides powerful open-source models with strong coding and reasoning capabilities, accessible via an OpenAI-compatible API.",
+        "zh-CN": "深度求索（DeepSeek）提供性能强大的开源模型，在代码和推理方面表现出色，可通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["AI Models", "Reasoning Models"],
-      "documentation": {
-        "en": "https://api-docs.deepseek.com/",
-        "zh-Hans": "https://api-docs.deepseek.com/"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://platform.deepseek.com/api-docs/",
       "icon": "https://static.refly.ai/icons/providers/deepseek.png"
     },
     {
       "name": "NVIDIA",
-      "providerKey": "nvidia",
+      "providerKey": "openai",
       "baseUrl": "https://integrate.api.nvidia.com/v1",
       "description": {
-        "en": "NVIDIA provides enterprise-grade AI APIs including NIM microservices for accelerating foundation model deployment with production-grade runtimes and security updates.",
-        "zh-Hans": "NVIDIA 提供企业级 AI API，包括 NIM 微服务，用于加速基础模型部署，具备生产级运行时和安全更新。"
+        "en": "NVIDIA offers a catalog of community and NVIDIA-built generative AI models, optimized for performance and accessible via an OpenAI-compatible API.",
+        "zh-CN": "NVIDIA 提供由社区和 NVIDIA 构建的生成式 AI 模型目录，经性能优化，可通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["AI Models", "Enterprise AI", "NIM"],
-      "documentation": {
-        "en": "https://docs.nvidia.com/",
-        "zh-Hans": "https://docs.nvidia.com/"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://build.nvidia.com/explore/discover",
       "icon": "https://static.refly.ai/icons/providers/nvidia.png"
-    },
-    {
-      "name": "Hyperbolic",
-      "providerKey": "hyperbolic",
-      "baseUrl": "https://api.hyperbolic.xyz/v1",
-      "description": {
-        "en": "Hyperbolic provides serverless inference for AI models with ultra-low latency and competitive pricing. Features include text generation, image generation, and audio generation with OpenAI-compatible API.",
-        "zh-Hans": "Hyperbolic 为 AI 模型提供无服务器推理，具有超低延迟和有竞争力的价格。功能包括文本生成、图像生成和音频生成，具有 OpenAI 兼容的 API。"
-      },
-      "categories": ["AI Models", "Serverless", "Multi-modal"],
-      "documentation": {
-        "en": "https://docs.hyperbolic.xyz/",
-        "zh-Hans": "https://docs.hyperbolic.xyz/"
-      },
-      "icon": "https://static.refly.ai/icons/providers/hyperbolic.png"
     },
     {
       "name": "Stability AI",
       "providerKey": "stability-ai",
       "baseUrl": "https://api.stability.ai/v1",
       "description": {
-        "en": "Stability AI is a leading AI company focused on generative AI models including Stable Diffusion for image generation, Stable Video for video generation, and other cutting-edge AI technologies.",
-        "zh-Hans": "Stability AI 是一家领先的AI公司，专注于生成式AI模型，包括用于图像生成的 Stable Diffusion、用于视频生成的 Stable Video 和其他前沿AI技术。"
+        "en": "Stability AI provides open-source generative models for image, video, audio, and 3D generation, accessible via its native API.",
+        "zh-CN": "Stability AI 提供用于图像、视频、音频和 3D 生成的开源生成模型，可通过其原生 API 进行访问。"
       },
-      "categories": ["AI Models", "Image Generation", "Video Generation"],
-      "documentation": {
-        "en": "https://platform.stability.ai/docs",
-        "zh-Hans": "https://platform.stability.ai/docs"
-      },
+      "categories": [],
+      "documentation": "https://platform.stability.ai/docs/api-reference",
       "icon": "https://static.refly.ai/icons/providers/stability-ai.png"
     },
     {
       "name": "Voyage AI",
-      "providerKey": "voyage-ai",
+      "providerKey": "openai",
       "baseUrl": "https://api.voyageai.com/v1",
       "description": {
-        "en": "Voyage AI provides cutting-edge embedding models and rerankers for semantic search and retrieval-augmented generation (RAG). State-of-the-art text, multimodal embeddings, and reranking capabilities.",
-        "zh-Hans": "Voyage AI 提供前沿的嵌入模型和重排序器，用于语义搜索和检索增强生成 (RAG)。最先进的文本、多模态嵌入和重排序功能。"
+        "en": "Voyage AI specializes in high-performance embedding models for search and RAG applications, offering state-of-the-art performance.",
+        "zh-CN": "Voyage AI 专注于为搜索和 RAG 应用提供高性能的向量嵌入模型，提供业界领先的性能。"
       },
-      "categories": ["AI Models", "Embeddings", "Rerankers"],
-      "documentation": {
-        "en": "https://docs.voyageai.com/",
-        "zh-Hans": "https://docs.voyageai.com/"
-      },
+      "categories": ["embedding"],
+      "documentation": "https://docs.voyageai.com/",
       "icon": "https://static.refly.ai/icons/providers/voyage-ai.png"
     },
     {
       "name": "Jina AI",
-      "providerKey": "jina-ai",
+      "providerKey": "openai",
       "baseUrl": "https://api.jina.ai/v1",
       "description": {
-        "en": "Jina AI provides search foundation APIs including embeddings, rerankers, web readers, search, classification, and segmentation. Best-in-class multimodal and multilingual capabilities for AI applications.",
-        "zh-Hans": "Jina AI 提供搜索基础 API，包括嵌入、重排序、网页阅读器、搜索、分类和分割。为 AI 应用提供一流的多模态和多语言功能。"
+        "en": "Jina AI offers some of the best open-source text and multimodal embedding models, available via an OpenAI-compatible API.",
+        "zh-CN": "Jina AI 提供业界领先的开源文本和多模态向量嵌入模型，可通过兼容 OpenAI 的 API 使用。"
       },
-      "categories": ["AI Models", "Search Foundation", "Embeddings"],
-      "documentation": {
-        "en": "https://docs.jina.ai/",
-        "zh-Hans": "https://docs.jina.ai/"
-      },
+      "categories": ["embedding"],
+      "documentation": "https://jina.ai/embeddings/",
       "icon": "https://static.refly.ai/icons/providers/jina-ai.png"
     },
     {
-      "name": "Cerebras",
-      "providerKey": "cerebras",
-      "baseUrl": "https://api.cerebras.ai/v1",
-      "description": {
-        "en": "Cerebras Inference API offers developers a low-latency solution for AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems, achieving world record performance with speeds over 2600 tokens/s.",
-        "zh-Hans": "Cerebras 推理 API 为开发者提供基于 Cerebras 晶圆级引擎和 CS-3 系统的低延迟 AI 模型推理解决方案，实现世界纪录性能，速度超过 2600 tokens/s。"
-      },
-      "categories": ["AI Models", "High Performance", "Ultra Low Latency"],
-      "documentation": {
-        "en": "https://inference-docs.cerebras.ai/",
-        "zh-Hans": "https://inference-docs.cerebras.ai/"
-      },
-      "icon": "https://static.refly.ai/icons/providers/cerebras.png"
-    },
-    {
-      "name": "SambaNova",
-      "providerKey": "sambanova",
-      "baseUrl": "https://api.sambanova.ai/v1",
-      "description": {
-        "en": "SambaNova Cloud provides ultra-fast AI inference powered by Reconfigurable Dataflow Units (RDU), delivering up to 10x faster performance than GPUs with support for Llama, DeepSeek, and other leading open-source models.",
-        "zh-Hans": "SambaNova Cloud 提供由可重构数据流单元 (RDU) 驱动的超快 AI 推理，性能比 GPU 快 10 倍，支持 Llama、DeepSeek 和其他领先的开源模型。"
-      },
-      "categories": ["AI Models", "High Performance", "Open Source"],
-      "documentation": {
-        "en": "https://docs.sambanova.ai/",
-        "zh-Hans": "https://docs.sambanova.ai/"
-      },
-      "icon": "https://static.refly.ai/icons/providers/sambanova.png"
-    },
-    {
-      "name": "Novita AI",
-      "providerKey": "novita",
-      "baseUrl": "https://api.novita.ai/v3/openai",
-      "description": {
-        "en": "Novita AI is a low-cost, reliable, and simple cloud infrastructure for shipping AI models. Provides scalable, production-ready model inference with affordable GPU cloud infrastructure and OpenAI-compatible API.",
-        "zh-Hans": "Novita AI 是一个低成本、可靠且简单的云基础设施，用于部署 AI 模型。提供可扩展的生产就绪模型推理，具有经济实惠的 GPU 云基础设施和 OpenAI 兼容的 API。"
-      },
-      "categories": ["AI Models", "Cloud Infrastructure", "OpenAI Compatible"],
-      "documentation": {
-        "en": "https://novita.ai/docs/guides/introduction",
-        "zh-Hans": "https://novita.ai/docs/guides/introduction"
-      },
-      "icon": "https://static.refly.ai/icons/providers/novita.png"
-    },
-    {
-      "name": "xAI",
-      "providerKey": "xai",
-      "baseUrl": "https://api.x.ai/v1",
-      "description": {
-        "en": "xAI develops Grok, an AI assistant with real-time knowledge and advanced reasoning capabilities. Grok models excel at understanding context, humor, and providing helpful responses with access to real-time information.",
-        "zh-Hans": "xAI 开发 Grok，一个具有实时知识和高级推理能力的 AI 助手。Grok 模型擅长理解上下文、幽默，并提供有用的响应，可访问实时信息。"
-      },
-      "categories": ["AI Models", "Real-time Knowledge", "Advanced Reasoning"],
-      "documentation": {
-        "en": "https://console.x.ai/",
-        "zh-Hans": "https://console.x.ai/"
-      },
-      "icon": "https://static.refly.ai/icons/providers/xai.png"
-    },
-    {
-      "name": "Zhipu AI",
-      "providerKey": "zhipu-ai",
-      "baseUrl": "https://open.bigmodel.cn/api/paas/v4",
-      "description": {
-        "en": "Zhipu AI provides advanced language models including GLM-4, GLM-4V for multimodal capabilities, CharGLM for role-playing, CogVideo for video generation, and comprehensive AI solutions for enterprises and developers.",
-        "zh-Hans": "智谱AI 提供先进的语言模型，包括 GLM-4、用于多模态功能的 GLM-4V、用于角色扮演的 CharGLM、用于视频生成的 CogVideo，以及为企业和开发者提供的综合 AI 解决方案。"
-      },
-      "categories": ["AI Models", "Multimodal", "Video Generation"],
-      "documentation": {
-        "en": "https://open.bigmodel.cn/dev/api",
-        "zh-Hans": "https://open.bigmodel.cn/dev/api"
-      },
-      "icon": "https://static.refly.ai/icons/providers/zhipu-ai.png"
-    },
-    {
-      "name": "Moonshot AI",
-      "providerKey": "moonshot-ai",
-      "baseUrl": "https://api.moonshot.cn/v1",
-      "description": {
-        "en": "Moonshot AI provides Kimi, an intelligent assistant with ultra-long context capabilities up to 2 million characters. Offers comprehensive AI solutions including chat completions, file processing, and multimodal understanding.",
-        "zh-Hans": "Moonshot AI 提供 Kimi，一个具有超长上下文能力（最多 200 万字符）的智能助手。提供全面的 AI 解决方案，包括对话完成、文件处理和多模态理解。"
-      },
-      "categories": ["AI Models", "Long Context", "Multimodal"],
-      "documentation": {
-        "en": "https://platform.moonshot.cn/docs",
-        "zh-Hans": "https://platform.moonshot.cn/docs"
-      },
-      "icon": "https://static.refly.ai/icons/providers/moonshot-ai.png"
-    },
-    {
-      "name": "Minimax AI",
+      "name": "Minimax",
       "providerKey": "minimax",
       "baseUrl": "https://api.minimax.chat/v1",
       "description": {
-        "en": "Minimax AI provides advanced AI models including Hailuo video generation, text models with reasoning capabilities, high-quality TTS, and multimodal AI solutions for developers and enterprises.",
-        "zh-Hans": "Minimax AI 提供先进的 AI 模型，包括海螺视频生成、具有推理能力的文本模型、高质量 TTS 和面向开发者和企业的多模态 AI 解决方案。"
+        "en": "Minimax offers powerful foundation models including text and multimodal capabilities, accessible via its native API.",
+        "zh-CN": "MiniMax（名之梦）提供包括文本和多模态能力的强大基础模型，可通过其原生 API 访问。"
       },
-      "categories": ["AI Models", "Video Generation", "Text-to-Speech"],
-      "documentation": {
-        "en": "https://api.minimax.chat/",
-        "zh-Hans": "https://api.minimax.chat/"
-      },
+      "categories": ["llm"],
+      "documentation": "https://www.minimaxi.com/document/introduction",
       "icon": "https://static.refly.ai/icons/providers/minimax.png"
     },
     {
-      "name": "Baichuan AI",
-      "providerKey": "baichuan-ai",
-      "baseUrl": "",
+      "name": "百川智能 (Baichuan)",
+      "providerKey": "openai",
+      "baseUrl": "https://api.baichuan-ai.com/v1",
       "description": {
-        "en": "Baichuan AI develops Baichuan 2, a series of open-source large language models trained on 2.6 trillion tokens. Offers 7B and 13B Base and Chat versions with state-of-the-art performance on Chinese and English benchmarks.",
-        "zh-Hans": "百川智能开发 Baichuan 2，一系列基于 2.6 万亿 Token 训练的开源大语言模型。提供 7B 和 13B 的 Base 和 Chat 版本，在中英文基准测试中表现卓越。"
+        "en": "Baichuan Intelligence provides a series of large language models, including its Baichuan series, accessible via an OpenAI-compatible API.",
+        "zh-CN": "百川智能提供一系列大语言模型，包括其百川系列，可通过兼容 OpenAI 的 API 进行访问。"
       },
-      "categories": ["AI Models", "Open Source", "Chinese LLM"],
-      "documentation": {
-        "en": "https://github.com/baichuan-inc/Baichuan2",
-        "zh-Hans": "https://github.com/baichuan-inc/Baichuan2"
-      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://platform.baichuan-ai.com/docs/api",
       "icon": "https://static.refly.ai/icons/providers/baichuan-ai.png"
     },
     {
-      "name": "Stepfun AI",
-      "providerKey": "stepfun-ai",
-      "baseUrl": "",
+      "name": "阶跃星辰 (StepFun)",
+      "providerKey": "openai",
+      "baseUrl": "https://api.stepfun.com/v1",
       "description": {
-        "en": "Stepfun AI develops the Step series of foundation models including Step-2 (trillion-parameter MoE language model), Step-1.5V (multimodal model), Step-Video-T2V (video generation), and Step-Audio (speech interaction). Founded in April 2023 with the mission to Scale-up possibilities for everyone.",
-        "zh-Hans": "阶跃星辰开发 Step 系列基础模型，包括 Step-2（万亿参数 MoE 语言模型）、Step-1.5V（多模态模型）、Step-Video-T2V（视频生成）和 Step-Audio（语音交互）。成立于 2023 年 4 月，使命是为每个人扩展可能性。"
+        "en": "StepFun develops the Step series of foundation models, offering powerful language and multimodal capabilities through an OpenAI-compatible API.",
+        "zh-CN": "阶跃星辰开发 Step 系列基础模型，通过兼容 OpenAI 的 API 提供强大的语言和多模态能力。"
       },
-      "categories": ["AI Models", "Multimodal", "Video Generation"],
-      "documentation": {
-        "en": "https://platform.stepfun.com/",
-        "zh-Hans": "https://platform.stepfun.com/"
-      },
+      "categories": ["llm"],
+      "documentation": "https://platform.stepfun.com/docs",
       "icon": "https://static.refly.ai/icons/providers/stepfun-ai.png"
     }
   ]
