@@ -28,21 +28,26 @@ import { useUpdateActionResult } from './use-update-action-result';
 import { useSubscriptionUsage } from '../use-subscription-usage';
 import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
 import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
-import { useFindWebsite } from './use-find-website';
+import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
 import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
 import { useReactFlow } from '@xyflow/react';
 import { detectActualTypeFromType } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/artifact-type-util';
 import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
 import { usePilotStore } from '@refly-packages/ai-workspace-common/stores/pilot';
 import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import {
+  useAbortAction,
+  globalAbortControllerRef,
+  globalIsAbortedRef,
+  globalCurrentResultIdRef,
+} from './use-abort-action';
 
 export const useInvokeAction = () => {
   const { addNode } = useAddNode();
   const { getNodes } = useReactFlow();
   const setNodeDataByEntity = useSetNodeDataByEntity();
+  const { abortAction } = useAbortAction();
 
-  const globalAbortControllerRef = { current: null as AbortController | null };
-  const globalIsAbortedRef = { current: false as boolean };
   const deletedNodeIdsRef = useRef<Set<string>>(new Set());
 
   const { refetchUsage } = useSubscriptionUsage();
@@ -474,6 +479,11 @@ export const useInvokeAction = () => {
     };
     onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
 
+    // Clear current resultId when conversation ends
+    if (globalCurrentResultIdRef.current === skillEvent.resultId) {
+      globalCurrentResultIdRef.current = '';
+    }
+
     const artifacts = result.steps?.flatMap((s) => s.artifacts);
     if (artifacts?.length) {
       for (const artifact of artifacts) {
@@ -550,20 +560,8 @@ export const useInvokeAction = () => {
       }
     }
 
-    abortAction(originError);
+    abortAction(resultId);
   };
-
-  const abortAction = useCallback(
-    (_msg?: string) => {
-      try {
-        globalAbortControllerRef.current?.abort();
-        globalIsAbortedRef.current = true;
-      } catch (err) {
-        console.log('shutdown error', err);
-      }
-    },
-    [globalAbortControllerRef, globalIsAbortedRef],
-  );
 
   const onCompleted = () => {};
   const onStart = () => {};
@@ -594,6 +592,10 @@ export const useInvokeAction = () => {
         runtimeConfig = {},
         projectId,
       } = payload;
+
+      globalAbortControllerRef.current = new AbortController();
+      globalCurrentResultIdRef.current = resultId; // Track current active resultId
+
       const { context, resultHistory, images } = convertContextItemsToInvokeParams(
         contextItems,
         (item) =>
@@ -665,8 +667,6 @@ export const useInvokeAction = () => {
 
       onUpdateResult(resultId, initialResult);
       useActionResultStore.getState().addStreamResult(resultId, initialResult);
-
-      globalAbortControllerRef.current = new AbortController();
 
       // Create timeout handler for this action
       const { resetTimeout, cleanup: timeoutCleanup } = createTimeoutHandler(resultId, version);
