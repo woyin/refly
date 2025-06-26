@@ -20,8 +20,24 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
   ({ config, isInstalled = false, onInstallSuccess }) => {
     const [isCurrentlyInstalling, setIsCurrentlyInstalling] = useState(false);
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-    const { mutateAsync: createProvider } = useCreateProvider();
     const { t } = useTranslation();
+
+    // Initialize the create MCP server mutation
+    const createProvider = useCreateProvider([], {
+      onSuccess: (response) => {
+        if (!response?.data?.success) {
+          throw response.data.errMsg;
+        }
+        message.success(t('settings.mcpServer.community.installSuccess', { name: config.name }));
+        setIsCurrentlyInstalling(false);
+        onInstallSuccess?.(config);
+      },
+      onError: (error) => {
+        console.error('Installation error:', error);
+        message.error(t('settings.mcpServer.community.installError', { name: config.name }));
+        setIsCurrentlyInstalling(false);
+      },
+    });
 
     // Handle installation with user configuration (API key, etc.)
     const handleInstallWithConfig = useCallback(
@@ -30,7 +46,9 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
           setIsCurrentlyInstalling(true);
 
           const request = convertCommunityConfigToProviderRequest(config, userConfig);
-          await createProvider(request);
+          await createProvider.mutateAsync({
+            body: request,
+          });
 
           message.success(
             t('settings.modelProviders.community.installSuccess', { name: config.name }),

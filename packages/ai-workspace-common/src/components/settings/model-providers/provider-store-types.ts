@@ -26,6 +26,7 @@ export interface CommunityProviderConfig {
       };
   icon?: string;
   categories: ProviderCategory[];
+  category?: string; // Added for backwards compatibility
   pricing?: ProviderPricingModel;
   popularity?: number;
   author?: string;
