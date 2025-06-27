@@ -2457,6 +2457,7 @@ const translations = {
     },
     chatActions: {
       send: '发送',
+      stop: '停止',
       directChat: '直接聊天',
       noContextChat: '不带上下文聊天',
       wholeSpaceChat: '在整个空间聊天',
@@ -2520,6 +2521,7 @@ const translations = {
       title: '选择 MCP 服务器',
       empty: '没有可用的 MCP 服务器',
       selected: '已选择',
+      browseMcpStore: '去商店添加',
     },
     contextItem: {
       current: '当前',
