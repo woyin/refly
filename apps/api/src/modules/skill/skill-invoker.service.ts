@@ -57,6 +57,7 @@ import { CollabContext } from '../collab/collab.dto';
 import { CollabService } from '../collab/collab.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
 import { CanvasService } from '../canvas/canvas.service';
+import { ActionService } from '../action/action.service';
 
 @Injectable()
 export class SkillInvokerService {
@@ -74,6 +75,7 @@ export class SkillInvokerService {
     private readonly providerService: ProviderService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly skillEngineService: SkillEngineService,
+    private readonly actionService: ActionService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
@@ -265,7 +267,11 @@ export class SkillInvokerService {
       // In desktop mode, we could handle usage tracking differently if needed
     }
 
-    const aborted = false;
+    // Create abort controller for this action
+    const abortController = new AbortController();
+
+    // Register the abort controller with ActionService
+    this.actionService.registerAbortController(resultId, abortController);
 
     // const job = await this.timeoutCheckQueue.add(
     //   `idle_timeout_check:${resultId}`,
@@ -309,7 +315,7 @@ export class SkillInvokerService {
     const config = await this.buildInvokeConfig(user, {
       ...data,
       eventListener: async (data: SkillEvent) => {
-        if (aborted) {
+        if (abortController.signal.aborted) {
           this.logger.warn(`skill invocation aborted, ignore event: ${JSON.stringify(data)}`);
           return;
         }
@@ -447,8 +453,12 @@ export class SkillInvokerService {
     }
 
     try {
-      for await (const event of skill.streamEvents(input, { ...config, version: 'v2' })) {
-        if (aborted) {
+      for await (const event of skill.streamEvents(input, {
+        ...config,
+        version: 'v2',
+        signal: abortController.signal,
+      })) {
+        if (abortController.signal.aborted) {
           if (runMeta) {
             result.errors.push('AbortError');
           }
@@ -612,6 +622,9 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
       result.errors.push(err.message);
     } finally {
+      // Unregister the abort controller
+      this.actionService.unregisterAbortController(resultId);
+
       for (const artifact of Object.values(artifactMap)) {
         artifact.connection?.disconnect();
       }
