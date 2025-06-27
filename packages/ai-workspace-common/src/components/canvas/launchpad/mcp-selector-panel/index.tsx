@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Button, Empty, Skeleton, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, CheckCircle2, Settings } from 'lucide-react';
+import { ChevronDown, CheckCircle2, ChevronRight } from 'lucide-react';
 import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
@@ -125,11 +125,11 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
           <Button
             type="link"
             size="small"
-            icon={<Settings className="w-3 h-3" />}
             onClick={handleOpenMcpStore}
-            className="text-[12px] text-[#00968f] hover:text-[#007c74] p-0"
+            className="text-[12px] text-[#00968f] hover:text-[#007c74] p-0 flex items-center gap-1"
           >
             {t('copilot.mcpSelector.browseMcpStore')}
+            <ChevronRight className="w-3 h-3" />
           </Button>
         </div>
       );
@@ -196,7 +196,7 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
             <Button
               type="text"
               size="small"
-              icon={<Settings className="w-4 h-4 text-gray-400" />}
+              icon={<ChevronRight className="w-4 h-4 text-gray-400" />}
               onClick={handleOpenMcpStore}
               className="text-[12px] text-[rgba(0,0,0,0.5)] dark:text-gray-400"
             />
