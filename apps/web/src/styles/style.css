@@ -124,3 +124,6 @@ select:focus {
     background-color: #777;
   }
 }
+html,body {
+  line-height: 1.5;
+}
