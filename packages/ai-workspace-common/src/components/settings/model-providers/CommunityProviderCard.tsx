@@ -143,7 +143,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
             height: '100%',
           }}
         >
-          {/* Header with icon and name */}
+          {/* Header with name and documentation */}
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               {/* <Avatar
@@ -170,6 +170,20 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
                 </div>
               </div>
             </div>
+
+            {/* Documentation link in top right */}
+            {config.documentation && (
+              <span
+                onClick={handleDocumentationClick}
+                className="text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer flex-shrink-0"
+                style={{ fontSize: '12px' }}
+              >
+                <Space size={4}>
+                  <LinkOutlined style={{ fontSize: '12px' }} />
+                  <span>查看文档</span>
+                </Space>
+              </span>
+            )}
           </div>
 
           {/* Description */}
@@ -189,54 +203,36 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
             </Text>
           </div>
 
-          {/* Footer with categories and documentation */}
+          {/* Footer with categories and install button */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
+            <div className="flex items-center space-x-1 flex-wrap flex-1 min-w-0">
               {/* Category tags */}
-              <div className="flex items-center space-x-1 flex-wrap">
-                {config.categories?.length > 0
-                  ? config.categories.map((category, index) => (
-                      <span
-                        key={`${category}-${index}`}
-                        className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200 whitespace-nowrap"
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          lineHeight: '16px',
-                        }}
-                      >
-                        {category}
-                      </span>
-                    ))
-                  : config.category && (
-                      <span
-                        className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200"
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          lineHeight: '16px',
-                        }}
-                      >
-                        {config.category}
-                      </span>
-                    )}
-              </div>
-
-              {/* Documentation link */}
-              {config.documentation && (
-                <span
-                  onClick={handleDocumentationClick}
-                  className="text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer flex-shrink-0"
-                  style={{ fontSize: '12px' }}
-                >
-                  <Space size={4}>
-                    <LinkOutlined style={{ fontSize: '12px' }} />
-                    <span className="hidden sm:inline">
-                      {t('settings.modelProviders.community.viewDocumentation')}
+              {config.categories?.length > 0
+                ? config.categories.map((category, index) => (
+                    <span
+                      key={`${category}-${index}`}
+                      className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200 whitespace-nowrap"
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        lineHeight: '16px',
+                      }}
+                    >
+                      {category}
                     </span>
-                  </Space>
-                </span>
-              )}
+                  ))
+                : config.category && (
+                    <span
+                      className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200"
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        lineHeight: '16px',
+                      }}
+                    >
+                      {config.category}
+                    </span>
+                  )}
             </div>
 
             {/* Install Button */}
