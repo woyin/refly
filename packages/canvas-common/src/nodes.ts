@@ -1,16 +1,6 @@
-import { NodeTypes } from '@xyflow/react';
 import { CanvasNodeType } from '@refly/openapi-schema';
-import { DocumentNode } from './document';
-import { ResourceNode } from './resource';
-import { SkillNode } from './skill';
-import { ToolNode } from './tool';
-import { SkillResponseNode } from './skill-response';
-import { MemoNode } from './memo/memo';
-import { GroupNode } from './group';
-import { ImageNode } from './image';
-import { CodeArtifactNode } from './code-artifact';
-import { WebsiteNode } from './website';
-import { GhostNode } from './ghost';
+import { Edge, Node } from '@xyflow/react';
+import { genUniqueId } from '@refly/utils';
 import {
   NodeMetadataMap,
   CanvasNodeData,
@@ -20,36 +10,7 @@ import {
   ToolNodeMeta,
   ResponseNodeMeta,
   CodeArtifactNodeMeta,
-} from '@refly/canvas-common';
-import { t } from 'i18next';
-import { genUniqueId } from '@refly/utils/id';
-
-// Export all components and types
-export * from './document';
-export * from './resource';
-export * from './skill';
-export * from './tool';
-export * from './skill-response';
-export * from './memo/memo';
-export * from './group';
-export * from './image';
-export * from './code-artifact';
-export * from './website';
-
-// Node types mapping
-export const nodeTypes: NodeTypes = {
-  document: DocumentNode,
-  resource: ResourceNode,
-  skill: SkillNode,
-  tool: ToolNode,
-  skillResponse: SkillResponseNode,
-  memo: MemoNode,
-  group: GroupNode,
-  image: ImageNode,
-  codeArtifact: CodeArtifactNode,
-  website: WebsiteNode,
-  ghost: GhostNode,
-};
+} from './types';
 
 // Helper function to prepare node data
 export const prepareNodeData = <T extends CanvasNodeType>({
@@ -107,7 +68,7 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
     case 'document':
       return {
         ...baseMetadata,
-        contentPreview: t('canvas.nodePreview.document.contentPreview'),
+        contentPreview: '',
         // Add optional fields with default values
         title: '',
         lastModified: new Date().toISOString(),
@@ -121,7 +82,7 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
         url: '',
         description: '',
         lastAccessed: new Date().toISOString(),
-        contentPreview: t('canvas.nodePreview.resource.contentPreview'),
+        contentPreview: '',
       } as ResourceNodeMeta;
 
     case 'skill':
@@ -175,24 +136,48 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
   }
 };
 
-// Add this helper function to share common styles
-export const getNodeCommonStyles = ({
-  selected,
-  isHovered,
-}: { selected: boolean; isHovered: boolean }) => `
-  bg-white dark:bg-gray-900
-  rounded-xl
-  box-border
-  transition-all
-  duration-200
-  border-[1px]
-  border-solid
-  overflow-hidden
-  ${selected ? 'border-[#00968F] border-solid border-2' : 'border-transparent'}
-  ${
-    isHovered
-      ? 'shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.08),0px_4px_6px_-2px_rgba(16,24,40,0.03)]'
-      : 'shadow-[0px_1px_2px_0px_rgba(16,24,60,0.05)]'
+// Helper function to get node height
+export const getNodeHeight = (node: Node): number => {
+  return node.measured?.height ?? 320;
+};
+
+// Add helper function to get node width
+export const getNodeWidth = (node: Node): number => {
+  return node.measured?.width ?? 288;
+};
+
+// Get the level of a node from root
+export const getNodeLevel = (
+  nodeId: string,
+  _nodes: Node[],
+  edges: any[],
+  rootNodes: Node[],
+): number => {
+  const visited = new Set<string>();
+  const queue: Array<{ id: string; level: number }> = rootNodes.map((node) => ({
+    id: node.id,
+    level: 0,
+  }));
+
+  while (queue.length > 0) {
+    const item = queue.shift() ?? { id: '', level: -1 };
+    const { id, level } = item;
+
+    if (id && id === nodeId) return level;
+    if (visited.has(id) || !id) continue;
+    visited.add(id);
+
+    const nextIds = edges
+      .filter((edge) => edge.source === id)
+      .map((edge) => ({ id: edge.target, level: level + 1 }));
+
+    queue.push(...nextIds);
   }
-  hover:shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.08),0px_4px_6px_-2px_rgba(16,24,40,0.03)]
-`;
+
+  return -1;
+};
+
+// Helper function to get root nodes (nodes with no incoming edges)
+export const getRootNodes = (nodes: Node[], edges: Edge[]): Node[] => {
+  return nodes.filter((node) => !edges.some((edge) => edge.target === node.id));
+};
