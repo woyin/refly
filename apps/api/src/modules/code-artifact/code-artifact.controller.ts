@@ -30,4 +30,24 @@ export class CodeArtifactController {
     const detail = await this.codeArtifactService.getCodeArtifactDetail(user, artifactId);
     return buildSuccessResponse(codeArtifactPO2DTO(detail));
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('list')
+  async listCodeArtifacts(
+    @LoginedUser() user: User,
+    @Query('resultId') resultId: string,
+    @Query('resultVersion') resultVersion: number,
+    @Query('needContent') needContent: boolean,
+    @Query('page') page: number,
+    @Query('pageSize') pageSize: number,
+  ) {
+    const artifacts = await this.codeArtifactService.listCodeArtifacts(user, {
+      resultId,
+      resultVersion,
+      needContent,
+      page,
+      pageSize,
+    });
+    return buildSuccessResponse(artifacts.map(codeArtifactPO2DTO));
+  }
 }

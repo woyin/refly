@@ -442,6 +442,8 @@ export class SkillInvokerService {
           language,
           content: codeContent,
           createIfNotExists: true,
+          resultId,
+          resultVersion: version,
         });
       },
       1000,
