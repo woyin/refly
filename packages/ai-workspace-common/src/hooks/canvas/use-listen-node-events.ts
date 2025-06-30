@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useAddNode } from './use-add-node';
-import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes/types';
+import { CanvasNode } from '@refly/canvas-common';
 import { CodeArtifactNodeMeta } from '@refly/canvas-common';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import { CanvasNodeType } from '@refly-packages/ai-workspace-common/requests';
@@ -22,21 +22,28 @@ export const useListenNodeOperationEvents = () => {
   // Only use canvas store if in interactive mode and not readonly
   const { previewNode, closeNodePreviewByEntityId } = useNodePreviewControl({ canvasId });
 
-  const getCodeArtifactDetail = useCallback(async (artifactId: string) => {
-    const response = await getClient().getCodeArtifactDetail({
-      query: {
-        artifactId,
-      },
-    });
+  const queryCodeArtifactByResultId = useCallback(
+    async (params: { resultId: string; resultVersion: number }) => {
+      const { resultId, resultVersion } = params;
+      const response = await getClient().listCodeArtifacts({
+        query: {
+          resultId,
+          resultVersion,
+          needContent: true,
+          page: 1,
+          pageSize: 1,
+        },
+      });
 
-    return response;
-  }, []);
+      return response?.data?.data?.[0];
+    },
+    [],
+  );
 
   const jumpToDescendantNode = useCallback(
     async (entityId: string, descendantNodeType: CanvasNodeType, shouldPreview?: boolean) => {
       const nodes = getNodes() as CanvasNode[];
       const thisNode = nodes.find((node) => node.data?.entityId === entityId);
-      console.log('thisNode', thisNode);
 
       if (!thisNode) return [false, null];
 
@@ -54,17 +61,21 @@ export const useListenNodeOperationEvents = () => {
       let artifactNode: CanvasNode<CodeArtifactNodeMeta> | null = descendantNodes[0] || null;
       let nodeIdForEvent: string | undefined; // Track the node ID to use in the locate event
 
-      console.log('artifactNode', artifactNode, shouldPreview);
-
       // If artifactNode doesn't exist, try to fetch it from API
       if (!artifactNode && descendantNodeType === 'codeArtifact') {
+        message.open({
+          type: 'loading',
+          content: t('artifact.loading'),
+        });
+
         try {
-          const response = await getCodeArtifactDetail(entityId);
-          console.log('response', response);
+          const artifactData = await queryCodeArtifactByResultId({
+            resultId: entityId,
+            resultVersion: Number(thisNode.data?.metadata?.version ?? 0),
+          });
+          message.destroy();
 
-          if (response?.data?.success && response.data.data) {
-            const artifactData = response.data.data;
-
+          if (artifactData) {
             // Create a new codeArtifact node with the fetched data
             const newNodeData = {
               type: 'codeArtifact' as const,
