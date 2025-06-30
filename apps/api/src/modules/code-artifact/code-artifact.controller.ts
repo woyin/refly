@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Query,
+  UseGuards,
+  DefaultValuePipe,
+  ParseIntPipe,
+  ParseBoolPipe,
+} from '@nestjs/common';
 import { CodeArtifactService } from './code-artifact.service';
 import { UpsertCodeArtifactRequest, User } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
@@ -36,10 +46,10 @@ export class CodeArtifactController {
   async listCodeArtifacts(
     @LoginedUser() user: User,
     @Query('resultId') resultId: string,
-    @Query('resultVersion') resultVersion: number,
-    @Query('needContent') needContent: boolean,
-    @Query('page') page: number,
-    @Query('pageSize') pageSize: number,
+    @Query('resultVersion', new DefaultValuePipe(0), ParseIntPipe) resultVersion: number,
+    @Query('needContent', new DefaultValuePipe(false), ParseBoolPipe) needContent: boolean,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
   ) {
     const artifacts = await this.codeArtifactService.listCodeArtifacts(user, {
       resultId,
