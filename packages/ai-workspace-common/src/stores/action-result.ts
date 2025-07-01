@@ -207,8 +207,21 @@ export const useActionResultStore = create<ActionResultState>()(
             latestUpdates.set(resultId, result);
           }
 
-          // Apply all updates at once
+          // Apply all updates at once, but prevent overriding finished/failed states with intermediate states
           for (const [resultId, result] of latestUpdates.entries()) {
+            const oldStatus = updatedResultMap[resultId]?.status;
+            const newStatus = result.status;
+
+            // Only prevent batch updates from overriding final states with intermediate states
+            // Allow final -> waiting (rerun) but prevent final -> executing (delayed batch updates)
+            const shouldSkipUpdate =
+              (oldStatus === 'finish' || oldStatus === 'failed') && newStatus === 'executing';
+
+            if (shouldSkipUpdate) {
+              // Skip this update to prevent overriding final states with intermediate states
+              continue;
+            }
+
             updatedResultMap[resultId] = {
               ...result,
               lastUsedAt: now,

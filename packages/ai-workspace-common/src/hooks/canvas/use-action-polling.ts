@@ -100,6 +100,11 @@ export const useActionPolling = () => {
             failedResultIds.add(resultId);
             return;
           }
+
+          // Update with executing status
+          if (status === 'executing') {
+            onUpdateResult(resultId, result.data);
+          }
         }
 
         updateLastPollTime(resultId);
@@ -126,6 +131,11 @@ export const useActionPolling = () => {
 
       // Don't restart polling for results that are already marked as failed
       if (failedResultIds.has(resultId) || currentResult?.status === 'failed') {
+        return;
+      }
+
+      // Don't restart polling for finished results
+      if (currentResult?.status === 'finish') {
         return;
       }
 
