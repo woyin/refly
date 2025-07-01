@@ -23,11 +23,19 @@ import {
   SkillContext,
   ActionResult,
 } from '@refly/openapi-schema';
-import { Prisma } from '../../generated/client';
+import { Prisma, Canvas as CanvasModel } from '../../generated/client';
 import { genCanvasID } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
-import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
-import { AutoNameCanvasJobData, DeleteCanvasJobData } from './canvas.dto';
+import {
+  QUEUE_DELETE_KNOWLEDGE_ENTITY,
+  QUEUE_POST_DELETE_CANVAS,
+  QUEUE_VERIFY_NODE_ADDITION,
+} from '../../utils/const';
+import {
+  AutoNameCanvasJobData,
+  DeleteCanvasJobData,
+  VerifyNodeAdditionJobData,
+} from './canvas.dto';
 import { streamToBuffer } from '../../utils';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
@@ -38,6 +46,7 @@ import { RedisService } from '../common/redis.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
+import { CanvasNodeFilter, prepareAddNode } from '@refly/canvas-common';
 
 @Injectable()
 export class CanvasService {
@@ -61,6 +70,9 @@ export class CanvasService {
     @Optional()
     @InjectQueue(QUEUE_POST_DELETE_CANVAS)
     private postDeleteCanvasQueue?: Queue<DeleteCanvasJobData>,
+    @Optional()
+    @InjectQueue(QUEUE_VERIFY_NODE_ADDITION)
+    private verifyNodeAdditionQueue?: Queue<VerifyNodeAdditionJobData>,
   ) {}
 
   async listCanvases(user: User, param: ListCanvasesData['query']) {
@@ -389,6 +401,273 @@ export class CanvasService {
     return canvas;
   }
 
+  /**
+   * Execute a transaction on a canvas document with automatic connection management
+   * @param canvasId - The id of the canvas
+   * @param user - The user performing the operation
+   * @param canvas - The canvas entity (optional, will be fetched if not provided)
+   * @param transaction - The transaction function to execute
+   */
+  private async executeCanvasTransaction(
+    canvasId: string,
+    user: User,
+    canvas: CanvasModel | null,
+    transaction: (doc: Y.Doc) => void | Promise<void>,
+  ): Promise<void> {
+    const connection = await this.collabService.openDirectConnection(canvasId, {
+      user,
+      entity: canvas,
+      entityType: 'canvas',
+    });
+
+    try {
+      await connection.document.transact(async () => {
+        const result = transaction(connection.document);
+        // If the transaction returns a promise, await it
+        if (result && typeof result.then === 'function') {
+          await result;
+        }
+      });
+    } finally {
+      await connection.disconnect();
+    }
+  }
+
+  /**
+   * Apply realtime updates to canvas document
+   * @param user - The user who is applying the updates
+   * @param canvasId - The id of the canvas to apply the updates to
+   * @param tx - The Yjs transaction to apply to the canvas
+   */
+  async applyUpdatesToCanvasDoc(
+    user: User,
+    canvasId: string,
+    tx: (doc: Y.Doc) => void,
+    canvasPo?: CanvasModel,
+  ) {
+    const canvas =
+      canvasPo ||
+      (await this.prisma.canvas.findUnique({
+        where: { canvasId, uid: user.uid, deletedAt: null },
+      }));
+    if (!canvas) {
+      throw new CanvasNotFoundError();
+    }
+
+    await this.executeCanvasTransaction(canvasId, user, canvas, tx);
+  }
+
+  /**
+   * Add a node to the canvas document
+   * @param user - The user who is adding the node
+   * @param canvasId - The id of the canvas to add the node to
+   * @param node - The node to add
+   * @param connectTo - The nodes to connect to
+   */
+  async addNodeToCanvasDoc(
+    user: User,
+    canvasId: string,
+    node: CanvasNode,
+    connectTo?: CanvasNodeFilter[],
+  ) {
+    await this.applyUpdatesToCanvasDoc(user, canvasId, (doc) => {
+      const nodes = doc.getArray('nodes');
+      const edges = doc.getArray('edges');
+
+      const { newNode, newEdges } = prepareAddNode({
+        node,
+        nodes: nodes.toJSON(),
+        edges: edges.toJSON(),
+        connectTo,
+      });
+
+      nodes.push([newNode]);
+      edges.push(newEdges);
+    });
+
+    // Schedule a delayed verification task to check if the node was actually added
+    if (this.verifyNodeAdditionQueue) {
+      await this.verifyNodeAdditionQueue.add(
+        'verifyNodeAddition',
+        {
+          uid: user.uid,
+          canvasId,
+          node,
+          connectTo,
+          attempt: 1,
+          maxAttempts: 3,
+        },
+        {
+          delay: 2000, // Wait 2 seconds before verification
+          removeOnComplete: true,
+          removeOnFail: false,
+          attempts: 1, // Don't retry the verification job itself, retry logic is handled inside
+        },
+      );
+    } else if (isDesktop()) {
+      // In desktop mode, schedule verification using setTimeout
+      setTimeout(() => {
+        this.verifyNodeAdditionFromQueue({
+          uid: user.uid,
+          canvasId,
+          node,
+          connectTo,
+          attempt: 1,
+          maxAttempts: 3,
+        }).catch((error) => {
+          this.logger.error(`Failed to verify node addition: ${error?.message}`);
+        });
+      }, 2000);
+    }
+  }
+
+  /**
+   * Check if a node exists in the canvas document
+   * @param canvasId - The id of the canvas
+   * @param nodeEntityId - The entity id of the node to check
+   * @param nodeType - The type of the node to check
+   * @returns true if the node exists, false otherwise
+   */
+  private async nodeExistsInCanvas(
+    canvasId: string,
+    nodeEntityId: string,
+    nodeType: string,
+  ): Promise<boolean> {
+    try {
+      const canvas = await this.prisma.canvas.findUnique({
+        where: { canvasId },
+      });
+
+      if (!canvas?.stateStorageKey) {
+        return false;
+      }
+
+      const doc = await this.getCanvasYDoc(canvas.stateStorageKey);
+      if (!doc) {
+        return false;
+      }
+
+      const nodes = doc.getArray('nodes').toJSON();
+      return nodes.some(
+        (existingNode: any) =>
+          existingNode.type === nodeType && existingNode.data?.entityId === nodeEntityId,
+      );
+    } catch (error) {
+      this.logger.warn(`Error checking if node exists in canvas ${canvasId}: ${error?.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Verify if a node was successfully added and retry if not
+   * @param jobData - The verification job data
+   */
+  async verifyNodeAdditionFromQueue(jobData: VerifyNodeAdditionJobData) {
+    const { uid, canvasId, node, connectTo, attempt, maxAttempts } = jobData;
+
+    const nodeEntityId = node.data?.entityId || 'unknown';
+    const nodeType = node.type;
+
+    this.logger.log(
+      `Verifying node addition for canvas ${canvasId}, node ${nodeEntityId} (${nodeType}), attempt ${attempt}/${maxAttempts}`,
+    );
+
+    const user = await this.prisma.user.findFirst({ where: { uid } });
+    if (!user) {
+      this.logger.warn(`User not found for uid ${uid} when verifying node addition`);
+      return;
+    }
+
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId, uid, deletedAt: null },
+    });
+
+    if (!canvas) {
+      this.logger.warn(`Canvas ${canvasId} not found when verifying node addition`);
+      return;
+    }
+
+    // Check if the node exists
+    const nodeExists = await this.nodeExistsInCanvas(canvasId, nodeEntityId, nodeType);
+
+    if (!nodeExists) {
+      this.logger.warn(
+        `Node ${nodeEntityId} (${nodeType}) not found in canvas ${canvasId}, attempt ${attempt}/${maxAttempts}`,
+      );
+
+      if (attempt < maxAttempts) {
+        // Retry adding the node
+        try {
+          this.logger.log(
+            `Retrying to add node ${nodeEntityId} (${nodeType}) to canvas ${canvasId}`,
+          );
+
+          await this.applyUpdatesToCanvasDoc(user, canvasId, (doc) => {
+            const nodes = doc.getArray('nodes');
+            const edges = doc.getArray('edges');
+
+            const { newNode, newEdges } = prepareAddNode({
+              node,
+              nodes: nodes.toJSON(),
+              edges: edges.toJSON(),
+              connectTo,
+            });
+
+            nodes.push([newNode]);
+            edges.push(newEdges);
+          });
+
+          // Schedule another verification for the next attempt
+          if (this.verifyNodeAdditionQueue) {
+            await this.verifyNodeAdditionQueue.add(
+              'verifyNodeAddition',
+              {
+                uid,
+                canvasId,
+                node,
+                connectTo,
+                attempt: attempt + 1,
+                maxAttempts,
+              },
+              {
+                delay: 2000 * attempt, // Exponential backoff
+                removeOnComplete: true,
+                removeOnFail: false,
+                attempts: 1,
+              },
+            );
+          } else if (isDesktop()) {
+            // In desktop mode, schedule verification using setTimeout
+            setTimeout(() => {
+              this.verifyNodeAdditionFromQueue({
+                uid,
+                canvasId,
+                node,
+                connectTo,
+                attempt: attempt + 1,
+                maxAttempts,
+              }).catch((error) => {
+                this.logger.error(`Failed to verify node addition: ${error?.message}`);
+              });
+            }, 2000 * attempt);
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to retry adding node ${nodeEntityId} (${nodeType}) to canvas ${canvasId}: ${error?.message}`,
+          );
+        }
+      } else {
+        this.logger.error(
+          `Failed to add node ${nodeEntityId} (${nodeType}) to canvas ${canvasId} after ${maxAttempts} attempts`,
+        );
+      }
+    } else {
+      this.logger.log(
+        `Node ${nodeEntityId} (${nodeType}) successfully verified in canvas ${canvasId}`,
+      );
+    }
+  }
+
   async updateCanvas(user: User, param: UpsertCanvasRequest) {
     const { canvasId, title, minimapStorageKey, projectId } = param;
 
@@ -434,17 +713,11 @@ export class CanvasService {
 
     // Update title in yjs document
     if (title !== undefined) {
-      const connection = await this.collabService.openDirectConnection(canvasId, {
-        user,
-        entity: updatedCanvas,
-        entityType: 'canvas',
+      await this.executeCanvasTransaction(canvasId, user, updatedCanvas, (doc) => {
+        const titleText = doc.getText('title');
+        titleText.delete(0, titleText.length);
+        titleText.insert(0, param.title);
       });
-      connection.document.transact(() => {
-        const title = connection.document.getText('title');
-        title.delete(0, title.length);
-        title.insert(0, param.title);
-      });
-      await connection.disconnect();
     }
 
     // Remove original minimap if it exists
@@ -694,16 +967,9 @@ export class CanvasService {
           });
           if (!canvas) return;
 
-          // Open connection to get the document
-          const connection = await this.collabService.openDirectConnection(canvasId, {
-            user: { uid: canvas.uid },
-            entity: canvas,
-            entityType: 'canvas',
-          });
-
           // Remove nodes matching the entities
-          connection.document.transact(() => {
-            const nodes = connection.document.getArray('nodes');
+          await this.executeCanvasTransaction(canvasId, { uid: canvas.uid }, canvas, (doc) => {
+            const nodes = doc.getArray('nodes');
             const toRemove: number[] = [];
 
             nodes.forEach((node: any, index: number) => {
@@ -726,8 +992,6 @@ export class CanvasService {
               nodes.delete(index, 1);
             }
           });
-
-          await connection.disconnect();
 
           // Update relations
           await this.prisma.canvasEntityRelation.updateMany({

@@ -290,6 +290,7 @@ export class CodeArtifacts extends BaseSkill {
       context,
       chatHistory: usedChatHistory,
     });
+    this.engine.logger.log(`Generated code artifact title: ${codeArtifactTitle}`);
 
     if (codeArtifactTitle) {
       this.emitEvent(

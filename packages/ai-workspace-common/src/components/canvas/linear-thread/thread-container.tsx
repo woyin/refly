@@ -13,10 +13,10 @@ import { LinearThreadContent } from './linear-thread';
 import { LinearThreadMessage } from '@refly-packages/ai-workspace-common/stores/canvas';
 import { useContextUpdateByResultId } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
 import { LaunchPad } from '@refly-packages/ai-workspace-common/components/canvas/launchpad';
+import { IContextItem } from '@refly/common-types';
 import {
   useContextPanelStore,
   ContextTarget,
-  IContextItem,
   useContextPanelStoreShallow,
 } from '@refly-packages/ai-workspace-common/stores/context-panel';
 import { IconAskAI } from '@refly-packages/ai-workspace-common/components/common/icon';
@@ -300,7 +300,7 @@ export const ThreadContainer = memo(
             />
           </div>
 
-          <LinearThreadContent messages={messages} contentHeight={contentHeight} />
+          <LinearThreadContent messages={messages} contentHeight={contentHeight} source="thread" />
 
           <div className="mt-auto border-t border-gray-200 w-full max-w-[1024px] mx-auto dark:border-gray-700">
             <LaunchPad

@@ -1086,6 +1086,8 @@ const translations = {
     contentTitle: 'Canvas Content',
     loadingContent: 'Loading content...',
     thinking: 'Thinking...',
+    loading: 'Loading code artifact...',
+    componentNotFound: 'Code artifact does not exist',
     svg: {
       downloadAsSvg: 'Download as SVG',
       downloadAsPng: 'Download as PNG',
@@ -2221,6 +2223,10 @@ const translations = {
         'We were unable to successfully receive your payment. If you have any questions, please contact support@refly.ai',
     },
     modelProviders: {
+      // Tabs
+      myProviders: 'My Providers',
+      providerStore: 'Provider Store',
+
       addProvider: 'Add Provider',
       editProvider: 'Edit Provider',
       providerType: 'Type',
@@ -2250,6 +2256,44 @@ const translations = {
         pdfParsing: 'PDF Parsing',
         reranker: 'Reranker',
         embedding: 'Embedding',
+      },
+      // Provider Store related translations
+      community: {
+        title: 'Community Provider Configurations',
+        description: 'Discover and install community provider configurations',
+        searchPlaceholder: 'Search configurations...',
+        filterByCategory: 'Filter by category',
+        allCategories: 'All Categories',
+        install: 'Install',
+        installing: 'Installing...',
+        installed: 'Installed',
+        installSuccess: 'Successfully installed {{name}}',
+        installError: 'Failed to install {{name}}',
+        requiresApiKeyWarning:
+          '{{name}} requires an API key, please configure it in the detail view.',
+        viewDocumentation: 'View Documentation',
+        documentation: 'Documentation',
+        noDescription: 'No description available',
+        loadError: 'Failed to load community configurations',
+        loadErrorDescription: 'Please check your network connection and try again.',
+        noConfigurations: 'No community configurations found',
+        author: 'Author: {{author}}',
+        version: 'v{{version}}',
+        // API Key configuration modal
+        configureApiKey: 'Configure API Key',
+        apiKeyRequired: 'API Key Required',
+        apiKeyRequiredDescription:
+          "This provider requires an API Key to function properly. Please obtain an API Key from the provider's website and enter it below.",
+        apiKeyLabel: 'API Key',
+        apiKeyPlaceholder: 'Please enter your API Key',
+        baseUrlLabel: 'Base URL (Optional)',
+        baseUrlDescription: 'Enter a custom service URL if needed',
+        baseUrlPlaceholder: 'Use default URL',
+        validateAndInstall: 'Validate and Install',
+        validating: 'Validating...',
+        validateSuccess: 'Validation successful',
+        validateError: 'Validation failed',
+        cancel: 'Cancel',
       },
     },
     copilot: {
