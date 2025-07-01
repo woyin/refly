@@ -207,23 +207,25 @@ export const useActionResultStore = create<ActionResultState>()(
             latestUpdates.set(resultId, result);
           }
 
-          // Apply all updates at once, but prevent overriding finished/failed states with intermediate states
+          // Apply all updates at once, but prevent overriding finished/failed states with pending states
           for (const [resultId, result] of latestUpdates.entries()) {
             const oldStatus = updatedResultMap[resultId]?.status;
             const newStatus = result.status;
 
-            // Only prevent batch updates from overriding final states with intermediate states
-            // Allow final -> waiting (rerun) but prevent final -> executing (delayed batch updates)
-            const shouldSkipUpdate =
+            // Only keep old status if it's final state (finish/failed) and new status is executing
+            const shouldKeepOldStatus =
               (oldStatus === 'finish' || oldStatus === 'failed') && newStatus === 'executing';
 
-            if (shouldSkipUpdate) {
-              // Skip this update to prevent overriding final states with intermediate states
-              continue;
-            }
+            const updateStatus = shouldKeepOldStatus ? oldStatus : newStatus;
+
+            useActionResultStore.getState().addStreamResult(resultId, {
+              ...result,
+              status: updateStatus,
+            });
 
             updatedResultMap[resultId] = {
               ...result,
+              status: updateStatus,
               lastUsedAt: now,
             };
           }
