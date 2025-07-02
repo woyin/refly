@@ -99,6 +99,12 @@ import type {
   AutoNameCanvasData,
   AutoNameCanvasError,
   AutoNameCanvasResponse2,
+  GetCanvasStateData,
+  GetCanvasStateError,
+  GetCanvasStateResponse2,
+  ApplyCanvasStateData,
+  ApplyCanvasStateError,
+  ApplyCanvasStateResponse,
   ListCanvasTemplatesData,
   ListCanvasTemplatesError,
   ListCanvasTemplatesResponse,
@@ -834,6 +840,40 @@ export const autoNameCanvas = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/canvas/autoName',
+  });
+};
+
+/**
+ * Get canvas state
+ * Get canvas state
+ */
+export const getCanvasState = <ThrowOnError extends boolean = false>(
+  options: Options<GetCanvasStateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCanvasStateResponse2,
+    GetCanvasStateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/sync/getState',
+  });
+};
+
+/**
+ * Apply canvas state
+ * Apply canvas state
+ */
+export const applyCanvasState = <ThrowOnError extends boolean = false>(
+  options: Options<ApplyCanvasStateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    ApplyCanvasStateResponse,
+    ApplyCanvasStateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/sync/apply',
   });
 };
 

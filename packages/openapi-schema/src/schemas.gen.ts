@@ -2932,22 +2932,14 @@ export const GetCanvasDetailResponseSchema = {
   ],
 } as const;
 
-export const RawCanvasDataSchema = {
+export const CanvasStateSchema = {
   type: 'object',
-  description: 'Raw canvas data',
+  description: 'Canvas state',
+  required: ['title', 'nodes', 'edges'],
   properties: {
-    owner: {
-      type: 'object',
-      description: 'Canvas owner',
-      $ref: '#/components/schemas/ShareUser',
-    },
     title: {
       type: 'string',
       description: 'Canvas title',
-    },
-    minimapUrl: {
-      type: 'string',
-      description: 'Minimap URL',
     },
     nodes: {
       type: 'array',
@@ -2962,9 +2954,34 @@ export const RawCanvasDataSchema = {
       description: 'Canvas edges',
       items: {
         type: 'object',
+        $ref: '#/components/schemas/CanvasEdge',
       },
     },
   },
+} as const;
+
+export const RawCanvasDataSchema = {
+  type: 'object',
+  description: 'Raw canvas data',
+  allOf: [
+    {
+      $ref: '#/components/schemas/CanvasState',
+    },
+    {
+      type: 'object',
+      properties: {
+        owner: {
+          type: 'object',
+          description: 'Canvas owner',
+          $ref: '#/components/schemas/ShareUser',
+        },
+        minimapUrl: {
+          type: 'string',
+          description: 'Minimap URL',
+        },
+      },
+    },
+  ],
 } as const;
 
 export const ExportCanvasResponseSchema = {
@@ -3132,6 +3149,105 @@ export const AutoNameCanvasResponseSchema = {
       },
     },
   ],
+} as const;
+
+export const GetCanvasStateResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/CanvasState',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const DiffTypeSchema = {
+  type: 'string',
+  description: 'Diff type',
+  enum: ['add', 'update', 'delete'],
+} as const;
+
+export const NodeDiffSchema = {
+  type: 'object',
+  required: ['id', 'type'],
+  properties: {
+    id: {
+      type: 'string',
+      description: 'Node ID',
+    },
+    type: {
+      type: 'string',
+      description: 'Node diff type',
+      $ref: '#/components/schemas/DiffType',
+    },
+    from: {
+      type: 'object',
+      description: 'Node diff from',
+      $ref: '#/components/schemas/CanvasNode',
+    },
+    to: {
+      type: 'object',
+      description: 'Node diff to',
+      $ref: '#/components/schemas/CanvasNode',
+    },
+  },
+} as const;
+
+export const EdgeDiffSchema = {
+  type: 'object',
+  required: ['id', 'type'],
+  properties: {
+    id: {
+      type: 'string',
+      description: 'Edge ID',
+    },
+    type: {
+      type: 'string',
+      description: 'Edge diff type',
+      $ref: '#/components/schemas/DiffType',
+    },
+    from: {
+      type: 'object',
+      description: 'Edge diff from',
+      $ref: '#/components/schemas/CanvasEdge',
+    },
+    to: {
+      type: 'object',
+      description: 'Edge diff to',
+      $ref: '#/components/schemas/CanvasEdge',
+    },
+  },
+} as const;
+
+export const ApplyCanvasStateRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'state'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    nodeDiffs: {
+      type: 'array',
+      description: 'Node diffs',
+      items: {
+        $ref: '#/components/schemas/NodeDiff',
+      },
+    },
+    edgeDiffs: {
+      type: 'array',
+      description: 'Edge diffs',
+      items: {
+        $ref: '#/components/schemas/EdgeDiff',
+      },
+    },
+  },
 } as const;
 
 export const ListCanvasTemplateResponseSchema = {
@@ -6558,17 +6674,71 @@ export const CanvasNodeDataSchema = {
   },
 } as const;
 
+export const XYPositionSchema = {
+  type: 'object',
+  required: ['x', 'y'],
+  properties: {
+    x: {
+      type: 'number',
+      description: 'Node position x',
+    },
+    y: {
+      type: 'number',
+      description: 'Node position y',
+    },
+  },
+} as const;
+
 export const CanvasNodeSchema = {
   type: 'object',
-  required: ['type', 'data'],
+  required: ['id', 'type', 'position', 'data'],
   properties: {
+    id: {
+      type: 'string',
+      description: 'Node ID',
+    },
     type: {
       description: 'Node type',
       $ref: '#/components/schemas/CanvasNodeType',
     },
+    position: {
+      $ref: '#/components/schemas/XYPosition',
+      description: 'Node position',
+    },
+    offsetPosition: {
+      $ref: '#/components/schemas/XYPosition',
+      description: 'Node offset position',
+    },
     data: {
       type: 'object',
       $ref: '#/components/schemas/CanvasNodeData',
+    },
+    style: {
+      type: 'object',
+      description: 'Node style',
+    },
+  },
+} as const;
+
+export const CanvasEdgeSchema = {
+  type: 'object',
+  required: ['id', 'source', 'target', 'type'],
+  properties: {
+    id: {
+      type: 'string',
+      description: 'Edge ID',
+    },
+    source: {
+      type: 'string',
+      description: 'Edge source node ID',
+    },
+    target: {
+      type: 'string',
+      description: 'Edge target node ID',
+    },
+    type: {
+      type: 'string',
+      description: 'Edge type',
     },
   },
 } as const;

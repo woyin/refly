@@ -334,8 +334,10 @@ model Canvas {
   title             String    @default("Untitled") @map("title")
   /// Canvas yjs doc storage size (in bytes)
   storageSize       BigInt    @default(0) @map("storage_size")
-  /// Canvas yjs doc storage key
+  /// Canvas yjs doc storage key (deprecated, use `dataStorageKey` instead)
   stateStorageKey   String?   @map("state_storage_key")
+  /// Canvas data (JSON) storage key
+  dataStorageKey    String?   @map("data_storage_key")
   /// Minimap storage key
   minimapStorageKey String?   @map("minimap_storage_key")
   /// Whether this canvas is readonly

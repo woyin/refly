@@ -2208,31 +2208,35 @@ export type GetCanvasDetailResponse = BaseResponse & {
 };
 
 /**
+ * Canvas state
+ */
+export type CanvasState = {
+  /**
+   * Canvas title
+   */
+  title: string;
+  /**
+   * Canvas nodes
+   */
+  nodes: Array<CanvasNode>;
+  /**
+   * Canvas edges
+   */
+  edges: Array<CanvasEdge>;
+};
+
+/**
  * Raw canvas data
  */
-export type RawCanvasData = {
+export type RawCanvasData = CanvasState & {
   /**
    * Canvas owner
    */
   owner?: ShareUser;
   /**
-   * Canvas title
-   */
-  title?: string;
-  /**
    * Minimap URL
    */
   minimapUrl?: string;
-  /**
-   * Canvas nodes
-   */
-  nodes?: Array<CanvasNode>;
-  /**
-   * Canvas edges
-   */
-  edges?: Array<{
-    [key: string]: unknown;
-  }>;
 };
 
 export type ExportCanvasResponse = BaseResponse & {
@@ -2338,6 +2342,68 @@ export type AutoNameCanvasResponse = BaseResponse & {
      */
     title?: string;
   };
+};
+
+export type GetCanvasStateResponse = BaseResponse & {
+  data?: CanvasState;
+};
+
+/**
+ * Diff type
+ */
+export type DiffType = 'add' | 'update' | 'delete';
+
+export type NodeDiff = {
+  /**
+   * Node ID
+   */
+  id: string;
+  /**
+   * Node diff type
+   */
+  type: DiffType;
+  /**
+   * Node diff from
+   */
+  from?: CanvasNode;
+  /**
+   * Node diff to
+   */
+  to?: CanvasNode;
+};
+
+export type EdgeDiff = {
+  /**
+   * Edge ID
+   */
+  id: string;
+  /**
+   * Edge diff type
+   */
+  type: DiffType;
+  /**
+   * Edge diff from
+   */
+  from?: CanvasEdge;
+  /**
+   * Edge diff to
+   */
+  to?: CanvasEdge;
+};
+
+export type ApplyCanvasStateRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Node diffs
+   */
+  nodeDiffs?: Array<NodeDiff>;
+  /**
+   * Edge diffs
+   */
+  edgeDiffs?: Array<EdgeDiff>;
 };
 
 export type ListCanvasTemplateResponse = BaseResponse & {
@@ -4564,12 +4630,60 @@ export type CanvasNodeData = {
   };
 };
 
+export type XYPosition = {
+  /**
+   * Node position x
+   */
+  x: number;
+  /**
+   * Node position y
+   */
+  y: number;
+};
+
 export type CanvasNode = {
+  /**
+   * Node ID
+   */
+  id: string;
   /**
    * Node type
    */
   type: CanvasNodeType;
+  /**
+   * Node position
+   */
+  position: XYPosition;
+  /**
+   * Node offset position
+   */
+  offsetPosition?: XYPosition;
   data: CanvasNodeData;
+  /**
+   * Node style
+   */
+  style?: {
+    [key: string]: unknown;
+  };
+};
+
+export type CanvasEdge = {
+  /**
+   * Edge ID
+   */
+  id: string;
+  /**
+   * Edge source node ID
+   */
+  source: string;
+  /**
+   * Edge target node ID
+   */
+  target: string;
+  /**
+   * Edge type
+   */
+  type: string;
 };
 
 export type ListMcpServersData2 = {
@@ -4902,6 +5016,27 @@ export type AutoNameCanvasData = {
 export type AutoNameCanvasResponse2 = AutoNameCanvasResponse;
 
 export type AutoNameCanvasError = unknown;
+
+export type GetCanvasStateData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+  };
+};
+
+export type GetCanvasStateResponse2 = GetCanvasStateResponse;
+
+export type GetCanvasStateError = unknown;
+
+export type ApplyCanvasStateData = {
+  body: ApplyCanvasStateRequest;
+};
+
+export type ApplyCanvasStateResponse = BaseResponse;
+
+export type ApplyCanvasStateError = unknown;
 
 export type ListCanvasTemplatesData = {
   query?: {

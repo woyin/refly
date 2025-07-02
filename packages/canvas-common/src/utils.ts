@@ -1,31 +1,30 @@
-import { CanvasNodeType } from '@refly/openapi-schema';
-import { CanvasNodeData, CanvasNodeFilter } from './types';
-import { Node, Edge, XYPosition, Viewport } from '@xyflow/react';
+import { CanvasEdge, CanvasNode } from '@refly/openapi-schema';
+import { CanvasNodeFilter } from './types';
+import { Node, Edge, Viewport } from '@xyflow/react';
 import { calculateNodePosition } from './position';
-import { getNodeDefaultMetadata, prepareNodeData } from './nodes';
+import { getNodeDefaultMetadata } from './nodes';
 import { genUniqueId } from '@refly/utils';
 import { purgeContextItems } from './context';
+import { IContextItem } from '@refly/common-types';
 
-export interface AddNodeParam<T = any> {
-  node: {
-    type: CanvasNodeType;
-    data: CanvasNodeData<T>;
-    position?: XYPosition;
-    id?: string;
-    offsetPosition?: XYPosition;
-  };
+export interface AddNodeParam {
+  node: Partial<CanvasNode>;
   nodes: Node[];
   edges: Edge[];
   connectTo?: CanvasNodeFilter[];
   viewport?: Viewport;
 }
 
-export const prepareAddNode = (param: AddNodeParam) => {
-  const { node, connectTo, nodes, edges, viewport } = param;
+export const prepareAddNode = (
+  param: AddNodeParam,
+): { newNode: CanvasNode; newEdges: CanvasEdge[] } => {
+  const { node = {}, connectTo, nodes, edges, viewport } = param;
 
   // Purge context items if they exist
-  if (node.data.metadata?.contextItems) {
-    node.data.metadata.contextItems = purgeContextItems(node.data.metadata.contextItems);
+  if (node.data?.metadata?.contextItems) {
+    node.data.metadata.contextItems = purgeContextItems(
+      node.data.metadata.contextItems as IContextItem[],
+    );
   }
 
   // Find source nodes and target nodes based on handleType
@@ -77,16 +76,16 @@ export const prepareAddNode = (param: AddNodeParam) => {
     },
   };
 
-  const newNode = prepareNodeData({
+  const newNode = {
     type: node.type,
     data: enrichedData,
     position: newPosition,
     selected: false,
-    id: node?.id,
-  });
+    id: node?.id || `node-${genUniqueId()}`,
+  };
 
   // Create new edges based on connection types
-  const newEdges = [];
+  const newEdges: CanvasEdge[] = [];
 
   if (connectTo?.length > 0) {
     // Create edges from source nodes to new node (source -> new node)
