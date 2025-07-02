@@ -531,10 +531,12 @@ export const SkillResponseNode = memo(
         // Create node connect filters - include both the response and its context items
         const connectFilters = [
           { type: 'skillResponse' as CanvasNodeType, entityId: data.entityId },
-          ...responseContextItems.map((item) => ({
-            type: item.type as CanvasNodeType,
-            entityId: item.entityId,
-          })),
+          ...responseContextItems
+            .filter((item) => item.type !== 'skillResponse')
+            .map((item) => ({
+              type: item.type as CanvasNodeType,
+              entityId: item.entityId,
+            })),
         ];
 
         const { position, connectTo } = getConnectionInfo(
