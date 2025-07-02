@@ -11,7 +11,7 @@ import { IContextItem } from '@refly/common-types';
 
 export const useSetNodeDataByEntity = () => {
   const { getNodes, setNodes } = useReactFlow<CanvasNode<any>>();
-  const { syncNodesToYDoc } = useCanvasSync();
+  const { syncCanvasNodes } = useCanvasSync();
 
   return useCallback(
     (filter: CanvasNodeFilter, nodeData: Partial<CanvasNodeData>) => {
@@ -36,9 +36,9 @@ export const useSetNodeDataByEntity = () => {
               : n.data,
         }));
         setNodes(updatedNodes);
-        syncNodesToYDoc(updatedNodes);
+        syncCanvasNodes(updatedNodes);
       }
     },
-    [setNodes, syncNodesToYDoc],
+    [setNodes, syncCanvasNodes],
   );
 };

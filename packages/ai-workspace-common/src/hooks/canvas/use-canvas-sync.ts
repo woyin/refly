@@ -1,60 +1,50 @@
 import { useMemo } from 'react';
-import { useCanvasContext } from '../../context/canvas';
-import { useThrottledCallback } from 'use-debounce';
+import { message } from 'antd';
+import { get, set, update } from 'idb-keyval';
+import { useDebouncedCallback, useThrottledCallback } from 'use-debounce';
 import { Edge } from '@xyflow/react';
-import { UndoManager } from 'yjs';
 import { omit } from '@refly/utils';
-import { purgeContextItems, CanvasNode } from '@refly/canvas-common';
-import { isDesktop } from '@refly-packages/ai-workspace-common/utils/env';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { purgeContextItems, CanvasNode, calculateCanvasStateDiff } from '@refly/canvas-common';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const useCanvasSync = () => {
-  const { provider } = useCanvasContext();
-  const ydoc = provider?.document;
-
+  const { canvasId } = useCanvasContext();
   const undoManager = useMemo(() => {
-    if (!ydoc) return null;
+    // TODO: Implement undo manager
+    return undefined;
+  }, []);
 
-    // Create UndoManager tracking title, nodes and edges
-    return new UndoManager(
-      [ydoc.getText('title'), ydoc.getArray('nodes'), ydoc.getArray('edges')],
-      {
-        captureTimeout: 1000,
+  const syncWithRemote = useDebouncedCallback(async (canvasId: string) => {
+    const remoteState = await get(`canvas-state-remote:${canvasId}`);
+    const currentState = await get(`canvas-state:${canvasId}`);
+
+    const { nodeDiffs, edgeDiffs } = calculateCanvasStateDiff(remoteState, currentState);
+    console.log('syncWithRemote nodeDiffs', nodeDiffs);
+    console.log('syncWithRemote edgeDiffs', edgeDiffs);
+
+    if (!nodeDiffs?.length && !edgeDiffs?.length) {
+      console.log('no diffs');
+      return;
+    }
+
+    const { error, data } = await getClient().applyCanvasState({
+      body: {
+        canvasId,
+        nodeDiffs,
+        edgeDiffs,
       },
-    );
-  }, [ydoc]);
+    });
+
+    if (!error && data?.success) {
+      await set(`canvas-state-remote:${canvasId}`, currentState);
+    } else {
+      message.error('Failed to sync canvas state');
+    }
+  }, 1000);
 
   const syncFunctions = useMemo(() => {
-    const isProviderActive = () => {
-      return ydoc && (provider?.status === 'connected' || isDesktop());
-    };
-
-    const safeTransaction = (transactionFn: () => void) => {
-      if (!isProviderActive()) return;
-
-      try {
-        ydoc?.transact(transactionFn);
-      } catch (error) {
-        // Log the error but don't crash the application
-        console.error('Transaction error:', error);
-
-        // If we get an InvalidStateError, we could implement reconnection logic here
-        if (error instanceof DOMException && error.name === 'InvalidStateError') {
-          console.warn('Database connection is closing. Transaction aborted.');
-        }
-      }
-    };
-
-    const syncTitleToYDoc = (title: string) => {
-      safeTransaction(() => {
-        const yTitle = ydoc?.getText('title');
-        if (!yTitle) return;
-
-        yTitle.delete(0, yTitle.length ?? 0);
-        yTitle.insert(0, title);
-      });
-    };
-
-    const syncNodesToYDoc = (nodes: CanvasNode<any>[]) => {
+    const syncCanvasNodes = async (nodes: CanvasNode<any>[]) => {
       const nodesToSync = nodes || [];
 
       // Purge context items from nodes
@@ -69,48 +59,43 @@ export const useCanvasSync = () => {
         },
       }));
 
-      safeTransaction(() => {
-        const yNodes = ydoc?.getArray('nodes');
-        if (!yNodes) return;
-
-        yNodes.delete(0, yNodes.length ?? 0);
-        yNodes.push(purgedNodes);
-      });
+      await update(`canvas-state:${canvasId}`, (state) => ({
+        ...state,
+        nodes: purgedNodes,
+      }));
+      await syncWithRemote(canvasId);
     };
 
-    const syncEdgesToYDoc = (edges: Edge[]) => {
+    const syncCanvasEdges = async (edges: Edge[]) => {
       if (!edges?.length) return;
 
-      safeTransaction(() => {
-        const yEdges = ydoc?.getArray('edges');
-        if (!yEdges) return;
-
-        yEdges.delete(0, yEdges.length ?? 0);
-        yEdges.push(edges.map((edge) => omit(edge, ['style'])));
-      });
+      await update(`canvas-state:${canvasId}`, (state) => ({
+        ...state,
+        edges: edges.map((edge) => omit(edge, ['style'])),
+      }));
+      await syncWithRemote(canvasId);
     };
 
     return {
-      syncTitleToYDoc,
-      syncNodesToYDoc,
-      syncEdgesToYDoc,
+      syncCanvasNodes,
+      syncCanvasEdges,
     };
-  }, [ydoc, provider]);
+  }, [canvasId]);
 
-  const throttledSyncNodesToYDoc = useThrottledCallback(syncFunctions.syncNodesToYDoc, 500, {
+  const throttledSyncCanvasNodes = useThrottledCallback(syncFunctions.syncCanvasNodes, 500, {
     leading: true,
     trailing: true,
   });
 
-  const throttledSyncEdgesToYDoc = useThrottledCallback(syncFunctions.syncEdgesToYDoc, 500, {
+  const throttledSyncCanvasEdges = useThrottledCallback(syncFunctions.syncCanvasEdges, 500, {
     leading: true,
     trailing: true,
   });
 
   return {
     ...syncFunctions,
-    throttledSyncNodesToYDoc,
-    throttledSyncEdgesToYDoc,
+    throttledSyncCanvasNodes,
+    throttledSyncCanvasEdges,
     undoManager,
   };
 };

@@ -10,14 +10,14 @@ import { useThemeStore } from '@refly-packages/ai-workspace-common/stores/theme'
 export const useEdgeOperations = () => {
   const { getState, setState } = useStoreApi<CanvasNode<any>>();
   const edgeStyles = useEdgeStyles();
-  const { throttledSyncEdgesToYDoc } = useCanvasSync();
+  const { throttledSyncCanvasEdges } = useCanvasSync();
 
   const updateEdgesWithSync = useCallback(
     (edges: Edge[]) => {
       setState({ edges });
-      throttledSyncEdgesToYDoc(edges);
+      throttledSyncCanvasEdges(edges);
     },
-    [setState, throttledSyncEdgesToYDoc],
+    [setState, throttledSyncCanvasEdges],
   );
 
   const onEdgesChange = useCallback(

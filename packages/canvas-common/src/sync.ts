@@ -68,7 +68,7 @@ export class CanvasConflictException extends Error {
 }
 
 /**
- * Deep compare two objects excluding the 'id' field
+ * Deep compare two objects excluding the 'id' and other fields that are not relevant
  */
 const deepCompareExcludingId = (obj1: any, obj2: any): boolean => {
   if (obj1 === obj2) return true;
@@ -89,8 +89,8 @@ const deepCompareExcludingId = (obj1: any, obj2: any): boolean => {
     return true;
   }
 
-  const keys1 = Object.keys(obj1).filter((key) => key !== 'id');
-  const keys2 = Object.keys(obj2).filter((key) => key !== 'id');
+  const keys1 = Object.keys(obj1).filter((key) => key !== 'id' && key !== 'selected');
+  const keys2 = Object.keys(obj2).filter((key) => key !== 'id' && key !== 'selected');
 
   if (keys1.length !== keys2.length) return false;
 
@@ -160,5 +160,101 @@ export const mergeCanvasStates = (state1: CanvasState, state2: CanvasState): Can
     title: state1.title || state2.title,
     nodes: Array.from(nodeMap.values()),
     edges: Array.from(edgeMap.values()),
+  };
+};
+
+export const calculateCanvasStateDiff = (from: CanvasState, to: CanvasState): Transaction => {
+  const nodeDiffs: NodeDiff[] = [];
+  const edgeDiffs: EdgeDiff[] = [];
+
+  // Create lookup maps for efficient comparison
+  const fromNodesMap = new Map<string, CanvasNode>();
+  const toNodesMap = new Map<string, CanvasNode>();
+  const fromEdgesMap = new Map<string, CanvasEdge>();
+  const toEdgesMap = new Map<string, CanvasEdge>();
+
+  // Populate the lookup maps
+  for (const node of from.nodes) {
+    fromNodesMap.set(node.id, node);
+  }
+  for (const node of to.nodes) {
+    toNodesMap.set(node.id, node);
+  }
+  for (const edge of from.edges) {
+    fromEdgesMap.set(edge.id, edge);
+  }
+  for (const edge of to.edges) {
+    toEdgesMap.set(edge.id, edge);
+  }
+
+  // Process node diffs
+  const allNodeIds = new Set([...fromNodesMap.keys(), ...toNodesMap.keys()]);
+  for (const nodeId of allNodeIds) {
+    const fromNode = fromNodesMap.get(nodeId);
+    const toNode = toNodesMap.get(nodeId);
+
+    if (!fromNode && toNode) {
+      // Node was added
+      nodeDiffs.push({
+        id: nodeId,
+        type: 'add',
+        to: toNode,
+      });
+    } else if (fromNode && !toNode) {
+      // Node was deleted
+      nodeDiffs.push({
+        id: nodeId,
+        type: 'delete',
+        from: fromNode,
+      });
+    } else if (fromNode && toNode) {
+      // Node exists in both states, check if it was modified
+      if (!deepCompareExcludingId(fromNode, toNode)) {
+        nodeDiffs.push({
+          id: nodeId,
+          type: 'update',
+          from: fromNode,
+          to: toNode,
+        });
+      }
+    }
+  }
+
+  // Process edge diffs
+  const allEdgeIds = new Set([...fromEdgesMap.keys(), ...toEdgesMap.keys()]);
+  for (const edgeId of allEdgeIds) {
+    const fromEdge = fromEdgesMap.get(edgeId);
+    const toEdge = toEdgesMap.get(edgeId);
+
+    if (!fromEdge && toEdge) {
+      // Edge was added
+      edgeDiffs.push({
+        id: edgeId,
+        type: 'add',
+        to: toEdge,
+      });
+    } else if (fromEdge && !toEdge) {
+      // Edge was deleted
+      edgeDiffs.push({
+        id: edgeId,
+        type: 'delete',
+        from: fromEdge,
+      });
+    } else if (fromEdge && toEdge) {
+      // Edge exists in both states, check if it was modified
+      if (!deepCompareExcludingId(fromEdge, toEdge)) {
+        edgeDiffs.push({
+          id: edgeId,
+          type: 'update',
+          from: fromEdge,
+          to: toEdge,
+        });
+      }
+    }
+  }
+
+  return {
+    nodeDiffs,
+    edgeDiffs,
   };
 };

@@ -24,7 +24,7 @@ export const useNodeOperations = () => {
     removeContextItem: state.removeContextItem,
   }));
   const { debouncedHandleUpdateCanvasMiniMap } = useUploadMinimap(canvasId);
-  const { throttledSyncNodesToYDoc } = useCanvasSync();
+  const { throttledSyncCanvasNodes } = useCanvasSync();
 
   // Add helper line states
   const [helperLineHorizontal, setHelperLineHorizontal] = useState<number | undefined>(undefined);
@@ -91,9 +91,9 @@ export const useNodeOperations = () => {
         elevateNodesOnSelect: false,
       });
       setState({ nodes });
-      throttledSyncNodesToYDoc(nodes);
+      throttledSyncCanvasNodes(nodes);
     },
-    [throttledSyncNodesToYDoc],
+    [throttledSyncCanvasNodes],
   );
 
   const onNodesChange = useCallback(

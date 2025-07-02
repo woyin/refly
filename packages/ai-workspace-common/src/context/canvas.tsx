@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import { get, set } from 'idb-keyval';
 import { Node, Edge, useStoreApi, InternalNode } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
 import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
@@ -76,7 +77,7 @@ export const CanvasProvider = ({
   const [loading, setLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstPollRef = useRef(true);
-  const POLLING_INTERVAL = 5000; // 5 seconds
+  const POLLING_INTERVAL = 500000; // 5 seconds
 
   const { setState, getState } = useStoreApi();
   const { setCanvasTitle } = useCanvasStoreShallow((state) => ({
@@ -148,6 +149,13 @@ export const CanvasProvider = ({
       const data = await getCanvasState(canvasId);
       updateCanvasDataFromHttp(data);
       setCanvasTitle(canvasId, data?.title);
+
+      if (!(await get(`canvas-state-remote:${canvasId}`))) {
+        await set(`canvas-state-remote:${canvasId}`, data);
+      }
+      if (!(await get(`canvas-state:${canvasId}`))) {
+        await set(`canvas-state:${canvasId}`, data);
+      }
 
       // Mark first poll as complete
       if (isFirstPollRef.current) {
