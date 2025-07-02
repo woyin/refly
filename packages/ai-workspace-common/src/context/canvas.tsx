@@ -1,52 +1,40 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
-import * as Y from 'yjs';
-import { HocuspocusProvider } from '@hocuspocus/provider';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { CanvasNode } from '@refly/canvas-common';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
 import { Node, Edge, useStoreApi, InternalNode } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useCollabToken } from '@refly-packages/ai-workspace-common/hooks/use-collab-token';
 import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { wsServerOrigin } from '@refly-packages/ai-workspace-common/utils/env';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 
 interface CanvasContextType {
   canvasId: string;
-  provider: HocuspocusProvider | null;
-  localProvider: IndexeddbPersistence | null;
   readonly: boolean;
+  loading: boolean;
   shareLoading: boolean;
   shareNotFound?: boolean;
   shareData?: RawCanvasData;
+  isPolling: boolean;
+  lastUpdated?: number;
 }
 
+// HTTP interface to get canvas state
+const getCanvasState = async (canvasId: string): Promise<RawCanvasData> => {
+  const { data, error } = await getClient().getCanvasState({ query: { canvasId } });
+  if (error) {
+    throw error;
+  }
+  return data.data;
+};
+
 const CanvasContext = createContext<CanvasContextType | null>(null);
-
-const providerCache = new Map<
-  string,
-  { remote: HocuspocusProvider; local: IndexeddbPersistence }
->();
-
-const getNodesFromYDoc = (ydoc: Y.Doc) => {
-  const nodesArray = ydoc.getArray<CanvasNode>('nodes');
-  const nodes = nodesArray.toJSON();
-  const uniqueNodesMap = new Map();
-  for (const node of nodes) {
-    uniqueNodesMap.set(node.id, node);
-  }
-  return Array.from(uniqueNodesMap.values());
-};
-
-const getEdgesFromYDoc = (ydoc: Y.Doc) => {
-  const edgesArray = ydoc.getArray<Edge>('edges');
-  const edges = edgesArray.toJSON();
-  const uniqueEdgesMap = new Map();
-  for (const edge of edges) {
-    uniqueEdgesMap.set(edge.id, edge);
-  }
-  return Array.from(uniqueEdgesMap.values());
-};
 
 const getInternalState = ({
   nodes,
@@ -83,15 +71,16 @@ export const CanvasProvider = ({
   readonly?: boolean;
   children: React.ReactNode;
 }) => {
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const MAX_RETRIES = 3;
-  const RETRY_DELAY = 2000;
+  const [isPolling, setIsPolling] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number>();
+  const [loading, setLoading] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isFirstPollRef = useRef(true);
+  const POLLING_INTERVAL = 5000; // 5 seconds
 
-  const { token, refreshToken } = useCollabToken();
   const { setState, getState } = useStoreApi();
-  const { setCanvasLocalSynced, setCanvasRemoteSynced } = useCanvasStoreShallow((state) => ({
-    setCanvasLocalSynced: state.setCanvasLocalSynced,
-    setCanvasRemoteSynced: state.setCanvasRemoteSynced,
+  const { setCanvasTitle } = useCanvasStoreShallow((state) => ({
+    setCanvasTitle: state.setCanvasTitle,
   }));
 
   // Use the hook to fetch canvas data when in readonly mode
@@ -127,198 +116,97 @@ export const CanvasProvider = ({
     }
   }, [readonly, canvasData, canvasId]);
 
-  const setCanvasDataFromYDoc = useCallback(
-    (ydoc: Y.Doc) => {
+  // Function to update canvas data from HTTP response
+  const updateCanvasDataFromHttp = useCallback(
+    (data: RawCanvasData) => {
       const { nodeLookup, parentLookup, connectionLookup, edgeLookup } = getState();
+      const { nodes, edges } = data;
       const internalState = getInternalState({
-        nodes: getNodesFromYDoc(ydoc),
-        edges: getEdgesFromYDoc(ydoc),
+        nodes: nodes && Array.isArray(nodes) ? (nodes as unknown as Node[]) : [],
+        edges: edges && Array.isArray(edges) ? (edges as unknown as Edge[]) : [],
         nodeLookup,
         parentLookup,
         connectionLookup,
         edgeLookup,
       });
       setState(internalState);
+      setLastUpdated(Date.now());
     },
-    [canvasId],
+    [getState, setState],
   );
 
-  const { remote: provider, local: localProvider } = useMemo(() => {
-    // Don't create providers when in readonly mode
-    if (readonly) {
-      return { remote: null, local: null };
+  // Polling function to fetch canvas state
+  const pollCanvasState = useCallback(async () => {
+    if (readonly) return;
+
+    try {
+      // Only set loading on first poll
+      if (isFirstPollRef.current) {
+        setLoading(true);
+      }
+
+      const data = await getCanvasState(canvasId);
+      updateCanvasDataFromHttp(data);
+      setCanvasTitle(canvasId, data?.title);
+
+      // Mark first poll as complete
+      if (isFirstPollRef.current) {
+        isFirstPollRef.current = false;
+      }
+    } catch (error) {
+      console.error('Failed to poll canvas state:', error);
+    } finally {
+      // Only clear loading if it was the first poll
+      if (loading) {
+        setLoading(false);
+      }
     }
+  }, [canvasId, readonly, updateCanvasDataFromHttp, loading]);
 
-    const existingProvider = providerCache.get(canvasId);
-    if (existingProvider?.remote?.status === 'connected') {
-      return existingProvider;
-    }
-
-    const doc = new Y.Doc();
-
-    const remoteProvider = new HocuspocusProvider({
-      url: wsServerOrigin,
-      name: canvasId,
-      token,
-      document: doc,
-      connect: true,
-      forceSyncInterval: 5000,
-      onAuthenticationFailed: (data) => {
-        console.log('onAuthenticationFailed', data);
-        refreshToken();
-      },
-    });
-
-    const handleSync = () => {
-      setCanvasRemoteSynced(canvasId, Date.now());
-    };
-
-    remoteProvider.on('synced', handleSync);
-
-    const localProvider = new IndexeddbPersistence(canvasId, doc);
-
-    const handleLocalSync = () => {
-      setCanvasDataFromYDoc(doc);
-      setCanvasLocalSynced(canvasId, Date.now());
-    };
-
-    localProvider.on('synced', handleLocalSync);
-
-    const providers = { remote: remoteProvider, local: localProvider };
-    providerCache.set(canvasId, providers);
-
-    return providers;
-  }, [
-    canvasId,
-    token,
-    readonly,
-    setCanvasRemoteSynced,
-    setCanvasLocalSynced,
-    setCanvasDataFromYDoc,
-  ]);
-
-  // Handle connection retries
+  // Start/stop polling
   useEffect(() => {
-    if (readonly || !provider) return;
+    if (readonly) return;
 
-    let timeoutId: NodeJS.Timeout;
+    setIsPolling(true);
 
-    const handleConnection = () => {
-      if (provider?.status !== 'connected' && connectionAttempts < MAX_RETRIES) {
-        timeoutId = setTimeout(() => {
-          console.log(`Retrying connection attempt ${connectionAttempts + 1}/${MAX_RETRIES}`);
-          provider.connect();
-          setConnectionAttempts((prev) => prev + 1);
-        }, RETRY_DELAY);
-      }
-    };
+    // Initial fetch
+    pollCanvasState();
 
-    const handleStatus = ({ status }: { status: string }) => {
-      if (status === 'connected') {
-        setConnectionAttempts(0);
-      } else {
-        handleConnection();
-      }
-    };
-
-    provider.on('status', handleStatus);
+    intervalRef.current = setInterval(pollCanvasState, POLLING_INTERVAL);
 
     return () => {
-      clearTimeout(timeoutId);
-      provider.off('status', handleStatus);
-    };
-  }, [provider, connectionAttempts, readonly]);
-
-  // Subscribe to yjs document changes
-  useEffect(() => {
-    if (readonly || !provider) return;
-
-    const ydoc = provider.document;
-    if (!ydoc) return;
-
-    let isDestroyed = false;
-
-    // Get references to the shared types
-    const nodesArray = ydoc.getArray<CanvasNode>('nodes');
-    const edgesArray = ydoc.getArray<Edge>('edges');
-
-    // Connect handler
-    const handleConnect = () => {
-      if (isDestroyed) return;
-
-      if (provider?.status === 'connected') {
-        setCanvasDataFromYDoc(ydoc);
+      setIsPolling(false);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-
-      const nodesObserverCallback = () => {
-        if (provider?.status === 'connected') {
-          const nodes = getNodesFromYDoc(ydoc);
-          const { nodeLookup, parentLookup } = getState();
-          adoptUserNodes(nodes, nodeLookup, parentLookup, {
-            elevateNodesOnSelect: false,
-          });
-          setState({ nodes });
-        }
-      };
-
-      const edgesObserverCallback = () => {
-        if (provider?.status === 'connected') {
-          setState({ edges: getEdgesFromYDoc(ydoc) as unknown as Edge[] });
-        }
-      };
-
-      // Add observers
-      nodesArray.observe(nodesObserverCallback);
-      edgesArray.observe(edgesObserverCallback);
-
-      // Store cleanup functions
-      return () => {
-        nodesArray.unobserve(nodesObserverCallback);
-        edgesArray.unobserve(edgesObserverCallback);
-      };
     };
+  }, [canvasId, readonly, pollCanvasState]);
 
-    const cleanup = handleConnect();
-    provider.on('connect', handleConnect);
-
-    return () => {
-      isDestroyed = true;
-      cleanup?.(); // Clean up observers
-      provider.off('connect', handleConnect);
-    };
-  }, [provider, canvasId, setCanvasDataFromYDoc, readonly]);
-
-  // Add cleanup on unmount
+  // Cleanup on unmount
   useEffect(() => {
     if (readonly) return;
 
     return () => {
-      // Force clear the nodes and edges
+      // Clear canvas data
       setState({ nodes: [], edges: [] });
-
-      const providers = providerCache.get(canvasId);
-      if (providers) {
-        if (providers?.remote?.status === 'connected') {
-          providers.remote.forceSync();
-        }
-        providers.remote.destroy();
-        providers.local.destroy();
-        providerCache.delete(canvasId);
-      }
+      setLoading(false);
+      isFirstPollRef.current = true;
     };
   }, [canvasId, readonly]);
 
   const canvasContext = useMemo<CanvasContextType>(
     () => ({
+      loading,
       canvasId,
-      provider,
-      localProvider,
       readonly,
       shareLoading,
       shareNotFound,
       shareData: canvasData,
+      isPolling,
+      lastUpdated,
     }),
-    [canvasId, provider, localProvider, readonly, shareNotFound, canvasData, shareLoading],
+    [canvasId, readonly, shareNotFound, canvasData, shareLoading, isPolling, lastUpdated],
   );
 
   return <CanvasContext.Provider value={canvasContext}>{children}</CanvasContext.Provider>;

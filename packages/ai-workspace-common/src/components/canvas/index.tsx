@@ -213,7 +213,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const reactFlowInstance = useReactFlow();
 
   const { pendingNode, clearPendingNode } = useCanvasNodesStore();
-  const { provider, readonly, shareNotFound, shareLoading } = useCanvasContext();
+  const { loading, readonly, shareNotFound, shareLoading } = useCanvasContext();
 
   const { isPilotOpen, setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
     isPilotOpen: state.isPilotOpen,
@@ -439,10 +439,10 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   useEffect(() => {
     // Skip if no provider or in desktop mode
-    if (!provider || runtime === 'desktop') return;
+    if (runtime === 'desktop') return;
 
     // Clear timeout state if provider becomes connected
-    if (provider?.status === 'connected') {
+    if (!loading) {
       setConnectionTimeout(false);
       unhealthyStartTimeRef.current = null;
       return;
@@ -455,9 +455,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
     // Check status every two seconds after provider becomes unhealthy
     const intervalId = setInterval(() => {
-      // Skip if provider is gone
-      if (!provider) return;
-
       if (unhealthyStartTimeRef.current) {
         const unhealthyDuration = Date.now() - unhealthyStartTimeRef.current;
 
@@ -469,7 +466,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       }
 
       // Provider became healthy, reset everything
-      if (provider?.status === 'connected') {
+      if (!loading) {
         clearInterval(intervalId);
         unhealthyStartTimeRef.current = null;
         setConnectionTimeout(false);
@@ -479,7 +476,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     return () => {
       clearInterval(intervalId);
     };
-  }, [provider?.status]);
+  }, [loading]);
 
   useEffect(() => {
     if (!readonly) {
@@ -922,10 +919,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     <Spin
       className="w-full h-full"
       style={{ maxHeight: '100%' }}
-      spinning={
-        (!readonly && !hasCanvasSynced && provider?.status !== 'connected' && !connectionTimeout) ||
-        (readonly && shareLoading)
-      }
+      spinning={(readonly && shareLoading) || loading}
       tip={connectionTimeout ? t('common.connectionFailed') : t('common.loading')}
     >
       <Modal
