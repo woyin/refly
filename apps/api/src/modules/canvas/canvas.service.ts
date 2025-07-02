@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import * as Y from 'yjs';
 import pLimit from 'p-limit';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -23,7 +22,7 @@ import {
   ActionResult,
   CanvasNode,
 } from '@refly/openapi-schema';
-import { Prisma, Canvas as CanvasModel } from '../../generated/client';
+import { Prisma } from '../../generated/client';
 import { genCanvasID } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
@@ -342,45 +341,13 @@ export class CanvasService {
   }
 
   /**
-   * Execute a transaction on a canvas document with automatic connection management
-   * @param canvasId - The id of the canvas
-   * @param user - The user performing the operation
-   * @param canvas - The canvas entity (optional, will be fetched if not provided)
-   * @param transaction - The transaction function to execute
-   */
-  private async executeCanvasTransaction(
-    canvasId: string,
-    user: User,
-    canvas: CanvasModel | null,
-    transaction: (doc: Y.Doc) => void | Promise<void>,
-  ): Promise<void> {
-    const connection = await this.collabService.openDirectConnection(canvasId, {
-      user,
-      entity: canvas,
-      entityType: 'canvas',
-    });
-
-    try {
-      await connection.document.transact(async () => {
-        const result = transaction(connection.document);
-        // If the transaction returns a promise, await it
-        if (result && typeof result.then === 'function') {
-          await result;
-        }
-      });
-    } finally {
-      await connection.disconnect();
-    }
-  }
-
-  /**
-   * Add a node to the canvas document
+   * Add a node to the canvas
    * @param user - The user who is adding the node
    * @param canvasId - The id of the canvas to add the node to
    * @param node - The node to add
    * @param connectTo - The nodes to connect to
    */
-  async addNodeToCanvasDoc(
+  async addNodeToCanvas(
     user: User,
     canvasId: string,
     node: Pick<CanvasNode, 'type' | 'data'>,
@@ -717,30 +684,6 @@ export class CanvasService {
                 })),
             },
           );
-          await this.executeCanvasTransaction(canvasId, { uid: canvas.uid }, canvas, (doc) => {
-            const nodes = doc.getArray('nodes');
-            const toRemove: number[] = [];
-
-            nodes.forEach((node: any, index: number) => {
-              const entityId = node?.data?.entityId;
-              const entityType = node?.type;
-
-              if (entityId && entityType) {
-                const matchingEntity = entities.find(
-                  (e) => e.entityId === entityId && e.entityType === entityType,
-                );
-                if (matchingEntity) {
-                  toRemove.push(index);
-                }
-              }
-            });
-
-            // Remove nodes in reverse order to maintain correct indices
-            toRemove.reverse();
-            for (const index of toRemove) {
-              nodes.delete(index, 1);
-            }
-          });
 
           // Update relations
           await this.prisma.canvasEntityRelation.updateMany({
