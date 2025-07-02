@@ -98,7 +98,7 @@ export class CanvasController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('sync/getState')
+  @Get('sync/getState')
   async getCanvasState(
     @LoginedUser() user: User,
     @Query('canvasId') canvasId: string,
