@@ -46,7 +46,7 @@ cp ../../apps/api/.env.example .env
 ```
 
 ::: info
-所有环境变量的详细描述可以在[配置指南](../configuration.md)中查看。
+所有环境变量的详细描述可以在[配置指南](./configuration.md)中查看。
 :::
 
 #### 3. 通过 docker compose 启动应用
@@ -67,7 +67,7 @@ docker compose up -d
 如果无法访问 Refly 应用，请检查以下内容：
 
 -   `HOST_IP` 是否正确。
--   应用是否正常运行。如果未运行，请跳转到[故障排除](#troubleshooting)部分。
+-   应用是否正常运行。如果未运行，请跳转到[故障排除](./index.md#troubleshooting)部分。
 -   端口 `5700` 是否被任何应用程序防火墙阻止。如果您使用的是云服务器，请特别注意这一点。
 :::
 

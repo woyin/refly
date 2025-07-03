@@ -31,7 +31,7 @@ cp ../../apps/api/.env.example .env
 ```
 
 ::: info
-所有环境变量的详细描述可以在[配置指南](../configuration.md)中查看。
+所有环境变量的详细描述可以在[配置指南](./configuration.md)中查看。
 :::
 
 ### 3. 通过 docker compose 启动应用 {#start-the-application-via-docker-compose}
