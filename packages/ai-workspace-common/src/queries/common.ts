@@ -54,6 +54,7 @@ import {
   emailSignup,
   exportCanvas,
   exportDocument,
+  generateMedia,
   getActionResult,
   getAuthConfig,
   getCanvasData,
@@ -906,6 +907,12 @@ export type DeleteSkillTriggerMutationResult = Awaited<ReturnType<typeof deleteS
 export const useDeleteSkillTriggerKey = 'DeleteSkillTrigger';
 export const UseDeleteSkillTriggerKeyFn = (mutationKey?: Array<unknown>) => [
   useDeleteSkillTriggerKey,
+  ...(mutationKey ?? []),
+];
+export type GenerateMediaMutationResult = Awaited<ReturnType<typeof generateMedia>>;
+export const useGenerateMediaKey = 'GenerateMedia';
+export const UseGenerateMediaKeyFn = (mutationKey?: Array<unknown>) => [
+  useGenerateMediaKey,
   ...(mutationKey ?? []),
 ];
 export type CreatePilotSessionMutationResult = Awaited<ReturnType<typeof createPilotSession>>;

@@ -2157,6 +2157,24 @@ paths:
                 $ref: '#/components/schemas/BaseResponse'
       security:
         - api_key: []
+  /media/generate:
+      post:
+        summary: Generate multimedia content
+        description: Generate image, video or audio based on the given prompt
+        operationId: generateMedia
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaGenerateRequest'
+        responses:
+          '200':
+            description: Successful generation
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/MediaGenerateResponse'
   /pilot/session/new:
     post:
       tags:
@@ -6333,6 +6351,44 @@ components:
         triggerId:
           type: string
           description: Trigger ID to delete
+    MediaType:
+      type: string
+      description: media type
+      enum: [image, video, audio]
+      example: image
+    MediaGenerateRequest:
+        type: object
+        required:
+          - mediaType
+          - prompt
+        properties:
+          mediaType:
+            $ref: '#/components/schemas/MediaType'
+          apiKey:
+            type: string
+            description: API key for authentication
+            nullable: true
+          provider:
+            type: string
+            description: Optional provider selection
+            nullable: true
+          prompt:
+            type: string
+            description: Text prompt for content generation
+    MediaGenerateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: media generation result
+              properties:
+                outputUrl:
+                  type: string
+                  format: uri
+                  description: media URL
+                  example: https://example.com/generated/image_123.png
     PilotStepStatus:
       type: string
       enum:

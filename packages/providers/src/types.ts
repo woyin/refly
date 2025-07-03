@@ -20,6 +20,16 @@ export interface ImageGenerationProvider extends MultimodalProvider {
   providerKey: 'replicate' | 'fal' | string;
 }
 
+// 视频生成专用配置
+export interface VideoGenerationProvider extends MultimodalProvider {
+  providerKey: 'replicate' | 'fal' | string;
+}
+
+// 音频生成专用配置
+export interface AudioGenerationProvider extends MultimodalProvider {
+  providerKey: 'replicate' | 'fal' | string;
+}
+
 // 统一的生成请求接口
 export interface GenerationRequest {
   prompt: string;
@@ -28,6 +38,7 @@ export interface GenerationRequest {
   width?: number;
   height?: number;
   duration?: number; // 音频/视频
+  fps?: number; // 视频帧率
   // 输入媒体
   inputImage?: string;
   inputAudio?: string;

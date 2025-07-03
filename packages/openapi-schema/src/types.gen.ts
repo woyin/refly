@@ -3510,6 +3510,39 @@ export type DeleteSkillTriggerRequest = {
   triggerId: string;
 };
 
+/**
+ * media type
+ */
+export type MediaType = 'image' | 'video' | 'audio';
+
+export type MediaGenerateRequest = {
+  mediaType: MediaType;
+  /**
+   * API key for authentication
+   */
+  apiKey?: string | null;
+  /**
+   * Optional provider selection
+   */
+  provider?: string | null;
+  /**
+   * Text prompt for content generation
+   */
+  prompt: string;
+};
+
+export type MediaGenerateResponse = BaseResponse & {
+  /**
+   * media generation result
+   */
+  data?: {
+    /**
+     * media URL
+     */
+    outputUrl?: string;
+  };
+};
+
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
 
 export type PilotStep = {
@@ -5596,6 +5629,14 @@ export type DeleteSkillTriggerData = {
 export type DeleteSkillTriggerResponse = BaseResponse;
 
 export type DeleteSkillTriggerError = unknown;
+
+export type GenerateMediaData = {
+  body: MediaGenerateRequest;
+};
+
+export type GenerateMediaResponse = MediaGenerateResponse;
+
+export type GenerateMediaError = unknown;
 
 export type CreatePilotSessionData = {
   body: CreatePilotSessionRequest;

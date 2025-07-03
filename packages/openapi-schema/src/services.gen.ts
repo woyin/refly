@@ -273,6 +273,9 @@ import type {
   DeleteSkillTriggerData,
   DeleteSkillTriggerError,
   DeleteSkillTriggerResponse,
+  GenerateMediaData,
+  GenerateMediaError,
+  GenerateMediaResponse,
   CreatePilotSessionData,
   CreatePilotSessionError,
   CreatePilotSessionResponse,
@@ -1787,6 +1790,19 @@ export const deleteSkillTrigger = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/skill/trigger/delete',
+  });
+};
+
+/**
+ * Generate multimedia content
+ * Generate image, video or audio based on the given prompt
+ */
+export const generateMedia = <ThrowOnError extends boolean = false>(
+  options: Options<GenerateMediaData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<GenerateMediaResponse, GenerateMediaError, ThrowOnError>({
+    ...options,
+    url: '/media/generate',
   });
 };
 

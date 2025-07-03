@@ -54,6 +54,7 @@ import {
   emailSignup,
   exportCanvas,
   exportDocument,
+  generateMedia,
   getActionResult,
   getAuthConfig,
   getCanvasData,
@@ -226,6 +227,8 @@ import {
   ExportCanvasError,
   ExportDocumentData,
   ExportDocumentError,
+  GenerateMediaData,
+  GenerateMediaError,
   GetActionResultData,
   GetActionResultError,
   GetAuthConfigError,
@@ -1970,6 +1973,23 @@ export const useDeleteSkillTrigger = <
   useMutation<TData, TError, Options<DeleteSkillTriggerData, true>, TContext>({
     mutationKey: Common.UseDeleteSkillTriggerKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteSkillTrigger(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useGenerateMedia = <
+  TData = Common.GenerateMediaMutationResult,
+  TError = GenerateMediaError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<GenerateMediaData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<GenerateMediaData, true>, TContext>({
+    mutationKey: Common.UseGenerateMediaKeyFn(mutationKey),
+    mutationFn: (clientOptions) => generateMedia(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreatePilotSession = <

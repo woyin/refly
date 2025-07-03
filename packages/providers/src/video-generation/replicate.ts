@@ -1,23 +1,32 @@
-import { BaseAsyncGenerator } from './base';
-import { GenerationRequest, GenerationResponse, ImageGenerationProvider } from '../types';
+import { BaseAsyncVideoGenerator } from './base';
+import { GenerationRequest, GenerationResponse, VideoGenerationProvider } from '../types';
 
-export interface ReplicateImageConfig extends ImageGenerationProvider {
+export interface ReplicateVideoConfig extends VideoGenerationProvider {
   providerKey: 'replicate';
   model: string;
   apiKey: string;
   baseUrl?: string;
 }
 
-export class ReplicateImageGenerator extends BaseAsyncGenerator {
-  protected config: ReplicateImageConfig;
+/**
+ * Replicate视频生成器
+ * 实现基于Replicate平台的视频生成功能
+ */
+export class ReplicateVideoGenerator extends BaseAsyncVideoGenerator {
+  protected config: ReplicateVideoConfig;
   private baseUrl: string;
 
-  constructor(config: ReplicateImageConfig) {
+  constructor(config: ReplicateVideoConfig) {
     super(config);
     this.config = config;
     this.baseUrl = config.baseUrl || 'https://api.replicate.com';
   }
 
+  /**
+   * 提交视频生成任务
+   * @param request 生成请求
+   * @returns 任务ID
+   */
   protected async submitTask(request: GenerationRequest): Promise<string> {
     const input = this.transformInput(request);
 
@@ -44,6 +53,11 @@ export class ReplicateImageGenerator extends BaseAsyncGenerator {
     return prediction.id;
   }
 
+  /**
+   * 检查任务状态
+   * @param taskId 任务ID
+   * @returns 任务状态信息
+   */
   protected async checkTaskStatus(taskId: string): Promise<{
     status: 'pending' | 'processing' | 'succeeded' | 'failed';
     result?: any;
@@ -68,44 +82,70 @@ export class ReplicateImageGenerator extends BaseAsyncGenerator {
     };
   }
 
+  /**
+   * 转换输入参数
+   * @param request 生成请求
+   * @returns 转换后的输入参数
+   */
   protected transformInput(request: GenerationRequest): any {
     const input: any = {
       prompt: request.prompt,
       width: request.width || 1024,
-      height: request.height || 1024,
-      num_inference_steps: request.steps || 50,
+      height: request.height || 576,
+      num_inference_steps: request.steps || 25,
       guidance_scale: request.guidance || 7.5,
-      num_outputs: request.count || 1,
+      fps: request.fps || 24,
     };
 
+    // 视频时长（秒）
+    if (request.duration) {
+      input.duration = request.duration;
+    }
+
+    // 负面提示词
     if (request.negativePrompt) {
       input.negative_prompt = request.negativePrompt;
     }
 
+    // 随机种子
     if (request.seed !== undefined) {
       input.seed = request.seed;
     }
 
+    // 输入图像（用于图像到视频）
     if (request.inputImage) {
       input.image = request.inputImage;
+    }
+
+    // 宽高比
+    if (request.aspectRatio) {
+      input.aspect_ratio = request.aspectRatio;
     }
 
     return input;
   }
 
+  /**
+   * 转换输出格式
+   * @param result 原始结果
+   * @param request 原始请求
+   * @param taskId 任务ID
+   * @returns 标准化的生成响应
+   */
   protected transformOutput(
     result: any,
     request: GenerationRequest,
     taskId: string,
   ): GenerationResponse {
-    const images = Array.isArray(result.output) ? result.output : [result.output];
+    const videos = Array.isArray(result.output) ? result.output : [result.output];
 
     return {
-      outputs: images.filter(Boolean).map((url: string) => ({
+      outputs: videos.filter(Boolean).map((url: string) => ({
         url,
         width: request.width || 1024,
-        height: request.height || 1024,
-        format: 'png',
+        height: request.height || 576,
+        duration: request.duration || 5,
+        format: 'mp4',
       })),
       metadata: {
         prompt: request.prompt,
@@ -113,7 +153,7 @@ export class ReplicateImageGenerator extends BaseAsyncGenerator {
         provider: 'replicate',
         parameters: result.input,
         usage: {
-          cost: result.metrics?.predict_time ? result.metrics.predict_time * 0.001 : undefined,
+          cost: result.metrics?.predict_time ? result.metrics.predict_time * 0.002 : undefined, // 视频生成成本更高
           processingTime: result.metrics?.predict_time,
         },
         taskId,
@@ -121,6 +161,11 @@ export class ReplicateImageGenerator extends BaseAsyncGenerator {
     };
   }
 
+  /**
+   * 批量生成视频
+   * @param requests 生成请求数组
+   * @returns 生成响应数组
+   */
   async generateBatch(requests: GenerationRequest[]): Promise<GenerationResponse[]> {
     // 并发处理多个请求
     return Promise.all(requests.map((request) => this.generate(request)));

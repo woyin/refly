@@ -4996,6 +4996,62 @@ export const DeleteSkillTriggerRequestSchema = {
   },
 } as const;
 
+export const MediaTypeSchema = {
+  type: 'string',
+  description: 'media type',
+  enum: ['image', 'video', 'audio'],
+  example: 'image',
+} as const;
+
+export const MediaGenerateRequestSchema = {
+  type: 'object',
+  required: ['mediaType', 'prompt'],
+  properties: {
+    mediaType: {
+      $ref: '#/components/schemas/MediaType',
+    },
+    apiKey: {
+      type: 'string',
+      description: 'API key for authentication',
+      nullable: true,
+    },
+    provider: {
+      type: 'string',
+      description: 'Optional provider selection',
+      nullable: true,
+    },
+    prompt: {
+      type: 'string',
+      description: 'Text prompt for content generation',
+    },
+  },
+} as const;
+
+export const MediaGenerateResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'media generation result',
+          properties: {
+            outputUrl: {
+              type: 'string',
+              format: 'uri',
+              description: 'media URL',
+              example: 'https://example.com/generated/image_123.png',
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const PilotStepStatusSchema = {
   type: 'string',
   enum: ['init', 'executing', 'finish', 'failed'],
