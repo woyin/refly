@@ -273,6 +273,45 @@ export class SkillInvokerService {
     // Register the abort controller with ActionService
     this.actionService.registerAbortController(resultId, abortController);
 
+    // Set up stream idle timeout (5 seconds without any output)
+    let streamIdleTimeoutId: NodeJS.Timeout | null = null;
+    const streamIdleTimeout = this.config.get('skill.streamIdleTimeout');
+
+    const resetStreamIdleTimeout = () => {
+      if (streamIdleTimeoutId) {
+        clearTimeout(streamIdleTimeoutId);
+      }
+      streamIdleTimeoutId = setTimeout(async () => {
+        if (!abortController.signal.aborted) {
+          this.logger.warn(
+            `Stream idle timeout (${streamIdleTimeout}ms) triggered for action: ${resultId}`,
+          );
+          // Use ActionService.abortAction to handle timeout consistently
+          try {
+            await this.actionService.abortAction(user, {
+              resultId,
+              reason: 'Execution timeout - no output received within 5 seconds',
+            });
+            this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
+          } catch (error) {
+            this.logger.error(
+              `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
+            );
+            // Fallback to direct abort if ActionService fails
+            abortController.abort('Stream idle timeout - no output received within 5 seconds');
+            result.errors.push('Execution timeout - no output received within 5 seconds');
+          }
+        }
+      }, streamIdleTimeout);
+    };
+
+    const clearStreamIdleTimeout = () => {
+      if (streamIdleTimeoutId) {
+        clearTimeout(streamIdleTimeoutId);
+        streamIdleTimeoutId = null;
+      }
+    };
+
     // const job = await this.timeoutCheckQueue.add(
     //   `idle_timeout_check:${resultId}`,
     //   {
@@ -320,7 +359,8 @@ export class SkillInvokerService {
           return;
         }
 
-        // await throttledResetIdleTimeout();
+        // Reset stream idle timeout when skill events are received
+        resetStreamIdleTimeout();
 
         if (res) {
           writeSSEResponse(res, { ...data, resultId, version });
@@ -454,6 +494,9 @@ export class SkillInvokerService {
       writeSSEResponse(res, { event: 'start', resultId, version });
     }
 
+    // Start the stream idle timeout when we begin streaming
+    resetStreamIdleTimeout();
+
     try {
       for await (const event of skill.streamEvents(input, {
         ...config,
@@ -467,8 +510,8 @@ export class SkillInvokerService {
           throw new Error('AbortError');
         }
 
-        // reset idle timeout check when events are received
-        // await throttledResetIdleTimeout();
+        // Reset stream idle timeout when events are received
+        resetStreamIdleTimeout();
 
         runMeta = event.metadata as SkillRunnableMeta;
         const chunk: AIMessageChunk = event.data?.chunk ?? event.data?.output;
@@ -624,6 +667,9 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
       result.errors.push(err.message);
     } finally {
+      // Clear stream idle timeout
+      clearStreamIdleTimeout();
+
       // Unregister the abort controller
       this.actionService.unregisterAbortController(resultId);
 
