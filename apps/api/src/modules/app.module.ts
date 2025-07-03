@@ -34,6 +34,7 @@ import { McpServerModule } from './mcp-server/mcp-server.module';
 import { InternalMcpModule } from './internal-mcp/internal-mcp.module';
 import { ImageGeneratorModule } from './image-generator/image-generator.module';
 import { VideoGeneratorModule } from './video-generator/video-generator.module';
+import { AudioGeneratorModule } from './audio-generator/audio-generator.module';
 
 import { isDesktop } from '../utils/runtime';
 
@@ -101,6 +102,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     InternalMcpModule,
     ImageGeneratorModule,
     VideoGeneratorModule,
+    AudioGeneratorModule,
     ...(isDesktop()
       ? []
       : [
