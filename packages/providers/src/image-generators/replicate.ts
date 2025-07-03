@@ -1,14 +1,6 @@
 import { BaseImageGenerator, ImageGenerationRequest, ImageGenerationResponse } from './base';
 
-/**
- * Replicate 图片生成器
- */
 export class ReplicateImageGenerator extends BaseImageGenerator {
-  /**
-   * 使用 Replicate API 生成图片
-   * @param request 生成请求
-   * @returns 生成响应
-   */
   async generate(request: ImageGenerationRequest): Promise<ImageGenerationResponse> {
     const url = `https://api.replicate.com/v1/models/${request.model}/predictions`;
 

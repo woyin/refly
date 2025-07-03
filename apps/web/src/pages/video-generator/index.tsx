@@ -17,12 +17,17 @@ const { TextArea } = Input;
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
 
+// 视频模型选项
 const models = [
-  'black-forest-labs/flux-schnell',
-  'black-forest-labs/flux-dev',
-  'black-forest-labs/flux-pro',
+  'bytedance/seedance-1-pro',
+  'bytedance/seedance-1-lite',
+  'minimax/video-01',
+  'kwaivgi/kling-v2.1',
+  'google/veo-3',
+  'luma/ray-flash-2-540p',
 ];
 
+// 宽高比选项
 const aspectRatios = [
   { value: '1:1', label: '1:1' },
   { value: '16:9', label: '16:9' },
@@ -31,14 +36,20 @@ const aspectRatios = [
   { value: '3:4', label: '3:4' },
 ];
 
-export default function ImageGenerator() {
+/**
+ * 视频生成页面组件
+ */
+export default function VideoGenerator() {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
 
+  /**
+   * 处理视频生成请求
+   */
   const handleGenerate = async (values: any) => {
     setIsLoading(true);
-    setGeneratedImage(null);
+    setGeneratedVideo(null);
 
     try {
       const payload = {
@@ -51,7 +62,7 @@ export default function ImageGenerator() {
 
       console.log('发送请求:', payload);
 
-      const response = await fetch('/v1/image-generator/generate', {
+      const response = await fetch('/v1/video-generator/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,8 +77,8 @@ export default function ImageGenerator() {
       }
 
       const data = await response.json();
-      setGeneratedImage(data.output);
-      message.success('图片生成成功！');
+      setGeneratedVideo(data.output);
+      message.success('视频生成成功！');
       console.log('生成成功:', data);
     } catch (err: any) {
       const errorMessage = err.message || '生成失败';
@@ -82,8 +93,8 @@ export default function ImageGenerator() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', padding: '32px' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <Title level={2}>图片生成器</Title>
-          <Paragraph>使用 AI 生成精美图片</Paragraph>
+          <Title level={2}>视频生成器</Title>
+          <Paragraph>使用 AI 生成精美视频</Paragraph>
         </div>
 
         <Row gutter={32}>
@@ -96,7 +107,7 @@ export default function ImageGenerator() {
                 onFinish={handleGenerate}
                 initialValues={{
                   model: models[0],
-                  aspectRatio: '1:1',
+                  aspectRatio: '16:9',
                 }}
               >
                 {/* API Key */}
@@ -114,7 +125,7 @@ export default function ImageGenerator() {
                   name="prompt"
                   rules={[{ required: true, message: '请输入提示词' }]}
                 >
-                  <TextArea placeholder="描述你想要生成的图片..." rows={4} />
+                  <TextArea placeholder="描述你想要生成的视频..." rows={4} />
                 </Form.Item>
 
                 {/* 模型选择 */}
@@ -142,7 +153,7 @@ export default function ImageGenerator() {
                 {/* 生成按钮 */}
                 <Form.Item>
                   <Button type="primary" htmlType="submit" loading={isLoading} size="large" block>
-                    {isLoading ? '生成中...' : '生成图片'}
+                    {isLoading ? '生成中...' : '生成视频'}
                   </Button>
                 </Form.Item>
               </Form>
@@ -155,46 +166,48 @@ export default function ImageGenerator() {
               {isLoading && (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <Spin size="large" />
-                  <div style={{ marginTop: '16px' }}>正在生成图片，请稍候...</div>
+                  <div style={{ marginTop: '16px' }}>正在生成视频，请稍候...</div>
                 </div>
               )}
 
-              {!isLoading && !generatedImage && (
+              {!isLoading && !generatedVideo && (
                 <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                  请配置参数并点击生成图片
+                  请配置参数并点击生成视频
                 </div>
               )}
 
-              {generatedImage && (
+              {generatedVideo && (
                 <div>
-                  <img
-                    src={generatedImage}
-                    alt="Generated artwork"
+                  <video
+                    src={generatedVideo}
+                    controls
                     style={{
                       width: '100%',
                       height: 'auto',
                       borderRadius: '8px',
                       border: '1px solid #d9d9d9',
                     }}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIExvYWQgRXJyb3I8L3RleHQ+PC9zdmc+';
+                    onError={(_e) => {
+                      message.error('视频加载失败');
                     }}
-                  />
+                  >
+                    <track kind="captions" src="" srcLang="zh" label="中文字幕" default />
+                    您的浏览器不支持视频播放
+                  </video>
                   <div style={{ marginTop: '16px', textAlign: 'center' }}>
                     <Space>
-                      <Button onClick={() => window.open(generatedImage, '_blank')}>
+                      <Button onClick={() => window.open(generatedVideo, '_blank')}>
                         在新窗口打开
                       </Button>
                       <Button
                         onClick={() => {
                           const link = document.createElement('a');
-                          link.href = generatedImage;
-                          link.download = 'generated-image.png';
+                          link.href = generatedVideo;
+                          link.download = 'generated-video.mp4';
                           link.click();
                         }}
                       >
-                        下载图片
+                        下载视频
                       </Button>
                     </Space>
                   </div>
