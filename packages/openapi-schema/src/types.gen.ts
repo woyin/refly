@@ -4578,7 +4578,11 @@ export type CanvasNodeType =
   | 'toolResponse'
   | 'memo'
   | 'group'
-  | 'image';
+  | 'image'
+  | 'mediaSkill'
+  | 'mediaSkillResponse'
+  | 'video'
+  | 'audio';
 
 export type CanvasNodeData = {
   /**
