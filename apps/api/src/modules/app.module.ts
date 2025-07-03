@@ -32,10 +32,7 @@ import { PagesModule } from './pages/pages.module';
 import { ProjectModule } from './project/project.module';
 import { McpServerModule } from './mcp-server/mcp-server.module';
 import { InternalMcpModule } from './internal-mcp/internal-mcp.module';
-import { ImageGenerationModule } from './image-generation/image-generation.module';
 import { ImageGeneratorModule } from './image-generator/image-generator.module';
-import { AudioGenerationModule } from './audio-generation/audio-generation.module';
-import { VideoGenerationModule } from './video-generation/video-generation.module';
 import { isDesktop } from '../utils/runtime';
 
 class CustomThrottlerGuard extends ThrottlerGuard {
@@ -100,10 +97,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     ProjectModule,
     McpServerModule,
     InternalMcpModule,
-    ImageGenerationModule,
     ImageGeneratorModule,
-    AudioGenerationModule,
-    VideoGenerationModule,
     ...(isDesktop()
       ? []
       : [

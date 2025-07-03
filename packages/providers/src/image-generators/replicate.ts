@@ -21,7 +21,7 @@ export class ReplicateImageGenerator extends BaseImageGenerator {
     const data = {
       input: {
         prompt: request.prompt,
-        ...(request.aspectRatio && { aspect_ratio: request.aspectRatio }),
+        aspectRatio: request.aspectRatio,
       },
     };
 

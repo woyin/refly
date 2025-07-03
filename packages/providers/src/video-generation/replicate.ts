@@ -119,7 +119,7 @@ export class ReplicateVideoGenerator extends BaseAsyncVideoGenerator {
 
     // 宽高比
     if (request.aspectRatio) {
-      input.aspect_ratio = request.aspectRatio;
+      input.aspectRatio = request.aspectRatio;
     }
 
     return input;

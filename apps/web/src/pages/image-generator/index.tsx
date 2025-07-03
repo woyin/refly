@@ -55,7 +55,7 @@ export default function ImageGenerator() {
         provider: 'replicate' as const,
         prompt: values.prompt,
         model: values.model,
-        aspect_ratio: values.aspect_ratio,
+        aspectRatio: values.aspectRatio,
       };
 
       console.log('发送请求:', payload);
@@ -105,7 +105,7 @@ export default function ImageGenerator() {
                 onFinish={handleGenerate}
                 initialValues={{
                   model: models[0],
-                  aspect_ratio: '1:1',
+                  aspectRatio: '1:1',
                 }}
               >
                 {/* API Key */}
@@ -138,7 +138,7 @@ export default function ImageGenerator() {
                 </Form.Item>
 
                 {/* 宽高比 */}
-                <Form.Item label="宽高比" name="aspect_ratio">
+                <Form.Item label="宽高比" name="aspectRatio">
                   <Select>
                     {aspectRatios.map((ratio) => (
                       <Option key={ratio.value} value={ratio.value}>

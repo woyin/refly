@@ -29,7 +29,6 @@ const DocumentSharePage = lazy(() => import('@/pages/document-share'));
 const ArtifactGalleryPage = lazy(() => import('@/pages/artifact-gallery'));
 const UseCasesGalleryPage = lazy(() => import('@/pages/use-cases-gallery'));
 const ProjectPage = lazy(() => import('@/pages/project'));
-const MediaGenerationPage = lazy(() => import('@/pages/media-generation'));
 const ImageGeneratorPage = lazy(() => import('@/pages/image-generator'));
 
 const prefetchRoutes = () => {
@@ -101,7 +100,6 @@ export const AppRouter = (props: { layout?: any }) => {
         <Routes>
           <Route path="/" element={<HomeRedirect defaultNode={<Home />} />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/media-generation" element={<MediaGenerationPage />} />
           <Route path="/image-generator" element={<ImageGeneratorPage />} />
           <Route path="/share/canvas/:canvasId" element={<ShareCanvasPage />} />
           <Route path="/share/code/:shareId" element={<ShareCodePage />} />
