@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { MediaGeneratorService } from './media-generator.service';
 import { MediaGenerateRequest, MediaGenerateResponse } from './media-generator.dto';
 
