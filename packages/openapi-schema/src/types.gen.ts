@@ -2207,14 +2207,25 @@ export type GetCanvasDetailResponse = BaseResponse & {
   data?: Canvas;
 };
 
-/**
- * Canvas state
- */
-export type CanvasState = {
+export type CanvasHistoryVersion = {
   /**
-   * Canvas title
+   * Canvas version
    */
-  title: string;
+  version: string;
+  /**
+   * Canvas hash
+   */
+  hash: string;
+  /**
+   * Canvas timestamp (in unix milliseconds)
+   */
+  timestamp: number;
+};
+
+/**
+ * Canvas data
+ */
+export type CanvasData = {
   /**
    * Canvas nodes
    */
@@ -2226,9 +2237,35 @@ export type CanvasState = {
 };
 
 /**
+ * Canvas state
+ */
+export type CanvasState = CanvasData & {
+  /**
+   * Canvas version
+   */
+  version?: string;
+  /**
+   * Canvas state hash (sha256), calculated from nodes and edges
+   */
+  hash?: string;
+  /**
+   * Canvas transaction list
+   */
+  transactions?: Array<CanvasTransaction>;
+  /**
+   * Canvas history versions
+   */
+  history?: Array<CanvasHistoryVersion>;
+};
+
+/**
  * Raw canvas data
  */
-export type RawCanvasData = CanvasState & {
+export type RawCanvasData = CanvasData & {
+  /**
+   * Canvas title
+   */
+  title?: string;
   /**
    * Canvas owner
    */
@@ -2391,19 +2428,64 @@ export type EdgeDiff = {
   to?: CanvasEdge;
 };
 
-export type ApplyCanvasStateRequest = {
+export type CanvasTransaction = {
+  /**
+   * Transaction ID
+   */
+  txId: string;
+  /**
+   * Node diffs
+   */
+  nodeDiffs: Array<NodeDiff>;
+  /**
+   * Edge diffs
+   */
+  edgeDiffs: Array<EdgeDiff>;
+  /**
+   * Whether the transaction is revoked
+   */
+  revoked?: boolean;
+  /**
+   * Whether the transaction is deleted
+   */
+  deleted?: boolean;
+  /**
+   * Transaction creation timestamp (in unix milliseconds)
+   */
+  createdAt: number;
+  /**
+   * Transaction synchronization timestamp (in unix milliseconds)
+   */
+  syncedAt?: number;
+};
+
+export type SyncCanvasStateRequest = {
   /**
    * Canvas ID
    */
   canvasId: string;
   /**
-   * Node diffs
+   * Canvas state version
    */
-  nodeDiffs?: Array<NodeDiff>;
+  version?: string;
   /**
-   * Edge diffs
+   * Transaction list
    */
-  edgeDiffs?: Array<EdgeDiff>;
+  transactions: Array<CanvasTransaction>;
+};
+
+export type SyncCanvasStateResult = {
+  /**
+   * Transaction list
+   */
+  transactions: Array<CanvasTransaction>;
+};
+
+export type SyncCanvasStateResponse = BaseResponse & {
+  /**
+   * Apply canvas state result
+   */
+  data?: SyncCanvasStateResult;
 };
 
 export type ListCanvasTemplateResponse = BaseResponse & {
@@ -5023,6 +5105,10 @@ export type GetCanvasStateData = {
      * Canvas ID
      */
     canvasId: string;
+    /**
+     * Canvas state version
+     */
+    version?: string;
   };
 };
 
@@ -5030,13 +5116,13 @@ export type GetCanvasStateResponse2 = GetCanvasStateResponse;
 
 export type GetCanvasStateError = unknown;
 
-export type ApplyCanvasStateData = {
-  body: ApplyCanvasStateRequest;
+export type SyncCanvasStateData = {
+  body: SyncCanvasStateRequest;
 };
 
-export type ApplyCanvasStateResponse = BaseResponse;
+export type SyncCanvasStateResponse2 = SyncCanvasStateResponse;
 
-export type ApplyCanvasStateError = unknown;
+export type SyncCanvasStateError = unknown;
 
 export type ListCanvasTemplatesData = {
   query?: {

@@ -2932,20 +2932,34 @@ export const GetCanvasDetailResponseSchema = {
   ],
 } as const;
 
-export const CanvasStateSchema = {
+export const CanvasHistoryVersionSchema = {
   type: 'object',
-  description: 'Canvas state',
-  required: ['title', 'nodes', 'edges'],
+  required: ['version', 'hash', 'timestamp'],
   properties: {
-    title: {
+    version: {
       type: 'string',
-      description: 'Canvas title',
+      description: 'Canvas version',
     },
+    hash: {
+      type: 'string',
+      description: 'Canvas hash',
+    },
+    timestamp: {
+      type: 'number',
+      description: 'Canvas timestamp (in unix milliseconds)',
+    },
+  },
+} as const;
+
+export const CanvasDataSchema = {
+  type: 'object',
+  description: 'Canvas data',
+  required: ['nodes', 'edges'],
+  properties: {
     nodes: {
       type: 'array',
       description: 'Canvas nodes',
       items: {
-        type: 'object',
         $ref: '#/components/schemas/CanvasNode',
       },
     },
@@ -2953,11 +2967,47 @@ export const CanvasStateSchema = {
       type: 'array',
       description: 'Canvas edges',
       items: {
-        type: 'object',
         $ref: '#/components/schemas/CanvasEdge',
       },
     },
   },
+} as const;
+
+export const CanvasStateSchema = {
+  type: 'object',
+  description: 'Canvas state',
+  allOf: [
+    {
+      $ref: '#/components/schemas/CanvasData',
+    },
+    {
+      type: 'object',
+      properties: {
+        version: {
+          type: 'string',
+          description: 'Canvas version',
+        },
+        hash: {
+          type: 'string',
+          description: 'Canvas state hash (sha256), calculated from nodes and edges',
+        },
+        transactions: {
+          type: 'array',
+          description: 'Canvas transaction list',
+          items: {
+            $ref: '#/components/schemas/CanvasTransaction',
+          },
+        },
+        history: {
+          type: 'array',
+          description: 'Canvas history versions',
+          items: {
+            $ref: '#/components/schemas/CanvasHistoryVersion',
+          },
+        },
+      },
+    },
+  ],
 } as const;
 
 export const RawCanvasDataSchema = {
@@ -2965,11 +3015,15 @@ export const RawCanvasDataSchema = {
   description: 'Raw canvas data',
   allOf: [
     {
-      $ref: '#/components/schemas/CanvasState',
+      $ref: '#/components/schemas/CanvasData',
     },
     {
       type: 'object',
       properties: {
+        title: {
+          type: 'string',
+          description: 'Canvas title',
+        },
         owner: {
           type: 'object',
           description: 'Canvas owner',
@@ -3225,13 +3279,13 @@ export const EdgeDiffSchema = {
   },
 } as const;
 
-export const ApplyCanvasStateRequestSchema = {
+export const CanvasTransactionSchema = {
   type: 'object',
-  required: ['canvasId', 'state'],
+  required: ['txId', 'nodeDiffs', 'edgeDiffs', 'createdAt'],
   properties: {
-    canvasId: {
+    txId: {
       type: 'string',
-      description: 'Canvas ID',
+      description: 'Transaction ID',
     },
     nodeDiffs: {
       type: 'array',
@@ -3247,7 +3301,77 @@ export const ApplyCanvasStateRequestSchema = {
         $ref: '#/components/schemas/EdgeDiff',
       },
     },
+    revoked: {
+      type: 'boolean',
+      description: 'Whether the transaction is revoked',
+    },
+    deleted: {
+      type: 'boolean',
+      description: 'Whether the transaction is deleted',
+    },
+    createdAt: {
+      type: 'number',
+      description: 'Transaction creation timestamp (in unix milliseconds)',
+    },
+    syncedAt: {
+      type: 'number',
+      description: 'Transaction synchronization timestamp (in unix milliseconds)',
+    },
   },
+} as const;
+
+export const SyncCanvasStateRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'transactions'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    version: {
+      type: 'string',
+      description: 'Canvas state version',
+    },
+    transactions: {
+      type: 'array',
+      description: 'Transaction list',
+      items: {
+        $ref: '#/components/schemas/CanvasTransaction',
+      },
+    },
+  },
+} as const;
+
+export const SyncCanvasStateResultSchema = {
+  type: 'object',
+  required: ['transactions'],
+  properties: {
+    transactions: {
+      type: 'array',
+      description: 'Transaction list',
+      items: {
+        $ref: '#/components/schemas/CanvasTransaction',
+      },
+    },
+  },
+} as const;
+
+export const SyncCanvasStateResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Apply canvas state result',
+          $ref: '#/components/schemas/SyncCanvasStateResult',
+        },
+      },
+    },
+  ],
 } as const;
 
 export const ListCanvasTemplateResponseSchema = {

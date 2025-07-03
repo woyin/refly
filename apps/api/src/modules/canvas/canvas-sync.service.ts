@@ -1,12 +1,18 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as Y from 'yjs';
-import { ApplyCanvasStateRequest, User, CanvasState } from '@refly/openapi-schema';
-import { applyCanvasStateTransaction } from '@refly/canvas-common';
-import { CanvasNotFoundError } from '@refly/errors';
+import {
+  SyncCanvasStateRequest,
+  User,
+  CanvasState,
+  GetCanvasStateData,
+} from '@refly/openapi-schema';
+import { initEmptyCanvasState, updateCanvasState } from '@refly/canvas-common';
+import { CanvasNotFoundError, CanvasVersionNotFoundError } from '@refly/errors';
 import { Canvas as CanvasModel } from '../../generated/client';
 import { PrismaService } from '../common/prisma.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { streamToBuffer, streamToString } from '../../utils';
+import { genCanvasVersionId } from '@refly/utils';
 
 @Injectable()
 export class CanvasSyncService {
@@ -52,11 +58,14 @@ export class CanvasSyncService {
   /**
    * Save canvas state (JSON) to object storage
    * @param canvasId - The canvas id
+   * @param version - The canvas version
    * @param state - The canvas state
    */
   async saveState(canvasId: string, state: CanvasState) {
-    const dataStorageKey = `canvas-data/${canvasId}`;
-    await this.oss.putObject(dataStorageKey, JSON.stringify(state));
+    state.version ||= genCanvasVersionId();
+    const stateStorageKey = `canvas-state/${canvasId}/${state.version}`;
+    await this.oss.putObject(stateStorageKey, JSON.stringify(state));
+    return stateStorageKey;
   }
 
   /**
@@ -64,10 +73,19 @@ export class CanvasSyncService {
    * @param canvasId - The canvas id
    * @returns The canvas state
    */
-  async getState(user: User, canvasId: string, canvasPo?: CanvasModel): Promise<CanvasState> {
+  async getState(
+    user: User,
+    param: GetCanvasStateData['query'],
+    canvasPo?: CanvasModel,
+  ): Promise<CanvasState> {
+    const { canvasId, version } = param;
     const canvas =
       canvasPo ??
       (await this.prisma.canvas.findUnique({
+        select: {
+          version: true,
+          stateStorageKey: true,
+        },
         where: {
           canvasId,
           uid: user.uid,
@@ -79,40 +97,59 @@ export class CanvasSyncService {
       throw new CanvasNotFoundError();
     }
 
-    if (!canvas.dataStorageKey) {
+    if (!canvas.version) {
       if (!canvas.stateStorageKey) {
-        return {
-          title: canvas.title,
-          nodes: [],
-          edges: [],
-        };
+        return initEmptyCanvasState();
       }
 
       const doc = await this.getCanvasYDoc(canvas.stateStorageKey);
       if (!doc) {
-        throw new Error('Canvas state not found');
+        return initEmptyCanvasState();
       }
 
-      const state = {
-        title: canvas.title,
-        nodes: doc?.getArray('nodes').toJSON() ?? [],
-        edges: doc?.getArray('edges').toJSON() ?? [],
-      };
+      const state = initEmptyCanvasState();
+      state.nodes = doc?.getArray('nodes').toJSON() ?? [];
+      state.edges = doc?.getArray('edges').toJSON() ?? [];
 
-      await this.saveState(canvasId, state);
-      await this.prisma.canvas.update({
-        where: {
-          canvasId,
-        },
-        data: {
-          dataStorageKey: `canvas-data/${canvasId}`,
-        },
-      });
+      const stateStorageKey = await this.saveState(canvasId, state);
+
+      await this.prisma.$transaction([
+        this.prisma.canvas.update({
+          where: {
+            canvasId,
+          },
+          data: {
+            version: state.version,
+          },
+        }),
+        this.prisma.canvasVersion.create({
+          data: {
+            canvasId,
+            version: state.version,
+            hash: '',
+            stateStorageKey,
+          },
+        }),
+      ]);
 
       return state;
     }
 
-    const stream = await this.oss.getObject(canvas.dataStorageKey);
+    const canvasVersion = await this.prisma.canvasVersion.findFirst({
+      select: {
+        stateStorageKey: true,
+      },
+      where: {
+        canvasId,
+        version: version ?? canvas.version, // use the latest version if not specified
+      },
+    });
+
+    if (!canvasVersion) {
+      throw new CanvasVersionNotFoundError();
+    }
+
+    const stream = await this.oss.getObject(canvasVersion.stateStorageKey);
     if (!stream) {
       throw new Error('Canvas state not found');
     }
@@ -122,32 +159,41 @@ export class CanvasSyncService {
   }
 
   /**
-   * Apply canvas state update
+   * Sync canvas state
    * @param user - The user
    * @param canvasId - The canvas id
-   * @param param - The apply canvas state request
+   * @param param - The sync canvas state request
    */
-  async applyStateUpdate(user: User, param: ApplyCanvasStateRequest) {
-    const { canvasId, nodeDiffs = [], edgeDiffs = [] } = param;
-    const canvas = await this.prisma.canvas.findUnique({
-      where: {
-        canvasId,
-        uid: user.uid,
-        deletedAt: null,
-      },
-    });
+  async syncState(user: User, param: SyncCanvasStateRequest) {
+    const { canvasId, transactions, version } = param;
 
-    if (!canvas) {
-      throw new CanvasNotFoundError();
+    const versionToSync =
+      version ??
+      (
+        await this.prisma.canvas.findUnique({
+          select: {
+            version: true,
+          },
+          where: {
+            canvasId,
+            uid: user.uid,
+            deletedAt: null,
+          },
+        })
+      )?.version;
+
+    if (!versionToSync) {
+      throw new CanvasVersionNotFoundError();
+    }
+
+    if (!transactions?.length) {
+      this.logger.warn(`[applyStateUpdate] no transactions to apply for canvas ${canvasId}`);
+      return;
     }
 
     // TODO: concurrency control, queue the updates
-
-    const state = await this.getState(user, canvasId);
-    const newState = applyCanvasStateTransaction(state, {
-      nodeDiffs,
-      edgeDiffs,
-    });
-    await this.saveState(canvasId, newState);
+    const state = await this.getState(user, { canvasId, version });
+    updateCanvasState(state, transactions);
+    await this.saveState(canvasId, state);
   }
 }

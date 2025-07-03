@@ -23,7 +23,7 @@ import {
   CanvasNode,
 } from '@refly/openapi-schema';
 import { Prisma } from '../../generated/client';
-import { genCanvasID } from '@refly/utils';
+import { genCanvasID, genTransactionId } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
 import { AutoNameCanvasJobData, DeleteCanvasJobData } from './canvas.dto';
@@ -37,7 +37,7 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncService } from './canvas-sync.service';
-import { CanvasNodeFilter, prepareAddNode } from '@refly/canvas-common';
+import { CanvasNodeFilter, initEmptyCanvasState, prepareAddNode } from '@refly/canvas-common';
 
 @Injectable()
 export class CanvasService {
@@ -125,7 +125,7 @@ export class CanvasService {
       where: { uid: user.uid },
     });
 
-    const state = await this.canvasSyncService.getState(user, canvas.canvasId, canvas);
+    const state = await this.canvasSyncService.getState(user, { canvasId }, canvas);
 
     return {
       ...state,
@@ -156,7 +156,7 @@ export class CanvasService {
       throw new CanvasNotFoundError();
     }
 
-    const { nodes, edges } = await this.canvasSyncService.getState(user, canvas.canvasId, canvas);
+    const { nodes, edges } = await this.canvasSyncService.getState(user, { canvasId }, canvas);
 
     const libEntityNodes = nodes.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
@@ -283,7 +283,6 @@ export class CanvasService {
     }
 
     await this.canvasSyncService.saveState(newCanvasId, {
-      title: newTitle,
       nodes,
       edges,
     });
@@ -311,22 +310,29 @@ export class CanvasService {
 
   async createCanvas(user: User, param: UpsertCanvasRequest) {
     const canvasId = genCanvasID();
-    const stateStorageKey = `state/${canvasId}`;
-    const canvas = await this.prisma.canvas.create({
-      data: {
-        uid: user.uid,
-        canvasId,
-        title: param.title,
-        projectId: param.projectId,
-        stateStorageKey,
-      },
-    });
 
-    await this.canvasSyncService.saveState(canvas.canvasId, {
-      title: param.title,
-      nodes: [],
-      edges: [],
-    });
+    const state = initEmptyCanvasState();
+    const stateStorageKey = await this.canvasSyncService.saveState(canvasId, state);
+
+    const [canvas] = await this.prisma.$transaction([
+      this.prisma.canvas.create({
+        data: {
+          uid: user.uid,
+          canvasId,
+          title: param.title,
+          projectId: param.projectId,
+          version: state.version,
+        },
+      }),
+      this.prisma.canvasVersion.create({
+        data: {
+          canvasId,
+          version: state.version,
+          hash: '',
+          stateStorageKey,
+        },
+      }),
+    ]);
 
     await this.fts.upsertDocument(user, 'canvas', {
       id: canvas.canvasId,
@@ -353,7 +359,7 @@ export class CanvasService {
     node: Pick<CanvasNode, 'type' | 'data'>,
     connectTo?: CanvasNodeFilter[],
   ) {
-    const { nodes, edges } = await this.canvasSyncService.getState(user, canvasId);
+    const { nodes, edges } = await this.canvasSyncService.getState(user, { canvasId });
 
     const { newNode, newEdges } = prepareAddNode({
       node,
@@ -362,20 +368,27 @@ export class CanvasService {
       connectTo,
     });
 
-    await this.canvasSyncService.applyStateUpdate(user, {
+    await this.canvasSyncService.syncState(user, {
       canvasId,
-      nodeDiffs: [
+      transactions: [
         {
-          type: 'add',
-          id: newNode.id,
-          to: newNode,
+          txId: genTransactionId(),
+          createdAt: Date.now(),
+          syncedAt: Date.now(),
+          nodeDiffs: [
+            {
+              type: 'add',
+              id: newNode.id,
+              to: newNode,
+            },
+          ],
+          edgeDiffs: newEdges.map((edge) => ({
+            type: 'add',
+            id: edge.id,
+            to: edge,
+          })),
         },
       ],
-      edgeDiffs: newEdges.map((edge) => ({
-        type: 'add',
-        id: edge.id,
-        to: edge,
-      })),
     });
   }
 
@@ -576,7 +589,7 @@ export class CanvasService {
     try {
       const { nodes } = await this.canvasSyncService.getState(
         { uid: canvas.uid },
-        canvasId,
+        { canvasId },
         canvas,
       );
 
@@ -668,20 +681,27 @@ export class CanvasService {
           // Remove nodes matching the entities
           const { nodes } = await this.canvasSyncService.getState(
             { uid: canvas.uid },
-            canvasId,
+            { canvasId },
             canvas,
           );
-          await this.canvasSyncService.applyStateUpdate(
+          await this.canvasSyncService.syncState(
             { uid: canvas.uid },
             {
               canvasId,
-              nodeDiffs: nodes
-                .filter((node) => entityIdsToDelete.has(node.data?.entityId))
-                .map((node) => ({
-                  type: 'delete',
-                  id: node.id,
-                  from: node,
-                })),
+              transactions: [
+                {
+                  txId: genTransactionId(),
+                  createdAt: Date.now(),
+                  nodeDiffs: nodes
+                    .filter((node) => entityIdsToDelete.has(node.data?.entityId))
+                    .map((node) => ({
+                      type: 'delete',
+                      id: node.id,
+                      from: node,
+                    })),
+                  edgeDiffs: [],
+                },
+              ],
             },
           );
 

@@ -7,13 +7,19 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import { get, set } from 'idb-keyval';
+import { get, set, update } from 'idb-keyval';
+import { message } from 'antd';
 import { Node, Edge, useStoreApi, InternalNode } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
+import { CanvasState } from '@refly/openapi-schema';
 import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import {
+  getCanvasDataFromState,
+  mergeCanvasStates,
+  CanvasConflictException,
+} from '@refly/canvas-common';
 
 interface CanvasContextType {
   canvasId: string;
@@ -27,12 +33,50 @@ interface CanvasContextType {
 }
 
 // HTTP interface to get canvas state
-const getCanvasState = async (canvasId: string): Promise<RawCanvasData> => {
+const getCanvasState = async (canvasId: string): Promise<CanvasState> => {
   const { data, error } = await getClient().getCanvasState({ query: { canvasId } });
   if (error) {
     throw error;
   }
   return data.data;
+};
+
+// Sync canvas state with remote
+const syncWithRemote = async (canvasId: string) => {
+  const state = await get<CanvasState>(`canvas-state:${canvasId}`);
+  if (!state) {
+    return;
+  }
+
+  const unsyncedTransactions = state?.transactions?.filter(
+    (tx) => !tx.syncedAt && !tx.revoked && !tx.deleted,
+  );
+
+  if (!unsyncedTransactions?.length) {
+    return;
+  }
+
+  console.log('[syncWithRemote] unsynced transactions', unsyncedTransactions);
+
+  const { error, data } = await getClient().syncCanvasState({
+    body: {
+      canvasId,
+      version: state.version,
+      transactions: unsyncedTransactions,
+    },
+  });
+
+  if (!error && data?.success) {
+    await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
+      ...state,
+      transactions: state?.transactions?.map((tx) => ({
+        ...tx,
+        syncedAt: tx.syncedAt ?? Date.now(),
+      })),
+    }));
+  } else {
+    message.error('Failed to sync canvas state');
+  }
 };
 
 const CanvasContext = createContext<CanvasContextType | null>(null);
@@ -77,12 +121,9 @@ export const CanvasProvider = ({
   const [loading, setLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstPollRef = useRef(true);
-  const POLLING_INTERVAL = 500000; // 5 seconds
+  // const POLLING_INTERVAL = 500000; // 5 seconds
 
   const { setState, getState } = useStoreApi();
-  const { setCanvasTitle } = useCanvasStoreShallow((state) => ({
-    setCanvasTitle: state.setCanvasTitle,
-  }));
 
   // Use the hook to fetch canvas data when in readonly mode
   const {
@@ -117,11 +158,36 @@ export const CanvasProvider = ({
     }
   }, [readonly, canvasData, canvasId]);
 
-  // Function to update canvas data from HTTP response
-  const updateCanvasDataFromHttp = useCallback(
-    (data: RawCanvasData) => {
+  // Set up sync job that runs every 2 seconds
+  const isSyncingRemoteRef = useRef(false);
+  useEffect(() => {
+    if (!canvasId || readonly) return;
+
+    const intervalId = setInterval(async () => {
+      // Prevent multiple instances from running simultaneously
+      if (isSyncingRemoteRef.current) return;
+
+      isSyncingRemoteRef.current = true;
+      try {
+        await syncWithRemote(canvasId);
+      } catch (error) {
+        console.error('Canvas sync failed:', error);
+      } finally {
+        isSyncingRemoteRef.current = false;
+      }
+    }, 3000); // Run every 3 seconds
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [canvasId]);
+
+  // Function to update canvas data from state
+  const updateCanvasDataFromState = useCallback(
+    (state: CanvasState) => {
       const { nodeLookup, parentLookup, connectionLookup, edgeLookup } = getState();
-      const { nodes, edges } = data;
+      const { nodes, edges } = getCanvasDataFromState(state);
+
       const internalState = getInternalState({
         nodes: nodes && Array.isArray(nodes) ? (nodes as unknown as Node[]) : [],
         edges: edges && Array.isArray(edges) ? (edges as unknown as Edge[]) : [],
@@ -137,25 +203,44 @@ export const CanvasProvider = ({
   );
 
   // Polling function to fetch canvas state
-  const pollCanvasState = useCallback(async () => {
+  const initialFetchCanvasState = useCallback(async () => {
     if (readonly) return;
 
     try {
-      // Only set loading on first poll
-      if (isFirstPollRef.current) {
+      const localState = await get(`canvas-state:${canvasId}`);
+      console.log('localState', localState);
+
+      // Only set loading when local state is not found
+      if (!localState) {
         setLoading(true);
       }
 
-      const data = await getCanvasState(canvasId);
-      updateCanvasDataFromHttp(data);
-      setCanvasTitle(canvasId, data?.title);
+      const remoteState = await getCanvasState(canvasId);
+      console.log('remoteState', remoteState);
 
-      if (!(await get(`canvas-state-remote:${canvasId}`))) {
-        await set(`canvas-state-remote:${canvasId}`, data);
+      let finalState: CanvasState;
+      if (!localState) {
+        finalState = remoteState;
+      } else {
+        try {
+          finalState = mergeCanvasStates(localState, remoteState);
+        } catch (error) {
+          if (error instanceof CanvasConflictException) {
+            // TODO: Handle conflict by showing a modal to the user
+            console.error('Canvas conflict detected:', error);
+            finalState = remoteState;
+          } else {
+            console.error('Failed to merge canvas states:', error);
+            finalState = remoteState;
+          }
+          console.error('Failed to merge canvas states:', error);
+          finalState = remoteState;
+        }
       }
-      if (!(await get(`canvas-state:${canvasId}`))) {
-        await set(`canvas-state:${canvasId}`, data);
-      }
+
+      updateCanvasDataFromState(finalState);
+
+      await set(`canvas-state:${canvasId}`, finalState);
 
       // Mark first poll as complete
       if (isFirstPollRef.current) {
@@ -169,7 +254,7 @@ export const CanvasProvider = ({
         setLoading(false);
       }
     }
-  }, [canvasId, readonly, updateCanvasDataFromHttp, loading]);
+  }, [canvasId, readonly, updateCanvasDataFromState, loading]);
 
   // Start/stop polling
   useEffect(() => {
@@ -178,9 +263,9 @@ export const CanvasProvider = ({
     setIsPolling(true);
 
     // Initial fetch
-    pollCanvasState();
+    initialFetchCanvasState();
 
-    intervalRef.current = setInterval(pollCanvasState, POLLING_INTERVAL);
+    // intervalRef.current = setInterval(pollCanvasState, POLLING_INTERVAL);
 
     return () => {
       setIsPolling(false);
@@ -189,7 +274,7 @@ export const CanvasProvider = ({
         intervalRef.current = null;
       }
     };
-  }, [canvasId, readonly, pollCanvasState]);
+  }, [canvasId, readonly, initialFetchCanvasState]);
 
   // Cleanup on unmount
   useEffect(() => {

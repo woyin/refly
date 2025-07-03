@@ -727,7 +727,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AutoNameCanvasResponse'
-  /canvas/sync/getState:
+  /canvas/getState:
     get:
       tags:
         - canvas
@@ -741,6 +741,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: version
+          in: query
+          description: Canvas state version
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Successful operation
@@ -748,26 +754,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCanvasStateResponse'
-  /canvas/sync/apply:
+  /canvas/syncState:
     post:
       tags:
         - canvas
-      summary: Apply canvas state
-      description: Apply canvas state
-      operationId: applyCanvasState
+      summary: Sync canvas state
+      description: Sync canvas state
+      operationId: syncCanvasState
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApplyCanvasStateRequest'
+              $ref: '#/components/schemas/SyncCanvasStateRequest'
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseResponse'
+                $ref: '#/components/schemas/SyncCanvasStateResponse'
   /template/list:
     get:
       tags:
@@ -5060,36 +5066,72 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/Canvas'
-    CanvasState:
+    CanvasHistoryVersion:
       type: object
-      description: Canvas state
       required:
-        - title
+        - version
+        - hash
+        - timestamp
+      properties:
+        version:
+          type: string
+          description: Canvas version
+        hash:
+          type: string
+          description: Canvas hash
+        timestamp:
+          type: number
+          description: Canvas timestamp (in unix milliseconds)
+    CanvasData:
+      type: object
+      description: Canvas data
+      required:
         - nodes
         - edges
       properties:
-        title:
-          type: string
-          description: Canvas title
         nodes:
           type: array
           description: Canvas nodes
           items:
-            type: object
             $ref: '#/components/schemas/CanvasNode'
         edges:
           type: array
           description: Canvas edges
           items:
-            type: object
             $ref: '#/components/schemas/CanvasEdge'
+    CanvasState:
+      type: object
+      description: Canvas state
+      allOf:
+        - $ref: '#/components/schemas/CanvasData'
+        - type: object
+          properties:
+            version:
+              type: string
+              description: Canvas version
+            hash:
+              type: string
+              description: Canvas state hash (sha256), calculated from nodes and edges
+            transactions:
+              type: array
+              description: Canvas transaction list
+              items:
+                $ref: '#/components/schemas/CanvasTransaction'
+            history:
+              type: array
+              description: Canvas history versions
+              items:
+                $ref: '#/components/schemas/CanvasHistoryVersion'
     RawCanvasData:
       type: object
       description: Raw canvas data
       allOf:
-        - $ref: '#/components/schemas/CanvasState'
+        - $ref: '#/components/schemas/CanvasData'
         - type: object
           properties:
+            title:
+              type: string
+              description: Canvas title
             owner:
               type: object
               description: Canvas owner
@@ -5262,15 +5304,17 @@ components:
           type: object
           description: Edge diff to
           $ref: '#/components/schemas/CanvasEdge'
-    ApplyCanvasStateRequest:
+    CanvasTransaction:
       type: object
       required:
-        - canvasId
-        - state
+        - txId
+        - nodeDiffs
+        - edgeDiffs
+        - createdAt
       properties:
-        canvasId:
+        txId:
           type: string
-          description: Canvas ID
+          description: Transaction ID
         nodeDiffs:
           type: array
           description: Node diffs
@@ -5281,6 +5325,54 @@ components:
           description: Edge diffs
           items:
             $ref: '#/components/schemas/EdgeDiff'
+        revoked:
+          type: boolean
+          description: Whether the transaction is revoked
+        deleted:
+          type: boolean
+          description: Whether the transaction is deleted
+        createdAt:
+          type: number
+          description: Transaction creation timestamp (in unix milliseconds)
+        syncedAt:
+          type: number
+          description: Transaction synchronization timestamp (in unix milliseconds)
+    SyncCanvasStateRequest:
+      type: object
+      required:
+        - canvasId
+        - transactions
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        version:
+          type: string
+          description: Canvas state version
+        transactions:
+          type: array
+          description: Transaction list
+          items:
+            $ref: '#/components/schemas/CanvasTransaction'
+    SyncCanvasStateResult:
+      type: object
+      required:
+        - transactions
+      properties:
+        transactions:
+          type: array
+          description: Transaction list
+          items:
+            $ref: '#/components/schemas/CanvasTransaction'
+    SyncCanvasStateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Apply canvas state result
+              $ref: '#/components/schemas/SyncCanvasStateResult'
     ListCanvasTemplateResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

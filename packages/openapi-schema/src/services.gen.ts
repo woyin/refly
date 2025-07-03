@@ -102,9 +102,9 @@ import type {
   GetCanvasStateData,
   GetCanvasStateError,
   GetCanvasStateResponse2,
-  ApplyCanvasStateData,
-  ApplyCanvasStateError,
-  ApplyCanvasStateResponse,
+  SyncCanvasStateData,
+  SyncCanvasStateError,
+  SyncCanvasStateResponse2,
   ListCanvasTemplatesData,
   ListCanvasTemplatesError,
   ListCanvasTemplatesResponse,
@@ -856,24 +856,24 @@ export const getCanvasState = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     ...options,
-    url: '/canvas/sync/getState',
+    url: '/canvas/getState',
   });
 };
 
 /**
- * Apply canvas state
- * Apply canvas state
+ * Sync canvas state
+ * Sync canvas state
  */
-export const applyCanvasState = <ThrowOnError extends boolean = false>(
-  options: Options<ApplyCanvasStateData, ThrowOnError>,
+export const syncCanvasState = <ThrowOnError extends boolean = false>(
+  options: Options<SyncCanvasStateData, ThrowOnError>,
 ) => {
   return (options?.client ?? client).post<
-    ApplyCanvasStateResponse,
-    ApplyCanvasStateError,
+    SyncCanvasStateResponse2,
+    SyncCanvasStateError,
     ThrowOnError
   >({
     ...options,
-    url: '/canvas/sync/apply',
+    url: '/canvas/syncState',
   });
 };
 
