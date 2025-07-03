@@ -32,7 +32,7 @@ cp ../../apps/api/.env.example .env
 ```
 
 ::: info
-A detailed description of all the environment variables is available in the [Configuration](../configuration.md).
+A detailed description of all the environment variables is available in the [Configuration](./configuration.md).
 :::
 
 ### 3. Start the application via docker compose {#start-the-application-via-docker-compose}
