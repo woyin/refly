@@ -110,10 +110,10 @@ export class SkillOutputTrackerService {
       };
     } catch (error) {
       this.logger.error(`Failed to check timeout for ${resultId}: ${error?.message}`);
-      // Return timeout=true as fallback to be safe
+      // When Redis is unavailable, don't timeout skills - let them continue running
       return {
-        isTimeout: true,
-        timeSinceLastOutput: Number.POSITIVE_INFINITY,
+        isTimeout: false,
+        timeSinceLastOutput: 0,
         hasAnyOutput: false,
       };
     }
