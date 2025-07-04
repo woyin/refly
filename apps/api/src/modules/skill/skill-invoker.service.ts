@@ -328,7 +328,7 @@ export class SkillInvokerService {
         } catch (error) {
           this.logger.error(`Error during timeout check for ${resultId}: ${error?.message}`);
         }
-      }, 1000); // Check every second
+      }, 5000); // Check every 5 seconds
     };
 
     const stopTimeoutCheck = () => {
