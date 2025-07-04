@@ -29,10 +29,6 @@ const DocumentSharePage = lazy(() => import('@/pages/document-share'));
 const ArtifactGalleryPage = lazy(() => import('@/pages/artifact-gallery'));
 const UseCasesGalleryPage = lazy(() => import('@/pages/use-cases-gallery'));
 const ProjectPage = lazy(() => import('@/pages/project'));
-const ImageGeneratorPage = lazy(() => import('@/pages/image-generator'));
-const VideoGeneratorPage = lazy(() => import('@/pages/video-generator'));
-const AudioGeneratorPage = lazy(() => import('@/pages/audio-generator'));
-const MediaGeneratorPage = lazy(() => import('@/pages/media-generator'));
 
 const prefetchRoutes = () => {
   // Prefetch common routes
@@ -103,10 +99,6 @@ export const AppRouter = (props: { layout?: any }) => {
         <Routes>
           <Route path="/" element={<HomeRedirect defaultNode={<Home />} />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/image-generator" element={<ImageGeneratorPage />} />
-          <Route path="/video-generator" element={<VideoGeneratorPage />} />
-          <Route path="/audio-generator" element={<AudioGeneratorPage />} />
-          <Route path="/media-generator" element={<MediaGeneratorPage />} />
           <Route path="/share/canvas/:canvasId" element={<ShareCanvasPage />} />
           <Route path="/share/code/:shareId" element={<ShareCodePage />} />
           <Route path="/share/answer/:shareId" element={<SkillResponseSharePage />} />
