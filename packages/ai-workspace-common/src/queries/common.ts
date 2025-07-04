@@ -76,6 +76,7 @@ import {
   listCanvases,
   listCanvasTemplateCategories,
   listCanvasTemplates,
+  listCodeArtifacts,
   listDocuments,
   listLabelClasses,
   listLabelInstances,
@@ -325,6 +326,18 @@ export const UseGetProjectDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetProjectDetailKey, ...(queryKey ?? [clientOptions])];
+export type ListCodeArtifactsDefaultResponse = Awaited<
+  ReturnType<typeof listCodeArtifacts>
+>['data'];
+export type ListCodeArtifactsQueryResult<
+  TData = ListCodeArtifactsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListCodeArtifactsKey = 'ListCodeArtifacts';
+export const UseListCodeArtifactsKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListCodeArtifactsKey, ...(queryKey ?? [clientOptions])];
 export type GetCodeArtifactDetailDefaultResponse = Awaited<
   ReturnType<typeof getCodeArtifactDetail>
 >['data'];

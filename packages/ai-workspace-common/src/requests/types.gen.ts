@@ -1586,6 +1586,14 @@ export type CodeArtifact = {
    * Code artifact language
    */
   language?: string;
+  /**
+   * Action result ID
+   */
+  resultId?: string;
+  /**
+   * Action result version
+   */
+  resultVersion?: number;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -1662,6 +1670,10 @@ export type ActionResult = {
    * Errors
    */
   errors?: Array<string>;
+  /**
+   * Media generation output URL (for media type actions)
+   */
+  outputUrl?: string;
   /**
    * Pilot step ID
    */
@@ -2791,6 +2803,14 @@ export type UpsertCodeArtifactRequest = {
    */
   language?: string;
   /**
+   * Action result ID
+   */
+  resultId?: string;
+  /**
+   * Action result version
+   */
+  resultVersion?: number;
+  /**
    * Code artifact preview storage key
    */
   previewStorageKey?: string;
@@ -2802,6 +2822,13 @@ export type UpsertCodeArtifactRequest = {
 
 export type UpsertCodeArtifactResponse = BaseResponse & {
   data?: CodeArtifact;
+};
+
+export type ListCodeArtifactResponse = BaseResponse & {
+  /**
+   * Code artifact list
+   */
+  data?: Array<CodeArtifact>;
 };
 
 export type GetCodeArtifactDetailResponse = BaseResponse & {
@@ -3318,7 +3345,7 @@ export type SkillInvocationConfig = {
   context?: SkillContextRuleGroup;
 };
 
-export type ActionType = 'skill' | 'tool';
+export type ActionType = 'skill' | 'tool' | 'media';
 
 export type ActionContextType = 'resource' | 'document';
 
@@ -3522,6 +3549,10 @@ export type MediaGenerateRequest = {
    */
   apiKey?: string | null;
   /**
+   * Model name for content generation
+   */
+  model?: string;
+  /**
    * Optional provider selection
    */
   provider?: string | null;
@@ -3533,14 +3564,9 @@ export type MediaGenerateRequest = {
 
 export type MediaGenerateResponse = BaseResponse & {
   /**
-   * media generation result
+   * Media generation result ID
    */
-  data?: {
-    /**
-     * media URL
-     */
-    outputUrl?: string;
-  };
+  resultId?: string;
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
@@ -5276,6 +5302,35 @@ export type DeleteProjectItemsData = {
 export type DeleteProjectItemsResponse = BaseResponse;
 
 export type DeleteProjectItemsError = unknown;
+
+export type ListCodeArtifactsData = {
+  query?: {
+    /**
+     * Whether to include content
+     */
+    needContent?: boolean;
+    /**
+     * Page number
+     */
+    page?: number;
+    /**
+     * Page size
+     */
+    pageSize?: number;
+    /**
+     * Action result ID
+     */
+    resultId?: string;
+    /**
+     * Action result version
+     */
+    resultVersion?: number;
+  };
+};
+
+export type ListCodeArtifactsResponse = ListCodeArtifactResponse;
+
+export type ListCodeArtifactsError = unknown;
 
 export type GetCodeArtifactDetailData = {
   query: {

@@ -2182,6 +2182,12 @@ export const ActionResultSchema = {
         type: 'string',
       },
     },
+    outputUrl: {
+      type: 'string',
+      format: 'uri',
+      description: 'Media generation output URL (for media type actions)',
+      example: 'https://example.com/generated/image_123.png',
+    },
     pilotStepId: {
       type: 'string',
       description: 'Pilot step ID',
@@ -4747,7 +4753,7 @@ export const SkillInvocationConfigSchema = {
 
 export const ActionTypeSchema = {
   type: 'string',
-  enum: ['skill', 'tool'],
+  enum: ['skill', 'tool', 'media'],
 } as const;
 
 export const ActionContextTypeSchema = {
@@ -5051,6 +5057,10 @@ export const MediaGenerateRequestSchema = {
       description: 'API key for authentication',
       nullable: true,
     },
+    model: {
+      type: 'string',
+      description: 'Model name for content generation',
+    },
     provider: {
       type: 'string',
       description: 'Optional provider selection',
@@ -5071,17 +5081,10 @@ export const MediaGenerateResponseSchema = {
     {
       type: 'object',
       properties: {
-        data: {
-          type: 'object',
-          description: 'media generation result',
-          properties: {
-            outputUrl: {
-              type: 'string',
-              format: 'uri',
-              description: 'media URL',
-              example: 'https://example.com/generated/image_123.png',
-            },
-          },
+        resultId: {
+          type: 'string',
+          description: 'Media generation result ID',
+          example: 'ar-g30e1b80b5g1itbemc0g5jj3',
         },
       },
     },

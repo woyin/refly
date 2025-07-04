@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Button,
   Input,
@@ -11,7 +11,10 @@ import {
   Row,
   Col,
   Space,
+  Progress,
 } from 'antd';
+import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
+import { useActionResultStore } from '@refly-packages/ai-workspace-common/stores/action-result';
 
 const { TextArea } = Input;
 const { Title, Paragraph } = Typography;
@@ -60,9 +63,47 @@ const modelsByType = {
  */
 export default function MediaGenerator() {
   const [form] = Form.useForm();
-  const [isLoading, setIsLoading] = useState(false);
   const [mediaType, setMediaType] = useState<MediaType>(MediaType.IMAGE);
-  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [currentResultId, setCurrentResultId] = useState<string | null>(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
+
+  const { startPolling, stopPolling, resetFailedState } = useActionPolling();
+  const { resultMap, pollingStateMap } = useActionResultStore();
+
+  // 获取当前结果
+  const currentResult = currentResultId ? resultMap[currentResultId] : null;
+  const pollingState = currentResultId ? pollingStateMap[currentResultId] : null;
+  const isPolling = pollingState?.isPolling || false;
+
+  // 判断是否正在生成
+  const isGenerating =
+    currentResult?.status === 'waiting' || currentResult?.status === 'executing' || isPolling;
+
+  /**
+   * 监听结果状态变化
+   */
+  useEffect(() => {
+    if (currentResult) {
+      switch (currentResult.status) {
+        case 'waiting':
+          setGenerationProgress(10);
+          break;
+        case 'executing':
+          setGenerationProgress(50);
+          break;
+        case 'finish':
+          setGenerationProgress(100);
+          message.success(`${getMediaTypeName(mediaType)}生成成功！`);
+          break;
+        case 'failed': {
+          setGenerationProgress(0);
+          const errorMessage = currentResult.errors?.[0] || '生成失败';
+          message.error(`生成失败: ${errorMessage}`);
+          break;
+        }
+      }
+    }
+  }, [currentResult?.status, mediaType]);
 
   /**
    * 处理媒体类型变更
@@ -70,8 +111,12 @@ export default function MediaGenerator() {
    */
   const handleMediaTypeChange = (type: MediaType) => {
     setMediaType(type);
-    // 重置生成内容
-    setGeneratedContent(null);
+    // 停止当前轮询
+    if (currentResultId) {
+      stopPolling(currentResultId);
+      setCurrentResultId(null);
+    }
+    setGenerationProgress(0);
     // 更新表单中的模型为当前媒体类型的第一个模型
     form.setFieldsValue({ model: modelsByType[type][0] });
   };
@@ -81,8 +126,13 @@ export default function MediaGenerator() {
    * @param values 表单值
    */
   const handleGenerate = async (values: any) => {
-    setIsLoading(true);
-    setGeneratedContent(null);
+    // 停止之前的轮询
+    if (currentResultId) {
+      stopPolling(currentResultId);
+    }
+
+    setCurrentResultId(null);
+    setGenerationProgress(0);
 
     try {
       const payload = {
@@ -110,16 +160,46 @@ export default function MediaGenerator() {
       }
 
       const data = await response.json();
-      setGeneratedContent(data.data?.outputUrl);
-      message.success(`${getMediaTypeName(values.mediaType)}生成成功！`);
-      console.log('生成成功:', data);
+
+      if (data.success && data.resultId) {
+        setCurrentResultId(data.resultId);
+        setGenerationProgress(10);
+        // 开始轮询
+        await startPolling(data.resultId, 0);
+        console.log('开始轮询结果:', data.resultId);
+      } else {
+        throw new Error(data.message || '启动生成任务失败');
+      }
     } catch (err: any) {
       const errorMessage = err.message || '生成失败';
       message.error(`生成失败: ${errorMessage}`);
       console.error('生成错误:', err);
-    } finally {
-      setIsLoading(false);
+      setGenerationProgress(0);
     }
+  };
+
+  /**
+   * 重试生成
+   */
+  const handleRetry = () => {
+    if (currentResultId) {
+      resetFailedState(currentResultId);
+      setCurrentResultId(null);
+    }
+    setGenerationProgress(0);
+    // 重新提交表单
+    form.submit();
+  };
+
+  /**
+   * 取消生成
+   */
+  const handleCancel = () => {
+    if (currentResultId) {
+      stopPolling(currentResultId);
+      setCurrentResultId(null);
+    }
+    setGenerationProgress(0);
   };
 
   /**
@@ -137,87 +217,116 @@ export default function MediaGenerator() {
    * @returns JSX元素
    */
   const renderMediaContent = () => {
-    if (isLoading) {
+    if (isGenerating) {
       return (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>
           <Spin size="large" />
           <div style={{ marginTop: '16px' }}>正在生成{getMediaTypeName(mediaType)}，请稍候...</div>
+          <div style={{ marginTop: '16px', padding: '0 20px' }}>
+            <Progress percent={generationProgress} status="active" />
+          </div>
+          <div style={{ marginTop: '16px' }}>
+            <Space>
+              <Button onClick={handleCancel}>取消生成</Button>
+            </Space>
+          </div>
         </div>
       );
     }
 
-    if (!generatedContent) {
+    // 显示生成失败状态
+    if (currentResult?.status === 'failed') {
       return (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-          请配置参数并点击生成{getMediaTypeName(mediaType)}
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <div style={{ color: '#ff4d4f', marginBottom: '16px' }}>
+            生成失败: {currentResult.errors?.[0] || '未知错误'}
+          </div>
+          <Space>
+            <Button type="primary" onClick={handleRetry}>
+              重试
+            </Button>
+            <Button onClick={() => setCurrentResultId(null)}>清除</Button>
+          </Space>
         </div>
       );
     }
 
-    switch (mediaType) {
-      case MediaType.IMAGE:
-        return (
-          <div>
-            <img
-              src={generatedContent}
-              alt="Generated artwork"
-              style={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: '8px',
-                border: '1px solid #d9d9d9',
-              }}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIExvYWQgRXJyb3I8L3RleHQ+PC9zdmc+';
-              }}
-            />
-          </div>
-        );
-      case MediaType.VIDEO:
-        return (
-          <div>
-            <video
-              src={generatedContent}
-              controls
-              style={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: '8px',
-                border: '1px solid #d9d9d9',
-              }}
-              onError={(_e) => {
-                message.error('视频加载失败');
-              }}
-            >
-              <track kind="captions" src="" srcLang="zh" label="中文字幕" default />
-              您的浏览器不支持视频播放
-            </video>
-          </div>
-        );
-      case MediaType.AUDIO:
-        return (
-          <div>
-            <audio
-              src={generatedContent}
-              controls
-              style={{
-                width: '100%',
-                borderRadius: '8px',
-                border: '1px solid #d9d9d9',
-              }}
-              onError={(e) => {
-                message.error('音频加载失败');
-                console.error('音频加载错误:', e);
-              }}
-            >
-              <track kind="captions" srcLang="zh" label="中文字幕" />
-            </audio>
-          </div>
-        );
-      default:
-        return null;
+    // 显示生成成功的内容
+    if (currentResult?.status === 'finish' && currentResult.outputUrl) {
+      const outputUrl = currentResult.outputUrl;
+
+      switch (mediaType) {
+        case MediaType.IMAGE:
+          return (
+            <div>
+              <img
+                src={outputUrl}
+                alt="Generated artwork"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '8px',
+                  border: '1px solid #d9d9d9',
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIExvYWQgRXJyb3I8L3RleHQ+PC9zdmc+';
+                }}
+              />
+            </div>
+          );
+        case MediaType.VIDEO:
+          return (
+            <div>
+              <video
+                src={outputUrl}
+                controls
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '8px',
+                  border: '1px solid #d9d9d9',
+                }}
+                onError={(_e) => {
+                  message.error('视频加载失败');
+                }}
+              >
+                <track kind="captions" src="" srcLang="zh" label="中文字幕" default />
+                您的浏览器不支持视频播放
+              </video>
+            </div>
+          );
+        case MediaType.AUDIO:
+          return (
+            <div>
+              <audio
+                src={outputUrl}
+                controls
+                style={{
+                  width: '100%',
+                  borderRadius: '8px',
+                  border: '1px solid #d9d9d9',
+                }}
+                onError={(e) => {
+                  message.error('音频加载失败');
+                  console.error('音频加载错误:', e);
+                }}
+              >
+                <track kind="captions" srcLang="zh" label="中文字幕" />
+              </audio>
+            </div>
+          );
+        default:
+          return null;
+      }
     }
+
+    // 默认状态
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
+        请配置参数并点击生成{getMediaTypeName(mediaType)}
+      </div>
+    );
   };
 
   /**
@@ -225,8 +334,9 @@ export default function MediaGenerator() {
    * @returns JSX元素
    */
   const renderDownloadButtons = () => {
-    if (!generatedContent) return null;
+    if (currentResult?.status !== 'finish' || !currentResult.outputUrl) return null;
 
+    const outputUrl = currentResult.outputUrl;
     let fileExtension = '';
     let contentType = '';
 
@@ -248,17 +358,18 @@ export default function MediaGenerator() {
     return (
       <div style={{ marginTop: '16px', textAlign: 'center' }}>
         <Space>
-          <Button onClick={() => window.open(generatedContent, '_blank')}>在新窗口打开</Button>
+          <Button onClick={() => window.open(outputUrl, '_blank')}>在新窗口打开</Button>
           <Button
             onClick={() => {
               const link = document.createElement('a');
-              link.href = generatedContent;
+              link.href = outputUrl;
               link.download = `generated-${mediaType}.${fileExtension}`;
               link.click();
             }}
           >
             下载{contentType}
           </Button>
+          <Button onClick={() => setCurrentResultId(null)}>清除结果</Button>
         </Space>
       </div>
     );
@@ -291,7 +402,10 @@ export default function MediaGenerator() {
                   name="mediaType"
                   rules={[{ required: true, message: '请选择媒体类型' }]}
                 >
-                  <Select onChange={(value) => handleMediaTypeChange(value as MediaType)}>
+                  <Select
+                    onChange={(value) => handleMediaTypeChange(value as MediaType)}
+                    disabled={isGenerating}
+                  >
                     {mediaTypes.map((type) => (
                       <Option key={type.value} value={type.value}>
                         {type.label}
@@ -306,7 +420,7 @@ export default function MediaGenerator() {
                   name="apiKey"
                   rules={[{ required: true, message: '请输入 API Key' }]}
                 >
-                  <Input.Password placeholder="请输入 Replicate API Key" />
+                  <Input.Password placeholder="请输入 Replicate API Key" disabled={isGenerating} />
                 </Form.Item>
 
                 {/* 提示词 */}
@@ -318,12 +432,13 @@ export default function MediaGenerator() {
                   <TextArea
                     placeholder={`描述你想要生成的${getMediaTypeName(mediaType)}...`}
                     rows={4}
+                    disabled={isGenerating}
                   />
                 </Form.Item>
 
                 {/* 模型选择 */}
                 <Form.Item label="模型" name="model">
-                  <Select>
+                  <Select disabled={isGenerating}>
                     {modelsByType[mediaType].map((model) => (
                       <Option key={model} value={model}>
                         {model}
@@ -334,8 +449,15 @@ export default function MediaGenerator() {
 
                 {/* 生成按钮 */}
                 <Form.Item>
-                  <Button type="primary" htmlType="submit" loading={isLoading} size="large" block>
-                    {isLoading ? '生成中...' : `生成${getMediaTypeName(mediaType)}`}
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={isGenerating}
+                    size="large"
+                    block
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? '生成中...' : `生成${getMediaTypeName(mediaType)}`}
                   </Button>
                 </Form.Item>
               </Form>

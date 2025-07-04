@@ -1671,6 +1671,10 @@ export type ActionResult = {
    */
   errors?: Array<string>;
   /**
+   * Media generation output URL (for media type actions)
+   */
+  outputUrl?: string;
+  /**
    * Pilot step ID
    */
   pilotStepId?: string;
@@ -3341,7 +3345,7 @@ export type SkillInvocationConfig = {
   context?: SkillContextRuleGroup;
 };
 
-export type ActionType = 'skill' | 'tool';
+export type ActionType = 'skill' | 'tool' | 'media';
 
 export type ActionContextType = 'resource' | 'document';
 
@@ -3545,6 +3549,10 @@ export type MediaGenerateRequest = {
    */
   apiKey?: string | null;
   /**
+   * Model name for content generation
+   */
+  model?: string;
+  /**
    * Optional provider selection
    */
   provider?: string | null;
@@ -3556,14 +3564,9 @@ export type MediaGenerateRequest = {
 
 export type MediaGenerateResponse = BaseResponse & {
   /**
-   * media generation result
+   * Media generation result ID
    */
-  data?: {
-    /**
-     * media URL
-     */
-    outputUrl?: string;
-  };
+  resultId?: string;
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
