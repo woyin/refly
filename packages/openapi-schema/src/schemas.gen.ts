@@ -1075,6 +1075,7 @@ export const EntityTypeSchema = {
     'skillResponse',
     'codeArtifact',
     'page',
+    'mediaResult',
   ],
 } as const;
 
@@ -2187,6 +2188,10 @@ export const ActionResultSchema = {
       format: 'uri',
       description: 'Media generation output URL (for media type actions)',
       example: 'https://example.com/generated/image_123.png',
+    },
+    storageKey: {
+      type: 'string',
+      description: 'Media generation output storage key',
     },
     pilotStepId: {
       type: 'string',
@@ -5051,11 +5056,6 @@ export const MediaGenerateRequestSchema = {
   properties: {
     mediaType: {
       $ref: '#/components/schemas/MediaType',
-    },
-    apiKey: {
-      type: 'string',
-      description: 'API key for authentication',
-      nullable: true,
     },
     model: {
       type: 'string',

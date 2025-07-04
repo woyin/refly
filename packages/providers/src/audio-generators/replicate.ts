@@ -13,7 +13,7 @@ export class ReplicateAudioGenerator extends BaseAudioGenerator {
     const url = `https://api.replicate.com/v1/models/${request.model}/predictions`;
 
     const headers = {
-      Authorization: `Bearer ${request.apiKey}`,
+      Authorization: `Bearer ${process.env.REPLICATE_API_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'wait',
     };

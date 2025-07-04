@@ -4,7 +4,6 @@
 export interface AudioGenerationRequest {
   prompt: string;
   model: string;
-  apiKey: string;
 }
 
 /**

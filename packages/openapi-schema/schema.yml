@@ -3611,6 +3611,7 @@ components:
         - skillResponse
         - codeArtifact
         - page
+        - mediaResult
     Entity:
       type: object
       description: Entity
@@ -4487,7 +4488,10 @@ components:
           type: string
           format: uri
           description: Media generation output URL (for media type actions)
-          example: https://example.com/generated/image_123.png  
+          example: https://example.com/generated/image_123.png
+        storageKey:
+          type: string
+          description: Media generation output storage key
         pilotStepId:
           type: string
           description: Pilot step ID
@@ -6435,10 +6439,6 @@ components:
         properties:
           mediaType:
             $ref: '#/components/schemas/MediaType'
-          apiKey:
-            type: string
-            description: API key for authentication
-            nullable: true
           model:
             type: string
             description: Model name for content generation

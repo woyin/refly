@@ -43,6 +43,7 @@ export function actionResultPO2DTO(result: ActionDetail): ActionResult {
     history: JSON.parse(result.history || '[]'),
     errors: JSON.parse(result.errors || '[]'),
     outputUrl: result.outputUrl,
+    storageKey: result.storageKey,
     createdAt: result.createdAt.toJSON(),
     updatedAt: result.updatedAt.toJSON(),
     steps: result.steps?.map(actionStepPO2DTO),

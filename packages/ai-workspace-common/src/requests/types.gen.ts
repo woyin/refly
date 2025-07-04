@@ -745,7 +745,8 @@ export type EntityType =
   | 'project'
   | 'skillResponse'
   | 'codeArtifact'
-  | 'page';
+  | 'page'
+  | 'mediaResult';
 
 /**
  * Entity
@@ -1674,6 +1675,10 @@ export type ActionResult = {
    * Media generation output URL (for media type actions)
    */
   outputUrl?: string;
+  /**
+   * Media generation output storage key
+   */
+  storageKey?: string;
   /**
    * Pilot step ID
    */
@@ -3544,10 +3549,6 @@ export type MediaType = 'image' | 'video' | 'audio';
 
 export type MediaGenerateRequest = {
   mediaType: MediaType;
-  /**
-   * API key for authentication
-   */
-  apiKey?: string | null;
   /**
    * Model name for content generation
    */
