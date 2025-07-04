@@ -6,11 +6,16 @@ import {
   ReplicateImageGenerator,
 } from '@refly/providers';
 import { PrismaService } from '../common/prisma.service';
+import { MiscService } from '../misc/misc.service';
+
 import { genActionResultID } from '@refly/utils';
 
 @Injectable()
 export class MediaGeneratorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly miscService: MiscService,
+  ) {}
 
   /**
    * 启动异步媒体生成任务
@@ -36,7 +41,7 @@ export class MediaGeneratorService {
       });
 
       // 异步执行媒体生成
-      this.executeMediaGeneration(resultId, request).catch((error) => {
+      this.executeMediaGeneration(user, resultId, request).catch((error) => {
         console.error(`Media generation failed for ${resultId}:`, error);
       });
 
@@ -58,6 +63,7 @@ export class MediaGeneratorService {
    * @param request 媒体生成请求
    */
   private async executeMediaGeneration(
+    user: User,
     resultId: string,
     request: MediaGenerateRequest,
   ): Promise<void> {
@@ -73,12 +79,20 @@ export class MediaGeneratorService {
       if (provider === 'replicate') {
         const result = await this.generateWithReplicate(request);
 
-        // 更新状态为完成，保存输出URL
+        const uploadResult = await this.miscService.dumpFileFromURL(user, {
+          url: result.output,
+          entityId: resultId, //ActionResult
+          entityType: 'mediaResult',
+          visibility: 'private',
+        });
+
+        // 更新状态为完成，保存系统内部的存储信息
         await this.prisma.actionResult.update({
           where: { resultId_version: { resultId, version: 0 } },
           data: {
             status: 'finish',
-            outputUrl: result.output,
+            outputUrl: uploadResult.url, // 使用系统内部URL
+            storageKey: uploadResult.storageKey, // 保存存储键
           },
         });
       } else {
@@ -124,7 +138,6 @@ export class MediaGeneratorService {
     const generator = new ReplicateAudioGenerator();
 
     return await generator.generate({
-      apiKey: request.apiKey,
       model: request.model,
       prompt: request.prompt,
     });
@@ -136,7 +149,6 @@ export class MediaGeneratorService {
     const generator = new ReplicateVideoGenerator();
 
     return await generator.generate({
-      apiKey: request.apiKey,
       model: request.model,
       prompt: request.prompt,
     });
@@ -148,7 +160,6 @@ export class MediaGeneratorService {
     const generator = new ReplicateImageGenerator();
 
     return await generator.generate({
-      apiKey: request.apiKey,
       model: request.model,
       prompt: request.prompt,
     });
