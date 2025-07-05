@@ -5,6 +5,7 @@ import {
   User,
   CanvasState,
   GetCanvasStateData,
+  GetCanvasTransactionsData,
 } from '@refly/openapi-schema';
 import { initEmptyCanvasState, updateCanvasState } from '@refly/canvas-common';
 import { CanvasNotFoundError, CanvasVersionNotFoundError } from '@refly/errors';
@@ -156,6 +157,19 @@ export class CanvasSyncService {
     const stateStr = await streamToString(stream);
 
     return JSON.parse(stateStr);
+  }
+
+  /**
+   * Get canvas transactions
+   * @param user - The user
+   * @param param - The get canvas transactions request
+   * @returns The canvas transactions
+   */
+  async getTransactions(user: User, param: GetCanvasTransactionsData['query']) {
+    const { canvasId, version, since } = param;
+    const state = await this.getState(user, { canvasId, version });
+    const transactions = state.transactions.filter((tx) => tx.createdAt > since);
+    return transactions;
   }
 
   /**

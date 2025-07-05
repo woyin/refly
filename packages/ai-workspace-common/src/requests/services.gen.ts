@@ -102,6 +102,9 @@ import type {
   GetCanvasStateData,
   GetCanvasStateError,
   GetCanvasStateResponse2,
+  GetCanvasTransactionsData,
+  GetCanvasTransactionsError,
+  GetCanvasTransactionsResponse2,
   SyncCanvasStateData,
   SyncCanvasStateError,
   SyncCanvasStateResponse2,
@@ -857,6 +860,23 @@ export const getCanvasState = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/canvas/getState',
+  });
+};
+
+/**
+ * Get canvas transactions
+ * Get canvas transactions
+ */
+export const getCanvasTransactions = <ThrowOnError extends boolean = false>(
+  options: Options<GetCanvasTransactionsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCanvasTransactionsResponse2,
+    GetCanvasTransactionsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/getTx',
   });
 };
 

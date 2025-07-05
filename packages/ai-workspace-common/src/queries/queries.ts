@@ -59,6 +59,7 @@ import {
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
+  getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
   getDocumentDetail,
@@ -238,6 +239,8 @@ import {
   GetCanvasDetailError,
   GetCanvasStateData,
   GetCanvasStateError,
+  GetCanvasTransactionsData,
+  GetCanvasTransactionsError,
   GetCodeArtifactDetailData,
   GetCodeArtifactDetailError,
   GetCollabTokenError,
@@ -526,6 +529,23 @@ export const useGetCanvasState = <
     queryKey: Common.UseGetCanvasStateKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getCanvasState({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCanvasTransactions = <
+  TData = Common.GetCanvasTransactionsDefaultResponse,
+  TError = GetCanvasTransactionsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCanvasTransactionsData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCanvasTransactionsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCanvasTransactions({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useListCanvasTemplates = <

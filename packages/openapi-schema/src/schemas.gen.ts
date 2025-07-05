@@ -3221,6 +3221,26 @@ export const GetCanvasStateResponseSchema = {
   ],
 } as const;
 
+export const GetCanvasTransactionsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Canvas diff list',
+          items: {
+            $ref: '#/components/schemas/CanvasTransaction',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const DiffTypeSchema = {
   type: 'string',
   description: 'Diff type',

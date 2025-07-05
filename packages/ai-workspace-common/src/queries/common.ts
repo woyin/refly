@@ -59,6 +59,7 @@ import {
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
+  getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
   getDocumentDetail,
@@ -239,6 +240,18 @@ export const UseGetCanvasStateKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetCanvasStateKey, ...(queryKey ?? [clientOptions])];
+export type GetCanvasTransactionsDefaultResponse = Awaited<
+  ReturnType<typeof getCanvasTransactions>
+>['data'];
+export type GetCanvasTransactionsQueryResult<
+  TData = GetCanvasTransactionsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCanvasTransactionsKey = 'GetCanvasTransactions';
+export const UseGetCanvasTransactionsKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCanvasTransactionsKey, ...(queryKey ?? [clientOptions])];
 export type ListCanvasTemplatesDefaultResponse = Awaited<
   ReturnType<typeof listCanvasTemplates>
 >['data'];

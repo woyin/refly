@@ -754,6 +754,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCanvasStateResponse'
+  /canvas/getTx:
+    get:
+      tags:
+        - canvas
+      summary: Get canvas transactions
+      description: Get canvas transactions
+      operationId: getCanvasTransactions
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          description: Canvas state version
+          required: false
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Since timestamp
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCanvasTransactionsResponse'
   /canvas/syncState:
     post:
       tags:
@@ -5255,6 +5288,16 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/CanvasState'
+    GetCanvasTransactionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Canvas diff list
+              items:
+                $ref: '#/components/schemas/CanvasTransaction'
     DiffType:
       type: string
       description: Diff type

@@ -11,7 +11,7 @@ import { get, set, update } from 'idb-keyval';
 import { message } from 'antd';
 import { Node, Edge, useStoreApi, InternalNode, useReactFlow } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
-import { CanvasEdge, CanvasNode, CanvasState } from '@refly/openapi-schema';
+import { CanvasEdge, CanvasNode, CanvasState, CanvasTransaction } from '@refly/openapi-schema';
 import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -28,6 +28,8 @@ import {
 } from '@refly-packages/ai-workspace-common/stores/canvas';
 import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
+
+const POLL_TX_INTERVAL = 3000;
 
 interface CanvasContextType {
   canvasId: string;
@@ -47,6 +49,23 @@ interface CanvasContextType {
 // HTTP interface to get canvas state
 const getCanvasState = async (canvasId: string): Promise<CanvasState> => {
   const { data, error } = await getClient().getCanvasState({ query: { canvasId } });
+  if (error) {
+    throw error;
+  }
+  return data.data;
+};
+
+const pollCanvasTransactions = async (
+  canvasId: string,
+  version: string,
+): Promise<CanvasTransaction[]> => {
+  const { data, error } = await getClient().getCanvasTransactions({
+    query: {
+      canvasId,
+      version,
+      since: Date.now() - 5000, // 5 seconds ago
+    },
+  });
   if (error) {
     throw error;
   }
@@ -132,7 +151,6 @@ export const CanvasProvider = ({
   const [loading, setLoading] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isFirstPollRef = useRef(true);
-  // const POLLING_INTERVAL = 500000; // 5 seconds
 
   const { setState, getState } = useStoreApi();
   const { setCanvasInitialized } = useCanvasStoreShallow((state) => ({
@@ -281,7 +299,7 @@ export const CanvasProvider = ({
     if (readonly) return;
 
     try {
-      const localState = await get(`canvas-state:${canvasId}`);
+      const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
       console.log('localState', localState);
 
       // Only set loading when local state is not found
@@ -317,11 +335,6 @@ export const CanvasProvider = ({
       await set(`canvas-state:${canvasId}`, finalState);
 
       setCanvasInitialized(canvasId, true);
-
-      // Mark first poll as complete
-      if (isFirstPollRef.current) {
-        isFirstPollRef.current = false;
-      }
     } catch (error) {
       console.error('Failed to poll canvas state:', error);
     } finally {
@@ -386,6 +399,59 @@ export const CanvasProvider = ({
     }
   }, [canvasId, updateCanvasDataFromState]);
 
+  // Poll server transactions and merge to local state
+  useEffect(() => {
+    if (readonly || !canvasId) return;
+
+    let polling = true;
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const poll = async () => {
+      if (!polling) return;
+      try {
+        // Get local CanvasState
+        const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
+        if (!localState) {
+          // If local state is not found, skip this poll
+          return;
+        }
+
+        const { canvasInitialized } = useCanvasStore.getState();
+        if (!canvasInitialized[canvasId]) {
+          console.log('[pollCanvasTransactions] canvas not initialized', canvasId);
+          return;
+        }
+
+        const version = localState?.version ?? '';
+        const localTxIds = new Set(localState?.transactions?.map((tx) => tx.txId) ?? []);
+
+        // Pull new transactions from server
+        const remoteTxs = await pollCanvasTransactions(canvasId, version);
+        // Filter out transactions that already exist locally
+        const newTxs = remoteTxs?.filter((tx) => !localTxIds.has(tx.txId)) ?? [];
+        if (newTxs.length > 0) {
+          // Merge transactions to local state
+          const updatedState = {
+            ...localState,
+            transactions: [...(localState.transactions ?? []), ...newTxs],
+          };
+          updatedState.transactions.sort((a, b) => a.createdAt - b.createdAt);
+          await set(`canvas-state:${canvasId}`, updatedState);
+          updateCanvasDataFromState(updatedState);
+        }
+      } catch (err) {
+        console.error('[pollCanvasTransactions] failed:', err);
+      }
+    };
+
+    intervalId = setInterval(poll, POLL_TX_INTERVAL);
+
+    return () => {
+      polling = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [canvasId, readonly, updateCanvasDataFromState]);
+
   // Cleanup on unmount
   useEffect(() => {
     if (readonly) return;
@@ -394,6 +460,7 @@ export const CanvasProvider = ({
       // Clear canvas data
       setState({ nodes: [], edges: [] });
       setLoading(false);
+      setCanvasInitialized(canvasId, false);
       isFirstPollRef.current = true;
     };
   }, [canvasId, readonly]);

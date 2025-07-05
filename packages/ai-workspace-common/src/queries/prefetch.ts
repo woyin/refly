@@ -11,6 +11,7 @@ import {
   getCanvasData,
   getCanvasDetail,
   getCanvasState,
+  getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
   getDocumentDetail,
@@ -53,6 +54,7 @@ import {
   GetCanvasDataData,
   GetCanvasDetailData,
   GetCanvasStateData,
+  GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
@@ -166,6 +168,14 @@ export const prefetchUseGetCanvasState = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetCanvasStateKeyFn(clientOptions),
     queryFn: () => getCanvasState({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetCanvasTransactions = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCanvasTransactionsData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetCanvasTransactionsKeyFn(clientOptions),
+    queryFn: () => getCanvasTransactions({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseListCanvasTemplates = (
   queryClient: QueryClient,

@@ -2385,6 +2385,13 @@ export type GetCanvasStateResponse = BaseResponse & {
   data?: CanvasState;
 };
 
+export type GetCanvasTransactionsResponse = BaseResponse & {
+  /**
+   * Canvas diff list
+   */
+  data?: Array<CanvasTransaction>;
+};
+
 /**
  * Diff type
  */
@@ -5123,6 +5130,27 @@ export type GetCanvasStateData = {
 export type GetCanvasStateResponse2 = GetCanvasStateResponse;
 
 export type GetCanvasStateError = unknown;
+
+export type GetCanvasTransactionsData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+    /**
+     * Since timestamp
+     */
+    since?: number;
+    /**
+     * Canvas state version
+     */
+    version?: string;
+  };
+};
+
+export type GetCanvasTransactionsResponse2 = GetCanvasTransactionsResponse;
+
+export type GetCanvasTransactionsError = unknown;
 
 export type SyncCanvasStateData = {
   body: SyncCanvasStateRequest;
