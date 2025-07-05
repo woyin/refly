@@ -22,14 +22,43 @@ export const initEmptyCanvasState = (): CanvasState => {
 export const applyCanvasTransaction = (
   data: CanvasData,
   tx: CanvasTransaction,
-  // options?: { reverse?: boolean },
+  options?: { reverse?: boolean },
 ): CanvasData => {
   // Start with a copy of the current state
   let newNodes = [...(data.nodes ?? [])];
   let newEdges = [...(data.edges ?? [])];
 
+  // Helper to get reverse type and swap from/to
+  const getReverseNodeDiff = (diff: (typeof tx.nodeDiffs)[number]) => {
+    switch (diff.type) {
+      case 'add':
+        return { type: 'delete', id: diff.to?.id ?? diff.id };
+      case 'delete':
+        return { type: 'add', to: diff.from, id: diff.id };
+      case 'update':
+        return { type: 'update', id: diff.id, from: diff.to, to: diff.from };
+      default:
+        return diff;
+    }
+  };
+  const getReverseEdgeDiff = (diff: (typeof tx.edgeDiffs)[number]) => {
+    switch (diff.type) {
+      case 'add':
+        return { type: 'delete', id: diff.to?.id ?? diff.id };
+      case 'delete':
+        return { type: 'add', to: diff.from, id: diff.id };
+      case 'update':
+        return { type: 'update', id: diff.id, from: diff.to, to: diff.from };
+      default:
+        return diff;
+    }
+  };
+
+  const nodeDiffs = options?.reverse ? tx.nodeDiffs.map(getReverseNodeDiff) : tx.nodeDiffs;
+  const edgeDiffs = options?.reverse ? tx.edgeDiffs.map(getReverseEdgeDiff) : tx.edgeDiffs;
+
   // Apply node diffs
-  for (const nodeDiff of tx.nodeDiffs) {
+  for (const nodeDiff of nodeDiffs) {
     switch (nodeDiff.type) {
       case 'add':
         if (nodeDiff.to) {
@@ -54,7 +83,7 @@ export const applyCanvasTransaction = (
   }
 
   // Apply edge diffs
-  for (const edgeDiff of tx.edgeDiffs) {
+  for (const edgeDiff of edgeDiffs) {
     switch (edgeDiff.type) {
       case 'add':
         if (edgeDiff.to) {
@@ -96,7 +125,9 @@ export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
   };
 
   for (const transaction of state.transactions) {
-    currentData = applyCanvasTransaction(currentData, transaction);
+    if (!transaction.revoked && !transaction.deleted) {
+      currentData = applyCanvasTransaction(currentData, transaction);
+    }
   }
 
   return currentData;
@@ -115,7 +146,7 @@ export class CanvasConflictException extends Error {
 }
 
 /**
- * Update canvas state with new transactions
+ * Update canvas state with new transactions, used by server
  * @param state - The current canvas state
  * @param transactions - The new transactions
  * @returns The updated canvas state
@@ -124,13 +155,20 @@ export const updateCanvasState = (
   state: CanvasState,
   transactions: CanvasTransaction[],
 ): CanvasState => {
-  const currentTxIds = new Set(state.transactions.map((tx) => tx.txId));
+  // Create a map for quick lookup of existing transactions by txId
+  const txMap = new Map(state.transactions.map((tx) => [tx.txId, tx]));
 
   for (const transaction of transactions) {
-    if (currentTxIds.has(transaction.txId)) {
-      continue;
+    if (txMap.has(transaction.txId)) {
+      // Replace the existing transaction with the new one
+      const index = state.transactions.findIndex((tx) => tx.txId === transaction.txId);
+      if (index !== -1) {
+        state.transactions[index] = transaction;
+      }
+    } else {
+      // Add the new transaction if it does not exist
+      state.transactions.push(transaction);
     }
-    state.transactions.push(transaction);
   }
 
   state.transactions.sort((a, b) => a.createdAt - b.createdAt);

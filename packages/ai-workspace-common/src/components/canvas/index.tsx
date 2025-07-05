@@ -56,7 +56,6 @@ import './index.scss';
 import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
 import { useUserStore, useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
-import { useCanvasSync } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-sync';
 import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
@@ -213,7 +212,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const reactFlowInstance = useReactFlow();
 
   const { pendingNode, clearPendingNode } = useCanvasNodesStore();
-  const { loading, readonly, shareNotFound, shareLoading } = useCanvasContext();
+  const { loading, readonly, shareNotFound, shareLoading, undo, redo } = useCanvasContext();
 
   const { isPilotOpen, setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
     isPilotOpen: state.isPilotOpen,
@@ -772,8 +771,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [reactFlowInstance],
   );
 
-  const { undoManager } = useCanvasSync();
-
   // Use the new drag, drop, paste hook
   const { handlers, DropOverlay } = useDragDropPaste({
     canvasId,
@@ -812,10 +809,10 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         e.preventDefault();
         if (e.shiftKey) {
           // Mod+Shift+Z for Redo
-          undoManager?.redo();
+          redo();
         } else {
           // Mod+Z for Undo
-          undoManager?.undo();
+          undo();
         }
       }
 
@@ -827,7 +824,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         setSelectedEdgeId(null);
       }
     },
-    [selectedEdgeId, reactFlowInstance, undoManager, readonly],
+    [selectedEdgeId, reactFlowInstance, undo, redo, readonly],
   );
 
   // Add edge click handler for delete button
@@ -855,7 +852,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undoManager, handleKeyDown]);
+  }, [handleKeyDown]);
 
   useEffect(() => {
     const { setEdges } = reactFlowInstance;

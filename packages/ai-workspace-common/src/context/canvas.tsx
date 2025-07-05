@@ -38,7 +38,10 @@ interface CanvasContextType {
   shareData?: RawCanvasData;
   isPolling: boolean;
   lastUpdated?: number;
+
   syncCanvasData: () => Promise<void>;
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
 }
 
 // HTTP interface to get canvas state
@@ -57,9 +60,7 @@ const syncWithRemote = async (canvasId: string) => {
     return;
   }
 
-  const unsyncedTransactions = state?.transactions?.filter(
-    (tx) => !tx.syncedAt && !tx.revoked && !tx.deleted,
-  );
+  const unsyncedTransactions = state?.transactions?.filter((tx) => !tx.syncedAt);
 
   if (!unsyncedTransactions?.length) {
     return;
@@ -247,7 +248,7 @@ export const CanvasProvider = ({
 
         await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
           ...state,
-          transactions: [...(state?.transactions ?? []), diff],
+          transactions: [...(state?.transactions?.filter((tx) => !tx.revoked) ?? []), diff],
         }));
       }
     } finally {
@@ -351,6 +352,40 @@ export const CanvasProvider = ({
     };
   }, [canvasId, readonly, initialFetchCanvasState]);
 
+  const undo = useCallback(async () => {
+    const currentState = await get(`canvas-state:${canvasId}`);
+    const transactions = currentState?.transactions;
+    if (Array.isArray(transactions) && transactions.length > 0) {
+      // Find the last transaction where revoked is false
+      for (let i = transactions.length - 1; i >= 0; i--) {
+        if (!transactions[i]?.revoked) {
+          transactions[i].revoked = true;
+          transactions[i].syncedAt = undefined;
+          await set(`canvas-state:${canvasId}`, currentState);
+          updateCanvasDataFromState(currentState);
+          break;
+        }
+      }
+    }
+  }, [canvasId, updateCanvasDataFromState]);
+
+  const redo = useCallback(async () => {
+    const currentState = await get(`canvas-state:${canvasId}`);
+    const transactions = currentState?.transactions;
+    if (Array.isArray(transactions) && transactions.length > 0) {
+      // Find the first transaction where revoked is true
+      for (let i = 0; i < transactions.length; i++) {
+        if (transactions[i]?.revoked) {
+          transactions[i].revoked = false;
+          transactions[i].syncedAt = undefined;
+          await set(`canvas-state:${canvasId}`, currentState);
+          updateCanvasDataFromState(currentState);
+          break;
+        }
+      }
+    }
+  }, [canvasId, updateCanvasDataFromState]);
+
   // Cleanup on unmount
   useEffect(() => {
     if (readonly) return;
@@ -375,6 +410,8 @@ export const CanvasProvider = ({
         isPolling,
         lastUpdated,
         syncCanvasData,
+        undo,
+        redo,
       }}
     >
       {children}
