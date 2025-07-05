@@ -2,15 +2,15 @@ import { useCallback } from 'react';
 import { Connection, Edge, applyEdgeChanges, EdgeChange, useStoreApi } from '@xyflow/react';
 import { genUniqueId } from '@refly/utils/id';
 import { useEdgeStyles, getEdgeStyles } from '../../components/canvas/constants';
-import { useCanvasSync } from './use-canvas-sync';
 import { CanvasNode } from '@refly/canvas-common';
 import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/edge';
 import { useThemeStore } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const useEdgeOperations = () => {
   const { getState, setState } = useStoreApi<CanvasNode<any>>();
   const edgeStyles = useEdgeStyles();
-  const { syncCanvasData } = useCanvasSync();
+  const { syncCanvasData } = useCanvasContext();
 
   const updateEdgesWithSync = useCallback(
     (edges: Edge[]) => {

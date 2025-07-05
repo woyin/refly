@@ -15,6 +15,22 @@ export interface AddNodeParam {
   viewport?: Viewport;
 }
 
+export const deduplicateNodes = (nodes: CanvasNode[]) => {
+  const uniqueNodesMap = new Map<string, CanvasNode>();
+  for (const node of nodes) {
+    uniqueNodesMap.set(node.id, node);
+  }
+  return Array.from(uniqueNodesMap.values());
+};
+
+export const deduplicateEdges = (edges: CanvasEdge[]) => {
+  const uniqueEdgesMap = new Map<string, CanvasEdge>();
+  for (const edge of edges) {
+    uniqueEdgesMap.set(edge.id, edge);
+  }
+  return Array.from(uniqueEdgesMap.values());
+};
+
 export const prepareAddNode = (
   param: AddNodeParam,
 ): { newNode: CanvasNode; newEdges: CanvasEdge[] } => {

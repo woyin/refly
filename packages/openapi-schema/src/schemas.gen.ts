@@ -6841,6 +6841,14 @@ export const CanvasNodeSchema = {
       type: 'object',
       description: 'Node style',
     },
+    selected: {
+      type: 'boolean',
+      description: 'Whether the node is selected',
+    },
+    dragging: {
+      type: 'boolean',
+      description: 'Whether the node is being dragged',
+    },
   },
 } as const;
 

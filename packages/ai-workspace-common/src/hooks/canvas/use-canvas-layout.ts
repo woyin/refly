@@ -3,8 +3,8 @@ import { useReactFlow } from '@xyflow/react';
 import Dagre from '@dagrejs/dagre';
 import { CanvasNode } from '@refly/canvas-common';
 import { Edge } from '@xyflow/react';
-import { useCanvasSync } from './use-canvas-sync';
 import { GroupData } from '../../components/canvas/nodes/group';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const NODE_DEFAULT_WIDTH = 288;
 const NODE_DEFAULT_HEIGHT = 320;
@@ -412,7 +412,7 @@ const getLayoutedElements = (
 export const useCanvasLayout = () => {
   const { getNodes, getEdges, setNodes, setEdges, getNode } = useReactFlow<CanvasNode<any>>();
 
-  const { syncCanvasData } = useCanvasSync();
+  const { syncCanvasData } = useCanvasContext();
   const { fitView } = useReactFlow();
 
   const onLayout = useCallback(

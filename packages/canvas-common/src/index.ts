@@ -5,4 +5,5 @@ export * from './position';
 export * from './layout';
 export * from './context';
 export * from './utils';
+export * from './diff';
 export * from './sync';

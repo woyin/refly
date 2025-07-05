@@ -9,9 +9,9 @@ import React, {
 } from 'react';
 import { get, set, update } from 'idb-keyval';
 import { message } from 'antd';
-import { Node, Edge, useStoreApi, InternalNode } from '@xyflow/react';
+import { Node, Edge, useStoreApi, InternalNode, useReactFlow } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
-import { CanvasState } from '@refly/openapi-schema';
+import { CanvasEdge, CanvasNode, CanvasState } from '@refly/openapi-schema';
 import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -19,7 +19,15 @@ import {
   getCanvasDataFromState,
   mergeCanvasStates,
   CanvasConflictException,
+  purgeContextItems,
+  calculateCanvasStateDiff,
 } from '@refly/canvas-common';
+import {
+  useCanvasStore,
+  useCanvasStoreShallow,
+} from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useDebouncedCallback } from 'use-debounce';
+import { IContextItem } from '@refly/common-types';
 
 interface CanvasContextType {
   canvasId: string;
@@ -30,6 +38,7 @@ interface CanvasContextType {
   shareData?: RawCanvasData;
   isPolling: boolean;
   lastUpdated?: number;
+  syncCanvasData: () => Promise<void>;
 }
 
 // HTTP interface to get canvas state
@@ -67,6 +76,7 @@ const syncWithRemote = async (canvasId: string) => {
   });
 
   if (!error && data?.success) {
+    console.log('[syncWithRemote] synced successfully');
     await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
       ...state,
       transactions: state?.transactions?.map((tx) => ({
@@ -124,6 +134,9 @@ export const CanvasProvider = ({
   // const POLLING_INTERVAL = 500000; // 5 seconds
 
   const { setState, getState } = useStoreApi();
+  const { setCanvasInitialized } = useCanvasStoreShallow((state) => ({
+    setCanvasInitialized: state.setCanvasInitialized,
+  }));
 
   // Use the hook to fetch canvas data when in readonly mode
   const {
@@ -181,6 +194,66 @@ export const CanvasProvider = ({
       clearInterval(intervalId);
     };
   }, [canvasId]);
+
+  const { getNodes, getEdges } = useReactFlow();
+  const isSyncingLocalRef = useRef(false);
+
+  // Sync canvas data to local state
+  const syncCanvasData = useDebouncedCallback(async () => {
+    // Prevent multiple concurrent sync operations
+    if (isSyncingLocalRef.current) {
+      return;
+    }
+
+    const { canvasInitialized } = useCanvasStore.getState();
+    if (!canvasInitialized[canvasId]) {
+      console.log('[syncCanvasData] canvas not initialized', canvasId);
+      return;
+    }
+
+    isSyncingLocalRef.current = true;
+
+    try {
+      const nodes = getNodes() as CanvasNode[];
+      const edges = getEdges() as CanvasEdge[];
+
+      // Purge context items from nodes
+      const purgedNodes: CanvasNode[] = nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          metadata: {
+            ...node.data?.metadata,
+            contextItems: purgeContextItems(node.data?.metadata?.contextItems as IContextItem[]),
+          },
+        },
+      }));
+
+      const currentState = await get(`canvas-state:${canvasId}`);
+      const currentStateData = getCanvasDataFromState(currentState);
+
+      const diff = calculateCanvasStateDiff(currentStateData, {
+        nodes: purgedNodes,
+        edges,
+      });
+
+      if (diff) {
+        console.log('currentStateData', currentStateData);
+        console.log('dynamic data', {
+          nodes: purgedNodes,
+          edges,
+        });
+        console.log('diff', diff);
+
+        await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
+          ...state,
+          transactions: [...(state?.transactions ?? []), diff],
+        }));
+      }
+    } finally {
+      isSyncingLocalRef.current = false;
+    }
+  }, 500);
 
   // Function to update canvas data from state
   const updateCanvasDataFromState = useCallback(
@@ -242,6 +315,8 @@ export const CanvasProvider = ({
 
       await set(`canvas-state:${canvasId}`, finalState);
 
+      setCanvasInitialized(canvasId, true);
+
       // Mark first poll as complete
       if (isFirstPollRef.current) {
         isFirstPollRef.current = false;
@@ -288,21 +363,23 @@ export const CanvasProvider = ({
     };
   }, [canvasId, readonly]);
 
-  const canvasContext = useMemo<CanvasContextType>(
-    () => ({
-      loading,
-      canvasId,
-      readonly,
-      shareLoading,
-      shareNotFound,
-      shareData: canvasData,
-      isPolling,
-      lastUpdated,
-    }),
-    [canvasId, readonly, shareNotFound, canvasData, shareLoading, isPolling, lastUpdated],
+  return (
+    <CanvasContext.Provider
+      value={{
+        loading,
+        canvasId,
+        readonly,
+        shareLoading,
+        shareNotFound,
+        shareData: canvasData,
+        isPolling,
+        lastUpdated,
+        syncCanvasData,
+      }}
+    >
+      {children}
+    </CanvasContext.Provider>
   );
-
-  return <CanvasContext.Provider value={canvasContext}>{children}</CanvasContext.Provider>;
 };
 
 export const useCanvasContext = () => {

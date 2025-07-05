@@ -4747,6 +4747,14 @@ export type CanvasNode = {
   style?: {
     [key: string]: unknown;
   };
+  /**
+   * Whether the node is selected
+   */
+  selected?: boolean;
+  /**
+   * Whether the node is being dragged
+   */
+  dragging?: boolean;
 };
 
 export type CanvasEdge = {

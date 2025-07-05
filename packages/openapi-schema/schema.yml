@@ -7702,6 +7702,12 @@ components:
         style:
           type: object
           description: Node style
+        selected:
+          type: boolean
+          description: Whether the node is selected
+        dragging:
+          type: boolean
+          description: Whether the node is being dragged
     CanvasEdge:
       type: object
       required:

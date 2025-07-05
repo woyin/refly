@@ -6,12 +6,12 @@ import {
   CanvasNodeFilter,
   purgeContextItems,
 } from '@refly/canvas-common';
-import { useCanvasSync } from './use-canvas-sync';
 import { IContextItem } from '@refly/common-types';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const useSetNodeDataByEntity = () => {
   const { getNodes, setNodes } = useReactFlow<CanvasNode<any>>();
-  const { syncCanvasData } = useCanvasSync();
+  const { syncCanvasData } = useCanvasContext();
 
   return useCallback(
     (filter: CanvasNodeFilter, nodeData: Partial<CanvasNodeData>) => {

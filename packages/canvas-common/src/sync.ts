@@ -2,12 +2,12 @@ import {
   CanvasState,
   CanvasNode,
   CanvasEdge,
-  NodeDiff,
-  EdgeDiff,
   CanvasTransaction,
   CanvasData,
 } from '@refly/openapi-schema';
-import { genCanvasVersionId, genTransactionId } from '@refly/utils';
+import { genCanvasVersionId } from '@refly/utils';
+import deepmerge from 'deepmerge';
+import { deduplicateNodes, deduplicateEdges } from './utils';
 
 export const initEmptyCanvasState = (): CanvasState => {
   return {
@@ -19,9 +19,10 @@ export const initEmptyCanvasState = (): CanvasState => {
   };
 };
 
-export const applyCanvasStateTransaction = (
+export const applyCanvasTransaction = (
   data: CanvasData,
   tx: CanvasTransaction,
+  // options?: { reverse?: boolean },
 ): CanvasData => {
   // Start with a copy of the current state
   let newNodes = [...(data.nodes ?? [])];
@@ -36,9 +37,15 @@ export const applyCanvasStateTransaction = (
         }
         break;
       case 'update':
-        newNodes = newNodes.map((node) =>
-          node.id === nodeDiff.id && nodeDiff.to ? { ...node, ...nodeDiff.to } : node,
-        );
+        newNodes = newNodes.map((node) => {
+          if (node.id === nodeDiff.id && nodeDiff.to) {
+            const updatedNode = deepmerge(node, nodeDiff.to, {
+              arrayMerge: (_target, source) => source,
+            });
+            return updatedNode;
+          }
+          return node;
+        });
         break;
       case 'delete':
         newNodes = newNodes.filter((node) => node.id !== nodeDiff.id);
@@ -55,9 +62,15 @@ export const applyCanvasStateTransaction = (
         }
         break;
       case 'update':
-        newEdges = newEdges.map((edge) =>
-          edge.id === edgeDiff.id && edgeDiff.to ? { ...edge, ...edgeDiff.to } : edge,
-        );
+        newEdges = newEdges.map((edge) => {
+          if (edge.id === edgeDiff.id && edgeDiff.to) {
+            const updatedEdge = deepmerge(edge, edgeDiff.to, {
+              arrayMerge: (_target, source) => source,
+            });
+            return updatedEdge;
+          }
+          return edge;
+        });
         break;
       case 'delete':
         newEdges = newEdges.filter((edge) => edge.id !== edgeDiff.id);
@@ -66,8 +79,8 @@ export const applyCanvasStateTransaction = (
   }
 
   return {
-    nodes: newNodes,
-    edges: newEdges,
+    nodes: deduplicateNodes(newNodes),
+    edges: deduplicateEdges(newEdges),
   };
 };
 
@@ -83,7 +96,7 @@ export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
   };
 
   for (const transaction of state.transactions) {
-    currentData = applyCanvasStateTransaction(currentData, transaction);
+    currentData = applyCanvasTransaction(currentData, transaction);
   }
 
   return currentData;
@@ -100,41 +113,6 @@ export class CanvasConflictException extends Error {
     this.name = 'CanvasConflictException';
   }
 }
-
-/**
- * Deep compare two objects excluding the 'id' and other fields that are not relevant
- */
-const deepCompareExcludingId = (obj1: any, obj2: any): boolean => {
-  if (obj1 === obj2) return true;
-
-  if (obj1 == null || obj2 == null) return obj1 === obj2;
-
-  if (typeof obj1 !== typeof obj2) return false;
-
-  if (typeof obj1 !== 'object') return obj1 === obj2;
-
-  if (Array.isArray(obj1) !== Array.isArray(obj2)) return false;
-
-  if (Array.isArray(obj1)) {
-    if (obj1.length !== obj2.length) return false;
-    for (let i = 0; i < obj1.length; i++) {
-      if (!deepCompareExcludingId(obj1[i], obj2[i])) return false;
-    }
-    return true;
-  }
-
-  const keys1 = Object.keys(obj1).filter((key) => key !== 'id' && key !== 'selected');
-  const keys2 = Object.keys(obj2).filter((key) => key !== 'id' && key !== 'selected');
-
-  if (keys1.length !== keys2.length) return false;
-
-  for (const key of keys1) {
-    if (!keys2.includes(key)) return false;
-    if (!deepCompareExcludingId(obj1[key], obj2[key])) return false;
-  }
-
-  return true;
-};
 
 /**
  * Update canvas state with new transactions
@@ -308,109 +286,4 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
     { id: local.version, position: { x: 0, y: 0 } } as CanvasNode,
     { id: remote.version, position: { x: 0, y: 0 } } as CanvasNode,
   );
-};
-
-export const calculateCanvasStateDiff = (
-  from: CanvasData,
-  to: CanvasData,
-): CanvasTransaction | null => {
-  const nodeDiffs: NodeDiff[] = [];
-  const edgeDiffs: EdgeDiff[] = [];
-
-  // Create lookup maps for efficient comparison
-  const fromNodesMap = new Map<string, CanvasNode>();
-  const toNodesMap = new Map<string, CanvasNode>();
-  const fromEdgesMap = new Map<string, CanvasEdge>();
-  const toEdgesMap = new Map<string, CanvasEdge>();
-
-  // Populate the lookup maps
-  for (const node of from.nodes) {
-    fromNodesMap.set(node.id, node);
-  }
-  for (const node of to.nodes) {
-    toNodesMap.set(node.id, node);
-  }
-  for (const edge of from.edges) {
-    fromEdgesMap.set(edge.id, edge);
-  }
-  for (const edge of to.edges) {
-    toEdgesMap.set(edge.id, edge);
-  }
-
-  // Process node diffs
-  const allNodeIds = new Set([...fromNodesMap.keys(), ...toNodesMap.keys()]);
-  for (const nodeId of allNodeIds) {
-    const fromNode = fromNodesMap.get(nodeId);
-    const toNode = toNodesMap.get(nodeId);
-
-    if (!fromNode && toNode) {
-      // Node was added
-      nodeDiffs.push({
-        id: nodeId,
-        type: 'add',
-        to: toNode,
-      });
-    } else if (fromNode && !toNode) {
-      // Node was deleted
-      nodeDiffs.push({
-        id: nodeId,
-        type: 'delete',
-        from: fromNode,
-      });
-    } else if (fromNode && toNode) {
-      // Node exists in both states, check if it was modified
-      if (!deepCompareExcludingId(fromNode, toNode)) {
-        nodeDiffs.push({
-          id: nodeId,
-          type: 'update',
-          from: fromNode,
-          to: toNode,
-        });
-      }
-    }
-  }
-
-  // Process edge diffs
-  const allEdgeIds = new Set([...fromEdgesMap.keys(), ...toEdgesMap.keys()]);
-  for (const edgeId of allEdgeIds) {
-    const fromEdge = fromEdgesMap.get(edgeId);
-    const toEdge = toEdgesMap.get(edgeId);
-
-    if (!fromEdge && toEdge) {
-      // Edge was added
-      edgeDiffs.push({
-        id: edgeId,
-        type: 'add',
-        to: toEdge,
-      });
-    } else if (fromEdge && !toEdge) {
-      // Edge was deleted
-      edgeDiffs.push({
-        id: edgeId,
-        type: 'delete',
-        from: fromEdge,
-      });
-    } else if (fromEdge && toEdge) {
-      // Edge exists in both states, check if it was modified
-      if (!deepCompareExcludingId(fromEdge, toEdge)) {
-        edgeDiffs.push({
-          id: edgeId,
-          type: 'update',
-          from: fromEdge,
-          to: toEdge,
-        });
-      }
-    }
-  }
-
-  if (!nodeDiffs.length && !edgeDiffs.length) {
-    return null;
-  }
-
-  return {
-    txId: genTransactionId(),
-    nodeDiffs,
-    edgeDiffs,
-    createdAt: Date.now(),
-  };
 };
