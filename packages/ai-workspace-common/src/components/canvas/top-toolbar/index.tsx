@@ -43,14 +43,12 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
   const { loading, readonly, shareData } = useCanvasContext();
 
   const {
-    config,
     showPreview,
     setShowPreview,
     showMaxRatio,
     setShowMaxRatio,
     canvasTitle: canvasTitleFromStore,
   } = useCanvasStoreShallow((state) => ({
-    config: state.config[canvasId],
     showPreview: state.showPreview,
     setShowPreview: state.setShowPreview,
     showMaxRatio: state.showMaxRatio,
@@ -59,7 +57,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
   }));
 
   const canvasTitle = shareData?.title || canvasTitleFromStore;
-  const hasCanvasSynced = config?.localSyncedAt > 0 && config?.remoteSyncedAt > 0;
 
   const { duplicateCanvas, loading: duplicating } = useDuplicateCanvas();
   const handleDuplicate = () => {
@@ -106,7 +103,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
             <CanvasTitle
               canvasId={canvasId}
               canvasTitle={canvasTitle}
-              hasCanvasSynced={hasCanvasSynced}
               canvasLoading={loading}
               language={language}
             />

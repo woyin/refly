@@ -1,75 +1,33 @@
-import { useEffect, useState, useCallback, memo } from 'react';
+import { useCallback, memo } from 'react';
 import { Tooltip, Skeleton, Typography, Avatar, Divider } from 'antd';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
 import { IconCanvas, IconEdit } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
-import { CanvasRename } from './canvas-rename';
 import { ShareUser } from '@refly/openapi-schema';
 import { AiOutlineUser } from 'react-icons/ai';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasOperationStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas-operation';
 
 export const CanvasTitle = memo(
   ({
     canvasId,
-    hasCanvasSynced,
     canvasLoading,
     canvasTitle,
     language,
   }: {
     canvasId: string;
-    hasCanvasSynced: boolean;
     canvasLoading: boolean;
     canvasTitle: string;
     language: LOCALE;
   }) => {
     const { t } = useTranslation();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const { setCanvasTitle } = useCanvasStoreShallow((state) => ({
-      setCanvasTitle: state.setCanvasTitle,
-    }));
-
-    const { updateCanvasTitle } = useSiderStoreShallow((state) => ({
-      updateCanvasTitle: state.updateCanvasTitle,
+    const { openRenameModal } = useCanvasOperationStoreShallow((state) => ({
+      openRenameModal: state.openRenameModal,
     }));
 
     const handleEditClick = useCallback(() => {
-      setIsModalOpen(true);
-    }, []);
-
-    const handleUpdateCanvasTitle = useCallback(
-      (newTitle: string) => {
-        // CH-TODO: 调接口更新canvas title
-
-        updateCanvasTitle(canvasId, newTitle);
-        setCanvasTitle(canvasId, newTitle);
-      },
-      [canvasId, updateCanvasTitle],
-    );
-
-    const handleModalOk = useCallback(
-      (newTitle: string) => {
-        if (newTitle?.trim()) {
-          handleUpdateCanvasTitle(newTitle);
-          setIsModalOpen(false);
-        }
-      },
-      [canvasId, handleUpdateCanvasTitle],
-    );
-
-    const handleModalCancel = useCallback(() => {
-      setIsModalOpen(false);
-    }, []);
-
-    // Refetch canvas list when canvas title changes
-    useEffect(() => {
-      if (hasCanvasSynced && canvasTitle) {
-        updateCanvasTitle(canvasId, canvasTitle);
-        setCanvasTitle(canvasId, canvasTitle);
-      }
-    }, [canvasTitle, hasCanvasSynced, canvasId, updateCanvasTitle, setCanvasTitle]);
+      openRenameModal(canvasId, canvasTitle);
+    }, [openRenameModal, canvasId, canvasTitle]);
 
     const isSyncing = canvasLoading;
 
@@ -109,14 +67,6 @@ export const CanvasTitle = memo(
           )}
           <IconEdit className="text-gray-500 flex items-center justify-center" />
         </div>
-
-        <CanvasRename
-          canvasId={canvasId}
-          canvasTitle={canvasTitle}
-          isModalOpen={isModalOpen}
-          handleModalOk={handleModalOk}
-          handleModalCancel={handleModalCancel}
-        />
       </>
     );
   },

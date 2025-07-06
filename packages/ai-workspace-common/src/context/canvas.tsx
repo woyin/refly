@@ -28,6 +28,7 @@ import {
 } from '@refly-packages/ai-workspace-common/stores/canvas';
 import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
+import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';
 
 const POLL_TX_INTERVAL = 3000;
 
@@ -153,9 +154,14 @@ export const CanvasProvider = ({
   const isFirstPollRef = useRef(true);
 
   const { setState, getState } = useStoreApi();
-  const { setCanvasInitialized } = useCanvasStoreShallow((state) => ({
+  const { setCanvasTitle, setCanvasInitialized } = useCanvasStoreShallow((state) => ({
+    setCanvasTitle: state.setCanvasTitle,
     setCanvasInitialized: state.setCanvasInitialized,
   }));
+
+  const { data: canvasDetail } = useGetCanvasDetail({ query: { canvasId } }, null, {
+    enabled: !readonly && !!canvasId,
+  });
 
   // Use the hook to fetch canvas data when in readonly mode
   const {
@@ -175,7 +181,8 @@ export const CanvasProvider = ({
 
   // Set canvas data from API response when in readonly mode
   useEffect(() => {
-    if (readonly && canvasData) {
+    if (readonly) {
+      if (!canvasData) return;
       const { nodeLookup, parentLookup, connectionLookup, edgeLookup } = getState();
       const { nodes, edges } = canvasData;
       const internalState = getInternalState({
@@ -187,8 +194,11 @@ export const CanvasProvider = ({
         edgeLookup,
       });
       setState(internalState);
+    } else {
+      if (!canvasDetail?.data?.title) return;
+      setCanvasTitle(canvasId, canvasDetail.data.title);
     }
-  }, [readonly, canvasData, canvasId]);
+  }, [readonly, canvasData, canvasDetail, canvasId]);
 
   // Set up sync job that runs every 2 seconds
   const isSyncingRemoteRef = useRef(false);
