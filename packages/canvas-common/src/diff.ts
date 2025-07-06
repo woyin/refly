@@ -79,6 +79,7 @@ const calculateFieldDiff = (
   to: any,
   parentKeys?: string[],
 ): { before: any; after: any } | null => {
+  // Handle non-object types directly
   if (!from || !to || typeof from !== 'object' || typeof to !== 'object') {
     return {
       before: from,
@@ -86,6 +87,27 @@ const calculateFieldDiff = (
     };
   }
 
+  // If both are arrays, compare as whole arrays
+  if (Array.isArray(from) && Array.isArray(to)) {
+    if (!deepCompareExcludingId(from, to)) {
+      return {
+        before: from,
+        after: to,
+      };
+    } else {
+      return null;
+    }
+  }
+
+  // If one is array and one is not, treat as changed
+  if (Array.isArray(from) !== Array.isArray(to)) {
+    return {
+      before: from,
+      after: to,
+    };
+  }
+
+  // For objects, continue with original logic
   const beforeDiff: any = {};
   const afterDiff: any = {};
   let hasChanges = false;
@@ -128,14 +150,25 @@ const calculateFieldDiff = (
         fromValue !== null &&
         toValue !== null
       ) {
-        const nestedDiff = calculateFieldDiff(type, fromValue, toValue, [
-          ...(parentKeys ?? []),
-          key,
-        ]);
-        if (nestedDiff) {
-          beforeDiff[key] = nestedDiff.before;
-          afterDiff[key] = nestedDiff.after;
+        // If both are arrays, handle as arrays (should not recurse into array elements)
+        if (Array.isArray(fromValue) && Array.isArray(toValue)) {
+          beforeDiff[key] = fromValue;
+          afterDiff[key] = toValue;
           hasChanges = true;
+        } else if (Array.isArray(fromValue) !== Array.isArray(toValue)) {
+          beforeDiff[key] = fromValue;
+          afterDiff[key] = toValue;
+          hasChanges = true;
+        } else {
+          const nestedDiff = calculateFieldDiff(type, fromValue, toValue, [
+            ...(parentKeys ?? []),
+            key,
+          ]);
+          if (nestedDiff) {
+            beforeDiff[key] = nestedDiff.before;
+            afterDiff[key] = nestedDiff.after;
+            hasChanges = true;
+          }
         }
       } else {
         beforeDiff[key] = fromValue;

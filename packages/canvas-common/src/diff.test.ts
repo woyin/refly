@@ -126,4 +126,33 @@ describe('calculateCanvasStateDiff', () => {
     expect(diff?.edgeDiffs).toHaveLength(1);
     expect(diff?.edgeDiffs?.[0].id).toBe('e1');
   });
+
+  it('should handle nested array diff', () => {
+    const from: CanvasData = {
+      nodes: [
+        createNode('1', {
+          content: ['hello'],
+        }),
+      ],
+      edges: [],
+    };
+    const to: CanvasData = {
+      nodes: [
+        createNode('1', {
+          content: ['world'],
+        }),
+      ],
+      edges: [],
+    };
+    const diff = calculateCanvasStateDiff(from, to);
+    expect(diff?.nodeDiffs).toEqual([
+      {
+        id: '1',
+        type: 'update',
+        from: { data: { metadata: { content: ['hello'] } } },
+        to: { data: { metadata: { content: ['world'] } } },
+      },
+    ]);
+    expect(diff?.edgeDiffs).toHaveLength(0);
+  });
 });
