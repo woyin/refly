@@ -15,8 +15,14 @@ const EDGE_DIFF_IGNORE_KEYS = ['id', 'data.hover'];
  * Deep compare two objects excluding the 'id' and other fields that are not relevant
  */
 const deepCompareExcludingId = (obj1: any, obj2: any): boolean => {
+  // Treat undefined and missing as equivalent
+  if ((obj1 === undefined && obj2 === undefined) || (obj1 === undefined && obj2 === undefined))
+    return true;
   if (obj1 === obj2) return true;
 
+  // If one is undefined and the other is missing, treat as equal
+  if ((obj1 === undefined && obj2 === undefined) || (obj2 === undefined && obj1 === undefined))
+    return true;
   if (obj1 == null || obj2 == null) return obj1 === obj2;
 
   if (typeof obj1 !== typeof obj2) return false;
@@ -33,14 +39,20 @@ const deepCompareExcludingId = (obj1: any, obj2: any): boolean => {
     return true;
   }
 
+  // Merge keys from both objects
   const keys1 = Object.keys(obj1).filter((key) => key !== 'id' && key !== 'selected');
   const keys2 = Object.keys(obj2).filter((key) => key !== 'id' && key !== 'selected');
+  const allKeys = Array.from(new Set([...keys1, ...keys2]));
 
-  if (keys1.length !== keys2.length) return false;
-
-  for (const key of keys1) {
-    if (!keys2.includes(key)) return false;
-    if (!deepCompareExcludingId(obj1[key], obj2[key])) return false;
+  for (const key of allKeys) {
+    // Treat undefined and missing as equivalent
+    const v1 = obj1[key];
+    const v2 = obj2[key];
+    const v1Exists = key in obj1;
+    const v2Exists = key in obj2;
+    if (!v1Exists && v2 === undefined) continue;
+    if (!v2Exists && v1 === undefined) continue;
+    if (!deepCompareExcludingId(v1, v2)) return false;
   }
 
   return true;
@@ -87,15 +99,22 @@ const calculateFieldDiff = (
   for (const key of allKeys) {
     const fromValue = from[key];
     const toValue = to[key];
+    const fromHas = key in from;
+    const toHas = key in to;
+
+    // Treat undefined and missing as equivalent: skip if both are missing or undefined
+    if ((!fromHas && toValue === undefined) || (!toHas && fromValue === undefined)) {
+      continue;
+    }
 
     // If field doesn't exist in 'from' but exists in 'to', it's a new field
-    if (!(key in from) && key in to) {
+    if (!fromHas && toHas && toValue !== undefined) {
       beforeDiff[key] = undefined;
       afterDiff[key] = toValue;
       hasChanges = true;
     }
     // If field exists in 'from' but not in 'to', it's being deleted
-    else if (key in from && !(key in to)) {
+    else if (fromHas && !toHas && fromValue !== undefined) {
       beforeDiff[key] = fromValue;
       afterDiff[key] = undefined;
       hasChanges = true;
