@@ -1460,6 +1460,7 @@ const translations = {
         image: 'Image',
         video: 'Video',
         audio: 'Audio',
+        media: 'Media',
         imageGenerate: 'Generate Image',
         videoGenerate: 'Generate Video',
         audioGenerate: 'Generate Audio',
@@ -1467,6 +1468,8 @@ const translations = {
         videoPlaceholder: 'Describe the video you want to generate...',
         audioPlaceholder: 'Describe the audio you want to generate...',
         defaultPlaceholder: 'Describe what you want to generate...',
+        generating: 'Generating {{type}}...',
+        failed: 'Generation failed',
       },
     },
     reflyPilot: {

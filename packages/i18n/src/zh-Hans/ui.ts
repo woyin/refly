@@ -1266,6 +1266,7 @@ const translations = {
         image: '图片',
         video: '视频',
         audio: '音频',
+        media: '媒体',
         imageGenerate: '生成图片',
         videoGenerate: '生成视频',
         audioGenerate: '生成音频',
@@ -1273,6 +1274,8 @@ const translations = {
         videoPlaceholder: '描述你想要生成的视频...',
         audioPlaceholder: '描述你想要生成的音频...',
         defaultPlaceholder: '描述你想要生成的内容...',
+        generating: '生成{{type}}...',
+        failed: '生成失败',
       },
     },
     reflyPilot: {

@@ -37,6 +37,7 @@ import {
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { CanvasNodeType } from '@refly/openapi-schema';
+import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 
 export type MediaType = 'image' | 'video' | 'audio';
 
@@ -64,6 +65,7 @@ const MediaSkillResponseNode = memo(
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
     const targetRef = useRef<HTMLDivElement>(null);
     const { getNode, getEdges, getNodes } = useReactFlow();
+    const setNodeDataByEntity = useSetNodeDataByEntity();
 
     useSelectedNodeZIndex(id, selected);
 
@@ -90,15 +92,16 @@ const MediaSkillResponseNode = memo(
       defaultHeight: 180,
     });
 
-    // Polling logic
-    const { result, isPolling } = useActionResultStoreShallow((state) => ({
-      result: state.resultMap[resultId],
-      isPolling: !!state.pollingStateMap[resultId]?.isPolling,
-    }));
+    const { result, isPolling, removeStreamResult, removeActionResult } =
+      useActionResultStoreShallow((state) => ({
+        result: state.resultMap[resultId],
+        isPolling: !!state.pollingStateMap[resultId]?.isPolling,
+        removeStreamResult: state.removeStreamResult,
+        removeActionResult: state.removeActionResult,
+      }));
 
     const { startPolling, stopPolling, resetFailedState } = useActionPolling();
 
-    // Start polling when component mounts or when status changes to waiting
     useEffect(() => {
       if (resultId && (status === 'waiting' || status === 'executing')) {
         startPolling(resultId, 0);
@@ -209,8 +212,15 @@ const MediaSkillResponseNode = memo(
       if (!resultId) return;
 
       try {
-        // Reset polling state
+        // Reset polling state for current resultId
         resetFailedState(resultId);
+
+        // Stop current polling
+        stopPolling(resultId);
+
+        // Remove old result from store to clear failed state
+        removeStreamResult(resultId);
+        removeActionResult(resultId);
 
         // Retry the media generation
         const { data: responseData } = await getClient().generateMedia({
@@ -223,17 +233,40 @@ const MediaSkillResponseNode = memo(
         });
 
         if (responseData?.success && responseData?.resultId) {
-          // Update node with new resultId and start polling
-          // Note: This would need to be implemented with proper node data update
-          startPolling(responseData.resultId, 0);
+          // Update node metadata with new resultId and set status to waiting
+          setNodeDataByEntity(
+            {
+              type: 'mediaSkillResponse',
+              entityId: data?.entityId,
+            },
+            {
+              metadata: {
+                ...data?.metadata,
+                resultId: responseData?.resultId,
+                status: 'waiting',
+              },
+            },
+          );
         }
       } catch (error) {
         console.error('Failed to retry media generation:', error);
-        message.error(
-          t('canvas.nodes.mediaSkillResponse.retryFailed', 'Failed to retry generation'),
-        );
+        message.error(t('canvas.nodes.mediaSkill.failed', 'Failed to retry generation'));
       }
-    }, [resultId, prompt, mediaType, model, resetFailedState, startPolling, t]);
+    }, [
+      resultId,
+      prompt,
+      mediaType,
+      model,
+      resetFailedState,
+      stopPolling,
+      removeStreamResult,
+      removeActionResult,
+      startPolling,
+      setNodeDataByEntity,
+      id,
+      data?.metadata,
+      t,
+    ]);
 
     const handleDelete = useCallback(() => {
       if (resultId) {
@@ -255,17 +288,14 @@ const MediaSkillResponseNode = memo(
       return style;
     }, [containerStyle]);
 
-    // Event handlers
     useEffect(() => {
       const handleNodeRerun = () => handleRetry();
       const handleNodeDelete = () => handleDelete();
 
-      // Register events with node ID
       nodeActionEmitter.on(createNodeEventName(id, 'rerun'), handleNodeRerun);
       nodeActionEmitter.on(createNodeEventName(id, 'delete'), handleNodeDelete);
 
       return () => {
-        // Cleanup events when component unmounts
         nodeActionEmitter.off(createNodeEventName(id, 'rerun'), handleNodeRerun);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
       };
@@ -297,18 +327,18 @@ const MediaSkillResponseNode = memo(
     const getMediaTypeLabel = useCallback(() => {
       switch (mediaType) {
         case 'image':
-          return t('canvas.nodes.mediaSkillResponse.image', 'Image');
+          return t('canvas.nodes.mediaSkill.image', 'Image');
         case 'video':
-          return t('canvas.nodes.mediaSkillResponse.video', 'Video');
+          return t('canvas.nodes.mediaSkill.video', 'Video');
         case 'audio':
-          return t('canvas.nodes.mediaSkillResponse.audio', 'Audio');
+          return t('canvas.nodes.mediaSkill.audio', 'Audio');
         default:
-          return t('canvas.nodes.mediaSkillResponse.media', 'Media');
+          return t('canvas.nodes.mediaSkill.media', 'Media');
       }
     }, [mediaType, t]);
 
     const getProgress = useCallback(() => {
-      if (!result) return 10;
+      if (!result) return 0;
 
       switch (result.status) {
         case 'waiting':
@@ -320,7 +350,7 @@ const MediaSkillResponseNode = memo(
         case 'failed':
           return 0;
         default:
-          return 10;
+          return 0;
       }
     }, [result]);
 
@@ -332,8 +362,11 @@ const MediaSkillResponseNode = memo(
 
     const MediaIcon = getMediaIcon();
     const isGenerating =
-      !result || result.status === 'waiting' || result.status === 'executing' || isPolling;
-    const hasFailed = result?.status === 'failed';
+      (result && (result.status === 'waiting' || result.status === 'executing')) ||
+      status === 'waiting' ||
+      status === 'executing' ||
+      isPolling;
+    const hasFailed = result?.status === 'failed' || status === 'failed';
 
     return (
       <div className={isOperating && isHovered ? 'nowheel' : ''}>
@@ -381,7 +414,7 @@ const MediaSkillResponseNode = memo(
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {t('canvas.nodes.mediaSkillResponse.generating', 'Generating {{type}}...', {
+                    {t('canvas.nodes.mediaSkill.generating', 'Generating {{type}}...', {
                       type: getMediaTypeLabel(),
                     })}
                   </div>
@@ -394,11 +427,11 @@ const MediaSkillResponseNode = memo(
                 {isGenerating && !hasFailed && (
                   <div className="text-center">
                     <Spin
-                      indicator={<IconLoading className="animate-spin text-2xl text-blue-500" />}
+                      indicator={<IconLoading className="animate-spin text-2xl text-green-500" />}
                       size="large"
                     />
                     <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                      {t('canvas.nodes.mediaSkillResponse.generating', 'Generating {{type}}...', {
+                      {t('canvas.nodes.mediaSkill.generating', 'Generating {{type}}...', {
                         type: getMediaTypeLabel(),
                       })}
                     </div>
@@ -414,13 +447,9 @@ const MediaSkillResponseNode = memo(
 
                 {hasFailed && (
                   <div className="text-center">
-                    <IconError className="text-2xl text-red-500 mb-2" />
+                    <IconError className="text-2xl text-red-500" />
                     <div className="text-sm text-red-600 dark:text-red-400 mb-3">
-                      {t('canvas.nodes.mediaSkillResponse.failed', 'Generation failed')}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                      {result?.errors?.[0] ||
-                        t('canvas.nodes.mediaSkillResponse.unknownError', 'Unknown error occurred')}
+                      {t('canvas.nodes.mediaSkill.failed', 'Generation failed')}
                     </div>
                     <div className="flex gap-2">
                       <Button
