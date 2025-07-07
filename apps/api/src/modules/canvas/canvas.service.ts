@@ -37,7 +37,12 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncService } from './canvas-sync.service';
-import { CanvasNodeFilter, initEmptyCanvasState, prepareAddNode } from '@refly/canvas-common';
+import {
+  CanvasNodeFilter,
+  getCanvasDataFromState,
+  initEmptyCanvasState,
+  prepareAddNode,
+} from '@refly/canvas-common';
 
 @Injectable()
 export class CanvasService {
@@ -359,8 +364,14 @@ export class CanvasService {
     node: Pick<CanvasNode, 'type' | 'data'>,
     connectTo?: CanvasNodeFilter[],
   ) {
-    const { nodes, edges } = await this.canvasSyncService.getState(user, { canvasId });
+    const releaseLock = await this.canvasSyncService.lockState(canvasId);
+    const state = await this.canvasSyncService.getState(user, { canvasId });
+    const canvasData = getCanvasDataFromState(state);
+    const { nodes, edges } = canvasData;
 
+    this.logger.log(
+      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, nodes: ${JSON.stringify(nodes)}, edges: ${JSON.stringify(edges)}`,
+    );
     const { newNode, newEdges } = prepareAddNode({
       node,
       nodes,
@@ -368,28 +379,32 @@ export class CanvasService {
       connectTo,
     });
 
-    await this.canvasSyncService.syncState(user, {
-      canvasId,
-      transactions: [
-        {
-          txId: genTransactionId(),
-          createdAt: Date.now(),
-          syncedAt: Date.now(),
-          nodeDiffs: [
-            {
+    await this.canvasSyncService.syncState(
+      user,
+      {
+        canvasId,
+        transactions: [
+          {
+            txId: genTransactionId(),
+            createdAt: Date.now(),
+            syncedAt: Date.now(),
+            nodeDiffs: [
+              {
+                type: 'add',
+                id: newNode.id,
+                to: newNode,
+              },
+            ],
+            edgeDiffs: newEdges.map((edge) => ({
               type: 'add',
-              id: newNode.id,
-              to: newNode,
-            },
-          ],
-          edgeDiffs: newEdges.map((edge) => ({
-            type: 'add',
-            id: edge.id,
-            to: edge,
-          })),
-        },
-      ],
-    });
+              id: edge.id,
+              to: edge,
+            })),
+          },
+        ],
+      },
+      { releaseLock },
+    );
   }
 
   async updateCanvas(user: User, param: UpsertCanvasRequest) {

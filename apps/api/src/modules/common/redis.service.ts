@@ -8,6 +8,8 @@ interface InMemoryItem {
   expiresAt: number;
 }
 
+export type LockReleaseFn = () => Promise<boolean>;
+
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
@@ -108,9 +110,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return item.value;
   }
 
-  async acquireLock(key: string) {
+  async acquireLock(key: string): Promise<LockReleaseFn | null> {
     if (!this.client) {
-      return async () => {};
+      return async () => true;
     }
 
     try {

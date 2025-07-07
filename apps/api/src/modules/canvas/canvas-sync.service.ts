@@ -8,9 +8,14 @@ import {
   GetCanvasTransactionsData,
 } from '@refly/openapi-schema';
 import { initEmptyCanvasState, updateCanvasState } from '@refly/canvas-common';
-import { CanvasNotFoundError, CanvasVersionNotFoundError } from '@refly/errors';
+import {
+  CanvasNotFoundError,
+  CanvasVersionNotFoundError,
+  OperationTooFrequent,
+} from '@refly/errors';
 import { Canvas as CanvasModel } from '../../generated/client';
 import { PrismaService } from '../common/prisma.service';
+import { LockReleaseFn, RedisService } from '../common/redis.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { streamToBuffer, streamToString } from '../../utils';
 import { genCanvasVersionId } from '@refly/utils';
@@ -21,6 +26,7 @@ export class CanvasSyncService {
 
   constructor(
     private prisma: PrismaService,
+    private redis: RedisService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
   ) {}
 
@@ -173,12 +179,45 @@ export class CanvasSyncService {
   }
 
   /**
+   * Acquire a lock for the canvas state, with optional exponential backoff retry.
+   * @param canvasId - The canvas id
+   * @param options - The options
+   * @param options.maxRetries - Maximum number of retries (default: 3)
+   * @param options.initialDelay - Initial delay in ms for backoff (default: 100)
+   * @returns A function to release the lock
+   * @throws OperationTooFrequent if lock cannot be acquired after retries
+   */
+  async lockState(canvasId: string, options?: { maxRetries?: number; initialDelay?: number }) {
+    const { maxRetries = 3, initialDelay = 100 } = options ?? {};
+    const lockKey = `canvas-sync:${canvasId}`;
+    let retries = 0;
+    let delay = initialDelay;
+    while (true) {
+      const releaseLock = await this.redis.acquireLock(lockKey);
+      if (releaseLock) {
+        return releaseLock;
+      }
+      if (retries >= maxRetries) {
+        throw new OperationTooFrequent('Failed to get lock for canvas');
+      }
+      // Exponential backoff before next retry
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= 2;
+      retries += 1;
+    }
+  }
+
+  /**
    * Sync canvas state
    * @param user - The user
    * @param canvasId - The canvas id
    * @param param - The sync canvas state request
    */
-  async syncState(user: User, param: SyncCanvasStateRequest) {
+  async syncState(
+    user: User,
+    param: SyncCanvasStateRequest,
+    options?: { releaseLock?: LockReleaseFn },
+  ) {
     const { canvasId, transactions, version } = param;
 
     const versionToSync =
@@ -205,9 +244,17 @@ export class CanvasSyncService {
       return;
     }
 
-    // TODO: concurrency control, queue the updates
-    const state = await this.getState(user, { canvasId, version });
-    updateCanvasState(state, transactions);
-    await this.saveState(canvasId, state);
+    const releaseLock: LockReleaseFn = options?.releaseLock ?? (await this.lockState(canvasId));
+
+    this.logger.log(
+      `[syncState] sync state for canvas ${canvasId}, transactions: ${JSON.stringify(transactions)}`,
+    );
+    try {
+      const state = await this.getState(user, { canvasId, version });
+      updateCanvasState(state, transactions);
+      await this.saveState(canvasId, state);
+    } finally {
+      await releaseLock();
+    }
   }
 }
