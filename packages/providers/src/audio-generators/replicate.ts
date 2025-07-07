@@ -18,9 +18,13 @@ export class ReplicateAudioGenerator extends BaseAudioGenerator {
       Prefer: 'wait',
     };
 
+    // 根据模型类型决定使用prompt还是text参数
+    const isTextModel =
+      request.model === 'minimax/speech-02-hd' || request.model === 'minimax/speech-02-turbo';
+
     const data = {
       input: {
-        prompt: request.prompt,
+        ...(isTextModel ? { text: request.prompt } : { prompt: request.prompt }),
       },
     };
 

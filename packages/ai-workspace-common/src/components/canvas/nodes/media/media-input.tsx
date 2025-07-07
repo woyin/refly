@@ -17,6 +17,13 @@ const modelsByType = {
     'black-forest-labs/flux-schnell',
     'black-forest-labs/flux-dev',
     'black-forest-labs/flux-pro',
+    'bytedance/seedream-3',
+    'google/imagen-4',
+    'google/imagen-4-fast',
+    'google/imagen-4-ultra',
+    'ideogram-ai/ideogram-v3-turbo',
+    'ideogram-ai/ideogram-v3-quality',
+    'minimax/image-01',
   ],
   video: [
     'bytedance/seedance-1-pro',
@@ -26,7 +33,12 @@ const modelsByType = {
     'google/veo-3',
     'luma/ray-flash-2-540p',
   ],
-  audio: ['resemble-ai/chatterbox', 'google/lyria-2'],
+  audio: [
+    'minimax/speech-02-hd',
+    'minimax/speech-02-turbo',
+    'resemble-ai/chatterbox',
+    'google/lyria-2',
+  ],
 };
 
 const { TextArea } = Input;
