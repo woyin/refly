@@ -144,6 +144,8 @@ const translations = {
     agent: 'Agent',
     askDescription: 'Answer your question in a single step',
     agentDescription: 'Solve complex problems with multiple steps',
+    media: 'Media',
+    mediaDescription: 'Generate images/videos/audios',
   },
   pages: {
     share: {

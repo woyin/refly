@@ -5,9 +5,7 @@ import { Typography } from 'antd';
 import { CustomHandle } from '../shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo, useRef } from 'react';
 import { getNodeCommonStyles } from '../index';
-import { ModelInfo } from '@refly/openapi-schema';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { cleanupNodeEvents } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -95,25 +93,12 @@ export const MediaSkillNode = memo(
       50,
     );
 
-    const { skillSelectedModel, setSkillSelectedModel } = useChatStoreShallow((state) => ({
-      skillSelectedModel: state.skillSelectedModel,
-      setSkillSelectedModel: state.setSkillSelectedModel,
-    }));
-
     const setQuery = useCallback(
       (query: string) => {
         setLocalQuery(query);
         updateNodeData({ title: query, metadata: { query } });
       },
       [updateNodeData],
-    );
-
-    const setModelInfo = useCallback(
-      (modelInfo: ModelInfo | null) => {
-        setNodeData(id, { metadata: { modelInfo } });
-        setSkillSelectedModel(modelInfo);
-      },
-      [id, setNodeData, setSkillSelectedModel],
     );
 
     const setContextItems = useCallback(
@@ -178,12 +163,6 @@ export const MediaSkillNode = memo(
         resizeMoveable(offsetWidth, offsetHeight);
       }
     }, [resizeMoveable, targetRef.current?.offsetHeight]);
-
-    useEffect(() => {
-      if (skillSelectedModel && !modelInfo) {
-        setModelInfo(skillSelectedModel);
-      }
-    }, [skillSelectedModel, modelInfo, setModelInfo]);
 
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
 
@@ -308,6 +287,7 @@ export const MediaSkillNode = memo(
                     setTimeout(() => updateSize({ height: 'auto' }), 0);
                   }
                 }}
+                model={modelInfo?.name}
                 mediaType={mediaType}
                 setMediaType={setMediaType}
                 nodeId={id}

@@ -10,6 +10,7 @@ import type { CanvasEditConfig, InPlaceActionType } from '@refly/utils';
 import { MessageIntentSource } from '@refly-packages/ai-workspace-common/types/copilot';
 
 export type ChatBehavior = 'askIntentMatch' | 'askFollowUp' | 'askNew';
+export type ChatMode = 'ask' | 'agent' | 'media';
 
 export interface MessageIntentContext {
   canvasEditConfig?: CanvasEditConfig;
@@ -37,7 +38,7 @@ export interface ChatState {
 
   selectedModel: ModelInfo;
   skillSelectedModel: ModelInfo;
-  isPilotActivated: boolean;
+  chatMode: ChatMode;
   enableWebSearch: boolean;
   enableDeepReasonWebSearch: boolean;
   enableKnowledgeBaseSearch: boolean;
@@ -47,7 +48,7 @@ export interface ChatState {
   setMessageIntentContext: (val: MessageIntentContext) => void;
   setSelectedModel: (val: ModelInfo) => void;
   setSkillSelectedModel: (val: ModelInfo) => void;
-  setIsPilotActivated: (val: boolean) => void;
+  setChatMode: (val: ChatMode) => void;
   setEnableWebSearch: (val: boolean) => void;
   setEnableDeepReasonWebSearch: (val: boolean) => void;
   setEnableKnowledgeBaseSearch: (val: boolean) => void;
@@ -57,7 +58,7 @@ export interface ChatState {
 const defaultConfigurableState = {
   selectedModel: null,
   skillSelectedModel: null,
-  isPilotActivated: false,
+  chatMode: 'ask' as ChatMode,
   enableWebSearch: true,
   enableDeepReasonWebSearch: false,
   enableKnowledgeBaseSearch: true,
@@ -85,7 +86,7 @@ export const useChatStore = create<ChatState>()(
         setMessageIntentContext: (val: MessageIntentContext) => set({ messageIntentContext: val }),
         setSelectedModel: (val: ModelInfo) => set({ selectedModel: val }),
         setSkillSelectedModel: (val: ModelInfo) => set({ skillSelectedModel: val }),
-        setIsPilotActivated: (val: boolean) => set({ isPilotActivated: val }),
+        setChatMode: (val: ChatMode) => set({ chatMode: val }),
         setEnableWebSearch: (val: boolean) => set({ enableWebSearch: val }),
         setEnableDeepReasonWebSearch: (val: boolean) => set({ enableDeepReasonWebSearch: val }),
         setEnableKnowledgeBaseSearch: (val: boolean) => set({ enableKnowledgeBaseSearch: val }),
@@ -99,7 +100,7 @@ export const useChatStore = create<ChatState>()(
           newQAText: state.newQAText,
           selectedModel: state.selectedModel,
           skillSelectedModel: state.skillSelectedModel,
-          isPilotActivated: state.isPilotActivated,
+          chatMode: state.chatMode,
         }),
       },
     ),

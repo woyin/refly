@@ -152,6 +152,8 @@ const translations = {
     agent: 'Agent',
     askDescription: '单次回答问题',
     agentDescription: '多步解决复杂问题',
+    media: '媒体',
+    mediaDescription: '生成图片/视频/音频',
   },
   verifyRules: {
     emailRequired: '邮箱地址不能为空',
