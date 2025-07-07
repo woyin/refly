@@ -6109,7 +6109,15 @@ export const ListModelsResponseSchema = {
 
 export const ProviderCategorySchema = {
   type: 'string',
-  enum: ['llm', 'embedding', 'reranker', 'webSearch', 'urlParsing', 'pdfParsing'],
+  enum: [
+    'llm',
+    'embedding',
+    'reranker',
+    'webSearch',
+    'urlParsing',
+    'pdfParsing',
+    'mediaGeneration',
+  ],
 } as const;
 
 export const ProviderSchema = {
