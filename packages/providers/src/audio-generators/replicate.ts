@@ -44,7 +44,8 @@ export class ReplicateAudioGenerator extends BaseAudioGenerator {
     const result = await response.json();
 
     if (!result.output) {
-      throw new Error('No output URL found in response');
+      const errorMessage = result.error ? `:${JSON.stringify(result.error)}` : '';
+      throw new Error(`No URL${errorMessage}`);
     }
 
     return {
