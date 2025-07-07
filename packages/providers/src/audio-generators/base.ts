@@ -1,5 +1,5 @@
 /**
- * 音频生成请求接口
+ * Audio Generation Request Interface
  */
 export interface AudioGenerationRequest {
   prompt: string;
@@ -7,20 +7,20 @@ export interface AudioGenerationRequest {
 }
 
 /**
- * 音频生成响应接口
+ * Audio Generation Response Interface
  */
 export interface AudioGenerationResponse {
   output: string;
 }
 
 /**
- * 音频生成器基类
+ * Base Audio Generator
  */
 export abstract class BaseAudioGenerator {
   /**
-   * 生成音频
-   * @param request 音频生成请求
-   * @returns 音频生成响应
+   * Generate audio
+   * @param request audio generation request
+   * @returns audio generation response
    */
   abstract generate(request: AudioGenerationRequest): Promise<AudioGenerationResponse>;
 }

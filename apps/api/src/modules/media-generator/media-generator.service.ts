@@ -18,16 +18,16 @@ export class MediaGeneratorService {
   ) {}
 
   /**
-   * 启动异步媒体生成任务
-   * @param user 用户信息
-   * @param request 媒体生成请求
-   * @returns 包含resultId的响应
+   * Start asynchronous media generation task
+   * @param user User Information
+   * @param request Media Generation Request
+   * @returns Response containing resultId
    */
   async generateMedia(user: User, request: MediaGenerateRequest): Promise<MediaGenerateResponse> {
     try {
       const resultId = genActionResultID();
 
-      // 创建 ActionResult 记录
+      // Creating an ActionResult Record
       await this.prisma.actionResult.create({
         data: {
           resultId,
@@ -40,7 +40,7 @@ export class MediaGeneratorService {
         },
       });
 
-      // 异步执行媒体生成
+      // Perform media generation asynchronously
       this.executeMediaGeneration(user, resultId, request).catch((error) => {
         console.error(`Media generation failed for ${resultId}:`, error);
       });
@@ -58,9 +58,9 @@ export class MediaGeneratorService {
   }
 
   /**
-   * 执行媒体生成任务
-   * @param resultId 结果ID
-   * @param request 媒体生成请求
+   * Execute media generation tasks
+   * @param resultId Result ID
+   * @param request Media Generation Request
    */
   private async executeMediaGeneration(
     user: User,
@@ -68,7 +68,7 @@ export class MediaGeneratorService {
     request: MediaGenerateRequest,
   ): Promise<void> {
     try {
-      // 更新状态为执行中
+      // Update status to Executing
       await this.prisma.actionResult.update({
         where: { resultId_version: { resultId, version: 0 } },
         data: { status: 'executing' },
@@ -86,13 +86,13 @@ export class MediaGeneratorService {
           visibility: 'private',
         });
 
-        // 更新状态为完成，保存系统内部的存储信息
+        // The update status is completed, saving the storage information inside the system
         await this.prisma.actionResult.update({
           where: { resultId_version: { resultId, version: 0 } },
           data: {
             status: 'finish',
-            outputUrl: uploadResult.url, // 使用系统内部URL
-            storageKey: uploadResult.storageKey, // 保存存储键
+            outputUrl: uploadResult.url, // Using system internal URL
+            storageKey: uploadResult.storageKey, // Save storage key
           },
         });
       } else {
@@ -101,7 +101,7 @@ export class MediaGeneratorService {
     } catch (error) {
       console.error(`Media generation execution failed for ${resultId}:`, error);
 
-      // 更新状态为失败
+      // Update status is failed
       await this.prisma.actionResult.update({
         where: { resultId_version: { resultId, version: 0 } },
         data: {
