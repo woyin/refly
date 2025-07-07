@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { MediaGeneratorController } from './media-generator.controller';
 import { MediaGeneratorService } from './media-generator.service';
-import { PrismaService } from '../common/prisma.service';
-import { MiscService } from '../misc/misc.service';
+import { CommonModule } from '../common/common.module';
+import { MiscModule } from '../misc/misc.module';
 
 @Module({
+  imports: [CommonModule, MiscModule],
   controllers: [MediaGeneratorController],
-  providers: [MediaGeneratorService, PrismaService, MiscService],
+  providers: [MediaGeneratorService],
   exports: [MediaGeneratorService],
 })
 export class MediaGeneratorModule {}
