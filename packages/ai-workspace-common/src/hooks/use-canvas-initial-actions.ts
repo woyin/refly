@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useFrontPageStoreShallow } from '../stores/front-page';
 import { genActionResultID } from '@refly/utils/id';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
-import { useCanvasContext } from '../context/canvas';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import {
@@ -39,10 +38,6 @@ export const useCanvasInitialActions = (canvasId: string) => {
     setIsPilotOpen: state.setIsPilotOpen,
   }));
 
-  // Get canvas provider to check connection status
-  const { provider } = useCanvasContext();
-  const [isConnected, setIsConnected] = useState(false);
-
   // Store the required data to execute actions after connection
   const pendingActionRef = useRef<{
     source: string | null;
@@ -53,25 +48,6 @@ export const useCanvasInitialActions = (canvasId: string) => {
     runtimeConfig: SkillRuntimeConfig;
     isPilotActivated?: boolean;
   } | null>(null);
-
-  // Update connection status when provider status changes
-  useEffect(() => {
-    if (!provider) return;
-
-    const handleStatus = ({ status }: { status: string }) => {
-      setIsConnected(status === 'connected');
-    };
-
-    // Check initial status
-    setIsConnected(provider.status === 'connected');
-
-    // Listen for status changes
-    provider.on('status', handleStatus);
-
-    return () => {
-      provider.off('status', handleStatus);
-    };
-  }, [provider]);
 
   // Store parameters needed for actions when URL parameters are processed
   useEffect(() => {
@@ -118,10 +94,8 @@ export const useCanvasInitialActions = (canvasId: string) => {
     }
   }, []);
 
-  // Execute the actions once connected
   useEffect(() => {
-    // Only proceed if we're connected and have pending actions
-    if (isConnected && pendingActionRef.current && canvasId) {
+    if (pendingActionRef.current && canvasId) {
       const { query, selectedSkill, modelInfo, tplConfig, runtimeConfig, isPilotActivated } =
         pendingActionRef.current;
 
@@ -177,5 +151,5 @@ export const useCanvasInitialActions = (canvasId: string) => {
       // Clear pending action
       pendingActionRef.current = null;
     }
-  }, [canvasId, isConnected, invokeAction, addNode, reset]);
+  }, [canvasId, invokeAction, addNode, reset]);
 };
