@@ -7162,6 +7162,7 @@ components:
         - webSearch
         - urlParsing
         - pdfParsing
+        - mediaGeneration
     Provider:
       type: object
       description: General provider info

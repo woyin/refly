@@ -2063,6 +2063,7 @@ const translations = {
         pdfParsing: 'PDF 解析',
         reranker: '重排器',
         embedding: '嵌入',
+        mediaGeneration: '媒体生成',
       },
       // Provider Store 相关翻译
       community: {
@@ -2106,13 +2107,20 @@ const translations = {
       title: '模型配置',
       chatModels: '对话模型',
       otherModels: '其他模型',
+      conversationModels: '对话模型',
+      mediaGeneration: '媒体生成',
       addModel: '添加模型',
       editModel: '编辑模型',
       deleteConfirm: '确定删除模型 {{name}} 吗？',
+      deleteWarning: '删除后无法恢复，请谨慎操作',
+      disableDefaultModelTitle: '禁用默认模型',
+      disableDefaultModelContent:
+        '模型 {{modelName}} 已被应用到默认模型配置中，禁用后需要重新配置默认模型，确定禁用吗？',
       deleteSyncConfirm:
         '模型 {{name}} 已被应用到默认模型配置中，删除后需要重新配置默认模型，确定删除吗？',
       disableSyncConfirm:
         '模型 {{name}} 已被应用到默认模型配置中，禁用后需要重新配置默认模型，确定禁用吗？',
+      noMediaModels: '暂无媒体生成模型',
       provider: '供应商',
       providerPlaceholder: '请选择供应商',
       name: '模型名称',
