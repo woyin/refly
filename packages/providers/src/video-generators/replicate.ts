@@ -2,9 +2,9 @@ import { BaseVideoGenerator, VideoGenerationRequest, VideoGenerationResponse } f
 
 export class ReplicateVideoGenerator extends BaseVideoGenerator {
   /**
-   * 生成视频，使用异步轮询机制
-   * @param request 视频生成请求参数
-   * @returns 视频生成响应
+   * Generate video using asynchronous polling mechanism
+   * @param request video generation request
+   * @returns video generation response
    */
   async generate(request: VideoGenerationRequest): Promise<VideoGenerationResponse> {
     const url = `https://api.replicate.com/v1/models/${request.model}/predictions`;
@@ -47,14 +47,12 @@ export class ReplicateVideoGenerator extends BaseVideoGenerator {
         throw new Error('Replicate API returned no prediction id');
       }
 
-      //
       const pollingUrl = `https://api.replicate.com/v1/predictions/${predictionId}`;
       let output = result.output;
 
       while (status !== 'succeeded' && status !== 'failed' && status !== 'canceled') {
         console.log(`Polling prediction ${predictionId}, current status: ${status} ...`);
 
-        //
         await new Promise((resolve) => setTimeout(resolve, 3000));
 
         const pollResponse = await fetch(pollingUrl, {
@@ -74,7 +72,7 @@ export class ReplicateVideoGenerator extends BaseVideoGenerator {
         output = pollResult.output;
       }
 
-      //
+      // add video url to output
       if (
         status !== 'succeeded' ||
         !output ||

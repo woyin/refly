@@ -4,46 +4,46 @@ export interface BaseProvider {
   baseUrl?: string;
 }
 
-// 多模态 Provider 基础接口
+// Multimodal Provider base interface
 export interface MultimodalProvider extends BaseProvider {
   model: string;
   maxWidth?: number;
   maxHeight?: number;
-  // 异步任务配置
-  pollInterval?: number; // 轮询间隔（毫秒）
-  maxPollAttempts?: number; // 最大轮询次数
-  webhookUrl?: string; // webhook 回调地址（可选）
+  // Asynchronous task configuration
+  pollInterval?: number; // Polling interval (milliseconds)
+  maxPollAttempts?: number; // Maximum polling times
+  webhookUrl?: string; // webhook Callback address (optional)
 }
 
-// 图像生成专用配置
+// Image Generation Provider
 export interface ImageGenerationProvider extends MultimodalProvider {
   providerKey: 'replicate' | 'fal' | string;
 }
 
-// 视频生成专用配置
+// Video Generation Provider
 export interface VideoGenerationProvider extends MultimodalProvider {
   providerKey: 'replicate' | 'fal' | string;
 }
 
-// 音频生成专用配置
+// Audio Generation Provider
 export interface AudioGenerationProvider extends MultimodalProvider {
   providerKey: 'replicate' | 'fal' | string;
 }
 
-// 统一的生成请求接口
+// Unified generation request interface
 export interface GenerationRequest {
   prompt: string;
   negativePrompt?: string;
-  // 媒体特定参数
+  // Media Specific Parameters
   width?: number;
   height?: number;
-  duration?: number; // 音频/视频
-  fps?: number; // 视频帧率
-  // 输入媒体
+  duration?: number; // Audio/Video
+  fps?: number; // Video frame rate
+  // Input Media
   inputImage?: string;
   inputAudio?: string;
   inputVideo?: string;
-  // 通用参数
+  // General parameters
   seed?: number;
   steps?: number;
   guidance?: number;
@@ -52,7 +52,7 @@ export interface GenerationRequest {
   count?: number;
 }
 
-// 统一的生成响应接口
+// Unified response generation interface
 export interface GenerationResponse {
   outputs: GeneratedMedia[];
   metadata: {
@@ -65,7 +65,7 @@ export interface GenerationResponse {
       credits?: number;
       processingTime?: number;
     };
-    taskId?: string; // 异步任务 ID
+    taskId?: string; // Asynchronous task ID
   };
 }
 
