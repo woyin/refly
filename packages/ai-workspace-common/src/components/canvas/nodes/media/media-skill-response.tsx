@@ -38,8 +38,7 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
-
-export type MediaType = 'image' | 'video' | 'audio';
+import { MediaType } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   mediaType?: MediaType;

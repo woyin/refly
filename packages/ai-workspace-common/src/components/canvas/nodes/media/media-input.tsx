@@ -1,16 +1,22 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Input, Button, Dropdown } from 'antd';
 import { SendOutlined, DownOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { HiOutlineFilm, HiOutlineSpeakerWave } from 'react-icons/hi2';
-import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { genMediaSkillResponseID } from '@refly/utils/id';
-import { useReactFlow } from '@xyflow/react';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { CanvasNodeFilter } from '@refly/canvas-common';
+import {
+  IconImage,
+  IconVideo,
+  IconAudio,
+} from '@refly-packages/ai-workspace-common/components/common/icon';
+import {
+  MediaType,
+  nodeOperationsEmitter,
+} from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { cn } from '@refly/utils/cn';
-export type MediaType = 'image' | 'video' | 'audio';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
+import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
+import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
 
 const modelsByType = {
   image: [
@@ -44,22 +50,48 @@ const modelsByType = {
 const { TextArea } = Input;
 
 interface MediaChatInputProps {
+  showChatModeSelector?: boolean;
   readonly: boolean;
   query: string;
   setQuery: (value: string) => void;
   mediaType: MediaType;
   setMediaType: (type: MediaType) => void;
-  nodeId: string;
+  nodeId?: string;
   onSend?: () => void;
+  model?: string;
 }
 
 const MediaChatInput = memo(
-  ({ readonly, query, setQuery, mediaType, setMediaType, nodeId, onSend }: MediaChatInputProps) => {
+  ({
+    readonly,
+    query,
+    setQuery,
+    mediaType,
+    setMediaType,
+    nodeId,
+    onSend,
+    showChatModeSelector,
+    model,
+  }: MediaChatInputProps) => {
     const { t } = useTranslation();
-    const { addNode } = useAddNode();
-    const { getNode } = useReactFlow();
     const [loading, setLoading] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<string>('');
+    const [selectedModel, setSelectedModel] = useState<string>(model || '');
+    const useDefaultModel = useRef(!!selectedModel);
+    const { projectId, isCanvasOpen } = useGetProjectCanvasId();
+    const { debouncedCreateCanvas } = useCreateCanvas({
+      projectId,
+      afterCreateSuccess: () => {
+        // Canvas creation is handled by the hook itself
+      },
+    });
+
+    const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
+      chatMode: state.chatMode,
+      setChatMode: state.setChatMode,
+    }));
+    const { setMediaQueryData } = useFrontPageStoreShallow((state) => ({
+      setMediaQueryData: state.setMediaQueryData,
+    }));
 
     const mediaOptions = useMemo(() => {
       return [
@@ -71,12 +103,12 @@ const MediaChatInput = memo(
         {
           value: 'video',
           label: t('canvas.nodes.mediaSkill.video', 'Video'),
-          icon: HiOutlineFilm,
+          icon: IconVideo,
         },
         {
           value: 'audio',
           label: t('canvas.nodes.mediaSkill.audio', 'Audio'),
-          icon: HiOutlineSpeakerWave,
+          icon: IconAudio,
         },
       ];
     }, [t]);
@@ -86,7 +118,12 @@ const MediaChatInput = memo(
     }, [mediaType]);
 
     // Set default model when mediaType changes
-    React.useEffect(() => {
+    useEffect(() => {
+      if (useDefaultModel.current) {
+        useDefaultModel.current = false;
+        return;
+      }
+      console.log('availableModels', availableModels, availableModels.includes(selectedModel));
       if (availableModels.length > 0 && !availableModels.includes(selectedModel)) {
         setSelectedModel(availableModels[0]);
       }
@@ -113,7 +150,9 @@ const MediaChatInput = memo(
             <span className="text-sm">{option.label}</span>
           </div>
         ),
-        onClick: () => setMediaType(option.value as MediaType),
+        onClick: () => {
+          setMediaType(option.value as MediaType);
+        },
       }));
     }, [mediaOptions, setMediaType]);
 
@@ -152,57 +191,27 @@ const MediaChatInput = memo(
         setLoading(true);
 
         try {
-          const { data } = await getClient().generateMedia({
-            body: {
-              prompt: query,
-              mediaType,
-              provider: 'replicate',
-              model: selectedModel,
-            },
-          });
-
-          if (data?.success && data?.resultId) {
-            // Create MediaSkillResponse node
-            const resultId = data.resultId;
-            const entityId = genMediaSkillResponseID();
-
-            const newNode = {
-              type: 'mediaSkillResponse' as const,
-              data: {
-                title: query,
-                entityId,
-                metadata: {
-                  status: 'waiting' as const,
-                  mediaType,
-                  prompt: query,
-                  model: selectedModel,
-                  resultId,
-                },
-              },
-            };
-
-            const currentNode = getNode(nodeId);
-            const connectedTo: CanvasNodeFilter[] = currentNode
-              ? [
-                  {
-                    type: 'mediaSkill',
-                    entityId: currentNode.data?.entityId as string,
-                    handleType: 'source',
-                  },
-                ]
-              : [];
-
-            addNode(newNode, connectedTo, false, true);
+          // Check if there's no canvas open
+          if (!isCanvasOpen) {
+            // Create a new canvas first
+            const mediaQueryData = { mediaType, query, model: selectedModel };
+            setMediaQueryData(mediaQueryData);
+            debouncedCreateCanvas('front-page', { isMediaGeneration: true });
           } else {
-            console.error('Failed to generate media', data);
+            nodeOperationsEmitter.emit('generateMedia', {
+              mediaType,
+              query,
+              model: selectedModel,
+              nodeId: nodeId || '',
+            });
           }
         } catch (error) {
-          console.error('Failed to generate media', error);
+          console.error('Failed to emit generateMedia event', error);
         } finally {
           setLoading(false);
         }
       },
-      [loading, selectedModel, getNode, nodeId, addNode],
+      [loading, selectedModel, nodeId, isCanvasOpen, debouncedCreateCanvas],
     );
 
     const handleSend = useCallback(() => {
@@ -257,29 +266,42 @@ const MediaChatInput = memo(
 
         {!readonly && (
           <div className="flex justify-between items-center gap-2 mt-2">
-            {/* Model Selector */}
-            <Dropdown
-              menu={{ items: modelDropdownItems }}
-              disabled={readonly || availableModels.length === 0}
-              placement="bottomLeft"
-            >
-              <Button size="small" className="flex items-center gap-1 border-none shadow-none px-0">
-                <span className="text-sm">{selectedModel || 'Select Model'}</span>
-                <DownOutlined className="w-3 h-3" />
-              </Button>
-            </Dropdown>
-
-            {/* Media Type Selector */}
             <div className="flex items-center gap-2">
-              <Dropdown menu={{ items: dropdownItems }} disabled={readonly} placement="bottomRight">
+              {/* Chat Mode Selector */}
+              {showChatModeSelector && (
+                <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
+              )}
+
+              {/* Model Selector */}
+              <Dropdown
+                trigger={['click']}
+                menu={{ items: modelDropdownItems }}
+                disabled={readonly || availableModels.length === 0}
+                placement="bottomLeft"
+              >
+                <Button size="small" className="flex items-center gap-1 border-none shadow-none">
+                  <span className="text-xs">{selectedModel || 'Select Model'}</span>
+                  <DownOutlined className="w-3 h-3" />
+                </Button>
+              </Dropdown>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Dropdown
+                trigger={['click']}
+                menu={{ items: dropdownItems }}
+                disabled={readonly}
+                placement="bottomRight"
+              >
                 <Button size="small" className="flex items-center gap-1">
                   {currentMediaOption && <currentMediaOption.icon className="w-4 h-4" />}
-                  <span className="text-sm">{currentMediaOption?.label}</span>
+                  <span className="text-xs">{currentMediaOption?.label}</span>
                   <DownOutlined className="w-3 h-3" />
                 </Button>
               </Dropdown>
 
               <Button
+                className="text-xs"
                 size="small"
                 type="primary"
                 icon={<SendOutlined />}
