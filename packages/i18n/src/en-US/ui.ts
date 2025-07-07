@@ -2275,6 +2275,7 @@ const translations = {
         pdfParsing: 'PDF Parsing',
         reranker: 'Reranker',
         embedding: 'Embedding',
+        mediaGeneration: 'Media Generation',
       },
       // Provider Store related translations
       community: {
@@ -2329,6 +2330,8 @@ const translations = {
       title: 'Model Config',
       chatModels: 'Chat Models',
       otherModels: 'Other Models',
+      conversationModels: 'Conversation Models',
+      mediaGeneration: 'Media Generation',
       addModel: 'Add Model',
       editModel: 'Edit Model',
       deleteSyncConfirm:
@@ -2336,6 +2339,11 @@ const translations = {
       disableSyncConfirm:
         '{{name}}​​ has been applied to the default model. Disabling it will reset your default settings. Proceed?',
       deleteConfirm: 'Are you sure you want to delete the model {{name}}?',
+      deleteWarning: 'This action cannot be undone. Please proceed with caution.',
+      disableDefaultModelTitle: 'Disable Default Model',
+      disableDefaultModelContent:
+        'Model {{modelName}} has been applied to the default model configuration. Disabling it will require reconfiguring the default model. Proceed?',
+      noMediaModels: 'No media generation models',
       provider: 'Provider',
       providerPlaceholder: 'Please select the provider',
       name: 'Model Name',

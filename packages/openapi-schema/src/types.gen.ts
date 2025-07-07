@@ -4258,7 +4258,8 @@ export type ProviderCategory =
   | 'reranker'
   | 'webSearch'
   | 'urlParsing'
-  | 'pdfParsing';
+  | 'pdfParsing'
+  | 'mediaGeneration';
 
 /**
  * General provider info
