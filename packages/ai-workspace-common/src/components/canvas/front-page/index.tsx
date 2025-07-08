@@ -273,7 +273,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
           {canvasTemplateEnabled && (
             <div className="h-full flex flex-col mt-10">
-              <div className="flex justify-between items-center pt-6 mx-2">
+              <div className="flex justify-between items-center mx-2">
                 <div>
                   <h3 className="text-base font-medium">{t('frontPage.fromCommunity')}</h3>
                   <p className="text-xs text-gray-500 mt-1">{t('frontPage.fromCommunityDesc')}</p>

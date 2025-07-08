@@ -26,19 +26,7 @@ export const useGetMediaModel = () => {
 
   useEffect(() => {
     if (data?.data) {
-      setMediaModelList(
-        data.data.map((item) => ({
-          ...item,
-          config: {
-            ...item.config,
-            capabilities: {
-              image: item.group === '图片',
-              video: item.group === '视频',
-              audio: item.group === '音频',
-            },
-          },
-        })),
-      );
+      setMediaModelList(data.data);
     }
   }, [data?.data, setMediaModelList]);
 
