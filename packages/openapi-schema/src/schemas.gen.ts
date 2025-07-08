@@ -3221,6 +3221,22 @@ export const GetCanvasStateResponseSchema = {
   ],
 } as const;
 
+export const SetCanvasStateRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'state'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    state: {
+      type: 'object',
+      description: 'Canvas state to set',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
 export const GetCanvasTransactionsResponseSchema = {
   allOf: [
     {
@@ -3388,6 +3404,78 @@ export const SyncCanvasStateResponseSchema = {
           type: 'object',
           description: 'Apply canvas state result',
           $ref: '#/components/schemas/SyncCanvasStateResult',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const CreateCanvasVersionRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'state'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    state: {
+      type: 'object',
+      description: 'Canvas state',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
+export const VersionConflictSchema = {
+  type: 'object',
+  required: ['localState', 'remoteState'],
+  properties: {
+    localState: {
+      type: 'object',
+      description: 'Local canvas state',
+      $ref: '#/components/schemas/CanvasState',
+    },
+    remoteState: {
+      type: 'object',
+      description: 'Server canvas state',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
+export const CreateCanvasVersionResultSchema = {
+  type: 'object',
+  required: ['canvasId'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    conflict: {
+      type: 'object',
+      description: 'Version conflict (when there is a conflict)',
+      $ref: '#/components/schemas/VersionConflict',
+    },
+    newState: {
+      type: 'object',
+      description: 'New canvas state (when there is no conflict)',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
+export const CreateCanvasVersionResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Create canvas version result',
+          $ref: '#/components/schemas/CreateCanvasVersionResult',
         },
       },
     },

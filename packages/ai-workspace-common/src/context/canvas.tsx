@@ -21,6 +21,7 @@ import {
   CanvasConflictException,
   purgeContextItems,
   calculateCanvasStateDiff,
+  getLastTransaction,
 } from '@refly/canvas-common';
 import {
   useCanvasStore,
@@ -30,7 +31,19 @@ import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
 import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';
 
+// Remote sync interval
+const SYNC_REMOTE_INTERVAL = 2000;
+
+// Poll remote interval
 const POLL_TX_INTERVAL = 3000;
+
+// Max number of transactions in a state
+// If the number of transactions is greater than this threshold, a new version will be created
+const MAX_STATE_TX_COUNT = 100;
+
+// Max version age (1 hour) in milliseconds
+// If the last transaction is older than this threshold, a new version will be created
+const MAX_VERSION_AGE = 1000 * 60 * 60;
 
 interface CanvasContextType {
   canvasId: string;
@@ -39,7 +52,6 @@ interface CanvasContextType {
   shareLoading: boolean;
   shareNotFound?: boolean;
   shareData?: RawCanvasData;
-  isPolling: boolean;
   lastUpdated?: number;
 
   syncCanvasData: () => Promise<void>;
@@ -49,13 +61,11 @@ interface CanvasContextType {
 
 // HTTP interface to get canvas state
 const getCanvasState = async (canvasId: string): Promise<CanvasState> => {
-  const { data, error } = await getClient().getCanvasState({ query: { canvasId } });
-  if (error) {
-    throw error;
-  }
-  return data.data;
+  const { data } = await getClient().getCanvasState({ query: { canvasId } });
+  return data?.data;
 };
 
+// Poll canvas transactions from server
 const pollCanvasTransactions = async (
   canvasId: string,
   version: string,
@@ -73,10 +83,24 @@ const pollCanvasTransactions = async (
   return data.data;
 };
 
+const createCanvasVersion = async (canvasId: string, state: CanvasState) => {
+  const { data } = await getClient().createCanvasVersion({
+    body: { canvasId, state },
+  });
+  return data?.data;
+};
+
 // Sync canvas state with remote
 const syncWithRemote = async (canvasId: string) => {
   const state = await get<CanvasState>(`canvas-state:${canvasId}`);
   if (!state) {
+    return;
+  }
+
+  // If the number of transactions is greater than the threshold, create a new version
+  if (state.transactions?.length > MAX_STATE_TX_COUNT) {
+    const newState = await createCanvasVersion(canvasId, state);
+    await set(`canvas-state:${canvasId}`, newState);
     return;
   }
 
@@ -147,11 +171,11 @@ export const CanvasProvider = ({
   readonly?: boolean;
   children: React.ReactNode;
 }) => {
-  const [isPolling, setIsPolling] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number>();
   const [loading, setLoading] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstPollRef = useRef(true);
+
+  const isSyncingRemoteRef = useRef(false); // Lock for syncWithRemote
+  const isSyncingLocalRef = useRef(false); // Lock for syncCanvasData
 
   const { setState, getState } = useStoreApi();
   const { setCanvasTitle, setCanvasInitialized } = useCanvasStoreShallow((state) => ({
@@ -201,13 +225,17 @@ export const CanvasProvider = ({
   }, [readonly, canvasData, canvasDetail, canvasId]);
 
   // Set up sync job that runs every 2 seconds
-  const isSyncingRemoteRef = useRef(false);
   useEffect(() => {
     if (!canvasId || readonly) return;
 
     const intervalId = setInterval(async () => {
       // Prevent multiple instances from running simultaneously
       if (isSyncingRemoteRef.current) return;
+
+      const { canvasInitialized } = useCanvasStore.getState();
+      if (!canvasInitialized[canvasId]) {
+        return;
+      }
 
       isSyncingRemoteRef.current = true;
       try {
@@ -217,7 +245,7 @@ export const CanvasProvider = ({
       } finally {
         isSyncingRemoteRef.current = false;
       }
-    }, 3000); // Run every 3 seconds
+    }, SYNC_REMOTE_INTERVAL);
 
     return () => {
       clearInterval(intervalId);
@@ -225,7 +253,6 @@ export const CanvasProvider = ({
   }, [canvasId]);
 
   const { getNodes, getEdges } = useReactFlow();
-  const isSyncingLocalRef = useRef(false);
 
   // Sync canvas data to local state
   const syncCanvasData = useDebouncedCallback(async () => {
@@ -318,6 +345,9 @@ export const CanvasProvider = ({
       }
 
       const remoteState = await getCanvasState(canvasId);
+      if (!remoteState) {
+        return;
+      }
       console.log('remoteState', remoteState);
 
       let finalState: CanvasState;
@@ -340,6 +370,14 @@ export const CanvasProvider = ({
         }
       }
 
+      const lastTransaction = getLastTransaction(finalState);
+      if (
+        finalState.transactions?.length > MAX_STATE_TX_COUNT ||
+        lastTransaction?.createdAt < Date.now() - MAX_VERSION_AGE
+      ) {
+        await createCanvasVersion(canvasId, finalState);
+      }
+
       updateCanvasDataFromState(finalState);
 
       await set(`canvas-state:${canvasId}`, finalState);
@@ -359,20 +397,8 @@ export const CanvasProvider = ({
   useEffect(() => {
     if (readonly) return;
 
-    setIsPolling(true);
-
     // Initial fetch
     initialFetchCanvasState();
-
-    // intervalRef.current = setInterval(pollCanvasState, POLLING_INTERVAL);
-
-    return () => {
-      setIsPolling(false);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
   }, [canvasId, readonly, initialFetchCanvasState]);
 
   const undo = useCallback(async () => {
@@ -471,7 +497,6 @@ export const CanvasProvider = ({
       setState({ nodes: [], edges: [] });
       setLoading(false);
       setCanvasInitialized(canvasId, false);
-      isFirstPollRef.current = true;
     };
   }, [canvasId, readonly]);
 
@@ -484,7 +509,6 @@ export const CanvasProvider = ({
         shareLoading,
         shareNotFound,
         shareData: canvasData,
-        isPolling,
         lastUpdated,
         syncCanvasData,
         undo,

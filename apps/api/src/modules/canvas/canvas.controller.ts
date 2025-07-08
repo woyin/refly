@@ -24,6 +24,9 @@ import {
   GetCanvasStateResponse,
   BaseResponse,
   GetCanvasTransactionsResponse,
+  CreateCanvasVersionRequest,
+  CreateCanvasVersionResponse,
+  SetCanvasStateRequest,
 } from '@refly/openapi-schema';
 import { CanvasSyncService } from './canvas-sync.service';
 
@@ -110,6 +113,16 @@ export class CanvasController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('setState')
+  async setCanvasState(
+    @LoginedUser() user: User,
+    @Body() body: SetCanvasStateRequest,
+  ): Promise<BaseResponse> {
+    await this.canvasSyncService.setState(user, body);
+    return buildSuccessResponse();
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('getTx')
   async getCanvasTransactions(
     @LoginedUser() user: User,
@@ -133,5 +146,15 @@ export class CanvasController {
   ): Promise<BaseResponse> {
     await this.canvasSyncService.syncState(user, body);
     return buildSuccessResponse({});
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('createVersion')
+  async createCanvasVersion(
+    @LoginedUser() user: User,
+    @Body() body: CreateCanvasVersionRequest,
+  ): Promise<CreateCanvasVersionResponse> {
+    const result = await this.canvasSyncService.createCanvasVersion(user, body);
+    return buildSuccessResponse(result);
   }
 }

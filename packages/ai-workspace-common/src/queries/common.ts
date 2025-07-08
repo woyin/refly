@@ -15,6 +15,7 @@ import {
   convert,
   createCanvas,
   createCanvasTemplate,
+  createCanvasVersion,
   createCheckoutSession,
   createCodeArtifact,
   createDocument,
@@ -104,6 +105,7 @@ import {
   scrape,
   search,
   serveStatic,
+  setCanvasState,
   sharePage,
   streamInvokeSkill,
   syncCanvasState,
@@ -698,10 +700,22 @@ export const UseAutoNameCanvasKeyFn = (mutationKey?: Array<unknown>) => [
   useAutoNameCanvasKey,
   ...(mutationKey ?? []),
 ];
+export type SetCanvasStateMutationResult = Awaited<ReturnType<typeof setCanvasState>>;
+export const useSetCanvasStateKey = 'SetCanvasState';
+export const UseSetCanvasStateKeyFn = (mutationKey?: Array<unknown>) => [
+  useSetCanvasStateKey,
+  ...(mutationKey ?? []),
+];
 export type SyncCanvasStateMutationResult = Awaited<ReturnType<typeof syncCanvasState>>;
 export const useSyncCanvasStateKey = 'SyncCanvasState';
 export const UseSyncCanvasStateKeyFn = (mutationKey?: Array<unknown>) => [
   useSyncCanvasStateKey,
+  ...(mutationKey ?? []),
+];
+export type CreateCanvasVersionMutationResult = Awaited<ReturnType<typeof createCanvasVersion>>;
+export const useCreateCanvasVersionKey = 'CreateCanvasVersion';
+export const UseCreateCanvasVersionKeyFn = (mutationKey?: Array<unknown>) => [
+  useCreateCanvasVersionKey,
   ...(mutationKey ?? []),
 ];
 export type CreateCanvasTemplateMutationResult = Awaited<ReturnType<typeof createCanvasTemplate>>;

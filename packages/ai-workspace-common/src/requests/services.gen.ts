@@ -102,12 +102,18 @@ import type {
   GetCanvasStateData,
   GetCanvasStateError,
   GetCanvasStateResponse2,
+  SetCanvasStateData,
+  SetCanvasStateError,
+  SetCanvasStateResponse,
   GetCanvasTransactionsData,
   GetCanvasTransactionsError,
   GetCanvasTransactionsResponse2,
   SyncCanvasStateData,
   SyncCanvasStateError,
   SyncCanvasStateResponse2,
+  CreateCanvasVersionData,
+  CreateCanvasVersionError,
+  CreateCanvasVersionResponse2,
   ListCanvasTemplatesData,
   ListCanvasTemplatesError,
   ListCanvasTemplatesResponse,
@@ -864,6 +870,23 @@ export const getCanvasState = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Set canvas state
+ * Set canvas state, should only be used in conflict resolution
+ */
+export const setCanvasState = <ThrowOnError extends boolean = false>(
+  options: Options<SetCanvasStateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    SetCanvasStateResponse,
+    SetCanvasStateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/setState',
+  });
+};
+
+/**
  * Get canvas transactions
  * Get canvas transactions
  */
@@ -894,6 +917,23 @@ export const syncCanvasState = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/canvas/syncState',
+  });
+};
+
+/**
+ * Create canvas version
+ * Create a new canvas version
+ */
+export const createCanvasVersion = <ThrowOnError extends boolean = false>(
+  options: Options<CreateCanvasVersionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    CreateCanvasVersionResponse2,
+    CreateCanvasVersionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/createVersion',
   });
 };
 

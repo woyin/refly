@@ -133,6 +133,18 @@ export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
   return currentData;
 };
 
+/**
+ * Get the last transaction from canvas state
+ * @param state - The canvas state
+ * @returns The last transaction
+ */
+export const getLastTransaction = (state: CanvasState): CanvasTransaction | null => {
+  if (!state.transactions?.length) {
+    return null;
+  }
+  return state.transactions[state.transactions.length - 1];
+};
+
 export class CanvasConflictException extends Error {
   constructor(
     public readonly conflictType: 'node' | 'edge',

@@ -2385,6 +2385,17 @@ export type GetCanvasStateResponse = BaseResponse & {
   data?: CanvasState;
 };
 
+export type SetCanvasStateRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Canvas state to set
+   */
+  state: CanvasState;
+};
+
 export type GetCanvasTransactionsResponse = BaseResponse & {
   /**
    * Canvas diff list
@@ -2493,6 +2504,50 @@ export type SyncCanvasStateResponse = BaseResponse & {
    * Apply canvas state result
    */
   data?: SyncCanvasStateResult;
+};
+
+export type CreateCanvasVersionRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Canvas state
+   */
+  state: CanvasState;
+};
+
+export type VersionConflict = {
+  /**
+   * Local canvas state
+   */
+  localState: CanvasState;
+  /**
+   * Server canvas state
+   */
+  remoteState: CanvasState;
+};
+
+export type CreateCanvasVersionResult = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Version conflict (when there is a conflict)
+   */
+  conflict?: VersionConflict;
+  /**
+   * New canvas state (when there is no conflict)
+   */
+  newState?: CanvasState;
+};
+
+export type CreateCanvasVersionResponse = BaseResponse & {
+  /**
+   * Create canvas version result
+   */
+  data?: CreateCanvasVersionResult;
 };
 
 export type ListCanvasTemplateResponse = BaseResponse & {
@@ -5131,6 +5186,14 @@ export type GetCanvasStateResponse2 = GetCanvasStateResponse;
 
 export type GetCanvasStateError = unknown;
 
+export type SetCanvasStateData = {
+  body: SetCanvasStateRequest;
+};
+
+export type SetCanvasStateResponse = BaseResponse;
+
+export type SetCanvasStateError = unknown;
+
 export type GetCanvasTransactionsData = {
   query: {
     /**
@@ -5159,6 +5222,14 @@ export type SyncCanvasStateData = {
 export type SyncCanvasStateResponse2 = SyncCanvasStateResponse;
 
 export type SyncCanvasStateError = unknown;
+
+export type CreateCanvasVersionData = {
+  body: CreateCanvasVersionRequest;
+};
+
+export type CreateCanvasVersionResponse2 = CreateCanvasVersionResponse;
+
+export type CreateCanvasVersionError = unknown;
 
 export type ListCanvasTemplatesData = {
   query?: {

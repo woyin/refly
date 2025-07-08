@@ -4,7 +4,6 @@ import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { CollabService } from '../collab/collab.service';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-search';
 import { CanvasNotFoundError, ParamsError, StorageQuotaExceeded } from '@refly/errors';
@@ -51,7 +50,6 @@ export class CanvasService {
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
-    private collabService: CollabService,
     private miscService: MiscService,
     private actionService: ActionService,
     private canvasSyncService: CanvasSyncService,

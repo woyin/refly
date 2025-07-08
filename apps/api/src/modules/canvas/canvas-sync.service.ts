@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import hash from 'object-hash';
 import * as Y from 'yjs';
 import {
   SyncCanvasStateRequest,
@@ -6,8 +7,17 @@ import {
   CanvasState,
   GetCanvasStateData,
   GetCanvasTransactionsData,
+  CreateCanvasVersionRequest,
+  SetCanvasStateRequest,
+  CreateCanvasVersionResult,
 } from '@refly/openapi-schema';
-import { initEmptyCanvasState, updateCanvasState } from '@refly/canvas-common';
+import {
+  getCanvasDataFromState,
+  getLastTransaction,
+  initEmptyCanvasState,
+  updateCanvasState,
+  mergeCanvasStates,
+} from '@refly/canvas-common';
 import {
   CanvasNotFoundError,
   CanvasVersionNotFoundError,
@@ -253,6 +263,99 @@ export class CanvasSyncService {
       const state = await this.getState(user, { canvasId, version });
       updateCanvasState(state, transactions);
       await this.saveState(canvasId, state);
+    } finally {
+      await releaseLock();
+    }
+  }
+
+  /**
+   * Forcefully set canvas state, should only be used in conflict resolution.
+   * For normal cases, use syncState instead.
+   * @param user - The user
+   * @param param - The set canvas state request
+   * @returns The new canvas state
+   */
+  async setState(user: User, param: SetCanvasStateRequest) {
+    const { canvasId, state } = param;
+    const canvas = await this.prisma.canvas.findFirst({
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    if (!canvas) {
+      throw new CanvasNotFoundError();
+    }
+
+    const releaseLock = await this.lockState(canvasId);
+    try {
+      await this.saveState(canvasId, state);
+
+      if (canvas.version !== state.version) {
+        await this.prisma.canvas.update({
+          where: { canvasId },
+          data: { version: state.version },
+        });
+      }
+    } finally {
+      await releaseLock();
+    }
+  }
+
+  async createCanvasVersion(
+    user: User,
+    param: CreateCanvasVersionRequest,
+  ): Promise<CreateCanvasVersionResult> {
+    const { canvasId, state } = param;
+    const canvas = await this.prisma.canvas.findFirst({ where: { canvasId, uid: user.uid } });
+    if (!canvas) {
+      throw new CanvasNotFoundError();
+    }
+
+    const releaseLock = await this.lockState(canvasId);
+    const serverState = await this.getState(user, { canvasId, version: canvas.version });
+
+    if (canvas.version !== state.version) {
+      return {
+        canvasId,
+        conflict: {
+          localState: state,
+          remoteState: serverState,
+        },
+      };
+    }
+
+    // Merge local and server state to avoid possible data loss
+    const finalState = mergeCanvasStates(state, serverState);
+    const lastTransaction = getLastTransaction(finalState);
+
+    try {
+      const canvasData = getCanvasDataFromState(state);
+      const newState: CanvasState = {
+        ...canvasData,
+        version: genCanvasVersionId(),
+        transactions: [],
+        history: [
+          {
+            version: canvas.version,
+            timestamp: lastTransaction?.createdAt ?? Date.now(),
+            hash: hash(state),
+          },
+        ],
+      };
+      const stateStorageKey = await this.saveState(canvasId, newState);
+
+      await this.prisma.$transaction([
+        this.prisma.canvasVersion.create({
+          data: { canvasId, stateStorageKey, version: newState.version, hash: '' },
+        }),
+        this.prisma.canvas.update({
+          where: { canvasId },
+          data: { version: newState.version },
+        }),
+      ]);
+
+      return {
+        canvasId,
+        newState,
+      };
     } finally {
       await releaseLock();
     }

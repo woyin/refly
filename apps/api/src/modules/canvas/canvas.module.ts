@@ -9,7 +9,6 @@ import {
   PostDeleteCanvasProcessor,
   VerifyNodeAdditionProcessor,
 } from './canvas.processor';
-import { CollabModule } from '../collab/collab.module';
 import {
   QUEUE_DELETE_KNOWLEDGE_ENTITY,
   QUEUE_POST_DELETE_CANVAS,
@@ -28,7 +27,6 @@ import { CanvasSyncService } from './canvas-sync.service';
 @Module({
   imports: [
     CommonModule,
-    CollabModule,
     MiscModule,
     KnowledgeModule,
     ActionModule,

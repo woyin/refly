@@ -754,6 +754,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCanvasStateResponse'
+  /canvas/setState:
+    post:
+      tags:
+        - canvas
+      summary: Set canvas state
+      description: Set canvas state, should only be used in conflict resolution
+      operationId: setCanvasState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCanvasStateRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /canvas/getTx:
     get:
       tags:
@@ -807,6 +827,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SyncCanvasStateResponse'
+  /canvas/createVersion:
+    post:
+      tags:
+        - canvas
+      summary: Create canvas version
+      description: Create a new canvas version
+      operationId: createCanvasVersion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCanvasVersionRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCanvasVersionResponse'
   /template/list:
     get:
       tags:
@@ -5288,6 +5328,19 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/CanvasState'
+    SetCanvasStateRequest:
+      type: object
+      required:
+        - canvasId
+        - state
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        state:
+          type: object
+          description: Canvas state to set
+          $ref: '#/components/schemas/CanvasState'
     GetCanvasTransactionsResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -5416,6 +5469,58 @@ components:
               type: object
               description: Apply canvas state result
               $ref: '#/components/schemas/SyncCanvasStateResult'
+    CreateCanvasVersionRequest:
+      type: object
+      required:
+        - canvasId
+        - state
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        state:
+          type: object
+          description: Canvas state
+          $ref: '#/components/schemas/CanvasState'
+    VersionConflict:
+      type: object
+      required:
+        - localState
+        - remoteState
+      properties:
+        localState:
+          type: object
+          description: Local canvas state
+          $ref: '#/components/schemas/CanvasState'
+        remoteState:
+          type: object
+          description: Server canvas state
+          $ref: '#/components/schemas/CanvasState'
+    CreateCanvasVersionResult:
+      type: object
+      required:
+        - canvasId
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        conflict:
+          type: object
+          description: Version conflict (when there is a conflict)
+          $ref: '#/components/schemas/VersionConflict'
+        newState:
+          type: object
+          description: New canvas state (when there is no conflict)
+          $ref: '#/components/schemas/CanvasState'
+    CreateCanvasVersionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Create canvas version result
+              $ref: '#/components/schemas/CreateCanvasVersionResult'
     ListCanvasTemplateResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
