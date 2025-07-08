@@ -1269,6 +1269,7 @@ const translations = {
         video: '视频',
         audio: '音频',
         media: '媒体',
+        mediaGenerate: '媒体生成',
         imageGenerate: '生成图片',
         videoGenerate: '生成视频',
         audioGenerate: '生成音频',

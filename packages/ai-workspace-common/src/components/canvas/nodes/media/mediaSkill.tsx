@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { MediaChatInput } from './media-input';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
+import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 
 const { Text } = Typography;
 
@@ -55,6 +56,11 @@ export const MediaSkillNode = memo(
     const node = useMemo(() => getNode(id), [id, getNode]);
     const { readonly } = useCanvasContext();
 
+    // Get mediaSelectedModel from store for fallback
+    const { mediaSelectedModel } = useChatStoreShallow((state) => ({
+      mediaSelectedModel: state.mediaSelectedModel,
+    }));
+
     const { containerStyle, handleResize, updateSize } = useNodeSize({
       id,
       node,
@@ -78,9 +84,26 @@ export const MediaSkillNode = memo(
     }, [containerStyle]);
 
     const { metadata = {} } = data;
-    const { query, modelInfo, contextItems = [], mediaType = 'image' } = metadata;
+    const { query, contextItems = [], selectedModel } = metadata;
 
     const [localQuery, setLocalQuery] = useState(query);
+
+    // Initialize local selected model from metadata or fallback to store's mediaSelectedModel
+    const [localSelectedModel, setLocalSelectedModel] = useState(() => {
+      // If metadata has selectedModel, use it
+      if (selectedModel) {
+        return selectedModel;
+      }
+      // Otherwise fallback to store's mediaSelectedModel
+      return mediaSelectedModel;
+    });
+
+    // Update local selected model when metadata changes
+    useEffect(() => {
+      if (selectedModel) {
+        setLocalSelectedModel(selectedModel);
+      }
+    }, [selectedModel]);
 
     // Check if node has any connections
     const isTargetConnected = useMemo(() => edges?.some((edge) => edge.target === id), [edges, id]);
@@ -138,11 +161,12 @@ export const MediaSkillNode = memo(
       [id, setNodeData, addEdges, getNodes, getEdges, deleteElements, edgeStyles.hover],
     );
 
-    const setMediaType = useCallback(
-      (mediaType: 'image' | 'video' | 'audio') => {
-        setNodeData(id, { metadata: { mediaType } });
+    const setSelectedModel = useCallback(
+      (model: any) => {
+        setLocalSelectedModel(model);
+        updateNodeData({ metadata: { selectedModel: model } });
       },
-      [id, setNodeData],
+      [updateNodeData],
     );
 
     const resizeMoveable = useCallback((width: number, height: number) => {
@@ -269,7 +293,7 @@ export const MediaSkillNode = memo(
                   <IconImage className="w-3 h-3 text-white" />
                 </div>
                 <Text className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {t(`canvas.nodes.mediaSkill.${mediaType}Generate`, 'Media Generator')}
+                  {t('canvas.nodes.mediaSkill.mediaGenerate', 'Media Generator')}
                 </Text>
               </div>
 
@@ -287,10 +311,9 @@ export const MediaSkillNode = memo(
                     setTimeout(() => updateSize({ height: 'auto' }), 0);
                   }
                 }}
-                model={modelInfo?.name}
-                mediaType={mediaType}
-                setMediaType={setMediaType}
                 nodeId={id}
+                defaultModel={localSelectedModel}
+                onModelChange={setSelectedModel}
               />
             </div>
           </div>

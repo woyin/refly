@@ -149,7 +149,6 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
         ...baseMetadata,
         query: '',
         modelInfo: null,
-        mediaType: 'image',
       } as MediaSkillNodeMeta;
 
     case 'tool':

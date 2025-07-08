@@ -3,7 +3,7 @@ import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { IRuntime } from '@refly/common-types';
-import { ModelInfo } from '@refly/openapi-schema';
+import { ModelInfo, ProviderItem } from '@refly/openapi-schema';
 
 // types
 import type { CanvasEditConfig, InPlaceActionType } from '@refly/utils';
@@ -42,6 +42,9 @@ export interface ChatState {
   enableWebSearch: boolean;
   enableDeepReasonWebSearch: boolean;
   enableKnowledgeBaseSearch: boolean;
+  mediaSelectedModel: ProviderItem;
+  mediaModelList: ProviderItem[];
+  mediaModelListLoading: boolean;
 
   // method
   setNewQAText: (val: string) => void;
@@ -52,6 +55,9 @@ export interface ChatState {
   setEnableWebSearch: (val: boolean) => void;
   setEnableDeepReasonWebSearch: (val: boolean) => void;
   setEnableKnowledgeBaseSearch: (val: boolean) => void;
+  setMediaSelectedModel: (val: ProviderItem) => void;
+  setMediaModelList: (val: ProviderItem[]) => void;
+  setMediaModelListLoading: (val: boolean) => void;
   resetState: () => void;
 }
 
@@ -62,6 +68,9 @@ const defaultConfigurableState = {
   enableWebSearch: true,
   enableDeepReasonWebSearch: false,
   enableKnowledgeBaseSearch: true,
+  mediaSelectedModel: null,
+  mediaModelList: [],
+  mediaModelListLoading: false,
 };
 
 export const defaultNewQAText = '';
@@ -90,6 +99,9 @@ export const useChatStore = create<ChatState>()(
         setEnableWebSearch: (val: boolean) => set({ enableWebSearch: val }),
         setEnableDeepReasonWebSearch: (val: boolean) => set({ enableDeepReasonWebSearch: val }),
         setEnableKnowledgeBaseSearch: (val: boolean) => set({ enableKnowledgeBaseSearch: val }),
+        setMediaSelectedModel: (val: ProviderItem) => set({ mediaSelectedModel: val }),
+        setMediaModelList: (val: ProviderItem[]) => set({ mediaModelList: val }),
+        setMediaModelListLoading: (val: boolean) => set({ mediaModelListLoading: val }),
         resetState: () => {
           return set((state) => ({ ...state, ...defaultExtraState }));
         },

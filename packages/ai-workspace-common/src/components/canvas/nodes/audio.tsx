@@ -1,12 +1,8 @@
 import { memo, useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { useReactFlow, Position } from '@xyflow/react';
+import { Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import {
-  useNodeSize,
-  MAX_HEIGHT_CLASS,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
+import { MAX_HEIGHT_CLASS } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
 import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
@@ -23,7 +19,6 @@ import { genSkillID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import Moveable from 'react-moveable';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import cn from 'classnames';
@@ -62,7 +57,6 @@ export const AudioNode = memo(
   ({ id, data, isPreview, selected, hideHandles, onNodeClick }: AudioNodeProps) => {
     const { metadata } = data ?? {};
     const audioUrl = metadata?.audioUrl ?? '';
-    const showBorder = metadata?.showBorder ?? false;
     const showTitle = metadata?.showTitle ?? true;
     const [isHovered, setIsHovered] = useState(false);
     const [audioError, setAudioError] = useState(false);
@@ -71,7 +65,6 @@ export const AudioNode = memo(
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
     const targetRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
-    const { getNode } = useReactFlow();
     useSelectedNodeZIndex(id, selected);
     const { addNode } = useAddNode();
     const { addToContext } = useAddToContext();
@@ -85,29 +78,15 @@ export const AudioNode = memo(
     }));
 
     const isOperating = operatingNodeId === id;
-    const node = useMemo(() => getNode(id), [id, getNode]);
 
-    const { containerStyle, handleResize } = useNodeSize({
-      id,
-      node,
-      readonly,
-      isOperating,
-      minWidth: 250,
-      maxWidth: 500,
-      minHeight: 120,
-      defaultWidth: 350,
-      defaultHeight: 150,
-    });
-
-    // Ensure containerStyle has valid height value
-    const safeContainerStyle = useMemo(() => {
-      const style = { ...containerStyle };
-      // If height is NaN, set it to default height
-      if (typeof style.height === 'number' && Number.isNaN(style.height)) {
-        style.height = 150;
-      }
-      return style;
-    }, [containerStyle]);
+    // Fixed size for audio node - no resizing allowed
+    const containerStyle = useMemo(
+      () => ({
+        width: 350,
+        height: 150,
+      }),
+      [],
+    );
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -235,20 +214,6 @@ export const AudioNode = memo(
       };
     }, [id, handleAddToContext, handleDelete, handleAskAI]);
 
-    const moveableRef = useRef<Moveable>(null);
-
-    const resizeMoveable = useCallback((width: number, height: number) => {
-      moveableRef.current?.request('resizable', { width, height });
-    }, []);
-
-    useEffect(() => {
-      setTimeout(() => {
-        if (!targetRef.current || readonly) return;
-        const { offsetWidth, offsetHeight } = targetRef.current;
-        resizeMoveable(offsetWidth, offsetHeight);
-      }, 1);
-    }, [resizeMoveable, targetRef.current?.offsetHeight]);
-
     if (!data) {
       return null;
     }
@@ -259,18 +224,27 @@ export const AudioNode = memo(
           ref={targetRef}
           onMouseEnter={!isPreview ? handleMouseEnter : undefined}
           onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-          style={isPreview ? { width: 350, height: 150 } : safeContainerStyle}
+          style={isPreview ? { width: 350, height: 150 } : containerStyle}
           onClick={onNodeClick}
           className={classNames({
             'nodrag nopan select-text': isOperating,
           })}
         >
+          {!isPreview && !readonly && (
+            <NodeActionButtons
+              nodeId={id}
+              nodeType="audio"
+              isNodeHovered={isHovered}
+              isSelected={selected}
+            />
+          )}
+
           <div
             className={`
                 w-full
                 h-full,
                 bg-white dark:bg-gray-900 rounded-md
-                ${showBorder ? getNodeCommonStyles({ selected: !isPreview && selected, isHovered }) : ''}
+                ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
               `}
           >
             {!isPreview && !hideHandles && (
@@ -297,15 +271,6 @@ export const AudioNode = memo(
             )}
 
             <div className={cn('flex flex-col h-full relative box-border', MAX_HEIGHT_CLASS)}>
-              {!isPreview && !readonly && (
-                <NodeActionButtons
-                  nodeId={id}
-                  nodeType="audio"
-                  isNodeHovered={isHovered}
-                  isSelected={selected}
-                />
-              )}
-
               <div className="flex flex-col h-full p-4 gap-3 justify-center">
                 {showTitle && (
                   <NodeHeader
@@ -362,17 +327,6 @@ export const AudioNode = memo(
             </div>
           </div>
         </div>
-
-        {!readonly && !isPreview && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
-            isSelected={selected}
-            isHovered={isHovered}
-            isPreview={false}
-            onResize={handleResize}
-          />
-        )}
       </div>
     );
   },

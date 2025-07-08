@@ -25,7 +25,7 @@ import {
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { HiOutlineFilm, HiOutlineSpeakerWave } from 'react-icons/hi2';
 import { genImageID, genVideoID, genAudioID } from '@refly/utils/id';
-import { Button, Spin, Progress, message } from 'antd';
+import { Button, Spin, message } from 'antd';
 import { cn } from '@refly/utils/cn';
 import { NodeProps } from '@xyflow/react';
 import { CanvasNodeFilter } from '@refly/canvas-common';
@@ -118,7 +118,7 @@ const MediaSkillResponseNode = memo(
       if (result && resultId) {
         if (result.status === 'finish' && result.outputUrl) {
           // Create appropriate media node
-          handleCreateMediaNode(result.outputUrl);
+          handleCreateMediaNode(result.outputUrl, result.storageKey);
         } else if (result.status === 'failed') {
           // Update node to show error state
           console.error('Media generation failed:', result.errors);
@@ -127,7 +127,7 @@ const MediaSkillResponseNode = memo(
     }, [result, resultId]);
 
     const handleCreateMediaNode = useCallback(
-      async (outputUrl: string) => {
+      async (outputUrl: string, storageKey: string) => {
         try {
           const entityId =
             mediaType === 'image'
@@ -140,12 +140,13 @@ const MediaSkillResponseNode = memo(
             mediaType === 'image' ? 'imageUrl' : mediaType === 'video' ? 'videoUrl' : 'audioUrl';
 
           const newNode = {
-            type: mediaType,
+            type: mediaType as CanvasNodeType,
             data: {
               title: prompt,
               entityId,
               metadata: {
                 [urlKey]: outputUrl,
+                storageKey,
               },
             },
           };
@@ -336,23 +337,6 @@ const MediaSkillResponseNode = memo(
       }
     }, [mediaType, t]);
 
-    const getProgress = useCallback(() => {
-      if (!result) return 0;
-
-      switch (result.status) {
-        case 'waiting':
-          return 25;
-        case 'executing':
-          return 60;
-        case 'finish':
-          return 100;
-        case 'failed':
-          return 0;
-        default:
-          return 0;
-      }
-    }, [result]);
-
     const moveableRef = useRef<Moveable>(null);
 
     if (!data) {
@@ -433,13 +417,6 @@ const MediaSkillResponseNode = memo(
                       {t('canvas.nodes.mediaSkill.generating', 'Generating {{type}}...', {
                         type: getMediaTypeLabel(),
                       })}
-                    </div>
-                    <div className="mt-2 w-full max-w-xs">
-                      <Progress
-                        percent={getProgress()}
-                        size="small"
-                        status={hasFailed ? 'exception' : 'active'}
-                      />
                     </div>
                   </div>
                 )}

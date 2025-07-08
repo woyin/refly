@@ -224,6 +224,15 @@ export const ImageNode = memo(
             'nodrag nopan select-text': isOperating,
           })}
         >
+          {!isPreview && !readonly && (
+            <NodeActionButtons
+              nodeId={id}
+              nodeType="image"
+              isNodeHovered={isHovered}
+              isSelected={selected}
+            />
+          )}
+
           <div
             className={`
                 w-full
@@ -255,15 +264,6 @@ export const ImageNode = memo(
             )}
 
             <div className={cn('flex flex-col h-full relative box-border', MAX_HEIGHT_CLASS)}>
-              {!isPreview && !readonly && (
-                <NodeActionButtons
-                  nodeId={id}
-                  nodeType="image"
-                  isNodeHovered={isHovered}
-                  isSelected={selected}
-                />
-              )}
-
               <div className="relative w-full h-full rounded-lg overflow-hidden">
                 {showTitle && (
                   <div

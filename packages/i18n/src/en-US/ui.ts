@@ -1463,6 +1463,7 @@ const translations = {
         video: 'Video',
         audio: 'Audio',
         media: 'Media',
+        mediaGenerate: 'Media Generate',
         imageGenerate: 'Generate Image',
         videoGenerate: 'Generate Video',
         audioGenerate: 'Generate Audio',

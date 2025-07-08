@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MediaType, Skill } from '@refly/openapi-schema';
+import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
@@ -44,8 +44,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-
-  const [mediaType, setMediaType] = useState<MediaType>('image');
 
   const { skillSelectedModel, setSkillSelectedModel, chatMode } = useChatStoreShallow((state) => ({
     skillSelectedModel: state.skillSelectedModel,
@@ -191,8 +189,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
                   readonly={false}
                   query={query}
                   setQuery={setQuery}
-                  mediaType={mediaType}
-                  setMediaType={setMediaType}
                   showChatModeSelector
                 />
               ) : (
@@ -277,7 +273,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
           {canvasTemplateEnabled && (
             <div className="h-full flex flex-col mt-10">
-              <div className="flex justify-between items-center pt-6 mx-2">
+              <div className="flex justify-between items-center mx-2">
                 <div>
                   <h3 className="text-base font-medium">{t('frontPage.fromCommunity')}</h3>
                   <p className="text-xs text-gray-500 mt-1">{t('frontPage.fromCommunityDesc')}</p>
