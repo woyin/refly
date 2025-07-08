@@ -70,7 +70,6 @@ export const useNodeSize = ({
       setSize((prevSize) => ({ ...prevSize, ...newSize }));
 
       setNodeStyle(id, {
-        width: `${newSize.width}px`,
         height: newSize.height === 'auto' ? 'auto' : `${newSize.height}px`,
         maxHeight: MAX_HEIGHT,
       });
