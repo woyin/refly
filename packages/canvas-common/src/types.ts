@@ -9,6 +9,7 @@ import {
   IndexError,
   IndexStatus,
   ModelInfo,
+  ProviderItem,
   ResourceType,
   Skill,
   SkillRuntimeConfig,
@@ -98,7 +99,7 @@ export type MediaSkillNodeMeta = {
   version?: number;
   modelInfo?: ModelInfo;
   contextItems?: IContextItem[];
-  mediaType?: 'image' | 'video' | 'audio';
+  selectedModel?: ProviderItem;
   runtimeConfig?: SkillRuntimeConfig;
   sizeMode?: 'compact' | 'adaptive';
   style?: React.CSSProperties;

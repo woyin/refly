@@ -87,7 +87,7 @@ const ModelLabel = memo(
 ModelLabel.displayName = 'ModelLabel';
 
 // Create a memoized settings button component
-const SettingsButton = memo(
+export const SettingsButton = memo(
   ({
     handleOpenSettingModal,
     setDropdownOpen,

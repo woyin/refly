@@ -1,51 +1,16 @@
-import React, { memo, useCallback, useMemo, useState, useEffect, useRef } from 'react';
-import { Input, Button, Dropdown } from 'antd';
-import { SendOutlined, DownOutlined } from '@ant-design/icons';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Input, Button } from 'antd';
+import { SendOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import {
-  IconImage,
-  IconVideo,
-  IconAudio,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
-import {
-  MediaType,
-  nodeOperationsEmitter,
-} from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { cn } from '@refly/utils/cn';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
 import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
-
-const modelsByType = {
-  image: [
-    'black-forest-labs/flux-schnell',
-    'black-forest-labs/flux-dev',
-    'black-forest-labs/flux-pro',
-    'bytedance/seedream-3',
-    'google/imagen-4',
-    'google/imagen-4-fast',
-    'google/imagen-4-ultra',
-    'ideogram-ai/ideogram-v3-turbo',
-    'ideogram-ai/ideogram-v3-quality',
-    'minimax/image-01',
-  ],
-  video: [
-    'bytedance/seedance-1-pro',
-    'bytedance/seedance-1-lite',
-    'minimax/video-01',
-    'kwaivgi/kling-v2.1',
-    'google/veo-3',
-    'luma/ray-flash-2-540p',
-  ],
-  audio: [
-    'minimax/speech-02-hd',
-    'minimax/speech-02-turbo',
-    'resemble-ai/chatterbox',
-    'google/lyria-2',
-  ],
-};
+import { MediaModelSelector } from './media-model-selector';
+import { ProviderItem } from '@refly/openapi-schema';
 
 const { TextArea } = Input;
 
@@ -54,11 +19,10 @@ interface MediaChatInputProps {
   readonly: boolean;
   query: string;
   setQuery: (value: string) => void;
-  mediaType: MediaType;
-  setMediaType: (type: MediaType) => void;
   nodeId?: string;
   onSend?: () => void;
-  model?: string;
+  defaultModel?: ProviderItem | null;
+  onModelChange?: (model: ProviderItem | null) => void;
 }
 
 const MediaChatInput = memo(
@@ -66,17 +30,25 @@ const MediaChatInput = memo(
     readonly,
     query,
     setQuery,
-    mediaType,
-    setMediaType,
     nodeId,
     onSend,
     showChatModeSelector,
-    model,
+    defaultModel,
+    onModelChange,
   }: MediaChatInputProps) => {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<string>(model || '');
-    const useDefaultModel = useRef(!!selectedModel);
+    const [selectedModel, setSelectedModel] = useState<ProviderItem | null>(defaultModel || null);
+
+    // Update parent when model changes
+    const handleModelChange = useCallback(
+      (model: ProviderItem | null) => {
+        setSelectedModel(model);
+        onModelChange?.(model);
+      },
+      [onModelChange],
+    );
+
     const { projectId, isCanvasOpen } = useGetProjectCanvasId();
     const { debouncedCreateCanvas } = useCreateCanvas({
       projectId,
@@ -85,108 +57,47 @@ const MediaChatInput = memo(
       },
     });
 
-    const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
-      chatMode: state.chatMode,
-      setChatMode: state.setChatMode,
-    }));
+    const { chatMode, setChatMode, mediaModelList, mediaModelListLoading } = useChatStoreShallow(
+      (state) => ({
+        chatMode: state.chatMode,
+        setChatMode: state.setChatMode,
+        mediaModelList: state.mediaModelList,
+        mediaModelListLoading: state.mediaModelListLoading,
+      }),
+    );
+
+    // Get current media type based on selected model capabilities
+    const currentMediaType = useMemo(() => {
+      if (!selectedModel?.config) return 'image';
+
+      const config = selectedModel.config as any;
+      if (!config?.capabilities) return 'image';
+
+      if (config.capabilities.image) return 'image';
+      if (config.capabilities.video) return 'video';
+      if (config.capabilities.audio) return 'audio';
+
+      return 'image'; // Default fallback
+    }, [selectedModel]);
+
+    useEffect(() => {
+      if (!selectedModel && mediaModelList?.length > 0) {
+        // If defaultModel is provided and exists in mediaModelList, use it
+        if (defaultModel && mediaModelList.some((m) => m.itemId === defaultModel.itemId)) {
+          setSelectedModel(defaultModel);
+        } else {
+          // Otherwise use the first available model
+          setSelectedModel(mediaModelList[0]);
+        }
+      }
+    }, [defaultModel, mediaModelList, selectedModel]);
+
     const { setMediaQueryData } = useFrontPageStoreShallow((state) => ({
       setMediaQueryData: state.setMediaQueryData,
     }));
 
-    const mediaOptions = useMemo(() => {
-      return [
-        {
-          value: 'image',
-          label: t('canvas.nodes.mediaSkill.image', 'Image'),
-          icon: IconImage,
-        },
-        {
-          value: 'video',
-          label: t('canvas.nodes.mediaSkill.video', 'Video'),
-          icon: IconVideo,
-        },
-        {
-          value: 'audio',
-          label: t('canvas.nodes.mediaSkill.audio', 'Audio'),
-          icon: IconAudio,
-        },
-      ];
-    }, [t]);
-
-    const availableModels = useMemo(() => {
-      return modelsByType[mediaType] || [];
-    }, [mediaType]);
-
-    // Set default model when mediaType changes
-    useEffect(() => {
-      if (useDefaultModel.current) {
-        useDefaultModel.current = false;
-        return;
-      }
-      console.log('availableModels', availableModels, availableModels.includes(selectedModel));
-      if (availableModels.length > 0 && !availableModels.includes(selectedModel)) {
-        setSelectedModel(availableModels[0]);
-      }
-    }, [availableModels, selectedModel]);
-
-    const modelDropdownItems = useMemo(() => {
-      return availableModels.map((model) => ({
-        key: model,
-        label: (
-          <div className="flex items-center">
-            <span className="text-sm">{model}</span>
-          </div>
-        ),
-        onClick: () => setSelectedModel(model),
-      }));
-    }, [availableModels]);
-
-    const dropdownItems = useMemo(() => {
-      return mediaOptions.map((option) => ({
-        key: option.value,
-        label: (
-          <div className="flex items-center gap-2">
-            <option.icon className="w-4 h-4" />
-            <span className="text-sm">{option.label}</span>
-          </div>
-        ),
-        onClick: () => {
-          setMediaType(option.value as MediaType);
-        },
-      }));
-    }, [mediaOptions, setMediaType]);
-
-    const currentMediaOption = useMemo(() => {
-      return mediaOptions.find((option) => option.value === mediaType);
-    }, [mediaOptions, mediaType]);
-
-    const getPlaceholder = useCallback(() => {
-      switch (mediaType) {
-        case 'image':
-          return t(
-            'canvas.nodes.mediaSkill.imagePlaceholder',
-            'Describe the image you want to generate...',
-          );
-        case 'video':
-          return t(
-            'canvas.nodes.mediaSkill.videoPlaceholder',
-            'Describe the video you want to generate...',
-          );
-        case 'audio':
-          return t(
-            'canvas.nodes.mediaSkill.audioPlaceholder',
-            'Describe the audio you want to generate...',
-          );
-        default:
-          return t(
-            'canvas.nodes.mediaSkill.defaultPlaceholder',
-            'Describe what you want to generate...',
-          );
-      }
-    }, [mediaType, t]);
-
     const handleGenerateMedia = useCallback(
-      async (mediaType: MediaType, query: string) => {
+      async (query: string) => {
         if (loading) return;
         setLoading(true);
 
@@ -194,14 +105,18 @@ const MediaChatInput = memo(
           // Check if there's no canvas open
           if (!isCanvasOpen) {
             // Create a new canvas first
-            const mediaQueryData = { mediaType, query, model: selectedModel };
+            const mediaQueryData = {
+              mediaType: currentMediaType,
+              query,
+              model: selectedModel?.config?.modelId || '',
+            };
             setMediaQueryData(mediaQueryData);
             debouncedCreateCanvas('front-page', { isMediaGeneration: true });
           } else {
             nodeOperationsEmitter.emit('generateMedia', {
-              mediaType,
+              mediaType: currentMediaType,
               query,
-              model: selectedModel,
+              model: selectedModel?.config?.modelId || '',
               nodeId: nodeId || '',
             });
           }
@@ -211,17 +126,17 @@ const MediaChatInput = memo(
           setLoading(false);
         }
       },
-      [loading, selectedModel, nodeId, isCanvasOpen, debouncedCreateCanvas],
+      [loading, selectedModel, nodeId, isCanvasOpen, debouncedCreateCanvas, currentMediaType],
     );
 
     const handleSend = useCallback(() => {
       if (!query?.trim()) return;
 
-      handleGenerateMedia(mediaType, query);
+      handleGenerateMedia(query);
 
       // Call optional onSend callback
       onSend?.();
-    }, [query, mediaType, handleGenerateMedia, onSend]);
+    }, [query, handleGenerateMedia, onSend]);
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -258,7 +173,10 @@ const MediaChatInput = memo(
           )}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={getPlaceholder()}
+          placeholder={t(
+            `canvas.nodes.mediaSkill.${currentMediaType}Placeholder`,
+            'Describe what you want to generate...',
+          )}
           disabled={readonly}
           autoSize={{ minRows: 2, maxRows: 6 }}
           onKeyDown={handleKeyDown}
@@ -272,34 +190,18 @@ const MediaChatInput = memo(
                 <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
               )}
 
-              {/* Model Selector */}
-              <Dropdown
-                trigger={['click']}
-                menu={{ items: modelDropdownItems }}
-                disabled={readonly || availableModels.length === 0}
-                placement="bottomLeft"
-              >
-                <Button size="small" className="flex items-center gap-1 border-none shadow-none">
-                  <span className="text-xs">{selectedModel || 'Select Model'}</span>
-                  <DownOutlined className="w-3 h-3" />
-                </Button>
-              </Dropdown>
+              {/* Media Model Selector */}
+              <MediaModelSelector
+                model={selectedModel}
+                setModel={handleModelChange}
+                readonly={readonly}
+                defaultModel={defaultModel}
+                mediaModelList={mediaModelList}
+                loading={mediaModelListLoading}
+              />
             </div>
 
             <div className="flex items-center gap-2">
-              <Dropdown
-                trigger={['click']}
-                menu={{ items: dropdownItems }}
-                disabled={readonly}
-                placement="bottomRight"
-              >
-                <Button size="small" className="flex items-center gap-1">
-                  {currentMediaOption && <currentMediaOption.icon className="w-4 h-4" />}
-                  <span className="text-xs">{currentMediaOption?.label}</span>
-                  <DownOutlined className="w-3 h-3" />
-                </Button>
-              </Dropdown>
-
               <Button
                 className="text-xs"
                 size="small"
@@ -309,12 +211,25 @@ const MediaChatInput = memo(
                 disabled={loading || !query?.trim()}
                 loading={loading}
               >
-                {loading ? t('common.generating', 'Generating...') : t('common.send', 'Send')}
+                {loading
+                  ? t('common.generating', 'Generating...')
+                  : t(`canvas.nodes.mediaSkill.${currentMediaType}Generate`, 'Generate')}
               </Button>
             </div>
           </div>
         )}
       </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.defaultModel === nextProps.defaultModel &&
+      prevProps.readonly === nextProps.readonly &&
+      prevProps.query === nextProps.query &&
+      prevProps.showChatModeSelector === nextProps.showChatModeSelector &&
+      prevProps.onModelChange === nextProps.onModelChange &&
+      prevProps.onSend === nextProps.onSend &&
+      prevProps.nodeId === nextProps.nodeId
     );
   },
 );

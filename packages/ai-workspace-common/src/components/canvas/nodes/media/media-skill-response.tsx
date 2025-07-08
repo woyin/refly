@@ -140,7 +140,7 @@ const MediaSkillResponseNode = memo(
             mediaType === 'image' ? 'imageUrl' : mediaType === 'video' ? 'videoUrl' : 'audioUrl';
 
           const newNode = {
-            type: mediaType,
+            type: mediaType as CanvasNodeType,
             data: {
               title: prompt,
               entityId,

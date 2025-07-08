@@ -14,6 +14,7 @@ import { CanvasNodeType } from '@refly-packages/ai-workspace-common/requests';
 import { useReactFlow } from '@xyflow/react';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { genMediaSkillResponseID } from '@refly/utils/id';
+import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
@@ -25,6 +26,11 @@ export const useListenNodeOperationEvents = () => {
 
   // Only use canvas store if in interactive mode and not readonly
   const { previewNode, closeNodePreviewByEntityId } = useNodePreviewControl({ canvasId });
+
+  // Get mediaSelectedModel from store for new mediaSkill nodes
+  const { mediaSelectedModel } = useChatStoreShallow((state) => ({
+    mediaSelectedModel: state.mediaSelectedModel,
+  }));
 
   const queryCodeArtifactByResultId = useCallback(
     async (params: { resultId: string; resultVersion: number }) => {
@@ -164,8 +170,7 @@ export const useListenNodeOperationEvents = () => {
               entityId: mediaSkillEntityId,
               metadata: {
                 query,
-                mediaType,
-                modelInfo: { name: model },
+                selectedModel: mediaSelectedModel, // Use store's mediaSelectedModel as default
               },
             },
           };
@@ -229,7 +234,7 @@ export const useListenNodeOperationEvents = () => {
         console.error('Failed to generate media', error);
       }
     },
-    [readonly, getNode, addNode, getNodes],
+    [readonly, getNode, addNode, getNodes, mediaSelectedModel],
   );
 
   useEffect(() => {
