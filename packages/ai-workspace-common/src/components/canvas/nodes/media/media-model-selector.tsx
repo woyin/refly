@@ -270,7 +270,8 @@ export const MediaModelSelector = memo(
       prevProps.readonly === nextProps.readonly &&
       prevProps.model === nextProps.model &&
       prevProps.defaultModel === nextProps.defaultModel &&
-      JSON.stringify(prevProps.trigger) === JSON.stringify(nextProps.trigger)
+      JSON.stringify(prevProps.trigger) === JSON.stringify(nextProps.trigger) &&
+      JSON.stringify(prevProps.mediaModelList) === JSON.stringify(nextProps.mediaModelList)
     );
   },
 );
