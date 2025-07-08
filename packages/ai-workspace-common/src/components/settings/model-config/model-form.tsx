@@ -135,7 +135,7 @@ export const ModelFormModal = memo(
           modelName: values.name,
         };
 
-        if (filterProviderCategory === 'llm') {
+        if (filterProviderCategory === 'llm' || filterProviderCategory === 'mediaGeneration') {
           const capabilitiesObject = {};
           if (Array.isArray(values.capabilities)) {
             for (const capability of values.capabilities) {
