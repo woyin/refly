@@ -12,12 +12,17 @@ export const useGetMediaModel = () => {
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
-  const { data, isLoading } = useListProviderItems({
-    query: {
-      enabled: isLogin,
-      category: 'mediaGeneration',
+  const { data, isLoading } = useListProviderItems(
+    {
+      query: {
+        category: 'mediaGeneration',
+      },
     },
-  });
+    null,
+    {
+      enabled: isLogin,
+    },
+  );
 
   useEffect(() => {
     if (data?.data) {
