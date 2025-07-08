@@ -4,7 +4,6 @@ import {
   checkCommunityProviderApiHealth,
 } from '../requests/provider-community';
 import { CommunityProviderResponse } from '../components/settings/model-providers/provider-store-types';
-
 /**
  * Query key factory for community providers
  */
