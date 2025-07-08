@@ -32,8 +32,13 @@ export class ProviderController {
     @LoginedUser() user: UserModel,
     @Query('providerKey') providerKey: string,
     @Query('enabled', new ParseBoolPipe({ optional: true })) enabled: boolean,
+    @Query('isGlobal', new ParseBoolPipe({ optional: true })) isGlobal: boolean,
   ): Promise<ListProvidersResponse> {
-    const providers = await this.providerService.listProviders(user, { enabled, providerKey });
+    const providers = await this.providerService.listProviders(user, {
+      enabled,
+      providerKey,
+      isGlobal,
+    });
     return buildSuccessResponse(providers.map(providerPO2DTO));
   }
 
@@ -74,11 +79,13 @@ export class ProviderController {
     @Query('providerId') providerId: string,
     @Query('category') category: ProviderCategory,
     @Query('enabled', new ParseBoolPipe({ optional: true })) enabled: boolean,
+    @Query('isGlobal', new ParseBoolPipe({ optional: true })) isGlobal: boolean,
   ): Promise<ListProviderItemsResponse> {
     const items = await this.providerService.listProviderItems(user, {
       providerId,
       category,
       enabled,
+      isGlobal,
     });
     return buildSuccessResponse(items.map(providerItemPO2DTO));
   }

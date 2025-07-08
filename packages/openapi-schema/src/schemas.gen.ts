@@ -2505,6 +2505,12 @@ export const DefaultModelConfigSchema = {
   },
 } as const;
 
+export const ProviderModeSchema = {
+  type: 'string',
+  description: 'Provider mode',
+  enum: ['global', 'custom'],
+} as const;
+
 export const UserPreferencesSchema = {
   type: 'object',
   description: 'User preferences',
@@ -2512,6 +2518,10 @@ export const UserPreferencesSchema = {
     operationMode: {
       description: 'Operation mode',
       $ref: '#/components/schemas/OperationMode',
+    },
+    providerMode: {
+      description: 'Provider mode',
+      $ref: '#/components/schemas/ProviderMode',
     },
     disableHoverCard: {
       type: 'boolean',

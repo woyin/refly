@@ -1932,6 +1932,11 @@ export type DefaultModelConfig = {
 };
 
 /**
+ * Provider mode
+ */
+export type ProviderMode = 'global' | 'custom';
+
+/**
  * User preferences
  */
 export type UserPreferences = {
@@ -1939,6 +1944,10 @@ export type UserPreferences = {
    * Operation mode
    */
   operationMode?: OperationMode;
+  /**
+   * Provider mode
+   */
+  providerMode?: ProviderMode;
   /**
    * Whether to disable hover tutorial
    */
@@ -5870,6 +5879,10 @@ export type ListProvidersData = {
      */
     enabled?: boolean;
     /**
+     * Whether the provider is global
+     */
+    isGlobal?: boolean;
+    /**
      * Provider key
      */
     providerKey?: string;
@@ -5914,6 +5927,10 @@ export type ListProviderItemsData = {
      * Whether the provider item is enabled
      */
     enabled?: boolean;
+    /**
+     * Whether the provider item is global
+     */
+    isGlobal?: boolean;
     /**
      * Provider ID
      */
