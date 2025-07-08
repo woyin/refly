@@ -113,6 +113,7 @@ export const useChatStore = create<ChatState>()(
           selectedModel: state.selectedModel,
           skillSelectedModel: state.skillSelectedModel,
           chatMode: state.chatMode,
+          mediaSelectedModel: state.mediaSelectedModel,
         }),
       },
     ),
