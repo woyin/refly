@@ -135,6 +135,7 @@ const translations = {
     disabled: 'Disabled',
     create: 'Create',
     update: 'Update',
+    unknown: 'Unknown',
     validate: 'Validate',
     refresh: 'Refresh',
   },
@@ -1310,6 +1311,13 @@ const translations = {
       modalTitle: 'New Canvas',
       titlePlaceholder: 'Please enter the title of the canvas',
       descriptionPlaceholder: 'Please enter the description of the canvas',
+    },
+    conflict: {
+      title: 'Canvas Conflict',
+      content:
+        'It seems that the canvas has been modified by other browsers or devices. Please choose to keep local version or remote version.',
+      local: 'Keep local version (Last modified: {{time}})',
+      remote: 'Keep remote version (Last modified: {{time}})',
     },
     contextSelector: {
       placeholder: 'Search nodes...',

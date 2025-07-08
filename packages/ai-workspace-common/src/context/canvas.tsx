@@ -8,10 +8,16 @@ import React, {
   useRef,
 } from 'react';
 import { get, set, update } from 'idb-keyval';
-import { message } from 'antd';
+import { message, Modal, Radio } from 'antd';
 import { Node, Edge, useStoreApi, InternalNode, useReactFlow } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
-import { CanvasEdge, CanvasNode, CanvasState, CanvasTransaction } from '@refly/openapi-schema';
+import {
+  CanvasEdge,
+  CanvasNode,
+  CanvasState,
+  CanvasTransaction,
+  VersionConflict,
+} from '@refly/openapi-schema';
 import { RawCanvasData } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -30,6 +36,8 @@ import {
 import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
 import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';
+import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 
 // Remote sync interval
 const SYNC_REMOTE_INTERVAL = 2000;
@@ -83,55 +91,17 @@ const pollCanvasTransactions = async (
   return data.data;
 };
 
+const setCanvasState = async (canvasId: string, state: CanvasState) => {
+  await getClient().setCanvasState({
+    body: { canvasId, state },
+  });
+};
+
 const createCanvasVersion = async (canvasId: string, state: CanvasState) => {
   const { data } = await getClient().createCanvasVersion({
     body: { canvasId, state },
   });
   return data?.data;
-};
-
-// Sync canvas state with remote
-const syncWithRemote = async (canvasId: string) => {
-  const state = await get<CanvasState>(`canvas-state:${canvasId}`);
-  if (!state) {
-    return;
-  }
-
-  // If the number of transactions is greater than the threshold, create a new version
-  if (state.transactions?.length > MAX_STATE_TX_COUNT) {
-    const newState = await createCanvasVersion(canvasId, state);
-    await set(`canvas-state:${canvasId}`, newState);
-    return;
-  }
-
-  const unsyncedTransactions = state?.transactions?.filter((tx) => !tx.syncedAt);
-
-  if (!unsyncedTransactions?.length) {
-    return;
-  }
-
-  console.log('[syncWithRemote] unsynced transactions', unsyncedTransactions);
-
-  const { error, data } = await getClient().syncCanvasState({
-    body: {
-      canvasId,
-      version: state.version,
-      transactions: unsyncedTransactions,
-    },
-  });
-
-  if (!error && data?.success) {
-    console.log('[syncWithRemote] synced successfully');
-    await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
-      ...state,
-      transactions: state?.transactions?.map((tx) => ({
-        ...tx,
-        syncedAt: tx.syncedAt ?? Date.now(),
-      })),
-    }));
-  } else {
-    message.error('Failed to sync canvas state');
-  }
 };
 
 const CanvasContext = createContext<CanvasContextType | null>(null);
@@ -171,6 +141,7 @@ export const CanvasProvider = ({
   readonly?: boolean;
   children: React.ReactNode;
 }) => {
+  const { t } = useTranslation();
   const [lastUpdated, setLastUpdated] = useState<number>();
   const [loading, setLoading] = useState(false);
 
@@ -224,6 +195,59 @@ export const CanvasProvider = ({
     }
   }, [readonly, canvasData, canvasDetail, canvasId]);
 
+  // Sync canvas state with remote
+  const syncWithRemote = async (canvasId: string) => {
+    const state = await get<CanvasState>(`canvas-state:${canvasId}`);
+    if (!state) {
+      return;
+    }
+
+    // If the number of transactions is greater than the threshold, create a new version
+    if (state.transactions?.length > MAX_STATE_TX_COUNT) {
+      const { conflict, newState } = await createCanvasVersion(canvasId, state);
+      if (conflict) {
+        const userChoice = await handleConflictResolution(canvasId, conflict);
+        if (userChoice === 'local') {
+          await set(`canvas-state:${canvasId}`, conflict.localState);
+        } else {
+          await set(`canvas-state:${canvasId}`, conflict.remoteState);
+        }
+      } else {
+        await set(`canvas-state:${canvasId}`, newState);
+      }
+      return;
+    }
+
+    const unsyncedTransactions = state?.transactions?.filter((tx) => !tx.syncedAt);
+
+    if (!unsyncedTransactions?.length) {
+      return;
+    }
+
+    console.log('[syncWithRemote] unsynced transactions', unsyncedTransactions);
+
+    const { error, data } = await getClient().syncCanvasState({
+      body: {
+        canvasId,
+        version: state.version,
+        transactions: unsyncedTransactions,
+      },
+    });
+
+    if (!error && data?.success) {
+      console.log('[syncWithRemote] synced successfully');
+      await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
+        ...state,
+        transactions: state?.transactions?.map((tx) => ({
+          ...tx,
+          syncedAt: tx.syncedAt ?? Date.now(),
+        })),
+      }));
+    } else {
+      message.error('Failed to sync canvas state');
+    }
+  };
+
   // Set up sync job that runs every 2 seconds
   useEffect(() => {
     if (!canvasId || readonly) return;
@@ -263,7 +287,6 @@ export const CanvasProvider = ({
 
     const { canvasInitialized } = useCanvasStore.getState();
     if (!canvasInitialized[canvasId]) {
-      console.log('[syncCanvasData] canvas not initialized', canvasId);
       return;
     }
 
@@ -331,7 +354,63 @@ export const CanvasProvider = ({
     [getState, setState],
   );
 
-  // Polling function to fetch canvas state
+  const handleConflictResolution = useCallback(
+    (canvasId: string, conflict: VersionConflict): Promise<'local' | 'remote'> => {
+      const { localState, remoteState } = conflict;
+
+      const localModifiedTs = getLastTransaction(localState)?.createdAt ?? localState.updatedAt;
+      const remoteModifiedTs = getLastTransaction(remoteState)?.createdAt ?? remoteState.updatedAt;
+
+      const localModified = localModifiedTs
+        ? dayjs(localModifiedTs).format('YYYY-MM-DD HH:mm:ss')
+        : t('common.unknown');
+      const remoteModified = remoteModifiedTs
+        ? dayjs(remoteModifiedTs).format('YYYY-MM-DD HH:mm:ss')
+        : t('common.unknown');
+
+      return new Promise((resolve) => {
+        let selected: 'local' | 'remote' = 'local';
+        Modal.confirm({
+          title: t('canvas.conflict.title'),
+          centered: true,
+          content: (
+            <div>
+              <p className="mb-2">{t('canvas.conflict.content')}</p>
+              <Radio.Group
+                options={[
+                  {
+                    label: t('canvas.conflict.local', { time: localModified }),
+                    value: 'local',
+                  },
+                  {
+                    label: t('canvas.conflict.remote', { time: remoteModified }),
+                    value: 'remote',
+                  },
+                ]}
+                defaultValue="local"
+                onChange={(e) => {
+                  selected = e.target.value;
+                }}
+              />
+            </div>
+          ),
+          okText: t('common.confirm'),
+          cancelText: t('common.cancel'),
+          onOk: async () => {
+            if (selected === 'local') {
+              await setCanvasState(canvasId, localState);
+            }
+            resolve(selected);
+          },
+          onCancel: () => {
+            resolve('remote'); // Default to remote if cancelled
+          },
+        });
+      });
+    },
+    [],
+  );
+
   const initialFetchCanvasState = useCallback(async () => {
     if (readonly) return;
 
@@ -358,15 +437,22 @@ export const CanvasProvider = ({
           finalState = mergeCanvasStates(localState, remoteState);
         } catch (error) {
           if (error instanceof CanvasConflictException) {
-            // TODO: Handle conflict by showing a modal to the user
-            console.error('Canvas conflict detected:', error);
-            finalState = remoteState;
+            // Show conflict modal to user
+            const userChoice = await handleConflictResolution(canvasId, {
+              localState,
+              remoteState,
+            });
+            if (userChoice === 'local') {
+              // Use local state, and set it to remote
+              finalState = localState;
+            } else {
+              // Use remote state, and overwrite local state
+              finalState = remoteState;
+            }
           } else {
             console.error('Failed to merge canvas states:', error);
             finalState = remoteState;
           }
-          console.error('Failed to merge canvas states:', error);
-          finalState = remoteState;
         }
       }
 
@@ -391,7 +477,7 @@ export const CanvasProvider = ({
         setLoading(false);
       }
     }
-  }, [canvasId, readonly, updateCanvasDataFromState, loading]);
+  }, [canvasId, readonly, updateCanvasDataFromState, loading, handleConflictResolution]);
 
   // Start/stop polling
   useEffect(() => {
@@ -454,7 +540,6 @@ export const CanvasProvider = ({
 
         const { canvasInitialized } = useCanvasStore.getState();
         if (!canvasInitialized[canvasId]) {
-          console.log('[pollCanvasTransactions] canvas not initialized', canvasId);
           return;
         }
 

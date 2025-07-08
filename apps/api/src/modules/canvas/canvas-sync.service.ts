@@ -262,6 +262,7 @@ export class CanvasSyncService {
     try {
       const state = await this.getState(user, { canvasId, version });
       updateCanvasState(state, transactions);
+      state.updatedAt = Date.now();
       await this.saveState(canvasId, state);
     } finally {
       await releaseLock();
@@ -339,6 +340,8 @@ export class CanvasSyncService {
             hash: hash(state),
           },
         ],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       };
       const stateStorageKey = await this.saveState(canvasId, newState);
 

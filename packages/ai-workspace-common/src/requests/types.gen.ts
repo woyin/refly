@@ -2256,6 +2256,14 @@ export type CanvasState = CanvasData & {
    * Canvas history versions
    */
   history?: Array<CanvasHistoryVersion>;
+  /**
+   * Canvas creation timestamp (in unix milliseconds)
+   */
+  createdAt?: number;
+  /**
+   * Canvas last updated timestamp (in unix milliseconds)
+   */
+  updatedAt?: number;
 };
 
 /**

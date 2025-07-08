@@ -5195,6 +5195,12 @@ components:
               description: Canvas history versions
               items:
                 $ref: '#/components/schemas/CanvasHistoryVersion'
+            createdAt:
+              type: number
+              description: Canvas creation timestamp (in unix milliseconds)
+            updatedAt:
+              type: number
+              description: Canvas last updated timestamp (in unix milliseconds)
     RawCanvasData:
       type: object
       description: Raw canvas data

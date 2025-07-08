@@ -3005,6 +3005,14 @@ export const CanvasStateSchema = {
             $ref: '#/components/schemas/CanvasHistoryVersion',
           },
         },
+        createdAt: {
+          type: 'number',
+          description: 'Canvas creation timestamp (in unix milliseconds)',
+        },
+        updatedAt: {
+          type: 'number',
+          description: 'Canvas last updated timestamp (in unix milliseconds)',
+        },
       },
     },
   ],
