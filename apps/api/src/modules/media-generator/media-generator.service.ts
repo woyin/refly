@@ -7,6 +7,7 @@ import {
 } from '@refly/providers';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
+import { ProviderService } from '../provider/provider.service';
 
 import { genActionResultID } from '@refly/utils';
 
@@ -15,6 +16,7 @@ export class MediaGeneratorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
+    private readonly providerService: ProviderService,
   ) {}
 
   /**
@@ -77,7 +79,7 @@ export class MediaGeneratorService {
       const provider = request.provider || 'replicate';
 
       if (provider === 'replicate') {
-        const result = await this.generateWithReplicate(request);
+        const result = await this.generateWithReplicate(user, request);
 
         const uploadResult = await this.miscService.dumpFileFromURL(user, {
           url: result.output,
@@ -112,7 +114,10 @@ export class MediaGeneratorService {
     }
   }
 
-  private async generateWithReplicate(request: MediaGenerateRequest): Promise<{ output: string }> {
+  private async generateWithReplicate(
+    user: User,
+    request: MediaGenerateRequest,
+  ): Promise<{ output: string }> {
     let result: { output: string };
 
     switch (request.mediaType) {
@@ -123,7 +128,7 @@ export class MediaGeneratorService {
         result = await this.generateVideoWithReplicate(request);
         break;
       case 'image':
-        result = await this.generateImageWithReplicate(request);
+        result = await this.generateImageWithReplicate(request, user);
         break;
       default:
         throw new Error(`Unsupported media type: ${request.mediaType}`);
@@ -156,12 +161,28 @@ export class MediaGeneratorService {
 
   private async generateImageWithReplicate(
     request: MediaGenerateRequest,
+    user: User,
   ): Promise<{ output: string }> {
     const generator = new ReplicateImageGenerator();
+
+    const provider = await this.providerService.findProvider(user, {
+      category: 'mediaGeneration',
+      providerKey: request.provider,
+      enabled: true,
+    });
+
+    if (!provider) {
+      throw new Error('No media generation provider found');
+    }
+
+    if (provider.providerKey !== request.provider) {
+      throw new Error(`Unsupported media generation provider: ${provider.providerKey}`);
+    }
 
     return await generator.generate({
       model: request.model,
       prompt: request.prompt,
+      apiKey: provider.apiKey,
     });
   }
 }

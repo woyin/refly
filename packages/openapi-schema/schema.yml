@@ -7088,6 +7088,18 @@ components:
                 content:
                   type: string
                   description: Converted markdown content
+    MediaGenerationModelCapabilities:
+      type: object
+      properties:
+        image:
+          type: boolean
+          description: Whether this model supports image generation
+        video:
+          type: boolean
+          description: Whether this model supports video generation
+        audio:
+          type: boolean
+          description: Whether this model supports audio generation
     ModelCapabilities:
       type: object
       properties:
@@ -7221,6 +7233,23 @@ components:
         capabilities:
           description: Model capabilities
           $ref: '#/components/schemas/ModelCapabilities'
+
+    MediaGenerationModelConfig:
+      type: object
+      description: Provider config for media generation
+      required:
+        - modelId
+        - modelName
+      properties:
+        modelId:
+          type: string
+          description: Model ID
+        modelName:
+          type: string
+          description: Model name
+        capabilities:
+          description: Model capabilities
+          $ref: '#/components/schemas/MediaGenerationModelCapabilities'
     EmbeddingModelConfig:
       type: object
       description: Provider config for embeddings
@@ -7263,6 +7292,7 @@ components:
         - $ref: '#/components/schemas/LLMModelConfig'
         - $ref: '#/components/schemas/EmbeddingModelConfig'
         - $ref: '#/components/schemas/RerankerModelConfig'
+        - $ref: '#/components/schemas/MediaGenerationModelConfig'
     ProviderItemOption:
       type: object
       properties:

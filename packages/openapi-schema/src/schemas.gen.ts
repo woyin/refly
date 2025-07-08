@@ -6017,6 +6017,24 @@ export const ConvertResponseSchema = {
   ],
 } as const;
 
+export const MediaGenerationModelCapabilitiesSchema = {
+  type: 'object',
+  properties: {
+    image: {
+      type: 'boolean',
+      description: 'Whether this model supports image generation',
+    },
+    video: {
+      type: 'boolean',
+      description: 'Whether this model supports video generation',
+    },
+    audio: {
+      type: 'boolean',
+      description: 'Whether this model supports audio generation',
+    },
+  },
+} as const;
+
 export const ModelCapabilitiesSchema = {
   type: 'object',
   properties: {
@@ -6191,6 +6209,26 @@ export const LLMModelConfigSchema = {
   },
 } as const;
 
+export const MediaGenerationModelConfigSchema = {
+  type: 'object',
+  description: 'Provider config for media generation',
+  required: ['modelId', 'modelName'],
+  properties: {
+    modelId: {
+      type: 'string',
+      description: 'Model ID',
+    },
+    modelName: {
+      type: 'string',
+      description: 'Model name',
+    },
+    capabilities: {
+      description: 'Model capabilities',
+      $ref: '#/components/schemas/MediaGenerationModelCapabilities',
+    },
+  },
+} as const;
+
 export const EmbeddingModelConfigSchema = {
   type: 'object',
   description: 'Provider config for embeddings',
@@ -6249,6 +6287,9 @@ export const ProviderItemConfigSchema = {
     },
     {
       $ref: '#/components/schemas/RerankerModelConfig',
+    },
+    {
+      $ref: '#/components/schemas/MediaGenerationModelConfig',
     },
   ],
 } as const;

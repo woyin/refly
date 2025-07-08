@@ -4183,6 +4183,21 @@ export type ConvertResponse = BaseResponse & {
   };
 };
 
+export type MediaGenerationModelCapabilities = {
+  /**
+   * Whether this model supports image generation
+   */
+  image?: boolean;
+  /**
+   * Whether this model supports video generation
+   */
+  video?: boolean;
+  /**
+   * Whether this model supports audio generation
+   */
+  audio?: boolean;
+};
+
 export type ModelCapabilities = {
   /**
    * Whether this model supports function calling
@@ -4326,6 +4341,24 @@ export type LLMModelConfig = {
 };
 
 /**
+ * Provider config for media generation
+ */
+export type MediaGenerationModelConfig = {
+  /**
+   * Model ID
+   */
+  modelId: string;
+  /**
+   * Model name
+   */
+  modelName: string;
+  /**
+   * Model capabilities
+   */
+  capabilities?: MediaGenerationModelCapabilities;
+};
+
+/**
  * Provider config for embeddings
  */
 export type EmbeddingModelConfig = {
@@ -4369,7 +4402,11 @@ export type RerankerModelConfig = {
   relevanceThreshold?: number;
 };
 
-export type ProviderItemConfig = LLMModelConfig | EmbeddingModelConfig | RerankerModelConfig;
+export type ProviderItemConfig =
+  | LLMModelConfig
+  | EmbeddingModelConfig
+  | RerankerModelConfig
+  | MediaGenerationModelConfig;
 
 export type ProviderItemOption = {
   /**
