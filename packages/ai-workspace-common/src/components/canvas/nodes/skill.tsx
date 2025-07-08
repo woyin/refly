@@ -71,7 +71,7 @@ export const SkillNode = memo(
       minWidth: 100,
       maxWidth: 800,
       minHeight: 200,
-      defaultWidth: 384,
+      defaultWidth: 400,
       defaultHeight: 'auto',
     });
 

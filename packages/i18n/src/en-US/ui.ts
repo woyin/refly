@@ -1125,6 +1125,8 @@ const translations = {
       website: 'Website',
       mindMap: 'Mind Map',
       group: 'Group',
+      mediaSkill: 'Media Skill',
+      mediaSkillResponse: 'Media Skill Response',
     },
     presetScenarios: {
       title: 'Preset Scenarios',
@@ -1961,6 +1963,8 @@ const translations = {
       mcpServer: 'MCP Server',
     },
     mcpServer: {
+      myServers: 'My Servers',
+      mcpStore: 'MCP Store',
       noToolsAvailable: 'No tools available',
       availableToolsPrefix: 'Available Tools: ',
       collapse: 'Collapse',

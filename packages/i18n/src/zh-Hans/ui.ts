@@ -947,6 +947,8 @@ const translations = {
       website: '网站',
       mindMap: '思维导图',
       group: '分组',
+      mediaSkill: '媒体技能',
+      mediaSkillResponse: '媒体技能响应',
     },
     presetScenarios: {
       title: '预设场景',
@@ -1751,6 +1753,8 @@ const translations = {
       mcpServer: 'MCP 服务器',
     },
     mcpServer: {
+      myServers: '我的服务器',
+      mcpStore: 'MCP 商店',
       title: 'MCP 服务器管理',
       name: '名称',
       type: '类型',

@@ -313,16 +313,25 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   };
 
   const beforeDeleteProviderItem = async (model: ProviderItem) => {
-    Modal.confirm({
-      title: t('settings.modelConfig.deleteConfirm', {
-        name: model.name || t('common.untitled'),
-      }),
-      content: t('settings.modelConfig.deleteWarning'),
-      okText: t('common.confirm'),
-      cancelText: t('common.cancel'),
-      okType: 'danger',
-      onOk: () => deleteProviderItem(model.itemId),
-    });
+    const type = getDefaultModelTypes(model.itemId);
+    if (type.length) {
+      Modal.confirm({
+        title: t('settings.modelConfig.deleteSyncConfirm', {
+          name: model.name || t('common.untitled'),
+        }),
+        onOk: () => deleteProviderItem(model.itemId, model.category),
+        okText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        okButtonProps: {
+          danger: true,
+        },
+        cancelButtonProps: {
+          className: 'hover:!text-green-600 hover:!border-green-600',
+        },
+      });
+    } else {
+      deleteProviderItem(model.itemId, model.category);
+    }
   };
 
   const disableDefaultModelConfirm = async (modelName: string, handleOk: () => void) => {
@@ -335,20 +344,25 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     });
   };
 
-  const deleteProviderItem = async (itemId: string) => {
+  const deleteProviderItem = async (itemId: string, category: ProviderCategory) => {
     const res = await getClient().deleteProviderItem({
       body: { itemId },
     });
     if (res.data.success) {
       message.success(t('common.deleteSuccess'));
-      setModelItems(modelItems.filter((item) => item.itemId !== itemId));
-      const types = getDefaultModelTypes(itemId);
-      if (types.length) {
-        updateDefaultModel(types, null);
-      }
 
-      // Emit event to refresh model list in other components
-      modelEmitter.emit('model:list:refetch', null);
+      if (category === 'mediaGeneration') {
+        setMediaGenerationModels(mediaGenerationModels.filter((item) => item.itemId !== itemId));
+      } else {
+        setModelItems(modelItems.filter((item) => item.itemId !== itemId));
+        const types = getDefaultModelTypes(itemId);
+        if (types.length) {
+          updateDefaultModel(types, null);
+        }
+
+        // Emit event to refresh model list in other components
+        modelEmitter.emit('model:list:refetch', null);
+      }
     }
   };
 

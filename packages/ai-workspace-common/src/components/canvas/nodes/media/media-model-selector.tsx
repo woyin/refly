@@ -12,6 +12,7 @@ import {
 import { DownOutlined } from '@ant-design/icons';
 import { SettingsButton } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
 import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import './index.scss';
 
 interface MediaModelSelectorProps {
   model: ProviderItem | null;
@@ -170,21 +171,11 @@ export const MediaModelSelector = memo(
           ),
         });
 
-        // Add models in this group
         for (const model of group.models) {
           list.push({
             key: model.itemId,
             label: <MediaModelLabel model={model} />,
             icon: <ModelIcon model={model.name} size={16} type={'color'} />,
-          });
-        }
-
-        // Add divider between groups (except after the last group)
-        if (index < groupedModels.length - 1) {
-          list.push({
-            key: `divider-${group.mediaType}`,
-            type: 'divider',
-            className: '!my-1',
           });
         }
       }

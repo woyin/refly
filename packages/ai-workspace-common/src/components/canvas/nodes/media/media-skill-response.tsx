@@ -6,7 +6,6 @@ import {
   useNodeSize,
   MAX_HEIGHT_CLASS,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { NodeResizer as NodeResizerComponent } from '../shared/node-resizer';
 import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 import { getNodeCommonStyles } from '../index';
 import { CustomHandle } from '../shared/custom-handle';
@@ -30,7 +29,6 @@ import { cn } from '@refly/utils/cn';
 import { NodeProps } from '@xyflow/react';
 import { CanvasNodeFilter } from '@refly/canvas-common';
 import classNames from 'classnames';
-import Moveable from 'react-moveable';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   nodeActionEmitter,
@@ -79,7 +77,7 @@ const MediaSkillResponseNode = memo(
     const isOperating = operatingNodeId === id;
     const node = useMemo(() => getNode(id), [id, getNode]);
 
-    const { containerStyle, handleResize } = useNodeSize({
+    const { containerStyle } = useNodeSize({
       id,
       node,
       readonly,
@@ -87,7 +85,7 @@ const MediaSkillResponseNode = memo(
       minWidth: 200,
       maxWidth: 500,
       minHeight: 120,
-      defaultWidth: 320,
+      defaultWidth: 180,
       defaultHeight: 180,
     });
 
@@ -337,8 +335,6 @@ const MediaSkillResponseNode = memo(
       }
     }, [mediaType, t]);
 
-    const moveableRef = useRef<Moveable>(null);
-
     if (!data) {
       return null;
     }
@@ -446,17 +442,6 @@ const MediaSkillResponseNode = memo(
             </div>
           </div>
         </div>
-
-        {!isPreview && selected && !readonly && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
-            isSelected={selected}
-            isHovered={isHovered}
-            isPreview={isPreview}
-            onResize={handleResize}
-          />
-        )}
       </div>
     );
   },
