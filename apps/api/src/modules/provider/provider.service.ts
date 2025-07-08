@@ -756,7 +756,11 @@ export class ProviderService implements OnModuleInit {
 
     if (providerId) {
       const provider = await this.prisma.provider.findUnique({
-        where: { providerId, OR: [{ uid: user.uid }, { isGlobal: true }], deletedAt: null },
+        where: {
+          providerId,
+          OR: [{ uid: user.uid }, { isGlobal: true }],
+          deletedAt: null,
+        },
       });
       if (provider?.enabled) {
         // Decrypt API key and return
@@ -1017,7 +1021,11 @@ export class ProviderService implements OnModuleInit {
     }
 
     const provider = await this.prisma.provider.findUnique({
-      where: { providerId, deletedAt: null, OR: [{ uid: user.uid }, { isGlobal: true }] },
+      where: {
+        providerId,
+        OR: [{ uid: user.uid }, { isGlobal: true }],
+        deletedAt: null,
+      },
     });
 
     if (!provider) {
