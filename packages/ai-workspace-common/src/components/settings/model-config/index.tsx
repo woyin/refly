@@ -9,7 +9,6 @@ import {
   Tooltip,
   Dropdown,
   Popconfirm,
-  Typography,
   message,
   MenuProps,
   Divider,
@@ -31,8 +30,7 @@ import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-em
 import { useGroupModels } from '@refly-packages/ai-workspace-common/hooks/use-group-models';
 import { ModelFormModal } from './model-form';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-
-const { Title } = Typography;
+import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 
 const MODEL_TIER_TO_COLOR = {
   free: 'green',
@@ -210,6 +208,15 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     userProfile: state.userProfile,
     setUserProfile: state.setUserProfile,
   }));
+
+  const { setMediaModelList } = useChatStoreShallow((state) => ({
+    setMediaModelList: state.setMediaModelList,
+  }));
+
+  useEffect(() => {
+    setMediaModelList(mediaGenerationModels.filter((item) => item.enabled));
+  }, [mediaGenerationModels, setMediaModelList]);
+
   const defaultPreferences = userProfile?.preferences || {};
   const defaultModel = defaultPreferences.defaultModel || {};
   const chatModel = defaultModel.chat;
@@ -478,26 +485,22 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     {
       key: 'conversation',
       label: t('settings.modelConfig.conversationModels'),
-      icon: <LuMessageCircle className="h-4 w-4" />,
+      icon: <LuMessageCircle className="h-4 w-4 flex items-center" />,
     },
     {
       key: 'media',
       label: t('settings.modelConfig.mediaGeneration'),
-      icon: <LuImage className="h-4 w-4" />,
+      icon: <LuImage className="h-4 w-4 flex items-center" />,
     },
     {
       key: 'other',
       label: t('settings.modelConfig.otherModels'),
-      icon: <LuSettings className="h-4 w-4" />,
+      icon: <LuSettings className="h-4 w-4 flex items-center" />,
     },
   ];
 
   const renderConversationModels = () => (
     <>
-      <Title level={4} className="pb-4">
-        {t('settings.modelConfig.chatModels')}
-      </Title>
-
       {/* Search and Add Bar */}
       <div className="flex items-center justify-between mb-6">
         <div className="relative flex-1 max-w-xs">
@@ -591,10 +594,6 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
 
   const renderMediaGenerationModels = () => (
     <>
-      <Title level={4} className="pb-4">
-        {t('settings.modelConfig.mediaGeneration')}
-      </Title>
-
       <div className="flex items-center justify-between mb-4">
         <Input
           placeholder={t('settings.modelConfig.searchPlaceholder')}
@@ -647,10 +646,6 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
 
   const renderOtherModels = () => (
     <>
-      <Title level={4} className="pb-4">
-        {t('settings.modelConfig.otherModels')}
-      </Title>
-
       <div className="flex flex-col gap-4 pb-8">
         <div className="flex items-center justify-between">
           <div>
@@ -726,15 +721,15 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
               cursor-pointer relative px-4 py-2.5 flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 ease-in-out 
               ${
                 activeTab === tab.key
-                  ? 'text-blue-600 dark:text-blue-400'
+                  ? 'text-green-600 dark:text-green-400'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }
             `}
           >
-            <span className="text-sm">{tab.icon}</span>
-            <span>{tab.label}</span>
+            <div className="text-sm">{tab.icon}</div>
+            <div>{tab.label}</div>
             {activeTab === tab.key && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t-sm" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-400 rounded-t-sm" />
             )}
           </div>
         ))}
