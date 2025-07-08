@@ -137,6 +137,10 @@ const MediaSkillResponseNode = memo(
           const urlKey =
             mediaType === 'image' ? 'imageUrl' : mediaType === 'video' ? 'videoUrl' : 'audioUrl';
 
+          // Get current node position before deletion
+          const currentNode = getNode(id);
+          const nodePosition = currentNode?.position || { x: 0, y: 0 };
+
           const newNode = {
             type: mediaType as CanvasNodeType,
             data: {
@@ -147,6 +151,7 @@ const MediaSkillResponseNode = memo(
                 storageKey,
               },
             },
+            position: nodePosition,
           };
 
           // Find the mediaSkill node that connects to this mediaSkillResponse node
@@ -176,22 +181,21 @@ const MediaSkillResponseNode = memo(
 
           console.log('connectedTo', mediaSkillNode, connectedTo);
 
-          // Add the new media node
-          addNode(newNode, connectedTo, false, true);
-
           // Delete this MediaSkillResponse node
-          const currentNode = getNode(id);
           deleteNode(
             {
               id,
               type: 'mediaSkillResponse',
               data,
-              position: currentNode?.position || { x: 0, y: 0 },
+              position: nodePosition,
             },
             {
               showMessage: false,
             },
           );
+
+          // Add the new media node at the same position
+          addNode(newNode, connectedTo, false, true);
 
           message.success(
             t('canvas.nodes.mediaSkillResponse.success', 'Media generated successfully!'),
