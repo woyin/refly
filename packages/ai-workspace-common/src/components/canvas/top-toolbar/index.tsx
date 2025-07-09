@@ -43,12 +43,14 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
   const { loading, readonly, shareData } = useCanvasContext();
 
   const {
+    canvasInitialized,
     showPreview,
     setShowPreview,
     showMaxRatio,
     setShowMaxRatio,
     canvasTitle: canvasTitleFromStore,
   } = useCanvasStoreShallow((state) => ({
+    canvasInitialized: state.canvasInitialized[canvasId],
     showPreview: state.showPreview,
     setShowPreview: state.setShowPreview,
     showMaxRatio: state.showMaxRatio,
@@ -103,7 +105,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
             <CanvasTitle
               canvasId={canvasId}
               canvasTitle={canvasTitle}
-              canvasLoading={loading}
+              canvasLoading={loading || !canvasInitialized}
               language={language}
             />
           )}

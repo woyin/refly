@@ -18,8 +18,6 @@ type NodePreview = CanvasNode<NodePreviewData> & {
 };
 
 interface CanvasConfig {
-  localSyncedAt?: number;
-  remoteSyncedAt?: number;
   nodePreviews: NodePreview[];
 }
 
@@ -61,8 +59,6 @@ export interface CanvasState {
   removeNodePreview: (canvasId: string, nodeId: string) => void;
   updateNodePreview: (canvasId: string, node: NodePreview) => void;
   reorderNodePreviews: (canvasId: string, sourceIndex: number, targetIndex: number) => void;
-  setCanvasLocalSynced: (canvasId: string, syncedAt: number) => void;
-  setCanvasRemoteSynced: (canvasId: string, syncedAt: number) => void;
   setShowPreview: (show: boolean) => void;
   setShowMaxRatio: (show: boolean) => void;
   setShowLaunchpad: (show: boolean) => void;
@@ -144,18 +140,6 @@ export const useCanvasStore = create<CanvasState>()(
       setInitialFitViewCompleted: (completed) =>
         set((state) => {
           state.initialFitViewCompleted = completed;
-        }),
-      setCanvasLocalSynced: (canvasId, syncedAt) =>
-        set((state) => {
-          state.config[canvasId] ??= defaultCanvasConfig();
-          state.config[canvasId].localSyncedAt = syncedAt;
-          state.config[canvasId].lastUsedAt = Date.now();
-        }),
-      setCanvasRemoteSynced: (canvasId, syncedAt) =>
-        set((state) => {
-          state.config[canvasId] ??= defaultCanvasConfig();
-          state.config[canvasId].remoteSyncedAt = syncedAt;
-          state.config[canvasId].lastUsedAt = Date.now();
         }),
       addNodePreview: (canvasId, node) =>
         set((state) => {

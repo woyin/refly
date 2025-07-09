@@ -221,7 +221,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   }));
 
   const {
-    config,
+    canvasInitialized,
     operatingNodeId,
     setOperatingNodeId,
     setInitialFitViewCompleted,
@@ -231,7 +231,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     setShowSlideshow,
     setContextMenuOpenedCanvasId,
   } = useCanvasStoreShallow((state) => ({
-    config: state.config[canvasId],
+    canvasInitialized: state.canvasInitialized[canvasId],
     operatingNodeId: state.operatingNodeId,
     setOperatingNodeId: state.setOperatingNodeId,
     setInitialFitViewCompleted: state.setInitialFitViewCompleted,
@@ -241,7 +241,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     setShowSlideshow: state.setShowSlideshow,
     setContextMenuOpenedCanvasId: state.setContextMenuOpenedCanvasId,
   }));
-  const hasCanvasSynced = config?.localSyncedAt > 0 && config?.remoteSyncedAt > 0;
 
   const { handleNodePreview } = useNodePreviewControl({ canvasId });
 
@@ -1020,7 +1019,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             nodesFocusable={!readonly}
             onEdgeClick={readonly ? undefined : handleEdgeClick}
           >
-            {nodes?.length === 0 && hasCanvasSynced && <EmptyGuide canvasId={canvasId} />}
+            {nodes?.length === 0 && canvasInitialized && <EmptyGuide canvasId={canvasId} />}
 
             {memoizedBackground}
             {memoizedMiniMap}
