@@ -252,6 +252,15 @@ export class SkillInvokerService {
     const { input, result, target } = data;
     this.logger.log(`invoke skill with data: ${JSON.stringify(data)}`);
 
+    // 🔍 DIAGNOSTIC: Log the query to see if it contains timeout trigger
+    const diagnosticQuery = input?.query?.toLowerCase() || '';
+    this.logger.log(`🔍 [DIAGNOSTIC] Query received: "${input?.query}"`);
+    this.logger.log(`🔍 [DIAGNOSTIC] Lowercase query: "${diagnosticQuery}"`);
+    this.logger.log(
+      `🔍 [DIAGNOSTIC] Contains 'test timeout': ${diagnosticQuery.includes('test timeout')}`,
+    );
+    this.logger.log(`🔍 [DIAGNOSTIC] Contains '测试超时': ${diagnosticQuery.includes('测试超时')}`);
+
     const { resultId, version, actionMeta, tier } = result;
 
     if (input.images?.length > 0) {
@@ -276,7 +285,16 @@ export class SkillInvokerService {
     this.actionService.registerAbortController(resultId, abortController);
 
     // Initialize Redis-based output tracking
-    await this.outputTracker.initializeTracking(resultId);
+    this.logger.log(`🔍 [DIAGNOSTIC] About to initialize Redis tracking for ${resultId}`);
+    try {
+      await this.outputTracker.initializeTracking(resultId);
+      this.logger.log(`🔍 [DIAGNOSTIC] Successfully initialized Redis tracking for ${resultId}`);
+    } catch (error) {
+      this.logger.error(
+        `🔍 [DIAGNOSTIC] Redis tracking initialization failed for ${resultId}: ${error?.message}`,
+      );
+      throw error;
+    }
 
     // Set up periodic timeout check using Redis data
     let timeoutCheckInterval: NodeJS.Timeout | null = null;
@@ -525,24 +543,41 @@ export class SkillInvokerService {
     // Start the timeout check when we begin streaming
     startTimeoutCheck();
 
-    // TEST: Simulate no data return for timeout testing
-    const testQuery = input?.query?.toLowerCase() || '';
-    if (testQuery.includes('test timeout') || testQuery.includes('测试超时')) {
-      this.logger.log(`🧪 [TIMEOUT TEST] Simulating blocked execution for query: ${input?.query}`);
-
-      // Simulate skill hanging - wait indefinitely without producing output
-      // This will trigger the 5-second stream idle timeout
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          this.logger.log('🧪 [TIMEOUT TEST] Timeout simulation completed after 10 seconds');
-          resolve(null);
-        }, 10000); // Wait 10 seconds to ensure timeout triggers
-      });
-
-      // After timeout simulation, continue normally (though timeout should have already triggered)
-    }
-
     try {
+      // TEST: Check if this is a timeout test query
+      const testQuery = input?.query?.toLowerCase() || '';
+      if (testQuery.includes('timeout') || testQuery.includes('超时')) {
+        const startTime = Date.now();
+        this.logger.log(`🧪 [TIMEOUT TEST] Starting at ${new Date().toISOString()}`);
+        this.logger.log(
+          `🧪 [TIMEOUT TEST] Simulating stuck network request for query: ${input?.query}`,
+        );
+        this.logger.log(
+          '🧪 [TIMEOUT TEST] Request will hang for 5+ seconds until timeout mechanism triggers...',
+        );
+
+        // Show progress every second to demonstrate blocking
+        const progressInterval = setInterval(() => {
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+          this.logger.log(
+            `🧪 [TIMEOUT TEST] ⏱️  Blocked for ${elapsed}s - waiting for 5s timeout...`,
+          );
+        }, 1000);
+
+        await new Promise<void>((_resolve, reject) => {
+          abortController.signal.addEventListener('abort', () => {
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            clearInterval(progressInterval);
+            this.logger.log(
+              `🧪 [TIMEOUT TEST] ✅ Successfully triggered timeout after ${totalTime}s`,
+            );
+            this.logger.log(`🧪 [TIMEOUT TEST] Abort reason: ${abortController.signal.reason}`);
+            reject(new Error('Network request timeout'));
+          });
+        });
+      }
+
+      // Normal execution - real network request to AI model
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
