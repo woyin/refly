@@ -105,6 +105,7 @@ import {
   serveStatic,
   sharePage,
   streamInvokeSkill,
+  testProviderConnection,
   unpinSkillInstance,
   updateCanvas,
   updateCanvasTemplate,
@@ -318,6 +319,8 @@ import {
   SharePageError,
   StreamInvokeSkillData,
   StreamInvokeSkillError,
+  TestProviderConnectionData,
+  TestProviderConnectionError,
   UnpinSkillInstanceData,
   UnpinSkillInstanceError,
   UpdateCanvasData,
@@ -2163,6 +2166,24 @@ export const useDeleteProvider = <
   useMutation<TData, TError, Options<DeleteProviderData, true>, TContext>({
     mutationKey: Common.UseDeleteProviderKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteProvider(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useTestProviderConnection = <
+  TData = Common.TestProviderConnectionMutationResult,
+  TError = TestProviderConnectionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<TestProviderConnectionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<TestProviderConnectionData, true>, TContext>({
+    mutationKey: Common.UseTestProviderConnectionKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      testProviderConnection(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateProviderItem = <

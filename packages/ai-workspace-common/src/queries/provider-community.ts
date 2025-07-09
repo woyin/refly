@@ -1,10 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { CommunityProviderResponse } from '../components/settings/model-providers/provider-store-types';
-import {
-  checkCommunityProviderApiHealth,
-  fetchCommunityProviderConfigs,
-} from '../requests/provider-community';
-
 /**
  * Query key factory for community providers
  */

@@ -105,6 +105,7 @@ import {
   serveStatic,
   sharePage,
   streamInvokeSkill,
+  testProviderConnection,
   unpinSkillInstance,
   updateCanvas,
   updateCanvasTemplate,
@@ -980,6 +981,14 @@ export type DeleteProviderMutationResult = Awaited<ReturnType<typeof deleteProvi
 export const useDeleteProviderKey = 'DeleteProvider';
 export const UseDeleteProviderKeyFn = (mutationKey?: Array<unknown>) => [
   useDeleteProviderKey,
+  ...(mutationKey ?? []),
+];
+export type TestProviderConnectionMutationResult = Awaited<
+  ReturnType<typeof testProviderConnection>
+>;
+export const useTestProviderConnectionKey = 'TestProviderConnection';
+export const UseTestProviderConnectionKeyFn = (mutationKey?: Array<unknown>) => [
+  useTestProviderConnectionKey,
   ...(mutationKey ?? []),
 ];
 export type CreateProviderItemMutationResult = Awaited<ReturnType<typeof createProviderItem>>;
