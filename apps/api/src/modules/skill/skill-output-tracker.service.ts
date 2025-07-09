@@ -34,7 +34,8 @@ export class SkillOutputTrackerService {
       await this.redis.setex(key, this.DEFAULT_TTL, JSON.stringify(status));
       this.logger.debug(`Initialized output tracking for ${resultId}`);
     } catch (error) {
-      this.logger.error(`Failed to initialize tracking for ${resultId}: ${error?.message}`);
+      this.logger.error(`Redis connection failed for ${resultId}: ${error?.message}`);
+      throw new Error(`Redis connection required for skill tracking: ${error?.message}`);
     }
   }
 
@@ -66,7 +67,8 @@ export class SkillOutputTrackerService {
       await this.redis.setex(key, this.DEFAULT_TTL, JSON.stringify(status));
       this.logger.debug(`Recorded output for ${resultId}: ${eventType}`);
     } catch (error) {
-      this.logger.error(`Failed to record output for ${resultId}: ${error?.message}`);
+      this.logger.error(`Redis connection failed for ${resultId}: ${error?.message}`);
+      throw new Error(`Redis connection required for skill tracking: ${error?.message}`);
     }
   }
 
@@ -109,13 +111,10 @@ export class SkillOutputTrackerService {
         hasAnyOutput: status.hasOutput,
       };
     } catch (error) {
-      this.logger.error(`Failed to check timeout for ${resultId}: ${error?.message}`);
-      // When Redis is unavailable, don't timeout skills - let them continue running
-      return {
-        isTimeout: false,
-        timeSinceLastOutput: 0,
-        hasAnyOutput: false,
-      };
+      this.logger.error(
+        `Redis connection failed for timeout check of ${resultId}: ${error?.message}`,
+      );
+      throw new Error(`Redis connection required for skill tracking: ${error?.message}`);
     }
   }
 
@@ -141,11 +140,11 @@ export class SkillOutputTrackerService {
     const _key = this.getRedisKey(resultId);
 
     try {
-      // We don't actually delete the key immediately, just let it expire
+      // We don't actually delete the Redis key immediately, just let it expire
       // This allows for debugging and prevents issues if cleanup is called multiple times
-      this.logger.debug(`Cleanup tracking for ${resultId} (will expire naturally)`);
+      this.logger.debug(`Cleanup tracking for ${resultId} (Redis will expire naturally)`);
     } catch (error) {
-      this.logger.error(`Failed to cleanup tracking for ${resultId}: ${error?.message}`);
+      this.logger.error(`Failed to cleanup Redis tracking for ${resultId}: ${error?.message}`);
     }
   }
 

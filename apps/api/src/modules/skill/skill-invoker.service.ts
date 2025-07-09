@@ -525,6 +525,23 @@ export class SkillInvokerService {
     // Start the timeout check when we begin streaming
     startTimeoutCheck();
 
+    // TEST: Simulate no data return for timeout testing
+    const testQuery = input?.query?.toLowerCase() || '';
+    if (testQuery.includes('test timeout') || testQuery.includes('测试超时')) {
+      this.logger.log(`🧪 [TIMEOUT TEST] Simulating blocked execution for query: ${input?.query}`);
+
+      // Simulate skill hanging - wait indefinitely without producing output
+      // This will trigger the 5-second stream idle timeout
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          this.logger.log('🧪 [TIMEOUT TEST] Timeout simulation completed after 10 seconds');
+          resolve(null);
+        }, 10000); // Wait 10 seconds to ensure timeout triggers
+      });
+
+      // After timeout simulation, continue normally (though timeout should have already triggered)
+    }
+
     try {
       for await (const event of skill.streamEvents(input, {
         ...config,
