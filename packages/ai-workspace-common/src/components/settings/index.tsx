@@ -137,12 +137,12 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
   }));
 
   const [localActiveTab, setLocalActiveTab] = useState<SettingsModalActiveTab>(
-    settingsModalActiveTab || SettingsModalActiveTab.Appearance,
+    settingsModalActiveTab || SettingsModalActiveTab.ModelProviders,
   );
 
   // Update local active tab when prop changes
   useEffect(() => {
-    setLocalActiveTab(settingsModalActiveTab || SettingsModalActiveTab.Appearance);
+    setLocalActiveTab(settingsModalActiveTab || SettingsModalActiveTab.ModelProviders);
   }, [settingsModalActiveTab]);
 
   // Handle tab change

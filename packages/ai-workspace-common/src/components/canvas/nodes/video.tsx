@@ -257,20 +257,11 @@ export const VideoNode = memo(
             )}
 
             <div className={cn('flex flex-col h-full relative box-border', MAX_HEIGHT_CLASS)}>
-              {!isPreview && !readonly && (
-                <NodeActionButtons
-                  nodeId={id}
-                  nodeType="video"
-                  isNodeHovered={isHovered}
-                  isSelected={selected}
-                />
-              )}
-
-              <div className="relative w-full h-full rounded-lg overflow-hidden">
+              <div className="absolute w-full -top-8 left-0 right-0 z-10 flex items-center h-8 gap-2">
                 {showTitle && (
                   <div
                     className={cn(
-                      'absolute top-0 left-0 right-0 z-10 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-gray-100 dark:bg-black',
+                      'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
                       {
                         'opacity-100': selected || isHovered,
                         'opacity-0': !selected && !isHovered,
@@ -286,6 +277,20 @@ export const VideoNode = memo(
                     />
                   </div>
                 )}
+
+                {!isPreview && !readonly && (
+                  <div className="flex-shrink-0">
+                    <NodeActionButtons
+                      nodeId={id}
+                      nodeType="video"
+                      isNodeHovered={isHovered}
+                      isSelected={selected}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="relative w-full h-full rounded-lg overflow-hidden">
                 <video
                   ref={videoRef}
                   src={videoUrl}
