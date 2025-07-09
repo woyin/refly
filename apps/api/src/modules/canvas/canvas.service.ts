@@ -36,12 +36,7 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncService } from './canvas-sync.service';
-import {
-  CanvasNodeFilter,
-  getCanvasDataFromState,
-  initEmptyCanvasState,
-  prepareAddNode,
-} from '@refly/canvas-common';
+import { CanvasNodeFilter, initEmptyCanvasState, prepareAddNode } from '@refly/canvas-common';
 
 @Injectable()
 export class CanvasService {
@@ -128,10 +123,12 @@ export class CanvasService {
       where: { uid: user.uid },
     });
 
-    const state = await this.canvasSyncService.getState(user, { canvasId }, canvas);
+    const { nodes, edges } = await this.canvasSyncService.getCanvasData(user, { canvasId }, canvas);
 
     return {
-      ...state,
+      title: canvas.title,
+      nodes,
+      edges,
       owner: {
         uid: canvas.uid,
         name: userPo?.name,
@@ -159,8 +156,7 @@ export class CanvasService {
       throw new CanvasNotFoundError();
     }
 
-    const state = await this.canvasSyncService.getState(user, { canvasId }, canvas);
-    const { nodes, edges } = getCanvasDataFromState(state);
+    const { nodes, edges } = await this.canvasSyncService.getCanvasData(user, { canvasId }, canvas);
 
     const libEntityNodes = nodes.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
@@ -369,9 +365,7 @@ export class CanvasService {
     connectTo?: CanvasNodeFilter[],
   ) {
     const releaseLock = await this.canvasSyncService.lockState(canvasId);
-    const state = await this.canvasSyncService.getState(user, { canvasId });
-    const canvasData = getCanvasDataFromState(state);
-    const { nodes, edges } = canvasData;
+    const { nodes, edges } = await this.canvasSyncService.getCanvasData(user, { canvasId });
 
     this.logger.log(
       `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, nodes: ${JSON.stringify(nodes)}, edges: ${JSON.stringify(edges)}`,
@@ -606,7 +600,7 @@ export class CanvasService {
     }
 
     try {
-      const { nodes } = await this.canvasSyncService.getState(
+      const { nodes } = await this.canvasSyncService.getCanvasData(
         { uid: canvas.uid },
         { canvasId },
         canvas,
@@ -698,7 +692,7 @@ export class CanvasService {
           if (!canvas) return;
 
           // Remove nodes matching the entities
-          const { nodes } = await this.canvasSyncService.getState(
+          const { nodes } = await this.canvasSyncService.getCanvasData(
             { uid: canvas.uid },
             { canvasId },
             canvas,

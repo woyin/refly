@@ -10,6 +10,7 @@ import {
   CreateCanvasVersionRequest,
   SetCanvasStateRequest,
   CreateCanvasVersionResult,
+  CanvasData,
 } from '@refly/openapi-schema';
 import {
   getCanvasDataFromState,
@@ -173,6 +174,23 @@ export class CanvasSyncService {
     const stateStr = await streamToString(stream);
 
     return JSON.parse(stateStr);
+  }
+
+  /**
+   * Get actual canvas data to render from state
+   * @param user - The user
+   * @param param - The get canvas data request
+   * @param canvasPo - The canvas PO
+   * @returns The canvas data
+   */
+  async getCanvasData(
+    user: User,
+    param: GetCanvasStateData['query'],
+    canvasPo?: CanvasModel,
+  ): Promise<CanvasData> {
+    const state = await this.getState(user, param, canvasPo);
+    const { nodes, edges } = getCanvasDataFromState(state);
+    return { nodes, edges };
   }
 
   /**
