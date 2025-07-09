@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
@@ -242,28 +242,36 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
                       handleAbort={handleAbort}
                       loading={isCreating}
                       isExecuting={isExecuting}
-                      customActions={[
-                        {
-                          icon: (
-                            <Badge
-                              count={selectedMcpServers?.length > 0 ? selectedMcpServers.length : 0}
-                              size="small"
-                              offset={[2, -2]}
-                            >
-                              <ToolOutlined className="flex items-center" />
-                            </Badge>
-                          ),
-                          title: t('copilot.chatActions.chooseMcp'),
-                          content: t('copilot.chatActions.chooseMcp'),
-                          onClick: handleMcpSelectorToggle,
-                        },
-                        {
-                          icon: <IconPlus className="flex items-center justify-center" />,
-                          title: '',
-                          content: t('loggedHomePage.siderMenu.newCanvas'),
-                          onClick: () => debouncedCreateCanvas(),
-                        },
-                      ]}
+                      customActions={useMemo(
+                        () => [
+                          {
+                            icon: (
+                              <Badge
+                                count={selectedMcpServers?.length || 0}
+                                size="small"
+                                offset={[2, -2]}
+                              >
+                                <ToolOutlined className="flex items-center" />
+                              </Badge>
+                            ),
+                            title: t('copilot.chatActions.chooseMcp'),
+                            content: t('copilot.chatActions.chooseMcp'),
+                            onClick: handleMcpSelectorToggle,
+                          },
+                          {
+                            icon: <IconPlus className="flex items-center justify-center" />,
+                            title: '',
+                            content: t('loggedHomePage.siderMenu.newCanvas'),
+                            onClick: () => debouncedCreateCanvas(),
+                          },
+                        ],
+                        [
+                          selectedMcpServers?.length,
+                          t,
+                          handleMcpSelectorToggle,
+                          debouncedCreateCanvas,
+                        ],
+                      )}
                     />
                   </div>
                 </>

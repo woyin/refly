@@ -387,13 +387,7 @@ export const ChatPanel = ({
         },
       },
     ],
-    [
-      handleRecommendQuestionsToggle,
-      handleMcpSelectorToggle,
-      t,
-      selectedMcpServers,
-      handleMcpSelectorToggle,
-    ],
+    [handleRecommendQuestionsToggle, handleMcpSelectorToggle, t, selectedMcpServers],
   );
 
   const handleImageUpload = async (file: File) => {
