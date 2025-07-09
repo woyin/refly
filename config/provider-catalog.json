@@ -1,18 +1,6 @@
 {
   "providers": [
     {
-      "name": "litellm",
-      "providerKey": "openai",
-      "baseUrl": "https://litellm.powerformer.net/v1",
-      "description": {
-        "en": "LiteLLM is a lightweight library to simplify LLM completion and embedding calls, providing a consistent interface for over 100 LLMs.",
-        "zh-CN": "LiteLLM 是一个轻量级库，用于简化 LLM 的补全和嵌入调用，为 100 多个 LLM 提供一致的接口。"
-      },
-      "categories": ["llm", "embedding"],
-      "documentation": "https://docs.litellm.ai/",
-      "icon": "https://static.refly.ai/icons/providers/litellm.png"
-    },
-    {
       "name": "SiliconFlow",
       "providerKey": "openai",
       "baseUrl": "https://api.siliconflow.cn/v1",
@@ -23,6 +11,18 @@
       "categories": ["llm", "embedding"],
       "documentation": "https://docs.siliconflow.cn/",
       "icon": "https://static.refly.ai/icons/providers/siliconflow.png"
+    },
+    {
+      "name": "litellm",
+      "providerKey": "openai",
+      "baseUrl": "https://litellm.powerformer.net/v1",
+      "description": {
+        "en": "LiteLLM is a lightweight library to simplify LLM completion and embedding calls, providing a consistent interface for over 100 LLMs.",
+        "zh-CN": "LiteLLM 是一个轻量级库，用于简化 LLM 的补全和嵌入调用，为 100 多个 LLM 提供一致的接口。"
+      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://docs.litellm.ai/",
+      "icon": "https://static.refly.ai/icons/providers/litellm.png"
     },
     {
       "name": "七牛云AI",
