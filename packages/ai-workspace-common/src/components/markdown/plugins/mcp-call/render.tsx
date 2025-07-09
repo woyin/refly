@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MarkdownMode } from '../../types';
-import { ToolOutlined, SoundOutlined, PauseOutlined } from '@ant-design/icons';
+import { ToolOutlined, SoundOutlined, PauseOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { ImagePreview } from '@refly-packages/ai-workspace-common/components/common/image-preview';
 
 // Audio Player Component
@@ -162,6 +162,191 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
   );
 };
 
+// Video Player Component
+interface VideoPlayerProps {
+  videoUrl: string;
+  videoName?: string;
+  videoFormat?: string;
+}
+
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  videoUrl,
+  videoName = 'video',
+  videoFormat = 'mp4',
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Format time to display as MM:SS
+  const formatTime = (time: number) => {
+    if (Number.isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  // Handle play/pause toggle
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  // Handle time update
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  // Handle metadata loaded
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
+  };
+
+  // Handle volume change
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = Number.parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (videoRef.current) {
+      videoRef.current.volume = newVolume;
+    }
+  };
+
+  // Handle progress bar change
+  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = Number.parseFloat(e.target.value);
+    setCurrentTime(newTime);
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime;
+    }
+  };
+
+  // Handle video ended
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  // Handle fullscreen toggle
+  const toggleFullscreen = () => {
+    if (videoRef.current) {
+      if (!isFullscreen) {
+        if (videoRef.current.requestFullscreen) {
+          videoRef.current.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+      setIsFullscreen(!isFullscreen);
+    }
+  };
+
+  return (
+    <div className="my-3 rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
+      <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center">
+          <PlayCircleOutlined className="mr-2 text-gray-500 dark:text-gray-400" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{videoName}</span>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">{videoFormat.toUpperCase()}</div>
+      </div>
+
+      <div className="relative">
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+          className="w-full max-h-[400px] object-contain bg-black"
+          controls={false}
+          onClick={togglePlay}
+        >
+          <track kind="captions" src="" label="English" />
+        </video>
+
+        {/* Video controls overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? (
+                <PauseOutlined className="text-white" />
+              ) : (
+                <span className="text-white ml-0.5">▶</span>
+              )}
+            </button>
+
+            <div className="text-xs text-white w-10 text-center">{formatTime(currentTime)}</div>
+
+            <div className="flex-1 mx-1">
+              <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={currentTime}
+                onChange={handleProgressChange}
+                className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #2563eb ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || 1)) * 100}%)`,
+                }}
+              />
+            </div>
+
+            <div className="text-xs text-white w-10 text-center">{formatTime(duration)}</div>
+
+            <div className="flex items-center">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="w-14 h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #2563eb ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%)`,
+                }}
+                aria-label="Volume"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-colors ml-2"
+              aria-label="Fullscreen"
+            >
+              <span className="text-white text-xs">⛶</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // SVG icons for the component
 const CheckIcon = () => (
   <svg
@@ -191,6 +376,9 @@ interface MCPCallProps {
   'data-tool-audio-http-url'?: string;
   'data-tool-audio-name'?: string;
   'data-tool-audio-format'?: string;
+  'data-tool-video-http-url'?: string;
+  'data-tool-video-name'?: string;
+  'data-tool-video-format'?: string;
   id?: string;
   mode?: MarkdownMode;
 }
@@ -237,6 +425,11 @@ const MCPCall: React.FC<MCPCallProps> = (props) => {
   const audioHttpUrl = props['data-tool-audio-http-url'];
   const audioName = props['data-tool-audio-name'];
   const audioFormat = props['data-tool-audio-format'];
+
+  // Video props
+  const videoHttpUrl = props['data-tool-video-http-url'];
+  const videoName = props['data-tool-video-name'];
+  const videoFormat = props['data-tool-video-format'];
 
   return (
     <>
@@ -331,6 +524,11 @@ const MCPCall: React.FC<MCPCallProps> = (props) => {
       {/* Audio Player section */}
       {audioHttpUrl && audioFormat && (
         <AudioPlayer audioUrl={audioHttpUrl} audioName={audioName} audioFormat={audioFormat} />
+      )}
+
+      {/* Video Player section */}
+      {videoHttpUrl && videoFormat && (
+        <VideoPlayer videoUrl={videoHttpUrl} videoName={videoName} videoFormat={videoFormat} />
       )}
     </>
   );
