@@ -281,6 +281,9 @@ export class SkillInvokerService {
     // Create abort controller for this action
     const abortController = new AbortController();
 
+    // Network timeout tracking for AI model requests
+    let networkTimeoutId: NodeJS.Timeout | null = null;
+
     // Register the abort controller with ActionService
     this.actionService.registerAbortController(resultId, abortController);
 
@@ -577,13 +580,57 @@ export class SkillInvokerService {
         });
       }
 
-      // Normal execution - real network request to AI model
+      // Normal execution - real network request to AI model with enhanced error handling
+      const networkTimeout = this.config.get('skill.executionTimeout'); // 3 minutes
+      // AI model provider network timeout (30 seconds)
+      const aiModelNetworkTimeout = this.config.get('skill.aiModelNetworkTimeout') || 30000;
+      this.logger.log(
+        `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms, total timeout: ${networkTimeout}ms) for action: ${resultId}`,
+      );
+
+      let eventCount = 0;
+
+      // Create dedicated timeout for AI model network requests
+      const createNetworkTimeout = () => {
+        if (networkTimeoutId) {
+          clearTimeout(networkTimeoutId);
+        }
+        networkTimeoutId = setTimeout(() => {
+          this.logger.error(
+            `🚨 AI model network timeout (${aiModelNetworkTimeout}ms) for action: ${resultId}`,
+          );
+          abortController.abort('AI model network timeout');
+        }, aiModelNetworkTimeout);
+      };
+
+      // Reset network timeout on each network activity
+      const resetNetworkTimeout = () => {
+        createNetworkTimeout();
+      };
+
+      // Start initial network timeout
+      createNetworkTimeout();
+
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
         signal: abortController.signal,
       })) {
+        // Reset network timeout on receiving data from AI model
+        resetNetworkTimeout();
+        // Track network activity for monitoring
+        eventCount++;
+
+        if (eventCount === 1) {
+          this.logger.log(`🌐 First event received for action: ${resultId}`);
+        } else if (eventCount % 10 === 0) {
+          this.logger.log(
+            `🌐 Network activity: ${eventCount} events processed for action: ${resultId}`,
+          );
+        }
+
         if (abortController.signal.aborted) {
+          this.logger.warn(`🚨 Request aborted after ${eventCount} events for action: ${resultId}`);
           if (runMeta) {
             result.errors.push('AbortError');
           }
@@ -739,7 +786,24 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
         }
       }
     } catch (err) {
-      this.logger.error(`invoke skill error: ${err.stack}`);
+      // Enhanced network error logging
+      const errorMessage = err.message || 'Unknown error';
+      const errorType = err.name || 'Error';
+
+      if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
+        this.logger.error(`🚨 Network timeout detected for action: ${resultId} - ${errorMessage}`);
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        this.logger.error(`🌐 Network error for action: ${resultId} - ${errorMessage}`);
+      } else if (errorMessage.includes('abort') || errorMessage.includes('AbortError')) {
+        this.logger.warn(`⏹️  Request aborted for action: ${resultId} - ${errorMessage}`);
+      } else {
+        this.logger.error(
+          `❌ Skill execution error for action: ${resultId} - ${errorType}: ${errorMessage}`,
+        );
+      }
+
+      this.logger.error(`Full error stack: ${err.stack}`);
+
       if (res) {
         writeSSEResponse(res, {
           event: 'error',
@@ -751,6 +815,12 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
       result.errors.push(err.message);
     } finally {
+      // Clear AI model network timeout
+      if (networkTimeoutId) {
+        clearTimeout(networkTimeoutId);
+        networkTimeoutId = null;
+      }
+
       // Stop timeout check and cleanup tracking
       stopTimeoutCheck();
       await this.outputTracker.cleanupTracking(resultId);
