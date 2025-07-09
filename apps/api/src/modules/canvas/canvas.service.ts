@@ -159,7 +159,8 @@ export class CanvasService {
       throw new CanvasNotFoundError();
     }
 
-    const { nodes, edges } = await this.canvasSyncService.getState(user, { canvasId }, canvas);
+    const state = await this.canvasSyncService.getState(user, { canvasId }, canvas);
+    const { nodes, edges } = getCanvasDataFromState(state);
 
     const libEntityNodes = nodes.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
@@ -176,19 +177,6 @@ export class CanvasService {
     const newCanvasId = genCanvasID();
     const newTitle = title || canvas.title;
     this.logger.log(`Duplicating canvas ${canvasId} to ${newCanvasId} with ${newTitle}`);
-
-    const stateStorageKey = `state/${newCanvasId}`;
-
-    const newCanvas = await this.prisma.canvas.create({
-      data: {
-        uid: user.uid,
-        canvasId: newCanvasId,
-        title: newTitle,
-        status: 'duplicating',
-        stateStorageKey,
-        projectId,
-      },
-    });
 
     // This is used to trace the replacement of entities
     // Key is the original entity id, value is the duplicated entity id
@@ -285,16 +273,34 @@ export class CanvasService {
       });
     }
 
-    await this.canvasSyncService.saveState(newCanvasId, {
+    const newState = {
+      ...initEmptyCanvasState(),
       nodes,
       edges,
-    });
+    };
+    const stateStorageKey = await this.canvasSyncService.saveState(newCanvasId, newState);
 
-    // Update canvas status to completed
-    await this.prisma.canvas.update({
-      where: { canvasId: newCanvasId },
-      data: { status: 'ready' },
-    });
+    // Update canvas status and create version
+    const [newCanvas] = await this.prisma.$transaction([
+      this.prisma.canvas.create({
+        data: {
+          uid: user.uid,
+          canvasId: newCanvasId,
+          title: newTitle,
+          status: 'ready',
+          projectId,
+          version: newState.version,
+        },
+      }),
+      this.prisma.canvasVersion.create({
+        data: {
+          canvasId: newCanvasId,
+          version: newState.version,
+          hash: '',
+          stateStorageKey,
+        },
+      }),
+    ]);
 
     await this.prisma.duplicateRecord.create({
       data: {
