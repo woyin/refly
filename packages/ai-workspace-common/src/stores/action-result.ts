@@ -32,6 +32,7 @@ interface ActionResultState {
 
   // Individual update actions
   updateActionResult: (resultId: string, result: ActionResult) => void;
+  removeActionResult: (resultId: string) => void;
   startPolling: (resultId: string, version: number) => void;
   stopPolling: (resultId: string) => void;
   incrementErrorCount: (resultId: string) => void;
@@ -140,6 +141,18 @@ export const useActionResultStore = create<ActionResultState>()(
         get().cleanupOldResults();
       },
 
+      // Remove action result from store
+      removeActionResult: (resultId: string) => {
+        set((state) => {
+          const newResultMap = { ...state.resultMap };
+          delete newResultMap[resultId];
+          return {
+            ...state,
+            resultMap: newResultMap,
+          };
+        });
+      },
+
       // Queue update for batching
       queueActionResultUpdate: (resultId: string, result: ActionResult) => {
         set((state) => {
@@ -207,10 +220,25 @@ export const useActionResultStore = create<ActionResultState>()(
             latestUpdates.set(resultId, result);
           }
 
-          // Apply all updates at once
+          // Apply all updates at once, but prevent overriding finished/failed states with pending states
           for (const [resultId, result] of latestUpdates.entries()) {
+            const oldStatus = updatedResultMap[resultId]?.status;
+            const newStatus = result.status;
+
+            // Only keep old status if it's final state (finish/failed) and new status is executing
+            const shouldKeepOldStatus =
+              (oldStatus === 'finish' || oldStatus === 'failed') && newStatus === 'executing';
+
+            const updateStatus = shouldKeepOldStatus ? oldStatus : newStatus;
+
+            useActionResultStore.getState().addStreamResult(resultId, {
+              ...result,
+              status: updateStatus,
+            });
+
             updatedResultMap[resultId] = {
               ...result,
+              status: updateStatus,
               lastUsedAt: now,
             };
           }

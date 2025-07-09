@@ -291,6 +291,9 @@ import type {
   DeleteSkillTriggerData,
   DeleteSkillTriggerError,
   DeleteSkillTriggerResponse,
+  GenerateMediaData,
+  GenerateMediaError,
+  GenerateMediaResponse,
   CreatePilotSessionData,
   CreatePilotSessionError,
   CreatePilotSessionResponse,
@@ -340,6 +343,9 @@ import type {
   DeleteProviderData,
   DeleteProviderError,
   DeleteProviderResponse,
+  TestProviderConnectionData,
+  TestProviderConnectionError,
+  TestProviderConnectionResponse2,
   ListProviderItemsData,
   ListProviderItemsError,
   ListProviderItemsResponse2,
@@ -1911,6 +1917,19 @@ export const deleteSkillTrigger = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Generate multimedia content
+ * Generate image, video or audio based on the given prompt
+ */
+export const generateMedia = <ThrowOnError extends boolean = false>(
+  options: Options<GenerateMediaData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<GenerateMediaResponse, GenerateMediaError, ThrowOnError>({
+    ...options,
+    url: '/media/generate',
+  });
+};
+
+/**
  * Create new pilot session
  * Create a new pilot session
  */
@@ -2195,6 +2214,23 @@ export const deleteProvider = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/provider/delete',
+  });
+};
+
+/**
+ * Test provider connection
+ * Test provider API connection and availability
+ */
+export const testProviderConnection = <ThrowOnError extends boolean = false>(
+  options: Options<TestProviderConnectionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    TestProviderConnectionResponse2,
+    TestProviderConnectionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/provider/test-connection',
   });
 };
 

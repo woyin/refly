@@ -55,6 +55,7 @@ import {
   emailSignup,
   exportCanvas,
   exportDocument,
+  generateMedia,
   getActionResult,
   getAuthConfig,
   getCanvasData,
@@ -109,6 +110,7 @@ import {
   sharePage,
   streamInvokeSkill,
   syncCanvasState,
+  testProviderConnection,
   unpinSkillInstance,
   updateCanvas,
   updateCanvasTemplate,
@@ -234,6 +236,8 @@ import {
   ExportCanvasError,
   ExportDocumentData,
   ExportDocumentError,
+  GenerateMediaData,
+  GenerateMediaError,
   GetActionResultData,
   GetActionResultError,
   GetAuthConfigError,
@@ -330,6 +334,8 @@ import {
   StreamInvokeSkillError,
   SyncCanvasStateData,
   SyncCanvasStateError,
+  TestProviderConnectionData,
+  TestProviderConnectionError,
   UnpinSkillInstanceData,
   UnpinSkillInstanceError,
   UpdateCanvasData,
@@ -2088,6 +2094,23 @@ export const useDeleteSkillTrigger = <
     mutationFn: (clientOptions) => deleteSkillTrigger(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
+export const useGenerateMedia = <
+  TData = Common.GenerateMediaMutationResult,
+  TError = GenerateMediaError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<GenerateMediaData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<GenerateMediaData, true>, TContext>({
+    mutationKey: Common.UseGenerateMediaKeyFn(mutationKey),
+    mutationFn: (clientOptions) => generateMedia(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
 export const useCreatePilotSession = <
   TData = Common.CreatePilotSessionMutationResult,
   TError = CreatePilotSessionError,
@@ -2241,6 +2264,24 @@ export const useDeleteProvider = <
   useMutation<TData, TError, Options<DeleteProviderData, true>, TContext>({
     mutationKey: Common.UseDeleteProviderKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteProvider(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useTestProviderConnection = <
+  TData = Common.TestProviderConnectionMutationResult,
+  TError = TestProviderConnectionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<TestProviderConnectionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<TestProviderConnectionData, true>, TContext>({
+    mutationKey: Common.UseTestProviderConnectionKeyFn(mutationKey),
+    mutationFn: (clientOptions) =>
+      testProviderConnection(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateProviderItem = <

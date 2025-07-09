@@ -55,6 +55,7 @@ import {
   emailSignup,
   exportCanvas,
   exportDocument,
+  generateMedia,
   getActionResult,
   getAuthConfig,
   getCanvasData,
@@ -109,6 +110,7 @@ import {
   sharePage,
   streamInvokeSkill,
   syncCanvasState,
+  testProviderConnection,
   unpinSkillInstance,
   updateCanvas,
   updateCanvasTemplate,
@@ -966,6 +968,12 @@ export const UseDeleteSkillTriggerKeyFn = (mutationKey?: Array<unknown>) => [
   useDeleteSkillTriggerKey,
   ...(mutationKey ?? []),
 ];
+export type GenerateMediaMutationResult = Awaited<ReturnType<typeof generateMedia>>;
+export const useGenerateMediaKey = 'GenerateMedia';
+export const UseGenerateMediaKeyFn = (mutationKey?: Array<unknown>) => [
+  useGenerateMediaKey,
+  ...(mutationKey ?? []),
+];
 export type CreatePilotSessionMutationResult = Awaited<ReturnType<typeof createPilotSession>>;
 export const useCreatePilotSessionKey = 'CreatePilotSession';
 export const UseCreatePilotSessionKeyFn = (mutationKey?: Array<unknown>) => [
@@ -1018,6 +1026,14 @@ export type DeleteProviderMutationResult = Awaited<ReturnType<typeof deleteProvi
 export const useDeleteProviderKey = 'DeleteProvider';
 export const UseDeleteProviderKeyFn = (mutationKey?: Array<unknown>) => [
   useDeleteProviderKey,
+  ...(mutationKey ?? []),
+];
+export type TestProviderConnectionMutationResult = Awaited<
+  ReturnType<typeof testProviderConnection>
+>;
+export const useTestProviderConnectionKey = 'TestProviderConnection';
+export const UseTestProviderConnectionKeyFn = (mutationKey?: Array<unknown>) => [
+  useTestProviderConnectionKey,
   ...(mutationKey ?? []),
 ];
 export type CreateProviderItemMutationResult = Awaited<ReturnType<typeof createProviderItem>>;
