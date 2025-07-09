@@ -411,80 +411,74 @@ export const CanvasProvider = ({
     [],
   );
 
-  const initialFetchCanvasState = useCallback(async () => {
-    if (readonly) return;
+  const initialFetchCanvasState = useDebouncedCallback(async (canvasId: string) => {
+    const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
+    console.log('localState', localState);
 
-    try {
-      const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
-      console.log('localState', localState);
+    // Only set loading when local state is not found
+    let needLoading = false;
+    if (!localState) {
+      needLoading = true;
+      setLoading(true);
+    }
 
-      // Only set loading when local state is not found
-      if (!localState) {
-        setLoading(true);
-      }
+    const remoteState = await getCanvasState(canvasId);
+    if (!remoteState) {
+      return;
+    }
+    console.log('remoteState', remoteState);
 
-      const remoteState = await getCanvasState(canvasId);
-      if (!remoteState) {
-        return;
-      }
-      console.log('remoteState', remoteState);
-
-      let finalState: CanvasState;
-      if (!localState) {
-        finalState = remoteState;
-      } else {
-        try {
-          finalState = mergeCanvasStates(localState, remoteState);
-        } catch (error) {
-          if (error instanceof CanvasConflictException) {
-            // Show conflict modal to user
-            const userChoice = await handleConflictResolution(canvasId, {
-              localState,
-              remoteState,
-            });
-            if (userChoice === 'local') {
-              // Use local state, and set it to remote
-              finalState = localState;
-            } else {
-              // Use remote state, and overwrite local state
-              finalState = remoteState;
-            }
+    let finalState: CanvasState;
+    if (!localState) {
+      finalState = remoteState;
+    } else {
+      try {
+        finalState = mergeCanvasStates(localState, remoteState);
+      } catch (error) {
+        if (error instanceof CanvasConflictException) {
+          // Show conflict modal to user
+          console.log('show conflict modal');
+          const userChoice = await handleConflictResolution(canvasId, {
+            localState,
+            remoteState,
+          });
+          if (userChoice === 'local') {
+            // Use local state, and set it to remote
+            finalState = localState;
           } else {
-            console.error('Failed to merge canvas states:', error);
+            // Use remote state, and overwrite local state
             finalState = remoteState;
           }
+        } else {
+          console.error('Failed to merge canvas states:', error);
+          finalState = remoteState;
         }
       }
-
-      const lastTransaction = getLastTransaction(finalState);
-      if (
-        finalState.transactions?.length > MAX_STATE_TX_COUNT ||
-        lastTransaction?.createdAt < Date.now() - MAX_VERSION_AGE
-      ) {
-        await createCanvasVersion(canvasId, finalState);
-      }
-
-      updateCanvasDataFromState(finalState);
-
-      await set(`canvas-state:${canvasId}`, finalState);
-
-      setCanvasInitialized(canvasId, true);
-    } catch (error) {
-      console.error('Failed to poll canvas state:', error);
-    } finally {
-      // Only clear loading if it was the first poll
-      if (loading) {
-        setLoading(false);
-      }
     }
-  }, [canvasId, readonly, updateCanvasDataFromState, loading, handleConflictResolution]);
 
-  // Start/stop polling
+    const lastTransaction = getLastTransaction(finalState);
+    if (
+      finalState.transactions?.length > MAX_STATE_TX_COUNT ||
+      lastTransaction?.createdAt < Date.now() - MAX_VERSION_AGE
+    ) {
+      await createCanvasVersion(canvasId, finalState);
+    }
+
+    updateCanvasDataFromState(finalState);
+
+    await set(`canvas-state:${canvasId}`, finalState);
+
+    if (needLoading) {
+      setLoading(false);
+    }
+
+    setCanvasInitialized(canvasId, true);
+  }, 10);
+
   useEffect(() => {
     if (readonly) return;
 
-    // Initial fetch
-    initialFetchCanvasState();
+    initialFetchCanvasState(canvasId);
   }, [canvasId, readonly, initialFetchCanvasState]);
 
   const undo = useCallback(async () => {
