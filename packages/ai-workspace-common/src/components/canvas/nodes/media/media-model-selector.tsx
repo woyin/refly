@@ -220,6 +220,7 @@ export const MediaModelSelector = memo(
     } else if (!mediaModelList?.length) {
       return (
         <Button
+          onClick={handleOpenSettingModal}
           type="text"
           size="small"
           className="text-xs text-orange-500"
