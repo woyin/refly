@@ -2394,6 +2394,13 @@ const translations = {
       default: 'Default Group',
       group: 'Group Name',
       groupPlaceholder: 'Please set up group name to categorize and manage the models',
+      providerMode: 'Configuration Mode',
+      providerModeDescription:
+        'Custom models will use your configured models, global models will use Refly provided models',
+      custom: 'Custom',
+      global: 'Global',
+      syncSuccessfully: 'providerMode configuration updated successfully!',
+      syncFailed: 'Failed to update providerMode configuration, please try again!',
     },
     modelTier: {
       free: 'Free',

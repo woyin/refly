@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Radio, Typography, Divider } from 'antd';
+import { Radio, Typography } from 'antd';
 import { useThemeStoreShallow } from '../../../stores/theme';
 import { useEffect } from 'react';
 
@@ -24,8 +24,9 @@ export const AppearanceSetting = () => {
 
   return (
     <div className="p-4 pt-0 h-full overflow-auto flex flex-col">
-      <Title level={4}>{t('settings.appearance.title')}</Title>
-      <Divider />
+      <Title level={4} className="!mb-7">
+        {t('settings.appearance.title')}
+      </Title>
       <div className="mb-6">
         <Typography.Title level={5}>{t('settings.appearance.themeMode')}</Typography.Title>
         <div className="mt-2">
