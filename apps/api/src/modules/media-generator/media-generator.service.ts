@@ -8,7 +8,6 @@ import {
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
 import { ProviderService } from '../provider/provider.service';
-
 import { genActionResultID } from '@refly/utils';
 
 @Injectable()
@@ -69,6 +68,7 @@ export class MediaGeneratorService {
     resultId: string,
     request: MediaGenerateRequest,
   ): Promise<void> {
+    let result: { output: string };
     try {
       // Update status to Executing
       await this.prisma.actionResult.update({
@@ -76,30 +76,40 @@ export class MediaGeneratorService {
         data: { status: 'executing' },
       });
 
-      const provider = request.provider || 'replicate';
+      const providerKey = request.provider;
 
-      if (provider === 'replicate') {
-        const result = await this.generateWithReplicate(user, request);
+      const provider = await this.providerService.findProvider(user, {
+        category: 'mediaGeneration',
+        providerKey: providerKey,
+        enabled: true,
+      });
 
-        const uploadResult = await this.miscService.dumpFileFromURL(user, {
-          url: result.output,
-          entityId: resultId, //ActionResult
-          entityType: 'mediaResult',
-          visibility: 'private',
-        });
-
-        // The update status is completed, saving the storage information inside the system
-        await this.prisma.actionResult.update({
-          where: { resultId_version: { resultId, version: 0 } },
-          data: {
-            status: 'finish',
-            outputUrl: uploadResult.url, // Using system internal URL
-            storageKey: uploadResult.storageKey, // Save storage key
-          },
-        });
-      } else {
-        throw new Error(`Unsupported provider: ${provider}`);
+      if (!provider) {
+        throw new Error('No media generation provider found');
       }
+
+      if (providerKey === 'replicate') {
+        result = await this.generateWithReplicate(user, request, provider.apiKey);
+      } else {
+        throw new Error(`Unsupported provider: ${providerKey}`);
+      }
+
+      const uploadResult = await this.miscService.dumpFileFromURL(user, {
+        url: result.output,
+        entityId: resultId, //ActionResult
+        entityType: 'mediaResult',
+        visibility: 'private',
+      });
+
+      // The update status is completed, saving the storage information inside the system
+      await this.prisma.actionResult.update({
+        where: { resultId_version: { resultId, version: 0 } },
+        data: {
+          status: 'finish',
+          outputUrl: uploadResult.url, // Using system internal URL
+          storageKey: uploadResult.storageKey, // Save storage key
+        },
+      });
     } catch (error) {
       console.error(`Media generation execution failed for ${resultId}:`, error);
 
@@ -115,20 +125,22 @@ export class MediaGeneratorService {
   }
 
   private async generateWithReplicate(
-    user: User,
+    _user: User,
     request: MediaGenerateRequest,
+    apiKey: string,
   ): Promise<{ output: string }> {
     let result: { output: string };
 
     switch (request.mediaType) {
       case 'audio':
-        result = await this.generateAudioWithReplicate(request);
+        result = await this.generateAudioWithReplicate(request, apiKey);
         break;
       case 'video':
-        result = await this.generateVideoWithReplicate(request);
+        result = await this.generateVideoWithReplicate(request, apiKey);
         break;
       case 'image':
-        result = await this.generateImageWithReplicate(request, user);
+        result = await this.generateImageWithReplicate(request, apiKey);
+
         break;
       default:
         throw new Error(`Unsupported media type: ${request.mediaType}`);
@@ -139,50 +151,40 @@ export class MediaGeneratorService {
 
   private async generateAudioWithReplicate(
     request: MediaGenerateRequest,
+    apiKey: string,
   ): Promise<{ output: string }> {
     const generator = new ReplicateAudioGenerator();
 
     return await generator.generate({
       model: request.model,
       prompt: request.prompt,
+      apiKey: apiKey,
     });
   }
 
   private async generateVideoWithReplicate(
     request: MediaGenerateRequest,
+    apiKey: string,
   ): Promise<{ output: string }> {
     const generator = new ReplicateVideoGenerator();
 
     return await generator.generate({
       model: request.model,
       prompt: request.prompt,
+      apiKey: apiKey,
     });
   }
 
   private async generateImageWithReplicate(
     request: MediaGenerateRequest,
-    user: User,
+    apiKey: string,
   ): Promise<{ output: string }> {
     const generator = new ReplicateImageGenerator();
-
-    const provider = await this.providerService.findProvider(user, {
-      category: 'mediaGeneration',
-      providerKey: request.provider,
-      enabled: true,
-    });
-
-    if (!provider) {
-      throw new Error('No media generation provider found');
-    }
-
-    if (provider.providerKey !== request.provider) {
-      throw new Error(`Unsupported media generation provider: ${provider.providerKey}`);
-    }
 
     return await generator.generate({
       model: request.model,
       prompt: request.prompt,
-      apiKey: provider.apiKey,
+      apiKey: apiKey,
     });
   }
 }
