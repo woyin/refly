@@ -129,6 +129,103 @@ describe('getCanvasDataFromState', () => {
   });
 });
 
+describe('getCanvasDataFromState - parent/child ordering', () => {
+  it('should order parent before child for single parent-child', () => {
+    const parent = createNode('p');
+    const child = createNode('c', { parentId: 'p' });
+    const tx1 = createTx('tx1', [
+      { type: 'add', id: 'p', to: parent },
+      { type: 'add', id: 'c', to: child },
+    ]);
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions: [tx1],
+      history: [],
+    };
+    const data = getCanvasDataFromState(state);
+    const parentIdx = data.nodes.findIndex((n) => n.id === 'p');
+    const childIdx = data.nodes.findIndex((n) => n.id === 'c');
+    expect(parentIdx).toBeLessThan(childIdx);
+    expect(data.nodes[childIdx].parentId).toBe('p');
+  });
+
+  it('should order deep nested parents before children', () => {
+    const root = createNode('root');
+    const mid = createNode('mid', { parentId: 'root' });
+    const leaf = createNode('leaf', { parentId: 'mid' });
+    const tx = createTx('tx2', [
+      { type: 'add', id: 'root', to: root },
+      { type: 'add', id: 'mid', to: mid },
+      { type: 'add', id: 'leaf', to: leaf },
+    ]);
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions: [tx],
+      history: [],
+    };
+    const data = getCanvasDataFromState(state);
+    const idxRoot = data.nodes.findIndex((n) => n.id === 'root');
+    const idxMid = data.nodes.findIndex((n) => n.id === 'mid');
+    const idxLeaf = data.nodes.findIndex((n) => n.id === 'leaf');
+    expect(idxRoot).toBeLessThan(idxMid);
+    expect(idxMid).toBeLessThan(idxLeaf);
+    expect(data.nodes[idxMid].parentId).toBe('root');
+    expect(data.nodes[idxLeaf].parentId).toBe('mid');
+  });
+
+  it('should handle multiple roots and children', () => {
+    const a = createNode('a');
+    const b = createNode('b');
+    const c = createNode('c', { parentId: 'a' });
+    const d = createNode('d', { parentId: 'b' });
+    const tx = createTx('tx3', [
+      { type: 'add', id: 'a', to: a },
+      { type: 'add', id: 'b', to: b },
+      { type: 'add', id: 'c', to: c },
+      { type: 'add', id: 'd', to: d },
+    ]);
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions: [tx],
+      history: [],
+    };
+    const data = getCanvasDataFromState(state);
+    const idxA = data.nodes.findIndex((n) => n.id === 'a');
+    const idxB = data.nodes.findIndex((n) => n.id === 'b');
+    const idxC = data.nodes.findIndex((n) => n.id === 'c');
+    const idxD = data.nodes.findIndex((n) => n.id === 'd');
+    expect(idxA).toBeLessThan(idxC);
+    expect(idxB).toBeLessThan(idxD);
+    expect(data.nodes[idxC].parentId).toBe('a');
+    expect(data.nodes[idxD].parentId).toBe('b');
+  });
+
+  it('should not infinite loop on cycle (cycle is not valid, but should not crash)', () => {
+    const a = createNode('a', { parentId: 'b' });
+    const b = createNode('b', { parentId: 'a' });
+    const tx = createTx('tx4', [
+      { type: 'add', id: 'a', to: a },
+      { type: 'add', id: 'b', to: b },
+    ]);
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions: [tx],
+      history: [],
+    };
+    // Should not throw or hang
+    const data = getCanvasDataFromState(state);
+    expect(data.nodes.map((n) => n.id).sort()).toEqual(['a', 'b']);
+  });
+});
+
 describe('updateCanvasState', () => {
   it('should add new transactions', () => {
     const tx = createTx('tx1');

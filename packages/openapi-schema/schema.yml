@@ -8033,6 +8033,9 @@ components:
         dragging:
           type: boolean
           description: Whether the node is being dragged
+        parentId:
+          type: string
+          description: Parent node ID
     CanvasEdge:
       type: object
       required:

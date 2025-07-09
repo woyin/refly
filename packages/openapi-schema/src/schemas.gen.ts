@@ -7156,6 +7156,10 @@ export const CanvasNodeSchema = {
       type: 'boolean',
       description: 'Whether the node is being dragged',
     },
+    parentId: {
+      type: 'string',
+      description: 'Parent node ID',
+    },
   },
 } as const;
 

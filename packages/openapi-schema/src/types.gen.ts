@@ -4965,6 +4965,10 @@ export type CanvasNode = {
    * Whether the node is being dragged
    */
   dragging?: boolean;
+  /**
+   * Parent node ID
+   */
+  parentId?: string;
 };
 
 export type CanvasEdge = {

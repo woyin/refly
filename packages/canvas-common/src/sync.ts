@@ -116,6 +116,38 @@ export const applyCanvasTransaction = (
 };
 
 /**
+ * Topologically sort nodes so that parents always come before their children.
+ * @param nodes - The array of CanvasNode
+ * @returns Sorted array of CanvasNode
+ */
+function sortNodesByParent(nodes: CanvasNode[]): CanvasNode[] {
+  // Build a map from id to node
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  // Track visited nodes
+  const visited = new Set<string>();
+  // Result array
+  const result: CanvasNode[] = [];
+
+  // Helper for DFS
+  function visit(node: CanvasNode) {
+    if (visited.has(node.id)) return;
+    // Mark as visited BEFORE recursing to parent to prevent infinite loop on cycles
+    visited.add(node.id);
+    // Visit parent first if exists and is in the map
+    if (node.parentId && nodeMap.has(node.parentId)) {
+      visit(nodeMap.get(node.parentId)!);
+    }
+    result.push(node);
+  }
+
+  // Visit all nodes
+  for (const node of nodes) {
+    visit(node);
+  }
+  return result;
+}
+
+/**
  * Get actual canvas data from canvas initial state and replayed transactions
  * @param state - The canvas state
  * @returns The canvas data
@@ -132,7 +164,13 @@ export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
     }
   }
 
-  return currentData;
+  // Ensure parentId is set and parents come before children
+  const sortedNodes = sortNodesByParent(currentData.nodes ?? []);
+
+  return {
+    nodes: sortedNodes,
+    edges: currentData.edges,
+  };
 };
 
 /**
