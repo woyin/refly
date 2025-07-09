@@ -1,9 +1,7 @@
 import { BaseImageGenerator, ImageGenerationRequest, ImageGenerationResponse } from './base';
 
 export class ReplicateImageGenerator extends BaseImageGenerator {
-  async generate(
-    request: ImageGenerationRequest & { apiKey: string },
-  ): Promise<ImageGenerationResponse> {
+  async generate(request: ImageGenerationRequest): Promise<ImageGenerationResponse> {
     const url = `https://api.replicate.com/v1/models/${request.model}/predictions`;
 
     const headers = {

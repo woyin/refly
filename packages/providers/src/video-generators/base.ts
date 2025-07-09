@@ -2,6 +2,7 @@ export interface VideoGenerationRequest {
   prompt: string;
   model: string;
   aspectRatio?: string;
+  apiKey: string;
 }
 
 export interface VideoGenerationResponse {

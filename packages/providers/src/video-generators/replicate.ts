@@ -10,7 +10,7 @@ export class ReplicateVideoGenerator extends BaseVideoGenerator {
     const url = `https://api.replicate.com/v1/models/${request.model}/predictions`;
 
     const headers = {
-      Authorization: `Bearer ${process.env.REPLICATE_API_KEY}`,
+      Authorization: `Bearer ${request.apiKey}`,
       'Content-Type': 'application/json',
     };
 
