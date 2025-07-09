@@ -29,6 +29,8 @@ import { SlPicture } from 'react-icons/sl';
 import { useProjectSelectorStoreShallow } from '@refly-packages/ai-workspace-common/stores/project-selector';
 import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
 import { DATA_NUM } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
+import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+
 export const ActionDropdown = ({
   project,
   afterDelete,
@@ -261,6 +263,9 @@ const ProjectList = ({
 
   const { dataList, loadMore, reload, hasMore, isRequesting, setDataList } = useFetchDataList({
     fetchData: async (queryPayload) => {
+      const { isLogin } = useUserStore.getState();
+      if (!isLogin) return;
+
       const res = await getClient().listProjects({
         query: queryPayload,
       });
