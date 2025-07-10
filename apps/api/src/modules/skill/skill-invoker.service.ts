@@ -787,20 +787,32 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       const errorMessage = err.message || 'Unknown error';
       const errorType = err.name || 'Error';
 
+      // Categorize errors more reliably
+      const isNetworkTimeout =
+        errorMessage.includes('AI model network timeout') ||
+        (err.name === 'TimeoutError' && errorMessage.includes('network'));
+      const isGeneralTimeout = errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT');
+      const isNetworkError =
+        errorMessage.includes('network') ||
+        errorMessage.includes('fetch') ||
+        err.name === 'NetworkError';
+      const isAbortError = errorMessage.includes('abort') || err.name === 'AbortError';
+
       // Provide user-friendly error messages for different timeout types
       let userFriendlyMessage = errorMessage;
 
-      if (errorMessage.includes('AI model network timeout')) {
-        userFriendlyMessage = 'AI供应商网络请求超时，请检查供应商配置或网络连接';
+      if (isNetworkTimeout) {
+        userFriendlyMessage =
+          'AI provider network request timeout. Please check provider configuration or network connection.';
         this.logger.error(`🚨 AI model network timeout for action: ${resultId} - ${errorMessage}`);
-      } else if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
-        userFriendlyMessage = '请求超时，请稍后重试';
+      } else if (isGeneralTimeout) {
+        userFriendlyMessage = 'Request timeout. Please try again later.';
         this.logger.error(`🚨 Network timeout detected for action: ${resultId} - ${errorMessage}`);
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        userFriendlyMessage = '网络连接错误，请检查网络状态';
+      } else if (isNetworkError) {
+        userFriendlyMessage = 'Network connection error. Please check your network status.';
         this.logger.error(`🌐 Network error for action: ${resultId} - ${errorMessage}`);
-      } else if (errorMessage.includes('abort') || errorMessage.includes('AbortError')) {
-        userFriendlyMessage = '操作已被中止';
+      } else if (isAbortError) {
+        userFriendlyMessage = 'Operation was aborted.';
         this.logger.warn(`⏹️  Request aborted for action: ${resultId} - ${errorMessage}`);
       } else {
         this.logger.error(
