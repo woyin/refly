@@ -7,7 +7,12 @@ import { User as UserModel } from '../../../generated/client';
 import { MediaGeneratorService } from '../../media-generator/media-generator.service';
 import { ActionService } from '../../action/action.service';
 import { ProviderService } from '../../provider/provider.service';
-import { MediaGenerateRequest, MediaGenerationModelConfig } from '@refly/openapi-schema';
+import { PrismaService } from '../../common/prisma.service';
+import {
+  MediaGenerateRequest,
+  MediaGenerationModelConfig,
+  UserPreferences,
+} from '@refly/openapi-schema';
 
 @Injectable()
 export class MediaGeneratorTools {
@@ -28,55 +33,125 @@ export class MediaGeneratorTools {
     private readonly actionService: ActionService,
     private readonly internalMcpService: InternalMcpService,
     private readonly providerService: ProviderService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
-   * Get user's configured media generation provider and model
+   * Get user preferences from database
+   */
+  private async getUserPreferences(uid: string): Promise<UserPreferences> {
+    try {
+      const userPo = await this.prisma.user.findUnique({
+        where: { uid },
+        select: {
+          preferences: true,
+        },
+      });
+
+      if (!userPo?.preferences) {
+        return {};
+      }
+
+      return JSON.parse(userPo.preferences);
+    } catch (error) {
+      this.logger.warn(`Failed to get user preferences for ${uid}: ${error?.message || error}`);
+      return {};
+    }
+  }
+
+  /**
+   * Get user's configured media generation provider and model from default model settings
    */
   private async getUserMediaConfig(
     user: UserModel,
     mediaType: 'image' | 'audio' | 'video',
+    model?: string,
+    provider?: string,
   ): Promise<{
     provider: string;
-    model?: string;
+    model: string;
   }> {
+    if (!mediaType) {
+      return null;
+    }
+
+    if (model && provider) {
+      return {
+        provider,
+        model,
+      };
+    }
+
     try {
-      // Find user's configured media generation provider items
+      // Get user's default model configuration from preferences
+      const userPreferences = await this.getUserPreferences(user.uid);
+      const userDefaultModel = userPreferences?.defaultModel;
+
+      if (!userDefaultModel) {
+        this.logger.log(
+          `No default model configuration found for user ${user.uid}, using default for ${mediaType}`,
+        );
+        return this.getDefaultModelForMediaType(mediaType);
+      }
+
+      // Get the specific media model configuration based on mediaType
+      const mediaModelConfig = userDefaultModel[mediaType];
+
+      console.log(
+        'useruseruseruser',
+        JSON.stringify(
+          { userDefaultModel, aaa: userDefaultModel[mediaType], mediaModelConfig },
+          null,
+          2,
+        ),
+      );
+
+      if (!mediaModelConfig?.itemId) {
+        this.logger.log(`No ${mediaType} model configured for user ${user.uid}, using default`);
+        return this.getDefaultModelForMediaType(mediaType);
+      }
+
+      // Find the provider item for this configured model
       const providerItems = await this.providerService.listProviderItems(user, {
         category: 'mediaGeneration',
         enabled: true,
       });
 
-      if (mediaType) {
-        // If user has configured media generation provider items
-        if (providerItems && providerItems.length > 0) {
-          // If mediaType is specified, try to find a model that supports it
+      const configuredProviderItem = providerItems.find(
+        (item) => item.itemId === mediaModelConfig.itemId,
+      );
 
-          for (const providerItem of providerItems) {
-            const config: MediaGenerationModelConfig = JSON.parse(providerItem.config || '{}');
-
-            // Check if this model supports the requested mediaType
-            if (config.capabilities?.[mediaType]) {
-              this.logger.log(
-                `Found user configured ${mediaType} model: ${config.modelId} from provider: ${providerItem.provider?.providerKey}`,
-              );
-
-              return {
-                provider: providerItem.provider?.providerKey || 'replicate',
-                model: config.modelId,
-              };
-            }
-          }
-        }
+      if (!configuredProviderItem) {
+        this.logger.warn(
+          `Configured ${mediaType} model ${mediaModelConfig.itemId} not found in user's provider items, using default`,
+        );
         return this.getDefaultModelForMediaType(mediaType);
       }
 
-      return null;
+      // Parse the model configuration
+      const config: MediaGenerationModelConfig = JSON.parse(configuredProviderItem.config || '{}');
+
+      // Verify that this model actually supports the requested media type
+      if (!config.capabilities?.[mediaType]) {
+        this.logger.warn(
+          `Configured ${mediaType} model ${config.modelId} does not support ${mediaType} generation, using default`,
+        );
+        return this.getDefaultModelForMediaType(mediaType);
+      }
+
+      this.logger.log(
+        `Using user configured ${mediaType} model: ${config.modelId} from provider: ${configuredProviderItem.provider?.providerKey}`,
+      );
+
+      return {
+        provider: configuredProviderItem.provider?.providerKey || 'replicate',
+        model: config.modelId,
+      };
     } catch (error) {
       this.logger.warn(
         `Failed to get user media config: ${error?.message || error}, using default for ${mediaType}`,
       );
-      return null;
+      return this.getDefaultModelForMediaType(mediaType);
     }
   }
 
@@ -163,22 +238,19 @@ export class MediaGeneratorTools {
       );
 
       // Get user's configured media generation settings
-      const userMediaConfig = await this.getUserMediaConfig(user, params.mediaType);
-
-      // Use provided parameters or fall back to user's configured settings
-      const finalProvider = params.provider || userMediaConfig?.provider || 'replicate';
-      const finalModel = params.model || userMediaConfig?.model;
-
-      this.logger.log(
-        `Using provider: ${finalProvider}, model: ${finalModel || 'default'} for user ${user.uid}`,
+      const userMediaConfig = await this.getUserMediaConfig(
+        user,
+        params.mediaType,
+        params.model,
+        params.provider,
       );
 
       // Build media generation request
       const mediaRequest: MediaGenerateRequest = {
         mediaType: params.mediaType,
         prompt: params.prompt,
-        model: finalModel,
-        provider: finalProvider,
+        model: userMediaConfig?.model,
+        provider: userMediaConfig?.provider,
       };
 
       // Start media generation
@@ -237,8 +309,8 @@ export class MediaGeneratorTools {
             status: 'completed',
             mediaType: params.mediaType,
             prompt: params.prompt,
-            provider: finalProvider,
-            model: finalModel,
+            model: userMediaConfig?.model,
+            provider: userMediaConfig?.provider,
             outputUrl: actionResult.outputUrl,
             storageKey: actionResult.storageKey,
             elapsedTime: `${Math.round((Date.now() - startTime) / 1000)}s`,

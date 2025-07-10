@@ -30,9 +30,9 @@ import {
   Document,
   ActionResult,
   ActionMeta,
-  ModelScene,
   LLMModelConfig,
   CodeArtifact,
+  MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
 import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
@@ -292,11 +292,20 @@ export class SkillService {
       }
     }
 
-    const modelConfigMap: Record<ModelScene, LLMModelConfig> = {
+    const modelConfigMap = {
       chat: JSON.parse(modelProviderMap.chat.config) as LLMModelConfig,
       agent: JSON.parse(modelProviderMap.agent.config) as LLMModelConfig,
       titleGeneration: JSON.parse(modelProviderMap.titleGeneration.config) as LLMModelConfig,
       queryAnalysis: JSON.parse(modelProviderMap.queryAnalysis.config) as LLMModelConfig,
+      image: modelProviderMap.image
+        ? (JSON.parse(modelProviderMap.image.config) as MediaGenerationModelConfig)
+        : undefined,
+      video: modelProviderMap.video
+        ? (JSON.parse(modelProviderMap.video.config) as MediaGenerationModelConfig)
+        : undefined,
+      audio: modelProviderMap.audio
+        ? (JSON.parse(modelProviderMap.audio.config) as MediaGenerationModelConfig)
+        : undefined,
     };
 
     if (param.context) {
