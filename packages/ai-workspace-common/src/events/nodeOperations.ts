@@ -37,10 +37,16 @@ export type Events = {
     dragCreateInfo?: NodeDragCreateInfo;
   };
   generateMedia: {
+    providerKey: string;
     mediaType: MediaType;
     query: string;
     model: string;
     nodeId: string;
+  };
+  mediaGenerationComplete: {
+    nodeId: string;
+    success: boolean;
+    error?: string;
   };
 };
 
