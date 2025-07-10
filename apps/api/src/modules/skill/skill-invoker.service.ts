@@ -321,7 +321,6 @@ export class SkillInvokerService {
               const timeoutReason = hasAnyOutput
                 ? `Execution timeout - no output received within ${streamIdleTimeout / 1000} seconds`
                 : `Execution timeout - skill failed to produce any output within ${streamIdleTimeout / 1000} seconds`;
-
               await this.actionService.abortAction(user, {
                 resultId,
                 reason: timeoutReason,
@@ -332,10 +331,12 @@ export class SkillInvokerService {
                 `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
               );
               // Fallback to direct abort if ActionService fails
-              abortController.abort('Stream idle timeout - no output received within 5 seconds');
-              result.errors.push('Execution timeout - no output received within 5 seconds');
+              const fallbackTimeoutReason = hasAnyOutput
+                ? `Execution timeout - no output received within ${streamIdleTimeout / 1000} seconds`
+                : `Execution timeout - skill failed to produce any output within ${streamIdleTimeout / 1000} seconds`;
+              abortController.abort(fallbackTimeoutReason);
+              result.errors.push(fallbackTimeoutReason);
             }
-
             // Stop the timeout check after triggering
             if (timeoutCheckInterval) {
               clearInterval(timeoutCheckInterval);
