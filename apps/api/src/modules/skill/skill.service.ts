@@ -128,7 +128,7 @@ export class SkillService implements OnModuleInit {
 
     // Add the new recurring job
     const stuckCheckInterval = this.config.get<number>('skill.stuckCheckInterval');
-    const intervalMinutes = Math.ceil(stuckCheckInterval / (1000 * 60)); // Convert to minutes
+    const intervalMinutes = Math.max(1, Math.ceil(stuckCheckInterval / (1000 * 60))); // Convert to minutes, minimum 1 minute
 
     await this.checkStuckActionsQueue.add(
       'check-stuck-actions',
