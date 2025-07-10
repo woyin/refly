@@ -252,7 +252,50 @@ export class SkillInvokerService {
     return config;
   }
 
-  private;
+  private categorizeError(err: Error): {
+    isNetworkTimeout: boolean;
+    isGeneralTimeout: boolean;
+    isNetworkError: boolean;
+    isAbortError: boolean;
+    userFriendlyMessage: string;
+    logLevel: 'error' | 'warn';
+  } {
+    const errorMessage = err.message || 'Unknown error';
+
+    const isNetworkTimeout =
+      errorMessage.includes('AI model network timeout') ||
+      (err.name === 'TimeoutError' && errorMessage.includes('network'));
+    const isGeneralTimeout = errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT');
+    const isNetworkError =
+      errorMessage.includes('network') ||
+      errorMessage.includes('fetch') ||
+      err.name === 'NetworkError';
+    const isAbortError = errorMessage.includes('abort') || err.name === 'AbortError';
+
+    let userFriendlyMessage = errorMessage;
+    let logLevel: 'error' | 'warn' = 'error';
+
+    if (isNetworkTimeout) {
+      userFriendlyMessage =
+        'AI provider network request timeout. Please check provider configuration or network connection.';
+    } else if (isGeneralTimeout) {
+      userFriendlyMessage = 'Request timeout. Please try again later.';
+    } else if (isNetworkError) {
+      userFriendlyMessage = 'Network connection error. Please check your network status.';
+    } else if (isAbortError) {
+      userFriendlyMessage = 'Operation was aborted.';
+      logLevel = 'warn';
+    }
+
+    return {
+      isNetworkTimeout,
+      isGeneralTimeout,
+      isNetworkError,
+      isAbortError,
+      userFriendlyMessage,
+      logLevel,
+    };
+  }
 
   private async _invokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
     const { input, result, target } = data;
@@ -300,6 +343,10 @@ export class SkillInvokerService {
       throw new Error(`Invalid streamIdleTimeout configuration: ${streamIdleTimeout}`);
     }
 
+    // Helper function for timeout message generation
+    const getTimeoutMessage = () =>
+      `Execution timeout - ${hasAnyOutput ? 'no output received' : 'skill failed to produce any output'} within ${streamIdleTimeout / 1000} seconds`;
+
     const startTimeoutCheck = () => {
       timeoutCheckInterval = setInterval(
         async () => {
@@ -322,11 +369,10 @@ export class SkillInvokerService {
               `Stream idle timeout detected for action: ${resultId}, ${timeSinceLastOutput}ms since last output`,
             );
 
+            const timeoutReason = getTimeoutMessage();
+
             // Use ActionService.abortAction to handle timeout consistently
             try {
-              const timeoutReason = hasAnyOutput
-                ? `Execution timeout - no output received within ${streamIdleTimeout / 1000} seconds`
-                : `Execution timeout - skill failed to produce any output within ${streamIdleTimeout / 1000} seconds`;
               await this.actionService.abortAction(user, {
                 resultId,
                 reason: timeoutReason,
@@ -337,11 +383,8 @@ export class SkillInvokerService {
                 `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
               );
               // Fallback to direct abort if ActionService fails
-              const fallbackTimeoutReason = hasAnyOutput
-                ? `Execution timeout - no output received within ${streamIdleTimeout / 1000} seconds`
-                : `Execution timeout - skill failed to produce any output within ${streamIdleTimeout / 1000} seconds`;
-              abortController.abort(fallbackTimeoutReason);
-              result.errors.push(fallbackTimeoutReason);
+              abortController.abort(timeoutReason);
+              result.errors.push(timeoutReason);
             }
             // Stop the timeout check after triggering
             if (timeoutCheckInterval) {
@@ -800,36 +843,18 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
         }
       }
     } catch (err) {
-      // Enhanced network error logging
+      const errorInfo = this.categorizeError(err);
       const errorMessage = err.message || 'Unknown error';
       const errorType = err.name || 'Error';
 
-      // Categorize errors more reliably
-      const isNetworkTimeout =
-        errorMessage.includes('AI model network timeout') ||
-        (err.name === 'TimeoutError' && errorMessage.includes('network'));
-      const isGeneralTimeout = errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT');
-      const isNetworkError =
-        errorMessage.includes('network') ||
-        errorMessage.includes('fetch') ||
-        err.name === 'NetworkError';
-      const isAbortError = errorMessage.includes('abort') || err.name === 'AbortError';
-
-      // Provide user-friendly error messages for different timeout types
-      let userFriendlyMessage = errorMessage;
-
-      if (isNetworkTimeout) {
-        userFriendlyMessage =
-          'AI provider network request timeout. Please check provider configuration or network connection.';
+      // Log error based on categorization
+      if (errorInfo.isNetworkTimeout) {
         this.logger.error(`🚨 AI model network timeout for action: ${resultId} - ${errorMessage}`);
-      } else if (isGeneralTimeout) {
-        userFriendlyMessage = 'Request timeout. Please try again later.';
+      } else if (errorInfo.isGeneralTimeout) {
         this.logger.error(`🚨 Network timeout detected for action: ${resultId} - ${errorMessage}`);
-      } else if (isNetworkError) {
-        userFriendlyMessage = 'Network connection error. Please check your network status.';
+      } else if (errorInfo.isNetworkError) {
         this.logger.error(`🌐 Network error for action: ${resultId} - ${errorMessage}`);
-      } else if (isAbortError) {
-        userFriendlyMessage = 'Operation was aborted.';
+      } else if (errorInfo.isAbortError) {
         this.logger.warn(`⏹️  Request aborted for action: ${resultId} - ${errorMessage}`);
       } else {
         this.logger.error(
@@ -844,11 +869,11 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           event: 'error',
           resultId,
           version,
-          error: genBaseRespDataFromError(new Error(userFriendlyMessage)),
+          error: genBaseRespDataFromError(new Error(errorInfo.userFriendlyMessage)),
           originError: err.message,
         });
       }
-      result.errors.push(userFriendlyMessage);
+      result.errors.push(errorInfo.userFriendlyMessage);
     } finally {
       // Cleanup all timers and resources to prevent memory leaks
       // Note: consolidated abort signal listener handles cleanup for early abort scenarios
