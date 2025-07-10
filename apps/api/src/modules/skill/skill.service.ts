@@ -274,7 +274,7 @@ export class SkillService {
 
     const tiers = [];
     for (const providerItem of Object.values(modelProviderMap)) {
-      if (providerItem.tier) {
+      if (providerItem?.tier) {
         tiers.push(providerItem.tier);
       }
     }
@@ -389,7 +389,7 @@ export class SkillService {
               uid,
               version: (existingResult.version ?? 0) + 1,
               type: 'skill',
-              tier: providerItem.tier ?? '',
+              tier: providerItem?.tier ?? '',
               status: 'executing',
               title: param.input.query,
               targetId: param.target?.entityId,
@@ -424,7 +424,7 @@ export class SkillService {
           resultId,
           uid,
           version: 0,
-          tier: providerItem.tier,
+          tier: providerItem?.tier ?? '',
           targetId: param.target?.entityId,
           targetType: param.target?.entityType,
           title: param.input?.query,
