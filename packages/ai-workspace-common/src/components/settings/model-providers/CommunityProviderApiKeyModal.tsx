@@ -70,20 +70,18 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
       >
         <div className="space-y-4">
           {/* Provider information */}
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
             <div className="flex items-center mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center mr-3">
+              {/* <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mr-3">
                 {config.icon ? (
                   <img src={config.icon} alt={config.name} className="w-5 h-5 object-contain" />
                 ) : (
-                  <div className="w-4 h-4 rounded bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold">
-                    {config.name.charAt(0).toUpperCase()}
-                  </div>
+                  <div className="w-4 h-4 rounded bg-gray-300 dark:bg-gray-500" />
                 )}
-              </div>
+              </div> */}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <Text strong className="text-gray-900">
+                  <Text strong className="text-gray-900 dark:text-gray-100">
                     {config.name}
                   </Text>
                   {config.documentation && (
@@ -91,7 +89,7 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
                       href={config.documentation}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:text-blue-600"
+                      className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
                     >
                       <Space size={4}>
                         <LinkOutlined />
@@ -102,7 +100,7 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
                     </Link>
                   )}
                 </div>
-                <div className="text-xs text-gray-500">{description}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{description}</div>
               </div>
             </div>
           </div>
