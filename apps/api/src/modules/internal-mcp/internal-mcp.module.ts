@@ -7,6 +7,7 @@ import { EncryptionService } from '../common/encryption.service';
 import { InternalMcpService } from './internal-mcp.service';
 import { SearchTools } from './tools/search.tools';
 import { MediaGeneratorTools } from './tools/media-generator.tools';
+import { ProviderQueryTools } from './tools/provider-query.tools';
 import { SearchService } from '../search/search.service';
 import { RAGModule } from '../rag/rag.module';
 import { ProviderModule } from '../provider/provider.module';
@@ -37,6 +38,7 @@ import { ActionModule } from '../action/action.module';
     // McpServerTools,
     SearchTools,
     MediaGeneratorTools,
+    ProviderQueryTools,
     SearchService,
     JwtAuthGuard,
   ],

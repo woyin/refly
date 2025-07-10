@@ -72,7 +72,7 @@ export class MediaGeneratorTools {
   ): Promise<{
     provider: string;
     model: string;
-  }> {
+  } | null> {
     if (!mediaType) {
       return null;
     }
@@ -91,17 +91,17 @@ export class MediaGeneratorTools {
 
       if (!userDefaultModel) {
         this.logger.log(
-          `No default model configuration found for user ${user.uid}, using default for ${mediaType}`,
+          `No default model configuration found for user ${user.uid} for ${mediaType}`,
         );
-        return this.getDefaultModelForMediaType(mediaType);
+        return null;
       }
 
       // Get the specific media model configuration based on mediaType
       const mediaModelConfig = userDefaultModel[mediaType];
 
       if (!mediaModelConfig?.itemId) {
-        this.logger.log(`No ${mediaType} model configured for user ${user.uid}, using default`);
-        return this.getDefaultModelForMediaType(mediaType);
+        this.logger.log(`No ${mediaType} model configured for user ${user.uid}`);
+        return null;
       }
 
       // Find the provider item for this configured model
@@ -116,9 +116,9 @@ export class MediaGeneratorTools {
 
       if (!configuredProviderItem) {
         this.logger.warn(
-          `Configured ${mediaType} model ${mediaModelConfig.itemId} not found in user's provider items, using default`,
+          `Configured ${mediaType} model ${mediaModelConfig.itemId} not found in user's provider items`,
         );
-        return this.getDefaultModelForMediaType(mediaType);
+        return null;
       }
 
       // Parse the model configuration
@@ -127,9 +127,9 @@ export class MediaGeneratorTools {
       // Verify that this model actually supports the requested media type
       if (!config.capabilities?.[mediaType]) {
         this.logger.warn(
-          `Configured ${mediaType} model ${config.modelId} does not support ${mediaType} generation, using default`,
+          `Configured ${mediaType} model ${config.modelId} does not support ${mediaType} generation`,
         );
-        return this.getDefaultModelForMediaType(mediaType);
+        return null;
       }
 
       this.logger.log(
@@ -141,10 +141,8 @@ export class MediaGeneratorTools {
         model: config.modelId,
       };
     } catch (error) {
-      this.logger.warn(
-        `Failed to get user media config: ${error?.message || error}, using default for ${mediaType}`,
-      );
-      return this.getDefaultModelForMediaType(mediaType);
+      this.logger.warn(`Failed to get user media config: ${error?.message || error}`);
+      return null;
     }
   }
 
@@ -154,19 +152,31 @@ export class MediaGeneratorTools {
   private getDefaultModelForMediaType(mediaType?: 'image' | 'audio' | 'video'): {
     provider: string;
     model: string;
-  } {
+  } | null {
+    if (!mediaType) {
+      return null;
+    }
+
     // Get default models from system configuration
     const defaultModelConfig = this.configService.get('defaultModel');
 
-    // Use system configured model if available, otherwise use fallback
-    const configuredModel = defaultModelConfig?.[mediaType];
+    if (!defaultModelConfig?.[mediaType]) {
+      this.logger.warn(`No default model configuration found for ${mediaType}`);
+      return null;
+    }
 
-    const defaultConfig = {
-      provider: 'replicate', // Default provider
-      model: configuredModel || configuredModel.model,
+    // Use system configured model if available
+    const configuredModel = defaultModelConfig[mediaType];
+
+    if (!configuredModel?.model) {
+      this.logger.warn(`Invalid default model configuration for ${mediaType}`);
+      return null;
+    }
+
+    return {
+      provider: configuredModel.provider || 'replicate',
+      model: configuredModel.model,
     };
-
-    return defaultConfig;
   }
 
   /**
@@ -175,7 +185,7 @@ export class MediaGeneratorTools {
   @Tool({
     name: 'generate_media',
     description:
-      'Generate multimedia content including images, videos, and audio. This tool supports all three media types: "image" for generating pictures and artwork, "video" for creating video clips and animations, and "audio" for generating music, sound effects, and voice content. The tool automatically handles the generation process with real-time progress updates until completion.',
+      'Generate multimedia content including images, videos, and audio. This tool supports all three media types: "image" for generating pictures and artwork, "video" for creating video clips and animations, and "audio" for generating music, sound effects, and voice content. The tool automatically handles the generation process with real-time progress updates until completion. For optimal results, consider using get_media_generation_models first to discover available models and their specific capabilities for your desired media type.',
     parameters: z.object({
       mediaType: z
         .enum(['image', 'audio', 'video'])
@@ -187,12 +197,14 @@ export class MediaGeneratorTools {
         .string()
         .optional()
         .describe(
-          'Specific AI model to use for generation (optional - will auto-select based on media type if not provided)',
+          'Specific AI modelId to use for generation (optional - will auto-select based on media type if not provided). Use get_media_generation_models to discover available models and their capabilities for your desired media type.',
         ),
       provider: z
         .string()
         .optional()
-        .describe('Provider platform to use (optional - defaults to replicate)'),
+        .describe(
+          'Specific providerKey to use (optional - defaults to replicate). Use get_media_generation_models to see available providers for your desired media type.',
+        ),
     }),
   })
   async generateMedia(
@@ -227,12 +239,20 @@ export class MediaGeneratorTools {
         params.provider,
       );
 
+      if (!userMediaConfig) {
+        return this.internalMcpService.formatErrorResponse(
+          new Error(
+            `No media generation model configured for ${params.mediaType}. Please configure a model first using the settings, or use get_media_generation_models to see available models and specify model and provider parameters.`,
+          ),
+        );
+      }
+
       // Build media generation request
       const mediaRequest: MediaGenerateRequest = {
         mediaType: params.mediaType,
         prompt: params.prompt,
-        model: userMediaConfig?.model,
-        provider: userMediaConfig?.provider,
+        model: userMediaConfig.model,
+        provider: userMediaConfig.provider,
       };
 
       // Start media generation
@@ -291,8 +311,8 @@ export class MediaGeneratorTools {
             status: 'completed',
             mediaType: params.mediaType,
             prompt: params.prompt,
-            model: userMediaConfig?.model,
-            provider: userMediaConfig?.provider,
+            model: userMediaConfig.model,
+            provider: userMediaConfig.provider,
             outputUrl: actionResult.outputUrl,
             storageKey: actionResult.storageKey,
             elapsedTime: `${Math.round((Date.now() - startTime) / 1000)}s`,

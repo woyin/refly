@@ -41,6 +41,10 @@ interface MediaModelConfig {
       audio?: boolean;
       vision?: boolean;
     };
+    description?: {
+      zh: string;
+      en: string;
+    };
   };
   name: string;
 }
@@ -71,7 +75,7 @@ export const ModelFormModal = memo(
     defaultModelTypes?: string[];
     disableDefaultModelConfirm?: (modelName: string, handleOk: () => void) => void;
   }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [form] = Form.useForm();
     const isEditMode = !!model;
     const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
@@ -143,12 +147,19 @@ export const ModelFormModal = memo(
             }
           }
 
-          return {
+          const config = {
             ...baseConfig,
             contextLimit: values.contextLimit,
             maxOutput: values.maxOutput,
             capabilities: capabilitiesObject,
           };
+
+          // Add description for media generation models
+          if (filterProviderCategory === 'mediaGeneration' && values.description) {
+            config.description = values.description;
+          }
+
+          return config;
         }
 
         if (filterProviderCategory === 'embedding') {
@@ -415,11 +426,23 @@ export const ModelFormModal = memo(
           formValues.capabilities = capabilities;
         } else if (filterProviderCategory === 'mediaGeneration') {
           formValues.capabilities = capabilities;
+          // Handle description for media generation models
+          if ((option?.config as any)?.description) {
+            const currentLang = i18n.language?.startsWith('zh') ? 'zh' : 'en';
+            const description = (option.config as any).description;
+            formValues.description = description[currentLang] || description.en;
+          }
         }
 
         form.setFieldsValue(formValues);
       },
-      [form, resetFormExcludeField, getCapabilitiesFromObject, filterProviderCategory],
+      [
+        form,
+        resetFormExcludeField,
+        getCapabilitiesFromObject,
+        filterProviderCategory,
+        i18n.language,
+      ],
     );
 
     useEffect(() => {
@@ -440,6 +463,7 @@ export const ModelFormModal = memo(
             dimensions?: number;
             topN?: number;
             relevanceThreshold?: number;
+            description?: string;
           }
 
           const capabilitiesArray = getCapabilitiesFromObject(config.capabilities);
@@ -458,6 +482,12 @@ export const ModelFormModal = memo(
             formValues.capabilities = capabilitiesArray;
           } else if (filterProviderCategory === 'mediaGeneration') {
             formValues.capabilities = capabilitiesArray;
+            // Handle description for media generation models
+            if (config.description) {
+              const currentLang = i18n.language?.startsWith('zh') ? 'zh' : 'en';
+              formValues.description =
+                config.description[currentLang] || config.description.en || config.description;
+            }
           } else if (filterProviderCategory === 'embedding') {
             formValues.batchSize = config.batchSize;
             formValues.dimensions = config.dimensions;
@@ -549,6 +579,13 @@ export const ModelFormModal = memo(
       if (filterProviderCategory === 'mediaGeneration') {
         return (
           <>
+            <Form.Item name="description" label={t('settings.modelConfig.description')}>
+              <Input.TextArea
+                placeholder={t('settings.modelConfig.descriptionPlaceholder')}
+                rows={2}
+              />
+            </Form.Item>
+
             <Form.Item name="capabilities" label={t('settings.modelConfig.capabilities')}>
               <Checkbox.Group
                 className="w-full"

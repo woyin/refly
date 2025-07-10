@@ -5,153 +5,260 @@
         "modelId": "black-forest-labs/flux-schnell",
         "capabilities": {
           "image": true
+        },
+        "description": {
+          "zh": "Black Forest Labs开发的快速图像生成模型，专注于速度和效率，生成时间短但质量稍低于pro版本。",
+          "en": "Fast image generation model by Black Forest Labs, focused on speed and efficiency with shorter generation times but slightly lower quality than pro version."
         }
       },
       "name": "Flux Schnell"
     },
     {
       "config": {
+        "modelId": "black-forest-labs/flux-1.1-pro",
+        "capabilities": {
+          "image": true
+        },
+        "description": {
+          "zh": "Black Forest Labs最新专业级图像生成模型，相比前代版本速度提升6倍，支持2K分辨率，图像质量显著提升。",
+          "en": "Latest professional-grade image generation model by Black Forest Labs, 6x faster than previous versions, supports 2K resolution with significantly improved image quality."
+        }
+      },
+      "name": "Flux 1.1 Pro"
+    },
+    {
+      "config": {
         "modelId": "black-forest-labs/flux-dev",
         "capabilities": {
           "image": true
+        },
+        "description": {
+          "zh": "开发版本的Flux模型，提供更多自定义选项和实验性功能，适合开发者和研究人员使用。",
+          "en": "Development version of Flux model with more customization options and experimental features, suitable for developers and researchers."
         }
       },
       "name": "Flux Dev"
     },
     {
       "config": {
-        "modelId": "black-forest-labs/flux-pro",
+        "modelId": "prunaai/hidream-l1-fast",
         "capabilities": {
           "image": true
+        },
+        "description": {
+          "zh": "PrunaAI开发的快速图像生成模型，经过优化以提供成本效益的图像生成服务，平衡速度和质量。",
+          "en": "Fast image generation model by PrunaAI, optimized for cost-effective image generation services, balancing speed and quality."
         }
       },
-      "name": "Flux Pro"
+      "name": "HiDream L1 Fast"
     },
     {
       "config": {
-        "modelId": "bytedance/seedance-1-pro",
-        "capabilities": {
-          "video": true
-        }
-      },
-      "name": "Seedance 1 Pro"
-    },
-    {
-      "config": {
-        "modelId": "bytedance/seedance-1-lite",
-        "capabilities": {
-          "video": true
-        }
-      },
-      "name": "Seedance 1 Lite"
-    },
-    {
-      "config": {
-        "modelId": "minimax/video-01",
-        "capabilities": {
-          "video": true
-        }
-      },
-      "name": "Video 01"
-    },
-    {
-      "config": {
-        "modelId": "kwaivgi/kling-v2.1",
-        "capabilities": {
-          "video": true
-        }
-      },
-      "name": "Kling v2.1"
-    },
-    {
-      "config": {
-        "modelId": "google/veo-3",
-        "capabilities": {
-          "video": true
-        }
-      },
-      "name": "Veo 3"
-    },
-    {
-      "config": {
-        "modelId": "luma/ray-flash-2-540p",
-        "capabilities": {
-          "video": true
-        }
-      },
-      "name": "Ray Flash 2 540p"
-    },
-    {
-      "config": {
-        "modelId": "resemble-ai/chatterbox",
-        "capabilities": {
-          "audio": true
-        }
-      },
-      "name": "Chatterbox"
-    },
-    {
-      "config": {
-        "modelId": "google/lyria-2",
-        "capabilities": {
-          "audio": true
-        }
-      },
-      "name": "Lyria 2"
-    }
-  ],
-  "anthropic": [
-    {
-      "config": {
-        "modelId": "claude-3-sonnet",
-        "capabilities": {
-          "image": true,
-          "vision": true
-        }
-      },
-      "name": "Claude 3 Sonnet"
-    }
-  ],
-  "stability": [
-    {
-      "config": {
-        "modelId": "stable-diffusion-xl",
+        "modelId": "ideogram-ai/ideogram-v3-turbo",
         "capabilities": {
           "image": true
+        },
+        "description": {
+          "zh": "Ideogram AI的快速版本，特别擅长在图像中渲染文本，支持中文字符和复杂排版，创意设计效果出色。",
+          "en": "Fast version of Ideogram AI, excels at rendering text in images, supports Chinese characters and complex typography, excellent for creative designs."
         }
       },
-      "name": "Stable Diffusion XL"
+      "name": "Ideogram V3 Turbo"
     },
     {
       "config": {
-        "modelId": "stable-video-diffusion",
-        "capabilities": {
-          "video": true
-        }
-      },
-      "name": "Stable Video Diffusion"
-    }
-  ],
-  "midjourney": [
-    {
-      "config": {
-        "modelId": "midjourney-v6",
+        "modelId": "recraft-ai/recraft-v3-svg",
         "capabilities": {
           "image": true
+        },
+        "description": {
+          "zh": "专门生成SVG矢量图形的AI模型，适合创建高质量的标志、图标和可缩放图形，支持多种设计风格。",
+          "en": "AI model specialized in generating SVG vector graphics, perfect for creating high-quality logos, icons, and scalable graphics with various design styles."
         }
       },
-      "name": "Midjourney v6"
-    }
-  ],
-  "elevenlabs": [
+      "name": "Recraft V3 SVG"
+    },
     {
       "config": {
-        "modelId": "eleven-multilingual-v2",
+        "modelId": "bytedance/seedream-3",
         "capabilities": {
-          "audio": true
+          "image": true
+        },
+        "description": {
+          "zh": "字节跳动开发的双语图像生成模型，原生支持2K分辨率输出，3秒快速生成，对中文prompt支持优秀，文字渲染准确。",
+          "en": "Bilingual image generation model by ByteDance, natively supports 2K resolution output, 3-second generation, excellent Chinese prompt support with accurate text rendering."
         }
       },
-      "name": "ElevenLabs Multilingual v2"
+      "name": "Seedream 3"
+    },
+    {
+      "config": {
+        "modelId": "prompthero/openjourney",
+        "capabilities": {
+          "image": true
+        },
+        "description": {
+          "zh": "基于Stable Diffusion的开源Midjourney风格图像生成模型，提供艺术化的图像生成效果，适合创意和艺术创作。",
+          "en": "Open-source Midjourney-style image generation model based on Stable Diffusion, provides artistic image generation effects, suitable for creative and artistic creation."
+        }
+      },
+      "name": "OpenJourney"
+    },
+    {
+      "config": {
+        "modelId": "minimax/speech-02-turbo",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "MiniMax开发的快速语音合成模型，支持中英双语，具有出色的情感表达和音色控制能力，生成速度快。",
+          "en": "Fast speech synthesis model by MiniMax, supports Chinese and English bilingual, excellent emotional expression and voice control capabilities with fast generation speed."
+        }
+      },
+      "name": "MiniMax Speech 02 Turbo"
+    },
+    {
+      "config": {
+        "modelId": "minimax/speech-02-hd",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "MiniMax的高清语音合成模型，支持中英双语，音质更佳，支持多种音色和情感表达，适合专业语音制作。",
+          "en": "High-definition speech synthesis model by MiniMax, supports Chinese and English bilingual, superior audio quality, multiple voice tones and emotional expressions, suitable for professional voice production."
+        }
+      },
+      "name": "MiniMax Speech 02 HD"
+    },
+    {
+      "config": {
+        "modelId": "jaaari/kokoro-82m",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "开源的8200万参数语音合成模型，支持多语言包括日语，轻量级设计，适合资源受限环境。",
+          "en": "Open-source 82-million parameter speech synthesis model, supports multiple languages including Japanese, lightweight design suitable for resource-constrained environments."
+        }
+      },
+      "name": "Kokoro 82M"
+    },
+    {
+      "config": {
+        "modelId": "lucataco/ace-step",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "基于ACE架构的音频生成模型，专注于音频效果处理和声音变换，适合音频后期制作和特效生成。",
+          "en": "Audio generation model based on ACE architecture, focused on audio effects processing and sound transformation, suitable for audio post-production and effects generation."
+        }
+      },
+      "name": "ACE Step"
+    },
+    {
+      "config": {
+        "modelId": "haoheliu/audio-ldm",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "基于潜在扩散模型的音频生成系统，能够根据文本描述生成高质量的音频内容，支持多种音频类型。",
+          "en": "Audio generation system based on latent diffusion models, capable of generating high-quality audio content from text descriptions, supports various audio types."
+        }
+      },
+      "name": "Audio LDM"
+    },
+    {
+      "config": {
+        "modelId": "minimax/music-01",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "MiniMax开发的音乐生成模型，支持中英双语prompt，能够生成多种风格的音乐作品，具有良好的旋律连贯性。",
+          "en": "Music generation model by MiniMax, supports Chinese and English bilingual prompts, capable of generating various styles of music with good melodic coherence."
+        }
+      },
+      "name": "MiniMax Music 01"
+    },
+    {
+      "config": {
+        "modelId": "stackadoc/stable-audio-open-1.0",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "基于Stable Audio的开源音频生成模型，提供稳定的音频生成能力，支持多种音频格式和风格。",
+          "en": "Open-source audio generation model based on Stable Audio, provides stable audio generation capabilities, supports various audio formats and styles."
+        }
+      },
+      "name": "Stable Audio Open 1.0"
+    },
+    {
+      "config": {
+        "modelId": "meta/musicgen",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "Meta开发的音乐生成模型，基于Transformer架构，能够生成高质量的音乐片段，支持多种音乐风格和乐器。",
+          "en": "Music generation model by Meta, based on Transformer architecture, capable of generating high-quality music segments, supports various music styles and instruments."
+        }
+      },
+      "name": "MusicGen"
+    },
+    {
+      "config": {
+        "modelId": "ardianfe/music-gen-fn-200e",
+        "capabilities": {
+          "audio": true
+        },
+        "description": {
+          "zh": "经过200个epoch训练的音乐生成模型，专注于生成具有特定风格的音乐片段，适合背景音乐制作。",
+          "en": "Music generation model trained for 200 epochs, focused on generating music segments with specific styles, suitable for background music production."
+        }
+      },
+      "name": "Music Gen FN 200E"
+    },
+    {
+      "config": {
+        "modelId": "minimax/hailuo-02",
+        "capabilities": {
+          "video": true
+        },
+        "description": {
+          "zh": "MiniMax海螺视频生成第二代模型，支持中文prompt，能够生成高清电影级视频，具有出色的动态表现和视觉美学。",
+          "en": "MiniMax Hailuo second-generation video generation model, supports Chinese prompts, generates high-definition cinematic videos with excellent dynamics and visual aesthetics."
+        }
+      },
+      "name": "Hailuo 02"
+    },
+    {
+      "config": {
+        "modelId": "kwaivgi/kling-v2.1-master",
+        "capabilities": {
+          "video": true
+        },
+        "description": {
+          "zh": "快手可灵AI大师版，支持中文prompt，在语义理解和动作控制方面表现卓越，能生成1080p高质量视频，支持复杂的镜头运动。",
+          "en": "Kuaishou Kling AI Master version, supports Chinese prompts, excellent performance in semantic understanding and motion control, generates 1080p high-quality videos with complex camera movements."
+        }
+      },
+      "name": "Kling V2.1 Master"
+    },
+    {
+      "config": {
+        "modelId": "google/veo-3-fast",
+        "capabilities": {
+          "video": true
+        },
+        "description": {
+          "zh": "Google Veo 3的快速版本，专注于提供更快的视频生成速度，同时保持良好的视频质量和一致性。",
+          "en": "Fast version of Google Veo 3, focused on providing faster video generation speed while maintaining good video quality and consistency."
+        }
+      },
+      "name": "Veo 3 Fast"
     }
   ]
 }
