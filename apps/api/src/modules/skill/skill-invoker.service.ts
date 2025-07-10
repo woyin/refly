@@ -284,6 +284,14 @@ export class SkillInvokerService {
     let timeoutCheckInterval: NodeJS.Timeout | null = null;
     const streamIdleTimeout = this.config.get('skill.streamIdleTimeout');
 
+    // Validate streamIdleTimeout to ensure it's a positive number
+    if (!streamIdleTimeout || streamIdleTimeout <= 0) {
+      this.logger.error(
+        `Invalid streamIdleTimeout: ${streamIdleTimeout}. Must be a positive number.`,
+      );
+      throw new Error(`Invalid streamIdleTimeout configuration: ${streamIdleTimeout}`);
+    }
+
     const startTimeoutCheck = () => {
       timeoutCheckInterval = setInterval(async () => {
         if (abortController.signal.aborted) {
@@ -334,6 +342,14 @@ export class SkillInvokerService {
         timeoutCheckInterval = null;
       }
     };
+
+    // Ensure interval cleanup on all abort scenarios
+    abortController.signal.addEventListener('abort', () => {
+      stopTimeoutCheck();
+      this.logger.debug(
+        `Cleaned up timeout check interval for action ${resultId} due to abort signal`,
+      );
+    });
 
     // const job = await this.timeoutCheckQueue.add(
     //   `idle_timeout_check:${resultId}`,
@@ -536,6 +552,15 @@ export class SkillInvokerService {
       const networkTimeout = this.config.get('skill.executionTimeout'); // 3 minutes
       // AI model provider network timeout (30 seconds)
       const aiModelNetworkTimeout = this.config.get<number>('skill.aiModelNetworkTimeout', 30000);
+
+      // Validate aiModelNetworkTimeout to ensure it's a positive number
+      if (aiModelNetworkTimeout <= 0) {
+        this.logger.error(
+          `Invalid aiModelNetworkTimeout: ${aiModelNetworkTimeout}. Must be a positive number.`,
+        );
+        throw new Error(`Invalid aiModelNetworkTimeout configuration: ${aiModelNetworkTimeout}`);
+      }
+
       this.logger.log(
         `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms, total timeout: ${networkTimeout}ms) for action: ${resultId}`,
       );
@@ -562,6 +587,17 @@ export class SkillInvokerService {
 
       // Start initial network timeout
       createNetworkTimeout();
+
+      // Ensure network timeout cleanup on abort
+      abortController.signal.addEventListener('abort', () => {
+        if (networkTimeoutId) {
+          clearTimeout(networkTimeoutId);
+          networkTimeoutId = null;
+          this.logger.debug(
+            `Cleaned up network timeout for action ${resultId} due to abort signal`,
+          );
+        }
+      });
 
       for await (const event of skill.streamEvents(input, {
         ...config,
@@ -781,13 +817,16 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
       result.errors.push(userFriendlyMessage);
     } finally {
-      // Clear AI model network timeout
+      // Cleanup all timers and resources to prevent memory leaks
+      // Note: abort signal listeners also handle cleanup for early abort scenarios
+
+      // Clear AI model network timeout (redundant with abort listener but safe)
       if (networkTimeoutId) {
         clearTimeout(networkTimeoutId);
         networkTimeoutId = null;
       }
 
-      // Stop timeout check
+      // Stop timeout check interval (redundant with abort listener but safe)
       stopTimeoutCheck();
 
       // Unregister the abort controller
