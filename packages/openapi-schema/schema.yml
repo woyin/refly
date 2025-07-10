@@ -4873,6 +4873,9 @@ components:
         - agent
         - queryAnalysis
         - titleGeneration
+        - image
+        - video
+        - audio
     DefaultModelConfig:
       type: object
       description: Default model config
@@ -4888,6 +4891,15 @@ components:
           $ref: '#/components/schemas/ProviderItem'
         titleGeneration:
           description: Title generation model for canvas and documents
+          $ref: '#/components/schemas/ProviderItem'
+        image:
+          description: Default image generation model
+          $ref: '#/components/schemas/ProviderItem'
+        video:
+          description: Default video generation model
+          $ref: '#/components/schemas/ProviderItem'
+        audio:
+          description: Default audio generation model
           $ref: '#/components/schemas/ProviderItem'
     UserPreferences:
       type: object

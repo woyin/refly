@@ -21,8 +21,8 @@ import {
   ActionStepMeta,
   Project,
   Provider,
-  ModelScene,
   LLMModelConfig,
+  MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import { EventEmitter } from 'node:stream';
 
@@ -245,7 +245,15 @@ export interface SkillRunnableConfig extends RunnableConfig {
     canvasId?: string;
     locale?: string;
     uiLocale?: string;
-    modelConfigMap?: Record<ModelScene, LLMModelConfig>;
+    modelConfigMap?: {
+      chat?: LLMModelConfig;
+      agent?: LLMModelConfig;
+      queryAnalysis?: LLMModelConfig;
+      titleGeneration?: LLMModelConfig;
+      image?: MediaGenerationModelConfig;
+      video?: MediaGenerationModelConfig;
+      audio?: MediaGenerationModelConfig;
+    };
     provider?: Provider;
     project?: Project;
     currentSkill?: SkillMeta;

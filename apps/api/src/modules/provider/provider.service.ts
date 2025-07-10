@@ -19,6 +19,7 @@ import {
   UpsertProviderRequest,
   User,
   UserPreferences,
+  MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import {
   Provider as ProviderModel,
@@ -635,12 +636,18 @@ export class ProviderService implements OnModuleInit {
     const agentItem = await this.findDefaultProviderItem(user, 'agent', userPo);
     const titleGenerationItem = await this.findDefaultProviderItem(user, 'titleGeneration', userPo);
     const queryAnalysisItem = await this.findDefaultProviderItem(user, 'queryAnalysis', userPo);
+    const imageItem = await this.findDefaultProviderItem(user, 'image', userPo);
+    const videoItem = await this.findDefaultProviderItem(user, 'video', userPo);
+    const audioItem = await this.findDefaultProviderItem(user, 'audio', userPo);
 
     const modelConfigMap: Record<ModelScene, ProviderItemModel> = {
       chat: chatItem,
       agent: agentItem,
       titleGeneration: titleGenerationItem,
       queryAnalysis: queryAnalysisItem,
+      image: imageItem,
+      video: videoItem,
+      audio: audioItem,
     };
 
     return modelConfigMap;
@@ -678,6 +685,15 @@ export class ProviderService implements OnModuleInit {
     if (scene === 'agent' && userDefaultModel?.agent) {
       itemId = userDefaultModel.agent.itemId;
     }
+    if (scene === 'image' && userDefaultModel?.image) {
+      itemId = userDefaultModel.image.itemId;
+    }
+    if (scene === 'video' && userDefaultModel?.video) {
+      itemId = userDefaultModel.video.itemId;
+    }
+    if (scene === 'audio' && userDefaultModel?.audio) {
+      itemId = userDefaultModel.audio.itemId;
+    }
 
     // If found in user preferences, try to use it
     if (itemId) {
@@ -705,13 +721,28 @@ export class ProviderService implements OnModuleInit {
     if (scene === 'agent' && globalDefaultModel?.agent) {
       globalModelId = globalDefaultModel.agent;
     }
+    if (scene === 'image' && globalDefaultModel?.image) {
+      globalModelId = globalDefaultModel.image || globalDefaultModel.image;
+    }
+    if (scene === 'video' && globalDefaultModel?.video) {
+      globalModelId = globalDefaultModel.video || globalDefaultModel.video;
+    }
+    if (scene === 'audio' && globalDefaultModel?.audio) {
+      globalModelId = globalDefaultModel.audio || globalDefaultModel.chat;
+    }
 
     // Try to find provider item with the global model ID
     if (globalModelId) {
-      const availableItems = await this.findProviderItemsByCategory(user, 'llm');
+      const category = ['image', 'video', 'audio'].includes(scene) ? 'mediaGeneration' : 'llm';
+      const availableItems = await this.findProviderItemsByCategory(user, category);
       const globalModelItem = availableItems.find((item) => {
-        const config: LLMModelConfig = JSON.parse(item.config);
-        return config.modelId === globalModelId;
+        if (category === 'mediaGeneration') {
+          const config: MediaGenerationModelConfig = JSON.parse(item.config);
+          return config.modelId === globalModelId;
+        } else {
+          const config: LLMModelConfig = JSON.parse(item.config);
+          return config.modelId === globalModelId;
+        }
       });
 
       if (globalModelItem) {
@@ -730,7 +761,8 @@ export class ProviderService implements OnModuleInit {
     this.logger.log(
       `Default provider item for scene ${scene} not found in user preferences or global config, fallback to the first available model`,
     );
-    const availableItems = await this.findProviderItemsByCategory(user, 'llm');
+    const category = ['image', 'video', 'audio'].includes(scene) ? 'mediaGeneration' : 'llm';
+    const availableItems = await this.findProviderItemsByCategory(user, category);
     if (availableItems.length > 0) {
       return availableItems[0];
     }

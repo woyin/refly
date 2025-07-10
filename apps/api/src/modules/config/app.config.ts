@@ -116,6 +116,9 @@ export default () => ({
     agent: process.env.DEFAULT_MODEL_AGENT,
     queryAnalysis: process.env.DEFAULT_MODEL_QUERY_ANALYSIS,
     titleGeneration: process.env.DEFAULT_MODEL_TITLE_GENERATION,
+    image: process.env.DEFAULT_MODEL_IMAGE,
+    video: process.env.DEFAULT_MODEL_VIDEO,
+    audio: process.env.DEFAULT_MODEL_AUDIO,
   },
   stripe: {
     apiKey: process.env.STRIPE_API_KEY,
