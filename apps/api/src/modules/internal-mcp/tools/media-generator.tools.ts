@@ -87,26 +87,26 @@ export class MediaGeneratorTools {
     provider: string;
     model: string;
   } {
-    // Default models based on mediaType and capabilities from media-config.json
+    // Default models optimized for speed and cost efficiency
     const defaultModels = {
       image: {
         provider: 'replicate',
-        model: 'black-forest-labs/flux-dev', // High-quality image generation
+        model: 'black-forest-labs/flux-schnell', // Fastest and free image generation
       },
       video: {
         provider: 'replicate',
-        model: 'bytedance/seedance-1-lite', // Fast video generation
+        model: 'bytedance/seedance-1-lite', // Lite version for cost efficiency
       },
       audio: {
         provider: 'replicate',
-        model: 'resemble-ai/chatterbox', // Audio generation
+        model: 'resemble-ai/chatterbox', // Free open-source audio generation
       },
     };
 
     const defaultConfig = defaultModels[mediaType];
 
     this.logger.log(
-      `Using default ${mediaType || 'image'} model: ${defaultConfig.model} from provider: ${defaultConfig.provider}`,
+      `Using cost-optimized ${mediaType || 'image'} model: ${defaultConfig.model} from provider: ${defaultConfig.provider}`,
     );
 
     return defaultConfig;
