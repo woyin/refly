@@ -343,14 +343,6 @@ export class SkillInvokerService {
       }
     };
 
-    // Ensure interval cleanup on all abort scenarios
-    abortController.signal.addEventListener('abort', () => {
-      stopTimeoutCheck();
-      this.logger.debug(
-        `Cleaned up timeout check interval for action ${resultId} due to abort signal`,
-      );
-    });
-
     // const job = await this.timeoutCheckQueue.add(
     //   `idle_timeout_check:${resultId}`,
     //   {
@@ -544,6 +536,29 @@ export class SkillInvokerService {
       writeSSEResponse(res, { event: 'start', resultId, version });
     }
 
+    // Consolidated cleanup function to handle ALL timeout intervals and resources
+    let cleanupExecuted = false;
+    const performCleanup = () => {
+      if (cleanupExecuted) return; // Prevent multiple cleanup executions
+      cleanupExecuted = true;
+
+      // Stop stream idle timeout check interval
+      stopTimeoutCheck();
+
+      // Clear AI model network timeout
+      if (networkTimeoutId) {
+        clearTimeout(networkTimeoutId);
+        networkTimeoutId = null;
+      }
+
+      this.logger.debug(
+        `Cleaned up all timeout intervals for action ${resultId} due to abort/completion`,
+      );
+    };
+
+    // Register cleanup on abort signal
+    abortController.signal.addEventListener('abort', performCleanup);
+
     // Start the timeout check when we begin streaming
     startTimeoutCheck();
 
@@ -587,17 +602,6 @@ export class SkillInvokerService {
 
       // Start initial network timeout
       createNetworkTimeout();
-
-      // Ensure network timeout cleanup on abort
-      abortController.signal.addEventListener('abort', () => {
-        if (networkTimeoutId) {
-          clearTimeout(networkTimeoutId);
-          networkTimeoutId = null;
-          this.logger.debug(
-            `Cleaned up network timeout for action ${resultId} due to abort signal`,
-          );
-        }
-      });
 
       for await (const event of skill.streamEvents(input, {
         ...config,
@@ -818,16 +822,13 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       result.errors.push(userFriendlyMessage);
     } finally {
       // Cleanup all timers and resources to prevent memory leaks
-      // Note: abort signal listeners also handle cleanup for early abort scenarios
+      // Note: consolidated abort signal listener handles cleanup for early abort scenarios
 
-      // Clear AI model network timeout (redundant with abort listener but safe)
-      if (networkTimeoutId) {
-        clearTimeout(networkTimeoutId);
-        networkTimeoutId = null;
+      // Perform cleanup for normal completion or exception scenarios
+      // (redundant with abort listener but ensures cleanup in all cases)
+      if (!cleanupExecuted) {
+        performCleanup();
       }
-
-      // Stop timeout check interval (redundant with abort listener but safe)
-      stopTimeoutCheck();
 
       // Unregister the abort controller
       this.actionService.unregisterAbortController(resultId);
