@@ -11,6 +11,7 @@ import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/
 import { useNodePosition } from './use-node-position';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { adoptUserNodes } from '@xyflow/system';
+import { useCanvasStore } from '@refly-packages/ai-workspace-common/stores/canvas';
 
 // Define the maximum number of nodes allowed in a canvas
 const MAX_NODES_PER_CANVAS = 500;
@@ -56,6 +57,15 @@ export const useAddNode = () => {
       shouldPreview = true,
       needSetCenter = false,
     ): XYPosition | undefined => {
+      const { canvasInitialized } = useCanvasStore.getState();
+
+      if (!canvasInitialized[canvasId]) {
+        setTimeout(() => {
+          addNode(node, connectTo, shouldPreview, needSetCenter);
+        }, 100);
+        return undefined;
+      }
+
       const { nodes, edges, nodeLookup, parentLookup } = getState();
 
       if (!node?.type || !node?.data) {
