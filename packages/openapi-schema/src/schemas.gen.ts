@@ -2479,7 +2479,7 @@ export const ProviderConfigSchema = {
 export const ModelSceneSchema = {
   type: 'string',
   description: 'Model usage scene',
-  enum: ['chat', 'agent', 'queryAnalysis', 'titleGeneration'],
+  enum: ['chat', 'agent', 'queryAnalysis', 'titleGeneration', 'image', 'video', 'audio'],
 } as const;
 
 export const DefaultModelConfigSchema = {
@@ -2500,6 +2500,18 @@ export const DefaultModelConfigSchema = {
     },
     titleGeneration: {
       description: 'Title generation model for canvas and documents',
+      $ref: '#/components/schemas/ProviderItem',
+    },
+    image: {
+      description: 'Default image generation model',
+      $ref: '#/components/schemas/ProviderItem',
+    },
+    video: {
+      description: 'Default video generation model',
+      $ref: '#/components/schemas/ProviderItem',
+    },
+    audio: {
+      description: 'Default audio generation model',
       $ref: '#/components/schemas/ProviderItem',
     },
   },

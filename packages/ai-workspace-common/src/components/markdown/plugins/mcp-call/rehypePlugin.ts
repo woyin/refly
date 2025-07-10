@@ -24,6 +24,10 @@ const HTTP_IMAGE_URL_REGEX =
 const HTTP_AUDIO_URL_REGEX =
   /https?:\/\/[^\s"'<>]+\.(?<format>mp3|wav|ogg|flac|m4a|aac)[^\s"'<>]*/i;
 
+// Regular expression to match HTTP/HTTPS video links
+const HTTP_VIDEO_URL_REGEX =
+  /https?:\/\/[^\s"'<>]+\.(?<format>mp4|webm|avi|mov|wmv|flv|mkv|m4v)[^\s"'<>]*/i;
+
 /**
  * Utility function to safely extract content from regex matches
  * @param content The content to extract from
@@ -91,6 +95,27 @@ const extractAudioUrl = (
 };
 
 /**
+ * Extract video URL from a string
+ * @param str The string to search in
+ * @returns The found video URL, format and whether it's an HTTP link
+ */
+const extractVideoUrl = (
+  str: string,
+): { url: string | undefined; format: string | undefined; isHttp: boolean } => {
+  // Check if it contains an HTTP video URL
+  const httpMatch = HTTP_VIDEO_URL_REGEX.exec(str);
+  if (httpMatch?.groups && httpMatch[0]) {
+    return {
+      url: httpMatch[0],
+      format: httpMatch.groups.format,
+      isHttp: true,
+    };
+  }
+
+  return { url: undefined, format: undefined, isHttp: false };
+};
+
+/**
  * Rehype plugin to process tool_use tags in markdown
  * When parsing <tool_use> tags, if a <result> exists, extract both <arguments> and <result> and put them on the same node property.
  * If there is no <result>, only extract <arguments>.
@@ -137,6 +162,12 @@ function rehypePlugin() {
               let _isAudioHttpUrl = false;
               let audioNameFromArgs = 'audio'; // Default audio name
 
+              // Attempt to find and process video data in the result
+              let videoUrlFromDetails: string | undefined;
+              let videoFormatFromDetails: string | undefined;
+              let _isVideoHttpUrl = false;
+              let videoNameFromArgs = 'video'; // Default video name
+
               // 1. Directly search for image URL in the result string
               const { url, format, isHttp } = extractImageUrl(resultStr);
               if (url) {
@@ -165,7 +196,6 @@ function rehypePlugin() {
               if (audioResult.url) {
                 audioUrlFromDetails = audioResult.url;
                 audioFormatFromDetails = audioResult.format;
-                // isAudioHttpUrl 变量在这里不需要使用，但我们保留它以保持代码结构一致性
                 _isAudioHttpUrl = true;
               } else {
                 // 2. If direct search fails, try to parse JSON and search in the stringified JSON result
@@ -178,6 +208,29 @@ function rehypePlugin() {
                     audioUrlFromDetails = jsonAudioResult.url;
                     audioFormatFromDetails = jsonAudioResult.format;
                     _isAudioHttpUrl = jsonAudioResult.isHttp;
+                  }
+                } catch (_e) {
+                  // Not a JSON result, or JSON parsing failed
+                }
+              }
+
+              // 1. Directly search for video URL in the result string
+              const videoResult = extractVideoUrl(resultStr);
+              if (videoResult.url) {
+                videoUrlFromDetails = videoResult.url;
+                videoFormatFromDetails = videoResult.format;
+                _isVideoHttpUrl = true;
+              } else {
+                // 2. If direct search fails, try to parse JSON and search in the stringified JSON result
+                try {
+                  const resultObj = JSON.parse(resultStr);
+                  const resultJsonStr = JSON.stringify(resultObj);
+                  const jsonVideoResult = extractVideoUrl(resultJsonStr);
+
+                  if (jsonVideoResult.url) {
+                    videoUrlFromDetails = jsonVideoResult.url;
+                    videoFormatFromDetails = jsonVideoResult.format;
+                    _isVideoHttpUrl = jsonVideoResult.isHttp;
                   }
                 } catch (_e) {
                   // Not a JSON result, or JSON parsing failed
@@ -253,6 +306,40 @@ function rehypePlugin() {
                 attributes['data-tool-audio-name'] =
                   `${audioNameFromArgs}.${audioFormatFromDetails}`;
                 attributes['data-tool-audio-format'] = audioFormatFromDetails;
+              }
+
+              // Handle video URL if found
+              if (videoUrlFromDetails && videoFormatFromDetails) {
+                // Set video URL attribute
+                attributes['data-tool-video-http-url'] = videoUrlFromDetails;
+
+                // Attempt to get video name from arguments
+                if (argsStr) {
+                  try {
+                    const argsObj = JSON.parse(argsStr);
+                    if (typeof argsObj.params === 'string') {
+                      const paramsObj = JSON.parse(argsObj.params);
+                      if (paramsObj && typeof paramsObj.name === 'string') {
+                        const trimmedName = paramsObj.name.trim();
+                        if (trimmedName) {
+                          // Ensure non-empty name after trimming
+                          videoNameFromArgs = trimmedName;
+                        }
+                      }
+                    } else if (argsObj && typeof argsObj.name === 'string') {
+                      const trimmedName = argsObj.name.trim();
+                      if (trimmedName) {
+                        // Ensure non-empty name after trimming
+                        videoNameFromArgs = trimmedName;
+                      }
+                    }
+                  } catch (_e) {
+                    // Argument parsing failed
+                  }
+                }
+                attributes['data-tool-video-name'] =
+                  `${videoNameFromArgs}.${videoFormatFromDetails}`;
+                attributes['data-tool-video-format'] = videoFormatFromDetails;
               }
             }
 
@@ -345,6 +432,12 @@ function rehypePlugin() {
               let _isAudioHttpUrl = false;
               let audioNameFromArgs = 'audio'; // Default audio name
 
+              // Attempt to find and process video data in the result
+              let videoUrlFromDetails: string | undefined;
+              let videoFormatFromDetails: string | undefined;
+              let _isVideoHttpUrl = false;
+              let videoNameFromArgs = 'video'; // Default video name
+
               // Directly search for image URL in the result string
               const { url, format, isHttp } = extractImageUrl(resultStr);
               if (url) {
@@ -373,7 +466,6 @@ function rehypePlugin() {
               if (audioResult.url) {
                 audioUrlFromDetails = audioResult.url;
                 audioFormatFromDetails = audioResult.format;
-                // isAudioHttpUrl 变量在这里不需要使用，但我们保留它以保持代码结构一致性
                 _isAudioHttpUrl = true;
               } else {
                 // If direct search fails, try to parse JSON and search in the stringified JSON result
@@ -386,6 +478,29 @@ function rehypePlugin() {
                     audioUrlFromDetails = jsonAudioResult.url;
                     audioFormatFromDetails = jsonAudioResult.format;
                     _isAudioHttpUrl = jsonAudioResult.isHttp;
+                  }
+                } catch (_e) {
+                  // Not a JSON result, or JSON parsing failed
+                }
+              }
+
+              // Directly search for video URL in the result string
+              const videoResult = extractVideoUrl(resultStr);
+              if (videoResult.url) {
+                videoUrlFromDetails = videoResult.url;
+                videoFormatFromDetails = videoResult.format;
+                _isVideoHttpUrl = true;
+              } else {
+                // If direct search fails, try to parse JSON and search in the stringified JSON result
+                try {
+                  const resultObj = JSON.parse(resultStr);
+                  const resultJsonStr = JSON.stringify(resultObj);
+                  const jsonVideoResult = extractVideoUrl(resultJsonStr);
+
+                  if (jsonVideoResult.url) {
+                    videoUrlFromDetails = jsonVideoResult.url;
+                    videoFormatFromDetails = jsonVideoResult.format;
+                    _isVideoHttpUrl = jsonVideoResult.isHttp;
                   }
                 } catch (_e) {
                   // Not a JSON result, or JSON parsing failed
@@ -459,6 +574,40 @@ function rehypePlugin() {
                 attributes['data-tool-audio-name'] =
                   `${audioNameFromArgs}.${audioFormatFromDetails}`;
                 attributes['data-tool-audio-format'] = audioFormatFromDetails;
+              }
+
+              // Handle video URL if found
+              if (videoUrlFromDetails && videoFormatFromDetails) {
+                // Set video URL attribute
+                attributes['data-tool-video-http-url'] = videoUrlFromDetails;
+
+                // Attempt to get video name from arguments
+                if (argsStr) {
+                  try {
+                    const argsObj = JSON.parse(argsStr);
+                    if (typeof argsObj.params === 'string') {
+                      const paramsObj = JSON.parse(argsObj.params);
+                      if (paramsObj && typeof paramsObj.name === 'string') {
+                        const trimmedName = paramsObj.name.trim();
+                        if (trimmedName) {
+                          // Ensure non-empty name after trimming
+                          videoNameFromArgs = trimmedName;
+                        }
+                      }
+                    } else if (argsObj && typeof argsObj.name === 'string') {
+                      const trimmedName = argsObj.name.trim();
+                      if (trimmedName) {
+                        // Ensure non-empty name after trimming
+                        videoNameFromArgs = trimmedName;
+                      }
+                    }
+                  } catch (_e) {
+                    // Argument parsing failed
+                  }
+                }
+                attributes['data-tool-video-name'] =
+                  `${videoNameFromArgs}.${videoFormatFromDetails}`;
+                attributes['data-tool-video-format'] = videoFormatFromDetails;
               }
             }
 

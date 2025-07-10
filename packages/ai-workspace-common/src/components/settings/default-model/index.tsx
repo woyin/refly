@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { ProviderItem } from '@refly-packages/ai-workspace-common/requests/types.gen';
+import {
+  ProviderItem,
+  MediaGenerationModelConfig,
+} from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { Select, Typography, message, Skeleton } from 'antd';
 
 const { Text, Title } = Typography;
@@ -70,7 +73,59 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
     },
   });
 
+  const {
+    data: mediaData,
+    isLoading: isMediaLoading,
+    refetch: refetchMedia,
+  } = useListProviderItems({
+    query: {
+      enabled: true,
+      category: 'mediaGeneration',
+    },
+  });
+
   const llmProviders = useMemo(() => data?.data ?? [], [data?.data]);
+  const allMediaProviders = useMemo(() => mediaData?.data ?? [], [mediaData?.data]);
+
+  // Filter media providers by capabilities
+  const imageProviders = useMemo(() => {
+    return allMediaProviders.filter((provider) => {
+      try {
+        const configStr =
+          typeof provider.config === 'string' ? provider.config : JSON.stringify(provider.config);
+        const config = JSON.parse(configStr) as MediaGenerationModelConfig;
+        return config.capabilities?.image === true;
+      } catch {
+        return false;
+      }
+    });
+  }, [allMediaProviders]);
+
+  const videoProviders = useMemo(() => {
+    return allMediaProviders.filter((provider) => {
+      try {
+        const configStr =
+          typeof provider.config === 'string' ? provider.config : JSON.stringify(provider.config);
+        const config = JSON.parse(configStr) as MediaGenerationModelConfig;
+        return config.capabilities?.video === true;
+      } catch {
+        return false;
+      }
+    });
+  }, [allMediaProviders]);
+
+  const audioProviders = useMemo(() => {
+    return allMediaProviders.filter((provider) => {
+      try {
+        const configStr =
+          typeof provider.config === 'string' ? provider.config : JSON.stringify(provider.config);
+        const config = JSON.parse(configStr) as MediaGenerationModelConfig;
+        return config.capabilities?.audio === true;
+      } catch {
+        return false;
+      }
+    });
+  }, [allMediaProviders]);
 
   const defaultPreferences = useMemo(
     () => userProfile?.preferences ?? {},
@@ -86,11 +141,17 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
   const [titleGenerationModel, setTitleGenerationModel] = useState<ProviderItem | undefined>(
     defaultModel?.titleGeneration,
   );
+  const [imageModel, setImageModel] = useState<ProviderItem | undefined>(defaultModel?.image);
+  const [videoModel, setVideoModel] = useState<ProviderItem | undefined>(defaultModel?.video);
+  const [audioModel, setAudioModel] = useState<ProviderItem | undefined>(defaultModel?.audio);
 
   const [updateLoading, setUpdateLoading] = useState<Record<string, boolean>>({});
 
   const updateSettings = useCallback(
-    async (type: 'chat' | 'agent' | 'queryAnalysis' | 'titleGeneration', model?: ProviderItem) => {
+    async (
+      type: 'chat' | 'agent' | 'queryAnalysis' | 'titleGeneration' | 'image' | 'video' | 'audio',
+      model?: ProviderItem,
+    ) => {
       const updatedDefaultModel = {
         ...defaultModel,
         [type]: model,
@@ -159,11 +220,36 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
     [updateSettings],
   );
 
+  const handleImageModelChange = useCallback(
+    (model: ProviderItem) => {
+      setImageModel(model);
+      updateSettings('image', model);
+    },
+    [updateSettings],
+  );
+
+  const handleVideoModelChange = useCallback(
+    (model: ProviderItem) => {
+      setVideoModel(model);
+      updateSettings('video', model);
+    },
+    [updateSettings],
+  );
+
+  const handleAudioModelChange = useCallback(
+    (model: ProviderItem) => {
+      setAudioModel(model);
+      updateSettings('audio', model);
+    },
+    [updateSettings],
+  );
+
   useEffect(() => {
     if (visible) {
       refetch();
+      refetchMedia();
     }
-  }, [visible, refetch]);
+  }, [visible, refetch, refetchMedia]);
 
   useEffect(() => {
     if (visible) {
@@ -171,19 +257,22 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
       setAgentModel(defaultModel?.agent);
       setQueryAnalysisModel(defaultModel?.queryAnalysis);
       setTitleGenerationModel(defaultModel?.titleGeneration);
+      setImageModel(defaultModel?.image);
+      setVideoModel(defaultModel?.video);
+      setAudioModel(defaultModel?.audio);
     }
   }, [visible, defaultModel]);
 
-  if (isLoading) {
+  if (isLoading || isMediaLoading) {
     return (
       <div className="w-full h-full p-4">
-        <Skeleton active paragraph={{ rows: 6 }} />
+        <Skeleton active paragraph={{ rows: 9 }} />
       </div>
     );
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 overflow-y-auto h-full mb-200px">
       <ModelSelect
         value={chatModel}
         onChange={handleChatModelChange}
@@ -222,6 +311,36 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
         description={t('settings.defaultModel.description.titleGeneration')}
         title={t('settings.defaultModel.titleGeneration')}
         isUpdating={updateLoading.titleGeneration}
+      />
+
+      <ModelSelect
+        value={imageModel}
+        onChange={handleImageModelChange}
+        options={imageProviders}
+        placeholder={t('settings.defaultModel.noModel')}
+        description={t('settings.defaultModel.description.image')}
+        title={t('settings.defaultModel.image')}
+        isUpdating={updateLoading.image}
+      />
+
+      <ModelSelect
+        value={videoModel}
+        onChange={handleVideoModelChange}
+        options={videoProviders}
+        placeholder={t('settings.defaultModel.noModel')}
+        description={t('settings.defaultModel.description.video')}
+        title={t('settings.defaultModel.video')}
+        isUpdating={updateLoading.video}
+      />
+
+      <ModelSelect
+        value={audioModel}
+        onChange={handleAudioModelChange}
+        options={audioProviders}
+        placeholder={t('settings.defaultModel.noModel')}
+        description={t('settings.defaultModel.description.audio')}
+        title={t('settings.defaultModel.audio')}
+        isUpdating={updateLoading.audio}
       />
     </div>
   );
