@@ -8,7 +8,7 @@ import React, {
   useRef,
 } from 'react';
 import { get, set, update } from 'idb-keyval';
-import { message, Modal, Radio } from 'antd';
+import { Modal, Radio } from 'antd';
 import { Node, Edge, useStoreApi, InternalNode, useReactFlow } from '@xyflow/react';
 import { adoptUserNodes, updateConnectionLookup } from '@xyflow/system';
 import {
@@ -195,6 +195,30 @@ export const CanvasProvider = ({
     }
   }, [readonly, canvasData, canvasDetail, canvasId]);
 
+  const handleCreateCanvasVersion = async (canvasId: string, state: CanvasState) => {
+    const result = await createCanvasVersion(canvasId, state);
+    if (!result) {
+      return;
+    }
+
+    const { conflict, newState } = result;
+
+    let finalState: CanvasState;
+
+    if (conflict) {
+      const userChoice = await handleConflictResolution(canvasId, conflict);
+      if (userChoice === 'local') {
+        finalState = conflict.localState;
+      } else {
+        finalState = conflict.remoteState;
+      }
+    } else {
+      finalState = newState;
+    }
+
+    return finalState;
+  };
+
   // Sync canvas state with remote
   const syncWithRemote = async (canvasId: string) => {
     const state = await get<CanvasState>(`canvas-state:${canvasId}`);
@@ -204,16 +228,10 @@ export const CanvasProvider = ({
 
     // If the number of transactions is greater than the threshold, create a new version
     if (state.transactions?.length > MAX_STATE_TX_COUNT) {
-      const { conflict, newState } = await createCanvasVersion(canvasId, state);
-      if (conflict) {
-        const userChoice = await handleConflictResolution(canvasId, conflict);
-        if (userChoice === 'local') {
-          await set(`canvas-state:${canvasId}`, conflict.localState);
-        } else {
-          await set(`canvas-state:${canvasId}`, conflict.remoteState);
-        }
-      } else {
-        await set(`canvas-state:${canvasId}`, newState);
+      console.log('[syncWithRemote] create new version');
+      const finalState = await handleCreateCanvasVersion(canvasId, state);
+      if (finalState) {
+        await set(`canvas-state:${canvasId}`, finalState);
       }
       return;
     }
@@ -243,8 +261,6 @@ export const CanvasProvider = ({
           syncedAt: tx.syncedAt ?? Date.now(),
         })),
       }));
-    } else {
-      message.error('Failed to sync canvas state');
     }
   };
 
@@ -461,7 +477,7 @@ export const CanvasProvider = ({
       finalState.transactions?.length > MAX_STATE_TX_COUNT ||
       lastTransaction?.createdAt < Date.now() - MAX_VERSION_AGE
     ) {
-      await createCanvasVersion(canvasId, finalState);
+      finalState = await handleCreateCanvasVersion(canvasId, finalState);
     }
 
     updateCanvasDataFromState(finalState);
