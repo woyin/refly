@@ -153,6 +153,15 @@ export class SkillService implements OnModuleInit {
 
   async checkStuckActions() {
     const stuckTimeoutThreshold = this.config.get<number>('skill.stuckTimeoutThreshold');
+
+    // Validate the threshold to ensure it's a positive number
+    if (!stuckTimeoutThreshold || stuckTimeoutThreshold <= 0) {
+      this.logger.error(
+        `Invalid stuckTimeoutThreshold: ${stuckTimeoutThreshold}. Must be a positive number.`,
+      );
+      return;
+    }
+
     const cutoffTime = new Date(Date.now() - stuckTimeoutThreshold);
 
     this.logger.log(`Checking for stuck actions with cutoff time: ${cutoffTime.toISOString()}`);
