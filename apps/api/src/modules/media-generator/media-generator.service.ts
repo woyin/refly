@@ -4,6 +4,9 @@ import {
   ReplicateAudioGenerator,
   ReplicateVideoGenerator,
   ReplicateImageGenerator,
+  FalAudioGenerator,
+  FalVideoGenerator,
+  FalImageGenerator,
 } from '@refly/providers';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
@@ -90,6 +93,8 @@ export class MediaGeneratorService {
 
       if (providerKey === 'replicate') {
         result = await this.generateWithReplicate(user, request, provider.apiKey);
+      } else if (providerKey === 'fal') {
+        result = await this.generateWithFal(user, request, provider.apiKey);
       } else {
         throw new Error(`Unsupported provider: ${providerKey}`);
       }
@@ -149,6 +154,30 @@ export class MediaGeneratorService {
     return result;
   }
 
+  private async generateWithFal(
+    _user: User,
+    request: MediaGenerateRequest,
+    apiKey: string,
+  ): Promise<{ output: string }> {
+    let result: { output: string };
+
+    switch (request.mediaType) {
+      case 'audio':
+        result = await this.generateAudioWithFal(request, apiKey);
+        break;
+      case 'video':
+        result = await this.generateVideoWithFal(request, apiKey);
+        break;
+      case 'image':
+        result = await this.generateImageWithFal(request, apiKey);
+        break;
+      default:
+        throw new Error(`Unsupported media type: ${request.mediaType}`);
+    }
+
+    return result;
+  }
+
   private async generateAudioWithReplicate(
     request: MediaGenerateRequest,
     apiKey: string,
@@ -180,6 +209,45 @@ export class MediaGeneratorService {
     apiKey: string,
   ): Promise<{ output: string }> {
     const generator = new ReplicateImageGenerator();
+
+    return await generator.generate({
+      model: request.model,
+      prompt: request.prompt,
+      apiKey: apiKey,
+    });
+  }
+
+  private async generateAudioWithFal(
+    request: MediaGenerateRequest,
+    apiKey: string,
+  ): Promise<{ output: string }> {
+    const generator = new FalAudioGenerator();
+
+    return await generator.generate({
+      model: request.model,
+      prompt: request.prompt,
+      apiKey: apiKey,
+    });
+  }
+
+  private async generateVideoWithFal(
+    request: MediaGenerateRequest,
+    apiKey: string,
+  ): Promise<{ output: string }> {
+    const generator = new FalVideoGenerator();
+
+    return await generator.generate({
+      model: request.model,
+      prompt: request.prompt,
+      apiKey: apiKey,
+    });
+  }
+
+  private async generateImageWithFal(
+    request: MediaGenerateRequest,
+    apiKey: string,
+  ): Promise<{ output: string }> {
+    const generator = new FalImageGenerator();
 
     return await generator.generate({
       model: request.model,
