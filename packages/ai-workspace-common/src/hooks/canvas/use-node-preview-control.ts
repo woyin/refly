@@ -89,12 +89,14 @@ export const useNodePreviewControl = ({
 
   const closeNodePreviewByEntityId = useCallback(
     (entityId: string) => {
+      const { config } = useCanvasStore.getState();
+      const nodePreviews = config[canvasId]?.nodePreviews || [];
       const node = nodePreviews.find((node) => node.data?.entityId === entityId);
       if (node) {
         removeNodePreview(canvasId, node.id);
       }
     },
-    [canvasId, nodePreviews, removeNodePreview],
+    [canvasId, removeNodePreview],
   );
 
   const pinNode = useCallback(

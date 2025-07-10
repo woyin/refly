@@ -16,6 +16,7 @@ import {
 } from '@refly/openapi-schema';
 import { message } from 'antd';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 
 export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,6 +31,9 @@ export const useCanvasInitialActions = (canvasId: string) => {
       reset: state.reset,
       mediaQueryData: state.mediaQueryData,
     }));
+  const { canvasInitialized } = useCanvasStoreShallow((state) => ({
+    canvasInitialized: state.canvasInitialized[canvasId],
+  }));
 
   const { skillSelectedModel } = useChatStoreShallow((state) => ({
     skillSelectedModel: state.skillSelectedModel,
@@ -111,7 +115,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
 
   useEffect(() => {
     // Only proceed if we're connected and have pending actions
-    if (pendingActionRef.current && canvasId) {
+    if (canvasInitialized && pendingActionRef.current && canvasId) {
       const {
         query,
         selectedSkill,
@@ -187,5 +191,5 @@ export const useCanvasInitialActions = (canvasId: string) => {
       reset();
       pendingActionRef.current = null;
     }
-  }, [canvasId, invokeAction, addNode, reset]);
+  }, [canvasId, canvasInitialized, invokeAction, addNode, reset]);
 };
