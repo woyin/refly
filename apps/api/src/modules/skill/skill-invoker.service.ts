@@ -307,6 +307,12 @@ export class SkillInvokerService {
             return;
           }
 
+          // Once we have any output, stop checking for stream idle timeout
+          if (hasAnyOutput) {
+            stopTimeoutCheck();
+            return;
+          }
+
           const now = Date.now();
           const timeSinceLastOutput = now - lastOutputTime;
           const isTimeout = timeSinceLastOutput > streamIdleTimeout;
