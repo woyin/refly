@@ -18,6 +18,7 @@ import {
   initEmptyCanvasState,
   updateCanvasState,
   mergeCanvasStates,
+  CanvasConflictException,
 } from '@refly/canvas-common';
 import {
   CanvasNotFoundError,
@@ -329,29 +330,59 @@ export class CanvasSyncService {
     }
 
     const releaseLock = await this.lockState(canvasId);
-    const serverState = await this.getState(user, { canvasId, version: canvas.version });
-
-    if (canvas.version !== state.version) {
-      return {
-        canvasId,
-        conflict: {
-          localState: state,
-          remoteState: serverState,
-        },
-      };
-    }
-
-    // Merge local and server state to avoid possible data loss
-    const finalState = mergeCanvasStates(state, serverState);
-    const lastTransaction = getLastTransaction(finalState);
 
     try {
+      const serverState = await this.getState(user, { canvasId, version: canvas.version });
+      if (canvas.version !== state.version) {
+        return {
+          canvasId,
+          conflict: {
+            localState: state,
+            remoteState: serverState,
+          },
+        };
+      }
+
+      // Merge local and server state to avoid possible data loss
+      let finalState: CanvasState;
+      try {
+        finalState = mergeCanvasStates(state, serverState);
+      } catch (error) {
+        if (error instanceof CanvasConflictException) {
+          return {
+            canvasId,
+            conflict: {
+              localState: state,
+              remoteState: serverState,
+            },
+          };
+        }
+        // Re-throw other errors to be handled by the caller
+        throw error;
+      }
+
+      // Mark all unsynced transactions as synced
+      // If there are unsynced transactions, save the updated state
+      let hasUnsyncedTransactions = false;
+      for (const tx of finalState.transactions) {
+        if (!tx.syncedAt) {
+          hasUnsyncedTransactions = true;
+          tx.syncedAt = Date.now();
+        }
+      }
+      if (hasUnsyncedTransactions) {
+        await this.saveState(canvasId, finalState);
+      }
+
+      const lastTransaction = getLastTransaction(finalState);
+
       const canvasData = getCanvasDataFromState(state);
       const newState: CanvasState = {
         ...canvasData,
         version: genCanvasVersionId(),
         transactions: [],
         history: [
+          ...(finalState.history ?? []),
           {
             version: canvas.version,
             timestamp: lastTransaction?.createdAt ?? Date.now(),
