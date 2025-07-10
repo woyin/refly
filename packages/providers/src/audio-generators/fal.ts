@@ -2,21 +2,81 @@ import { BaseAudioGenerator, AudioGenerationRequest, AudioGenerationResponse } f
 
 export class FalAudioGenerator extends BaseAudioGenerator {
   /**
-   * 使用异步轮询机制生成音频
-   * @param request 音频生成请求
-   * @returns 音频生成响应
+   * Generate audio using Fal.ai API
+   * @param request audio generation request
+   * @returns audio generation response
    */
   async generate(request: AudioGenerationRequest): Promise<AudioGenerationResponse> {
     const url = `https://queue.fal.run/${request.model}`;
+
+    const modelMap: Record<string, string> = {
+      'fal-ai/playai/tts/v3': 'fal-ai/playai',
+      'fal-ai/elevenlabs/tts/turbo-v2.5': 'fal-ai/elevenlabs',
+      'fal-ai/orpheus-tts': 'fal-ai/orpheus-tts',
+      'fal-ai/elevenlabs/sound-effects': 'fal-ai/elevenlabs',
+    };
+    const baseModel = modelMap[request.model] || request.model;
 
     const headers = {
       Authorization: `Key ${request.apiKey}`,
       'Content-Type': 'application/json',
     };
 
-    const data = {
-      prompt: request.prompt,
-    };
+    // 根据不同模型设置相应的参数
+    let data = {};
+
+    switch (request.model) {
+      case 'fal-ai/playai/tts/v3':
+        data = {
+          input: request.prompt,
+          voice: 'Jennifer (English (US)/American)',
+        };
+        break;
+
+      case 'fal-ai/elevenlabs/tts/turbo-v2.5':
+      case 'fal-ai/orpheus-tts':
+      case 'fal-ai/dia-tts':
+      case 'fal-ai/elevenlabs/sound-effects':
+        data = {
+          text: request.prompt,
+        };
+        break;
+
+      case 'fal-ai/yue':
+        data = {
+          lyrics: request.prompt,
+          genres: 'inspiring female uplifting pop airy vocal electronic bright vocal vocal',
+        };
+        break;
+
+      case 'fal-ai/diffrhythm':
+      case 'fal-ai/ace-step':
+        if (request.model === 'fal-ai/ace-step') {
+          data = {
+            lyrics: request.prompt,
+            tags: 'lofi, hiphop, drum and bass, trap, chill',
+          };
+        } else {
+          data = {
+            lyrics: request.prompt,
+          };
+        }
+        break;
+
+      case 'cassetteai/sound-effects-generator':
+        data = {
+          prompt: request.prompt,
+          duration: 30,
+        };
+        break;
+
+      default:
+        // 默认使用prompt参数
+        data = {
+          prompt: request.prompt,
+        };
+        break;
+    }
 
     try {
       // 提交请求到队列
@@ -42,7 +102,7 @@ export class FalAudioGenerator extends BaseAudioGenerator {
         throw new Error('Fal API returned no request id');
       }
 
-      const statusUrl = `https://queue.fal.run/${request.model}/requests/${requestId}/status`;
+      const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
       let output = null;
 
       // 轮询直到完成
@@ -70,7 +130,7 @@ export class FalAudioGenerator extends BaseAudioGenerator {
 
         if (status === 'COMPLETED') {
           // 获取最终结果
-          const responseUrl = `https://queue.fal.run/${request.model}/requests/${requestId}`;
+          const responseUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}`;
           const finalResponse = await fetch(responseUrl, {
             method: 'GET',
             headers: {
@@ -86,7 +146,12 @@ export class FalAudioGenerator extends BaseAudioGenerator {
           }
 
           const finalResult = await finalResponse.json();
-          output = finalResult.audio_url || finalResult.output;
+          // 根据实际响应格式提取音频URL
+          output =
+            finalResult.audio?.url ||
+            finalResult.audio_file?.url ||
+            finalResult.audio_url ||
+            finalResult.output;
         }
       }
 

@@ -2,12 +2,21 @@ import { BaseVideoGenerator, VideoGenerationRequest, VideoGenerationResponse } f
 
 export class FalVideoGenerator extends BaseVideoGenerator {
   /**
-   * 使用异步轮询机制生成视频
-   * @param request 视频生成请求
-   * @returns 视频生成响应
+   * Generate video using Fal.ai API
+   * @param request video generation request
+   * @returns video generation response
    */
   async generate(request: VideoGenerationRequest): Promise<VideoGenerationResponse> {
     const url = `https://queue.fal.run/${request.model}`;
+
+    const modelMap: Record<string, string> = {
+      'fal-ai/bytedance/seedance/v1/lite/text-to-video': 'fal-ai/bytedance',
+      'fal-ai/bytedance/seedance/v1/pro/text-to-video': 'fal-ai/bytedance',
+      'fal-ai/minimax/hailuo-02/pro/text-to-video': 'fal-ai/minimax',
+      'fal-ai/minimax/hailuo-02/standard/text-to-video': 'fal-ai/minimax',
+      'fal-ai/veo3/fast': 'fal-ai/veo3',
+    };
+    const baseModel = modelMap[request.model] || request.model;
 
     const headers = {
       Authorization: `Key ${request.apiKey}`,
@@ -20,7 +29,6 @@ export class FalVideoGenerator extends BaseVideoGenerator {
     };
 
     try {
-      // 提交请求到队列
       const response = await fetch(url, {
         method: 'POST',
         headers,
@@ -43,14 +51,13 @@ export class FalVideoGenerator extends BaseVideoGenerator {
         throw new Error('Fal API returned no request id');
       }
 
-      const statusUrl = `https://queue.fal.run/${request.model}/requests/${requestId}/status`;
+      const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
       let output = null;
 
-      // 轮询直到完成
       while (status !== 'COMPLETED' && status !== 'FAILED') {
         console.log(`Polling video request ${requestId}, current status: ${status} ...`);
 
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // 视频生成通常需要更长时间
+        await new Promise((resolve) => setTimeout(resolve, 5000));
 
         const pollResponse = await fetch(statusUrl, {
           method: 'GET',
@@ -70,8 +77,7 @@ export class FalVideoGenerator extends BaseVideoGenerator {
         status = pollResult.status;
 
         if (status === 'COMPLETED') {
-          // 获取最终结果
-          const responseUrl = `https://queue.fal.run/${request.model}/requests/${requestId}`;
+          const responseUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}`;
           const finalResponse = await fetch(responseUrl, {
             method: 'GET',
             headers: {
@@ -91,15 +97,28 @@ export class FalVideoGenerator extends BaseVideoGenerator {
         }
       }
 
-      // 检查生成结果
       if (status !== 'COMPLETED' || !output) {
         throw new Error(`Fal video generation failed with status: ${status}`);
       }
 
       console.log('Video request succeeded, output:', output);
 
+      let outputUrl: string;
+      if (typeof output === 'string') {
+        outputUrl = output;
+      } else if (output && typeof output === 'object') {
+        if (Array.isArray(output)) {
+          const firstItem = output[0];
+          outputUrl = typeof firstItem === 'string' ? firstItem : firstItem?.url || firstItem;
+        } else {
+          outputUrl = output.url || output;
+        }
+      } else {
+        throw new Error('Invalid output format from Fal API');
+      }
+
       return {
-        output: Array.isArray(output) ? output[0].url || output[0] : output,
+        output: outputUrl,
       };
     } catch (error) {
       console.error('Error generating video with fal:', error);

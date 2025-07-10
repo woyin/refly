@@ -5,7 +5,7 @@ import { BaseAudioGenerator, AudioGenerationRequest, AudioGenerationResponse } f
  */
 export class ReplicateAudioGenerator extends BaseAudioGenerator {
   /**
-   * 使用Replicate API生成音频
+   * Replicate API
    * @param request audio generation request
    * @returns audio generation response
    */
@@ -20,12 +20,39 @@ export class ReplicateAudioGenerator extends BaseAudioGenerator {
 
     // switch text or prompt according to model type
     const isTextModel =
-      request.model === 'minimax/speech-02-hd' || request.model === 'minimax/speech-02-turbo';
+      request.model === 'minimax/speech-02-hd' ||
+      request.model === 'minimax/speech-02-turbo' ||
+      request.model === 'jaaari/kokoro-82m' ||
+      request.model === 'haoheliu/audio-ldm';
+
+    const isMusicModel = request.model === 'minimax/music-01';
+    const isAceStepModel = request.model === 'lucataco/ace-step';
+
+    let inputData = {};
+
+    if (isTextModel) {
+      // text
+      inputData = { text: request.prompt };
+    } else if (isMusicModel) {
+      // minimax/music-01 lyrics song_file
+      inputData = {
+        lyrics: request.prompt,
+        song_file:
+          'https://replicate.delivery/pbxt/M9zum1Y6qujy02jeigHTJzn0lBTQOemB7OkH5XmmPSC5OUoO/MiniMax-Electronic.wav',
+      };
+    } else if (isAceStepModel) {
+      // lucataco/ace-step lyrics tags
+      inputData = {
+        lyrics: request.prompt,
+        tags: 'synth-pop, electronic, pop, synthesizer, drums, bass, piano, 128 BPM, energetic, uplifting, modern',
+      };
+    } else {
+      // prompt
+      inputData = { prompt: request.prompt };
+    }
 
     const data = {
-      input: {
-        ...(isTextModel ? { text: request.prompt } : { prompt: request.prompt }),
-      },
+      input: inputData,
     };
 
     const response = await fetch(url, {
