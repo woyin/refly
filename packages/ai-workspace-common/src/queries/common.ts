@@ -15,6 +15,7 @@ import {
   convert,
   createCanvas,
   createCanvasTemplate,
+  createCanvasVersion,
   createCheckoutSession,
   createCodeArtifact,
   createDocument,
@@ -59,6 +60,8 @@ import {
   getAuthConfig,
   getCanvasData,
   getCanvasDetail,
+  getCanvasState,
+  getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
   getDocumentDetail,
@@ -103,8 +106,10 @@ import {
   scrape,
   search,
   serveStatic,
+  setCanvasState,
   sharePage,
   streamInvokeSkill,
+  syncCanvasState,
   testProviderConnection,
   unpinSkillInstance,
   updateCanvas,
@@ -229,6 +234,28 @@ export const UseExportCanvasKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useExportCanvasKey, ...(queryKey ?? [clientOptions])];
+export type GetCanvasStateDefaultResponse = Awaited<ReturnType<typeof getCanvasState>>['data'];
+export type GetCanvasStateQueryResult<
+  TData = GetCanvasStateDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCanvasStateKey = 'GetCanvasState';
+export const UseGetCanvasStateKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCanvasStateKey, ...(queryKey ?? [clientOptions])];
+export type GetCanvasTransactionsDefaultResponse = Awaited<
+  ReturnType<typeof getCanvasTransactions>
+>['data'];
+export type GetCanvasTransactionsQueryResult<
+  TData = GetCanvasTransactionsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCanvasTransactionsKey = 'GetCanvasTransactions';
+export const UseGetCanvasTransactionsKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetCanvasTransactionsKey, ...(queryKey ?? [clientOptions])];
 export type ListCanvasTemplatesDefaultResponse = Awaited<
   ReturnType<typeof listCanvasTemplates>
 >['data'];
@@ -673,6 +700,24 @@ export type AutoNameCanvasMutationResult = Awaited<ReturnType<typeof autoNameCan
 export const useAutoNameCanvasKey = 'AutoNameCanvas';
 export const UseAutoNameCanvasKeyFn = (mutationKey?: Array<unknown>) => [
   useAutoNameCanvasKey,
+  ...(mutationKey ?? []),
+];
+export type SetCanvasStateMutationResult = Awaited<ReturnType<typeof setCanvasState>>;
+export const useSetCanvasStateKey = 'SetCanvasState';
+export const UseSetCanvasStateKeyFn = (mutationKey?: Array<unknown>) => [
+  useSetCanvasStateKey,
+  ...(mutationKey ?? []),
+];
+export type SyncCanvasStateMutationResult = Awaited<ReturnType<typeof syncCanvasState>>;
+export const useSyncCanvasStateKey = 'SyncCanvasState';
+export const UseSyncCanvasStateKeyFn = (mutationKey?: Array<unknown>) => [
+  useSyncCanvasStateKey,
+  ...(mutationKey ?? []),
+];
+export type CreateCanvasVersionMutationResult = Awaited<ReturnType<typeof createCanvasVersion>>;
+export const useCreateCanvasVersionKey = 'CreateCanvasVersion';
+export const UseCreateCanvasVersionKeyFn = (mutationKey?: Array<unknown>) => [
+  useCreateCanvasVersionKey,
   ...(mutationKey ?? []),
 ];
 export type CreateCanvasTemplateMutationResult = Awaited<ReturnType<typeof createCanvasTemplate>>;

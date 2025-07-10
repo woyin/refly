@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { CommunityProviderResponse } from '../components/settings/model-providers/provider-store-types';
 import {
-  fetchCommunityProviderConfigs,
   checkCommunityProviderApiHealth,
+  fetchCommunityProviderConfigs,
 } from '../requests/provider-community';
 
 /**

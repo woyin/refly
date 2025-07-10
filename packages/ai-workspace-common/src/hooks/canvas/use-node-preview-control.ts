@@ -1,9 +1,8 @@
 import { useCallback, useEffect } from 'react';
 import { useCanvasStore, useCanvasStoreShallow } from '../../stores/canvas';
-import { CanvasNode } from '../../components/canvas/nodes';
+import { CanvasNode } from '@refly/canvas-common';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { useReactFlow } from '@xyflow/react';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 
 interface UseNodePreviewControlOptions {
@@ -28,7 +27,6 @@ export const useNodePreviewControl = ({
   canvasId,
 }: UseNodePreviewControlOptions): NodePreviewControl => {
   const { getNodes } = useReactFlow();
-  const { provider } = useCanvasContext();
   const { setSelectedNode } = useNodeSelection();
   const {
     clickToPreview,
@@ -37,6 +35,7 @@ export const useNodePreviewControl = ({
     setNodePreview,
     removeNodePreview,
     nodePreviews,
+    canvasInitialized,
   } = useCanvasStoreShallow((state) => ({
     clickToPreview: state.clickToPreview,
     setClickToPreview: state.setClickToPreview,
@@ -44,12 +43,13 @@ export const useNodePreviewControl = ({
     setNodePreview: state.setNodePreview,
     removeNodePreview: state.removeNodePreview,
     nodePreviews: state.config[canvasId]?.nodePreviews || [],
+    canvasInitialized: state.canvasInitialized[canvasId],
   }));
 
   // Cleanup non-existent node previews
   useEffect(() => {
     if (!nodePreviews?.length) return;
-    if (provider?.status !== 'connected') return;
+    if (!canvasInitialized) return;
 
     setTimeout(() => {
       const nodes = getNodes();
@@ -60,7 +60,7 @@ export const useNodePreviewControl = ({
         }
       }
     }, 1000);
-  }, [canvasId, provider, nodePreviews, removeNodePreview]);
+  }, [canvasId, canvasInitialized, nodePreviews, removeNodePreview]);
 
   /**
    * Toggle click-to-preview functionality

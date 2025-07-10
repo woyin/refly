@@ -143,6 +143,7 @@ const translations = {
     disabled: '已禁用',
     create: '创建',
     update: '更新',
+    unknown: '未知',
     validate: '验证',
     refresh: '刷新',
     generating: '生成中...',
@@ -1129,6 +1130,12 @@ const translations = {
       modalTitle: '新画布',
       titlePlaceholder: '请输入写作标题',
       descriptionPlaceholder: '请输入画布描述',
+    },
+    conflict: {
+      title: '画布冲突',
+      content: '画布似乎已被其他浏览器或设备修改。请选择保留本地版本或远程版本。',
+      local: '保留本地版本 (最后修改时间: {{time}})',
+      remote: '保留远程版本 (最后修改时间: {{time}})',
     },
     contextSelector: {
       placeholder: '搜索节点...',

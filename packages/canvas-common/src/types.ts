@@ -1,4 +1,4 @@
-import { Node, XYPosition } from '@xyflow/react';
+import { Edge, Node, XYPosition } from '@xyflow/react';
 import {
   ActionLog,
   ActionMeta,
@@ -170,3 +170,9 @@ export type NodeMetadataMap = {
   codeArtifact: CodeArtifactNodeMeta;
   website: WebsiteNodeMeta;
 } & Record<string, Record<string, unknown>>;
+
+export interface CanvasState {
+  title: string;
+  nodes: CanvasNode[];
+  edges: Edge[];
+}

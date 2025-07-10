@@ -18,8 +18,6 @@ type NodePreview = CanvasNode<NodePreviewData> & {
 };
 
 interface CanvasConfig {
-  localSyncedAt?: number;
-  remoteSyncedAt?: number;
   nodePreviews: NodePreview[];
 }
 
@@ -50,6 +48,8 @@ export interface CanvasState {
   tplConfig: Record<string, any> | null;
   canvasPage: Record<string, string>;
   contextMenuOpenedCanvasId: string | null;
+  canvasTitle: Record<string, string>;
+  canvasInitialized: Record<string, boolean>;
 
   setInitialFitViewCompleted: (completed: boolean) => void;
   deleteCanvasData: (canvasId: string) => void;
@@ -59,8 +59,6 @@ export interface CanvasState {
   removeNodePreview: (canvasId: string, nodeId: string) => void;
   updateNodePreview: (canvasId: string, node: NodePreview) => void;
   reorderNodePreviews: (canvasId: string, sourceIndex: number, targetIndex: number) => void;
-  setCanvasLocalSynced: (canvasId: string, syncedAt: number) => void;
-  setCanvasRemoteSynced: (canvasId: string, syncedAt: number) => void;
   setShowPreview: (show: boolean) => void;
   setShowMaxRatio: (show: boolean) => void;
   setShowLaunchpad: (show: boolean) => void;
@@ -80,6 +78,8 @@ export interface CanvasState {
   clearState: () => void;
   setCanvasPage: (canvasId: string, pageId: string) => void;
   setContextMenuOpenedCanvasId: (canvasId: string | null) => void;
+  setCanvasTitle: (canvasId: string, title: string) => void;
+  setCanvasInitialized: (canvasId: string, initialized: boolean) => void;
 }
 
 const defaultCanvasConfig: () => CanvasConfig = () => ({
@@ -105,6 +105,8 @@ const defaultCanvasState = () => ({
   tplConfig: null,
   canvasPage: {},
   contextMenuOpenedCanvasId: null,
+  canvasTitle: {},
+  canvasInitialized: {},
 });
 
 // Create our custom storage with appropriate configuration
@@ -138,18 +140,6 @@ export const useCanvasStore = create<CanvasState>()(
       setInitialFitViewCompleted: (completed) =>
         set((state) => {
           state.initialFitViewCompleted = completed;
-        }),
-      setCanvasLocalSynced: (canvasId, syncedAt) =>
-        set((state) => {
-          state.config[canvasId] ??= defaultCanvasConfig();
-          state.config[canvasId].localSyncedAt = syncedAt;
-          state.config[canvasId].lastUsedAt = Date.now();
-        }),
-      setCanvasRemoteSynced: (canvasId, syncedAt) =>
-        set((state) => {
-          state.config[canvasId] ??= defaultCanvasConfig();
-          state.config[canvasId].remoteSyncedAt = syncedAt;
-          state.config[canvasId].lastUsedAt = Date.now();
         }),
       addNodePreview: (canvasId, node) =>
         set((state) => {
@@ -310,6 +300,14 @@ export const useCanvasStore = create<CanvasState>()(
         set((state) => {
           state.contextMenuOpenedCanvasId = canvasId;
         }),
+      setCanvasTitle: (canvasId, title) =>
+        set((state) => {
+          state.canvasTitle[canvasId] = title;
+        }),
+      setCanvasInitialized: (canvasId, initialized) =>
+        set((state) => {
+          state.canvasInitialized[canvasId] = initialized;
+        }),
     })),
     {
       name: 'canvas-storage',
@@ -325,6 +323,7 @@ export const useCanvasStore = create<CanvasState>()(
         linearThreadMessages: state.linearThreadMessages,
         showSlideshow: state.showSlideshow,
         canvasPage: state.canvasPage,
+        canvasTitle: state.canvasTitle,
       }),
     },
   ),
