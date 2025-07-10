@@ -11,11 +11,17 @@ import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/
 import { useNodePosition } from './use-node-position';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { adoptUserNodes } from '@xyflow/system';
+import { useCanvasStore } from '@refly-packages/ai-workspace-common/stores/canvas';
 
 // Define the maximum number of nodes allowed in a canvas
 const MAX_NODES_PER_CANVAS = 500;
 // Define the threshold at which to show warning (e.g., 98% of max)
 const WARNING_THRESHOLD = 0.98;
+
+// Retry configuration for canvas initialization
+const MAX_RETRY_ATTEMPTS = 10;
+const INITIAL_RETRY_DELAY = 100; // milliseconds
+const MAX_RETRY_DELAY = 5000; // milliseconds
 
 const deduplicateNodes = (nodes: any[]) => {
   const uniqueNodesMap = new Map();
@@ -55,7 +61,28 @@ export const useAddNode = () => {
       connectTo?: CanvasNodeFilter[],
       shouldPreview = true,
       needSetCenter = false,
+      retryCount = 0,
     ): XYPosition | undefined => {
+      const { canvasInitialized } = useCanvasStore.getState();
+
+      if (!canvasInitialized[canvasId]) {
+        // Check if we've exceeded the maximum retry attempts
+        if (retryCount >= MAX_RETRY_ATTEMPTS) {
+          console.error(`Canvas initialization failed after ${MAX_RETRY_ATTEMPTS} attempts`);
+          message.error(t('canvas.action.initializationFailed'));
+          handleCleanGhost();
+          return undefined;
+        }
+
+        // Calculate exponential backoff delay with a maximum cap
+        const delay = Math.min(INITIAL_RETRY_DELAY * 2 ** retryCount, MAX_RETRY_DELAY);
+
+        setTimeout(() => {
+          addNode(node, connectTo, shouldPreview, needSetCenter, retryCount + 1);
+        }, delay);
+        return undefined;
+      }
+
       const { nodes, edges, nodeLookup, parentLookup } = getState();
 
       if (!node?.type || !node?.data) {
