@@ -66,6 +66,14 @@ export class SkillInvokerService {
   private skillEngine: SkillEngine;
   private skillInventory: BaseSkill[];
 
+  // Optimize frequent event type checking with Set
+  private static readonly OUTPUT_EVENTS = new Set([
+    'artifact',
+    'log',
+    'structured_data',
+    'create_node',
+  ]);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
@@ -394,15 +402,7 @@ export class SkillInvokerService {
         }
 
         // Record output event for simple timeout tracking
-        const outputEvents = [
-          'stream',
-          'tool_end',
-          'artifact',
-          'log',
-          'structured_data',
-          'create_node',
-        ];
-        if (outputEvents.includes(data.event)) {
+        if (SkillInvokerService.OUTPUT_EVENTS.has(data.event)) {
           lastOutputTime = Date.now();
           hasAnyOutput = true;
         }
