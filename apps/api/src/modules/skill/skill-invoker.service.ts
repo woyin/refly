@@ -535,7 +535,7 @@ export class SkillInvokerService {
       // Real network request to AI model with enhanced error handling
       const networkTimeout = this.config.get('skill.executionTimeout'); // 3 minutes
       // AI model provider network timeout (30 seconds)
-      const aiModelNetworkTimeout = this.config.get('skill.aiModelNetworkTimeout') || 30000;
+      const aiModelNetworkTimeout = this.config.get<number>('skill.aiModelNetworkTimeout', 30000);
       this.logger.log(
         `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms, total timeout: ${networkTimeout}ms) for action: ${resultId}`,
       );
