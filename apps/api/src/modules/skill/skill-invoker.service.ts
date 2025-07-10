@@ -622,14 +622,14 @@ export class SkillInvokerService {
         }
 
         if (abortController.signal.aborted) {
-          const abortReason = abortController.signal.reason || 'AbortError';
+          const abortReason = abortController.signal.reason?.toString() ?? 'Request aborted';
           this.logger.warn(
             `🚨 Request aborted after ${eventCount} events for action: ${resultId}, reason: ${abortReason}`,
           );
           if (runMeta) {
             result.errors.push(abortReason);
           }
-          throw new Error(abortReason);
+          throw new Error(`Request aborted: ${abortReason}`);
         }
 
         runMeta = event.metadata as SkillRunnableMeta;
