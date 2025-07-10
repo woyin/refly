@@ -830,7 +830,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           event: 'error',
           resultId,
           version,
-          error: genBaseRespDataFromError(userFriendlyMessage),
+          error: genBaseRespDataFromError(new Error(userFriendlyMessage)),
           originError: err.message,
         });
       }
