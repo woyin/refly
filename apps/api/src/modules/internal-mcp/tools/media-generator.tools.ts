@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Tool, Context } from '@rekog/mcp-nest';
 import { z } from 'zod';
 import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { InternalMcpService } from '../internal-mcp.service';
 import { User as UserModel } from '../../../generated/client';
 import { MediaGeneratorService } from '../../media-generator/media-generator.service';
@@ -34,6 +35,7 @@ export class MediaGeneratorTools {
     private readonly internalMcpService: InternalMcpService,
     private readonly providerService: ProviderService,
     private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -97,15 +99,6 @@ export class MediaGeneratorTools {
       // Get the specific media model configuration based on mediaType
       const mediaModelConfig = userDefaultModel[mediaType];
 
-      console.log(
-        'useruseruseruser',
-        JSON.stringify(
-          { userDefaultModel, aaa: userDefaultModel[mediaType], mediaModelConfig },
-          null,
-          2,
-        ),
-      );
-
       if (!mediaModelConfig?.itemId) {
         this.logger.log(`No ${mediaType} model configured for user ${user.uid}, using default`);
         return this.getDefaultModelForMediaType(mediaType);
@@ -162,27 +155,16 @@ export class MediaGeneratorTools {
     provider: string;
     model: string;
   } {
-    // Default models optimized for speed and cost efficiency
-    const defaultModels = {
-      image: {
-        provider: 'replicate',
-        model: 'black-forest-labs/flux-schnell', // Fastest and free image generation
-      },
-      video: {
-        provider: 'replicate',
-        model: 'bytedance/seedance-1-lite', // Lite version for cost efficiency
-      },
-      audio: {
-        provider: 'replicate',
-        model: 'resemble-ai/chatterbox', // Free open-source audio generation
-      },
+    // Get default models from system configuration
+    const defaultModelConfig = this.configService.get('defaultModel');
+
+    // Use system configured model if available, otherwise use fallback
+    const configuredModel = defaultModelConfig?.[mediaType];
+
+    const defaultConfig = {
+      provider: 'replicate', // Default provider
+      model: configuredModel || configuredModel.model,
     };
-
-    const defaultConfig = defaultModels[mediaType];
-
-    this.logger.log(
-      `Using cost-optimized ${mediaType || 'image'} model: ${defaultConfig.model} from provider: ${defaultConfig.provider}`,
-    );
 
     return defaultConfig;
   }
