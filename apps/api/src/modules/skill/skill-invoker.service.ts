@@ -594,10 +594,17 @@ export class SkillInvokerService {
 
       // Create dedicated timeout for AI model network requests
       const createNetworkTimeout = () => {
+        if (abortController.signal.aborted) {
+          return;
+        }
         if (networkTimeoutId) {
           clearTimeout(networkTimeoutId);
         }
         networkTimeoutId = setTimeout(() => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
           this.logger.error(
             `🚨 AI model network timeout (${aiModelNetworkTimeout}ms) for action: ${resultId}`,
           );
