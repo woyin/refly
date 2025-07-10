@@ -293,47 +293,50 @@ export class SkillInvokerService {
     }
 
     const startTimeoutCheck = () => {
-      timeoutCheckInterval = setInterval(async () => {
-        if (abortController.signal.aborted) {
-          return;
-        }
+      timeoutCheckInterval = setInterval(
+        async () => {
+          if (abortController.signal.aborted) {
+            return;
+          }
 
-        const now = Date.now();
-        const timeSinceLastOutput = now - lastOutputTime;
-        const isTimeout = timeSinceLastOutput > streamIdleTimeout;
+          const now = Date.now();
+          const timeSinceLastOutput = now - lastOutputTime;
+          const isTimeout = timeSinceLastOutput > streamIdleTimeout;
 
-        if (isTimeout) {
-          this.logger.warn(
-            `Stream idle timeout detected for action: ${resultId}, ${timeSinceLastOutput}ms since last output`,
-          );
-
-          // Use ActionService.abortAction to handle timeout consistently
-          try {
-            const timeoutReason = hasAnyOutput
-              ? 'Execution timeout - no output received within 5 seconds'
-              : 'Execution timeout - skill failed to produce any output within 5 seconds';
-
-            await this.actionService.abortAction(user, {
-              resultId,
-              reason: timeoutReason,
-            });
-            this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
-          } catch (error) {
-            this.logger.error(
-              `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
+          if (isTimeout) {
+            this.logger.warn(
+              `Stream idle timeout detected for action: ${resultId}, ${timeSinceLastOutput}ms since last output`,
             );
-            // Fallback to direct abort if ActionService fails
-            abortController.abort('Stream idle timeout - no output received within 5 seconds');
-            result.errors.push('Execution timeout - no output received within 5 seconds');
-          }
 
-          // Stop the timeout check after triggering
-          if (timeoutCheckInterval) {
-            clearInterval(timeoutCheckInterval);
-            timeoutCheckInterval = null;
+            // Use ActionService.abortAction to handle timeout consistently
+            try {
+              const timeoutReason = hasAnyOutput
+                ? 'Execution timeout - no output received within 5 seconds'
+                : 'Execution timeout - skill failed to produce any output within 5 seconds';
+
+              await this.actionService.abortAction(user, {
+                resultId,
+                reason: timeoutReason,
+              });
+              this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
+            } catch (error) {
+              this.logger.error(
+                `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
+              );
+              // Fallback to direct abort if ActionService fails
+              abortController.abort('Stream idle timeout - no output received within 5 seconds');
+              result.errors.push('Execution timeout - no output received within 5 seconds');
+            }
+
+            // Stop the timeout check after triggering
+            if (timeoutCheckInterval) {
+              clearInterval(timeoutCheckInterval);
+              timeoutCheckInterval = null;
+            }
           }
-        }
-      }, 5000); // Check every 5 seconds
+        },
+        this.config.get<number>('skill.streamIdleCheckInterval', 5000),
+      ); // Check every N seconds
     };
 
     const stopTimeoutCheck = () => {
