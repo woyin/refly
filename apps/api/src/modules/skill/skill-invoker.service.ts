@@ -319,8 +319,8 @@ export class SkillInvokerService {
             // Use ActionService.abortAction to handle timeout consistently
             try {
               const timeoutReason = hasAnyOutput
-                ? 'Execution timeout - no output received within 5 seconds'
-                : 'Execution timeout - skill failed to produce any output within 5 seconds';
+                ? `Execution timeout - no output received within ${streamIdleTimeout / 1000} seconds`
+                : `Execution timeout - skill failed to produce any output within ${streamIdleTimeout / 1000} seconds`;
 
               await this.actionService.abortAction(user, {
                 resultId,
