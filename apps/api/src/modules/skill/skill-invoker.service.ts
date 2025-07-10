@@ -58,7 +58,6 @@ import { CollabService } from '../collab/collab.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { ActionService } from '../action/action.service';
-import { SkillOutputTrackerService } from './skill-output-tracker.service';
 
 @Injectable()
 export class SkillInvokerService {
@@ -77,7 +76,6 @@ export class SkillInvokerService {
     private readonly codeArtifactService: CodeArtifactService,
     private readonly skillEngineService: SkillEngineService,
     private readonly actionService: ActionService,
-    private readonly outputTracker: SkillOutputTrackerService,
     @Optional()
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
@@ -278,14 +276,9 @@ export class SkillInvokerService {
     // Register the abort controller with ActionService
     this.actionService.registerAbortController(resultId, abortController);
 
-    // Initialize Redis-based output tracking
-    try {
-      await this.outputTracker.initializeTracking(resultId);
-      this.logger.log(`Initialized output tracking for action: ${resultId}`);
-    } catch (error) {
-      this.logger.error(`Failed to initialize output tracking for ${resultId}: ${error?.message}`);
-      throw error;
-    }
+    // Simple timeout tracking without Redis
+    let lastOutputTime = Date.now();
+    let hasAnyOutput = false;
 
     // Set up periodic timeout check using Redis data
     let timeoutCheckInterval: NodeJS.Timeout | null = null;
@@ -297,45 +290,40 @@ export class SkillInvokerService {
           return;
         }
 
-        try {
-          const timeoutCheck = await this.outputTracker.checkIdleTimeout(
-            resultId,
-            streamIdleTimeout,
+        const now = Date.now();
+        const timeSinceLastOutput = now - lastOutputTime;
+        const isTimeout = timeSinceLastOutput > streamIdleTimeout;
+
+        if (isTimeout) {
+          this.logger.warn(
+            `Stream idle timeout detected for action: ${resultId}, ${timeSinceLastOutput}ms since last output`,
           );
 
-          if (timeoutCheck.isTimeout) {
-            this.logger.warn(
-              `Stream idle timeout detected for action: ${resultId}, ${timeoutCheck.timeSinceLastOutput}ms since last output`,
+          // Use ActionService.abortAction to handle timeout consistently
+          try {
+            const timeoutReason = hasAnyOutput
+              ? 'Execution timeout - no output received within 5 seconds'
+              : 'Execution timeout - skill failed to produce any output within 5 seconds';
+
+            await this.actionService.abortAction(user, {
+              resultId,
+              reason: timeoutReason,
+            });
+            this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
+          } catch (error) {
+            this.logger.error(
+              `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
             );
-
-            // Use ActionService.abortAction to handle timeout consistently
-            try {
-              const timeoutReason = timeoutCheck.hasAnyOutput
-                ? 'Execution timeout - no output received within 5 seconds'
-                : 'Execution timeout - skill failed to produce any output within 5 seconds';
-
-              await this.actionService.abortAction(user, {
-                resultId,
-                reason: timeoutReason,
-              });
-              this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
-            } catch (error) {
-              this.logger.error(
-                `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
-              );
-              // Fallback to direct abort if ActionService fails
-              abortController.abort('Stream idle timeout - no output received within 5 seconds');
-              result.errors.push('Execution timeout - no output received within 5 seconds');
-            }
-
-            // Stop the timeout check after triggering
-            if (timeoutCheckInterval) {
-              clearInterval(timeoutCheckInterval);
-              timeoutCheckInterval = null;
-            }
+            // Fallback to direct abort if ActionService fails
+            abortController.abort('Stream idle timeout - no output received within 5 seconds');
+            result.errors.push('Execution timeout - no output received within 5 seconds');
           }
-        } catch (error) {
-          this.logger.error(`Error during timeout check for ${resultId}: ${error?.message}`);
+
+          // Stop the timeout check after triggering
+          if (timeoutCheckInterval) {
+            clearInterval(timeoutCheckInterval);
+            timeoutCheckInterval = null;
+          }
         }
       }, 5000); // Check every 5 seconds
     };
@@ -394,9 +382,18 @@ export class SkillInvokerService {
           return;
         }
 
-        // Record output event to Redis if it's meaningful
-        if (SkillOutputTrackerService.isOutputEvent(data.event)) {
-          await this.outputTracker.recordOutput(resultId, data.event);
+        // Record output event for simple timeout tracking
+        const outputEvents = [
+          'stream',
+          'tool_end',
+          'artifact',
+          'log',
+          'structured_data',
+          'create_node',
+        ];
+        if (outputEvents.includes(data.event)) {
+          lastOutputTime = Date.now();
+          hasAnyOutput = true;
         }
 
         if (res) {
@@ -585,21 +582,26 @@ export class SkillInvokerService {
         }
 
         if (abortController.signal.aborted) {
-          this.logger.warn(`🚨 Request aborted after ${eventCount} events for action: ${resultId}`);
+          const abortReason = abortController.signal.reason || 'AbortError';
+          this.logger.warn(
+            `🚨 Request aborted after ${eventCount} events for action: ${resultId}, reason: ${abortReason}`,
+          );
           if (runMeta) {
-            result.errors.push('AbortError');
+            result.errors.push(abortReason);
           }
-          throw new Error('AbortError');
+          throw new Error(abortReason);
         }
 
         runMeta = event.metadata as SkillRunnableMeta;
         const chunk: AIMessageChunk = event.data?.chunk ?? event.data?.output;
 
-        // Record stream output to Redis for timeout tracking
+        // Record stream output for simple timeout tracking
         if (event.event === 'on_chat_model_stream' && chunk?.content) {
-          await this.outputTracker.recordOutput(resultId, 'stream');
+          lastOutputTime = Date.now();
+          hasAnyOutput = true;
         } else if (event.event === 'on_tool_end' && event.data?.output) {
-          await this.outputTracker.recordOutput(resultId, 'tool_end');
+          lastOutputTime = Date.now();
+          hasAnyOutput = true;
         }
 
         switch (event.event) {
@@ -745,11 +747,20 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       const errorMessage = err.message || 'Unknown error';
       const errorType = err.name || 'Error';
 
-      if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
+      // Provide user-friendly error messages for different timeout types
+      let userFriendlyMessage = errorMessage;
+
+      if (errorMessage.includes('AI model network timeout')) {
+        userFriendlyMessage = 'AI供应商网络请求超时，请检查供应商配置或网络连接';
+        this.logger.error(`🚨 AI model network timeout for action: ${resultId} - ${errorMessage}`);
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT')) {
+        userFriendlyMessage = '请求超时，请稍后重试';
         this.logger.error(`🚨 Network timeout detected for action: ${resultId} - ${errorMessage}`);
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        userFriendlyMessage = '网络连接错误，请检查网络状态';
         this.logger.error(`🌐 Network error for action: ${resultId} - ${errorMessage}`);
       } else if (errorMessage.includes('abort') || errorMessage.includes('AbortError')) {
+        userFriendlyMessage = '操作已被中止';
         this.logger.warn(`⏹️  Request aborted for action: ${resultId} - ${errorMessage}`);
       } else {
         this.logger.error(
@@ -764,11 +775,11 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           event: 'error',
           resultId,
           version,
-          error: genBaseRespDataFromError(err.message),
+          error: genBaseRespDataFromError(userFriendlyMessage),
           originError: err.message,
         });
       }
-      result.errors.push(err.message);
+      result.errors.push(userFriendlyMessage);
     } finally {
       // Clear AI model network timeout
       if (networkTimeoutId) {
@@ -776,9 +787,8 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
         networkTimeoutId = null;
       }
 
-      // Stop timeout check and cleanup tracking
+      // Stop timeout check
       stopTimeoutCheck();
-      await this.outputTracker.cleanupTracking(resultId);
 
       // Unregister the abort controller
       this.actionService.unregisterAbortController(resultId);

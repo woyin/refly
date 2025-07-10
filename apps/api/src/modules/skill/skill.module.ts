@@ -30,7 +30,6 @@ import { ProviderModule } from '../provider/provider.module';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
 import { SkillEngineService } from './skill-engine.service';
 import { SkillInvokerService } from './skill-invoker.service';
-import { SkillOutputTrackerService } from './skill-output-tracker.service';
 import { isDesktop } from '../../utils/runtime';
 import { ActionModule } from '../action/action.module';
 
@@ -72,7 +71,6 @@ import { ActionModule } from '../action/action.module';
     SkillService,
     SkillEngineService,
     SkillInvokerService,
-    SkillOutputTrackerService,
     ...(isDesktop()
       ? []
       : [SkillProcessor, SkillTimeoutCheckProcessor, CheckStuckActionsProcessor]),
