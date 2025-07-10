@@ -106,6 +106,7 @@ const MediaChatInput = memo(
           if (!isCanvasOpen) {
             // Create a new canvas first
             const mediaQueryData = {
+              providerKey: selectedModel?.provider?.providerKey,
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',
@@ -114,6 +115,7 @@ const MediaChatInput = memo(
             debouncedCreateCanvas('front-page', { isMediaGeneration: true });
           } else {
             nodeOperationsEmitter.emit('generateMedia', {
+              providerKey: selectedModel?.provider?.providerKey,
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',
@@ -122,12 +124,36 @@ const MediaChatInput = memo(
           }
         } catch (error) {
           console.error('Failed to emit generateMedia event', error);
-        } finally {
           setLoading(false);
         }
       },
       [loading, selectedModel, nodeId, isCanvasOpen, debouncedCreateCanvas, currentMediaType],
     );
+
+    // Listen for media generation completion events
+    useEffect(() => {
+      const handleMediaGenerationComplete = ({
+        nodeId: completedNodeId,
+        success,
+        error,
+      }: { nodeId: string; success: boolean; error?: string }) => {
+        // Stop loading if this is the node we're waiting for, or if we don't have a specific nodeId (front-page case)
+        if ((nodeId && completedNodeId === nodeId) || (!nodeId && !isCanvasOpen)) {
+          setLoading(false);
+
+          // Show error message if generation failed
+          if (!success && error) {
+            console.error('Media generation failed:', error);
+          }
+        }
+      };
+
+      nodeOperationsEmitter.on('mediaGenerationComplete', handleMediaGenerationComplete);
+
+      return () => {
+        nodeOperationsEmitter.off('mediaGenerationComplete', handleMediaGenerationComplete);
+      };
+    }, [nodeId, isCanvasOpen]);
 
     const handleSend = useCallback(() => {
       if (!query?.trim()) return;

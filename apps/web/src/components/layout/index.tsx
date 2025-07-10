@@ -16,6 +16,9 @@ import { ImportResourceModal } from '@refly-packages/ai-workspace-common/compone
 import './index.scss';
 import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
 import { BigSearchModal } from '@refly-packages/ai-workspace-common/components/search/modal';
+import { CanvasRenameModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/canvas-rename';
+import { CanvasDeleteModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/canvas-delete';
+import { DuplicateCanvasModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/duplicate-canvas-modal';
 
 const Content = Layout.Content;
 
@@ -69,6 +72,9 @@ export const AppLayout = (props: AppLayoutProps) => {
         <CanvasListModal visible={showCanvasListModal} setVisible={setShowCanvasListModal} />
         <LibraryModal visible={showLibraryModal} setVisible={setShowLibraryModal} />
         <ImportResourceModal />
+        <CanvasRenameModal />
+        <CanvasDeleteModal />
+        <DuplicateCanvasModal />
       </Layout>
     </ErrorBoundary>
   );

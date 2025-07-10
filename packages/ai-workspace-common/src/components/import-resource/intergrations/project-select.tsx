@@ -2,6 +2,7 @@ import { memo, FC, useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useListProjects } from '@refly-packages/ai-workspace-common/queries';
+import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 
 interface ProjectSelectProps {
   projectId: string | null;
@@ -13,8 +14,9 @@ export const ProjectSelect: FC<ProjectSelectProps> = memo(({ projectId, onSelect
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
+  const isLogin = useUserStoreShallow((state) => state.isLogin);
   const { data, isLoading, refetch } = useListProjects({ query: { page, pageSize } }, null, {
-    enabled: true,
+    enabled: isLogin,
   });
 
   const projectOptions = useMemo(() => {

@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useFrontPageStoreShallow } from '../stores/front-page';
 import { genActionResultID } from '@refly/utils/id';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
-import { useCanvasContext } from '../context/canvas';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import {
@@ -17,6 +16,7 @@ import {
 } from '@refly/openapi-schema';
 import { message } from 'antd';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 
 export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,6 +31,9 @@ export const useCanvasInitialActions = (canvasId: string) => {
       reset: state.reset,
       mediaQueryData: state.mediaQueryData,
     }));
+  const { canvasInitialized } = useCanvasStoreShallow((state) => ({
+    canvasInitialized: state.canvasInitialized[canvasId],
+  }));
 
   const { skillSelectedModel } = useChatStoreShallow((state) => ({
     skillSelectedModel: state.skillSelectedModel,
@@ -39,10 +42,6 @@ export const useCanvasInitialActions = (canvasId: string) => {
     setActiveSessionId: state.setActiveSessionId,
     setIsPilotOpen: state.setIsPilotOpen,
   }));
-
-  // Get canvas provider to check connection status
-  const { provider } = useCanvasContext();
-  const [isConnected, setIsConnected] = useState(false);
 
   // Store the required data to execute actions after connection
   const pendingActionRef = useRef<{
@@ -56,25 +55,6 @@ export const useCanvasInitialActions = (canvasId: string) => {
     isMediaGeneration?: boolean;
     mediaQueryData?: any;
   } | null>(null);
-
-  // Update connection status when provider status changes
-  useEffect(() => {
-    if (!provider) return;
-
-    const handleStatus = ({ status }: { status: string }) => {
-      setIsConnected(status === 'connected');
-    };
-
-    // Check initial status
-    setIsConnected(provider.status === 'connected');
-
-    // Listen for status changes
-    provider.on('status', handleStatus);
-
-    return () => {
-      provider.off('status', handleStatus);
-    };
-  }, [provider]);
 
   // Store parameters needed for actions when URL parameters are processed
   useEffect(() => {
@@ -133,10 +113,9 @@ export const useCanvasInitialActions = (canvasId: string) => {
     }
   }, []);
 
-  // Execute the actions once connected
   useEffect(() => {
     // Only proceed if we're connected and have pending actions
-    if (isConnected && pendingActionRef.current && canvasId) {
+    if (canvasInitialized && pendingActionRef.current && canvasId) {
       const {
         query,
         selectedSkill,
@@ -153,8 +132,9 @@ export const useCanvasInitialActions = (canvasId: string) => {
           return;
         }
 
-        const { mediaType, query, model } = pendingMediaQueryData;
+        const { mediaType, query, model, providerKey } = pendingMediaQueryData;
         nodeOperationsEmitter.emit('generateMedia', {
+          providerKey,
           mediaType: mediaType,
           query: query,
           model: model,
@@ -212,5 +192,5 @@ export const useCanvasInitialActions = (canvasId: string) => {
       reset();
       pendingActionRef.current = null;
     }
-  }, [canvasId, isConnected, invokeAction, addNode, reset]);
+  }, [canvasId, canvasInitialized, invokeAction, addNode, reset]);
 };

@@ -12,7 +12,7 @@ import {
   CommunityProviderConfig,
 } from './provider-store-types';
 import { CommunityProviderCard } from './CommunityProviderCard';
-import { filterProviders, sortProviders, isProviderInstalled } from './provider-store-utils';
+import { filterProviders, isProviderInstalled } from './provider-store-utils';
 
 const { Text } = Typography;
 
@@ -39,7 +39,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
     const data = communityData as CommunityProviderResponse | undefined;
     if (!data?.providers) return [];
     const filtered = filterProviders(data.providers, filters);
-    return sortProviders(filtered);
+    return filtered;
   }, [communityData, filters]);
 
   // Handle filter changes

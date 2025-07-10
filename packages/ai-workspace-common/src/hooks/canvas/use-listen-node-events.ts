@@ -149,16 +149,24 @@ export const useListenNodeOperationEvents = () => {
 
   const handleGenerateMedia = useCallback(
     async ({
+      providerKey,
       mediaType,
       query,
       model,
       nodeId,
-    }: { mediaType: MediaType; query: string; model: string; nodeId: string }) => {
+    }: {
+      providerKey: string;
+      mediaType: MediaType;
+      query: string;
+      model: string;
+      nodeId: string;
+    }) => {
       if (readonly) return;
+
+      let targetNodeId = nodeId;
 
       try {
         // If nodeId is empty, create a mediaSkill node first
-        let targetNodeId = nodeId;
         if (!targetNodeId) {
           const { genMediaSkillID } = await import('@refly/utils/id');
           const mediaSkillEntityId = genMediaSkillID();
@@ -190,7 +198,7 @@ export const useListenNodeOperationEvents = () => {
           body: {
             prompt: query,
             mediaType,
-            provider: 'replicate',
+            provider: providerKey,
             model,
           },
         });
@@ -227,11 +235,31 @@ export const useListenNodeOperationEvents = () => {
             : [];
 
           addNode(newNode, connectedTo, false, true);
+
+          // Emit completion event to notify mediaSkill node
+          nodeOperationsEmitter.emit('mediaGenerationComplete', {
+            nodeId: targetNodeId,
+            success: true,
+          });
         } else {
           console.error('Failed to generate media', data);
+
+          // Emit completion event with error
+          nodeOperationsEmitter.emit('mediaGenerationComplete', {
+            nodeId: targetNodeId,
+            success: false,
+            error: 'Failed to generate media',
+          });
         }
       } catch (error) {
         console.error('Failed to generate media', error);
+
+        // Emit completion event with error
+        nodeOperationsEmitter.emit('mediaGenerationComplete', {
+          nodeId: targetNodeId,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     },
     [readonly, getNode, addNode, getNodes, mediaSelectedModel],
