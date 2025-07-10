@@ -477,7 +477,10 @@ export const CanvasProvider = ({
       finalState.transactions?.length > MAX_STATE_TX_COUNT ||
       lastTransaction?.createdAt < Date.now() - MAX_VERSION_AGE
     ) {
-      finalState = await handleCreateCanvasVersion(canvasId, finalState);
+      const newState = await handleCreateCanvasVersion(canvasId, finalState);
+      if (newState) {
+        finalState = newState;
+      }
     }
 
     updateCanvasDataFromState(finalState);

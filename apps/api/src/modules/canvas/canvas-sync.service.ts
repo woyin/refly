@@ -357,6 +357,8 @@ export class CanvasSyncService {
             },
           };
         }
+        // Re-throw other errors to be handled by the caller
+        throw error;
       }
 
       // Mark all unsynced transactions as synced
