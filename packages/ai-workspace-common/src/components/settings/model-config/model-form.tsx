@@ -360,13 +360,23 @@ export const ModelFormModal = memo(
       if (filterProviderCategory === 'mediaGeneration') {
         const provider = providerOptions.find((p) => p.value === selectedProviderId);
         const providerKey = provider?.providerKey || selectedProviderId;
-        return (
-          (mediaConfig as MediaConfig)[providerKey]?.map((item) => ({
-            label: item.config?.modelId || '',
-            value: item.config?.modelId || '',
-            ...item,
-          })) || []
-        );
+        const providerConfig = (mediaConfig as unknown as MediaConfig)[providerKey];
+
+        if (!providerConfig) return [];
+
+        // Flatten all media types (image, audio, video) into a single array
+        const allModels: MediaModelConfig[] = [];
+        for (const mediaTypeArray of Object.values(providerConfig)) {
+          if (Array.isArray(mediaTypeArray)) {
+            allModels.push(...mediaTypeArray);
+          }
+        }
+
+        return allModels.map((item) => ({
+          label: item.config?.modelId || '',
+          value: item.config?.modelId || '',
+          ...item,
+        }));
       }
 
       // If we're loading data, return empty array
