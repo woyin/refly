@@ -354,8 +354,11 @@ export class SkillInvokerService {
             return;
           }
 
+          // Capture hasAnyOutput status at the beginning of the callback
+          const hasOutputAtCheck = hasAnyOutput;
+
           // Once we have any output, stop checking for stream idle timeout
-          if (hasAnyOutput) {
+          if (hasOutputAtCheck) {
             stopTimeoutCheck();
             return;
           }
