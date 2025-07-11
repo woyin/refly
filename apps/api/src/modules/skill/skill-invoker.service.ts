@@ -283,15 +283,22 @@ export class SkillInvokerService {
     let userFriendlyMessage = errorMessage;
     let logLevel: 'error' | 'warn' = 'error';
 
+    const ERROR_MESSAGES = {
+      NETWORK_TIMEOUT:
+        'AI provider network request timeout. Please check provider configuration or network connection.',
+      GENERAL_TIMEOUT: 'Request timeout. Please try again later.',
+      NETWORK_ERROR: 'Network connection error. Please check your network status.',
+      ABORT_ERROR: 'Operation was aborted.',
+    } as const;
+
     if (isNetworkTimeout) {
-      userFriendlyMessage =
-        'AI provider network request timeout. Please check provider configuration or network connection.';
+      userFriendlyMessage = ERROR_MESSAGES.NETWORK_TIMEOUT;
     } else if (isGeneralTimeout) {
-      userFriendlyMessage = 'Request timeout. Please try again later.';
+      userFriendlyMessage = ERROR_MESSAGES.GENERAL_TIMEOUT;
     } else if (isNetworkError) {
-      userFriendlyMessage = 'Network connection error. Please check your network status.';
+      userFriendlyMessage = ERROR_MESSAGES.NETWORK_ERROR;
     } else if (isAbortError) {
-      userFriendlyMessage = 'Operation was aborted.';
+      userFriendlyMessage = ERROR_MESSAGES.ABORT_ERROR;
       logLevel = 'warn';
     }
 
