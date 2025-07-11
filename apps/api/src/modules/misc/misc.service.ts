@@ -107,11 +107,32 @@ export class MiscService implements OnModuleInit {
     const res = await fetch(url);
     const buffer = await res.arrayBuffer();
 
+    // Extract filename from URL, removing query parameters and fragments
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname;
+    let filename = path.basename(pathname);
+
+    // If no extension found in pathname, try to get it from Content-Type header
+    if (!path.extname(filename)) {
+      const contentType = res.headers.get('Content-Type');
+      if (contentType) {
+        const extension = mime.getExtension(contentType);
+        if (extension) {
+          filename = `${filename || 'file'}.${extension}`;
+        }
+      }
+    }
+
+    // Fallback to a default filename if still empty
+    if (!filename || filename === '') {
+      filename = 'downloaded-file';
+    }
+
     return await this.uploadFile(user, {
       file: {
         buffer: Buffer.from(buffer),
         mimetype: res.headers.get('Content-Type') || 'application/octet-stream',
-        originalname: path.basename(url),
+        originalname: filename,
       },
       entityId,
       entityType,

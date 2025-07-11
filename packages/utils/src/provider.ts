@@ -111,4 +111,16 @@ export const providerInfoList: ProviderInfo[] = [
       },
     },
   },
+  {
+    key: 'volces',
+    name: 'Volces',
+    categories: ['mediaGeneration'],
+    fieldConfig: {
+      apiKey: { presence: 'required' },
+      baseUrl: {
+        presence: 'optional',
+        defaultValue: 'https://ark.cn-beijing.volces.com/api/v3',
+      },
+    },
+  },
 ];
