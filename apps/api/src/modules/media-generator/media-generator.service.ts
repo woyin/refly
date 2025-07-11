@@ -7,6 +7,8 @@ import {
   FalAudioGenerator,
   FalVideoGenerator,
   FalImageGenerator,
+  VolcesVideoGenerator,
+  VolcesImageGenerator,
 } from '@refly/providers';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
@@ -95,6 +97,8 @@ export class MediaGeneratorService {
         result = await this.generateWithReplicate(user, request, provider.apiKey);
       } else if (providerKey === 'fal') {
         result = await this.generateWithFal(user, request, provider.apiKey);
+      } else if (providerKey === 'volces') {
+        result = await this.generateWithVolces(user, request, provider.apiKey);
       } else {
         throw new Error(`Unsupported provider: ${providerKey}`);
       }
@@ -145,7 +149,6 @@ export class MediaGeneratorService {
         break;
       case 'image':
         result = await this.generateImageWithReplicate(request, apiKey);
-
         break;
       default:
         throw new Error(`Unsupported media type: ${request.mediaType}`);
@@ -174,7 +177,26 @@ export class MediaGeneratorService {
       default:
         throw new Error(`Unsupported media type: ${request.mediaType}`);
     }
+    return result;
+  }
 
+  private async generateWithVolces(
+    _user: User,
+    request: MediaGenerateRequest,
+    apiKey: string,
+  ): Promise<{ output: string }> {
+    let result: { output: string };
+
+    switch (request.mediaType) {
+      case 'video':
+        result = await this.generateVideoWithVolces(request, apiKey);
+        break;
+      case 'image':
+        result = await this.generateImageWithVolces(request, apiKey);
+        break;
+      default:
+        throw new Error(`Unsupported media type: ${request.mediaType}`);
+    }
     return result;
   }
 
@@ -248,6 +270,32 @@ export class MediaGeneratorService {
     apiKey: string,
   ): Promise<{ output: string }> {
     const generator = new FalImageGenerator();
+
+    return await generator.generate({
+      model: request.model,
+      prompt: request.prompt,
+      apiKey: apiKey,
+    });
+  }
+
+  private async generateVideoWithVolces(
+    request: MediaGenerateRequest,
+    apiKey: string,
+  ): Promise<{ output: string }> {
+    const generator = new VolcesVideoGenerator();
+
+    return await generator.generate({
+      model: request.model,
+      prompt: request.prompt,
+      apiKey: apiKey,
+    });
+  }
+
+  private async generateImageWithVolces(
+    request: MediaGenerateRequest,
+    apiKey: string,
+  ): Promise<{ output: string }> {
+    const generator = new VolcesImageGenerator();
 
     return await generator.generate({
       model: request.model,
