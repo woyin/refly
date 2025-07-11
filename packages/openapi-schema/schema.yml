@@ -7656,6 +7656,9 @@ components:
         capabilities:
           description: Model capabilities
           $ref: '#/components/schemas/MediaGenerationModelCapabilities'
+        description:
+          type: string
+          description: Model description
     EmbeddingModelConfig:
       type: object
       description: Provider config for embeddings

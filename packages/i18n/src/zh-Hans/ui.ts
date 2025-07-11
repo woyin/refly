@@ -2188,6 +2188,8 @@ const translations = {
       group: '分组名称',
       groupPlaceholder: '请设置分组名称，用于分类管理模型',
       default: '默认分组',
+      description: '描述',
+      descriptionPlaceholder: '请输入模型的描述信息',
     },
     modelTier: {
       free: '免费',

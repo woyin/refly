@@ -4593,6 +4593,10 @@ export type MediaGenerationModelConfig = {
    * Model capabilities
    */
   capabilities?: MediaGenerationModelCapabilities;
+  /**
+   * Model description
+   */
+  description?: string;
 };
 
 /**

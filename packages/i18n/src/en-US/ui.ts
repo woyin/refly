@@ -2412,6 +2412,8 @@ const translations = {
       default: 'Default Group',
       group: 'Group Name',
       groupPlaceholder: 'Please set up group name to categorize and manage the models',
+      description: 'Description',
+      descriptionPlaceholder: 'Please enter a description for this model',
     },
     modelTier: {
       free: 'Free',
