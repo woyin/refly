@@ -344,8 +344,11 @@ export class SkillInvokerService {
     }
 
     // Helper function for timeout message generation
-    const getTimeoutMessage = () =>
-      `Execution timeout - ${hasAnyOutput ? 'no output received' : 'skill failed to produce any output'} within ${streamIdleTimeout / 1000} seconds`;
+    const getTimeoutMessage = () => {
+      return hasAnyOutput
+        ? `Execution timeout - no output received within ${streamIdleTimeout / 1000} seconds`
+        : `Execution timeout - skill failed to produce any output within ${streamIdleTimeout / 1000} seconds`;
+    };
 
     const startTimeoutCheck = () => {
       timeoutCheckInterval = setInterval(
