@@ -264,17 +264,11 @@ export class SkillInvokerService {
 
     // Categorize errors more reliably
     const isTimeoutError =
-      err instanceof Error &&
-      (err.name === 'TimeoutError' ||
-        err.message.includes('timeout') ||
-        err.message.includes('TIMEOUT'));
+      err instanceof Error && (err.name === 'TimeoutError' || /timeout/i.test(err.message));
     const isAbortError =
-      err instanceof Error && (err.name === 'AbortError' || err.message.includes('abort'));
+      err instanceof Error && (err.name === 'AbortError' || /abort/i.test(err.message));
     const isNetworkError =
-      err instanceof Error &&
-      (err.name === 'NetworkError' ||
-        err.message.includes('network') ||
-        err.message.includes('fetch'));
+      err instanceof Error && (err.name === 'NetworkError' || /network|fetch/i.test(err.message));
     const isNetworkTimeout =
       errorMessage.includes('AI model network timeout') ||
       (isTimeoutError && errorMessage.includes('network'));
