@@ -325,6 +325,18 @@
       "icon": "https://static.refly.ai/icons/providers/stepfun-ai.png"
     },
     {
+      "name": "火山引擎",
+      "providerKey": "volces",
+      "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+      "description": {
+        "en": "Volces (Volcano Engine) provides ByteDance's Doubao (豆包) large language models and comprehensive AI services, offering powerful text generation, embedding, and multimodal capabilities through an OpenAI-compatible API.",
+        "zh-CN": "Volces（火山引擎）提供字节跳动的豆包大模型和全面的 AI 服务，通过兼容 OpenAI 的 API 提供强大的文本生成、向量嵌入和多模态能力。"
+      },
+      "categories": ["llm", "embedding", "mediaGeneration"],
+      "documentation": "https://www.volcengine.com/docs/82379/1099475",
+      "icon": "https://static.refly.ai/icons/providers/volces.png"
+    },
+    {
       "name": "FAL",
       "providerKey": "fal",
       "baseUrl": "https://fal.run/fal-ai",
