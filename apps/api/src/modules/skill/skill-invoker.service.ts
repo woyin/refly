@@ -262,15 +262,23 @@ export class SkillInvokerService {
   } {
     const errorMessage = err.message || 'Unknown error';
 
+    // Categorize errors more reliably
+    const isTimeoutError =
+      err instanceof Error &&
+      (err.name === 'TimeoutError' ||
+        err.message.includes('timeout') ||
+        err.message.includes('TIMEOUT'));
+    const isAbortError =
+      err instanceof Error && (err.name === 'AbortError' || err.message.includes('abort'));
+    const isNetworkError =
+      err instanceof Error &&
+      (err.name === 'NetworkError' ||
+        err.message.includes('network') ||
+        err.message.includes('fetch'));
     const isNetworkTimeout =
       errorMessage.includes('AI model network timeout') ||
-      (err.name === 'TimeoutError' && errorMessage.includes('network'));
-    const isGeneralTimeout = errorMessage.includes('timeout') || errorMessage.includes('TIMEOUT');
-    const isNetworkError =
-      errorMessage.includes('network') ||
-      errorMessage.includes('fetch') ||
-      err.name === 'NetworkError';
-    const isAbortError = errorMessage.includes('abort') || err.name === 'AbortError';
+      (isTimeoutError && errorMessage.includes('network'));
+    const isGeneralTimeout = isTimeoutError && !isNetworkTimeout;
 
     let userFriendlyMessage = errorMessage;
     let logLevel: 'error' | 'warn' = 'error';
