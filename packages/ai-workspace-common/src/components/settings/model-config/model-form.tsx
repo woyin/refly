@@ -208,7 +208,7 @@ export const ModelFormModal = memo(
       },
       null,
       {
-        enabled: !!selectedProviderId && !getCachedOptions(selectedProviderId),
+        enabled: !!selectedProviderId && filterProviderCategory !== 'mediaGeneration',
       },
     );
 
@@ -223,6 +223,16 @@ export const ModelFormModal = memo(
         setCachedOptions(selectedProviderId, options);
       }
     }, [providerItemOptions, selectedProviderId, setCachedOptions]);
+
+    // Force refetch when selectedProviderId changes for non-media generation categories
+    useEffect(() => {
+      if (selectedProviderId && filterProviderCategory !== 'mediaGeneration') {
+        const cachedOptions = getCachedOptions(selectedProviderId);
+        if (!cachedOptions) {
+          refetchProviderItemOptions();
+        }
+      }
+    }, [selectedProviderId, filterProviderCategory, getCachedOptions, refetchProviderItemOptions]);
 
     const createModelMutation = useCallback(
       async (values: any) => {
@@ -284,17 +294,20 @@ export const ModelFormModal = memo(
       setIsProviderModalOpen(false);
     }, []);
 
-    const handleCreateProviderSuccess = useCallback((provider: Provider) => {
-      refetch();
-      if (provider?.enabled) {
-        resetFormExcludeField(['providerId']);
-        form.setFieldsValue({
-          providerId: provider.providerId,
-          enabled: true,
-        });
-        setSelectedProviderId(provider.providerId);
-      }
-    }, []);
+    const handleCreateProviderSuccess = useCallback(
+      (provider: Provider) => {
+        refetch();
+        if (provider?.enabled) {
+          resetFormExcludeField(['providerId']);
+          form.setFieldsValue({
+            providerId: provider.providerId,
+            enabled: true,
+          });
+          setSelectedProviderId(provider.providerId);
+        }
+      },
+      [refetch, form],
+    );
 
     const handleSubmit = useCallback(async () => {
       try {
@@ -402,8 +415,14 @@ export const ModelFormModal = memo(
         form.setFieldsValue({ enabled: true });
         const provider = providerOptions.find((p) => p.value === value);
         setSelectedProviderId(provider?.value);
+
+        // Clear the cached options for the new provider to force refresh
+        if (provider?.value) {
+          const cacheKey = getCacheKey(provider.value);
+          delete modelIdOptionsCache.current[cacheKey];
+        }
       },
-      [providerOptions, form],
+      [providerOptions, form, getCacheKey],
     );
 
     // Handle model ID selection
