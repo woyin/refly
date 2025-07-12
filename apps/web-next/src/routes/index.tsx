@@ -33,7 +33,12 @@ export const AppRouter = () => {
     <Layout>
       <Suspense fallback={<LightLoading />}>
         <Routes>
-          <Route path="/" element={<HomeRedirect defaultNode={<div>refly</div>} />} />
+          <Route
+            path="/"
+            element={
+              <HomeRedirect defaultNode={<div className="text-refly-primary-hover">refly</div>} />
+            }
+          />
         </Routes>
       </Suspense>
     </Layout>

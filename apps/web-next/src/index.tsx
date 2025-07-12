@@ -3,6 +3,7 @@ import './process-polyfill';
 import './utils/dom-patch';
 import '@refly-packages/ai-workspace-common/i18n/config';
 import './index.css';
+import './tokens.css';
 
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

@@ -1,4 +1,5 @@
 import plugin from 'tailwindcss/plugin';
+import { reflyColors } from './tailwind-colors';
 
 import type { Config } from 'tailwindcss';
 
@@ -21,9 +22,10 @@ const AntdOverwritePlugin = plugin(({ matchVariant }) => {
 
 export function defineConfig(): Config {
   return {
+    darkMode: 'class',
     plugins: [AntdOverwritePlugin],
     corePlugins: {
-      preflight: true,
+      preflight: false,
     },
     content,
     theme: {
@@ -36,6 +38,7 @@ export function defineConfig(): Config {
           xl: ['20px', '30px'],
           '2xl': ['24px', '36px'],
         },
+        colors: reflyColors,
       },
     },
   };
