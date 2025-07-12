@@ -226,7 +226,7 @@ importers:
         version: 9.0.2
       langchain:
         specifier: 0.3.15
-        version: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
+        version: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0(debug@4.4.1))(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1029,9 +1029,6 @@ importers:
       aos:
         specifier: ^2.3.4
         version: 2.3.4
-      classnames:
-        specifier: ^2.5.1
-        version: 2.5.1
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
@@ -1593,6 +1590,8 @@ importers:
         specifier: workspace:*
         version: link:../wxt
 
+  packages/canvas: {}
+
   packages/canvas-common:
     dependencies:
       '@dagrejs/dagre':
@@ -1658,7 +1657,19 @@ importers:
         specifier: ^18.2.19
         version: 18.3.0
 
+  packages/editor:
+    devDependencies:
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+
   packages/errors: {}
+
+  packages/events:
+    devDependencies:
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
 
   packages/i18n: {}
 
@@ -1740,6 +1751,12 @@ importers:
       zod:
         specifier: 3.23.8
         version: 3.23.8
+
+  packages/request:
+    devDependencies:
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
 
   packages/skill-template:
     dependencies:
@@ -1840,6 +1857,12 @@ importers:
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
+
+  packages/stores:
+    devDependencies:
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
 
   packages/tsconfig: {}
 
@@ -1999,6 +2022,46 @@ importers:
       '@types/react-dom':
         specifier: ^18.2.19
         version: 18.3.0
+
+  packages/web-core:
+    dependencies:
+      '@refly/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@refly/utils':
+        specifier: workspace:*
+        version: link:../utils
+      '@sentry/react':
+        specifier: ^7.113.0
+        version: 7.119.0(react@18.3.1)
+      i18next:
+        specifier: ^24.2.1
+        version: 24.2.3(typescript@5.8.3)
+      i18next-browser-languagedetector:
+        specifier: ^8.0.0
+        version: 8.0.2
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-i18next:
+        specifier: ^15.1.0
+        version: 15.6.0(i18next@24.2.3(typescript@5.8.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
+      react-router-dom:
+        specifier: ^7.1.3
+        version: 7.6.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/react':
+        specifier: ^18.3.18
+        version: 18.3.23
+      '@types/react-dom':
+        specifier: ^18.3.5
+        version: 18.3.7(@types/react@18.3.23)
 
   packages/wxt:
     dependencies:
@@ -2535,6 +2598,10 @@ packages:
 
   '@babel/runtime@7.25.6':
     resolution: {integrity: sha512-VBj9MYyDb9tuLq7yzqjgzt6Q+IBQLrGZfdjOekyEirZPHxXWoTSGUTMrpsfi58Up73d13NfYLv8HT9vmznjzhQ==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.27.6':
+    resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.25.0':
@@ -8933,6 +9000,10 @@ packages:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
 
+  cookie@1.0.2:
+    resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
+    engines: {node: '>=18'}
+
   cookiejar@2.1.4:
     resolution: {integrity: sha512-LDx6oHrK+PhzLKJU9j5S7/Y3jM/mUHvD/DeI1WQmJn652iPC5Y4TBzC9l+5OMOXlyTTA+SmVUPm0HQUwpD5Jqw==}
 
@@ -10884,6 +10955,14 @@ packages:
 
   i18next@23.15.1:
     resolution: {integrity: sha512-wB4abZ3uK7EWodYisHl/asf8UYEhrI/vj/8aoSsrj/ZDxj4/UXPOa1KvFt1Fq5hkUHquNqwFlDprmjZ8iySgYA==}
+
+  i18next@24.2.3:
+    resolution: {integrity: sha512-lfbf80OzkocvX7nmZtu7nSTNbrTYR52sLWxPtlXX1zAhVw8WEnFk4puUkCR4B1dNQwbSpEHHHemcZu//7EcB7A==}
+    peerDependencies:
+      typescript: ^5
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   ibm-cloud-sdk-core@5.3.2:
     resolution: {integrity: sha512-YhtS+7hGNO61h/4jNShHxbbuJ1TnDqiFKQzfEaqePnonOvv8NnxWxOk92FlKKCCzZNOT34Gnd7WCLVJTntwEFQ==}
@@ -14451,6 +14530,22 @@ packages:
       react-native:
         optional: true
 
+  react-i18next@15.6.0:
+    resolution: {integrity: sha512-W135dB0rDfiFmbMipC17nOhGdttO5mzH8BivY+2ybsQBbXvxWIwl3cmeH3T9d+YPBSJu/ouyJKFJTtkK7rJofw==}
+    peerDependencies:
+      i18next: '>= 23.2.3'
+      react: '>= 16.8.0'
+      react-dom: '*'
+      react-native: '*'
+      typescript: ^5
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+      typescript:
+        optional: true
+
   react-icons@5.4.0:
     resolution: {integrity: sha512-7eltJxgVt7X64oHh6wSWNwwbKTCtMfK35hcjvJS0yxEAhPM8oUKdS3+kqaW1vicIltw+kR2unHaa12S9pPALoQ==}
     peerDependencies:
@@ -14565,11 +14660,28 @@ packages:
       react: '>=16.8'
       react-dom: '>=16.8'
 
+  react-router-dom@7.6.3:
+    resolution: {integrity: sha512-DiWJm9qdUAmiJrVWaeJdu4TKu13+iB/8IEi0EW/XgaHCjW/vWGrwzup0GVvaMteuZjKnh5bEvJP/K0MDnzawHw==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+
   react-router@6.26.2:
     resolution: {integrity: sha512-tvN1iuT03kHgOFnLPfLJ8V95eijteveqdOSk+srqfePtQvqCExB8eHOYnlilbOcyJyKnYkr1vJvf7YqotAJu1A==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
+
+  react-router@7.6.3:
+    resolution: {integrity: sha512-zf45LZp5skDC6I3jDLXQUu0u26jtuP4lEGbc7BbdyxenBN1vJSTA18czM2D+h5qyMBuMrD+9uB+mU37HIoKGRA==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
 
   react-selecto@1.26.3:
     resolution: {integrity: sha512-Ubik7kWSnZyQEBNro+1k38hZaI1tJarE+5aD/qsqCOA1uUBSjgKVBy3EWRzGIbdmVex7DcxznFZLec/6KZNvwQ==}
@@ -15239,6 +15351,9 @@ packages:
     resolution: {integrity: sha512-qy1S34PJ/fcY8gjVGszDB3EXiPSk5FKhUa7tQe0UPRddxRidc2V6cNHPNewbE1D7MAkgLuWEt3Vw56vYy73tzQ==}
     engines: {node: '>= 14'}
     hasBin: true
+
+  set-cookie-parser@2.7.1:
+    resolution: {integrity: sha512-IOc8uWeOZgnb3ptbCURJWNjWUPcO3ZnTTdzsurqERrP6nPyv+paC55vJM0LpOlT2ne+Ix+9+CRG1MNLlyZ4GjQ==}
 
   set-function-length@1.2.2:
     resolution: {integrity: sha512-pgRc4hJ4/sNjWCSS9AmnS40x3bNMDTknHgL5UaMBTMyJnU90EgWh1Rz+MC9eFu4BuN/UwZjKQuY/1v3rM7HMfg==}
@@ -17616,6 +17731,8 @@ snapshots:
     dependencies:
       regenerator-runtime: 0.14.1
 
+  '@babel/runtime@7.27.6': {}
+
   '@babel/template@7.25.0':
     dependencies:
       '@babel/code-frame': 7.24.7
@@ -19128,7 +19245,7 @@ snapshots:
       flat: 5.0.2
       ibm-cloud-sdk-core: 5.3.2
       js-yaml: 4.1.0
-      langchain: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
+      langchain: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0(debug@4.4.1))(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
       langsmith: 0.2.8(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))
       openai: 4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)
       uuid: 10.0.0
@@ -24145,10 +24262,11 @@ snapshots:
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
+    optional: true
 
   axios@1.10.0(debug@4.4.1):
     dependencies:
-      follow-redirects: 1.15.9(debug@4.4.1)
+      follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.3
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -25178,6 +25296,8 @@ snapshots:
   cookie@0.6.0: {}
 
   cookie@0.7.2: {}
+
+  cookie@1.0.2: {}
 
   cookiejar@2.1.4: {}
 
@@ -26874,10 +26994,6 @@ snapshots:
     optionalDependencies:
       debug: 4.4.0(supports-color@8.1.1)
 
-  follow-redirects@1.15.9(debug@4.4.1):
-    optionalDependencies:
-      debug: 4.4.1(supports-color@5.5.0)
-
   for-each@0.3.3:
     dependencies:
       is-callable: 1.2.7
@@ -27756,6 +27872,12 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.25.6
 
+  i18next@24.2.3(typescript@5.8.3):
+    dependencies:
+      '@babel/runtime': 7.27.6
+    optionalDependencies:
+      typescript: 5.8.3
+
   ibm-cloud-sdk-core@5.3.2:
     dependencies:
       '@types/debug': 4.1.12
@@ -27771,7 +27893,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.2
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.10.0)
+      retry-axios: 2.6.0(axios@1.10.0(debug@4.4.1))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -28777,7 +28899,7 @@ snapshots:
 
   ky@1.8.1: {}
 
-  langchain@0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1):
+  langchain@0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0(debug@4.4.1))(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1):
     dependencies:
       '@langchain/core': 0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))
       '@langchain/openai': 0.4.3(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1)
@@ -28795,7 +28917,7 @@ snapshots:
     optionalDependencies:
       '@langchain/deepseek': 0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1)
       '@langchain/ollama': 0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
       cheerio: 1.0.0
       handlebars: 4.7.8
     transitivePeerDependencies:
@@ -28847,7 +28969,7 @@ snapshots:
     optionalDependencies:
       '@langchain/deepseek': 0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.23.8)))(encoding@0.1.13)(ws@8.18.2)
       '@langchain/ollama': 0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.23.8)))
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
       cheerio: 1.0.0
       handlebars: 4.7.8
     transitivePeerDependencies:
@@ -28873,7 +28995,7 @@ snapshots:
     optionalDependencies:
       '@langchain/deepseek': 0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.24.1)))(encoding@0.1.13)(ws@8.18.2)
       '@langchain/ollama': 0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.24.1)))
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
       cheerio: 1.0.0
       handlebars: 4.7.8
     transitivePeerDependencies:
@@ -32377,6 +32499,16 @@ snapshots:
     optionalDependencies:
       react-dom: 18.3.1(react@18.3.1)
 
+  react-i18next@15.6.0(i18next@24.2.3(typescript@5.8.3))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3):
+    dependencies:
+      '@babel/runtime': 7.27.6
+      html-parse-stringify: 3.0.1
+      i18next: 24.2.3(typescript@5.8.3)
+      react: 18.3.1
+    optionalDependencies:
+      react-dom: 18.3.1(react@18.3.1)
+      typescript: 5.8.3
+
   react-icons@5.4.0(react@18.3.1):
     dependencies:
       react: 18.3.1
@@ -32547,10 +32679,24 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       react-router: 6.26.2(react@18.3.1)
 
+  react-router-dom@7.6.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-router: 7.6.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
   react-router@6.26.2(react@18.3.1):
     dependencies:
       '@remix-run/router': 1.19.2
       react: 18.3.1
+
+  react-router@7.6.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      cookie: 1.0.2
+      react: 18.3.1
+      set-cookie-parser: 2.7.1
+    optionalDependencies:
+      react-dom: 18.3.1(react@18.3.1)
 
   react-selecto@1.26.3:
     dependencies:
@@ -33030,9 +33176,9 @@ snapshots:
       onetime: 7.0.0
       signal-exit: 4.1.0
 
-  retry-axios@2.6.0(axios@1.10.0):
+  retry-axios@2.6.0(axios@1.10.0(debug@4.4.1)):
     dependencies:
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
 
   retry@0.12.0: {}
 
@@ -33489,6 +33635,8 @@ snapshots:
       update-check: 1.5.4
     transitivePeerDependencies:
       - supports-color
+
+  set-cookie-parser@2.7.1: {}
 
   set-function-length@1.2.2:
     dependencies:

@@ -1,0 +1,25 @@
+{
+  "name": "@refly/web-core",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Web Core for Refly AI Workspace",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "i18next": "^24.2.1",
+    "react-i18next": "^15.1.0",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "@refly/i18n": "workspace:*",
+    "@sentry/react": "^7.113.0",
+    "@refly/utils": "workspace:*",
+    "react-router-dom": "^7.1.3"
+  },
+  "devDependencies": {
+    "@refly/tsconfig": "workspace:*",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5"
+  }
+}
