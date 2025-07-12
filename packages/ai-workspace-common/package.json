@@ -5,9 +5,7 @@
   "description": "Common components for Refly AI Workspace",
   "type": "module",
   "main": "src/index.ts",
-  "exports": {
-    "import": "./src/index.ts"
-  },
+  "types": "src/index.ts",
   "scripts": {
     "preview": "vite preview",
     "codegen": "openapi-rq -i ../openapi-schema/schema.yml -o src --noSchemas && biome check ./src --write --no-errors-on-unmatched"

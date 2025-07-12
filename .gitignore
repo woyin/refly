@@ -34,3 +34,6 @@ mise.toml
 # docs
 docs/.vitepress/cache/*
 .self-docs/*
+
+# Profile
+.rspack-profile-*/
