@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
 import { ReflyConfigProvider, useConfigProviderStore } from '@refly/ui-kit';
 import { useEffect } from 'react';
-import { setupI18n, setupSentry } from '@refly/web-core';
+import { setupSentry } from '@refly/web-core';
 
 export interface LayoutProps {
   children: React.ReactNode;
@@ -21,7 +21,6 @@ export const Layout = ({ children }: LayoutProps) => {
   const shouldUseDarkTheme = isDarkMode || !isForcedLightMode;
 
   useEffect(() => {
-    setupI18n();
     setupSentry();
   }, []);
 

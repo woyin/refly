@@ -6,5 +6,6 @@
     "lib": ["DOM"],
     "target": "ESNext",
     "jsx": "react-jsx"
-  }
+  },
+  "files": ["global.d.ts"]
 }

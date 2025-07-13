@@ -1,41 +1,13 @@
-import { Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
-import { useEffect } from 'react';
-import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useTranslation } from 'react-i18next';
-import { LOCALE } from '@refly/common-types';
-import { LightLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
-import { Layout } from '../components/Layout';
-import { HomePage } from '@refly/web-core';
+import { HomePage, LazyDebugPage } from '@refly/web-core';
+import type { RouteObject } from 'react-router-dom';
 
-//TODO: Only handle necessary global information
-export const AppRouter = () => {
-  // TODO:  may just dependency login state, not need to get user profile
-  const userStore = useUserStoreShallow((state) => ({
-    isLogin: state.isLogin,
-    userProfile: state.userProfile,
-    localSettings: state.localSettings,
-    isCheckingLoginStatus: state.isCheckingLoginStatus,
-  }));
-
-  const storageLocalSettings = safeParseJSON(localStorage.getItem('refly-local-settings'));
-  const locale = storageLocalSettings?.uiLocale || userStore?.localSettings?.uiLocale || LOCALE.EN;
-
-  const { i18n } = useTranslation();
-  useEffect(() => {
-    if (locale && i18n.languages?.[0] !== locale) {
-      i18n.changeLanguage(locale);
-    }
-  }, [i18n, locale]);
-
-  return (
-    <Layout>
-      <Suspense fallback={<LightLoading />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-        </Routes>
-      </Suspense>
-    </Layout>
-  );
-};
+export const RoutesList: RouteObject[] = [
+  {
+    path: '/',
+    element: <HomePage />,
+  },
+  {
+    path: '/debug',
+    element: <LazyDebugPage />,
+  },
+];
