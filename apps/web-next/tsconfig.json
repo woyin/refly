@@ -27,6 +27,7 @@
     }
   },
   "include": ["src"],
+  "exclude": ["tailwind-colors.ts"],
   "references": [
     { "path": "../../packages/ai-workspace-common" },
     { "path": "../../packages/utils" }

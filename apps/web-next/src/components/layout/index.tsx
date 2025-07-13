@@ -1,12 +1,17 @@
-import { ConfigProvider, theme } from 'antd';
+import { theme } from 'antd';
 import { Outlet } from 'react-router-dom';
 import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { ReflyConfigProvider, useConfigProviderStore } from '@refly/ui-kit';
+import { useEffect } from 'react';
+import { setupI18n, setupSentry } from '@refly/web-core';
 
 export interface LayoutProps {
   children: React.ReactNode;
 }
 
 export const Layout = ({ children }: LayoutProps) => {
+  const updateConfig = useConfigProviderStore((state) => state.updateConfig);
+
   const { isDarkMode, isForcedLightMode } = useThemeStoreShallow((state) => ({
     isDarkMode: state.isDarkMode,
     initTheme: state.initTheme,
@@ -15,19 +20,23 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const shouldUseDarkTheme = isDarkMode || !isForcedLightMode;
 
+  useEffect(() => {
+    setupI18n();
+    setupSentry();
+  }, []);
+
+  useEffect(() => {
+    updateConfig({
+      algorithm: shouldUseDarkTheme ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    });
+  }, [shouldUseDarkTheme]);
+
   return (
     <div className="w-full h-full refly">
-      <ConfigProvider
-        theme={{
-          cssVar: {
-            key: 'refly',
-          },
-          algorithm: shouldUseDarkTheme ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        }}
-      >
+      <ReflyConfigProvider>
         {children}
         <Outlet />
-      </ConfigProvider>
+      </ReflyConfigProvider>
     </div>
   );
 };

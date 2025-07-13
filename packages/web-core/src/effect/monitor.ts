@@ -7,7 +7,7 @@ import {
   matchRoutes,
 } from 'react-router-dom';
 
-export const initSentry = async () => {
+export const setupSentry = async () => {
   if (process.env.NODE_ENV !== 'development') {
     const Sentry = await import('@sentry/react');
     Sentry.init({

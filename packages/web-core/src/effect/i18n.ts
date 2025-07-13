@@ -9,7 +9,7 @@ import zhHansUi from '@refly/i18n/zh-Hans/ui';
 import zhHansSkill from '@refly/i18n/zh-Hans/skill';
 import zhHansSkillLog from '@refly/i18n/zh-Hans/skill-log';
 
-export const initI18n = () => {
+export const setupI18n = () => {
   return i18next
     .use(LanguageDetector)
     .use(initReactI18next)

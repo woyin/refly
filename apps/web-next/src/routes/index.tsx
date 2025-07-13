@@ -6,8 +6,8 @@ import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
 import { LightLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
-import { HomeRedirect } from '@refly-packages/ai-workspace-common/components/home-redirect';
 import { Layout } from '../components/Layout';
+import { HomePage } from '@refly/web-core';
 
 //TODO: Only handle necessary global information
 export const AppRouter = () => {
@@ -33,12 +33,7 @@ export const AppRouter = () => {
     <Layout>
       <Suspense fallback={<LightLoading />}>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <HomeRedirect defaultNode={<div className="text-refly-primary-hover">refly</div>} />
-            }
-          />
+          <Route path="/" element={<HomePage />} />
         </Routes>
       </Suspense>
     </Layout>
