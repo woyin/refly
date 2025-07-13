@@ -25,11 +25,13 @@ let extNodePortalActions: ExtNodePortalActions = {
     if (!extNode) {
       return;
     }
-    extNode.root.unmount();
-    if (extNode.container.parentNode) {
-      extNode.container.parentNode.removeChild(extNode.container);
-    }
-    globalExtNodeMap.delete(node);
+    setTimeout(() => {
+      extNode.root.unmount();
+      if (extNode.container.parentNode) {
+        extNode.container.parentNode.removeChild(extNode.container);
+      }
+      globalExtNodeMap.delete(node);
+    }, 0);
   },
   replace(node, newNode) {
     const extNode = globalExtNodeMap.get(node);

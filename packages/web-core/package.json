@@ -17,7 +17,8 @@
     "react-dom": "^18.2.0",
     "react-i18next": "^15.1.0",
     "react-router-dom": "^6.22.1",
-    "@refly/ui-kit": "workspace:*"
+    "@refly/ui-kit": "workspace:*",
+    "@refly/layout": "workspace:*"
   },
   "devDependencies": {
     "@refly/tsconfig": "workspace:*",

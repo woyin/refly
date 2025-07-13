@@ -84,6 +84,7 @@ function PortalModal<T>({
   size = 'small',
   mode = 'drawer',
   afterClose,
+  afterOpenChange,
   initialContext,
   noMask,
   maskClosable,
@@ -129,7 +130,7 @@ function PortalModal<T>({
     };
   });
 
-  // 路由切换的时候 关闭弹窗
+  // Close modal when route changes
   const location = useLocation();
   useUpdateEffect(() => {
     setVisible(false);
@@ -160,7 +161,7 @@ function PortalModal<T>({
         afterClose={afterClose}
         afterOpenChange={(v) => {
           if (!v) {
-            afterClose?.();
+            afterOpenChange?.(v);
           }
         }}
         onCancel={async () => {
@@ -201,7 +202,7 @@ function PortalModal<T>({
         placement="right"
         afterOpenChange={(v) => {
           if (!v) {
-            afterClose?.();
+            afterOpenChange?.(v);
           }
         }}
         onCancel={async () => {
@@ -230,7 +231,6 @@ function PortalModal<T>({
   );
 }
 
-// @ts-expect-error
 const modalsMap = new WeakMap<symbol, [ReactElement, RefObject<PortalModelRef>]>();
 
 export function openModal<T = unknown>(
