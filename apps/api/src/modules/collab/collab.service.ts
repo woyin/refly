@@ -6,6 +6,7 @@ import * as Y from 'yjs';
 import { Request } from 'express';
 import { WebSocket } from 'ws';
 import { Server, Hocuspocus } from '@hocuspocus/server';
+import { Redis } from '@hocuspocus/extension-redis';
 import { RAGService } from '../rag/rag.service';
 import { CodeArtifact, Prisma } from '../../generated/client';
 import { UpsertCodeArtifactRequest, User } from '@refly/openapi-schema';
@@ -26,6 +27,7 @@ import ms from 'ms';
 import pLimit from 'p-limit';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { isDesktop } from '../../utils/runtime';
+import { CanvasSyncService } from '../canvas/canvas-sync.service';
 
 @Injectable()
 export class CollabService {
@@ -37,14 +39,15 @@ export class CollabService {
     private prisma: PrismaService,
     private redis: RedisService,
     private config: ConfigService,
+    private canvasSync: CanvasSyncService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
     @Inject(FULLTEXT_SEARCH) private fts: FulltextSearchService,
     @Optional() @InjectQueue(QUEUE_SYNC_CANVAS_ENTITY) private canvasQueue?: Queue,
   ) {
     const extensions = [];
-    // if (!isDesktop()) {
-    //   extensions.push(new Redis({ redis: this.redis.getClient() }));
-    // }
+    if (!isDesktop()) {
+      extensions.push(new Redis({ redis: this.redis.getClient() }));
+    }
 
     this.server = Server.configure({
       port: this.config.get<number>('wsPort'),
@@ -292,6 +295,9 @@ export class CollabService {
       uid: canvas.uid,
       updatedAt: new Date().toJSON(),
     });
+
+    // Double-write: sync ydoc to new state storage
+    await this.canvasSync.syncCanvasStateFromYDoc(user, canvas.canvasId, cleanedDocument);
 
     // Add sync canvas entity job with debouncing
     await this.canvasQueue?.add(
