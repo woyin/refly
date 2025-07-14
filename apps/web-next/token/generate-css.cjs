@@ -1,12 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const darkTokens = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'dark.json'), 'utf-8')
-);
-const lightTokens = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'light.json'), 'utf-8')
-);
+const darkTokens = JSON.parse(fs.readFileSync(path.join(__dirname, 'dark.json'), 'utf-8'));
+const lightTokens = JSON.parse(fs.readFileSync(path.join(__dirname, 'light.json'), 'utf-8'));
 
 function isValidCSSVariableName(name) {
   return /^--[a-zA-Z0-9_-]+$/.test(name);
@@ -48,7 +44,7 @@ function convertTokensToCSS(tokens, themeName, collectColors = false) {
             variableName = normalizeCSSVariableName(key);
             normalizedVariables.push({
               original: key,
-              normalized: variableName
+              normalized: variableName,
             });
           }
 
@@ -58,7 +54,7 @@ function convertTokensToCSS(tokens, themeName, collectColors = false) {
           if (collectColors) {
             colorTokens.push({
               variableName,
-              value: value.value
+              value: value.value,
             });
           }
         } else {
@@ -76,9 +72,7 @@ ${cssVariables.join('\n')}
 }`;
 
   if (normalizedVariables.length > 0) {
-    console.log(
-      `📋 ${themeName} theme - Normalized ${normalizedVariables.length} variable(s):`
-    );
+    console.log(`📋 ${themeName} theme - Normalized ${normalizedVariables.length} variable(s):`);
     for (const { original, normalized } of normalizedVariables) {
       console.log(`   ${original} → ${normalized}`);
     }
