@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useUserStoreShallow } from '../stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import getClient from '../requests/proxiedRequest';
 
 interface UseCollabTokenResult {

@@ -12,7 +12,7 @@ import {
   IconProject,
   IconResource,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { useState, useMemo } from 'react';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 

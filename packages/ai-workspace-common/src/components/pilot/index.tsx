@@ -1,6 +1,6 @@
 import { memo, useEffect } from 'react';
 import { SessionContainer } from './session-container';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
+import { usePilotStoreShallow } from '@refly/stores';
 import { useListPilotSessions } from '@refly-packages/ai-workspace-common/queries/queries';
 
 export const Pilot = memo(({ canvasId }: { canvasId: string }) => {

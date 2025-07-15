@@ -10,7 +10,7 @@ import { editorEmitter } from '@refly/utils/event-emitter/editor';
 import type { Instance } from 'tippy.js';
 
 import { posToDOMRect } from '@tiptap/react';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 
 interface GenerativeBlockMenuSwitchProps {
   open: boolean;

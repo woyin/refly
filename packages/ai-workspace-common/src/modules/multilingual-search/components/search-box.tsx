@@ -1,6 +1,6 @@
 import React from 'react';
 import { Input, Space } from 'antd';
-import { useMultilingualSearchStoreShallow } from '../stores/multilingual-search';
+import { useMultilingualSearchStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 
 import { SearchOptions } from './search-options';

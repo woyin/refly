@@ -3,8 +3,8 @@ import { immer } from 'zustand/middleware/immer';
 import { useShallow } from 'zustand/react/shallow';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-import { Reference } from '@refly/openapi-schema';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { type Reference } from '@refly/openapi-schema';
+import { proxiedRequest as getClient } from '../requests/proxiedRequest';
 
 export type StateField<T> = {
   data: T;
@@ -77,7 +77,7 @@ export const useReferencesStore = create<ReferencesState>()(
           state.references.loading = true;
         });
 
-        const { data } = await getClient().queryReferences({
+        const { data } = await getClient.queryReferences({
           body: { sourceId, sourceType },
         });
 
@@ -103,7 +103,7 @@ export const useReferencesStore = create<ReferencesState>()(
           state.referencedBy.loading = true;
         });
 
-        const { data } = await getClient().queryReferences({
+        const { data } = await getClient.queryReferences({
           body: { targetId, targetType },
         });
 

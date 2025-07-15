@@ -5,13 +5,10 @@ import { ModelIcon } from '@lobehub/icons';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
 import { ProviderItem } from '@refly/openapi-schema';
 import { LuInfo } from 'react-icons/lu';
-import {
-  SettingsModalActiveTab,
-  useSiderStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/sider';
+import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { DownOutlined } from '@ant-design/icons';
 import { SettingsButton } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 import './index.scss';
 
 interface MediaModelSelectorProps {

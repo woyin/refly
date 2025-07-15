@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import { applyNodeChanges, NodeChange, useStoreApi } from '@xyflow/react';
-import { useCanvasStoreShallow } from '../../stores/canvas';
-import { useContextPanelStoreShallow } from '../../stores/context-panel';
+import { useCanvasStoreShallow, useContextPanelStoreShallow } from '@refly/stores';
 import { useCanvasId } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-id';
 import { useUploadMinimap } from '@refly-packages/ai-workspace-common/hooks/use-upload-minimap';
 import { truncateContent, MAX_CONTENT_PREVIEW_LENGTH } from '../../utils/content';

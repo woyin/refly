@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import SlideHeader from './slide-header';
 import NewSlide from './new-slide';
 import { SlideshowEdit } from '@refly-packages/ai-workspace-common/components/slideshow';

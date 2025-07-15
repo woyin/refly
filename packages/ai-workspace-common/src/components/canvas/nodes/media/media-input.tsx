@@ -7,8 +7,8 @@ import { cn } from '@refly/utils/cn';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
-import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
+import { useChatStoreShallow } from '@refly/stores';
+import { useFrontPageStoreShallow } from '@refly/stores';
 import { MediaModelSelector } from './media-model-selector';
 import { ProviderItem } from '@refly/openapi-schema';
 

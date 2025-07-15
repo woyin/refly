@@ -41,7 +41,8 @@
     "react-use": "^17.5.0",
     "@refly/web-core": "workspace:*",
     "@refly/ui-kit": "workspace:*",
-    "@refly/layout": "workspace:*"
+    "@refly/layout": "workspace:*",
+    "@refly/stores": "workspace:*"
   },
   "devDependencies": {
     "tailwindcss": "^3",

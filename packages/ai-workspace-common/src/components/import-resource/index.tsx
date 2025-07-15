@@ -1,9 +1,6 @@
 import { Menu, Divider, Splitter, Modal } from 'antd';
 import { HiLink } from 'react-icons/hi';
-import {
-  ImportResourceMenuItem,
-  useImportResourceStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { ImportResourceMenuItem, useImportResourceStoreShallow } from '@refly/stores';
 
 import { ImportFromWeblink } from './intergrations/import-from-weblink';
 import { ImportFromText } from './intergrations/import-from-text';

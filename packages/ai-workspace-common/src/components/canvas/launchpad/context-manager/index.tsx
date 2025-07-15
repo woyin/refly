@@ -4,7 +4,7 @@ import { ContextItem } from './context-item';
 import { AddBaseMarkContext } from './components/add-base-mark-context';
 import { mapSelectionTypeToContentList } from './utils/contentListSelection';
 import { IContextItem } from '@refly/common-types';
-import { FilterErrorInfo } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { FilterErrorInfo } from '@refly/stores';
 import { useReactFlow } from '@xyflow/react';
 import { cn } from '@refly/utils/cn';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';

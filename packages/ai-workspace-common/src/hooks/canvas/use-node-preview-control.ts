@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { useCanvasStore, useCanvasStoreShallow } from '../../stores/canvas';
+import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { CanvasNode } from '@refly/canvas-common';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { useReactFlow } from '@xyflow/react';

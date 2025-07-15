@@ -1,4 +1,4 @@
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { useEffect, useMemo, useState } from 'react';
 import { message, Tabs, Drawer, Button } from 'antd';
 import { useTranslation } from 'react-i18next';

@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { Select, Space } from 'antd';
-import { useMultilingualSearchStoreShallow } from '../stores/multilingual-search';
+import { useMultilingualSearchStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
 import {

@@ -3,10 +3,7 @@ import { immer } from 'zustand/middleware/immer';
 import { useShallow } from 'zustand/react/shallow';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { CanvasNode, CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
-import {
-  createAutoEvictionStorage,
-  CacheInfo,
-} from '@refly-packages/ai-workspace-common/stores/utils/storage-manager';
+import { createAutoEvictionStorage, CacheInfo } from '../utils/storage';
 
 interface NodePreviewData {
   metadata?: Record<string, unknown>;

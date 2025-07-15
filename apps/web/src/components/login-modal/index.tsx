@@ -9,7 +9,7 @@ import GitHub from '@/assets/github-mark.svg';
 
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 import { serverOrigin } from '@refly-packages/ai-workspace-common/utils/env';
 import { useGetAuthConfig } from '@refly-packages/ai-workspace-common/queries';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';

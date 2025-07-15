@@ -3,7 +3,7 @@ import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Spin, Button, Modal } from 'antd';
 import { FileTextOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import '../pages/styles/preview-mode.css';
 

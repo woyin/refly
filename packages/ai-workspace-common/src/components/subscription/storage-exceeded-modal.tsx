@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Modal, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { LuDatabase } from 'react-icons/lu';
-import { useSubscriptionStoreShallow } from '../../stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 
 export const StorageExceededModal = memo(() => {
   const { t } = useTranslation();

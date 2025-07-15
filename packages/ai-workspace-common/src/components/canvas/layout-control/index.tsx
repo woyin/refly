@@ -16,12 +16,12 @@ import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canva
 import { TFunction } from 'i18next';
 import { HelpModal } from './help-modal';
 
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { IconExpand, IconShrink } from '@refly-packages/ai-workspace-common/components/common/icon';
 
 import './index.scss';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 interface LayoutControlProps {

@@ -1,6 +1,6 @@
 import { Modal } from 'antd';
 import { Search } from './index';
-import { useSearchStoreShallow } from '@refly-packages/ai-workspace-common/stores/search';
+import { useSearchStoreShallow } from '@refly/stores';
 import { useEffect } from 'react';
 import { bigSearchQuickOpenEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/big-search-quick-open';
 

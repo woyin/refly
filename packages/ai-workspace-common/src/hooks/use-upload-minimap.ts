@@ -1,7 +1,7 @@
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
 import { useDebouncedCallback } from 'use-debounce';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 
 export const useUploadMinimap = (canvasId: string) => {
   const { getMinimap } = useExportCanvasAsImage();

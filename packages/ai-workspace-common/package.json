@@ -156,7 +156,8 @@
     "y-prosemirror": "^1.2.6",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.16",
-    "zustand": "~4.5.1"
+    "zustand": "~4.5.1",
+    "@refly/stores": "workspace:*"
   },
   "devDependencies": {
     "@7nohe/openapi-react-query-codegen": "2.0.0-beta.3",

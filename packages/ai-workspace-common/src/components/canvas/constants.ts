@@ -1,7 +1,7 @@
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useMemo } from 'react';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 export const useEdgeStyles = () => {
   const { readonly } = useCanvasContext();

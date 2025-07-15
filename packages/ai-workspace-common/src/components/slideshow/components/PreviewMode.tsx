@@ -6,7 +6,7 @@ import { NodeRenderer } from './NodeRenderer';
 import { type NodeRelation } from './ArtifactRenderer';
 import '../styles/preview-mode.css';
 import Logo from '@/assets/logo.svg';
-import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 interface PreviewModeProps {
   nodes: NodeRelation[];

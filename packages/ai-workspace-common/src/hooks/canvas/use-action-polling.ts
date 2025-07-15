@@ -1,8 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
-import {
-  useActionResultStore,
-  useActionResultStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
 import { ActionResultNotFoundError } from '@refly/errors';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useUpdateActionResult } from './use-update-action-result';

@@ -1,4 +1,4 @@
-import { useChatStore } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStore } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
 import { memo, useCallback } from 'react';

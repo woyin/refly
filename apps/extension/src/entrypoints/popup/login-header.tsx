@@ -13,7 +13,7 @@ import Logo from '@/assets/logo.svg';
 import { browser } from 'wxt/browser';
 import { IconDocumentation } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { IoSettingsOutline } from 'react-icons/io5';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 
 export const LoginHeader = () => {
   const { t } = useTranslation();

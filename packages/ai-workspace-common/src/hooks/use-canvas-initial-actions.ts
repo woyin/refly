@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useFrontPageStoreShallow } from '../stores/front-page';
+import {
+  useFrontPageStoreShallow,
+  useChatStoreShallow,
+  usePilotStoreShallow,
+  useCanvasStoreShallow,
+} from '@refly/stores';
 import { genActionResultID } from '@refly/utils/id';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import {
   CreatePilotSessionRequest,
   ModelInfo,
@@ -16,7 +19,6 @@ import {
 } from '@refly/openapi-schema';
 import { message } from 'antd';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 
 export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -9,7 +9,7 @@ import {
   IconRemove,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
-import { useCanvasOperationStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas-operation';
+import { useCanvasOperationStoreShallow } from '@refly/stores';
 
 interface CanvasActionDropdown {
   canvasId: string;

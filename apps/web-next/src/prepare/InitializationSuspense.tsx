@@ -2,7 +2,7 @@ import { setupI18n, setupSentry } from '@refly/web-core';
 import { useEffect, useState } from 'react';
 import { LightLoading, ReflyConfigProvider, useConfigProviderStore } from '@refly/ui-kit';
 import { theme } from 'antd';
-import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 export interface InitializationSuspenseProps {
   children: React.ReactNode;

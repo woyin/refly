@@ -1,4 +1,4 @@
-import { XYPosition } from '@xyflow/react';
+import { type XYPosition } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';

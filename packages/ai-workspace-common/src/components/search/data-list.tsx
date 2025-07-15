@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Command } from 'cmdk';
-import { useSearchStore } from '@refly-packages/ai-workspace-common/stores/search';
+import { useSearchStore } from '@refly/stores';
 import { FolderAddOutlined } from '@ant-design/icons';
 
 import './index.scss';
