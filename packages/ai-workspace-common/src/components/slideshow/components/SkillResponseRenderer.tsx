@@ -3,7 +3,7 @@ import { useGetActionResult } from '@refly-packages/ai-workspace-common/queries/
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { ActionStep, GetActionResultResponse } from '@refly-packages/ai-workspace-common/requests';
 import { PreviewChatInput } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/preview-chat-input';
-import { SimpleStepCard } from '@/pages/skill-response-share';
+import { SimpleStepCard } from './SimpleStepCard';
 import { useTranslation } from 'react-i18next';
 
 interface SkillResponseProps {
