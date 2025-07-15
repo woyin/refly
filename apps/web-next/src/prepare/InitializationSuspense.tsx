@@ -12,15 +12,14 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
   const [isInitialized, setIsInitialized] = useState(false);
   const updateConfig = useConfigProviderStore((state) => state.updateConfig);
 
-  const { isDarkMode, isForcedLightMode } = useThemeStoreShallow((state) => ({
+  const { isDarkMode, initTheme } = useThemeStoreShallow((state) => ({
     isDarkMode: state.isDarkMode,
     initTheme: state.initTheme,
-    isForcedLightMode: state.isForcedLightMode,
   }));
 
-  const shouldUseDarkTheme = isDarkMode || !isForcedLightMode;
-
   const init = async () => {
+    initTheme();
+
     // support multiple initialization
     await Promise.all([setupI18n(), setupSentry()]);
     setIsInitialized(true);
@@ -32,9 +31,9 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
 
   useEffect(() => {
     updateConfig({
-      algorithm: shouldUseDarkTheme ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
     });
-  }, [shouldUseDarkTheme]);
+  }, [isDarkMode]);
 
   return <ReflyConfigProvider>{isInitialized ? children : <LightLoading />}</ReflyConfigProvider>;
 }
