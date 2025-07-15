@@ -20,5 +20,7 @@ export const ArtifactGalleryPage = lazy(() => import('./pages/artifact-gallery')
 export const UseCasesGalleryPage = lazy(() => import('./pages/use-cases-gallery'));
 export const ProjectPage = lazy(() => import('./pages/project'));
 
+export { AppLayout } from './components/layout';
+
 export { setupI18n } from './effect/i18n';
 export { setupSentry } from './effect/monitor';

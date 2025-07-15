@@ -226,7 +226,7 @@ importers:
         version: 9.0.2
       langchain:
         specifier: 0.3.15
-        version: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
+        version: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0(debug@4.4.1))(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -2125,12 +2125,15 @@ importers:
       '@refly/ai-workspace-common':
         specifier: workspace:*
         version: link:../ai-workspace-common
+      '@refly/common-types':
+        specifier: workspace:*
+        version: link:../common-types
+      '@refly/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@refly/i18n':
         specifier: workspace:*
         version: link:../i18n
-      '@refly/layout':
-        specifier: workspace:*
-        version: link:../layout
       '@refly/openapi-schema':
         specifier: workspace:*
         version: link:../openapi-schema
@@ -19453,7 +19456,7 @@ snapshots:
       flat: 5.0.2
       ibm-cloud-sdk-core: 5.3.2
       js-yaml: 4.1.0
-      langchain: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
+      langchain: 0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0(debug@4.4.1))(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1)
       langsmith: 0.2.8(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))
       openai: 4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)
       uuid: 10.0.0
@@ -24505,10 +24508,11 @@ snapshots:
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
       - debug
+    optional: true
 
   axios@1.10.0(debug@4.4.1):
     dependencies:
-      follow-redirects: 1.15.9(debug@4.4.1)
+      follow-redirects: 1.15.9(debug@4.4.0)
       form-data: 4.0.3
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -27234,10 +27238,6 @@ snapshots:
     optionalDependencies:
       debug: 4.4.0(supports-color@8.1.1)
 
-  follow-redirects@1.15.9(debug@4.4.1):
-    optionalDependencies:
-      debug: 4.4.1(supports-color@5.5.0)
-
   for-each@0.3.3:
     dependencies:
       is-callable: 1.2.7
@@ -28137,7 +28137,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.2
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.10.0)
+      retry-axios: 2.6.0(axios@1.10.0(debug@4.4.1))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -29143,7 +29143,7 @@ snapshots:
 
   ky@1.8.1: {}
 
-  langchain@0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0)(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1):
+  langchain@0.3.15(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(@langchain/deepseek@0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1))(@langchain/ollama@0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))))(axios@1.10.0(debug@4.4.1))(cheerio@1.0.0)(encoding@0.1.13)(handlebars@4.7.8)(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))(ws@8.17.1):
     dependencies:
       '@langchain/core': 0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8))
       '@langchain/openai': 0.4.3(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1)
@@ -29161,7 +29161,7 @@ snapshots:
     optionalDependencies:
       '@langchain/deepseek': 0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))(encoding@0.1.13)(ws@8.17.1)
       '@langchain/ollama': 0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.17.1)(zod@3.23.8)))
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
       cheerio: 1.0.0
       handlebars: 4.7.8
     transitivePeerDependencies:
@@ -29213,7 +29213,7 @@ snapshots:
     optionalDependencies:
       '@langchain/deepseek': 0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.23.8)))(encoding@0.1.13)(ws@8.18.2)
       '@langchain/ollama': 0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.23.8)))
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
       cheerio: 1.0.0
       handlebars: 4.7.8
     transitivePeerDependencies:
@@ -29239,7 +29239,7 @@ snapshots:
     optionalDependencies:
       '@langchain/deepseek': 0.0.1(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.24.1)))(encoding@0.1.13)(ws@8.18.2)
       '@langchain/ollama': 0.2.0(@langchain/core@0.3.29(openai@4.100.0(encoding@0.1.13)(ws@8.18.2)(zod@3.24.1)))
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
       cheerio: 1.0.0
       handlebars: 4.7.8
     transitivePeerDependencies:
@@ -33406,9 +33406,9 @@ snapshots:
       onetime: 7.0.0
       signal-exit: 4.1.0
 
-  retry-axios@2.6.0(axios@1.10.0):
+  retry-axios@2.6.0(axios@1.10.0(debug@4.4.1)):
     dependencies:
-      axios: 1.10.0(debug@4.4.0)
+      axios: 1.10.0(debug@4.4.1)
 
   retry@0.12.0: {}
 
