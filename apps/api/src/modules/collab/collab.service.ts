@@ -299,7 +299,13 @@ export class CollabService {
     // If this canvas already has version info (synchronization V2) but still goes for legacy sync,
     // we have to double-write: sync ydoc to new state storage
     if (canvas.version) {
-      await this.canvasSync.syncCanvasStateFromYDoc(user, canvas.canvasId, cleanedDocument);
+      try {
+        await this.canvasSync.syncCanvasStateFromYDoc(user, canvas.canvasId, document);
+      } catch (err) {
+        this.logger.error(
+          `failed to sync canvas state from ydoc: ${canvas.canvasId}, err: ${err.stack}`,
+        );
+      }
     }
 
     // Add sync canvas entity job with debouncing

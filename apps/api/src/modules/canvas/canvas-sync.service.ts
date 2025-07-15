@@ -299,32 +299,44 @@ export class CanvasSyncService {
    * @param yDoc - The YDoc
    */
   async syncCanvasStateFromYDoc(user: User, canvasId: string, yDoc: Y.Doc) {
-    const nodes = yDoc.getArray('nodes').toJSON() ?? [];
-    const edges = yDoc.getArray('edges').toJSON() ?? [];
+    try {
+      const nodes = yDoc.getArray('nodes').toJSON() ?? [];
+      const edges = yDoc.getArray('edges').toJSON() ?? [];
 
-    // Purge context items from nodes
-    const purgedNodes: CanvasNode[] = nodes.map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        metadata: {
-          ...node.data?.metadata,
-          contextItems: purgeContextItems(node.data?.metadata?.contextItems as IContextItem[]),
+      // Purge context items from nodes with safe handling of undefined contextItems
+      const purgedNodes: CanvasNode[] = nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          metadata: {
+            ...node.data?.metadata,
+            contextItems: purgeContextItems(
+              Array.isArray(node.data?.metadata?.contextItems)
+                ? (node.data?.metadata?.contextItems as IContextItem[])
+                : [],
+            ),
+          },
         },
-      },
-    }));
+      }));
 
-    // Lock the canvas state to avoid race conditions
-    const releaseLock = await this.lockState(canvasId);
-    const currentState = await this.getState(user, { canvasId });
-    const currentStateData = getCanvasDataFromState(currentState);
+      // Lock the canvas state to avoid race conditions
+      const releaseLock = await this.lockState(canvasId);
+      const currentState = await this.getState(user, { canvasId });
+      const currentStateData = getCanvasDataFromState(currentState);
 
-    const diff = calculateCanvasStateDiff(currentStateData, {
-      nodes: purgedNodes,
-      edges,
-    });
+      const diff = calculateCanvasStateDiff(currentStateData, {
+        nodes: purgedNodes,
+        edges,
+      });
 
-    await this.syncState(user, { canvasId, transactions: [diff] }, { releaseLock });
+      await this.syncState(user, { canvasId, transactions: [diff] }, { releaseLock });
+    } catch (error) {
+      this.logger.error(
+        `Error syncing canvas state from YDoc for canvasId ${canvasId}: ${error?.message}`,
+        error?.stack,
+      );
+      throw error;
+    }
   }
 
   /**
