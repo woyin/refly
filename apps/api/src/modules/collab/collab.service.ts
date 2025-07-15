@@ -296,8 +296,11 @@ export class CollabService {
       updatedAt: new Date().toJSON(),
     });
 
-    // Double-write: sync ydoc to new state storage
-    await this.canvasSync.syncCanvasStateFromYDoc(user, canvas.canvasId, cleanedDocument);
+    // If this canvas already has version info (synchronization V2) but still goes for legacy sync,
+    // we have to double-write: sync ydoc to new state storage
+    if (canvas.version) {
+      await this.canvasSync.syncCanvasStateFromYDoc(user, canvas.canvasId, cleanedDocument);
+    }
 
     // Add sync canvas entity job with debouncing
     await this.canvasQueue?.add(
