@@ -6,7 +6,7 @@ import { CanvasNode, CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-comm
 import {
   createAutoEvictionStorage,
   CacheInfo,
-} from '@refly-packages/ai-workspace-common/stores/utils/storage-manager';
+} from '../utils/storage';
 
 interface NodePreviewData {
   metadata?: Record<string, unknown>;

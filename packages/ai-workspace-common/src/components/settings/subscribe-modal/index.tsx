@@ -3,7 +3,7 @@ import { Modal } from 'antd';
 // styles
 import './index.scss';
 import { useTranslation } from 'react-i18next';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { PriceContent } from './priceContent';
 import { IconSubscription } from '@refly-packages/ai-workspace-common/components/common/icon';
 

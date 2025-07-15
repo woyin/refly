@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import Renderer from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/render';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import PoweredByRefly from '@/components/common/PoweredByRefly';
 

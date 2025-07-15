@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Radio, Typography, Divider } from 'antd';
-import { useThemeStoreShallow } from '../../../stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 import { useEffect } from 'react';
 
 const { Title } = Typography;

@@ -2,7 +2,7 @@ import { memo, useEffect, useState } from 'react';
 import { Modal, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
 import { RiFullscreenFill, RiFullscreenExitFill } from 'react-icons/ri';
 

@@ -10,7 +10,7 @@ import { getContextItemIcon } from '../../utils/icon';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { ReloadOutlined } from '@ant-design/icons';
 import { IContextItem } from '@refly/common-types';
-import { useContextPanelStoreShallow } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 
 import './index.scss';

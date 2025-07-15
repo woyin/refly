@@ -1,4 +1,4 @@
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { Divider, Layout } from 'antd';
 import { useState, useEffect, useCallback } from 'react';
 import { useGetProjectDetail } from '@refly-packages/ai-workspace-common/queries';
@@ -12,11 +12,11 @@ import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/us
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useNavigate } from 'react-router-dom';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
-import { useProjectSelectorStoreShallow } from '@refly-packages/ai-workspace-common/stores/project-selector';
+import { useProjectSelectorStoreShallow } from '@refly/stores';
 import {
   useCanvasStore,
   useCanvasStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/canvas';
+} from '@refly/stores';
 import { IconHome } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
 

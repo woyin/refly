@@ -11,7 +11,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import {
   LocalSettings,
   useUserStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/user';
+} from '@refly/stores';
 import { safeStringifyJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 import { mapDefaultLocale } from '@refly-packages/ai-workspace-common/utils/locale';
 import { LOCALE } from '@refly/common-types';

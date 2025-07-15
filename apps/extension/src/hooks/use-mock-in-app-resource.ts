@@ -1,5 +1,5 @@
 import { useMatch, useSearchParams } from '@refly-packages/ai-workspace-common/utils/router';
-import { useKnowledgeBaseStore } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
+import { useKnowledgeBaseStore } from '@refly/stores';
 import { useEffect, useRef } from 'react';
 import {
   onMessage,
@@ -8,7 +8,7 @@ import {
 import { useJumpNewPath } from '@refly-packages/ai-workspace-common/hooks/use-jump-new-path';
 import { getRuntime } from '@refly/utils/env';
 import { BackgroundMessage } from '@refly/common-types';
-import { useCopilotStore } from '@refly-packages/ai-workspace-common/stores/copilot';
+import { useCopilotStore } from '@refly/stores';
 
 export const useMockInAppResource = () => {
   const messageListenerEventRef = useRef<any>();

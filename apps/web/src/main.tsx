@@ -31,9 +31,7 @@ const AppLayout = lazy(() =>
 
 import '@refly-packages/ai-workspace-common/i18n/config';
 import { getEnv, setRuntime } from '@refly/utils/env';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
-import { useAppStoreShallow } from '@refly-packages/ai-workspace-common/stores/app';
+import { useUserStoreShallow, useThemeStoreShallow, useAppStoreShallow } from '@refly/stores';
 import { theme } from 'antd';
 import {
   LightLoading,

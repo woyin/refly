@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { Canvas } from '@refly-packages/ai-workspace-common/components/canvas';
 import { Button } from 'antd';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 import { AiOutlineMenuUnfold } from 'react-icons/ai';
 import { FrontPage } from '@refly-packages/ai-workspace-common/components/canvas/front-page';

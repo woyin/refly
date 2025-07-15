@@ -32,7 +32,7 @@ import {
 import {
   useDocumentStore,
   useDocumentStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/document';
+} from '@refly/stores';
 import UpdatedImage from '@refly-packages/ai-workspace-common/components/editor/core/extensions/updated-image';
 import { UploadImagesPlugin } from '@refly-packages/ai-workspace-common/components/editor/core/plugins';
 import {
@@ -49,7 +49,7 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 import { useCreateMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-memo';
 import { IContextItem } from '@refly/common-types';
 import { ImagePreview } from '@refly-packages/ai-workspace-common/components/common/image-preview';
-import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 export const CollaborativeEditor = memo(
   ({ docId }: { docId: string }) => {

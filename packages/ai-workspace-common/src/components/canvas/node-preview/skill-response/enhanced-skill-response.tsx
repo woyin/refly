@@ -1,7 +1,7 @@
 import { memo, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 import { LinearThreadContent } from '@refly-packages/ai-workspace-common/components/canvas/linear-thread/linear-thread';
-import { LinearThreadMessage } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { LinearThreadMessage } from '@refly/stores';
 import { cn } from '@refly/utils/cn';
 import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
@@ -10,7 +10,7 @@ import { IContextItem } from '@refly/common-types';
 import {
   useContextPanelStore,
   useContextPanelStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
+} from '@refly/stores';
 import {
   ModelInfo,
   Skill,

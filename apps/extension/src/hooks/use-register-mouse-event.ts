@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useQuickActionStore } from '../stores/quick-action';
-import { usePopupStore } from '../stores/popup';
+import { useQuickActionStore } from '@refly/stores';
+import { usePopupStore } from '@refly/stores';
 import { calcPopupPosition } from '@/utils/ui';
 
 export const useRegisterMouseEvent = () => {

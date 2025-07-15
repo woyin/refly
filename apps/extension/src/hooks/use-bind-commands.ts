@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import hotKeys from 'hotkeys-js';
-import { useCopilotStore } from '@refly-packages/ai-workspace-common/stores/copilot';
+import { useCopilotStore } from '@refly/stores';
 
 export const useBindCommands = () => {
   // 快捷键相关

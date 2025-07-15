@@ -14,7 +14,7 @@ import { CanvasNodeType } from '@refly-packages/ai-workspace-common/requests';
 import { useReactFlow } from '@xyflow/react';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { genMediaSkillResponseID } from '@refly/utils/id';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 

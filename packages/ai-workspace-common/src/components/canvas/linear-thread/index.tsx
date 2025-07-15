@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { ThreadContainer } from './thread-container';
@@ -8,7 +8,7 @@ import { SkillTemplateConfig } from '@refly/openapi-schema';
 import {
   useContextPanelStoreShallow,
   ContextTarget,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
+} from '@refly/stores';
 
 export const LinearThreadContainer = memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);

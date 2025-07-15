@@ -2,7 +2,7 @@ import { useAddNodesToCanvasPage } from '@refly-packages/ai-workspace-common/que
 import { slideshowEmitter } from '@refly-packages/ai-workspace-common/events/slideshow';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useCallback } from 'react';
 import { CanvasNode } from '@refly/canvas-common';
 

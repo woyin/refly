@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 
 export const useIsLogin = () => {

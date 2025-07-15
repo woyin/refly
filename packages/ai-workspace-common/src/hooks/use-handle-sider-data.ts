@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { sourceObject } from '@refly-packages/ai-workspace-common/components/project/project-directory';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 
 export const DATA_NUM = 100;
 const DATA_NUM_CANVAS_FOR_PROJECT = 1000;

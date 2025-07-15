@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useThemeStoreShallow } from '../stores/theme';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useThemeStoreShallow, useUserStoreShallow } from '@refly/stores';
 
 // Routes that should always use light mode
 const LIGHT_MODE_ROUTES = ['/', '/pricing', '/artifact-gallery', '/use-cases-gallery'];

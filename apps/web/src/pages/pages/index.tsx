@@ -19,7 +19,7 @@ import {
   FileTextOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { NodeRenderer } from './components/NodeRenderer';
 import { type NodeRelation } from './components/ArtifactRenderer';
 import './styles/preview-mode.css';

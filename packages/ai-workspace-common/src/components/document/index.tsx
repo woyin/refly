@@ -12,7 +12,7 @@ import {
   IconShare,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 
 import { CollaborativeEditor } from './collab-editor';
 import { ReadonlyEditor } from './readonly-editor';
@@ -31,7 +31,7 @@ import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { editorEmitter } from '@refly/utils/event-emitter/editor';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 
 // Define the table of contents item type
 interface TocItem {

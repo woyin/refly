@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Skill, SkillTemplateConfig, SkillRuntimeConfig, MediaType } from '@refly/openapi-schema';
+import type { Skill, SkillTemplateConfig, SkillRuntimeConfig, MediaType } from '@refly/openapi-schema';
 
 interface MediaqueryData {
   mediaType: MediaType;

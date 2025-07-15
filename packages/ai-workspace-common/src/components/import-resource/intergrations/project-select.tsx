@@ -2,7 +2,7 @@ import { memo, FC, useState, useEffect, useMemo, useCallback } from 'react';
 import { Select, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useListProjects } from '@refly-packages/ai-workspace-common/queries';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 
 interface ProjectSelectProps {
   projectId: string | null;

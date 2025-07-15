@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Typography, Radio, Button, Steps } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { UILocaleList } from '../ui-locale-list';
 import { OutputLocaleList } from '../output-locale-list';
 import { DownOutlined } from '@ant-design/icons';

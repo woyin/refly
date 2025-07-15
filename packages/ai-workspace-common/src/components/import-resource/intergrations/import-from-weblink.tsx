@@ -9,7 +9,7 @@ import {
   LinkMeta,
   useImportResourceStore,
   useImportResourceStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/import-resource';
+} from '@refly/stores';
 // request
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { UpsertResourceRequest } from '@refly/openapi-schema';

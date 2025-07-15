@@ -11,7 +11,7 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import cn from 'classnames';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import classNames from 'classnames';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import {
@@ -33,12 +33,12 @@ import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use
 import { genSkillID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
 import { detectActualTypeFromType } from '@refly/utils';
-import { useChatStore } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStore } from '@refly/stores';
 import { CodeArtifact, CodeArtifactType, Skill } from '@refly/openapi-schema';
 import Renderer from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/render';
 import { useGetCodeArtifactDetail } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';

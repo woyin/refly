@@ -20,7 +20,7 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { CanvasNodeData } from '@refly/canvas-common';
 import { IContextItem } from '@refly/common-types';
-import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStore } from '@refly/stores';
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useNodeCluster } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-cluster';
 import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';

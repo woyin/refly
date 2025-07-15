@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 // 样式
 import './index.scss';
 import { RightOutlined } from '@ant-design/icons';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 
 interface SourceListProps {

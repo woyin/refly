@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { CanvasNodeType } from '../requests/types.gen';
+import { useShallow } from 'zustand/react/shallow';
+import { CanvasNodeType } from '../types/common';
 
 interface CanvasNodesState {
   pendingNode: {
@@ -16,3 +17,7 @@ export const useCanvasNodesStore = create<CanvasNodesState>((set) => ({
   setPendingNode: (node) => set({ pendingNode: node }),
   clearPendingNode: () => set({ pendingNode: null }),
 }));
+
+export const useCanvasNodesStoreShallow = <T>(selector: (state: CanvasNodesState) => T) => {
+  return useCanvasNodesStore(useShallow(selector));
+};

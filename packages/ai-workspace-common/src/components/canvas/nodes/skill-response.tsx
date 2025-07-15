@@ -25,8 +25,8 @@ import {
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { getArtifactIcon } from '@refly-packages/ai-workspace-common/components/common/result-display';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -61,7 +61,7 @@ import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/n
 import {
   useActionResultStoreShallow,
   useActionResultStore,
-} from '@refly-packages/ai-workspace-common/stores/action-result';
+} from '@refly/stores';
 
 export const NodeHeader = memo(
   ({

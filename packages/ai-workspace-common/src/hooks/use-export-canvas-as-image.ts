@@ -4,7 +4,7 @@ import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import html2canvas, { Options } from 'html2canvas';
 import { UploadResponse } from '@refly/openapi-schema';
-import { useSiderStore } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStore } from '@refly/stores';
 import { staticPrivateEndpoint } from '@refly-packages/ai-workspace-common/utils/env';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 

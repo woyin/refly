@@ -1,4 +1,4 @@
-import { StateStorage } from 'zustand/middleware';
+import {type StateStorage } from 'zustand/middleware';
 
 /**
  * Interface for objects with cache timestamp information

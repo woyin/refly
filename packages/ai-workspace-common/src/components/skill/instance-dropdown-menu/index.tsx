@@ -4,7 +4,7 @@ import { TbEdit } from 'react-icons/tb';
 import { Dropdown, Menu, Button, Popconfirm, message } from 'antd';
 import { useState } from 'react';
 import { useLocation, useSearchParams } from '@refly-packages/ai-workspace-common/utils/router';
-import { useSkillStore } from '@refly-packages/ai-workspace-common/stores/skill';
+import { useSkillStore } from '@refly/stores';
 // 类型
 import { SkillInstance } from '@refly/openapi-schema';
 // 请求

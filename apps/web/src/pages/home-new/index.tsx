@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
+import { useFrontPageStoreShallow } from '@refly/stores';
 import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/skill-display';
 import { getSkillIcon, IconPlus } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Button, Form } from 'antd';
@@ -11,7 +11,7 @@ import { Actions } from '@refly-packages/ai-workspace-common/components/canvas/f
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 import Header from '@/components/landing-page-partials/Header';
 import SimpleFooter from '@/components/landing-page-partials/SimpleFooter';
 

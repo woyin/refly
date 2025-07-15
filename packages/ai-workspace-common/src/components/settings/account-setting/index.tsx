@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { AiOutlineUser } from 'react-icons/ai';
 
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 // components
 import { useTranslation } from 'react-i18next';
 import { useDebouncedCallback } from 'use-debounce';
 import ImgCrop from 'antd-img-crop';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { BiSolidEdit } from 'react-icons/bi';
 

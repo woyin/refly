@@ -4,17 +4,17 @@ import { Button, Progress, Tooltip, Tag, Typography } from 'antd';
 import { HiOutlineQuestionMarkCircle } from 'react-icons/hi2';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 
 // styles
 import './index.scss';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 import { PiInvoiceBold } from 'react-icons/pi';
 import { IconSubscription } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 
 const { Title } = Typography;

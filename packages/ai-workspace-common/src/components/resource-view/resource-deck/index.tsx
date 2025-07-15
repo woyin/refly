@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tabs, Skeleton, Empty } from 'antd';
 import type { TabsProps } from 'antd';
-import { useReferencesStoreShallow } from '@refly-packages/ai-workspace-common/stores/references';
+import { useReferencesStoreShallow } from '@refly/stores';
 import {
   IconResource,
   IconCanvas,

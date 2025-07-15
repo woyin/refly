@@ -21,7 +21,7 @@ import { getRuntime } from '@refly/utils/env';
 import { useSaveSelectedContent } from '@/hooks/use-save-selected-content';
 import { BackgroundMessage, SyncMarkEvent, type MessageName } from '@refly/common-types';
 import { useGetUserSettings } from '@/hooks/use-get-user-settings';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 import { logger } from '@/utils/logger';
 
 const getPopupContainer = () => {
