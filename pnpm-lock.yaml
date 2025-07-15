@@ -158,6 +158,9 @@ importers:
       '@refly/canvas-common':
         specifier: workspace:*
         version: link:../../packages/canvas-common
+      '@refly/common-types':
+        specifier: workspace:*
+        version: link:../../packages/common-types
       '@refly/errors':
         specifier: workspace:*
         version: link:../../packages/errors

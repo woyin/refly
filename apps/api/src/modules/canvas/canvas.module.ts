@@ -61,6 +61,6 @@ import { CanvasSyncService } from './canvas-sync.service';
           VerifyNodeAdditionProcessor,
         ]),
   ],
-  exports: [CanvasService],
+  exports: [CanvasService, CanvasSyncService],
 })
 export class CanvasModule {}

@@ -11,6 +11,7 @@ import {
   SetCanvasStateRequest,
   CreateCanvasVersionResult,
   CanvasData,
+  CanvasNode,
 } from '@refly/openapi-schema';
 import {
   getCanvasDataFromState,
@@ -19,6 +20,8 @@ import {
   updateCanvasState,
   mergeCanvasStates,
   CanvasConflictException,
+  purgeContextItems,
+  calculateCanvasStateDiff,
 } from '@refly/canvas-common';
 import {
   CanvasNotFoundError,
@@ -31,6 +34,7 @@ import { LockReleaseFn, RedisService } from '../common/redis.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { streamToBuffer, streamToString } from '../../utils';
 import { genCanvasVersionId } from '@refly/utils';
+import { IContextItem } from '@refly/common-types';
 
 @Injectable()
 export class CanvasSyncService {
@@ -285,6 +289,53 @@ export class CanvasSyncService {
       await this.saveState(canvasId, state);
     } finally {
       await releaseLock();
+    }
+  }
+
+  /**
+   * Sync canvas state from YDoc for backward compatibility
+   * @param user - The user
+   * @param canvasId - The canvas id
+   * @param yDoc - The YDoc
+   */
+  async syncCanvasStateFromYDoc(user: User, canvasId: string, yDoc: Y.Doc) {
+    try {
+      const nodes = yDoc.getArray('nodes').toJSON() ?? [];
+      const edges = yDoc.getArray('edges').toJSON() ?? [];
+
+      // Purge context items from nodes with safe handling of undefined contextItems
+      const purgedNodes: CanvasNode[] = nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          metadata: {
+            ...node.data?.metadata,
+            contextItems: purgeContextItems(
+              Array.isArray(node.data?.metadata?.contextItems)
+                ? (node.data?.metadata?.contextItems as IContextItem[])
+                : [],
+            ),
+          },
+        },
+      }));
+
+      // Lock the canvas state to avoid race conditions
+      const releaseLock = await this.lockState(canvasId);
+      const currentState = await this.getState(user, { canvasId });
+      const currentStateData = getCanvasDataFromState(currentState);
+
+      const diff = calculateCanvasStateDiff(currentStateData, {
+        nodes: purgedNodes,
+        edges,
+      });
+
+      await this.syncState(user, { canvasId, transactions: [diff] }, { releaseLock });
+    } catch (error) {
+      this.logger.error(
+        `Error syncing canvas state from YDoc for canvasId ${canvasId}: ${error?.message}`,
+        error?.stack,
+      );
+      throw error;
     }
   }
 
