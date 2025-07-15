@@ -5,7 +5,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { useNavigate } from 'react-router-dom';
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useCanvasOperationStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas-operation';
+import { useCanvasOperationStoreShallow } from '@refly/stores';
 
 type FieldType = {
   title: string;

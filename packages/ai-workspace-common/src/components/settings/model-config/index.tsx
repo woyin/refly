@@ -29,8 +29,8 @@ import { ModelIcon } from '@lobehub/icons';
 import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/model';
 import { useGroupModels } from '@refly-packages/ai-workspace-common/hooks/use-group-models';
 import { ModelFormModal } from './model-form';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useUserStoreShallow } from '@refly/stores';
+import { useChatStoreShallow } from '@refly/stores';
 
 const MODEL_TIER_TO_COLOR = {
   free: 'green',

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-import { ActionResult } from '@refly/openapi-schema';
+import { type ActionResult } from '@refly/openapi-schema';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { CacheInfo, createAutoEvictionStorage } from './utils/storage-manager';
+import { type CacheInfo, createAutoEvictionStorage } from '../stores/utils/storage-manager';
 
 interface PollingState {
   notFoundErrorCount: number;

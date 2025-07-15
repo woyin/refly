@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Route, Routes, useMatch, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { useGetUserSettings } from '@refly-packages/ai-workspace-common/hooks/use-get-user-settings';
 import { LOCALE } from '@refly/common-types';

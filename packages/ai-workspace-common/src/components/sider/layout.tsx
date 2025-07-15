@@ -15,7 +15,7 @@ import {
 import cn from 'classnames';
 
 import Logo from '@/assets/logo.svg';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 // components
 import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +30,7 @@ import {
   SiderData,
   useSiderStoreShallow,
   type SettingsModalActiveTab,
-} from '@refly-packages/ai-workspace-common/stores/sider';
+} from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 // icons
 import {
@@ -42,7 +42,7 @@ import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/compon
 import { AiOutlineMenuFold, AiOutlineUser } from 'react-icons/ai';
 import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { FaGithub } from 'react-icons/fa6';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
 import { SiderLoggedOut } from './sider-logged-out';

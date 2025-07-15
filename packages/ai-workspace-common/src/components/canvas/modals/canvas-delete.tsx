@@ -2,7 +2,7 @@ import { memo, useState } from 'react';
 import { Checkbox, CheckboxProps, Modal } from 'antd';
 import { IoAlertCircle } from 'react-icons/io5';
 import { useTranslation } from 'react-i18next';
-import { useCanvasOperationStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas-operation';
+import { useCanvasOperationStoreShallow } from '@refly/stores';
 import { useDeleteCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-canvas';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';

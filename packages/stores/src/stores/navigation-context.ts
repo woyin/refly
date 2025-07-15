@@ -1,4 +1,4 @@
-import { NavigationContext } from '@refly-packages/ai-workspace-common/types/copilot';
+import { NavigationContext } from '../types/common';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';

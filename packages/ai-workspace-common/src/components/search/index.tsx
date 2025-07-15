@@ -4,7 +4,7 @@ import { Command } from 'cmdk';
 import {
   useSearchStore,
   useSearchStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/search';
+} from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 
 import './index.scss';

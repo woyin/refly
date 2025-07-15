@@ -16,7 +16,7 @@ import { IContextItem } from '@refly/common-types';
 import { useEdgeStyles } from '@refly-packages/ai-workspace-common/components/canvas/constants';
 import { genUniqueId } from '@refly/utils/id';
 import { useNodeSize } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { NodeResizer as NodeResizerComponent } from '../shared/node-resizer';
 import classNames from 'classnames';
 import Moveable from 'react-moveable';
@@ -30,7 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { MediaChatInput } from './media-input';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 
 const { Text } = Typography;
 

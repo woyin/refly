@@ -5,12 +5,12 @@ import { ChevronDown, CheckCircle2, ChevronRight } from 'lucide-react';
 import { ReloadOutlined, ToolOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useLaunchpadStoreShallow } from '@refly/stores';
+import { useUserStoreShallow } from '@refly/stores';
 import {
   useSiderStoreShallow,
   SettingsModalActiveTab,
-} from '@refly-packages/ai-workspace-common/stores/sider';
+} from '@refly/stores';
 // McpServerDTO is used implicitly through the API response
 
 interface McpSelectorPanelProps {

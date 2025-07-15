@@ -3,11 +3,11 @@ import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { IRuntime } from '@refly/common-types';
-import { ModelInfo, ProviderItem } from '@refly/openapi-schema';
+import type { ModelInfo, ProviderItem } from '@refly/openapi-schema';
 
 // types
 import type { CanvasEditConfig, InPlaceActionType } from '@refly/utils';
-import { MessageIntentSource } from '@refly-packages/ai-workspace-common/types/copilot';
+import { MessageIntentSource } from '../../types/common';
 
 export type ChatBehavior = 'askIntentMatch' | 'askFollowUp' | 'askNew';
 export type ChatMode = 'ask' | 'agent' | 'media';

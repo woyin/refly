@@ -4,7 +4,7 @@ import { genUniqueId } from '@refly/utils/id';
 import { useEdgeStyles, getEdgeStyles } from '../../components/canvas/constants';
 import { CanvasNode } from '@refly/canvas-common';
 import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/edge';
-import { useThemeStore } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useThemeStore } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const useEdgeOperations = () => {

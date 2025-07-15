@@ -31,8 +31,11 @@ import { useEdgeStyles } from './constants';
 import {
   useCanvasStore,
   useCanvasStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useCanvasNodesStore } from '@refly-packages/ai-workspace-common/stores/canvas-nodes';
+  useCanvasNodesStore,
+  useUserStore,
+  useUserStoreShallow,
+  usePilotStoreShallow
+} from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { LayoutControl } from './layout-control';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
@@ -54,7 +57,6 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 import '@xyflow/react/dist/style.css';
 import './index.scss';
 import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
-import { useUserStore, useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
 import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
@@ -68,7 +70,6 @@ import {
   nodeOperationsEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ChevronUp } from 'lucide-react';

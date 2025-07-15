@@ -8,10 +8,10 @@ import { LuInfo } from 'react-icons/lu';
 import {
   SettingsModalActiveTab,
   useSiderStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/sider';
+} from '@refly/stores';
 import { DownOutlined } from '@ant-design/icons';
 import { SettingsButton } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 import './index.scss';
 
 interface MediaModelSelectorProps {

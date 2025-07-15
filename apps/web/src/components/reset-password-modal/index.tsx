@@ -2,7 +2,7 @@ import { Button, Modal, Input, Form } from 'antd';
 
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 import { useState } from 'react';
 
 interface FormValues {

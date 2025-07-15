@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
-import { useSiderStore } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStore } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { DATA_NUM } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 

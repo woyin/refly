@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as Y from 'yjs';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useDebouncedCallback } from 'use-debounce';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { useSubscriptionUsage } from '../use-subscription-usage';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';

@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { ProviderModal } from '../model-providers/provider-modal';
 import { useListProviders } from '@refly-packages/ai-workspace-common/queries';
 import { ProviderInfo, providerInfoList } from '@refly/utils';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ProviderConfig, Provider } from '@refly/openapi-schema';
 import { IconPlus } from '@refly-packages/ai-workspace-common/components/common/icon';

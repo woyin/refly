@@ -2,13 +2,13 @@ import { Button, Tooltip, Switch } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
 import { LinkOutlined, SendOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
 import { cn, extractUrlsWithLinkify } from '@refly/utils/index';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 import { ChatModeSelector } from './chat-mode-selector';
 
 export interface CustomAction {

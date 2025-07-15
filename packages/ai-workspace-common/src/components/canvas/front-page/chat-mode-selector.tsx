@@ -6,7 +6,7 @@ import {
   IconPilot,
   IconImage,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { ChatMode } from '@refly-packages/ai-workspace-common/stores/chat';
+import { ChatMode } from '@refly/stores';
 
 interface ChatModeSelectorProps {
   chatMode: ChatMode;

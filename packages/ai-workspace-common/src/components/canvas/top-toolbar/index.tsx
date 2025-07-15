@@ -1,24 +1,24 @@
 import { FC, memo } from 'react';
 import { useMatch } from 'react-router-dom';
 import { Button, Divider, message } from 'antd';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
 import { AiOutlineMenuUnfold } from 'react-icons/ai';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CanvasTitle, ReadonlyCanvasTitle } from './canvas-title';
 import { ToolbarButtons } from './buttons';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import ShareSettings from './share-settings';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import './index.scss';
 import { IconLink } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LuBookCopy } from 'react-icons/lu';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 
 interface TopToolbarProps {
   canvasId: string;

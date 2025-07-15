@@ -12,7 +12,7 @@ import {
 } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
 import { HiOutlineCircleStack, HiOutlineSquare3Stack3D } from 'react-icons/hi2';
@@ -22,7 +22,7 @@ import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { useCanvasStore } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStore } from '@refly/stores';
 
 interface ActionContainerProps {
   step: ActionStep;

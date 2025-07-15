@@ -12,20 +12,20 @@ import { Markdown } from '@refly-packages/ai-workspace-common/components/markdow
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useTranslation } from 'react-i18next';
 import { ActionResult, ActionStatus, ConfigScope, Skill } from '@refly/openapi-schema';
-import { useChatStore, useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStore, useChatStoreShallow } from '@refly/stores';
 import { genActionResultID } from '@refly/utils/index';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 import { HiCheck, HiXMark } from 'react-icons/hi2';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { useDocumentContext } from '@refly-packages/ai-workspace-common/context/document';
 import {
   useContextPanelStore,
   useContextPanelStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
+} from '@refly/stores';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { CopyOutlined } from '@ant-design/icons';
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
-import { useDocumentStore } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStore } from '@refly/stores';
 import { useAbortAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-abort-action';
 
 interface AISelectorProps {

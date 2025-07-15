@@ -6,10 +6,10 @@ import {
   useNodeSize,
   MAX_HEIGHT_CLASS,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { getNodeCommonStyles } from '../index';
 import { CustomHandle } from '../shared/custom-handle';
-import { useActionResultStoreShallow } from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useActionResultStoreShallow } from '@refly/stores';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';

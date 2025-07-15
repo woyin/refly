@@ -8,10 +8,10 @@ import { useTranslation } from 'react-i18next';
 import { FaLightbulb } from 'react-icons/fa';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { CheckOutlined, QuestionCircleOutlined } from '@ant-design/icons';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useSubscriptionStoreShallow } from '@refly/stores';
+import { useUserStoreShallow } from '@refly/stores';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 import { SubscriptionPlanType } from '@refly/openapi-schema';
 
 export type SubscriptionInterval = 'monthly' | 'yearly';

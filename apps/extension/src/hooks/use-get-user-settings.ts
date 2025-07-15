@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
 
 // request
-import { LocalSettings, useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { LocalSettings, useUserStore } from '@refly/stores';
 import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 
 import { LOCALE } from '@refly/common-types';

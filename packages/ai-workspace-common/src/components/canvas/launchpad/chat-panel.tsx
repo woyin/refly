@@ -4,18 +4,18 @@ import { useTranslation } from 'react-i18next';
 import {
   useContextPanelStore,
   useContextPanelStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
+} from '@refly/stores';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useContextFilterErrorTip } from './context-manager/hooks/use-context-filter-errror-tip';
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
-import { useChatStore, useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useLaunchpadStoreShallow } from '@refly/stores';
+import { useChatStore, useChatStoreShallow } from '@refly/stores';
 
 import { SelectedSkillHeader } from './selected-skill-header';
 import {
   useSkillStore,
   useSkillStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/skill';
+} from '@refly/stores';
 import { ContextManager } from './context-manager';
 import { ConfigManager } from './config-manager';
 import { ChatActions, CustomAction } from './chat-actions';
@@ -27,15 +27,15 @@ import { PiMagicWand } from 'react-icons/pi';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { IoClose } from 'react-icons/io5';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useUserStoreShallow } from '@refly/stores';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { omit } from '@refly/utils/index';
 import { cn } from '@refly/utils/cn';
 import { ActionStatus, SkillTemplateConfig } from '@refly/openapi-schema';
-import { ContextTarget } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { ContextTarget } from '@refly/stores';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';

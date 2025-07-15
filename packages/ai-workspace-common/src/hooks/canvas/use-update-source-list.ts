@@ -1,5 +1,5 @@
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { Resource, Document } from '@refly/openapi-schema';
 import { useCallback } from 'react';
 

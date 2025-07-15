@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Button, message, Upload, UploadProps } from 'antd';
 import { TbPhoto } from 'react-icons/tb';
 import { RiInboxArchiveLine } from 'react-icons/ri';
-import { useImportResourceStoreShallow } from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { useImportResourceStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useTranslation } from 'react-i18next';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
@@ -11,7 +11,7 @@ import { genResourceID, genImageID } from '@refly/utils/id';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { cn } from '@refly/utils/cn';
-import { ImageItem } from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { ImageItem } from '@refly/stores';
 
 const { Dragger } = Upload;
 
