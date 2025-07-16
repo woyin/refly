@@ -2,7 +2,7 @@ import { Button, Typography } from 'antd';
 
 // styles
 import './index.scss';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 // components
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';
 import { DownOutlined } from '@ant-design/icons';

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Modal, Button } from 'antd';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
 import { useEffect, useMemo, useState } from 'react';
 import { LuLightbulb } from 'react-icons/lu';

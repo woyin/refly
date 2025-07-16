@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Affix, Button, Checkbox, message } from 'antd';
-import { useMultilingualSearchStore } from '../stores/multilingual-search';
+import { useMultilingualSearchStore } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import './action-menu.scss';
-import { useImportResourceStoreShallow } from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { useImportResourceStoreShallow } from '@refly/stores';
 import { UpsertResourceRequest } from '@refly/openapi-schema';
-import { useKnowledgeBaseStore } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
+import { useKnowledgeBaseStore } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { StorageLimit } from '@refly-packages/ai-workspace-common/components/import-resource/intergrations/storageLimit';
 import { getAvailableFileCount } from '@refly/utils/quota';

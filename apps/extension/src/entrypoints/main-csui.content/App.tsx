@@ -10,8 +10,8 @@ import { useToggleCSUI } from '@/modules/toggle-copilot/hooks/use-handle-toggle-
 import { useBindCommands } from '@/hooks/use-bind-commands';
 import { useSetContainerDimension } from '@/hooks/use-set-container-dimension';
 // stores
-import { useCopilotStore } from '@refly-packages/ai-workspace-common/stores/copilot';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useCopilotStore } from '@refly/stores';
+import { useUserStore } from '@refly/stores';
 
 // 组件
 import { Message, Spin } from '@arco-design/web-react';

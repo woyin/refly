@@ -9,6 +9,9 @@ export type NodeDragCreateInfo = {
   handleType: 'source' | 'target';
   position: XYPosition;
 };
+
+export type MediaType = 'image' | 'video' | 'audio';
+
 export type Events = {
   addNode: {
     node: { type: CanvasNodeType; data: CanvasNodeData<any>; position?: XYPosition };
@@ -32,6 +35,18 @@ export type Events = {
     y: number;
     source?: 'node' | 'handle';
     dragCreateInfo?: NodeDragCreateInfo;
+  };
+  generateMedia: {
+    providerKey: string;
+    mediaType: MediaType;
+    query: string;
+    model: string;
+    nodeId: string;
+  };
+  mediaGenerationComplete: {
+    nodeId: string;
+    success: boolean;
+    error?: string;
   };
 };
 

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
-import { useSiderStore } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStore } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { DATA_NUM } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 
 interface CreateCanvasOptions {
   isPilotActivated?: boolean;
+  isMediaGeneration?: boolean;
 }
 
 export const useCreateCanvas = ({
@@ -62,6 +63,10 @@ export const useCreateCanvas = ({
       // If pilot is activated, create a pilot session
       if (options?.isPilotActivated) {
         queryParams.append('isPilotActivated', 'true');
+      }
+
+      if (options?.isMediaGeneration) {
+        queryParams.append('isMediaGeneration', 'true');
       }
 
       // Add canvasId to query params if in project view

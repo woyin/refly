@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Command } from 'cmdk';
-import {
-  useSearchStore,
-  useSearchStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/search';
+import { useSearchStore, useSearchStoreShallow } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 
 import './index.scss';

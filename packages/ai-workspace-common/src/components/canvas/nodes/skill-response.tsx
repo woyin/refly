@@ -25,8 +25,8 @@ import {
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { getArtifactIcon } from '@refly-packages/ai-workspace-common/components/common/result-display';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -58,10 +58,7 @@ import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magic
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import {
-  useActionResultStoreShallow,
-  useActionResultStore,
-} from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useActionResultStoreShallow, useActionResultStore } from '@refly/stores';
 
 export const NodeHeader = memo(
   ({
@@ -181,7 +178,7 @@ const NodeFooter = memo(
             </div>
           )}
           {model && tokenUsage ? <Divider type="vertical" className="mx-1" /> : null}
-          {tokenUsage && (
+          {tokenUsage?.reduce && (
             <div className="flex items-center gap-1 flex-shrink-0">
               <IconToken className="w-3 h-3" />
               {tokenUsage.reduce((acc, t) => acc + t.inputTokens + t.outputTokens, 0)}

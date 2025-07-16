@@ -6,10 +6,14 @@ import { PrismaService } from '../common/prisma.service';
 import { EncryptionService } from '../common/encryption.service';
 import { InternalMcpService } from './internal-mcp.service';
 import { SearchTools } from './tools/search.tools';
+import { MediaGeneratorTools } from './tools/media-generator.tools';
+import { ProviderQueryTools } from './tools/provider-query.tools';
 import { SearchService } from '../search/search.service';
 import { RAGModule } from '../rag/rag.module';
 import { ProviderModule } from '../provider/provider.module';
 import { CommonModule } from '../common/common.module';
+import { MediaGeneratorModule } from '../media-generator/media-generator.module';
+import { ActionModule } from '../action/action.module';
 
 @Module({
   imports: [
@@ -23,6 +27,8 @@ import { CommonModule } from '../common/common.module';
     CommonModule,
     RAGModule,
     ProviderModule,
+    MediaGeneratorModule,
+    ActionModule,
   ],
   providers: [
     InternalMcpService,
@@ -31,6 +37,8 @@ import { CommonModule } from '../common/common.module';
     EncryptionService,
     // McpServerTools,
     SearchTools,
+    MediaGeneratorTools,
+    ProviderQueryTools,
     SearchService,
     JwtAuthGuard,
   ],

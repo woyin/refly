@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
+import { useFrontPageStoreShallow } from '@refly/stores';
 import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/skill-display';
 import {
   getSkillIcon,
@@ -17,7 +17,7 @@ import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-fin
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';
 
 import cn from 'classnames';
@@ -369,7 +369,7 @@ export const UnsignedFrontPage = memo(() => {
 
           {canvasTemplateEnabled && (
             <div className="h-full flex flex-col mt-10">
-              <div className="flex justify-between items-center pt-6 mx-2">
+              <div className="flex justify-between items-center mx-2">
                 <div>
                   <h3 className="text-base font-medium dark:text-gray-100">
                     {t('frontPage.fromCommunity')}

@@ -16,7 +16,7 @@
     "dev": "turbo run dev --filter='!refly-desktop'",
     "dev:electron": "turbo run dev:electron",
     "start": "turbo run start",
-    "build": "turbo run build --filter='!refly-desktop'",
+    "build": "turbo run build",
     "build:api": "turbo run build --filter=@refly/api",
     "build:api:fast": "turbo run build:fast --filter=@refly/api",
     "build:web": "turbo run build --filter=@refly/web",
@@ -69,7 +69,10 @@
   },
   "pnpm": {
     "overrides": {
-      "node-abi": "4.9.0"
+      "node-abi": "4.9.0",
+      "prosemirror-model": "1.25.2",
+      "yjs": "13.6.16",
+      "zod-validation-error": "3.4.1"
     }
   }
 }

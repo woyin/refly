@@ -2,7 +2,7 @@ import { Layout } from 'antd';
 import { useMatch } from 'react-router-dom';
 import { SiderLayout } from '@refly-packages/ai-workspace-common/components/sider/layout';
 import { useBindCommands } from '@refly-packages/ai-workspace-common/hooks/use-bind-commands';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 
 import { LoginModal } from '@/components/login-modal';
 import { SubscribeModal } from '@refly-packages/ai-workspace-common/components/settings/subscribe-modal';
@@ -14,8 +14,11 @@ import { CanvasListModal } from '@refly-packages/ai-workspace-common/components/
 import { LibraryModal } from '@refly-packages/ai-workspace-common/components/workspace/library-modal';
 import { ImportResourceModal } from '@refly-packages/ai-workspace-common/components/import-resource';
 import './index.scss';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { BigSearchModal } from '@refly-packages/ai-workspace-common/components/search/modal';
+import { CanvasRenameModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/canvas-rename';
+import { CanvasDeleteModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/canvas-delete';
+import { DuplicateCanvasModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/duplicate-canvas-modal';
 
 const Content = Layout.Content;
 
@@ -69,6 +72,9 @@ export const AppLayout = (props: AppLayoutProps) => {
         <CanvasListModal visible={showCanvasListModal} setVisible={setShowCanvasListModal} />
         <LibraryModal visible={showLibraryModal} setVisible={setShowLibraryModal} />
         <ImportResourceModal />
+        <CanvasRenameModal />
+        <CanvasDeleteModal />
+        <DuplicateCanvasModal />
       </Layout>
     </ErrorBoundary>
   );

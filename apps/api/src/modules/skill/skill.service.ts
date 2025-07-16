@@ -30,9 +30,9 @@ import {
   Document,
   ActionResult,
   ActionMeta,
-  ModelScene,
   LLMModelConfig,
   CodeArtifact,
+  MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
 import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
@@ -457,7 +457,7 @@ export class SkillService implements OnModuleInit {
 
     const tiers = [];
     for (const providerItem of Object.values(modelProviderMap)) {
-      if (providerItem.tier) {
+      if (providerItem?.tier) {
         tiers.push(providerItem.tier);
       }
     }
@@ -475,11 +475,20 @@ export class SkillService implements OnModuleInit {
       }
     }
 
-    const modelConfigMap: Record<ModelScene, LLMModelConfig> = {
+    const modelConfigMap = {
       chat: JSON.parse(modelProviderMap.chat.config) as LLMModelConfig,
       agent: JSON.parse(modelProviderMap.agent.config) as LLMModelConfig,
       titleGeneration: JSON.parse(modelProviderMap.titleGeneration.config) as LLMModelConfig,
       queryAnalysis: JSON.parse(modelProviderMap.queryAnalysis.config) as LLMModelConfig,
+      image: modelProviderMap.image
+        ? (JSON.parse(modelProviderMap.image.config) as MediaGenerationModelConfig)
+        : undefined,
+      video: modelProviderMap.video
+        ? (JSON.parse(modelProviderMap.video.config) as MediaGenerationModelConfig)
+        : undefined,
+      audio: modelProviderMap.audio
+        ? (JSON.parse(modelProviderMap.audio.config) as MediaGenerationModelConfig)
+        : undefined,
     };
 
     if (param.context) {
@@ -563,7 +572,7 @@ export class SkillService implements OnModuleInit {
               uid,
               version: (existingResult.version ?? 0) + 1,
               type: 'skill',
-              tier: providerItem.tier ?? '',
+              tier: providerItem?.tier ?? '',
               status: 'executing',
               title: param.input.query,
               targetId: param.target?.entityId,
@@ -598,7 +607,7 @@ export class SkillService implements OnModuleInit {
           resultId,
           uid,
           version: 0,
-          tier: providerItem.tier,
+          tier: providerItem?.tier ?? '',
           targetId: param.target?.entityId,
           targetType: param.target?.entityType,
           title: param.input?.query,

@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react';
-import { Button, Dropdown, DropdownProps, MenuProps, Modal, Checkbox, CheckboxProps } from 'antd';
+import { Button, Dropdown, DropdownProps, MenuProps } from 'antd';
 import {
   IconMoreHorizontal,
   IconDelete,
@@ -8,16 +8,8 @@ import {
   IconCopy,
   IconRemove,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useDeleteCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-canvas';
 import { useTranslation } from 'react-i18next';
-import { CanvasRename } from '@refly-packages/ai-workspace-common/components/canvas/top-toolbar/canvas-rename';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
-import { useUpdateCanvas } from '@refly-packages/ai-workspace-common/queries';
-import { IoAlertCircle } from 'react-icons/io5';
-import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { DuplicateCanvasModal } from '@refly-packages/ai-workspace-common/components/canvas-template/duplicate-canvas-modal';
-import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useCanvasOperationStoreShallow } from '@refly/stores';
 
 interface CanvasActionDropdown {
   canvasId: string;
@@ -36,52 +28,19 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     canvasName,
     btnSize = 'small',
     updateShowStatus,
-    afterDelete,
-    afterRename,
     handleUseCanvas,
     handleRemoveFromProject,
   } = props;
   const [popupVisible, setPopupVisible] = useState(false);
   const { t } = useTranslation();
-  const { deleteCanvas } = useDeleteCanvas();
-  const { mutate: updateCanvas } = useUpdateCanvas();
-  const { updateCanvasTitle } = useSiderStoreShallow((state) => ({
-    updateCanvasTitle: state.updateCanvasTitle,
-  }));
-  const { refetchUsage } = useSubscriptionUsage();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleteFile, setIsDeleteFile] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
-  const { getSourceList } = useHandleSiderData();
-  const { projectId } = useGetProjectCanvasId();
-
-  const onChange: CheckboxProps['onChange'] = (e) => {
-    setIsDeleteFile(e.target.checked);
-  };
-
-  const handleDelete = async () => {
-    if (isLoading) return;
-    try {
-      setIsLoading(true);
-      const success = await deleteCanvas(canvasId, isDeleteFile);
-      setPopupVisible(false);
-      if (success) {
-        setIsDeleteModalOpen(false);
-        afterDelete?.();
-        refetchUsage();
-        if (isDeleteFile && projectId) {
-          setTimeout(() => {
-            getSourceList();
-          }, 1000);
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { openRenameModal, openDeleteModal, openDuplicateModal } = useCanvasOperationStoreShallow(
+    (state) => ({
+      openRenameModal: state.openRenameModal,
+      openDeleteModal: state.openDeleteModal,
+      openDuplicateModal: state.openDuplicateModal,
+    }),
+  );
 
   const items: MenuProps['items'] = [
     handleUseCanvas && {
@@ -106,7 +65,7 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
           className="flex items-center"
           onClick={(e) => {
             e.stopPropagation();
-            setIsModalOpen(true);
+            openRenameModal(canvasId, canvasName);
             setPopupVisible(false);
           }}
         >
@@ -122,7 +81,7 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
           className="flex items-center"
           onClick={(e) => {
             e.stopPropagation();
-            setIsDuplicateModalOpen(true);
+            openDuplicateModal(canvasId, canvasName);
             setPopupVisible(false);
           }}
         >
@@ -154,7 +113,7 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
           className="flex items-center text-red-600"
           onClick={(e) => {
             e.stopPropagation();
-            setIsDeleteModalOpen(true);
+            openDeleteModal(canvasId, canvasName);
             setPopupVisible(false);
           }}
         >
@@ -172,96 +131,30 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     }
   };
 
-  const handleModalOk = (newTitle: string) => {
-    if (newTitle?.trim()) {
-      updateCanvas({ body: { canvasId, title: newTitle } });
-      updateCanvasTitle(canvasId, newTitle);
-      setIsModalOpen(false);
-      afterRename?.(newTitle, canvasId);
-    }
-  };
-
-  const handleModalCancel = () => {
-    setIsModalOpen(false);
-  };
-
   useEffect(() => {
     if (popupVisible) {
       updateShowStatus?.(canvasId);
     } else {
       updateShowStatus?.(null);
     }
-    return () => {
-      setIsDeleteFile(false);
-    };
   }, [popupVisible]);
 
   return (
-    <>
-      <Dropdown
-        trigger={['click']}
-        open={popupVisible}
-        onOpenChange={handleOpenChange}
-        menu={{
-          items,
-        }}
-      >
-        <Button
-          size={btnSize}
-          onClick={(e) => e.stopPropagation()}
-          type="text"
-          icon={<IconMoreHorizontal />}
-        />
-      </Dropdown>
-
-      <div onClick={(e) => e.stopPropagation()}>
-        <CanvasRename
-          canvasId={canvasId}
-          canvasTitle={canvasName}
-          isModalOpen={isModalOpen}
-          handleModalOk={handleModalOk}
-          handleModalCancel={handleModalCancel}
-        />
-
-        <Modal
-          title={
-            <div className="flex items-center gap-2">
-              <IoAlertCircle size={26} className="mr-2 text-[#faad14]" />
-              {t('common.deleteConfirmMessage')}
-            </div>
-          }
-          centered
-          width={416}
-          open={isDeleteModalOpen}
-          onOk={handleDelete}
-          onCancel={() => setIsDeleteModalOpen(false)}
-          okText={t('common.confirm')}
-          cancelText={t('common.cancel')}
-          okButtonProps={{ danger: true, loading: isLoading }}
-          destroyOnClose
-          closeIcon={null}
-          confirmLoading={isLoading}
-        >
-          <div className="pl-10">
-            <div className="mb-2">
-              {t('workspace.deleteDropdownMenu.deleteConfirmForCanvas', {
-                canvas: canvasName || t('common.untitled'),
-              })}
-            </div>
-            <Checkbox onChange={onChange} className="mb-2 text-[13px]">
-              {t('canvas.toolbar.deleteCanvasFile')}
-            </Checkbox>
-          </div>
-        </Modal>
-
-        <DuplicateCanvasModal
-          canvasId={canvasId}
-          visible={isDuplicateModalOpen}
-          setVisible={setIsDuplicateModalOpen}
-          canvasName={canvasName}
-        />
-      </div>
-    </>
+    <Dropdown
+      trigger={['click']}
+      open={popupVisible}
+      onOpenChange={handleOpenChange}
+      menu={{
+        items,
+      }}
+    >
+      <Button
+        size={btnSize}
+        onClick={(e) => e.stopPropagation()}
+        type="text"
+        icon={<IconMoreHorizontal />}
+      />
+    </Dropdown>
   );
 });
 

@@ -27,7 +27,7 @@ import { ConfigManager } from '@refly-packages/ai-workspace-common/components/ca
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
 import { ToolOutlined } from '@ant-design/icons';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useLaunchpadStoreShallow } from '@refly/stores';
 
 interface EditChatInputProps {
   enabled: boolean;

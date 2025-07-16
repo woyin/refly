@@ -13,7 +13,7 @@ import {
 import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
 import { getRuntime } from '@refly/utils/env';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
-import { useActionResultStore } from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useActionResultStore } from '@refly/stores';
 import { aggregateTokenUsage, genActionResultID, detectActualTypeFromType } from '@refly/utils';
 import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
@@ -26,7 +26,7 @@ import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@ref
 import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
 import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
 import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useLaunchpadStoreShallow } from '@refly/stores';
 import {
   useAbortAction,
   globalAbortControllerRef,

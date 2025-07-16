@@ -506,7 +506,7 @@ export class SkillInvokerService {
                   `add node to canvas ${target.entityId}, artifact: ${JSON.stringify(artifact)}`,
                 );
 
-                await this.canvasService.addNodeToCanvasDoc(
+                await this.canvasService.addNodeToCanvas(
                   user,
                   target.entityId,
                   {

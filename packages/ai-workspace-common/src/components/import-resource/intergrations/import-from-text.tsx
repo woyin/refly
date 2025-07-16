@@ -2,7 +2,7 @@ import { Button, Input, message, Form } from 'antd';
 import { useEffect, useState } from 'react';
 
 // utils
-import { useImportResourceStoreShallow } from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { useImportResourceStoreShallow } from '@refly/stores';
 // request
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { UpsertResourceRequest } from '@refly/openapi-schema';

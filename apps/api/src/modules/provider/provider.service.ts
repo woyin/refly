@@ -19,6 +19,7 @@ import {
   UpsertProviderRequest,
   User,
   UserPreferences,
+  MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import {
   Provider as ProviderModel,
@@ -43,6 +44,8 @@ import {
   getReranker,
   getChatModel,
   initializeMonitoring,
+  ProviderChecker,
+  ProviderCheckResult,
 } from '@refly/providers';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ConfigService } from '@nestjs/config';
@@ -154,6 +157,33 @@ export class ProviderService implements OnModuleInit {
     }));
 
     return { providers: decryptedProviders, items: decryptedItems };
+  }
+
+  async findProvider(user: User, param: ListProvidersData['query']) {
+    const { enabled, providerKey, category } = param;
+    const provider = await this.prisma.provider.findFirst({
+      where: {
+        uid: user.uid,
+        enabled,
+        providerKey,
+        deletedAt: null,
+        ...(category ? { categories: { contains: category } } : {}),
+      },
+    });
+
+    if (!provider) {
+      return null;
+    }
+
+    // Encrypt API key before storing
+    const decryptedApiKey = provider.apiKey
+      ? this.encryptionService.decrypt(provider.apiKey)
+      : null;
+
+    return {
+      ...provider,
+      apiKey: decryptedApiKey,
+    };
   }
 
   async listProviders(user: User, param: ListProvidersData['query']) {
@@ -606,12 +636,18 @@ export class ProviderService implements OnModuleInit {
     const agentItem = await this.findDefaultProviderItem(user, 'agent', userPo);
     const titleGenerationItem = await this.findDefaultProviderItem(user, 'titleGeneration', userPo);
     const queryAnalysisItem = await this.findDefaultProviderItem(user, 'queryAnalysis', userPo);
+    const imageItem = await this.findDefaultProviderItem(user, 'image', userPo);
+    const videoItem = await this.findDefaultProviderItem(user, 'video', userPo);
+    const audioItem = await this.findDefaultProviderItem(user, 'audio', userPo);
 
     const modelConfigMap: Record<ModelScene, ProviderItemModel> = {
       chat: chatItem,
       agent: agentItem,
       titleGeneration: titleGenerationItem,
       queryAnalysis: queryAnalysisItem,
+      image: imageItem,
+      video: videoItem,
+      audio: audioItem,
     };
 
     return modelConfigMap;
@@ -649,6 +685,15 @@ export class ProviderService implements OnModuleInit {
     if (scene === 'agent' && userDefaultModel?.agent) {
       itemId = userDefaultModel.agent.itemId;
     }
+    if (scene === 'image' && userDefaultModel?.image) {
+      itemId = userDefaultModel.image.itemId;
+    }
+    if (scene === 'video' && userDefaultModel?.video) {
+      itemId = userDefaultModel.video.itemId;
+    }
+    if (scene === 'audio' && userDefaultModel?.audio) {
+      itemId = userDefaultModel.audio.itemId;
+    }
 
     // If found in user preferences, try to use it
     if (itemId) {
@@ -676,13 +721,28 @@ export class ProviderService implements OnModuleInit {
     if (scene === 'agent' && globalDefaultModel?.agent) {
       globalModelId = globalDefaultModel.agent;
     }
+    if (scene === 'image' && globalDefaultModel?.image) {
+      globalModelId = globalDefaultModel.image || globalDefaultModel.image;
+    }
+    if (scene === 'video' && globalDefaultModel?.video) {
+      globalModelId = globalDefaultModel.video || globalDefaultModel.video;
+    }
+    if (scene === 'audio' && globalDefaultModel?.audio) {
+      globalModelId = globalDefaultModel.audio || globalDefaultModel.chat;
+    }
 
     // Try to find provider item with the global model ID
     if (globalModelId) {
-      const availableItems = await this.findProviderItemsByCategory(user, 'llm');
+      const category = ['image', 'video', 'audio'].includes(scene) ? 'mediaGeneration' : 'llm';
+      const availableItems = await this.findProviderItemsByCategory(user, category);
       const globalModelItem = availableItems.find((item) => {
-        const config: LLMModelConfig = JSON.parse(item.config);
-        return config.modelId === globalModelId;
+        if (category === 'mediaGeneration') {
+          const config: MediaGenerationModelConfig = JSON.parse(item.config);
+          return config.modelId === globalModelId;
+        } else {
+          const config: LLMModelConfig = JSON.parse(item.config);
+          return config.modelId === globalModelId;
+        }
       });
 
       if (globalModelItem) {
@@ -701,7 +761,8 @@ export class ProviderService implements OnModuleInit {
     this.logger.log(
       `Default provider item for scene ${scene} not found in user preferences or global config, fallback to the first available model`,
     );
-    const availableItems = await this.findProviderItemsByCategory(user, 'llm');
+    const category = ['image', 'video', 'audio'].includes(scene) ? 'mediaGeneration' : 'llm';
+    const availableItems = await this.findProviderItemsByCategory(user, category);
     if (availableItems.length > 0) {
       return availableItems[0];
     }
@@ -729,7 +790,11 @@ export class ProviderService implements OnModuleInit {
 
     if (providerId) {
       const provider = await this.prisma.provider.findUnique({
-        where: { providerId, OR: [{ uid: user.uid }, { isGlobal: true }], deletedAt: null },
+        where: {
+          providerId,
+          OR: [{ uid: user.uid }, { isGlobal: true }],
+          deletedAt: null,
+        },
       });
       if (provider?.enabled) {
         // Decrypt API key and return
@@ -990,7 +1055,11 @@ export class ProviderService implements OnModuleInit {
     }
 
     const provider = await this.prisma.provider.findUnique({
-      where: { providerId, deletedAt: null, OR: [{ uid: user.uid }, { isGlobal: true }] },
+      where: {
+        providerId,
+        OR: [{ uid: user.uid }, { isGlobal: true }],
+        deletedAt: null,
+      },
     });
 
     if (!provider) {
@@ -1037,6 +1106,86 @@ export class ProviderService implements OnModuleInit {
         `Failed to list provider item options for provider ${providerId}: ${error.stack}`,
       );
       return [];
+    }
+  }
+
+  /**
+   * Test provider connection and API availability
+   * @param user The user to test provider for
+   * @param param Test connection parameters
+   * @returns Test result with status and details
+   */
+  async testProviderConnection(
+    user: User,
+    param: { providerId: string; category?: ProviderCategory },
+  ): Promise<ProviderCheckResult> {
+    const { providerId, category } = param;
+
+    // Confirm method is being called
+    if (!providerId) {
+      throw new ParamsError('Provider ID is required');
+    }
+
+    const provider = await this.prisma.provider.findUnique({
+      where: { providerId, deletedAt: null, OR: [{ uid: user.uid }, { isGlobal: true }] },
+    });
+
+    if (!provider) {
+      throw new ProviderNotFoundError();
+    }
+
+    // Identify the test scenario
+    const isTemporaryProvider = provider.name.startsWith('temp_test_');
+    const _testScenario = provider.isGlobal
+      ? 'Global Provider Test'
+      : isTemporaryProvider
+        ? 'New Config Test (Temporary Provider)' // Case 2&3: New or modify config test
+        : 'Existing Provider Test'; // Case 1: Edit mode directly test
+
+    try {
+      // Check if encrypted API key exists in database
+      const apiKey = provider.apiKey ? this.encryptionService.decrypt(provider.apiKey) : null;
+
+      // Create provider check configuration
+      const checkConfig = {
+        providerId,
+        providerKey: provider.providerKey,
+        name: provider.name,
+        baseUrl: provider.baseUrl,
+        apiKey,
+        categories: provider.categories.split(','),
+      };
+
+      // Use ProviderChecker from packages/providers
+      const providerChecker = new ProviderChecker();
+      const result = await providerChecker.checkProvider(checkConfig, category);
+
+      return result;
+    } catch (error) {
+      // Re-throw the error to let the global error handler deal with it
+      // or create a proper error response using ProviderChecker's error format
+      const errorResult: ProviderCheckResult = {
+        providerId,
+        providerKey: provider.providerKey,
+        name: provider.name,
+        baseUrl: provider.baseUrl,
+        categories: provider.categories.split(','),
+        status: 'failed',
+        message: error?.message || 'Connection check failed',
+        details: {
+          error: {
+            status: 'failed',
+            error: {
+              type: error?.constructor?.name || 'Error',
+              message: error?.message,
+              ...(error?.response ? { response: error.response } : {}),
+            },
+          },
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      return errorResult;
     }
   }
 }

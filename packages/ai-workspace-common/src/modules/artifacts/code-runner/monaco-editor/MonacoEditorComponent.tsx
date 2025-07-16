@@ -13,7 +13,7 @@ import {
   MAX_LOAD_ATTEMPTS,
   getLanguageFromType,
 } from './constants';
-import { useThemeStoreShallow } from '../../../../stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 // Loading timeout in milliseconds (8 seconds)
 const EDITOR_LOADING_TIMEOUT = 1000;

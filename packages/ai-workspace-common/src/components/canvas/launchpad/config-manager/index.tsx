@@ -23,7 +23,7 @@ import {
   SkillTemplateConfigDefinition,
 } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStore } from '@refly/stores';
 
 const { TextArea } = Input;
 

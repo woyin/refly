@@ -16,12 +16,12 @@ import { iconClassName } from '@refly-packages/ai-workspace-common/components/pr
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import cn from 'classnames';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { SiderData } from '@refly-packages/ai-workspace-common/stores/sider';
+import { SiderData } from '@refly/stores';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import HeaderActions from '@refly-packages/ai-workspace-common/components/common/header-actions';
 import { AddSources } from '@refly-packages/ai-workspace-common/components/project/add-sources';
-import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 const { Text } = Typography;
 

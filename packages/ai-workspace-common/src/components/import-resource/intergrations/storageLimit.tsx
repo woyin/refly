@@ -1,7 +1,7 @@
 import { memo, FC } from 'react';
 import { Button, Alert } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { getAvailableFileCount } from '@refly/utils/quota';
 import { ProjectSelect } from './project-select';

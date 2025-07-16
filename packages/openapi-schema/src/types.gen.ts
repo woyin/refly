@@ -745,7 +745,8 @@ export type EntityType =
   | 'project'
   | 'skillResponse'
   | 'codeArtifact'
-  | 'page';
+  | 'page'
+  | 'mediaResult';
 
 /**
  * Entity
@@ -1671,6 +1672,14 @@ export type ActionResult = {
    */
   errors?: Array<string>;
   /**
+   * Media generation output URL (for media type actions)
+   */
+  outputUrl?: string;
+  /**
+   * Media generation output storage key
+   */
+  storageKey?: string;
+  /**
    * Pilot step ID
    */
   pilotStepId?: string;
@@ -1898,7 +1907,14 @@ export type ProviderConfig = {
 /**
  * Model usage scene
  */
-export type ModelScene = 'chat' | 'agent' | 'queryAnalysis' | 'titleGeneration';
+export type ModelScene =
+  | 'chat'
+  | 'agent'
+  | 'queryAnalysis'
+  | 'titleGeneration'
+  | 'image'
+  | 'video'
+  | 'audio';
 
 /**
  * Default model config
@@ -1920,6 +1936,18 @@ export type DefaultModelConfig = {
    * Title generation model for canvas and documents
    */
   titleGeneration?: ProviderItem;
+  /**
+   * Default image generation model
+   */
+  image?: ProviderItem;
+  /**
+   * Default video generation model
+   */
+  video?: ProviderItem;
+  /**
+   * Default audio generation model
+   */
+  audio?: ProviderItem;
 };
 
 /**
@@ -2207,32 +2235,81 @@ export type GetCanvasDetailResponse = BaseResponse & {
   data?: Canvas;
 };
 
+export type CanvasHistoryVersion = {
+  /**
+   * Canvas version
+   */
+  version: string;
+  /**
+   * Canvas hash
+   */
+  hash: string;
+  /**
+   * Canvas timestamp (in unix milliseconds)
+   */
+  timestamp: number;
+};
+
+/**
+ * Canvas data
+ */
+export type CanvasData = {
+  /**
+   * Canvas nodes
+   */
+  nodes: Array<CanvasNode>;
+  /**
+   * Canvas edges
+   */
+  edges: Array<CanvasEdge>;
+};
+
+/**
+ * Canvas state
+ */
+export type CanvasState = CanvasData & {
+  /**
+   * Canvas version
+   */
+  version?: string;
+  /**
+   * Canvas state hash (sha256), calculated from nodes and edges
+   */
+  hash?: string;
+  /**
+   * Canvas transaction list
+   */
+  transactions?: Array<CanvasTransaction>;
+  /**
+   * Canvas history versions
+   */
+  history?: Array<CanvasHistoryVersion>;
+  /**
+   * Canvas creation timestamp (in unix milliseconds)
+   */
+  createdAt?: number;
+  /**
+   * Canvas last updated timestamp (in unix milliseconds)
+   */
+  updatedAt?: number;
+};
+
 /**
  * Raw canvas data
  */
-export type RawCanvasData = {
-  /**
-   * Canvas owner
-   */
-  owner?: ShareUser;
+export type RawCanvasData = CanvasData & {
   /**
    * Canvas title
    */
   title?: string;
   /**
+   * Canvas owner
+   */
+  owner?: ShareUser;
+  /**
    * Minimap URL
    */
   minimapUrl?: string;
-  /**
-   * Canvas nodes
-   */
-  nodes?: Array<CanvasNode>;
-  /**
-   * Canvas edges
-   */
-  edges?: Array<{
-    [key: string]: unknown;
-  }>;
 };
 
 export type ExportCanvasResponse = BaseResponse & {
@@ -2338,6 +2415,175 @@ export type AutoNameCanvasResponse = BaseResponse & {
      */
     title?: string;
   };
+};
+
+export type GetCanvasStateResponse = BaseResponse & {
+  data?: CanvasState;
+};
+
+export type SetCanvasStateRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Canvas state to set
+   */
+  state: CanvasState;
+};
+
+export type GetCanvasTransactionsResponse = BaseResponse & {
+  /**
+   * Canvas diff list
+   */
+  data?: Array<CanvasTransaction>;
+};
+
+/**
+ * Diff type
+ */
+export type DiffType = 'add' | 'update' | 'delete';
+
+export type NodeDiff = {
+  /**
+   * Node ID
+   */
+  id: string;
+  /**
+   * Node diff type
+   */
+  type: DiffType;
+  /**
+   * Node diff from
+   */
+  from?: CanvasNode;
+  /**
+   * Node diff to
+   */
+  to?: CanvasNode;
+};
+
+export type EdgeDiff = {
+  /**
+   * Edge ID
+   */
+  id: string;
+  /**
+   * Edge diff type
+   */
+  type: DiffType;
+  /**
+   * Edge diff from
+   */
+  from?: CanvasEdge;
+  /**
+   * Edge diff to
+   */
+  to?: CanvasEdge;
+};
+
+export type CanvasTransaction = {
+  /**
+   * Transaction ID
+   */
+  txId: string;
+  /**
+   * Node diffs
+   */
+  nodeDiffs: Array<NodeDiff>;
+  /**
+   * Edge diffs
+   */
+  edgeDiffs: Array<EdgeDiff>;
+  /**
+   * Whether the transaction is revoked
+   */
+  revoked?: boolean;
+  /**
+   * Whether the transaction is deleted
+   */
+  deleted?: boolean;
+  /**
+   * Transaction creation timestamp (in unix milliseconds)
+   */
+  createdAt: number;
+  /**
+   * Transaction synchronization timestamp (in unix milliseconds)
+   */
+  syncedAt?: number;
+};
+
+export type SyncCanvasStateRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Canvas state version
+   */
+  version?: string;
+  /**
+   * Transaction list
+   */
+  transactions: Array<CanvasTransaction>;
+};
+
+export type SyncCanvasStateResult = {
+  /**
+   * Transaction list
+   */
+  transactions: Array<CanvasTransaction>;
+};
+
+export type SyncCanvasStateResponse = BaseResponse & {
+  /**
+   * Apply canvas state result
+   */
+  data?: SyncCanvasStateResult;
+};
+
+export type CreateCanvasVersionRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Canvas state
+   */
+  state: CanvasState;
+};
+
+export type VersionConflict = {
+  /**
+   * Local canvas state
+   */
+  localState: CanvasState;
+  /**
+   * Server canvas state
+   */
+  remoteState: CanvasState;
+};
+
+export type CreateCanvasVersionResult = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Version conflict (when there is a conflict)
+   */
+  conflict?: VersionConflict;
+  /**
+   * New canvas state (when there is no conflict)
+   */
+  newState?: CanvasState;
+};
+
+export type CreateCanvasVersionResponse = BaseResponse & {
+  /**
+   * Create canvas version result
+   */
+  data?: CreateCanvasVersionResult;
 };
 
 export type ListCanvasTemplateResponse = BaseResponse & {
@@ -3341,7 +3587,7 @@ export type SkillInvocationConfig = {
   context?: SkillContextRuleGroup;
 };
 
-export type ActionType = 'skill' | 'tool';
+export type ActionType = 'skill' | 'tool' | 'media';
 
 export type ActionContextType = 'resource' | 'document';
 
@@ -3531,6 +3777,34 @@ export type DeleteSkillTriggerRequest = {
    * Trigger ID to delete
    */
   triggerId: string;
+};
+
+/**
+ * media type
+ */
+export type MediaType = 'image' | 'video' | 'audio';
+
+export type MediaGenerateRequest = {
+  mediaType: MediaType;
+  /**
+   * Model name for content generation
+   */
+  model?: string;
+  /**
+   * Optional provider selection
+   */
+  provider?: string | null;
+  /**
+   * Text prompt for content generation
+   */
+  prompt: string;
+};
+
+export type MediaGenerateResponse = BaseResponse & {
+  /**
+   * Media generation result ID
+   */
+  resultId?: string;
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
@@ -4146,6 +4420,21 @@ export type ConvertResponse = BaseResponse & {
   };
 };
 
+export type MediaGenerationModelCapabilities = {
+  /**
+   * Whether this model supports image generation
+   */
+  image?: boolean;
+  /**
+   * Whether this model supports video generation
+   */
+  video?: boolean;
+  /**
+   * Whether this model supports audio generation
+   */
+  audio?: boolean;
+};
+
 export type ModelCapabilities = {
   /**
    * Whether this model supports function calling
@@ -4221,7 +4510,8 @@ export type ProviderCategory =
   | 'reranker'
   | 'webSearch'
   | 'urlParsing'
-  | 'pdfParsing';
+  | 'pdfParsing'
+  | 'mediaGeneration';
 
 /**
  * General provider info
@@ -4288,6 +4578,28 @@ export type LLMModelConfig = {
 };
 
 /**
+ * Provider config for media generation
+ */
+export type MediaGenerationModelConfig = {
+  /**
+   * Model ID
+   */
+  modelId: string;
+  /**
+   * Model name
+   */
+  modelName: string;
+  /**
+   * Model capabilities
+   */
+  capabilities?: MediaGenerationModelCapabilities;
+  /**
+   * Model description
+   */
+  description?: string;
+};
+
+/**
  * Provider config for embeddings
  */
 export type EmbeddingModelConfig = {
@@ -4331,7 +4643,11 @@ export type RerankerModelConfig = {
   relevanceThreshold?: number;
 };
 
-export type ProviderItemConfig = LLMModelConfig | EmbeddingModelConfig | RerankerModelConfig;
+export type ProviderItemConfig =
+  | LLMModelConfig
+  | EmbeddingModelConfig
+  | RerankerModelConfig
+  | MediaGenerationModelConfig;
 
 export type ProviderItemOption = {
   /**
@@ -4441,6 +4757,67 @@ export type DeleteProviderRequest = {
   providerId: string;
 };
 
+export type TestProviderConnectionRequest = {
+  /**
+   * Provider ID to test
+   */
+  providerId: string;
+  /**
+   * Provider category to test (optional)
+   */
+  category?: ProviderCategory;
+};
+
+export type ProviderTestResult = {
+  /**
+   * Provider ID
+   */
+  providerId?: string;
+  /**
+   * Provider key
+   */
+  providerKey?: string;
+  /**
+   * Provider name
+   */
+  name?: string;
+  /**
+   * Provider base URL
+   */
+  baseUrl?: string;
+  /**
+   * Provider categories
+   */
+  categories?: Array<string>;
+  /**
+   * Test result status
+   */
+  status?: 'success' | 'failed' | 'unknown';
+  /**
+   * Test result message
+   */
+  message?: string;
+  /**
+   * Detailed test results
+   */
+  details?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Test timestamp
+   */
+  timestamp?: string;
+};
+
+/**
+ * Test result status
+ */
+export type status2 = 'success' | 'failed' | 'unknown';
+
+export type TestProviderConnectionResponse = BaseResponse & {
+  data?: ProviderTestResult;
+};
+
 export type ListProviderItemOptionsResponse = BaseResponse & {
   data?: Array<ProviderItemOption>;
 };
@@ -4541,7 +4918,11 @@ export type CanvasNodeType =
   | 'toolResponse'
   | 'memo'
   | 'group'
-  | 'image';
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'mediaSkill'
+  | 'mediaSkillResponse';
 
 export type CanvasNodeData = {
   /**
@@ -4564,12 +4945,72 @@ export type CanvasNodeData = {
   };
 };
 
+export type XYPosition = {
+  /**
+   * Node position x
+   */
+  x: number;
+  /**
+   * Node position y
+   */
+  y: number;
+};
+
 export type CanvasNode = {
+  /**
+   * Node ID
+   */
+  id: string;
   /**
    * Node type
    */
   type: CanvasNodeType;
+  /**
+   * Node position
+   */
+  position: XYPosition;
+  /**
+   * Node offset position
+   */
+  offsetPosition?: XYPosition;
   data: CanvasNodeData;
+  /**
+   * Node style
+   */
+  style?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Whether the node is selected
+   */
+  selected?: boolean;
+  /**
+   * Whether the node is being dragged
+   */
+  dragging?: boolean;
+  /**
+   * Parent node ID
+   */
+  parentId?: string;
+};
+
+export type CanvasEdge = {
+  /**
+   * Edge ID
+   */
+  id: string;
+  /**
+   * Edge source node ID
+   */
+  source: string;
+  /**
+   * Edge target node ID
+   */
+  target: string;
+  /**
+   * Edge type
+   */
+  type: string;
 };
 
 export type ListMcpServersData2 = {
@@ -4902,6 +5343,68 @@ export type AutoNameCanvasData = {
 export type AutoNameCanvasResponse2 = AutoNameCanvasResponse;
 
 export type AutoNameCanvasError = unknown;
+
+export type GetCanvasStateData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+    /**
+     * Canvas state version
+     */
+    version?: string;
+  };
+};
+
+export type GetCanvasStateResponse2 = GetCanvasStateResponse;
+
+export type GetCanvasStateError = unknown;
+
+export type SetCanvasStateData = {
+  body: SetCanvasStateRequest;
+};
+
+export type SetCanvasStateResponse = BaseResponse;
+
+export type SetCanvasStateError = unknown;
+
+export type GetCanvasTransactionsData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+    /**
+     * Since timestamp
+     */
+    since?: number;
+    /**
+     * Canvas state version
+     */
+    version?: string;
+  };
+};
+
+export type GetCanvasTransactionsResponse2 = GetCanvasTransactionsResponse;
+
+export type GetCanvasTransactionsError = unknown;
+
+export type SyncCanvasStateData = {
+  body: SyncCanvasStateRequest;
+};
+
+export type SyncCanvasStateResponse2 = SyncCanvasStateResponse;
+
+export type SyncCanvasStateError = unknown;
+
+export type CreateCanvasVersionData = {
+  body: CreateCanvasVersionRequest;
+};
+
+export type CreateCanvasVersionResponse2 = CreateCanvasVersionResponse;
+
+export type CreateCanvasVersionError = unknown;
 
 export type ListCanvasTemplatesData = {
   query?: {
@@ -5649,6 +6152,14 @@ export type DeleteSkillTriggerResponse = BaseResponse;
 
 export type DeleteSkillTriggerError = unknown;
 
+export type GenerateMediaData = {
+  body: MediaGenerateRequest;
+};
+
+export type GenerateMediaResponse = MediaGenerateResponse;
+
+export type GenerateMediaError = unknown;
+
 export type CreatePilotSessionData = {
   body: CreatePilotSessionRequest;
 };
@@ -5816,6 +6327,14 @@ export type DeleteProviderData = {
 export type DeleteProviderResponse = BaseResponse;
 
 export type DeleteProviderError = unknown;
+
+export type TestProviderConnectionData = {
+  body: TestProviderConnectionRequest;
+};
+
+export type TestProviderConnectionResponse2 = TestProviderConnectionResponse;
+
+export type TestProviderConnectionError = unknown;
 
 export type ListProviderItemsData = {
   query?: {

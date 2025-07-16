@@ -1,7 +1,7 @@
 import { Button } from 'antd';
 import { AiOutlineMenuUnfold } from 'react-icons/ai';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { FrontPage } from '@refly-packages/ai-workspace-common/components/canvas/front-page';
 
 export const NoCanvas = ({ projectId }: { projectId: string }) => {

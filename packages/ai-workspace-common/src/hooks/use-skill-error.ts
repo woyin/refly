@@ -1,4 +1,4 @@
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 import { LOCALE } from '@refly/common-types';
 import { getErrorMessage } from '@refly/errors';
 import { guessModelProviderError } from '@refly/errors';
