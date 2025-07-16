@@ -156,6 +156,7 @@ model ActionResult {
   @@unique([resultId, version])
   @@index([targetType, targetId])
   @@index([pilotStepId])
+  @@index([status, updatedAt], name: "idx_action_result_status_updated_at")
   @@map("action_results")
 }
 
