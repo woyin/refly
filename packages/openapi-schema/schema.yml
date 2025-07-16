@@ -4403,6 +4403,9 @@ components:
       enum:
         - document
         - codeArtifact
+        - image
+        - video
+        - audio
     ArtifactStatus:
       type: string
       description: Artifact status

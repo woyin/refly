@@ -21,6 +21,7 @@ import {
   incrementalMarkdownUpdate,
   safeParseJSON,
   getArtifactContentAndAttributes,
+  genTransactionId,
 } from '@refly/utils';
 import {
   SkillRunnableConfig,
@@ -57,6 +58,7 @@ import { CollabContext } from '../collab/collab.dto';
 import { CollabService } from '../collab/collab.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
 import { CanvasService } from '../canvas/canvas.service';
+import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ActionService } from '../action/action.service';
 
 @Injectable()
@@ -71,6 +73,7 @@ export class SkillInvokerService {
     private readonly config: ConfigService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
+    private readonly canvasSyncService: CanvasSyncService,
     private readonly collabService: CollabService,
     private readonly providerService: ProviderService,
     private readonly codeArtifactService: CodeArtifactService,
@@ -356,6 +359,20 @@ export class SkillInvokerService {
                   `add node to canvas ${target.entityId}, artifact: ${JSON.stringify(artifact)}`,
                 );
 
+                // For media types, include initial metadata
+                const nodeMetadata: any = {
+                  status: 'generating',
+                };
+
+                // If this is a completed media artifact, include the media URL
+                if (
+                  ['image', 'video', 'audio'].includes(type) &&
+                  status === 'finish' &&
+                  artifact.metadata
+                ) {
+                  Object.assign(nodeMetadata, artifact.metadata);
+                }
+
                 await this.canvasService.addNodeToCanvas(
                   user,
                   target.entityId,
@@ -364,14 +381,77 @@ export class SkillInvokerService {
                     data: {
                       title: artifact.title,
                       entityId: artifact.entityId,
-                      metadata: {
-                        status: 'generating',
-                      },
+                      metadata: nodeMetadata,
                     },
                   },
                   [{ type: 'skillResponse', entityId: resultId }],
                 );
                 artifactMap[entityId].nodeCreated = true;
+              }
+
+              // Handle media artifact completion - update node metadata
+              if (
+                ['image', 'video', 'audio'].includes(type) &&
+                status === 'finish' &&
+                artifact.metadata &&
+                artifactMap[entityId].nodeCreated
+              ) {
+                this.logger.log(
+                  `updating media node metadata for ${entityId}, metadata: ${JSON.stringify(artifact.metadata)}`,
+                );
+
+                try {
+                  // Get current canvas state to find and update the node
+                  const { nodes } = await this.canvasSyncService.getCanvasData(user, {
+                    canvasId: target.entityId,
+                  });
+
+                  // Find the node to update
+                  const nodeToUpdate = nodes.find(
+                    (node) =>
+                      node.data?.entityId === artifact.entityId && node.type === artifact.type,
+                  );
+
+                  if (nodeToUpdate) {
+                    // Update the node metadata with media URL and completion status
+                    const updatedNode = {
+                      ...nodeToUpdate,
+                      data: {
+                        ...nodeToUpdate.data,
+                        metadata: {
+                          ...nodeToUpdate.data.metadata,
+                          status: 'finish',
+                          ...artifact.metadata,
+                        },
+                      },
+                    };
+
+                    // Sync the updated node to canvas
+                    await this.canvasSyncService.syncState(user, {
+                      canvasId: target.entityId,
+                      transactions: [
+                        {
+                          txId: genTransactionId(),
+                          createdAt: Date.now(),
+                          syncedAt: Date.now(),
+                          nodeDiffs: [
+                            {
+                              type: 'update',
+                              id: nodeToUpdate.id,
+                              from: nodeToUpdate,
+                              to: updatedNode,
+                            },
+                          ],
+                          edgeDiffs: [],
+                        },
+                      ],
+                    });
+                  } else {
+                    this.logger.warn(`Media node not found for artifact ${artifact.entityId}`);
+                  }
+                } catch (error) {
+                  this.logger.error(`Failed to update media node metadata: ${error.message}`);
+                }
               }
 
               // Open direct connection to yjs doc if artifact type is document

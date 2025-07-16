@@ -5,6 +5,7 @@ import {
   SkillInvocationConfig,
   SkillTemplateConfigDefinition,
   MediaGenerateRequest,
+  Artifact,
 } from '@refly/openapi-schema';
 import { StateGraphArgs, StateGraph, START, END } from '@langchain/langgraph';
 import { GraphState } from '../scheduler/types';
@@ -271,15 +272,38 @@ export class GenerateMedia extends BaseSkill {
     );
 
     try {
-      // Prepare media generation parameters
-      const mediaParams = {
-        mediaType,
-        prompt: optimizedPrompt,
-        model: model || undefined,
-        provider,
-        // Additional parameters based on media type
-        // ...this.getMediaSpecificParams(mediaType, tplConfig),
+      // Get resultId first to create artifact
+      const generateResponse = await this.engine.service?.generateMedia?.(
+        config.configurable?.user,
+        {
+          mediaType,
+          prompt: optimizedPrompt,
+          model: model || undefined,
+          provider,
+        },
+      );
+
+      if (!generateResponse?.success || !generateResponse?.resultId) {
+        throw new Error('Failed to start media generation');
+      }
+
+      const { resultId } = generateResponse;
+
+      // Emit artifact event to create canvas node
+      const artifact: Artifact = {
+        type: mediaType,
+        entityId: resultId,
+        title: `Generated ${this.getMediaTypeDisplayName(mediaType)}`,
+        status: 'generating',
       };
+
+      this.emitEvent(
+        {
+          event: 'artifact',
+          artifact,
+        },
+        config,
+      );
 
       this.emitEvent(
         {
@@ -296,8 +320,8 @@ export class GenerateMedia extends BaseSkill {
         config,
       );
 
-      // Call the media generation service with progress tracking
-      const result = await this.callMediaGenerationService(mediaParams, config);
+      // Poll for media generation completion
+      const result = await this.pollMediaGenerationCompletion(resultId, mediaType, config);
 
       if (!result.success) {
         throw new Error(result.error || 'Media generation failed');
@@ -310,7 +334,7 @@ export class GenerateMedia extends BaseSkill {
 - Media Type: ${this.getMediaTypeDisplayName(mediaType)}
 - Prompt: ${optimizedPrompt}
 - Provider: ${provider}
-- Model: ${result.model || 'auto-selected'}
+- Model: ${model || 'auto-selected'}
 - Quality: ${quality}
 - Generation Time: ${result.elapsedTime}
 - Output URL: ${result.outputUrl}
@@ -321,7 +345,7 @@ The ${mediaType} has been generated and is ready for use.`,
           generationConfig: {
             mediaType,
             provider,
-            model: result.model,
+            model,
             quality,
             prompt: optimizedPrompt,
             ...this.getMediaSpecificParams(mediaType, tplConfig),
@@ -370,6 +394,158 @@ The ${mediaType} has been generated and is ready for use.`,
       throw new Error(errorMessage);
     }
   };
+
+  private async pollMediaGenerationCompletion(
+    resultId: string,
+    mediaType: 'image' | 'video' | 'audio',
+    config: SkillRunnableConfig,
+  ): Promise<any> {
+    try {
+      const user = config.configurable?.user;
+      if (!user) {
+        throw new Error('User not found in configuration');
+      }
+
+      // Configure timeout based on media type
+      const timeoutConfig = {
+        image: 90 * 1000, // 90 seconds for images
+        audio: 5 * 60 * 1000, // 5 minutes for audio
+        video: 10 * 60 * 1000, // 10 minutes for video
+      };
+
+      const timeout = timeoutConfig[mediaType] || 90 * 1000;
+      const pollInterval = 2000; // 2 seconds
+      const startTime = Date.now();
+
+      this.engine.logger.log(`Starting polling for ${mediaType} generation, timeout: ${timeout}ms`);
+
+      // Emit initial progress
+      this.emitEvent(
+        {
+          event: 'log',
+          log: {
+            key: 'media.started',
+            titleArgs: {
+              mediaType,
+              resultId,
+            },
+          },
+        },
+        config,
+      );
+
+      // Polling loop with real status checks
+      while (Date.now() - startTime < timeout) {
+        // Wait for polling interval
+        await this.sleep(pollInterval);
+
+        // Check status
+        const actionResultResponse = await this.engine.service.getActionResult(user, { resultId });
+
+        console.log('=====> actionResultResponse', actionResultResponse);
+
+        if (!actionResultResponse) {
+          throw new Error(actionResultResponse?.errCode || 'Failed to get action result');
+        }
+        const actionResult = actionResultResponse;
+
+        // Calculate progress based on elapsed time and media type
+        const elapsed = Date.now() - startTime;
+        const estimatedProgress = Math.min(Math.floor((elapsed / timeout) * 90) + 5, 95);
+
+        // Emit progress event
+        this.emitEvent(
+          {
+            event: 'log',
+            log: {
+              key: 'media.progress',
+              titleArgs: {
+                progress: estimatedProgress,
+                mediaType,
+              },
+            },
+          },
+          config,
+        );
+
+        // Check if completed
+        if (actionResult.status === 'finish') {
+          // Emit artifact completion event with media URL
+          const completedArtifact: Artifact = {
+            type: mediaType,
+            entityId: resultId,
+            title: `Generated ${this.getMediaTypeDisplayName(mediaType)}`,
+            status: 'finish',
+            metadata: {
+              [`${mediaType}Url`]: actionResult.outputUrl,
+              storageKey: actionResult.storageKey,
+            },
+          };
+
+          this.emitEvent(
+            {
+              event: 'artifact',
+              artifact: completedArtifact,
+            },
+            config,
+          );
+
+          // Emit completion event
+          this.emitEvent(
+            {
+              event: 'log',
+              log: {
+                key: 'media.completed',
+                titleArgs: {
+                  mediaType,
+                  resultId,
+                },
+              },
+            },
+            config,
+          );
+
+          this.engine.logger.log(`Media generation completed for ${resultId}`);
+
+          // Return success result with real data
+          const elapsedTime = `${Math.round((Date.now() - startTime) / 1000)}s`;
+          return {
+            success: true,
+            resultId,
+            status: 'completed',
+            mediaType,
+            outputUrl: actionResult.outputUrl,
+            storageKey: actionResult.storageKey,
+            elapsedTime,
+          };
+        }
+
+        // Check if failed
+        if (actionResult.status === 'failed') {
+          const errors = actionResult.errors || [];
+          this.engine.logger.error(
+            `Media generation failed for ${resultId}: ${JSON.stringify(errors)}`,
+          );
+
+          const errorMessage = Array.isArray(errors) ? errors.join(', ') : String(errors);
+          throw new Error(`Media generation failed: ${errorMessage}`);
+        }
+
+        // Continue polling if still executing or waiting
+        this.engine.logger.debug(`Media generation status for ${resultId}: ${actionResult.status}`);
+      }
+
+      // Timeout reached
+      this.engine.logger.warn(`Media generation timeout for ${resultId} after ${timeout}ms`);
+      throw new Error(
+        `Media generation timeout after ${timeout / 1000}s. Use resultId "${resultId}" to check status later`,
+      );
+    } catch (error) {
+      console.error(error);
+      this.engine.logger.error(`Error in media generation: ${error?.message || error}`);
+      throw error;
+    }
+  }
 
   private async callMediaGenerationService(
     params: MediaGenerateRequest,
