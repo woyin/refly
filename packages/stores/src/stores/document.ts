@@ -3,10 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { immer } from 'zustand/middleware/immer';
 import type { Document } from '@refly/openapi-schema';
-import {
-  type CacheInfo,
-  createAutoEvictionStorage,
-} from '../utils/storage';
+import { type CacheInfo, createAutoEvictionStorage } from '../utils/storage';
 
 export enum ActionSource {
   KnowledgeBase = 'knowledge-base',

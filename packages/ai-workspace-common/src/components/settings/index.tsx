@@ -1,9 +1,6 @@
 import { Tabs, Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
-import {
-  useSiderStoreShallow,
-  SettingsModalActiveTab,
-} from '@refly/stores';
+import { useSiderStoreShallow, SettingsModalActiveTab } from '@refly/stores';
 
 // components
 import { AccountSetting } from '@refly-packages/ai-workspace-common/components/settings/account-setting';

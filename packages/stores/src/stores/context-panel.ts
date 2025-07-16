@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
-import { IContextItem } from '@refly/common-types';
+import { IContextItem, ContextTarget } from '@refly/common-types';
 import { purgeContextItems } from '@refly/canvas-common';
 
 export interface FilterErrorInfo {
@@ -11,10 +11,6 @@ export interface FilterErrorInfo {
     currentCount: number;
     required?: boolean;
   };
-}
-
-export enum ContextTarget {
-  Global = 'global',
 }
 
 interface ContextPanelState {

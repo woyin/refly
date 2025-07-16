@@ -1,14 +1,6 @@
 name: Deploy Web To Staging
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - '!packages/skill-template/**'
-      - '!packages/wxt/**'
   workflow_dispatch:
 
 jobs:

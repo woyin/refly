@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useFrontPageStoreShallow, useChatStoreShallow, usePilotStoreShallow, useCanvasStoreShallow } from '@refly/stores';
+import {
+  useFrontPageStoreShallow,
+  useChatStoreShallow,
+  usePilotStoreShallow,
+  useCanvasStoreShallow,
+} from '@refly/stores';
 import { genActionResultID } from '@refly/utils/id';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';

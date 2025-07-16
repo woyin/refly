@@ -1,9 +1,8 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
-import { IContextItem } from '@refly/common-types';
+import { IContextItem, ContextTarget } from '@refly/common-types';
 import { useContextPanelStore } from '@refly/stores';
-import { ContextTarget } from '@refly/stores';
 import {
   emitAddToContext,
   emitAddToContextCompleted,

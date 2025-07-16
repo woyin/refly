@@ -1,5 +1,3 @@
-import { createJSONStorage } from 'zustand/middleware';
-
 export interface CacheInfo {
   lastUsedAt?: number;
   createdAt?: number;
@@ -15,21 +13,21 @@ export interface StorageConfig {
 // Create auto-eviction storage for managing cache size
 export const createAutoEvictionStorage = (config: StorageConfig = {}) => {
   const { maxSize = 50, maxAge = 7 * 24 * 60 * 60 * 1000 } = config;
-  
+
   return {
     getItem: (name: string) => {
       try {
         const item = localStorage.getItem(name);
         if (!item) return null;
-        
+
         const parsed = JSON.parse(item);
-        
+
         // Check if item is expired
         if (parsed.state?.lastUsedAt && Date.now() - parsed.state.lastUsedAt > maxAge) {
           localStorage.removeItem(name);
           return null;
         }
-        
+
         return parsed;
       } catch (error) {
         console.error('Error reading from storage:', error);
@@ -39,16 +37,18 @@ export const createAutoEvictionStorage = (config: StorageConfig = {}) => {
     setItem: (name: string, value: any) => {
       try {
         localStorage.setItem(name, JSON.stringify(value));
-        
+
         // Simple eviction: remove oldest items if we have too many
-        const keys = Object.keys(localStorage).filter(key => key.startsWith('canvas-') || key.startsWith('document-'));
+        const keys = Object.keys(localStorage).filter(
+          (key) => key.startsWith('canvas-') || key.startsWith('document-'),
+        );
         if (keys.length > maxSize) {
           // Remove the oldest items
           keys.sort((a, b) => {
             const aTime = localStorage.getItem(a);
             const bTime = localStorage.getItem(b);
             if (!aTime || !bTime) return 0;
-            
+
             try {
               const aParsed = JSON.parse(aTime);
               const bParsed = JSON.parse(bTime);
@@ -57,10 +57,12 @@ export const createAutoEvictionStorage = (config: StorageConfig = {}) => {
               return 0;
             }
           });
-          
+
           // Remove oldest 20% of items
           const toRemove = Math.ceil(keys.length * 0.2);
-          keys.slice(0, toRemove).forEach(key => localStorage.removeItem(key));
+          for (const key of keys.slice(0, toRemove)) {
+            localStorage.removeItem(key);
+          }
         }
       } catch (error) {
         console.error('Error writing to storage:', error);

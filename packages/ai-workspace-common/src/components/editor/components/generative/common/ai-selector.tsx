@@ -18,10 +18,7 @@ import { useUserStore } from '@refly/stores';
 import { HiCheck, HiXMark } from 'react-icons/hi2';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { useDocumentContext } from '@refly-packages/ai-workspace-common/context/document';
-import {
-  useContextPanelStore,
-  useContextPanelStoreShallow,
-} from '@refly/stores';
+import { useContextPanelStore, useContextPanelStoreShallow } from '@refly/stores';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { CopyOutlined } from '@ant-design/icons';
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';

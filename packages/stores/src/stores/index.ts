@@ -11,7 +11,10 @@ export { useContextPanelStore, useContextPanelStoreShallow } from './context-pan
 export { useCopilotStore, useCopilotStoreShallow } from './copilot';
 export { useDocumentStore, useDocumentStoreShallow } from './document';
 export { useFrontPageStore, useFrontPageStoreShallow } from './front-page';
-export { useImportNewTriggerModal, useImportNewTriggerModalShallow } from './import-new-trigger-modal';
+export {
+  useImportNewTriggerModal,
+  useImportNewTriggerModalShallow,
+} from './import-new-trigger-modal';
 export { useImportResourceStore, useImportResourceStoreShallow } from './import-resource';
 export { useKnowledgeBaseStore, useKnowledgeBaseStoreShallow } from './knowledge-base';
 export { useLaunchpadStore, useLaunchpadStoreShallow } from './launchpad';
@@ -25,6 +28,10 @@ export { useSearchStore, useSearchStoreShallow } from './search';
 export { useSiderStore, useSiderStoreShallow } from './sider';
 export { useSkillStore, useSkillStoreShallow } from './skill';
 export { useSubscriptionStore, useSubscriptionStoreShallow } from './subscription';
+export {
+  useMultilingualSearchStore,
+  useMultilingualSearchStoreShallow,
+} from './multilingual-search';
 export { useThemeStore, useThemeStoreShallow } from './theme';
 export { useUserStore, useUserStoreShallow } from './user';
 export { createAutoEvictionStorage, AutoEvictionStorageManager } from './utils/storage-manager';

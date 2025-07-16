@@ -26,11 +26,7 @@ import { SettingsGuideModal } from '@refly-packages/ai-workspace-common/componen
 import { StorageExceededModal } from '@refly-packages/ai-workspace-common/components/subscription/storage-exceeded-modal';
 // hooks
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
-import {
-  SiderData,
-  useSiderStoreShallow,
-  type SettingsModalActiveTab,
-} from '@refly/stores';
+import { SiderData, useSiderStoreShallow, type SettingsModalActiveTab } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 // icons
 import {

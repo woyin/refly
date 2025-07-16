@@ -4,7 +4,7 @@ import { SearchProgress } from './components/search-progress';
 import { SearchResults } from './components/search-results';
 import { ActionMenu, ImportActionMode } from './components/action-menu';
 import { SearchHome } from './components/search-home';
-import { useMultilingualSearchStoreShallow } from './stores/multilingual-search';
+import { useMultilingualSearchStoreShallow } from '@refly/stores';
 import './index.scss';
 import { SearchOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';

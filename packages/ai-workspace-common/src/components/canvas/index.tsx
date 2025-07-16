@@ -34,7 +34,7 @@ import {
   useCanvasNodesStore,
   useUserStore,
   useUserStoreShallow,
-  usePilotStoreShallow
+  usePilotStoreShallow,
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { LayoutControl } from './layout-control';

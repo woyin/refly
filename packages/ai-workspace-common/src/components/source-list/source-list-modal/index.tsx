@@ -12,11 +12,8 @@ import {
   ActionMenu,
   ImportActionMode,
 } from '@refly-packages/ai-workspace-common/modules/multilingual-search/components/action-menu';
-import {
-  defaultLocalesMap,
-  SearchLocale,
-  useMultilingualSearchStoreShallow,
-} from '@refly-packages/ai-workspace-common/modules/multilingual-search/stores/multilingual-search';
+import { SearchLocale, defaultLocalesMap } from '@refly/common-types';
+import { useMultilingualSearchStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CloseOutlined } from '@ant-design/icons';
 interface SourceListModalProps {

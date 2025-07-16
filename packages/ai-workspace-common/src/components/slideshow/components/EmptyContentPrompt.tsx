@@ -7,7 +7,7 @@ import {
   useAddNodesToCanvasPage,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import classNames from 'classnames';
-import { NodeRenderer } from '@/pages/pages/components/NodeRenderer';
+import { NodeRenderer } from './NodeRenderer';
 import { type NodeRelation } from './ArtifactRenderer';
 
 // Spinner component

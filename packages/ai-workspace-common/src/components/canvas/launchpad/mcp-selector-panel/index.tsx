@@ -7,10 +7,7 @@ import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { useLaunchpadStoreShallow } from '@refly/stores';
 import { useUserStoreShallow } from '@refly/stores';
-import {
-  useSiderStoreShallow,
-  SettingsModalActiveTab,
-} from '@refly/stores';
+import { useSiderStoreShallow, SettingsModalActiveTab } from '@refly/stores';
 // McpServerDTO is used implicitly through the API response
 
 interface McpSelectorPanelProps {

@@ -12,7 +12,7 @@ import {
 } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
-import { IContextItem } from '@refly/common-types';
+import { IContextItem, ContextTarget } from '@refly/common-types';
 import { useContextPanelStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { IoClose } from 'react-icons/io5';
@@ -23,7 +23,6 @@ import { useLaunchpadStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { cn } from '@refly/utils/cn';
 import classNames from 'classnames';
-import { ContextTarget } from '@refly/stores';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';

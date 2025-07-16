@@ -1,10 +1,7 @@
 import { notification, Button, Form, Badge } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  useContextPanelStore,
-  useContextPanelStoreShallow,
-} from '@refly/stores';
+import { useContextPanelStore, useContextPanelStoreShallow } from '@refly/stores';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useContextFilterErrorTip } from './context-manager/hooks/use-context-filter-errror-tip';
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
@@ -12,10 +9,7 @@ import { useLaunchpadStoreShallow } from '@refly/stores';
 import { useChatStore, useChatStoreShallow } from '@refly/stores';
 
 import { SelectedSkillHeader } from './selected-skill-header';
-import {
-  useSkillStore,
-  useSkillStoreShallow,
-} from '@refly/stores';
+import { useSkillStore, useSkillStoreShallow } from '@refly/stores';
 import { ContextManager } from './context-manager';
 import { ConfigManager } from './config-manager';
 import { ChatActions, CustomAction } from './chat-actions';
@@ -35,7 +29,7 @@ import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/e
 import { omit } from '@refly/utils/index';
 import { cn } from '@refly/utils/cn';
 import { ActionStatus, SkillTemplateConfig } from '@refly/openapi-schema';
-import { ContextTarget } from '@refly/stores';
+import { ContextTarget } from '@refly/common-types';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';

@@ -29,10 +29,7 @@ import {
   handleImageDrop,
   handleImagePaste,
 } from '@refly-packages/ai-workspace-common/components/editor/core/plugins';
-import {
-  useDocumentStore,
-  useDocumentStoreShallow,
-} from '@refly/stores';
+import { useDocumentStore, useDocumentStoreShallow } from '@refly/stores';
 import UpdatedImage from '@refly-packages/ai-workspace-common/components/editor/core/extensions/updated-image';
 import { UploadImagesPlugin } from '@refly-packages/ai-workspace-common/components/editor/core/plugins';
 import {

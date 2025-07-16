@@ -29,10 +29,7 @@ import {
   calculateCanvasStateDiff,
   getLastTransaction,
 } from '@refly/canvas-common';
-import {
-  useCanvasStore,
-  useCanvasStoreShallow,
-} from '@refly/stores';
+import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 import { IContextItem } from '@refly/common-types';
 import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';

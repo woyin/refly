@@ -7,10 +7,7 @@ import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
 import { ChatPanel } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
 import { IContextItem } from '@refly/common-types';
-import {
-  useContextPanelStore,
-  useContextPanelStoreShallow,
-} from '@refly/stores';
+import { useContextPanelStore, useContextPanelStoreShallow } from '@refly/stores';
 import {
   ModelInfo,
   Skill,

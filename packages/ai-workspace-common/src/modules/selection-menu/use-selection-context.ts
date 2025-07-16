@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { IContextItem } from '@refly/common-types';
+import { IContextItem, ContextTarget } from '@refly/common-types';
 import {
   useContextPanelStoreShallow,
   useContextPanelStore,
-  ContextTarget,
-  useCanvasStoreShallow
+  useCanvasStoreShallow,
 } from '@refly/stores';
 import { getSelectionNodesMarkdown } from '@refly/utils/html2md';
 import { Editor } from '@tiptap/react';

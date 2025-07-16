@@ -13,10 +13,7 @@ import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks
 import { useNavigate } from 'react-router-dom';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useProjectSelectorStoreShallow } from '@refly/stores';
-import {
-  useCanvasStore,
-  useCanvasStoreShallow,
-} from '@refly/stores';
+import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { IconHome } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
 

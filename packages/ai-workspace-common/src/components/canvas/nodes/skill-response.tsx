@@ -58,10 +58,7 @@ import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magic
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import {
-  useActionResultStoreShallow,
-  useActionResultStore,
-} from '@refly/stores';
+import { useActionResultStoreShallow, useActionResultStore } from '@refly/stores';
 
 export const NodeHeader = memo(
   ({

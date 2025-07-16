@@ -5,10 +5,8 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { ThreadContainer } from './thread-container';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import { SkillTemplateConfig } from '@refly/openapi-schema';
-import {
-  useContextPanelStoreShallow,
-  ContextTarget,
-} from '@refly/stores';
+import { useContextPanelStoreShallow } from '@refly/stores';
+import { ContextTarget } from '@refly/common-types';
 
 export const LinearThreadContainer = memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);

@@ -7,6 +7,8 @@ const content = [
   './index.html',
   './src/**/*.{js,jsx,ts,tsx}',
   '../../packages/ai-workspace-common/src/**/*.{js,jsx,ts,tsx}',
+  '../../packages/web-core/src/**/*.{js,jsx,ts,tsx}',
+  '../../packages/ui-kit/src/**/*.{js,jsx,ts,tsx}',
 ];
 
 const AntdOverwritePlugin = plugin(({ matchVariant }) => {

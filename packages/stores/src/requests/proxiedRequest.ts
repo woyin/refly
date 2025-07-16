@@ -14,7 +14,7 @@ export interface ProxiedResponse<T = any> {
 }
 
 export const proxiedRequest = {
-  queryReferences: async (params: { body: any }) => {
+  queryReferences: async (_params: { body: any }) => {
     // Placeholder implementation
     return {
       data: {

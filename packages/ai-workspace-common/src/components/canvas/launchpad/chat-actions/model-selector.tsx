@@ -7,10 +7,7 @@ import { LLMModelConfig, ModelInfo, TokenUsageMeter } from '@refly/openapi-schem
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 import { IconError } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LuInfo, LuSettings2 } from 'react-icons/lu';
-import {
-  SettingsModalActiveTab,
-  useSiderStoreShallow,
-} from '@refly/stores';
+import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { IContextItem } from '@refly/common-types';
 import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/model';

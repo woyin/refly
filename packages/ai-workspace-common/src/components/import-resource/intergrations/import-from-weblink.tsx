@@ -5,11 +5,7 @@ import { HiOutlineXMark } from 'react-icons/hi2';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { isUrl } from '@refly/utils/isUrl';
 import { genUniqueId } from '@refly/utils/id';
-import {
-  LinkMeta,
-  useImportResourceStore,
-  useImportResourceStoreShallow,
-} from '@refly/stores';
+import { LinkMeta, useImportResourceStore, useImportResourceStoreShallow } from '@refly/stores';
 // request
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { UpsertResourceRequest } from '@refly/openapi-schema';

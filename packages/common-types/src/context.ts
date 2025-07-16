@@ -17,3 +17,7 @@ export interface IContextItem {
   isPreview?: boolean; // is preview mode
   isCurrentContext?: boolean;
 }
+
+export enum ContextTarget {
+  Global = 'global',
+}

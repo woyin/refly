@@ -5,7 +5,12 @@ import { SkillDisplay } from './skill-display';
 import { cn } from '@refly/utils/cn';
 
 // stores
-import { useContextPanelStoreShallow, useChatStoreShallow, useLaunchpadStoreShallow, useSkillStoreShallow } from '@refly/stores';
+import {
+  useContextPanelStoreShallow,
+  useChatStoreShallow,
+  useLaunchpadStoreShallow,
+  useSkillStoreShallow,
+} from '@refly/stores';
 
 // types
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';

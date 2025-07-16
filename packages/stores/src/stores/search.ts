@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
-import { type Document,type Resource, type SearchResult } from '@refly/openapi-schema';
+import { type Document, type Resource, type SearchResult } from '@refly/openapi-schema';
 import { type Mark } from '@refly/common-types';
 
 type SearchPage = 'notes' | 'readResources' | 'knowledgeBases' | 'convs';

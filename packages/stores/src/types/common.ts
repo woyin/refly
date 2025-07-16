@@ -1,4 +1,4 @@
-// Common types that were previously imported from @refly/ai-workspace-common
+import { CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
 
 // Canvas related types
 export enum CanvasNodeType {
@@ -43,4 +43,33 @@ export enum MessageIntentSource {
   Project = 'project',
   Global = 'global',
   Search = 'search',
+}
+
+export interface SiderData {
+  id: string;
+  name: string;
+  updatedAt: string;
+  type: 'canvas' | 'document' | 'resource' | 'project';
+  description?: string;
+  coverUrl?: string;
+}
+
+export enum SettingsModalActiveTab {
+  Language = 'language',
+  Subscription = 'subscription',
+  Account = 'account',
+  ModelProviders = 'modelProviders',
+  ModelConfig = 'modelConfig',
+  ParserConfig = 'parserConfig',
+  DefaultModel = 'defaultModel',
+  McpServer = 'mcpServer',
+  Appearance = 'appearance',
+}
+
+export interface LinearThreadMessage {
+  id: string;
+  resultId: string;
+  nodeId: string;
+  timestamp: number;
+  data: CanvasNodeData<ResponseNodeMeta>;
 }

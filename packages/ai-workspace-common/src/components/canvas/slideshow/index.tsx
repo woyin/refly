@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useCanvasStoreShallow } from '@refly/stores';
 import SlideHeader from './slide-header';
 import NewSlide from './new-slide';
-import { SlideshowEdit } from '../../../../../../apps/web/src/pages/pages';
+import { SlideshowEdit } from '@refly-packages/ai-workspace-common/components/slideshow';
 import { slideshowEmitter } from '@refly-packages/ai-workspace-common/events/slideshow';
 
 import './index.scss';
