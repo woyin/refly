@@ -60,6 +60,10 @@ export class SkillEngineService implements OnModuleInit {
   buildReflyService = (): ReflyService => {
     return {
       async: true,
+      getUserMediaConfig: async (user, mediaType) => {
+        const result = await this.providerService.getUserMediaConfig(user, mediaType);
+        return result;
+      },
       generateMedia: async (user, req) => {
         const result = await this.mediaGeneratorService?.generateMedia?.(user, req);
         return result;

@@ -128,16 +128,38 @@ In this final stage, focus on creating comprehensive outputs based on gathered i
 When users request content that involves visual, video, or audio elements, use the unified **generateMedia** tool:
 
 #### Media Type Selection (use generateMedia with appropriate mediaType parameter):
-- **Image Content**: Keywords: "图片", "图像", "画", "绘制", "设计", "插图", "图表", "示意图", "image", "picture", "draw", "design", "illustration", "chart", "diagram"
-- **Video Content**: Keywords: "视频", "动画", "演示", "录像", "影片", "动态", "video", "animation", "demo", "demonstration", "movie", "motion"
-- **Audio Content**: Keywords: "音频", "音乐", "声音", "录音", "配音", "音效", "audio", "music", "sound", "voice", "recording", "sound effect"
+**CRITICAL: Always analyze user intent and specify the correct mediaType parameter**
+
+**Image Content Detection (mediaType: image):**
+- Keywords: "图片", "图像", "照片", "插图", "设计", "海报", "标志", "图标", "示意图", "画", "绘制", "图表"
+- English: "image", "picture", "photo", "illustration", "design", "poster", "logo", "icon", "diagram", "draw", "chart", "graphic", "visual", "artwork", "banner"
+- User expressions: "create a...", "design a...", "make a picture of...", "draw something...", "generate an image..."
+
+**Video Content Detection (mediaType: video):**
+- Keywords: "视频", "动画", "短片", "演示", "录像", "影片", "动态", "片段", "电影"
+- English: "video", "animation", "demo", "demonstration", "movie", "clip", "footage", "commercial", "trailer", "motion", "animated", "film"
+- User expressions: "create a video...", "make an animation...", "film something...", "produce a clip...", "animate..."
+
+**Audio Content Detection (mediaType: audio):**
+- Keywords: "音频", "音乐", "声音", "语音", "音效", "背景音", "播客", "配音", "歌曲", "录音"
+- English: "audio", "music", "sound", "voice", "speech", "podcast", "narration", "song", "recording", "sound effect", "jingle", "soundtrack", "background music"
+- User expressions: "create music...", "generate audio...", "make a sound...", "compose something...", "record a voice..."
 
 ### Selection Logic:
-1. If the query explicitly mentions visual content → use generateMedia with mediaType=image
-2. If the query mentions video/animation content → use generateMedia with mediaType=video
-3. If the query mentions audio/music content → use generateMedia with mediaType=audio
-4. If the query is about code/applications → use codeArtifacts
-5. Otherwise → use generateDoc for text content
+**STEP 1: Analyze user intent carefully for media type detection**
+1. Scan user query for image-related keywords/expressions → use generateMedia with mediaType=image
+2. Scan user query for video-related keywords/expressions → use generateMedia with mediaType=video  
+3. Scan user query for audio-related keywords/expressions → use generateMedia with mediaType=audio
+4. If ambiguous, prioritize based on context and typical user patterns (images are most common)
+
+**STEP 2: Choose appropriate tool**
+- Use generateMedia ONLY for multimedia content (images, videos, audio)
+- Use codeArtifacts for code projects and interactive applications
+- Use generateDoc for text documents and reports
+
+**STEP 3: Format the query correctly**
+- ALWAYS include "mediaType: [detected_type]" in generateMedia queries
+- Example: "Create a company logo with modern design. mediaType: image"
 
 ### Important Rules:
 - MUST reference previous research context in contextItemIds
@@ -379,32 +401,91 @@ export function generateSchemaInstructions(): string {
     priority: 5,
   };
 
-  // Add multimodal examples
+  // Add multimodal examples with diverse intent expressions
   const multimodalExamples = [
+    // Image generation examples - various ways users express image needs
     {
       name: 'Generate product illustration',
       skillName: 'generateMedia',
       query:
-        'Create a modern, minimalist illustration of a smart home device with clean lines and tech-focused design. mediaType: image, style: realistic',
+        'Create a modern, minimalist illustration of a smart home device with clean lines and tech-focused design. mediaType: image',
       contextItemIds: ['research-smart-home-123', 'design-trends-456'],
       workflowStage: 'creation',
       priority: 1,
     },
     {
+      name: 'Design company logo',
+      skillName: 'generateMedia',
+      query:
+        'Design a professional logo for our AI startup with tech elements and modern aesthetics. mediaType: image',
+      contextItemIds: ['brand-guidelines-234', 'competitor-analysis-567'],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+    {
+      name: 'Create marketing poster',
+      skillName: 'generateMedia',
+      query:
+        'Make a vibrant promotional poster for our product launch event with bold colors. mediaType: image',
+      contextItemIds: ['event-details-345', 'brand-colors-678'],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+
+    // Video generation examples - various ways users express video needs
+    {
       name: 'Create demo video',
       skillName: 'generateMedia',
       query:
-        'Generate a 30-second product demonstration video showing the key features and benefits. mediaType: video, duration: 30',
+        'Generate a 30-second product demonstration video showing the key features and benefits. mediaType: video',
       contextItemIds: ['product-features-789', 'user-scenarios-101'],
       workflowStage: 'creation',
       priority: 1,
     },
     {
+      name: 'Make promotional animation',
+      skillName: 'generateMedia',
+      query:
+        'Produce an animated commercial for our new app with smooth transitions and engaging visuals. mediaType: video',
+      contextItemIds: ['app-features-456', 'target-audience-789'],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+    {
+      name: 'Film tutorial clip',
+      skillName: 'generateMedia',
+      query:
+        'Create a short tutorial video showing how to use our software interface step by step. mediaType: video',
+      contextItemIds: ['software-guide-123', 'user-feedback-456'],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+
+    // Audio generation examples - various ways users express audio needs
+    {
       name: 'Generate background music',
       skillName: 'generateMedia',
       query:
-        'Create upbeat, modern background music for a tech product presentation. mediaType: audio, audioType: music, duration: 60',
-      contextItemIds: ['brand-guidelines-202'],
+        'Create upbeat, modern electronic background music for a tech presentation. mediaType: audio',
+      contextItemIds: ['presentation-content-112', 'music-references-131'],
+      workflowStage: 'creation',
+      priority: 2,
+    },
+    {
+      name: 'Produce podcast intro',
+      skillName: 'generateMedia',
+      query:
+        'Compose a professional podcast intro jingle with energetic rhythm and tech vibes. mediaType: audio',
+      contextItemIds: ['podcast-theme-234', 'audio-examples-567'],
+      workflowStage: 'creation',
+      priority: 2,
+    },
+    {
+      name: 'Create sound effects',
+      skillName: 'generateMedia',
+      query:
+        'Generate UI sound effects for button clicks and notifications in our mobile app. mediaType: audio',
+      contextItemIds: ['app-design-345', 'sound-references-678'],
       workflowStage: 'creation',
       priority: 2,
     },
@@ -450,7 +531,17 @@ ${JSON.stringify(example, null, 2)}
   .join('\n')}
 
 ### Tool Selection Guidelines:
-- Use **generateMedia** for: all multimedia content including images, videos, and audio (specify mediaType in query)
+- Use **generateMedia** for: all multimedia content including images, videos, and audio
+  - **CRITICAL**: Always specify mediaType parameter (image, video, or audio) in the query based on user intent
+  - **Media Type Detection Rules**:
+    * **image**: photos, pictures, illustrations, designs, posters, logos, diagrams, graphics
+    * **video**: videos, animations, demos, clips, movies, commercials, motion content
+    * **audio**: music, songs, sounds, voices, podcasts, narration, sound effects
+  - **Format**: "User's content request. mediaType: detected_type"
+  - **Examples**:
+    * "Create a logo for my company. mediaType: image"
+    * "Make a product demo video. mediaType: video" 
+    * "Generate background music. mediaType: audio"
 - Use **generateDoc** for: text documents, articles, reports
 - Use **codeArtifacts** for: code projects, applications, interactive tools
 

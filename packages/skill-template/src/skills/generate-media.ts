@@ -37,178 +37,6 @@ export class GenerateMedia extends BaseSkill {
           { value: 'audio', labelDict: { en: 'Audio', 'zh-CN': '音频' } },
         ],
       },
-      {
-        key: 'provider',
-        inputMode: 'select',
-        defaultValue: 'replicate',
-        labelDict: {
-          en: 'Provider',
-          'zh-CN': '提供商',
-        },
-        descriptionDict: {
-          en: 'Media generation provider',
-          'zh-CN': '媒体生成提供商',
-        },
-        options: [
-          { value: 'replicate', labelDict: { en: 'Replicate', 'zh-CN': 'Replicate' } },
-          { value: 'fal', labelDict: { en: 'Fal.ai', 'zh-CN': 'Fal.ai' } },
-          { value: 'volces', labelDict: { en: 'Volces', 'zh-CN': 'Volces' } },
-          { value: 'openai', labelDict: { en: 'OpenAI', 'zh-CN': 'OpenAI' } },
-        ],
-      },
-      {
-        key: 'model',
-        inputMode: 'input',
-        defaultValue: '',
-        labelDict: {
-          en: 'Model (Optional)',
-          'zh-CN': '模型（可选）',
-        },
-        descriptionDict: {
-          en: 'Specific model to use (leave empty for auto-selection)',
-          'zh-CN': '指定使用的模型（留空自动选择）',
-        },
-      },
-
-      // // Image-specific configurations
-      // {
-      //   key: 'aspectRatio',
-      //   inputMode: 'select',
-      //   defaultValue: '1:1',
-      //   labelDict: {
-      //     en: 'Aspect Ratio (Image)',
-      //     'zh-CN': '宽高比（图片）',
-      //   },
-      //   descriptionDict: {
-      //     en: 'Image aspect ratio (only for image generation)',
-      //     'zh-CN': '图像宽高比（仅用于图片生成）',
-      //   },
-      //   options: [
-      //     { value: '1:1', labelDict: { en: '1:1 (Square)', 'zh-CN': '1:1 (方形)' } },
-      //     { value: '16:9', labelDict: { en: '16:9 (Landscape)', 'zh-CN': '16:9 (横屏)' } },
-      //     { value: '9:16', labelDict: { en: '9:16 (Portrait)', 'zh-CN': '9:16 (竖屏)' } },
-      //     { value: '4:3', labelDict: { en: '4:3 (Standard)', 'zh-CN': '4:3 (标准)' } },
-      //     { value: '3:2', labelDict: { en: '3:2 (Photo)', 'zh-CN': '3:2 (照片)' } },
-      //   ],
-      // },
-      // {
-      //   key: 'style',
-      //   inputMode: 'select',
-      //   defaultValue: 'realistic',
-      //   labelDict: {
-      //     en: 'Style (Image)',
-      //     'zh-CN': '风格（图片）',
-      //   },
-      //   descriptionDict: {
-      //     en: 'Image generation style (only for image generation)',
-      //     'zh-CN': '图像生成风格（仅用于图片生成）',
-      //   },
-      //   options: [
-      //     { value: 'realistic', labelDict: { en: 'Realistic', 'zh-CN': '真实' } },
-      //     { value: 'artistic', labelDict: { en: 'Artistic', 'zh-CN': '艺术' } },
-      //     { value: 'cartoon', labelDict: { en: 'Cartoon', 'zh-CN': '卡通' } },
-      //     { value: 'anime', labelDict: { en: 'Anime', 'zh-CN': '动漫' } },
-      //     { value: 'abstract', labelDict: { en: 'Abstract', 'zh-CN': '抽象' } },
-      //   ],
-      // },
-      // // Video-specific configurations
-      // {
-      //   key: 'duration',
-      //   inputMode: 'select',
-      //   defaultValue: '5',
-      //   labelDict: {
-      //     en: 'Duration (Video)',
-      //     'zh-CN': '时长（视频）',
-      //   },
-      //   descriptionDict: {
-      //     en: 'Video duration in seconds (only for video generation)',
-      //     'zh-CN': '视频时长（秒）（仅用于视频生成）',
-      //   },
-      //   options: [
-      //     { value: '3', labelDict: { en: '3 seconds', 'zh-CN': '3秒' } },
-      //     { value: '5', labelDict: { en: '5 seconds', 'zh-CN': '5秒' } },
-      //     { value: '10', labelDict: { en: '10 seconds', 'zh-CN': '10秒' } },
-      //     { value: '15', labelDict: { en: '15 seconds', 'zh-CN': '15秒' } },
-      //     { value: '30', labelDict: { en: '30 seconds', 'zh-CN': '30秒' } },
-      //   ],
-      // },
-      // {
-      //   key: 'fps',
-      //   inputMode: 'select',
-      //   defaultValue: '24',
-      //   labelDict: {
-      //     en: 'Frame Rate (Video)',
-      //     'zh-CN': '帧率（视频）',
-      //   },
-      //   descriptionDict: {
-      //     en: 'Video frame rate (only for video generation)',
-      //     'zh-CN': '视频帧率（仅用于视频生成）',
-      //   },
-      //   options: [
-      //     { value: '12', labelDict: { en: '12 FPS', 'zh-CN': '12帧/秒' } },
-      //     { value: '24', labelDict: { en: '24 FPS', 'zh-CN': '24帧/秒' } },
-      //     { value: '30', labelDict: { en: '30 FPS', 'zh-CN': '30帧/秒' } },
-      //     { value: '60', labelDict: { en: '60 FPS', 'zh-CN': '60帧/秒' } },
-      //   ],
-      // },
-      // // Audio-specific configurations
-      // {
-      //   key: 'audioType',
-      //   inputMode: 'select',
-      //   defaultValue: 'music',
-      //   labelDict: {
-      //     en: 'Audio Type (Audio)',
-      //     'zh-CN': '音频类型（音频）',
-      //   },
-      //   descriptionDict: {
-      //     en: 'Type of audio to generate (only for audio generation)',
-      //     'zh-CN': '要生成的音频类型（仅用于音频生成）',
-      //   },
-      //   options: [
-      //     { value: 'music', labelDict: { en: 'Music', 'zh-CN': '音乐' } },
-      //     { value: 'speech', labelDict: { en: 'Speech', 'zh-CN': '语音' } },
-      //     { value: 'sound_effect', labelDict: { en: 'Sound Effect', 'zh-CN': '音效' } },
-      //     { value: 'ambient', labelDict: { en: 'Ambient', 'zh-CN': '环境音' } },
-      //   ],
-      // },
-      // {
-      //   key: 'audioDuration',
-      //   inputMode: 'select',
-      //   defaultValue: '30',
-      //   labelDict: {
-      //     en: 'Duration (Audio)',
-      //     'zh-CN': '时长（音频）',
-      //   },
-      //   descriptionDict: {
-      //     en: 'Audio duration in seconds (only for audio generation)',
-      //     'zh-CN': '音频时长（秒）（仅用于音频生成）',
-      //   },
-      //   options: [
-      //     { value: '10', labelDict: { en: '10 seconds', 'zh-CN': '10秒' } },
-      //     { value: '30', labelDict: { en: '30 seconds', 'zh-CN': '30秒' } },
-      //     { value: '60', labelDict: { en: '1 minute', 'zh-CN': '1分钟' } },
-      //     { value: '120', labelDict: { en: '2 minutes', 'zh-CN': '2分钟' } },
-      //     { value: '300', labelDict: { en: '5 minutes', 'zh-CN': '5分钟' } },
-      //   ],
-      // },
-      // {
-      //   key: 'quality',
-      //   inputMode: 'select',
-      //   defaultValue: 'high',
-      //   labelDict: {
-      //     en: 'Quality',
-      //     'zh-CN': '质量',
-      //   },
-      //   descriptionDict: {
-      //     en: 'Generation quality',
-      //     'zh-CN': '生成质量',
-      //   },
-      //   options: [
-      //     { value: 'standard', labelDict: { en: 'Standard', 'zh-CN': '标准' } },
-      //     { value: 'high', labelDict: { en: 'High', 'zh-CN': '高质量' } },
-      //     { value: 'ultra', labelDict: { en: 'Ultra', 'zh-CN': '超高质量' } },
-      //   ],
-      // },
     ],
   };
 
@@ -231,7 +59,7 @@ export class GenerateMedia extends BaseSkill {
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
     const { query: stateQuery } = state;
-    const { tplConfig } = config.configurable;
+    const { tplConfig, user } = config.configurable;
 
     // Get the media generation query from state.query (passed by pilot engine)
     const query = stateQuery || '';
@@ -240,16 +68,39 @@ export class GenerateMedia extends BaseSkill {
       throw new Error('A prompt is required for media generation');
     }
 
-    // Extract configuration values with defaults
-    const mediaType = String(tplConfig?.mediaType?.value ?? 'image') as 'image' | 'video' | 'audio';
-    const provider = String(tplConfig?.provider?.value ?? 'replicate');
-    const model = String(tplConfig?.model?.value ?? 'black-forest-labs/flux-schnell');
-    const quality = String(tplConfig?.quality?.value ?? 'high');
+    // Parse parameters from query string (for pilot system compatibility)
+    const parsedParams = this.parseQueryParameters(query);
+
+    // Intelligently infer media type from query content
+    const inferredMediaType = this.inferMediaTypeFromQuery(query);
+
+    // Determine final media type with priority: explicit param > inferred > config default > fallback default
+    const mediaType = (parsedParams.mediaType ||
+      inferredMediaType ||
+      String(tplConfig?.mediaType?.value ?? 'image')) as 'image' | 'video' | 'audio';
+
+    // Log media type detection process for debugging
+    this.engine.logger.log(
+      `Media type detection: explicit="${parsedParams.mediaType || 'none'}", inferred="${inferredMediaType || 'none'}", final="${mediaType}"`,
+    );
+    const quality = parsedParams.quality || String(tplConfig?.quality?.value ?? 'high');
+
+    const { provider, model } = await this.engine.service.getUserMediaConfig(user, mediaType);
+
+    // Clean the query by removing parameter specifications
+    const cleanedQuery = this.cleanQueryFromParameters(query);
 
     config.metadata.step = { name: 'generateMedia' };
 
     // Optimize prompt based on media type and configuration
-    const optimizedPrompt = this.optimizePrompt(query, mediaType, tplConfig);
+    const optimizedPrompt = this.optimizePrompt(cleanedQuery, mediaType, {
+      ...tplConfig,
+      // Override with parsed parameters
+      mediaType: { value: mediaType },
+      provider: { value: provider },
+      model: { value: model },
+      quality: { value: quality },
+    });
 
     this.engine.logger.log(`Generating ${mediaType} with prompt: ${optimizedPrompt}`);
 
@@ -261,7 +112,7 @@ export class GenerateMedia extends BaseSkill {
           key: 'media.generating',
           titleArgs: {
             mediaType,
-            prompt: query,
+            prompt: cleanedQuery,
             provider,
             model: model || 'auto-selected',
             quality,
@@ -348,7 +199,6 @@ The ${mediaType} has been generated and is ready for use.`,
             model,
             quality,
             prompt: optimizedPrompt,
-            ...this.getMediaSpecificParams(mediaType, tplConfig),
           },
           outputUrl: result.outputUrl,
           storageKey: result.storageKey,
@@ -715,63 +565,137 @@ The ${mediaType} has been generated and is ready for use.`,
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private getMediaSpecificParams(mediaType: string, tplConfig: any): object {
-    switch (mediaType) {
-      case 'image':
-        return {
-          aspectRatio: String(tplConfig?.aspectRatio?.value ?? '1:1'),
-          style: String(tplConfig?.style?.value ?? 'realistic'),
-          width: this.getWidthFromAspectRatio(String(tplConfig?.aspectRatio?.value ?? '1:1')),
-          height: this.getHeightFromAspectRatio(String(tplConfig?.aspectRatio?.value ?? '1:1')),
-        };
-      case 'video':
-        return {
-          duration: Number(tplConfig?.duration?.value ?? 5),
-          fps: Number(tplConfig?.fps?.value ?? 24),
-        };
-      case 'audio':
-        return {
-          audioType: String(tplConfig?.audioType?.value ?? 'music'),
-          duration: Number(tplConfig?.audioDuration?.value ?? 30),
-        };
-      default:
-        return {};
+  /**
+   * Intelligently infer media type from query content
+   * Analyzes keywords and context to determine the intended media type
+   */
+  private inferMediaTypeFromQuery(query: string): 'image' | 'video' | 'audio' | null {
+    const lowerQuery = query.toLowerCase();
+
+    // Image keywords (most common)
+    const imageKeywords = [
+      'image',
+      'photo',
+      'picture',
+      'illustration',
+      'drawing',
+      'artwork',
+      'design',
+      'poster',
+      'banner',
+      'logo',
+      'icon',
+      'graphic',
+      'visual',
+      'diagram',
+      '图片',
+      '图像',
+      '照片',
+      '插图',
+      '设计',
+      '海报',
+      '标志',
+      '图标',
+      '示意图',
+    ];
+
+    // Video keywords
+    const videoKeywords = [
+      'video',
+      'movie',
+      'animation',
+      'clip',
+      'footage',
+      'demo',
+      'demonstration',
+      'commercial',
+      'trailer',
+      'short film',
+      'motion',
+      'animated',
+      '视频',
+      '动画',
+      '短片',
+      '演示',
+      '录像',
+      '影片',
+      '动态',
+    ];
+
+    // Audio keywords
+    const audioKeywords = [
+      'audio',
+      'music',
+      'song',
+      'sound',
+      'voice',
+      'speech',
+      'narration',
+      'podcast',
+      'soundtrack',
+      'background music',
+      'sound effect',
+      'jingle',
+      '音频',
+      '音乐',
+      '声音',
+      '语音',
+      '音效',
+      '背景音',
+      '播客',
+      '配音',
+    ];
+
+    // Count keyword matches for each type
+    const imageScore = imageKeywords.filter((keyword) => lowerQuery.includes(keyword)).length;
+    const videoScore = videoKeywords.filter((keyword) => lowerQuery.includes(keyword)).length;
+    const audioScore = audioKeywords.filter((keyword) => lowerQuery.includes(keyword)).length;
+
+    // Return the type with the highest score
+    if (videoScore > imageScore && videoScore > audioScore) {
+      return 'video';
     }
-  }
-
-  private getWidthFromAspectRatio(aspectRatio: string): number {
-    const ratioMap: Record<string, number> = {
-      '1:1': 1024,
-      '16:9': 1920,
-      '9:16': 1080,
-      '4:3': 1024,
-      '3:2': 1536,
-    };
-    return ratioMap[aspectRatio] || 1024;
-  }
-
-  private getHeightFromAspectRatio(aspectRatio: string): number {
-    const ratioMap: Record<string, number> = {
-      '1:1': 1024,
-      '16:9': 1080,
-      '9:16': 1920,
-      '4:3': 768,
-      '3:2': 1024,
-    };
-    return ratioMap[aspectRatio] || 1024;
-  }
-
-  private getFileExtension(mediaType: string): string {
-    switch (mediaType) {
-      case 'image':
-        return 'png';
-      case 'video':
-        return 'mp4';
-      case 'audio':
-        return 'mp3';
-      default:
-        return 'bin';
+    if (audioScore > imageScore && audioScore > videoScore) {
+      return 'audio';
     }
+    if (imageScore > 0) {
+      return 'image';
+    }
+
+    // If no clear keywords found, return null (will use default)
+    return null;
+  }
+
+  /**
+   * Parse parameters from query string for pilot system compatibility
+   * Supports formats like "mediaType: image", "provider: replicate", etc.
+   */
+  private parseQueryParameters(query: string): Record<string, string> {
+    const params: Record<string, string> = {};
+
+    // Match patterns like "mediaType: image", "provider: replicate", etc.
+    const paramPattern = /(\w+):\s*(\w+)/g;
+    const matches = Array.from(query.matchAll(paramPattern));
+
+    for (const match of matches) {
+      const [, key, value] = match;
+      params[key] = value;
+    }
+
+    return params;
+  }
+
+  /**
+   * Remove parameter specifications from query to get clean prompt
+   */
+  private cleanQueryFromParameters(query: string): string {
+    // Remove patterns like "mediaType: image", "provider: replicate", etc.
+    return query
+      .replace(/\b\w+:\s*\w+\b/g, '') // Remove parameter specifications
+      .replace(/,\s*,/g, ',') // Remove double commas
+      .replace(/^\s*,\s*|\s*,\s*$/g, '') // Remove leading/trailing commas
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
   }
 
   private getMediaTypeDisplayName(mediaType: string): string {

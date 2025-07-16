@@ -137,6 +137,16 @@ export interface ReflyService {
   generateMedia: (user: User, req: MediaGenerateRequest) => Promise<MediaGenerateResponse>;
   async;
   getActionResult(user: User, param: GetActionResultData['query']): Promise<any>;
+
+  getUserMediaConfig(
+    user: User,
+    mediaType: 'image' | 'audio' | 'video',
+    model?: string,
+    provider?: string,
+  ): Promise<{
+    provider: string;
+    model: string;
+  } | null>;
 }
 
 export interface SkillEngineOptions {
