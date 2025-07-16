@@ -1928,9 +1928,6 @@ importers:
 
   packages/stores:
     dependencies:
-      '@refly/ai-workspace-common':
-        specifier: workspace:*
-        version: link:../ai-workspace-common
       '@refly/canvas-common':
         specifier: workspace:*
         version: link:../canvas-common

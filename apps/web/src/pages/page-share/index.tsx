@@ -5,17 +5,17 @@ import { Spin, Button, Modal } from 'antd';
 import { FileTextOutlined, PlayCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import '../pages/styles/preview-mode.css';
+import '@refly-packages/ai-workspace-common/components/slideshow/styles/preview-mode.css';
 
 // Import abstract components and hooks
-import { NodeRenderer } from '../pages/components/NodeRenderer';
-import { type NodeRelation } from '../pages/components/ArtifactRenderer';
-import PageLayout from '../pages/components/PageLayout';
-import PreviewMode from '../pages/components/PreviewMode';
-import { usePreviewUI } from '../pages/hooks/usePreviewUI';
-import { useSlideshow } from '../pages/hooks/useSlideshow';
-import { getNodeTitle } from '../pages/utils/nodeUtils';
-import { useCardScroll } from '../hooks/useCardScroll';
+import { NodeRenderer } from '@refly-packages/ai-workspace-common/components/slideshow/components/NodeRenderer';
+import { type NodeRelation } from '@refly-packages/ai-workspace-common/components/slideshow/components/ArtifactRenderer';
+import PageLayout from '@refly-packages/ai-workspace-common/components/slideshow/components/PageLayout';
+import PreviewMode from '@refly-packages/ai-workspace-common/components/slideshow/components/PreviewMode';
+import { usePreviewUI } from '@refly-packages/ai-workspace-common/components/slideshow/hooks/usePreviewUI';
+import { useSlideshow } from '@refly-packages/ai-workspace-common/components/slideshow/hooks/useSlideshow';
+import { getNodeTitle } from '@refly-packages/ai-workspace-common/components/slideshow/utils/nodeUtils';
+import { useCardScroll } from '@refly-packages/ai-workspace-common/components/slideshow/hooks/useCardScroll';
 
 const SharePage = () => {
   const { shareId = '' } = useParams();

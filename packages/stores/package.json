@@ -11,15 +11,11 @@
     "@refly/utils": "workspace:*",
     "@refly/openapi-schema": "workspace:*",
     "@refly/canvas-common": "workspace:*",
-    "@refly/ai-workspace-common": "workspace:*",
     "@refly/request": "workspace:*",
     "zustand": "~4.5.1",
     "immer": "^10.1.1",
     "react": "^18.2.0",
     "@xyflow/react": "^12.3.5"
-  },
-  "scripts": {
-    "build": "tsc --noEmit --skipLibCheck"
   },
   "devDependencies": {
     "@refly/tsconfig": "workspace:*",
