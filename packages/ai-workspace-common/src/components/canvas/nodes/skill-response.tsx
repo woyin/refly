@@ -25,7 +25,11 @@ import {
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { getArtifactIcon } from '@refly-packages/ai-workspace-common/components/common/result-display';
-import { useKnowledgeBaseStoreShallow } from '@refly/stores';
+import {
+  useActionResultStore,
+  useActionResultStoreShallow,
+  useKnowledgeBaseStoreShallow,
+} from '@refly/stores';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
@@ -44,7 +48,6 @@ import {
   useNodeSize,
   MAX_HEIGHT_CLASS,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { ContentPreview } from './shared/content-preview';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import cn from 'classnames';
 import { ReasoningContentPreview } from './shared/reasoning-content-preview';
@@ -58,7 +61,8 @@ import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magic
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useActionResultStoreShallow, useActionResultStore } from '@refly/stores';
+
+import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 
 export const NodeHeader = memo(
   ({
@@ -114,8 +118,26 @@ export const NodeHeader = memo(
         >
           <div className="flex items-center gap-2">
             {showIcon && (
-              <div className="w-6 h-6 rounded bg-[#F79009] shadow-lg flex items-center justify-center flex-shrink-0">
-                <IconResponse className="w-4 h-4 text-white" />
+              <div
+                className={`w-6 h-6 rounded shadow-lg flex items-center justify-center flex-shrink-0 ${
+                  skillName === 'generateImage'
+                    ? 'bg-[#7C3AED]'
+                    : skillName === 'generateVideo'
+                      ? 'bg-[#DC2626]'
+                      : skillName === 'generateAudio'
+                        ? 'bg-[#059669]'
+                        : 'bg-[#F79009]'
+                }`}
+              >
+                {skillName === 'generateImage' ? (
+                  <span className="text-white text-sm">🖼️</span>
+                ) : skillName === 'generateVideo' ? (
+                  <span className="text-white text-sm">🎬</span>
+                ) : skillName === 'generateAudio' ? (
+                  <span className="text-white text-sm">🎵</span>
+                ) : (
+                  <IconResponse className="w-4 h-4 text-white" />
+                )}
               </div>
             )}
             {isEditing ? (
@@ -806,12 +828,13 @@ export const SkillResponseNode = memo(
                   )}
 
                   {status !== 'failed' && content && (
-                    <ContentPreview
+                    <MultimodalContentPreview
                       resultId={entityId}
                       content={truncateContent(content)}
                       sizeMode={sizeMode}
                       isOperating={isOperating}
                       sources={sources}
+                      metadata={metadata}
                     />
                   )}
                 </div>

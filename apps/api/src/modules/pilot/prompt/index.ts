@@ -11,7 +11,14 @@ export const pilotStepSchema = z
   .object({
     name: z.string().describe('A clear and concise title for the step'),
     skillName: z
-      .enum(['commonQnA', 'webSearch', 'librarySearch', 'generateDoc', 'codeArtifacts'])
+      .enum([
+        'commonQnA',
+        'webSearch',
+        'librarySearch',
+        'generateDoc',
+        'codeArtifacts',
+        'generateMedia', // Unified multimodal skill for image, video, and audio
+      ])
       .describe('The name of the skill to invoke'),
     priority: z.number().min(1).max(5).describe('Priority level from 1 (highest) to 5 (lowest)'),
     query: z.string().describe('The query to ask the skill'),
@@ -21,7 +28,7 @@ export const pilotStepSchema = z
     workflowStage: z
       .enum(['research', 'analysis', 'synthesis', 'creation'])
       .describe(
-        'The workflow stage this step belongs to - must follow proper sequencing: research (early) → analysis (middle) → synthesis (optional) → creation (final). Each stage uses specific tools: research uses webSearch/librarySearch/commonQnA, analysis uses commonQnA, synthesis uses commonQnA, creation uses generateDoc/codeArtifacts only after sufficient context gathering.',
+        'The workflow stage this step belongs to - must follow proper sequencing: research (early) → analysis (middle) → synthesis (optional) → creation (final). Each stage uses specific tools: research uses webSearch/librarySearch/commonQnA, analysis uses commonQnA, synthesis uses commonQnA, creation uses generateDoc/codeArtifacts/generateMedia only after sufficient context gathering.',
       ),
   })
   .describe('A single action step of the pilot');
@@ -110,17 +117,35 @@ In this late middle stage, focus on organizing and planning outputs:
     case 'creation':
       return `
 ## CURRENT EPOCH STAGE: CREATION (Final Stage)
-In this final stage, focus on creating polished outputs:
+In this final stage, focus on creating comprehensive outputs based on gathered information:
 
-- NOW APPROPRIATE: Use generateDoc and codeArtifacts, but ONLY in the final 1-2 steps
-- MUST reference previous context items in almost all cases
-- Only in extremely rare cases can they generate without context dependency
-- Create comprehensive documents based on all previous research
-- Generate complete code artifacts with proper formatting
-- Ensure outputs incorporate insights from all previous epochs
-- Polish and refine deliverables
-- MOST steps should have workflowStage="creation"
-- Some analysis/synthesis steps still acceptable if needed`;
+### Available Creation Tools:
+- **generateDoc**: Create comprehensive documents, articles, reports
+- **codeArtifacts**: Generate complete code projects and applications
+- **generateMedia**: Create multimodal content including images, videos, and audio (unified multimedia generator)
+
+### Multimodal Content Detection Guidelines:
+When users request content that involves visual, video, or audio elements, use the unified **generateMedia** tool:
+
+#### Media Type Selection (use generateMedia with appropriate mediaType parameter):
+- **Image Content**: Keywords: "图片", "图像", "画", "绘制", "设计", "插图", "图表", "示意图", "image", "picture", "draw", "design", "illustration", "chart", "diagram"
+- **Video Content**: Keywords: "视频", "动画", "演示", "录像", "影片", "动态", "video", "animation", "demo", "demonstration", "movie", "motion"
+- **Audio Content**: Keywords: "音频", "音乐", "声音", "录音", "配音", "音效", "audio", "music", "sound", "voice", "recording", "sound effect"
+
+### Selection Logic:
+1. If the query explicitly mentions visual content → use generateMedia with mediaType=image
+2. If the query mentions video/animation content → use generateMedia with mediaType=video
+3. If the query mentions audio/music content → use generateMedia with mediaType=audio
+4. If the query is about code/applications → use codeArtifacts
+5. Otherwise → use generateDoc for text content
+
+### Important Rules:
+- MUST reference previous research context in contextItemIds
+- Each creation step should build upon information gathered in previous stages
+- Use specific, descriptive queries that include style and format requirements
+- ALL creation steps should have workflowStage="creation"
+- Creation tools should ONLY be used in the final 1-2 steps
+- MUST reference previous context items in almost all cases`;
 
     default:
       return `
@@ -354,11 +379,42 @@ export function generateSchemaInstructions(): string {
     priority: 5,
   };
 
+  // Add multimodal examples
+  const multimodalExamples = [
+    {
+      name: 'Generate product illustration',
+      skillName: 'generateMedia',
+      query:
+        'Create a modern, minimalist illustration of a smart home device with clean lines and tech-focused design. mediaType: image, style: realistic',
+      contextItemIds: ['research-smart-home-123', 'design-trends-456'],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+    {
+      name: 'Create demo video',
+      skillName: 'generateMedia',
+      query:
+        'Generate a 30-second product demonstration video showing the key features and benefits. mediaType: video, duration: 30',
+      contextItemIds: ['product-features-789', 'user-scenarios-101'],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+    {
+      name: 'Generate background music',
+      skillName: 'generateMedia',
+      query:
+        'Create upbeat, modern background music for a tech product presentation. mediaType: audio, audioType: music, duration: 60',
+      contextItemIds: ['brand-guidelines-202'],
+      workflowStage: 'creation',
+      priority: 2,
+    },
+  ];
+
   return `Please generate a structured JSON array of research steps with the following schema:
 
 Each step should have:
 1. "name": A clear, concise title for the step
-2. "skillName": The specific skill to invoke (one of: "commonQnA", "webSearch", "librarySearch", "generateDoc", "codeArtifacts")
+2. "skillName": The specific skill to invoke (one of: "commonQnA", "webSearch", "librarySearch", "generateDoc", "codeArtifacts", "generateMedia")
 3. "query": The specific question or prompt to send to the skill
 4. "contextItemIds": Array of IDs for relevant canvas items that provide context for this step
 5. "workflowStage": The stage of the workflow this step belongs to (one of: "research", "analysis", "synthesis", "creation")
@@ -379,6 +435,24 @@ ${JSON.stringify(analysisExample, null, 2)}
 \`\`\`json
 ${JSON.stringify(creationExample, null, 2)}
 \`\`\`
+
+### Multimodal Creation Examples:
+
+${multimodalExamples
+  .map(
+    (example) => `
+**${example.skillName} Example:**
+\`\`\`json
+${JSON.stringify(example, null, 2)}
+\`\`\`
+`,
+  )
+  .join('\n')}
+
+### Tool Selection Guidelines:
+- Use **generateMedia** for: all multimedia content including images, videos, and audio (specify mediaType in query)
+- Use **generateDoc** for: text documents, articles, reports
+- Use **codeArtifacts** for: code projects, applications, interactive tools
 
 JSON Schema Definition:
 \`\`\`json
