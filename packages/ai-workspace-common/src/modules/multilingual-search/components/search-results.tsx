@@ -5,10 +5,9 @@ import { useTranslation } from 'react-i18next';
 import './search-results.scss';
 import { Source } from '@refly/openapi-schema';
 import { TranslationWrapper } from '@refly-packages/ai-workspace-common/components/translation-wrapper';
-import { SearchLocale } from '@refly/stores';
+import { SearchLocale, defaultLocalesMap } from '@refly/common-types';
 import { safeParseURL } from '@refly/utils/url';
 import { AiOutlineGlobal, AiOutlineTranslation } from 'react-icons/ai';
-import { defaultLocalesMap } from '@refly/stores';
 
 interface SearchResultsProps {
   className?: string;

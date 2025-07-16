@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import UseCasesGallery from '../../components/landing-page-partials/use-cases-gallery';
 import Header from '../../components/landing-page-partials/Header';
 import Footer from '../../components/landing-page-partials/Footer';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { useEffect } from 'react';
 
 function UseCasesGalleryPage() {

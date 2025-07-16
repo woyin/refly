@@ -28,6 +28,10 @@ export { useSearchStore, useSearchStoreShallow } from './search';
 export { useSiderStore, useSiderStoreShallow } from './sider';
 export { useSkillStore, useSkillStoreShallow } from './skill';
 export { useSubscriptionStore, useSubscriptionStoreShallow } from './subscription';
+export {
+  useMultilingualSearchStore,
+  useMultilingualSearchStoreShallow,
+} from './multilingual-search';
 export { useThemeStore, useThemeStoreShallow } from './theme';
 export { useUserStore, useUserStoreShallow } from './user';
 export { createAutoEvictionStorage, AutoEvictionStorageManager } from './utils/storage-manager';

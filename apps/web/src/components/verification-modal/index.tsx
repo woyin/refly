@@ -1,7 +1,7 @@
 import { Modal, Input, Button, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
-import { useAuthStore, useAuthStoreShallow } from '@refly/stores/auth';
+import { useAuthStore, useAuthStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { InvalidVerificationSession } from '@refly/errors';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';

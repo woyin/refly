@@ -13,7 +13,7 @@ import { CopyOutlined, CodeOutlined, EyeOutlined } from '@ant-design/icons';
 import { MarkdownMode } from '../../types';
 import { PiMagnifyingGlassPlusBold } from 'react-icons/pi';
 import { useCreateCodeArtifact } from '@refly-packages/ai-workspace-common/hooks/use-create-code-artifact';
-import { useThemeStoreShallow } from '../@refly/stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 // Initialize mermaid config
 const initializeMermaid = (isDarkMode: boolean) => {

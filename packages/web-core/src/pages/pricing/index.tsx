@@ -2,7 +2,7 @@ import { PriceContent } from '@refly-packages/ai-workspace-common/components/set
 import Header from '../../components/landing-page-partials/Header';
 import { Helmet } from 'react-helmet';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import Footer from '../../components/landing-page-partials/Footer';
 import FrequentlyAskedQuestions from '../../components/landing-page-partials/frequently-asked-questions';
 

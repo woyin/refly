@@ -1,7 +1,7 @@
 import Logo from '../../assets/logo.svg';
 import { Button, Dropdown } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 import { useState, useEffect, useMemo } from 'react';
 import {
   useNavigate,

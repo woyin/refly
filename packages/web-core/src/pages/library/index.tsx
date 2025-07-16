@@ -12,7 +12,7 @@ import PageTitle from '../page-title';
 import './index.scss';
 import { useCookie } from 'react-use';
 // types
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { getExtensionId } from '@refly/utils';
 import { useTranslation } from 'react-i18next';
 

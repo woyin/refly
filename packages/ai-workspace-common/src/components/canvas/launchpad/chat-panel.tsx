@@ -29,7 +29,7 @@ import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/e
 import { omit } from '@refly/utils/index';
 import { cn } from '@refly/utils/cn';
 import { ActionStatus, SkillTemplateConfig } from '@refly/openapi-schema';
-import { ContextTarget } from '@refly/stores';
+import { ContextTarget } from '@refly/common-types';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';

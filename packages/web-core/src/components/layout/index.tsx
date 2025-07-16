@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ErrorBoundary } from '@sentry/react';
 import { SiderLayout } from '@refly-packages/ai-workspace-common/components/sider/layout';
 import { useBindCommands } from '@refly-packages/ai-workspace-common/hooks/use-bind-commands';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { LOCALE } from '@refly/common-types';
 
 import { LoginModal } from '../../components/login-modal';
@@ -17,7 +17,7 @@ import { CanvasListModal } from '@refly-packages/ai-workspace-common/components/
 import { LibraryModal } from '@refly-packages/ai-workspace-common/components/workspace/library-modal';
 import { ImportResourceModal } from '@refly-packages/ai-workspace-common/components/import-resource';
 import './index.scss';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { BigSearchModal } from '@refly-packages/ai-workspace-common/components/search/modal';
 import { CanvasRenameModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/canvas-rename';
 import { CanvasDeleteModal } from '@refly-packages/ai-workspace-common/components/canvas/modals/canvas-delete';

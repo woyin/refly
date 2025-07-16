@@ -13,6 +13,7 @@
     "@refly/errors": "workspace:*",
     "@refly/i18n": "workspace:*",
     "@refly/openapi-schema": "workspace:*",
+    "@refly/stores": "workspace:*",
     "@refly/ui-kit": "workspace:*",
     "@refly/utils": "workspace:*",
     "@sentry/react": "^7.113.0",

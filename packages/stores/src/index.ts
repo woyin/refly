@@ -8,7 +8,11 @@ export {
   useCanvasTemplateModal,
   useCanvasTemplateModalShallow,
 } from './stores/canvas-template-modal';
-export { useCanvasStore, useCanvasStoreShallow } from './stores/canvas';
+export {
+  type LinearThreadMessage,
+  useCanvasStore,
+  useCanvasStoreShallow,
+} from './stores/canvas';
 export { useChatStore, useChatStoreShallow } from './stores/chat';
 export { useContextPanelStore, useContextPanelStoreShallow } from './stores/context-panel';
 export { useCopilotStore, useCopilotStoreShallow } from './stores/copilot';
@@ -37,6 +41,10 @@ export { useSearchStore, useSearchStoreShallow } from './stores/search';
 export { useSiderStore, useSiderStoreShallow } from './stores/sider';
 export { useSkillStore, useSkillStoreShallow } from './stores/skill';
 export { useSubscriptionStore, useSubscriptionStoreShallow } from './stores/subscription';
+export {
+  useMultilingualSearchStore,
+  useMultilingualSearchStoreShallow,
+} from './stores/multilingual-search';
 export { useThemeStore, useThemeStoreShallow } from './stores/theme';
 export { useUserStore, useUserStoreShallow } from './stores/user';
 export {
@@ -44,3 +52,4 @@ export {
   AutoEvictionStorageManager,
 } from './stores/utils/storage-manager';
 export type { CacheInfo } from './stores/utils/storage-manager';
+export { type SiderData, SettingsModalActiveTab } from './types/common';

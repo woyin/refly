@@ -1,6 +1,6 @@
 import { Button } from 'antd';
 import { AiOutlineMenuFold, AiOutlineMenuUnfold } from 'react-icons/ai';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 
 const PageTitle = (props: { title: string }) => {
