@@ -6594,6 +6594,10 @@ export const MediaGenerationModelConfigSchema = {
       description: 'Model capabilities',
       $ref: '#/components/schemas/MediaGenerationModelCapabilities',
     },
+    description: {
+      type: 'string',
+      description: 'Model description',
+    },
   },
 } as const;
 
@@ -6660,6 +6664,29 @@ export const ProviderItemConfigSchema = {
       $ref: '#/components/schemas/MediaGenerationModelConfig',
     },
   ],
+} as const;
+
+export const CreditBillingSchema = {
+  type: 'object',
+  description: 'Credit billing configuration for provider items',
+  required: ['unitCost', 'unit', 'minCharge'],
+  properties: {
+    unitCost: {
+      type: 'number',
+      description: 'Credit consumption per unit usage',
+      minimum: 0,
+    },
+    unit: {
+      type: 'string',
+      description: 'Measurement unit (e.g., token, image, second)',
+      example: '5Ktoken',
+    },
+    minCharge: {
+      type: 'number',
+      description: 'Minimum credit charge per request',
+      minimum: 0,
+    },
+  },
 } as const;
 
 export const ProviderItemOptionSchema = {
@@ -6730,6 +6757,127 @@ export const ProviderItemSchema = {
     group: {
       type: 'string',
       description: 'Provider item group',
+    },
+    creditBilling: {
+      description: 'Credit billing info',
+      $ref: '#/components/schemas/CreditBilling',
+    },
+  },
+} as const;
+
+export const CreditRechargeSchema = {
+  type: 'object',
+  description: 'Credit recharge record for user balance management',
+  required: [
+    'rechargeId',
+    'uid',
+    'amount',
+    'balance',
+    'enabled',
+    'expiresAt',
+    'createdAt',
+    'updatedAt',
+  ],
+  properties: {
+    rechargeId: {
+      type: 'string',
+      description: 'Unique recharge record ID',
+    },
+    uid: {
+      type: 'string',
+      description: 'User UID who owns this recharge record',
+    },
+    amount: {
+      type: 'integer',
+      description: 'Original recharge amount in credits',
+      minimum: 0,
+    },
+    balance: {
+      type: 'integer',
+      description: 'Remaining balance for this recharge record',
+      minimum: 0,
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'Whether this recharge record is enabled (false after 30 days)',
+      default: true,
+    },
+    source: {
+      type: 'string',
+      description: 'Recharge source type',
+      enum: ['purchase', 'gift', 'promotion', 'refund'],
+      default: 'purchase',
+    },
+    description: {
+      type: 'string',
+      description: 'Optional description for this recharge',
+    },
+    expiresAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Expiration timestamp (30 days from creation)',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Record creation timestamp',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Record last update timestamp',
+    },
+  },
+} as const;
+
+export const CreditUsageSchema = {
+  type: 'object',
+  description: 'Credit usage record for tracking consumption',
+  required: ['usageId', 'uid', 'amount', 'usageType', 'createdAt'],
+  properties: {
+    usageId: {
+      type: 'string',
+      description: 'Unique usage record ID',
+    },
+    uid: {
+      type: 'string',
+      description: 'User UID who consumed the credits',
+    },
+    amount: {
+      type: 'integer',
+      description: 'Amount of credits consumed',
+      minimum: 0,
+    },
+    providerItemId: {
+      type: 'string',
+      description: 'Provider item ID that consumed the credits',
+    },
+    modelName: {
+      type: 'string',
+      description: 'Model name used for this consumption',
+    },
+    usageType: {
+      type: 'string',
+      description: 'Type of usage that consumed credits',
+      enum: ['model_call', 'media_generation', 'embedding', 'reranking', 'other'],
+      default: 'model_call',
+    },
+    actionResultId: {
+      type: 'string',
+      description: 'Related action result ID (if applicable)',
+    },
+    pilotSessionId: {
+      type: 'string',
+      description: 'Related pilot session ID (if applicable)',
+    },
+    description: {
+      type: 'string',
+      description: 'Optional description for this usage',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Usage record creation timestamp',
     },
   },
 } as const;
