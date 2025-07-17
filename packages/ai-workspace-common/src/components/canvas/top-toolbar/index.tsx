@@ -4,7 +4,6 @@ import { Button, Divider, message } from 'antd';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
-import { SideRight } from 'refly-icons';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
@@ -27,9 +26,8 @@ interface TopToolbarProps {
 export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.language as LOCALE;
-  const { collapse, setCollapse } = useSiderStoreShallow((state) => ({
+  const { collapse } = useSiderStoreShallow((state) => ({
     collapse: state.collapse,
-    setCollapse: state.setCollapse,
   }));
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
@@ -83,15 +81,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
         <div className="flex items-center relative z-10">
           {collapse && (
             <>
-              <SiderPopover>
-                <Button
-                  type="text"
-                  icon={<SideRight size={20} />}
-                  onClick={() => {
-                    setCollapse(!collapse);
-                  }}
-                />
-              </SiderPopover>
+              <SiderPopover />
               <Divider type="vertical" className="pr-[4px] h-4" />
             </>
           )}

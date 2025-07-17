@@ -11,6 +11,10 @@ export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
     cssVar: {
       key: 'refly',
     },
+    token: {
+      colorPrimary: '#0E9F77',
+      borderRadius: 8,
+    },
     algorithm: theme.defaultAlgorithm,
   },
   updateConfig: (config) => set((state) => ({ theme: { ...state.theme, ...config } })),

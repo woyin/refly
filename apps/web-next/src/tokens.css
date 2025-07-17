@@ -6,7 +6,7 @@
   --refly-bg-main-z1: #f0f0f0;
   --refly-bg-glass-content: #ffffffcc;
   --refly-modal-mask: #00000026;
-  --refly-Card-Border: #1c23221a;
+  --refly-Card-Border: rgba(0,0,0,0.1);
   --refly-line: #1c232229;
   --refly-text-0: #1c1f23;
   --refly-text-1: #1c1f23cc;
@@ -41,12 +41,12 @@
 
 /* Dark Theme */
 .dark {
-  --refly-bg-content-z2: #3f4040;
+  --refly-bg-content-z2: #262626;
   --refly-bg-body-z0: #111111;
   --refly-bg-main-z1: #2b2b2c;
   --refly-bg-glass-content: #000000cc;
   --refly-modal-mask: #00000026;
-  --refly-Card-Border: #1c23221a;
+  --refly-Card-Border: rgba(216, 216, 216, 0.10);
   --refly-line: #1c23221a;
   --refly-text-0: #f9f9f9;
   --refly-text-1: #f9f9f9cc;

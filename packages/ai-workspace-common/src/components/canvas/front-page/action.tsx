@@ -97,7 +97,7 @@ export const Actions = memo(
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center">
           <div className="mr-2">
-            <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
+            <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} className="h-[32px]" />
           </div>
 
           {userStore.isLogin && !isPilotActivated && (

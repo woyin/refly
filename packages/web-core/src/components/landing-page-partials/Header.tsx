@@ -131,7 +131,7 @@ function Header() {
       <div className="mr-4 flex shrink-0 flex-row items-center" style={{ height: 45 }}>
         <Logo onClick={() => navigate('/')} className="mr-2" />
         <GithubStar />
-        <div className="flex shrink-0 mr-4 ml-5 self-stretch my-auto w-px h-6 bg-black bg-opacity-10" />
+        <div className="flex shrink-0 mr-4 ml-5 self-stretch my-auto w-[1px] h-6 bg-refly-Card-Border" />
 
         <div className="flex flex-row items-center">
           {tabOptions.map((item) => (
