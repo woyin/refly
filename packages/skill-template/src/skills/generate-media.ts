@@ -138,7 +138,10 @@ export class GenerateMedia extends BaseSkill {
     );
     const quality = parsedParams.quality || String(tplConfig?.quality?.value ?? 'high');
 
-    const { provider, model } = await this.engine.service.getUserMediaConfig(user, mediaType);
+    const { provider, model } = (await this.engine.service.getUserMediaConfig(user, mediaType)) || {
+      provider: 'replicate',
+      model: 'auto-selected',
+    };
 
     // Clean the query by removing parameter specifications
     const cleanedQuery = this.cleanQueryFromParameters(query);
