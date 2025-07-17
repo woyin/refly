@@ -609,6 +609,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: CanvasNode<any>) => {
+      if (!node) return;
+
       if (node.id.startsWith('ghost-')) {
         setContextMenu((prev) => ({ ...prev, open: false }));
         return;
@@ -754,6 +756,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   // Handle node drag stop and apply snap positions
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
+      if (!node) return;
+
       // Call the hook's onNodeDragStop method
       onNodeDragStop(node.id);
 
