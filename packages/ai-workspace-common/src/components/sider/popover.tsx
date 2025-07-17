@@ -14,7 +14,7 @@ export const SiderPopover = (props: SiderPopoverProps) => {
       overlayInnerStyle={{ padding: 0, boxShadow: 'none', border: 'none' }}
       className="shadow-none"
       arrow={false}
-      placement="bottom"
+      placement="rightBottom"
       mouseEnterDelay={0.5}
       content={<SiderLayout source="popover" />}
     >

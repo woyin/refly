@@ -7,12 +7,14 @@ import {
   useSearchParams,
 } from '@refly-packages/ai-workspace-common/utils/router';
 
+import { IconCanvas } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {
-  IconCanvas,
-  IconSettings,
-  IconLightMode,
-  IconDarkMode,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
+  Project as IconProject,
+  KnowledgeBase as IconKnowledgeBase,
+  InterfaceDark,
+  InterfaceLight,
+  Setting,
+} from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 
@@ -30,9 +32,11 @@ import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/us
 import { SiderData, useSiderStoreShallow, type SettingsModalActiveTab } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 // icons
-import { IconLibrary, IconRight } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconRight } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
-import { AiOutlineMenuFold, AiOutlineUser } from 'react-icons/ai';
+import { AiOutlineUser } from 'react-icons/ai';
+import { SideLeft, SideRight } from 'refly-icons';
+
 import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
@@ -60,16 +64,16 @@ const SiderSectionHeader = ({
   actionIcon?: React.ReactNode;
 }) => {
   return (
-    <div className="h-12 flex items-center justify-between w-full text-gray-600 group select-none dark:text-gray-300 px-2 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md">
+    <div className="h-12 flex items-center justify-between w-full text-refly-text-0 group select-none px-2 py-2 hover:bg-refly-tertiary-hover rounded-md">
       <div className="flex items-center gap-2">
         {icon}
-        <span className="font-medium">{title}</span>
+        <span className="font-normal">{title}</span>
       </div>
       {actionIcon && onActionClick && (
         <Button
           type="text"
           size="small"
-          className="box-border px-1 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200 dark:text-gray-400"
+          className="box-border px-1 text-refly-text-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           icon={actionIcon}
           onClick={(e) => {
             e.stopPropagation();
@@ -83,9 +87,10 @@ const SiderSectionHeader = ({
 
 export const SiderLogo = (props: {
   navigate: (path: string) => void;
+  collapse: boolean;
   setCollapse: (collapse: boolean) => void;
 }) => {
-  const { navigate, setCollapse } = props;
+  const { navigate, collapse, setCollapse } = props;
 
   return (
     <div className="flex items-center justify-between mb-6">
@@ -97,8 +102,14 @@ export const SiderLogo = (props: {
       <div>
         <Button
           type="text"
-          icon={<AiOutlineMenuFold size={16} className="text-gray-500 dark:text-gray-400" />}
-          onClick={() => setCollapse(true)}
+          icon={
+            collapse ? (
+              <SideRight size={20} className="text-refly-text-0" />
+            ) : (
+              <SideLeft size={20} className="text-refly-text-0" />
+            )
+          }
+          onClick={() => setCollapse(!collapse)}
         />
       </div>
     </div>
@@ -124,20 +135,17 @@ const SettingItem = () => {
           <div className="flex items-center gap-2">
             <Avatar size={32} src={userProfile?.avatar} icon={<AiOutlineUser />} />
             <span
-              className={cn(
-                'ml-2 max-w-[180px] truncate font-semibold text-gray-600 dark:text-gray-300',
-                {
-                  'max-w-[80px]': subscriptionEnabled,
-                },
-              )}
+              className={cn('ml-2 max-w-[180px] truncate font-semibold text-refly-text-0', {
+                'max-w-[80px]': subscriptionEnabled,
+              })}
             >
               {userProfile?.nickname}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center">
             <Button
               type="text"
-              icon={isDarkMode ? <IconDarkMode size={16} /> : <IconLightMode size={16} />}
+              icon={isDarkMode ? <InterfaceDark size={20} /> : <InterfaceLight size={20} />}
               onClick={(e) => {
                 e.stopPropagation();
                 setThemeMode(isDarkMode ? 'light' : 'dark');
@@ -145,7 +153,7 @@ const SettingItem = () => {
             />
             <Button
               type="text"
-              icon={<IconSettings size={16} />}
+              icon={<Setting size={20} />}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowSettingModal(true);
@@ -164,8 +172,13 @@ export const NewCanvasButton = () => {
 
   return (
     <div className="w-full" onClick={() => debouncedCreateCanvas()}>
-      <Button className="w-full h-9" key="newCanvas" loading={createCanvasLoading} type="default">
-        <span className="hover:text-green-600 dark:hover:text-green-300">
+      <Button
+        className="w-full h-9 border-solid border-1 border-refly-Card-Border bg-refly-bg-control-z1"
+        key="newCanvas"
+        loading={createCanvasLoading}
+        type="default"
+      >
+        <span className="text-refly-text-0 font-semibold hover:text-green-600 dark:hover:text-green-300">
           {t('loggedHomePage.siderMenu.newCanvas')}
         </span>
       </Button>
@@ -189,10 +202,9 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
     <div
       key={canvas.id}
       className={cn(
-        'group relative my-1 px-3 rounded text-sm leading-8 text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-950',
+        'group relative my-1 px-3 rounded text-sm leading-8 text-refly-text-0 hover:bg-refly-tertiary-hover',
         {
-          '!bg-gray-100 font-medium !text-green-600': selectedKey === canvas.id,
-          'dark:!bg-gray-800 dark:!text-green-300': selectedKey === canvas.id, // 新增的dark模式选中状态
+          'font-semibold bg-refly-tertiary-hover': selectedKey === canvas.id,
         },
       )}
       onClick={() => {
@@ -201,9 +213,7 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <IconCanvas
-            className={cn({ 'text-green-600 dark:text-green-300': selectedKey === canvas.id })}
-          />
+          <IconCanvas />
           <div className="w-32 truncate">{canvas?.name || t('common.untitled')}</div>
         </div>
 
@@ -352,12 +362,16 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         'bg-transparent',
         source === 'sider'
           ? 'h-[100vh]'
-          : 'h-[calc(100vh-100px)] rounded-r-lg ring-1 ring-gray-200 shadow-sm',
+          : 'h-[calc(100vh-32px)] rounded-lg border-r border-solid border-[1px] border-refly-Card-Border bg-refly-bg-Glass-content backdrop-blur-md shadow-[0_6px_60px_0px_rgba(0,0,0,0.08)]',
       )}
     >
       <div className="flex h-full flex-col gap-3 overflow-hidden p-4">
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-          <SiderLogo navigate={(path) => navigate(path)} setCollapse={setCollapse} />
+          <SiderLogo
+            navigate={(path) => navigate(path)}
+            collapse={collapse}
+            setCollapse={setCollapse}
+          />
 
           <SearchQuickOpenBtn />
 
@@ -365,7 +379,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
 
           {/* Library section */}
           <SiderSectionHeader
-            icon={<IconLibrary key="library" style={{ fontSize: 20 }} />}
+            icon={<IconKnowledgeBase key="library" style={{ fontSize: 20 }} />}
             title={t('loggedHomePage.siderMenu.library')}
             onActionClick={() => setShowLibraryModal(true)}
             actionIcon={
@@ -380,7 +394,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             {/* Canvas section with flexible height */}
             <div className="flex-1 flex flex-col min-h-0">
               <SiderSectionHeader
-                icon={<IconCanvas key="canvas" style={{ fontSize: 20 }} />}
+                icon={<IconProject key="canvas" style={{ fontSize: 20 }} />}
                 title={t('loggedHomePage.siderMenu.canvas')}
                 onActionClick={() => setShowCanvasListModal(true)}
                 actionIcon={
@@ -423,7 +437,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
 
         {!!userProfile?.uid && (
           <div
-            className="flex h-12 items-center justify-between cursor-pointer hover:bg-gray-100 rounded-md px-2 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="flex h-12 items-center justify-between cursor-pointer hover:bg-refly-tertiary-hover rounded-md px-2"
             data-cy="settings-menu-item"
           >
             <SettingItem />
