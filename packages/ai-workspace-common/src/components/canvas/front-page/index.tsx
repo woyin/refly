@@ -160,7 +160,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   return (
     <div
       className={cn(
-        'h-full flex m-2 bg-white/95 overflow-y-auto dark:bg-gray-900/95 rounded-lg ring-1 ring-gray-200 dark:ring-gray-600',
+        'h-full flex m-2 bg-refly-bg-content-z2 overflow-y-auto rounded-lg ring-1 ring-refly-Card-Border',
         {
           'ml-0 shadow-sm': !collapse,
         },

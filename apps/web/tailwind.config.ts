@@ -1,6 +1,7 @@
 import forms from '@tailwindcss/forms';
 import animate from 'tailwindcss-animate';
 import typography from '@tailwindcss/typography';
+import { reflyColors } from '../web-next/tailwind-colors';
 
 export default {
   content: [
@@ -42,6 +43,7 @@ export default {
         },
       },
       colors: {
+        ...reflyColors,
         gray: {
           100: '#F1F1F0',
           200: '#D9E3EA',
