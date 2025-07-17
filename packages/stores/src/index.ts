@@ -46,7 +46,7 @@ export {
   useMultilingualSearchStoreShallow,
 } from './stores/multilingual-search';
 export { useThemeStore, useThemeStoreShallow } from './stores/theme';
-export { useUserStore, useUserStoreShallow } from './stores/user';
+export { type LocalSettings, useUserStore, useUserStoreShallow } from './stores/user';
 export {
   createAutoEvictionStorage,
   AutoEvictionStorageManager,
