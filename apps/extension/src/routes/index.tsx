@@ -9,7 +9,7 @@ import { Login } from '@/pages/login';
 
 // Hooks
 import { useGetUserSettings } from '@/hooks/use-get-user-settings';
-import { SuspenseLoading } from '@refly/ui-kit';
+import { LightLoading } from '@refly/ui-kit';
 
 export const AppRouter = (props: {
   children: React.ReactNode;
@@ -38,7 +38,7 @@ export const AppRouter = (props: {
 
   // Show loading while checking login status
   if (userStore.isCheckingLoginStatus === undefined || userStore.isCheckingLoginStatus) {
-    return props?.loadingElement || <SuspenseLoading />;
+    return props?.loadingElement || <LightLoading />;
   }
 
   // Show login page if not logged in
