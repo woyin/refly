@@ -440,26 +440,37 @@ export class ProviderService implements OnModuleInit {
       // Get the specific media model configuration based on mediaType
       const mediaModelConfig = userDefaultModel[mediaType];
 
-      if (!mediaModelConfig?.itemId) {
-        this.logger.log(`No ${mediaType} model configured for user ${user.uid}`);
-        return null;
-      }
-
       // Find the provider item for this configured model
       const providerItems = await this.listProviderItems(user, {
         category: 'mediaGeneration',
         enabled: true,
       });
 
-      const configuredProviderItem = providerItems.find(
-        (item) => item.itemId === mediaModelConfig.itemId,
+      let configuredProviderItem = providerItems.find(
+        (item) => item.itemId === mediaModelConfig?.itemId,
       );
 
       if (!configuredProviderItem) {
-        this.logger.warn(
-          `Configured ${mediaType} model ${mediaModelConfig.itemId} not found in user's provider items`,
-        );
-        return null;
+        // Fallback: find an enabled model that supports the requested mediaType
+        const fallbackProviderItem = providerItems.find((item) => {
+          try {
+            const config: MediaGenerationModelConfig = JSON.parse(item.config || '{}');
+
+            return config.capabilities?.[mediaType];
+          } catch (error) {
+            this.logger.warn(
+              `Failed to parse config for provider item ${item.itemId}: ${error?.message}`,
+            );
+            return false;
+          }
+        });
+
+        if (!fallbackProviderItem) {
+          this.logger.warn(`No enabled ${mediaType} model found in user's provider items`);
+          return null;
+        }
+
+        configuredProviderItem = fallbackProviderItem;
       }
 
       // Parse the model configuration
