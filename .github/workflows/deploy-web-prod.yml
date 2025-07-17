@@ -47,6 +47,7 @@ jobs:
           VITE_SUBSCRIPTION_ENABLED: true
           VITE_CANVAS_TEMPLATE_ENABLED: true
           VITE_SENTRY_ENABLED: true
+          VITE_RUNTIME: web
           VITE_STATIC_PUBLIC_ENDPOINT: https://static.refly.ai
           VITE_STATIC_PRIVATE_ENDPOINT: https://api.refly.ai/v1/misc
 
