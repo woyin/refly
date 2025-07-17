@@ -54,6 +54,52 @@ export class GenerateMedia extends BaseSkill {
     ...baseStateGraphArgs,
   };
 
+  /**
+   * Decode HTML entities to prevent encoding issues in log messages
+   */
+  private decodeHtmlEntities(text: string): string {
+    const htmlEntities: Record<string, string> = {
+      '&#x2F;': '/',
+      '&#x27;': "'",
+      '&#x3D;': '=',
+      '&#x26;': '&',
+      '&#x3C;': '<',
+      '&#x3E;': '>',
+      '&#x22;': '"',
+      '&#x60;': '`',
+      '&amp;': '&',
+      '&lt;': '<',
+      '&gt;': '>',
+      '&quot;': '"',
+      '&apos;': "'",
+      '&nbsp;': ' ',
+    };
+
+    let decodedText = text;
+    for (const [entity, char] of Object.entries(htmlEntities)) {
+      decodedText = decodedText.replace(new RegExp(entity, 'g'), char);
+    }
+
+    return decodedText;
+  }
+
+  /**
+   * Process log arguments to decode HTML entities and prevent template variable issues
+   */
+  private processLogArgs(args: Record<string, any>): Record<string, any> {
+    const processed: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(args)) {
+      if (typeof value === 'string') {
+        processed[key] = this.decodeHtmlEntities(value);
+      } else {
+        processed[key] = value;
+      }
+    }
+
+    return processed;
+  }
+
   generateMedia = async (
     state: GraphState,
     config: SkillRunnableConfig,
@@ -110,13 +156,16 @@ export class GenerateMedia extends BaseSkill {
         event: 'log',
         log: {
           key: 'media.generating',
-          titleArgs: {
+          titleArgs: this.processLogArgs({
+            mediaType,
+          }),
+          descriptionArgs: this.processLogArgs({
             mediaType,
             prompt: cleanedQuery,
             provider,
             model: model || 'auto-selected',
             quality,
-          },
+          }),
         },
       },
       config,
@@ -161,11 +210,11 @@ export class GenerateMedia extends BaseSkill {
           event: 'log',
           log: {
             key: 'media.api.request',
-            titleArgs: {
+            descriptionArgs: this.processLogArgs({
               provider,
               model: model || 'auto-selected',
               mediaType,
-            },
+            }),
           },
         },
         config,
@@ -206,21 +255,6 @@ The ${mediaType} has been generated and is ready for use.`,
         },
       };
 
-      this.emitEvent(
-        {
-          event: 'log',
-          log: {
-            key: 'media.completed',
-            titleArgs: {
-              mediaType,
-              url: result.outputUrl,
-              elapsedTime: result.elapsedTime,
-            },
-          },
-        },
-        config,
-      );
-
       return { messages: [new SystemMessage(responseMessage)] };
     } catch (error) {
       const errorMessage = `${this.getMediaTypeDisplayName(mediaType)} generation failed: ${
@@ -232,10 +266,12 @@ The ${mediaType} has been generated and is ready for use.`,
           event: 'log',
           log: {
             key: 'media.error',
-            titleArgs: {
+            titleArgs: this.processLogArgs({
               mediaType,
+            }),
+            descriptionArgs: this.processLogArgs({
               error: errorMessage,
-            },
+            }),
           },
         },
         config,
@@ -275,10 +311,13 @@ The ${mediaType} has been generated and is ready for use.`,
           event: 'log',
           log: {
             key: 'media.started',
-            titleArgs: {
+            titleArgs: this.processLogArgs({
+              mediaType,
+            }),
+            descriptionArgs: this.processLogArgs({
               mediaType,
               resultId,
-            },
+            }),
           },
         },
         config,
@@ -309,10 +348,13 @@ The ${mediaType} has been generated and is ready for use.`,
             event: 'log',
             log: {
               key: 'media.progress',
-              titleArgs: {
+              titleArgs: this.processLogArgs({
+                mediaType,
+              }),
+              descriptionArgs: this.processLogArgs({
                 progress: estimatedProgress,
                 mediaType,
-              },
+              }),
             },
           },
           config,
@@ -346,10 +388,14 @@ The ${mediaType} has been generated and is ready for use.`,
               event: 'log',
               log: {
                 key: 'media.completed',
-                titleArgs: {
+                titleArgs: this.processLogArgs({
                   mediaType,
-                  resultId,
-                },
+                }),
+                descriptionArgs: this.processLogArgs({
+                  mediaType,
+                  url: actionResult.outputUrl,
+                  elapsedTime: `${Math.round((Date.now() - startTime) / 1000)}s`,
+                }),
               },
             },
             config,
@@ -453,10 +499,13 @@ The ${mediaType} has been generated and is ready for use.`,
           event: 'log',
           log: {
             key: 'media.started',
-            titleArgs: {
+            titleArgs: this.processLogArgs({
+              mediaType: params.mediaType,
+            }),
+            descriptionArgs: this.processLogArgs({
               mediaType: params.mediaType,
               resultId,
-            },
+            }),
           },
         },
         config,
@@ -487,10 +536,13 @@ The ${mediaType} has been generated and is ready for use.`,
             event: 'log',
             log: {
               key: 'media.progress',
-              titleArgs: {
+              titleArgs: this.processLogArgs({
+                mediaType: params.mediaType,
+              }),
+              descriptionArgs: this.processLogArgs({
                 progress: estimatedProgress,
                 mediaType: params.mediaType,
-              },
+              }),
             },
           },
           config,
@@ -504,10 +556,14 @@ The ${mediaType} has been generated and is ready for use.`,
               event: 'log',
               log: {
                 key: 'media.completed',
-                titleArgs: {
+                titleArgs: this.processLogArgs({
                   mediaType: params.mediaType,
-                  resultId,
-                },
+                }),
+                descriptionArgs: this.processLogArgs({
+                  mediaType: params.mediaType,
+                  url: actionResult.outputUrl,
+                  elapsedTime: `${Math.round((Date.now() - startTime) / 1000)}s`,
+                }),
               },
             },
             config,

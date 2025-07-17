@@ -42,6 +42,231 @@ export const multiStepSchema = z
 export type PilotStepRawOutput = z.infer<typeof pilotStepSchema>;
 
 /**
+ * Detects the complexity of media generation requests
+ * @param userQuestion The user's original question/request
+ * @returns 'simple' for straightforward media requests, 'complex' for research-heavy requests, 'none' for non-media requests
+ */
+export function detectMediaIntentComplexity(userQuestion: string): 'simple' | 'complex' | 'none' {
+  const question = userQuestion.toLowerCase();
+
+  // Media type keywords (combined from existing detection logic)
+  const mediaKeywords = [
+    // Image keywords
+    '图片',
+    '图像',
+    '照片',
+    '插图',
+    '设计',
+    '海报',
+    '标志',
+    '图标',
+    '示意图',
+    '画',
+    '绘制',
+    '图表',
+    'image',
+    'picture',
+    'photo',
+    'illustration',
+    'design',
+    'poster',
+    'logo',
+    'icon',
+    'diagram',
+    'draw',
+    'chart',
+    'graphic',
+    'visual',
+    'artwork',
+    'banner',
+    // Video keywords
+    '视频',
+    '动画',
+    '短片',
+    '演示',
+    '录像',
+    '影片',
+    '动态',
+    '片段',
+    '电影',
+    'video',
+    'animation',
+    'demo',
+    'demonstration',
+    'movie',
+    'clip',
+    'footage',
+    'commercial',
+    'trailer',
+    'motion',
+    'animated',
+    'film',
+    // Audio keywords
+    '音频',
+    '音乐',
+    '声音',
+    '语音',
+    '音效',
+    '背景音',
+    '播客',
+    '配音',
+    '歌曲',
+    '录音',
+    'audio',
+    'music',
+    'sound',
+    'voice',
+    'speech',
+    'podcast',
+    'narration',
+    'song',
+    'recording',
+    'sound effect',
+    'jingle',
+    'soundtrack',
+    'background music',
+  ];
+
+  // Check if it's a media request
+  const hasMediaKeywords = mediaKeywords.some((keyword) => question.includes(keyword));
+  if (!hasMediaKeywords) {
+    return 'none';
+  }
+
+  // Complex request indicators (requires research/analysis)
+  const complexIndicators = [
+    // Trend and analysis keywords
+    '最新',
+    '趋势',
+    '流行',
+    '热门',
+    '对比',
+    '分析',
+    '研究',
+    '调查',
+    '竞品',
+    '市场',
+    'latest',
+    'trend',
+    'trending',
+    'popular',
+    'analysis',
+    'research',
+    'study',
+    'competitor',
+    'market',
+    'industry',
+    // Time-sensitive keywords
+    '2024',
+    '2023',
+    '当前',
+    '现在',
+    '今年',
+    'current',
+    'recent',
+    'modern',
+    'contemporary',
+    // Research-heavy keywords
+    '基于',
+    '根据',
+    '参考',
+    'based on',
+    'according to',
+    'reference',
+    'inspired by',
+  ];
+
+  // Simple request indicators (self-contained descriptions)
+  const simpleIndicators = [
+    // Direct creative requests
+    '创建',
+    '制作',
+    '生成',
+    '设计一个',
+    '画一个',
+    'create',
+    'make',
+    'generate',
+    'design a',
+    'draw a',
+    // Style descriptors
+    '简约',
+    '现代',
+    '可爱',
+    '专业',
+    '彩色',
+    'simple',
+    'modern',
+    'cute',
+    'professional',
+    'colorful',
+    // Size/format descriptors
+    'logo',
+    '头像',
+    '壁纸',
+    'avatar',
+    'wallpaper',
+    'banner',
+  ];
+
+  const hasComplexIndicators = complexIndicators.some((indicator) => question.includes(indicator));
+  const hasSimpleIndicators = simpleIndicators.some((indicator) => question.includes(indicator));
+
+  // Decision logic: if has complex indicators, mark as complex
+  // If has simple indicators and no complex indicators, mark as simple
+  // Otherwise default to complex for safety
+  if (hasComplexIndicators) {
+    return 'complex';
+  } else if (hasSimpleIndicators) {
+    return 'simple';
+  } else {
+    return 'complex'; // Default to complex for safety
+  }
+}
+
+/**
+ * Generates streamlined guidance for simple media requests
+ * @returns Guidance text for simple media generation workflows
+ */
+export function generateSimpleMediaGuidance(): string {
+  return `
+## STREAMLINED MEDIA GENERATION MODE
+Detected: Simple, self-contained media request
+
+### Optimized Workflow (1-2 Steps):
+- **DIRECT APPROACH**: Skip extensive research for clear creative briefs
+- **FOCUS**: Convert user intent directly to high-quality English prompts
+- **EFFICIENCY**: Minimize unnecessary context gathering steps
+
+### Media Generation Guidelines:
+1. **Immediate Generation**: Use generateMedia directly if request is clear and self-contained
+2. **English Prompt Quality**: 
+   - Translate user intent accurately to English
+   - Include technical specifications (dimensions, style, format)
+   - Maintain original creative vision
+   - Use professional media generation terminology
+
+### Workflow Options:
+**Option A (1 Step - Recommended for very clear requests):**
+- Direct generateMedia with optimized English prompt
+
+**Option B (2 Steps - For requests needing slight clarification):**
+- Step 1: Brief clarification or style research (optional)
+- Step 2: generateMedia with context-informed English prompt
+
+### English Prompt Format:
+- **Structure**: [Action] + [Subject] + [Style/Technical Specs] + mediaType: [type]
+- **Example**: "Create a minimalist company logo with blue and white colors, vector style, 512x512px. mediaType: image"
+- **Key Elements**: Be specific, professional, technically accurate
+
+### Important Notes:
+- contextItemIds can be empty for self-contained requests
+- workflowStage should be "creation" for direct generation
+- Priority should be 1 (highest) for main media generation step
+`;
+}
+
+/**
  * Determines the recommended workflow stage based on the current epoch
  * @param currentEpoch Current epoch number (0-based)
  * @param totalEpochs Total number of epochs (0-based)
@@ -178,6 +403,69 @@ Focus on gathering information:
 - Use commonQnA only for basic information gathering
 - DO NOT use creation tools yet
 - ALL steps in this epoch should have workflowStage="research"`;
+  }
+}
+
+/**
+ * Enhanced guidance generation that considers media intent complexity
+ * @param stage The current workflow stage
+ * @param userQuestion The original user question for media intent detection
+ * @returns Guidance text optimized for the detected workflow type
+ */
+export function generateEnhancedStageGuidance(stage: string, userQuestion?: string): string {
+  // If user question is provided, detect media intent complexity
+  if (userQuestion) {
+    const mediaComplexity = detectMediaIntentComplexity(userQuestion);
+
+    // For simple media requests in creation stage, provide streamlined guidance
+    if (mediaComplexity === 'simple' && stage === 'creation') {
+      return `${generateSimpleMediaGuidance()}\n\n${generateStageGuidance(stage)}`;
+    }
+
+    // For simple media requests in early stages, still provide streamlined approach
+    if (mediaComplexity === 'simple' && (stage === 'research' || stage === 'analysis')) {
+      return `${generateSimpleMediaGuidance()}\n\n${generateStageGuidance(stage)}`;
+    }
+  }
+
+  // Default to original stage guidance
+  return generateStageGuidance(stage);
+}
+
+/**
+ * Utility function to test media intent detection and workflow optimization
+ * @param userQuestion The user question to analyze
+ * @returns Analysis result with detected complexity and recommended workflow
+ */
+export function analyzeMediaWorkflowOptimization(userQuestion: string): {
+  mediaComplexity: 'simple' | 'complex' | 'none';
+  recommendedSteps: number;
+  workflowType: 'streamlined' | 'standard';
+  promptSuggestion?: string;
+} {
+  const complexity = detectMediaIntentComplexity(userQuestion);
+
+  if (complexity === 'simple') {
+    return {
+      mediaComplexity: complexity,
+      recommendedSteps: 1,
+      workflowType: 'streamlined',
+      promptSuggestion:
+        'Direct generateMedia with optimized English prompt, no context gathering needed',
+    };
+  } else if (complexity === 'complex') {
+    return {
+      mediaComplexity: complexity,
+      recommendedSteps: 3,
+      workflowType: 'standard',
+      promptSuggestion: 'Follow research → analysis → creation workflow with context building',
+    };
+  } else {
+    return {
+      mediaComplexity: complexity,
+      recommendedSteps: 5,
+      workflowType: 'standard',
+    };
   }
 }
 
@@ -491,6 +779,47 @@ export function generateSchemaInstructions(): string {
     },
   ];
 
+  // Add streamlined examples for simple media requests
+  const streamlinedMediaExamples = [
+    // Simple direct generation examples
+    {
+      name: 'Create company logo',
+      skillName: 'generateMedia',
+      query:
+        'Create a minimalist company logo with blue and white colors, vector style, 512x512px, professional appearance. mediaType: image',
+      contextItemIds: [],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+    {
+      name: 'Generate cat illustration',
+      skillName: 'generateMedia',
+      query:
+        'Draw a cute cartoon cat with orange fur, sitting position, simple background, children-book style. mediaType: image',
+      contextItemIds: [],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+    {
+      name: 'Design app icon',
+      skillName: 'generateMedia',
+      query:
+        'Design a modern mobile app icon for productivity app, rounded square, gradient background, clean typography. mediaType: image',
+      contextItemIds: [],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+    {
+      name: 'Create background music',
+      skillName: 'generateMedia',
+      query:
+        'Compose calm ambient background music, 3 minutes duration, suitable for meditation, soft piano and nature sounds. mediaType: audio',
+      contextItemIds: [],
+      workflowStage: 'creation',
+      priority: 1,
+    },
+  ];
+
   return `Please generate a structured JSON array of research steps with the following schema:
 
 Each step should have:
@@ -530,6 +859,19 @@ ${JSON.stringify(example, null, 2)}
   )
   .join('\n')}
 
+### Streamlined Media Generation Examples (For Simple, Self-Contained Requests):
+
+${streamlinedMediaExamples
+  .map(
+    (example) => `
+**Direct ${example.skillName} Example:**
+\`\`\`json
+${JSON.stringify(example, null, 2)}
+\`\`\`
+`,
+  )
+  .join('\n')}
+
 ### Tool Selection Guidelines:
 - Use **generateMedia** for: all multimedia content including images, videos, and audio
   - **CRITICAL**: Always specify mediaType parameter (image, video, or audio) in the query based on user intent
@@ -545,6 +887,18 @@ ${JSON.stringify(example, null, 2)}
 - Use **generateDoc** for: text documents, articles, reports
 - Use **codeArtifacts** for: code projects, applications, interactive tools
 
+### English Prompt Quality Guidelines:
+- **Technical Accuracy**: Use precise media generation terminology
+- **Specificity**: Include dimensions, style, format, duration, colors
+- **Intent Preservation**: Maintain the original user's creative vision
+- **Professional Language**: Use industry-standard terminology
+
+### Workflow Optimization:
+- **Simple Media Requests**: Can use 1-2 steps with direct generateMedia
+- **Complex Media Requests**: Follow standard research → analysis → creation workflow
+- **Context Independence**: Simple requests can have empty contextItemIds
+- **Priority Assignment**: Use priority 1 for main media generation tasks
+
 JSON Schema Definition:
 \`\`\`json
 ${JSON.stringify(jsonSchema, null, 2)}
@@ -554,9 +908,9 @@ IMPORTANT:
 - Each step should be focused on a specific research sub-task
 - Make steps logical and progressive, building on previous steps when appropriate
 - Ensure each step has a clear purpose that contributes to answering the main research question
-- Creation tasks (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps
-- Creation tasks MUST reference previous context items in almost all cases
-- Only in extremely rare cases can creation tasks generate without context dependency
+- Creation tasks (generateDoc, codeArtifacts, generateMedia) MUST ONLY be used in the final 1-2 steps
+- For simple media requests, direct generation without context is acceptable
+- For complex media requests, creation tasks MUST reference previous context items
 - Ensure your response is a valid JSON array of steps that follow the schema exactly
 `;
 }
@@ -591,7 +945,7 @@ export function generatePlanningPrompt(
   const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
   // Generate stage-specific guidance
-  const stageGuidance = generateStageGuidance(recommendedStage);
+  const stageGuidance = generateEnhancedStageGuidance(recommendedStage, userQuestion);
 
   // Generate locale-specific instructions
   const localeInstructions = locale
@@ -690,7 +1044,7 @@ export function generateBootstrapPrompt(
   const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
   // Generate stage-specific guidance
-  const stageGuidance = generateStageGuidance(recommendedStage);
+  const stageGuidance = generateEnhancedStageGuidance(recommendedStage, userQuestion);
 
   // Generate locale-specific instructions
   const localeInstructions = locale
@@ -787,7 +1141,7 @@ export function generateFallbackPrompt(
   const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
 
   // Generate stage-specific guidance
-  const stageGuidance = generateStageGuidance(recommendedStage);
+  const stageGuidance = generateEnhancedStageGuidance(recommendedStage, userQuestion);
 
   // Generate locale-specific instructions
   const localeInstructions = locale

@@ -41,6 +41,8 @@ const LogBox = memo(
   }) => {
     if (!logs?.length) return null;
 
+    console.log(' =======> logs', logs);
+
     return (
       <div
         className={cn(
@@ -74,11 +76,13 @@ const LogBox = memo(
                   ...log.titleArgs,
                   ns: 'skillLog',
                   defaultValue: log.key,
+                  interpolation: { escapeValue: false },
                 }),
                 description: t(`${log.key}.description`, {
                   ...log.descriptionArgs,
                   ns: 'skillLog',
                   defaultValue: '',
+                  interpolation: { escapeValue: false },
                 }),
                 status: log.status === 'error' ? 'error' : 'finish',
               }))}
