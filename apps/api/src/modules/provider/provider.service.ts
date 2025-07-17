@@ -430,15 +430,8 @@ export class ProviderService implements OnModuleInit {
       const userPreferences = await this.getUserPreferences(user.uid);
       const userDefaultModel = userPreferences?.defaultModel;
 
-      if (!userDefaultModel) {
-        this.logger.log(
-          `No default model configuration found for user ${user.uid} for ${mediaType}`,
-        );
-        return null;
-      }
-
       // Get the specific media model configuration based on mediaType
-      const mediaModelConfig = userDefaultModel[mediaType];
+      const mediaModelConfig = userDefaultModel?.[mediaType];
 
       // Find the provider item for this configured model
       const providerItems = await this.listProviderItems(user, {
@@ -475,14 +468,6 @@ export class ProviderService implements OnModuleInit {
 
       // Parse the model configuration
       const config: MediaGenerationModelConfig = JSON.parse(configuredProviderItem.config || '{}');
-
-      // Verify that this model actually supports the requested media type
-      if (!config.capabilities?.[mediaType]) {
-        this.logger.warn(
-          `Configured ${mediaType} model ${config.modelId} does not support ${mediaType} generation`,
-        );
-        return null;
-      }
 
       this.logger.log(
         `Using user configured ${mediaType} model: ${config.modelId} from provider: ${configuredProviderItem.provider?.providerKey}`,
