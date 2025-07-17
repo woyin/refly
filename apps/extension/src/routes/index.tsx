@@ -9,7 +9,7 @@ import { Login } from '@/pages/login';
 
 // Hooks
 import { useGetUserSettings } from '@/hooks/use-get-user-settings';
-import { SuspenseLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
+import { SuspenseLoading } from '@refly/ui-kit';
 
 export const AppRouter = (props: {
   children: React.ReactNode;

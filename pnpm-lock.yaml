@@ -514,6 +514,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../../packages/stores
+      '@refly/ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
       '@refly/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -740,6 +743,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../../packages/stores
+      '@refly/ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
       '@refly/web-core':
         specifier: workspace:*
         version: link:../../packages/web-core
@@ -1207,6 +1213,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../stores
+      '@refly/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
       '@refly/utils':
         specifier: workspace:*
         version: link:../utils

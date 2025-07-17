@@ -25,10 +25,7 @@ import { AppLayout } from '@refly/web-core';
 import { getEnv, setRuntime } from '@refly/utils/env';
 import { useUserStoreShallow, useThemeStoreShallow, useAppStoreShallow } from '@refly/stores';
 import { theme } from 'antd';
-import {
-  LightLoading,
-  SuspenseLoading,
-} from '@refly-packages/ai-workspace-common/components/common/loading';
+import { LightLoading, SuspenseLoading } from '@refly/ui-kit';
 import { sentryEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
 
