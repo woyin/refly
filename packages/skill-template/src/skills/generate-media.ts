@@ -331,8 +331,6 @@ The ${mediaType} has been generated and is ready for use.`,
         // Check status
         const actionResultResponse = await this.engine.service.getActionResult(user, { resultId });
 
-        console.log('=====> actionResultResponse', actionResultResponse);
-
         if (!actionResultResponse) {
           throw new Error(actionResultResponse?.errCode || 'Failed to get action result');
         }
@@ -468,8 +466,6 @@ The ${mediaType} has been generated and is ready for use.`,
       // Start media generation
       const generateResponse = await this.engine.service?.generateMedia?.(user, mediaRequest);
 
-      console.log('=====> generateResponse', generateResponse);
-
       if (!generateResponse.success || !generateResponse.resultId) {
         throw new Error(
           generateResponse ? String(generateResponse.resultId) : 'Failed to start media generation',
@@ -518,8 +514,6 @@ The ${mediaType} has been generated and is ready for use.`,
 
         // Check status
         const actionResultResponse = await this.engine.service.getActionResult(user, { resultId });
-
-        console.log('=====> actionResultResponse', actionResultResponse);
 
         if (!actionResultResponse) {
           throw new Error(actionResultResponse?.errCode || 'Failed to get action result');

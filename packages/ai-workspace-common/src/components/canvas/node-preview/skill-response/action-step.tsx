@@ -41,8 +41,6 @@ const LogBox = memo(
   }) => {
     if (!logs?.length) return null;
 
-    console.log(' =======> logs', logs);
-
     return (
       <div
         className={cn(
