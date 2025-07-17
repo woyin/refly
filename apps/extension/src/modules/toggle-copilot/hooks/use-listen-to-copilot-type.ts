@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
-import { useCopilotTypeStore, copilotTypeEnums } from '../stores/use-copilot-type';
+import {
+  useCopilotTypeStore,
+  copilotTypeEnums,
+} from '@/modules/toggle-copilot/stores/use-copilot-type';
 import { useStorage } from '@/hooks/use-storage';
 import { ICopilotType } from '@refly/common-types';
 

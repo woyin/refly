@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useProjectSelectorStoreShallow } from '@refly-packages/ai-workspace-common/stores/project-selector';
+import { useProjectSelectorStoreShallow } from '@refly/stores';
 
 export const useAskProject = () => {
   const { selectedProjectId, setSelectedProjectId } = useProjectSelectorStoreShallow((state) => ({

@@ -1,4 +1,4 @@
-import { useNavigationContextStoreShallow } from '@refly-packages/ai-workspace-common/stores/navigation-context';
+import { useNavigationContextStoreShallow } from '@refly/stores';
 import { NavigationContext } from '@refly-packages/ai-workspace-common/types/copilot';
 import { useNavigate, useSearchParams } from '@refly-packages/ai-workspace-common/utils/router';
 

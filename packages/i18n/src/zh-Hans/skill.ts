@@ -205,6 +205,55 @@ const translations = {
       note: '注意: 如果图像未显示在画板中，请检查网络连接或刷新页面。如果问题仍然存在，可以尝试使用"图像ID"重新生成。',
     },
   },
+  generateMedia: {
+    name: '媒体生成',
+    description: '使用AI模型生成包括图像、视频和音频在内的多媒体内容',
+    placeholder: '描述您想要生成的媒体内容...',
+    placeholderMac: '描述您想要生成的媒体内容...',
+    steps: {
+      generateMedia: {
+        name: '生成媒体',
+      },
+    },
+    config: {
+      mediaType: {
+        label: '媒体类型',
+        description: '要生成的媒体类型',
+        options: {
+          image: '图像',
+          video: '视频',
+          audio: '音频',
+        },
+      },
+      provider: {
+        label: '提供商',
+        description: '用于媒体生成的AI服务提供商',
+      },
+      model: {
+        label: '模型',
+        description: '用于媒体生成的AI模型',
+      },
+      quality: {
+        label: '质量',
+        description: '生成内容的质量设置',
+        options: {
+          low: '低',
+          medium: '中',
+          high: '高',
+        },
+      },
+    },
+    ui: {
+      generatedMedia: '生成的媒体',
+      mediaType: '媒体类型',
+      prompt: '提示词',
+      resultId: '结果ID',
+      generating: '正在生成{{mediaType}}...',
+      completed: '{{mediaType}}生成完成',
+      failed: '{{mediaType}}生成失败',
+      note: '注意: 如果媒体内容未显示在画板中，请检查网络连接或刷新页面。',
+    },
+  },
 };
 
 export default translations;

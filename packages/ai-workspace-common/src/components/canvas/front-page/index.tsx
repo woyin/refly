@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
+import { useFrontPageStoreShallow } from '@refly/stores';
 import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/skill-display';
 import {
   getSkillIcon,
@@ -14,18 +14,18 @@ import { Form, Button, Badge } from 'antd';
 import { ToolOutlined } from '@ant-design/icons';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions, CustomAction } from './action';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useChatStoreShallow } from '@refly/stores';
+import { useUserStoreShallow } from '@refly/stores';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { PremiumBanner } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
 import {
   canvasTemplateEnabled,
   subscriptionEnabled,
 } from '@refly-packages/ai-workspace-common/utils/env';
-import { useCanvasTemplateModalShallow } from '@refly-packages/ai-workspace-common/stores/canvas-template-modal';
+import { useCanvasTemplateModalShallow } from '@refly/stores';
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useLaunchpadStoreShallow } from '@refly/stores';
 import { Title } from './title';
 import { useAbortAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-abort-action';
 import cn from 'classnames';

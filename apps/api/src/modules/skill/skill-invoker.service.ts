@@ -22,6 +22,7 @@ import {
   incrementalMarkdownUpdate,
   safeParseJSON,
   getArtifactContentAndAttributes,
+  genTransactionId,
 } from '@refly/utils';
 import {
   SkillRunnableConfig,
@@ -60,6 +61,7 @@ import { CollabContext } from '../collab/collab.dto';
 import { CollabService } from '../collab/collab.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
 import { CanvasService } from '../canvas/canvas.service';
+import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ActionService } from '../action/action.service';
 
 @Injectable()
@@ -69,11 +71,20 @@ export class SkillInvokerService {
   private skillEngine: SkillEngine;
   private skillInventory: BaseSkill[];
 
+  // Optimize frequent event type checking with Set
+  private static readonly OUTPUT_EVENTS = new Set([
+    'artifact',
+    'log',
+    'structured_data',
+    'create_node',
+  ]);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
+    private readonly canvasSyncService: CanvasSyncService,
     private readonly collabService: CollabService,
     private readonly providerService: ProviderService,
     private readonly codeArtifactService: CodeArtifactService,
@@ -250,7 +261,59 @@ export class SkillInvokerService {
     return config;
   }
 
-  private;
+  private categorizeError(err: Error): {
+    isNetworkTimeout: boolean;
+    isGeneralTimeout: boolean;
+    isNetworkError: boolean;
+    isAbortError: boolean;
+    userFriendlyMessage: string;
+    logLevel: 'error' | 'warn';
+  } {
+    const errorMessage = err.message || 'Unknown error';
+
+    // Categorize errors more reliably
+    const isTimeoutError =
+      err instanceof Error && (err.name === 'TimeoutError' || /timeout/i.test(err.message));
+    const isAbortError =
+      err instanceof Error && (err.name === 'AbortError' || /abort/i.test(err.message));
+    const isNetworkError =
+      err instanceof Error && (err.name === 'NetworkError' || /network|fetch/i.test(err.message));
+    const isNetworkTimeout =
+      errorMessage.includes('AI model network timeout') ||
+      (isTimeoutError && errorMessage.includes('network'));
+    const isGeneralTimeout = isTimeoutError && !isNetworkTimeout;
+
+    let userFriendlyMessage = errorMessage;
+    let logLevel: 'error' | 'warn' = 'error';
+
+    const ERROR_MESSAGES = {
+      NETWORK_TIMEOUT:
+        'AI provider network request timeout. Please check provider configuration or network connection.',
+      GENERAL_TIMEOUT: 'Request timeout. Please try again later.',
+      NETWORK_ERROR: 'Network connection error. Please check your network status.',
+      ABORT_ERROR: 'Operation was aborted.',
+    } as const;
+
+    if (isNetworkTimeout) {
+      userFriendlyMessage = ERROR_MESSAGES.NETWORK_TIMEOUT;
+    } else if (isGeneralTimeout) {
+      userFriendlyMessage = ERROR_MESSAGES.GENERAL_TIMEOUT;
+    } else if (isNetworkError) {
+      userFriendlyMessage = ERROR_MESSAGES.NETWORK_ERROR;
+    } else if (isAbortError) {
+      userFriendlyMessage = ERROR_MESSAGES.ABORT_ERROR;
+      logLevel = 'warn';
+    }
+
+    return {
+      isNetworkTimeout,
+      isGeneralTimeout,
+      isNetworkError,
+      isAbortError,
+      userFriendlyMessage,
+      logLevel,
+    };
+  }
 
   private async _invokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
     const { input, result, target } = data;
@@ -276,8 +339,94 @@ export class SkillInvokerService {
     // Create abort controller for this action
     const abortController = new AbortController();
 
+    // Network timeout tracking for AI model requests
+    let networkTimeoutId: NodeJS.Timeout | null = null;
+
     // Register the abort controller with ActionService
     this.actionService.registerAbortController(resultId, abortController);
+
+    // Simple timeout tracking without Redis
+    let lastOutputTime = Date.now();
+    let hasAnyOutput = false;
+
+    // Set up periodic timeout check using Redis data
+    let timeoutCheckInterval: NodeJS.Timeout | null = null;
+    const streamIdleTimeout = this.config.get('skill.streamIdleTimeout');
+
+    // Validate streamIdleTimeout to ensure it's a positive number
+    if (!streamIdleTimeout || streamIdleTimeout <= 0) {
+      this.logger.error(
+        `Invalid streamIdleTimeout: ${streamIdleTimeout}. Must be a positive number.`,
+      );
+      throw new Error(`Invalid streamIdleTimeout configuration: ${streamIdleTimeout}`);
+    }
+
+    // Helper function for timeout message generation
+    const getTimeoutMessage = () => {
+      return hasAnyOutput
+        ? `Execution timeout - no output received within ${streamIdleTimeout / 1000} seconds`
+        : `Execution timeout - skill failed to produce any output within ${streamIdleTimeout / 1000} seconds`;
+    };
+
+    const startTimeoutCheck = () => {
+      timeoutCheckInterval = setInterval(
+        async () => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          // Capture hasAnyOutput status at the beginning of the callback
+          const hasOutputAtCheck = hasAnyOutput;
+
+          // Once we have any output, stop checking for stream idle timeout
+          if (hasOutputAtCheck) {
+            stopTimeoutCheck();
+            return;
+          }
+
+          const now = Date.now();
+          const timeSinceLastOutput = now - lastOutputTime;
+          const isTimeout = timeSinceLastOutput > streamIdleTimeout;
+
+          if (isTimeout) {
+            this.logger.warn(
+              `Stream idle timeout detected for action: ${resultId}, ${timeSinceLastOutput}ms since last output`,
+            );
+
+            const timeoutReason = getTimeoutMessage();
+
+            // Use ActionService.abortAction to handle timeout consistently
+            try {
+              await this.actionService.abortAction(user, {
+                resultId,
+                reason: timeoutReason,
+              });
+              this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
+            } catch (error) {
+              this.logger.error(
+                `Failed to abort action ${resultId} on stream idle timeout: ${error?.message}`,
+              );
+              // Fallback to direct abort if ActionService fails
+              abortController.abort(timeoutReason);
+              result.errors.push(timeoutReason);
+            }
+            // Stop the timeout check after triggering
+            if (timeoutCheckInterval) {
+              clearInterval(timeoutCheckInterval);
+              timeoutCheckInterval = null;
+            }
+          }
+        },
+        this.config.get<number>('skill.streamIdleCheckInterval', 5000),
+      ); // Check every N seconds
+    };
+
+    const stopTimeoutCheck = () => {
+      if (timeoutCheckInterval) {
+        clearInterval(timeoutCheckInterval);
+        timeoutCheckInterval = null;
+      }
+    };
 
     // const job = await this.timeoutCheckQueue.add(
     //   `idle_timeout_check:${resultId}`,
@@ -326,7 +475,11 @@ export class SkillInvokerService {
           return;
         }
 
-        // await throttledResetIdleTimeout();
+        // Record output event for simple timeout tracking
+        if (SkillInvokerService.OUTPUT_EVENTS.has(data.event)) {
+          lastOutputTime = Date.now();
+          hasAnyOutput = true;
+        }
 
         if (res) {
           writeSSEResponse(res, { ...data, resultId, version });
@@ -362,6 +515,20 @@ export class SkillInvokerService {
                   `add node to canvas ${target.entityId}, artifact: ${JSON.stringify(artifact)}`,
                 );
 
+                // For media types, include initial metadata
+                const nodeMetadata: any = {
+                  status: 'generating',
+                };
+
+                // If this is a completed media artifact, include the media URL
+                if (
+                  ['image', 'video', 'audio'].includes(type) &&
+                  status === 'finish' &&
+                  artifact.metadata
+                ) {
+                  Object.assign(nodeMetadata, artifact.metadata);
+                }
+
                 await this.canvasService.addNodeToCanvas(
                   user,
                   target.entityId,
@@ -370,14 +537,77 @@ export class SkillInvokerService {
                     data: {
                       title: artifact.title,
                       entityId: artifact.entityId,
-                      metadata: {
-                        status: 'generating',
-                      },
+                      metadata: nodeMetadata,
                     },
                   },
                   [{ type: 'skillResponse', entityId: resultId }],
                 );
                 artifactMap[entityId].nodeCreated = true;
+              }
+
+              // Handle media artifact completion - update node metadata
+              if (
+                ['image', 'video', 'audio'].includes(type) &&
+                status === 'finish' &&
+                artifact.metadata &&
+                artifactMap[entityId].nodeCreated
+              ) {
+                this.logger.log(
+                  `updating media node metadata for ${entityId}, metadata: ${JSON.stringify(artifact.metadata)}`,
+                );
+
+                try {
+                  // Get current canvas state to find and update the node
+                  const { nodes } = await this.canvasSyncService.getCanvasData(user, {
+                    canvasId: target.entityId,
+                  });
+
+                  // Find the node to update
+                  const nodeToUpdate = nodes.find(
+                    (node) =>
+                      node.data?.entityId === artifact.entityId && node.type === artifact.type,
+                  );
+
+                  if (nodeToUpdate) {
+                    // Update the node metadata with media URL and completion status
+                    const updatedNode = {
+                      ...nodeToUpdate,
+                      data: {
+                        ...nodeToUpdate.data,
+                        metadata: {
+                          ...nodeToUpdate.data.metadata,
+                          status: 'finish',
+                          ...artifact.metadata,
+                        },
+                      },
+                    };
+
+                    // Sync the updated node to canvas
+                    await this.canvasSyncService.syncState(user, {
+                      canvasId: target.entityId,
+                      transactions: [
+                        {
+                          txId: genTransactionId(),
+                          createdAt: Date.now(),
+                          syncedAt: Date.now(),
+                          nodeDiffs: [
+                            {
+                              type: 'update',
+                              id: nodeToUpdate.id,
+                              from: nodeToUpdate,
+                              to: updatedNode,
+                            },
+                          ],
+                          edgeDiffs: [],
+                        },
+                      ],
+                    });
+                  } else {
+                    this.logger.warn(`Media node not found for artifact ${artifact.entityId}`);
+                  }
+                } catch (error) {
+                  this.logger.error(`Failed to update media node metadata: ${error.message}`);
+                }
               }
 
               // Open direct connection to yjs doc if artifact type is document
@@ -460,24 +690,120 @@ export class SkillInvokerService {
       writeSSEResponse(res, { event: 'start', resultId, version });
     }
 
+    // Consolidated cleanup function to handle ALL timeout intervals and resources
+    let cleanupExecuted = false;
+    const performCleanup = () => {
+      if (cleanupExecuted) return; // Prevent multiple cleanup executions
+      cleanupExecuted = true;
+
+      // Stop stream idle timeout check interval
+      stopTimeoutCheck();
+
+      // Clear AI model network timeout
+      if (networkTimeoutId) {
+        clearTimeout(networkTimeoutId);
+        networkTimeoutId = null;
+      }
+
+      this.logger.debug(
+        `Cleaned up all timeout intervals for action ${resultId} due to abort/completion`,
+      );
+    };
+
+    // Register cleanup on abort signal
+    abortController.signal.addEventListener('abort', performCleanup);
+
+    // Start the timeout check when we begin streaming
+    startTimeoutCheck();
+
     try {
+      // Real network request to AI model with enhanced error handling
+      const networkTimeout = this.config.get('skill.executionTimeout'); // 3 minutes
+      // AI model provider network timeout (30 seconds)
+      const aiModelNetworkTimeout = this.config.get<number>('skill.aiModelNetworkTimeout', 30000);
+
+      // Validate aiModelNetworkTimeout to ensure it's a positive number
+      if (aiModelNetworkTimeout <= 0) {
+        this.logger.error(
+          `Invalid aiModelNetworkTimeout: ${aiModelNetworkTimeout}. Must be a positive number.`,
+        );
+        throw new Error(`Invalid aiModelNetworkTimeout configuration: ${aiModelNetworkTimeout}`);
+      }
+
+      this.logger.log(
+        `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms, total timeout: ${networkTimeout}ms) for action: ${resultId}`,
+      );
+
+      let eventCount = 0;
+
+      // Create dedicated timeout for AI model network requests
+      const createNetworkTimeout = () => {
+        if (abortController.signal.aborted) {
+          return;
+        }
+        if (networkTimeoutId) {
+          clearTimeout(networkTimeoutId);
+        }
+        networkTimeoutId = setTimeout(() => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          this.logger.error(
+            `🚨 AI model network timeout (${aiModelNetworkTimeout}ms) for action: ${resultId}`,
+          );
+          abortController.abort('AI model network timeout');
+        }, aiModelNetworkTimeout);
+      };
+
+      // Reset network timeout on each network activity
+      const resetNetworkTimeout = () => {
+        createNetworkTimeout();
+      };
+
+      // Start initial network timeout
+      createNetworkTimeout();
+
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
         signal: abortController.signal,
       })) {
-        if (abortController.signal.aborted) {
-          if (runMeta) {
-            result.errors.push('AbortError');
-          }
-          throw new Error('AbortError');
+        // Reset network timeout on receiving data from AI model
+        resetNetworkTimeout();
+        // Track network activity for monitoring
+        eventCount++;
+
+        if (eventCount === 1) {
+          this.logger.log(`🌐 First event received for action: ${resultId}`);
+        } else if (eventCount % 10 === 0) {
+          this.logger.log(
+            `🌐 Network activity: ${eventCount} events processed for action: ${resultId}`,
+          );
         }
 
-        // reset idle timeout check when events are received
-        // await throttledResetIdleTimeout();
+        if (abortController.signal.aborted) {
+          const abortReason = abortController.signal.reason?.toString() ?? 'Request aborted';
+          this.logger.warn(
+            `🚨 Request aborted after ${eventCount} events for action: ${resultId}, reason: ${abortReason}`,
+          );
+          if (runMeta) {
+            result.errors.push(abortReason);
+          }
+          throw new Error(`Request aborted: ${abortReason}`);
+        }
 
         runMeta = event.metadata as SkillRunnableMeta;
         const chunk: AIMessageChunk = event.data?.chunk ?? event.data?.output;
+
+        // Record stream output for simple timeout tracking
+        if (event.event === 'on_chat_model_stream' && chunk?.content) {
+          lastOutputTime = Date.now();
+          hasAnyOutput = true;
+        } else if (event.event === 'on_tool_end' && event.data?.output) {
+          lastOutputTime = Date.now();
+          hasAnyOutput = true;
+        }
 
         switch (event.event) {
           case 'on_tool_end':
@@ -637,18 +963,47 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
         }
       }
     } catch (err) {
-      this.logger.error(`invoke skill error: ${err.stack}`);
+      const errorInfo = this.categorizeError(err);
+      const errorMessage = err.message || 'Unknown error';
+      const errorType = err.name || 'Error';
+
+      // Log error based on categorization
+      if (errorInfo.isNetworkTimeout) {
+        this.logger.error(`🚨 AI model network timeout for action: ${resultId} - ${errorMessage}`);
+      } else if (errorInfo.isGeneralTimeout) {
+        this.logger.error(`🚨 Network timeout detected for action: ${resultId} - ${errorMessage}`);
+      } else if (errorInfo.isNetworkError) {
+        this.logger.error(`🌐 Network error for action: ${resultId} - ${errorMessage}`);
+      } else if (errorInfo.isAbortError) {
+        this.logger.warn(`⏹️  Request aborted for action: ${resultId} - ${errorMessage}`);
+      } else {
+        this.logger.error(
+          `❌ Skill execution error for action: ${resultId} - ${errorType}: ${errorMessage}`,
+        );
+      }
+
+      this.logger.error(`Full error stack: ${err.stack}`);
+
       if (res) {
         writeSSEResponse(res, {
           event: 'error',
           resultId,
           version,
-          error: genBaseRespDataFromError(err.message),
+          error: genBaseRespDataFromError(new Error(errorInfo.userFriendlyMessage)),
           originError: err.message,
         });
       }
-      result.errors.push(err.message);
+      result.errors.push(errorInfo.userFriendlyMessage);
     } finally {
+      // Cleanup all timers and resources to prevent memory leaks
+      // Note: consolidated abort signal listener handles cleanup for early abort scenarios
+
+      // Perform cleanup for normal completion or exception scenarios
+      // (redundant with abort listener but ensures cleanup in all cases)
+      if (!cleanupExecuted) {
+        performCleanup();
+      }
+
       // Unregister the abort controller
       this.actionService.unregisterAbortController(resultId);
 

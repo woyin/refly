@@ -1,5 +1,5 @@
 import { Result, Button, Modal, Typography } from 'antd';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
 

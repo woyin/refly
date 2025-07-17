@@ -6,7 +6,7 @@ import { IconCanvas, IconEdit } from '@refly-packages/ai-workspace-common/compon
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { ShareUser } from '@refly/openapi-schema';
 import { AiOutlineUser } from 'react-icons/ai';
-import { useCanvasOperationStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas-operation';
+import { useCanvasOperationStoreShallow } from '@refly/stores';
 
 export const CanvasTitle = memo(
   ({

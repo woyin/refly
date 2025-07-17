@@ -3,10 +3,10 @@ import { Button, Input, Tooltip, Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { LuSparkles } from 'react-icons/lu';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useCanvasStoreShallow } from '@refly/stores';
+import { useSiderStoreShallow } from '@refly/stores';
 import type { InputRef } from 'antd';
-import { useCanvasOperationStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas-operation';
+import { useCanvasOperationStoreShallow } from '@refly/stores';
 
 async function updateRemoteCanvasTitle(canvasId: string, newTitle: string) {
   const { data, error } = await getClient().updateCanvas({

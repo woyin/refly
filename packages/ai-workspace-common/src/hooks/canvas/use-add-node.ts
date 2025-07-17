@@ -11,7 +11,7 @@ import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/
 import { useNodePosition } from './use-node-position';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { adoptUserNodes } from '@xyflow/system';
-import { useCanvasStore } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStore } from '@refly/stores';
 
 // Define the maximum number of nodes allowed in a canvas
 const MAX_NODES_PER_CANVAS = 500;

@@ -10,15 +10,12 @@ import {
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 import { LinearThreadContent } from './linear-thread';
-import { LinearThreadMessage } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { ContextTarget } from '@refly/common-types';
+import { LinearThreadMessage } from '@refly/stores';
 import { useContextUpdateByResultId } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
 import { LaunchPad } from '@refly-packages/ai-workspace-common/components/canvas/launchpad';
 import { IContextItem } from '@refly/common-types';
-import {
-  useContextPanelStore,
-  ContextTarget,
-  useContextPanelStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStore, useContextPanelStoreShallow } from '@refly/stores';
 import { IconAskAI } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { SkillTemplateConfig } from '@refly/openapi-schema';
 import { contextEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/context';

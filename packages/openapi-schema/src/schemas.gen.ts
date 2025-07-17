@@ -1902,7 +1902,7 @@ export const ActionStatusSchema = {
 export const ArtifactTypeSchema = {
   type: 'string',
   description: 'Artifact type',
-  enum: ['document', 'codeArtifact'],
+  enum: ['document', 'codeArtifact', 'image', 'video', 'audio'],
 } as const;
 
 export const ArtifactStatusSchema = {

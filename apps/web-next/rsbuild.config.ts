@@ -15,6 +15,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   plugins: [pluginReact(), pluginSvgr(), pluginSass()],
+  dev: {
+    hmr: true,
+    liveReload: true,
+  },
   tools: {
     rspack: (config, { prependPlugins, appendPlugins }) => {
       process.env.SENTRY_AUTH_TOKEN &&

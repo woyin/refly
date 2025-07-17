@@ -147,39 +147,6 @@ export class MediaGeneratorTools {
   }
 
   /**
-   * Get default model configuration based on mediaType
-   */
-  private getDefaultModelForMediaType(mediaType?: 'image' | 'audio' | 'video'): {
-    provider: string;
-    model: string;
-  } | null {
-    if (!mediaType) {
-      return null;
-    }
-
-    // Get default models from system configuration
-    const defaultModelConfig = this.configService.get('defaultModel');
-
-    if (!defaultModelConfig?.[mediaType]) {
-      this.logger.warn(`No default model configuration found for ${mediaType}`);
-      return null;
-    }
-
-    // Use system configured model if available
-    const configuredModel = defaultModelConfig[mediaType];
-
-    if (!configuredModel?.model) {
-      this.logger.warn(`Invalid default model configuration for ${mediaType}`);
-      return null;
-    }
-
-    return {
-      provider: configuredModel.provider || 'replicate',
-      model: configuredModel.model,
-    };
-  }
-
-  /**
    * Generate media with internal polling mechanism
    */
   @Tool({

@@ -1436,7 +1436,7 @@ export type ActionStatus = 'waiting' | 'executing' | 'finish' | 'failed';
 /**
  * Artifact type
  */
-export type ArtifactType = 'document' | 'codeArtifact';
+export type ArtifactType = 'document' | 'codeArtifact' | 'image' | 'video' | 'audio';
 
 /**
  * Artifact status

@@ -11,13 +11,18 @@ import {
   QUEUE_SYNC_TOKEN_USAGE,
   QUEUE_SKILL,
   QUEUE_SKILL_TIMEOUT_CHECK,
+  QUEUE_CHECK_STUCK_ACTIONS,
   QUEUE_SYNC_REQUEST_USAGE,
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SYNC_PILOT_STEP,
   QUEUE_SYNC_TOKEN_CREDIT_USAGE,
 } from '../../utils';
 import { LabelModule } from '../label/label.module';
-import { SkillProcessor, SkillTimeoutCheckProcessor } from '../skill/skill.processor';
+import {
+  SkillProcessor,
+  SkillTimeoutCheckProcessor,
+  CheckStuckActionsProcessor,
+} from '../skill/skill.processor';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { CreditModule } from '../credit/credit.module';
 import { CollabModule } from '../collab/collab.module';
@@ -25,6 +30,7 @@ import { MiscModule } from '../misc/misc.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { ProviderModule } from '../provider/provider.module';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
+import { MediaGeneratorModule } from '../media-generator/media-generator.module';
 import { SkillEngineService } from './skill-engine.service';
 import { SkillInvokerService } from './skill-invoker.service';
 import { isDesktop } from '../../utils/runtime';
@@ -46,11 +52,20 @@ import { ActionModule } from '../action/action.module';
     CodeArtifactModule,
     ProviderModule,
     McpServerModule,
+    MediaGeneratorModule,
     ...(isDesktop()
       ? []
       : [
           BullModule.registerQueue({ name: QUEUE_SKILL }),
           BullModule.registerQueue({ name: QUEUE_SKILL_TIMEOUT_CHECK }),
+          BullModule.registerQueue({
+            name: QUEUE_CHECK_STUCK_ACTIONS,
+            prefix: 'skill_cron',
+            defaultJobOptions: {
+              removeOnComplete: true,
+              removeOnFail: false,
+            },
+          }),
           BullModule.registerQueue({ name: QUEUE_SYNC_TOKEN_USAGE }),
           BullModule.registerQueue({ name: QUEUE_SYNC_TOKEN_CREDIT_USAGE }),
           BullModule.registerQueue({ name: QUEUE_SYNC_REQUEST_USAGE }),
@@ -62,7 +77,9 @@ import { ActionModule } from '../action/action.module';
     SkillService,
     SkillEngineService,
     SkillInvokerService,
-    ...(isDesktop() ? [] : [SkillProcessor, SkillTimeoutCheckProcessor]),
+    ...(isDesktop()
+      ? []
+      : [SkillProcessor, SkillTimeoutCheckProcessor, CheckStuckActionsProcessor]),
   ],
   controllers: [SkillController],
   exports: [SkillService, SkillInvokerService],
