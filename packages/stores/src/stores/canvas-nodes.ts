@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-import { CanvasNodeType } from '@refly/openapi-schema';
+import { type CanvasNodeType } from '@refly/openapi-schema';
 
 interface CanvasNodesState {
   pendingNode: {
