@@ -77,7 +77,7 @@ export const AppLayout = (props: AppLayoutProps) => {
   // Change locale if not matched
   const { i18n } = useTranslation();
   useEffect(() => {
-    if (locale && i18n.languages?.[0] !== locale) {
+    if (locale && i18n.isInitialized && i18n.languages?.[0] !== locale) {
       i18n.changeLanguage(locale);
     }
   }, [i18n, locale]);
