@@ -1,6 +1,7 @@
 // Import process polyfill first
 import './process-polyfill';
 
+import '../../web-next/src/tokens.css';
 import './utils/dom-patch';
 
 import React, { Suspense, useEffect } from 'react';

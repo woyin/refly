@@ -4,7 +4,7 @@ import { Button, Divider, message } from 'antd';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
-import { AiOutlineMenuUnfold } from 'react-icons/ai';
+import { SideRight } from 'refly-icons';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
@@ -77,7 +77,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
       </Helmet>
       <div
         className={`absolute h-16 top-0 left-0 right-0  box-border flex justify-between items-center py-2 px-4 pr-0 bg-transparent ${
-          collapse ? 'w-[calc(100vw-12px)]' : 'w-[calc(100vw-232px)]'
+          collapse ? 'w-[calc(100vw-12px)]' : 'w-[calc(100vw-260px)]'
         }`}
       >
         <div className="flex items-center relative z-10">
@@ -86,7 +86,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
               <SiderPopover>
                 <Button
                   type="text"
-                  icon={<AiOutlineMenuUnfold size={16} className="text-gray-500" />}
+                  icon={<SideRight size={20} />}
                   onClick={() => {
                     setCollapse(!collapse);
                   }}

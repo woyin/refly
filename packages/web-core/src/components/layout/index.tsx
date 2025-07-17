@@ -100,17 +100,15 @@ export const AppLayout = (props: AppLayoutProps) => {
 
   return (
     <ErrorBoundary>
-      <Layout className="app-layout main">
+      <Layout
+        className="app-layout main h-screen w-screen"
+        style={{
+          background:
+            'linear-gradient(124deg,rgba(31,201,150,0.1) 0%,rgba(69,190,255,0.06) 24.85%),var(--refly-bg-body-z0, #FFFFFF)',
+        }}
+      >
         {showSider ? <SiderLayout source="sider" /> : null}
-        <Layout
-          className="content-layout dark:bg-green-900"
-          style={{
-            height: 'calc(100vh)',
-            flexGrow: 1,
-            overflowY: 'auto',
-            width: showSider ? 'calc(100% - 200px - 16px)' : 'calc(100% - 16px)',
-          }}
-        >
+        <Layout className="content-layout bg-transparent h-full flex-grow overflow-y-auto">
           <Content>{props.children}</Content>
         </Layout>
         <BigSearchModal />
