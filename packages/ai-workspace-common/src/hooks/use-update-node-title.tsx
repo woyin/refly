@@ -1,14 +1,11 @@
 import { useCallback } from 'react';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
-import {
-  useCanvasStore,
-  useCanvasStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { editorEmitter } from '@refly/utils/event-emitter/editor';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 
 export const useUpdateNodeTitle = () => {
   const { projectId } = useGetProjectCanvasId();

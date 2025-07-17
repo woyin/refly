@@ -19,7 +19,7 @@ import {
   GripVertical,
 } from 'lucide-react';
 import { NODE_COLORS } from '../nodes/shared/colors';
-import { CanvasNode } from '../nodes/shared/types';
+import { CanvasNode } from '@refly/canvas-common';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
@@ -48,6 +48,7 @@ import { NodeHeader } from '@refly-packages/ai-workspace-common/components/canva
 import { NodeHeader as CommonNodeHeader } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-header';
 import { useExportDocument } from '@refly-packages/ai-workspace-common/hooks/use-export-document';
 import { useDebouncedCallback } from 'use-debounce';
+import { useCanvasStoreShallow } from '@refly/stores';
 
 // Get icon component based on node type and metadata
 const getNodeIcon = (node: CanvasNode<any>) => {
@@ -145,8 +146,18 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
     isDragging = false,
   }) => {
     const { t } = useTranslation();
-    const IconComponent = getNodeIcon(node);
-    const nodeColor = NODE_COLORS[node.type];
+    const { canvasId, readonly } = useCanvasContext();
+
+    // Get the latest node data from the store
+    const nodeFromStore = useCanvasStoreShallow((state) => {
+      const nodePreviews = state.config[canvasId]?.nodePreviews || [];
+      return nodePreviews.find((p) => p?.id === node.id);
+    });
+
+    const currentNode = nodeFromStore || node;
+
+    const IconComponent = getNodeIcon(currentNode);
+    const nodeColor = NODE_COLORS[currentNode.type];
 
     const { addToContext } = useAddToContext();
 
@@ -162,30 +173,30 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
       Modal.confirm({
         centered: true,
         title: t('common.deleteConfirmMessage'),
-        content: t(`canvas.nodeActions.${node.type}DeleteConfirm`, {
-          title: node.data?.title || t('common.untitled'),
+        content: t(`canvas.nodeActions.${currentNode.type}DeleteConfirm`, {
+          title: currentNode.data?.title || t('common.untitled'),
         }),
         okText: t('common.delete'),
         cancelText: t('common.cancel'),
         okButtonProps: { danger: true },
         cancelButtonProps: { className: 'hover:!border-[#00968F] hover:!text-[#00968F] ' },
         onOk: () => {
-          node.type === 'document'
-            ? deleteDocument(node.data?.entityId)
-            : deleteResource(node.data?.entityId);
-          deleteNode(node);
+          currentNode.type === 'document'
+            ? deleteDocument(currentNode.data?.entityId)
+            : deleteResource(currentNode.data?.entityId);
+          deleteNode(currentNode);
         },
       });
-    }, [node, deleteResource, deleteDocument, deleteNode, t]);
+    }, [currentNode, deleteResource, deleteDocument, deleteNode, t]);
 
     const handleAddToContext = useCallback(() => {
       addToContext({
-        type: node.type,
-        title: node.data?.title,
-        entityId: node.data?.entityId,
-        metadata: node.data?.metadata,
+        type: currentNode.type,
+        title: currentNode.data?.title,
+        entityId: currentNode.data?.entityId,
+        metadata: currentNode.data?.metadata,
       });
-    }, [node, addToContext]);
+    }, [currentNode, addToContext]);
 
     const handleExportDocument = useDebouncedCallback(async (type: 'markdown' | 'docx' | 'pdf') => {
       if (isExporting) return;
@@ -200,7 +211,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
           content: t('workspace.exporting'),
           duration: 0,
         });
-        const content = await exportDocument(node.data?.entityId, type);
+        const content = await exportDocument(currentNode.data?.entityId, type);
         // 关闭加载提示
         loadingMessage();
 
@@ -225,7 +236,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${node.data?.title || t('common.untitled')}.${extension}`;
+        a.download = `${currentNode.data?.title || t('common.untitled')}.${extension}`;
         document.body.appendChild(a);
         a.click();
 
@@ -242,38 +253,37 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
       }
     }, 300);
 
-    const { canvasId, readonly } = useCanvasContext();
     const updateNodePreviewTitle = useUpdateNodeTitle();
 
     const { pinNode, unpinNode, isNodePinned } = useNodePreviewControl({ canvasId });
-    const isPinned = isNodePinned(node.id);
+    const isPinned = isNodePinned(currentNode.id);
 
     const handlePin = useCallback(() => {
       if (isPinned) {
-        unpinNode(node);
+        unpinNode(currentNode);
       } else {
-        pinNode(node);
+        pinNode(currentNode);
       }
-    }, [isPinned, pinNode, unpinNode, node]);
+    }, [isPinned, pinNode, unpinNode, currentNode]);
 
     const { setNodeCenter } = useNodePosition();
 
     const canDownload = useMemo(() => {
-      const metadata = node.data?.metadata || {};
+      const metadata = currentNode.data?.metadata || {};
       const { resourceType } = metadata;
-      return node.type === 'resource' && resourceType === 'file';
-    }, [node]);
+      return currentNode.type === 'resource' && resourceType === 'file';
+    }, [currentNode]);
 
     const handleDownload = useCallback(async () => {
       const { data } = await getClient().listResources({
         query: {
-          resourceId: node.data?.entityId,
+          resourceId: currentNode.data?.entityId,
         },
       });
       if (data.data?.[0]) {
         downloadFile(data.data[0]);
       }
-    }, [node, downloadFile]);
+    }, [currentNode, downloadFile]);
 
     const centerNodeConfig = {
       key: 'centerNode',
@@ -283,7 +293,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
           {t('canvas.nodeActions.centerNode')}
         </div>
       ),
-      onClick: () => setNodeCenter(node.id, true),
+      onClick: () => setNodeCenter(currentNode.id, true),
     };
 
     // Define dropdown menu items
@@ -316,7 +326,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
           ),
           onClick: handleDownload,
         },
-        node.type === 'document' && {
+        currentNode.type === 'document' && {
           key: 'exportDocument',
           label: (
             <div className="flex items-center flex-grow">
@@ -353,10 +363,10 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
               {t('canvas.nodeActions.delete')}
             </div>
           ),
-          onClick: () => deleteNode(node),
+          onClick: () => deleteNode(currentNode),
           className: 'hover:bg-red-50',
         },
-        node.type === 'document' && {
+        currentNode.type === 'document' && {
           key: 'deleteFile',
           label: (
             <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
@@ -369,7 +379,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
           },
           className: 'hover:bg-red-50',
         },
-        node.type === 'resource' && {
+        currentNode.type === 'resource' && {
           key: 'deleteFile',
           label: (
             <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
@@ -387,7 +397,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
       readonly,
       t,
       setNodeCenter,
-      node,
+      currentNode,
       handleAddToContext,
       canDownload,
       handleDownload,
@@ -396,10 +406,10 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
     ]);
 
     const handleTitleUpdate = (newTitle: string) => {
-      if (newTitle === node.data?.title) {
+      if (newTitle === currentNode.data?.title) {
         return;
       }
-      updateNodePreviewTitle(newTitle, node.data.entityId, node.id, node.type);
+      updateNodePreviewTitle(newTitle, currentNode.data.entityId, currentNode.id, currentNode.type);
     };
 
     return (
@@ -417,11 +427,11 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
         {/* Left: Icon and Title */}
         <div className="flex items-center gap-2 flex-grow overflow-hidden">
           <div className="flex-grow overflow-hidden">
-            {node.type === 'skillResponse' ? (
+            {currentNode.type === 'skillResponse' ? (
               <NodeHeader
                 className="!mb-0"
                 source="skillResponsePreview"
-                query={node.data?.title || ''}
+                query={currentNode.data?.title || ''}
                 disabled={readonly}
                 showIcon
                 updateTitle={handleTitleUpdate}
@@ -429,11 +439,11 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
             ) : (
               <CommonNodeHeader
                 source="preview"
-                title={getNodeTitle(node, t)}
-                fixedTitle={getNodeFixedTitle(node, t)}
+                title={getNodeTitle(currentNode, t)}
+                fixedTitle={getNodeFixedTitle(currentNode, t)}
                 Icon={IconComponent}
                 iconBgColor={nodeColor}
-                canEdit={node.type !== 'document' && !readonly}
+                canEdit={currentNode.type !== 'document' && !readonly}
                 updateTitle={handleTitleUpdate}
               />
             )}

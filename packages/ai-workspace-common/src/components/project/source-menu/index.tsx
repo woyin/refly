@@ -30,13 +30,13 @@ import cn from 'classnames';
 import HeaderActions from '@refly-packages/ai-workspace-common/components/common/header-actions';
 import { ResourceIcon } from '@refly-packages/ai-workspace-common/components/common/resourceIcon';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useImportResourceStoreShallow } from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { useImportResourceStoreShallow } from '@refly/stores';
 import { LuPlus, LuExternalLink } from 'react-icons/lu';
 import { useDownloadFile } from '@refly-packages/ai-workspace-common/hooks/use-download-file';
 import type { MenuProps, DropdownProps } from 'antd';
 import { useMatch } from 'react-router-dom';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useThemeStoreShallow } from '@refly-packages/ai-workspace-common/stores/theme';
+import { useThemeStoreShallow } from '@refly/stores';
 
 const { Text } = Typography;
 

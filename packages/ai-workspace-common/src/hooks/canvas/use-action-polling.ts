@@ -1,8 +1,5 @@
 import { useCallback, useRef, useEffect } from 'react';
-import {
-  useActionResultStore,
-  useActionResultStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
 import { ActionResultNotFoundError } from '@refly/errors';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useUpdateActionResult } from './use-update-action-result';
@@ -63,8 +60,8 @@ export const useActionPolling = () => {
           query: { resultId, version },
         });
 
-        if (!result.success) {
-          if (result.errCode === new ActionResultNotFoundError().code) {
+        if (!result?.success) {
+          if (result?.errCode === new ActionResultNotFoundError().code) {
             incrementErrorCount(resultId);
             const newErrorCount = (pollingStateMap[resultId]?.notFoundErrorCount ?? 0) + 1;
 

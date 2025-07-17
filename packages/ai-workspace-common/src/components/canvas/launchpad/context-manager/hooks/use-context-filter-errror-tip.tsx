@@ -1,4 +1,4 @@
-import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStore } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { notification } from 'antd';
 

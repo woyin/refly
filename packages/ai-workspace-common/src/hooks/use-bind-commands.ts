@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import hotKeys from 'hotkeys-js';
 import { useIsLogin } from './use-is-login';
-import { useSearchStoreShallow } from '@refly-packages/ai-workspace-common/stores/search';
+import { useSearchStoreShallow } from '@refly/stores';
 
 export const useBindCommands = () => {
   const searchStore = useSearchStoreShallow((state) => ({

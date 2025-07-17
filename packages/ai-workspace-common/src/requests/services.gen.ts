@@ -99,6 +99,21 @@ import type {
   AutoNameCanvasData,
   AutoNameCanvasError,
   AutoNameCanvasResponse2,
+  GetCanvasStateData,
+  GetCanvasStateError,
+  GetCanvasStateResponse2,
+  SetCanvasStateData,
+  SetCanvasStateError,
+  SetCanvasStateResponse,
+  GetCanvasTransactionsData,
+  GetCanvasTransactionsError,
+  GetCanvasTransactionsResponse2,
+  SyncCanvasStateData,
+  SyncCanvasStateError,
+  SyncCanvasStateResponse2,
+  CreateCanvasVersionData,
+  CreateCanvasVersionError,
+  CreateCanvasVersionResponse2,
   ListCanvasTemplatesData,
   ListCanvasTemplatesError,
   ListCanvasTemplatesResponse,
@@ -185,6 +200,9 @@ import type {
   DeleteProjectItemsData,
   DeleteProjectItemsError,
   DeleteProjectItemsResponse,
+  ListCodeArtifactsData,
+  ListCodeArtifactsError,
+  ListCodeArtifactsResponse,
   GetCodeArtifactDetailData,
   GetCodeArtifactDetailError,
   GetCodeArtifactDetailResponse2,
@@ -273,6 +291,9 @@ import type {
   DeleteSkillTriggerData,
   DeleteSkillTriggerError,
   DeleteSkillTriggerResponse,
+  GenerateMediaData,
+  GenerateMediaError,
+  GenerateMediaResponse,
   CreatePilotSessionData,
   CreatePilotSessionError,
   CreatePilotSessionResponse,
@@ -322,6 +343,9 @@ import type {
   DeleteProviderData,
   DeleteProviderError,
   DeleteProviderResponse,
+  TestProviderConnectionData,
+  TestProviderConnectionError,
+  TestProviderConnectionResponse2,
   ListProviderItemsData,
   ListProviderItemsError,
   ListProviderItemsResponse2,
@@ -835,6 +859,91 @@ export const autoNameCanvas = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Get canvas state
+ * Get canvas state
+ */
+export const getCanvasState = <ThrowOnError extends boolean = false>(
+  options: Options<GetCanvasStateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCanvasStateResponse2,
+    GetCanvasStateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/getState',
+  });
+};
+
+/**
+ * Set canvas state
+ * Set canvas state, should only be used in conflict resolution
+ */
+export const setCanvasState = <ThrowOnError extends boolean = false>(
+  options: Options<SetCanvasStateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    SetCanvasStateResponse,
+    SetCanvasStateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/setState',
+  });
+};
+
+/**
+ * Get canvas transactions
+ * Get canvas transactions
+ */
+export const getCanvasTransactions = <ThrowOnError extends boolean = false>(
+  options: Options<GetCanvasTransactionsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCanvasTransactionsResponse2,
+    GetCanvasTransactionsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/getTx',
+  });
+};
+
+/**
+ * Sync canvas state
+ * Sync canvas state
+ */
+export const syncCanvasState = <ThrowOnError extends boolean = false>(
+  options: Options<SyncCanvasStateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    SyncCanvasStateResponse2,
+    SyncCanvasStateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/syncState',
+  });
+};
+
+/**
+ * Create canvas version
+ * Create a new canvas version
+ */
+export const createCanvasVersion = <ThrowOnError extends boolean = false>(
+  options: Options<CreateCanvasVersionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    CreateCanvasVersionResponse2,
+    CreateCanvasVersionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/createVersion',
+  });
+};
+
+/**
  * List canvas templates
  * List all canvas templates
  */
@@ -1301,6 +1410,23 @@ export const deleteProjectItems = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/project/deleteItems',
+  });
+};
+
+/**
+ * List code artifacts
+ * List all code artifacts
+ */
+export const listCodeArtifacts = <ThrowOnError extends boolean = false>(
+  options?: Options<ListCodeArtifactsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListCodeArtifactsResponse,
+    ListCodeArtifactsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/codeArtifact/list',
   });
 };
 
@@ -1791,6 +1917,19 @@ export const deleteSkillTrigger = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Generate multimedia content
+ * Generate image, video or audio based on the given prompt
+ */
+export const generateMedia = <ThrowOnError extends boolean = false>(
+  options: Options<GenerateMediaData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<GenerateMediaResponse, GenerateMediaError, ThrowOnError>({
+    ...options,
+    url: '/media/generate',
+  });
+};
+
+/**
  * Create new pilot session
  * Create a new pilot session
  */
@@ -2075,6 +2214,23 @@ export const deleteProvider = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/provider/delete',
+  });
+};
+
+/**
+ * Test provider connection
+ * Test provider API connection and availability
+ */
+export const testProviderConnection = <ThrowOnError extends boolean = false>(
+  options: Options<TestProviderConnectionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    TestProviderConnectionResponse2,
+    TestProviderConnectionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/provider/test-connection',
   });
 };
 

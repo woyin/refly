@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { IconDown, IconProject } from '@refly-packages/ai-workspace-common/components/common/icon';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { Project } from '@refly/openapi-schema';
-import { useContextPanelStoreShallow } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStoreShallow } from '@refly/stores';
 import { CreateProjectModal } from '@refly-packages/ai-workspace-common/components/project/project-create';
 import './index.scss';
+import { useUserStore } from '@refly/stores';
 
 // Custom styles for switch component
 const switchStyles = {
@@ -49,6 +50,9 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
 
   // Fetch project list
   const fetchProjects = async () => {
+    const { isLogin } = useUserStore.getState();
+    if (!isLogin) return;
+
     setLoading(true);
     try {
       const res = await getClient().listProjects({

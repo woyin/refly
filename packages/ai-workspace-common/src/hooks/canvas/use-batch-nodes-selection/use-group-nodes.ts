@@ -1,8 +1,12 @@
 import { useCallback } from 'react';
+import {
+  CanvasNode,
+  calculateGroupBoundaries,
+  sortNodes,
+  getAbsolutePosition,
+} from '@refly/canvas-common';
 import { useCanvasId } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-id';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
-import { calculateGroupBoundaries, sortNodes, getAbsolutePosition } from './utils';
-import { CanvasNode, prepareNodeData } from '../../../components/canvas/nodes';
 import { genUniqueId } from '@refly/utils/id';
 import { useReactFlow } from '@xyflow/react';
 
@@ -21,14 +25,15 @@ export const useGroupNodes = () => {
     const { groupNode } = calculateGroupBoundaries(selectedNodes, beforeNodes);
 
     // Prepare the new group node
-    const newGroupNode = prepareNodeData({
+    const newGroupNode = {
       ...groupNode,
+      id: genUniqueId(),
       zIndex: -1,
       data: {
         ...groupNode.data,
         entityId: genUniqueId(),
       },
-    });
+    };
 
     // Track groups that will become empty
     const emptyGroups = new Set<string>();

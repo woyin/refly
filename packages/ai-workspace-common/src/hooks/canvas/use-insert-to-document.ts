@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
-import { useDocumentStore } from '@refly-packages/ai-workspace-common/stores/document';
-import { useActionResultStore } from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useDocumentStore } from '@refly/stores';
+import { useActionResultStore } from '@refly/stores';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
 import { EditorOperation, editorEmitter } from '@refly/utils/event-emitter/editor';
 import { Source } from '@refly/openapi-schema';

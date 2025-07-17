@@ -11,8 +11,8 @@ import {
   IconPreview,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { RiFullscreenFill } from 'react-icons/ri';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { CanvasNode } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { useCanvasStoreShallow } from '@refly/stores';
+import { CanvasNode } from '@refly/canvas-common';
 import {
   FileInput,
   MessageSquareDiff,
@@ -28,7 +28,7 @@ import {
   nodeActionEmitter,
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useUngroupNodes } from '@refly-packages/ai-workspace-common/hooks/canvas/use-batch-nodes-selection/use-ungroup-nodes';

@@ -3,14 +3,14 @@ import { memo, useMemo, useRef, useCallback } from 'react';
 import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LinkOutlined, SendOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from './model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
 import { cn, extractUrlsWithLinkify } from '@refly/utils/index';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
 
 export interface CustomAction {

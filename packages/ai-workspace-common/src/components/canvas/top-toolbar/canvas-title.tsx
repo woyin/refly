@@ -1,64 +1,35 @@
-import { useEffect, useState, useCallback, memo } from 'react';
+import { useCallback, memo } from 'react';
 import { Tooltip, Skeleton, Typography, Avatar, Divider } from 'antd';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
 import { IconCanvas, IconEdit } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
-import { useCanvasSync } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-sync';
-import { CanvasRename } from './canvas-rename';
 import { ShareUser } from '@refly/openapi-schema';
 import { AiOutlineUser } from 'react-icons/ai';
+import { useCanvasOperationStoreShallow } from '@refly/stores';
 
 export const CanvasTitle = memo(
   ({
     canvasId,
+    canvasLoading,
     canvasTitle,
-    hasCanvasSynced,
-    providerStatus,
-    debouncedUnsyncedChanges,
     language,
   }: {
     canvasId: string;
-    canvasTitle?: string;
-    hasCanvasSynced: boolean;
-    providerStatus: string;
-    debouncedUnsyncedChanges: number;
+    canvasLoading: boolean;
+    canvasTitle: string;
     language: LOCALE;
   }) => {
     const { t } = useTranslation();
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const { syncTitleToYDoc } = useCanvasSync();
-    const { updateCanvasTitle } = useSiderStoreShallow((state) => ({
-      updateCanvasTitle: state.updateCanvasTitle,
+    const { openRenameModal } = useCanvasOperationStoreShallow((state) => ({
+      openRenameModal: state.openRenameModal,
     }));
 
     const handleEditClick = useCallback(() => {
-      setIsModalOpen(true);
-    }, []);
+      openRenameModal(canvasId, canvasTitle);
+    }, [openRenameModal, canvasId, canvasTitle]);
 
-    const handleModalOk = useCallback(
-      (newTitle: string) => {
-        if (newTitle?.trim()) {
-          syncTitleToYDoc(newTitle);
-          setIsModalOpen(false);
-        }
-      },
-      [canvasId, syncTitleToYDoc, updateCanvasTitle],
-    );
-
-    const handleModalCancel = useCallback(() => {
-      setIsModalOpen(false);
-    }, []);
-
-    // Refetch canvas list when canvas title changes
-    useEffect(() => {
-      if (hasCanvasSynced && canvasTitle) {
-        updateCanvasTitle(canvasId, canvasTitle);
-      }
-    }, [canvasTitle, hasCanvasSynced, canvasId]);
-
-    const isSyncing = providerStatus !== 'connected' || debouncedUnsyncedChanges > 0;
+    const isSyncing = canvasLoading;
 
     return (
       <>
@@ -84,7 +55,7 @@ export const CanvasTitle = memo(
             `}
             />
           </Tooltip>
-          {!hasCanvasSynced ? (
+          {canvasLoading ? (
             <Skeleton className="w-32" active paragraph={false} />
           ) : (
             <Typography.Text
@@ -96,14 +67,6 @@ export const CanvasTitle = memo(
           )}
           <IconEdit className="text-gray-500 flex items-center justify-center" />
         </div>
-
-        <CanvasRename
-          canvasId={canvasId}
-          canvasTitle={canvasTitle}
-          isModalOpen={isModalOpen}
-          handleModalOk={handleModalOk}
-          handleModalCancel={handleModalCancel}
-        />
       </>
     );
   },

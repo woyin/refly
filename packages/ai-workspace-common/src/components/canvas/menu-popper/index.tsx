@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FC, useEffect, useRef, useState, memo } from 'react';
 import { SearchList } from '@refly-packages/ai-workspace-common/modules/entity-selector/components';
 
-import { useImportResourceStoreShallow } from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { useImportResourceStoreShallow } from '@refly/stores';
 import { CanvasNodeType, SearchDomain } from '@refly/openapi-schema';
 import { ContextItem } from '@refly-packages/ai-workspace-common/types/context';
 import {
@@ -16,8 +16,9 @@ import {
   IconResource,
   IconWebsite,
   IconMindMap,
+  IconMedia,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { genMemoID, genSkillID } from '@refly/utils/id';
+import { genMediaSkillID, genMemoID, genSkillID } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { useReactFlow } from '@xyflow/react';
@@ -25,7 +26,7 @@ import { cn } from '@refly/utils/cn';
 import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';
 import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
 import { useCreateCodeArtifact } from '@refly-packages/ai-workspace-common/hooks/use-create-code-artifact';
-import { getDefaultContentForType } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/artifact-type-util';
+import { getDefaultContentForType } from '@refly/utils';
 
 // Define toolbar item interface
 interface ToolbarItem {
@@ -78,6 +79,11 @@ export const MenuPopper: FC<MenuPopperProps> = memo(({ open, position, setOpen }
         description: t('canvas.toolbar.askAIDescription'),
         videoUrl: 'https://static.refly.ai/onboarding/menuPopper/menuPopper-askAI.webm',
       },
+    },
+    {
+      key: 'mediaGenerate',
+      icon: IconMedia,
+      type: 'button',
     },
     { key: 'divider-1', type: 'divider' },
     {
@@ -282,11 +288,23 @@ export const MenuPopper: FC<MenuPopperProps> = memo(({ open, position, setOpen }
     setOpen(false);
   };
 
+  const createMediaGenerateSkillNode = (position: { x: number; y: number }) => {
+    addNode({
+      type: 'mediaSkill',
+      data: { title: 'Media', entityId: genMediaSkillID() },
+      position: position,
+    });
+  };
+
   const handleMenuClick = async ({ key }: { key: string }) => {
     setActiveKey(key);
     switch (key) {
       case 'askAI':
         createSkillNode(position);
+        setOpen(false);
+        break;
+      case 'mediaGenerate':
+        createMediaGenerateSkillNode(position);
         setOpen(false);
         break;
       case 'createDocument':

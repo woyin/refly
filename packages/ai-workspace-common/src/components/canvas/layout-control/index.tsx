@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
 import { Button, Dropdown, Space, Divider, Tooltip } from 'antd';
-import { UndoManager } from 'yjs';
 import { LuCompass, LuLayoutDashboard, LuLightbulb, LuShipWheel } from 'react-icons/lu';
 import { RiFullscreenFill } from 'react-icons/ri';
 import { FiHelpCircle } from 'react-icons/fi';
@@ -17,13 +16,13 @@ import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canva
 import { TFunction } from 'i18next';
 import { HelpModal } from './help-modal';
 
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { IconExpand, IconShrink } from '@refly-packages/ai-workspace-common/components/common/icon';
 
 import './index.scss';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useCanvasSync } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-sync';
+import { useUserStoreShallow } from '@refly/stores';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 interface LayoutControlProps {
   mode: 'mouse' | 'touchpad';
@@ -49,7 +48,8 @@ interface ActionButtonsProps {
   onLayout: (direction: 'TB' | 'LR') => void;
   onToggleSizeMode: () => void;
   nodeSizeMode: 'compact' | 'adaptive';
-  undoManager: UndoManager;
+  undo: () => void;
+  redo: () => void;
   t: TFunction;
 }
 
@@ -83,11 +83,11 @@ const TooltipButton = memo(({ tooltip, children, ...buttonProps }: TooltipButton
 
 // Update component definitions
 const ActionButtons = memo(
-  ({ onFitView, onLayout, onToggleSizeMode, nodeSizeMode, undoManager, t }: ActionButtonsProps) => (
+  ({ onFitView, onLayout, onToggleSizeMode, nodeSizeMode, undo, redo, t }: ActionButtonsProps) => (
     <>
       <TooltipButton
         tooltip={t('canvas.toolbar.tooltip.undo')}
-        onClick={() => undoManager?.undo()}
+        onClick={() => undo()}
         className={buttonClass}
       >
         <LuUndo className={iconClass} size={16} />
@@ -95,7 +95,7 @@ const ActionButtons = memo(
 
       <TooltipButton
         tooltip={t('canvas.toolbar.tooltip.redo')}
-        onClick={() => undoManager?.redo()}
+        onClick={() => redo()}
         className={buttonClass}
       >
         <LuRedo className={iconClass} size={16} />
@@ -311,7 +311,8 @@ export const LayoutControl: React.FC<LayoutControlProps> = memo(
       setNodeSizeMode: state.setNodeSizeMode,
     }));
     const { updateAllNodesSizeMode } = useNodeOperations();
-    const { undoManager } = useCanvasSync();
+
+    const { undo, redo } = useCanvasContext();
 
     // Add handler for size mode toggle
     const handleToggleSizeMode = useCallback(() => {
@@ -371,7 +372,8 @@ export const LayoutControl: React.FC<LayoutControlProps> = memo(
               onLayout={onLayout}
               onToggleSizeMode={handleToggleSizeMode}
               nodeSizeMode={nodeSizeMode}
-              undoManager={undoManager}
+              undo={undo}
+              redo={redo}
               t={t}
             />
           )}

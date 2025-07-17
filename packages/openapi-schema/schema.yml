@@ -727,6 +727,126 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AutoNameCanvasResponse'
+  /canvas/getState:
+    get:
+      tags:
+        - canvas
+      summary: Get canvas state
+      description: Get canvas state
+      operationId: getCanvasState
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          description: Canvas state version
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCanvasStateResponse'
+  /canvas/setState:
+    post:
+      tags:
+        - canvas
+      summary: Set canvas state
+      description: Set canvas state, should only be used in conflict resolution
+      operationId: setCanvasState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCanvasStateRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+  /canvas/getTx:
+    get:
+      tags:
+        - canvas
+      summary: Get canvas transactions
+      description: Get canvas transactions
+      operationId: getCanvasTransactions
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: query
+          description: Canvas state version
+          required: false
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Since timestamp
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCanvasTransactionsResponse'
+  /canvas/syncState:
+    post:
+      tags:
+        - canvas
+      summary: Sync canvas state
+      description: Sync canvas state
+      operationId: syncCanvasState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncCanvasStateRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncCanvasStateResponse'
+  /canvas/createVersion:
+    post:
+      tags:
+        - canvas
+      summary: Create canvas version
+      description: Create a new canvas version
+      operationId: createCanvasVersion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCanvasVersionRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCanvasVersionResponse'
   /template/list:
     get:
       tags:
@@ -1466,6 +1586,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+  /codeArtifact/list:
+    get:
+      tags:
+        - codeArtifact
+      summary: List code artifacts
+      description: List all code artifacts
+      operationId: listCodeArtifacts
+      parameters:
+        - name: resultId
+          in: query
+          description: Action result ID
+          schema:
+            type: string
+        - name: resultVersion
+          in: query
+          description: Action result version
+          schema:
+            type: number
+        - name: needContent
+          in: query
+          description: Whether to include content
+          schema:
+            type: boolean
+            default: false
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: number
+            default: 1
+        - name: pageSize
+          in: query
+          description: Page size
+          schema:
+            type: number
+            default: 10
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListCodeArtifactResponse'
   /codeArtifact/detail:
     get:
       tags:
@@ -2157,6 +2320,24 @@ paths:
                 $ref: '#/components/schemas/BaseResponse'
       security:
         - api_key: []
+  /media/generate:
+      post:
+        summary: Generate multimedia content
+        description: Generate image, video or audio based on the given prompt
+        operationId: generateMedia
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaGenerateRequest'
+        responses:
+          '200':
+            description: Successful generation
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/MediaGenerateResponse'
   /pilot/session/new:
     post:
       tags:
@@ -2528,6 +2709,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+  /provider/test-connection:
+    post:
+      tags:
+        - provider
+      summary: Test provider connection
+      description: Test provider API connection and availability
+      operationId: testProviderConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestProviderConnectionRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestProviderConnectionResponse'
   /provider/item/list:
     get:
       tags:
@@ -3550,6 +3751,7 @@ components:
         - skillResponse
         - codeArtifact
         - page
+        - mediaResult
     Entity:
       type: object
       description: Entity
@@ -4201,6 +4403,9 @@ components:
       enum:
         - document
         - codeArtifact
+        - image
+        - video
+        - audio
     ArtifactStatus:
       type: string
       description: Artifact status
@@ -4340,6 +4545,12 @@ components:
         language:
           type: string
           description: Code artifact language
+        resultId:
+          type: string
+          description: Action result ID
+        resultVersion:
+          type: number
+          description: Action result version
         createdAt:
           type: string
           format: date-time
@@ -4416,6 +4627,14 @@ components:
           description: Errors
           items:
             type: string
+        outputUrl:
+          type: string
+          format: uri
+          description: Media generation output URL (for media type actions)
+          example: https://example.com/generated/image_123.png
+        storageKey:
+          type: string
+          description: Media generation output storage key
         pilotStepId:
           type: string
           description: Pilot step ID
@@ -4657,6 +4876,9 @@ components:
         - agent
         - queryAnalysis
         - titleGeneration
+        - image
+        - video
+        - audio
     DefaultModelConfig:
       type: object
       description: Default model config
@@ -4672,6 +4894,15 @@ components:
           $ref: '#/components/schemas/ProviderItem'
         titleGeneration:
           description: Title generation model for canvas and documents
+          $ref: '#/components/schemas/ProviderItem'
+        image:
+          description: Default image generation model
+          $ref: '#/components/schemas/ProviderItem'
+        video:
+          description: Default video generation model
+          $ref: '#/components/schemas/ProviderItem'
+        audio:
+          description: Default audio generation model
           $ref: '#/components/schemas/ProviderItem'
     UserPreferences:
       type: object
@@ -4970,31 +5201,85 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/Canvas'
-    RawCanvasData:
+    CanvasHistoryVersion:
       type: object
-      description: Raw canvas data
+      required:
+        - version
+        - hash
+        - timestamp
       properties:
-        owner:
-          type: object
-          description: Canvas owner
-          $ref: '#/components/schemas/ShareUser'
-        title:
+        version:
           type: string
-          description: Canvas title
-        minimapUrl:
+          description: Canvas version
+        hash:
           type: string
-          description: Minimap URL
+          description: Canvas hash
+        timestamp:
+          type: number
+          description: Canvas timestamp (in unix milliseconds)
+    CanvasData:
+      type: object
+      description: Canvas data
+      required:
+        - nodes
+        - edges
+      properties:
         nodes:
           type: array
           description: Canvas nodes
           items:
-            type: object
             $ref: '#/components/schemas/CanvasNode'
         edges:
           type: array
           description: Canvas edges
           items:
-            type: object
+            $ref: '#/components/schemas/CanvasEdge'
+    CanvasState:
+      type: object
+      description: Canvas state
+      allOf:
+        - $ref: '#/components/schemas/CanvasData'
+        - type: object
+          properties:
+            version:
+              type: string
+              description: Canvas version
+            hash:
+              type: string
+              description: Canvas state hash (sha256), calculated from nodes and edges
+            transactions:
+              type: array
+              description: Canvas transaction list
+              items:
+                $ref: '#/components/schemas/CanvasTransaction'
+            history:
+              type: array
+              description: Canvas history versions
+              items:
+                $ref: '#/components/schemas/CanvasHistoryVersion'
+            createdAt:
+              type: number
+              description: Canvas creation timestamp (in unix milliseconds)
+            updatedAt:
+              type: number
+              description: Canvas last updated timestamp (in unix milliseconds)
+    RawCanvasData:
+      type: object
+      description: Raw canvas data
+      allOf:
+        - $ref: '#/components/schemas/CanvasData'
+        - type: object
+          properties:
+            title:
+              type: string
+              description: Canvas title
+            owner:
+              type: object
+              description: Canvas owner
+              $ref: '#/components/schemas/ShareUser'
+            minimapUrl:
+              type: string
+              description: Minimap URL
     ExportCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -5104,6 +5389,206 @@ components:
                 title:
                   type: string
                   description: New canvas title
+    GetCanvasStateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CanvasState'
+    SetCanvasStateRequest:
+      type: object
+      required:
+        - canvasId
+        - state
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        state:
+          type: object
+          description: Canvas state to set
+          $ref: '#/components/schemas/CanvasState'
+    GetCanvasTransactionsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Canvas diff list
+              items:
+                $ref: '#/components/schemas/CanvasTransaction'
+    DiffType:
+      type: string
+      description: Diff type
+      enum:
+        - add
+        - update
+        - delete
+    NodeDiff:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Node ID
+        type:
+          type: string
+          description: Node diff type
+          $ref: '#/components/schemas/DiffType'
+        from:
+          type: object
+          description: Node diff from
+          $ref: '#/components/schemas/CanvasNode'
+        to:
+          type: object
+          description: Node diff to
+          $ref: '#/components/schemas/CanvasNode'
+    EdgeDiff:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Edge ID
+        type:
+          type: string
+          description: Edge diff type
+          $ref: '#/components/schemas/DiffType'
+        from:
+          type: object
+          description: Edge diff from
+          $ref: '#/components/schemas/CanvasEdge'
+        to:
+          type: object
+          description: Edge diff to
+          $ref: '#/components/schemas/CanvasEdge'
+    CanvasTransaction:
+      type: object
+      required:
+        - txId
+        - nodeDiffs
+        - edgeDiffs
+        - createdAt
+      properties:
+        txId:
+          type: string
+          description: Transaction ID
+        nodeDiffs:
+          type: array
+          description: Node diffs
+          items:
+            $ref: '#/components/schemas/NodeDiff'
+        edgeDiffs:
+          type: array
+          description: Edge diffs
+          items:
+            $ref: '#/components/schemas/EdgeDiff'
+        revoked:
+          type: boolean
+          description: Whether the transaction is revoked
+        deleted:
+          type: boolean
+          description: Whether the transaction is deleted
+        createdAt:
+          type: number
+          description: Transaction creation timestamp (in unix milliseconds)
+        syncedAt:
+          type: number
+          description: Transaction synchronization timestamp (in unix milliseconds)
+    SyncCanvasStateRequest:
+      type: object
+      required:
+        - canvasId
+        - transactions
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        version:
+          type: string
+          description: Canvas state version
+        transactions:
+          type: array
+          description: Transaction list
+          items:
+            $ref: '#/components/schemas/CanvasTransaction'
+    SyncCanvasStateResult:
+      type: object
+      required:
+        - transactions
+      properties:
+        transactions:
+          type: array
+          description: Transaction list
+          items:
+            $ref: '#/components/schemas/CanvasTransaction'
+    SyncCanvasStateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Apply canvas state result
+              $ref: '#/components/schemas/SyncCanvasStateResult'
+    CreateCanvasVersionRequest:
+      type: object
+      required:
+        - canvasId
+        - state
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        state:
+          type: object
+          description: Canvas state
+          $ref: '#/components/schemas/CanvasState'
+    VersionConflict:
+      type: object
+      required:
+        - localState
+        - remoteState
+      properties:
+        localState:
+          type: object
+          description: Local canvas state
+          $ref: '#/components/schemas/CanvasState'
+        remoteState:
+          type: object
+          description: Server canvas state
+          $ref: '#/components/schemas/CanvasState'
+    CreateCanvasVersionResult:
+      type: object
+      required:
+        - canvasId
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        conflict:
+          type: object
+          description: Version conflict (when there is a conflict)
+          $ref: '#/components/schemas/VersionConflict'
+        newState:
+          type: object
+          description: New canvas state (when there is no conflict)
+          $ref: '#/components/schemas/CanvasState'
+    CreateCanvasVersionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Create canvas version result
+              $ref: '#/components/schemas/CreateCanvasVersionResult'
     ListCanvasTemplateResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -5584,6 +6069,12 @@ components:
         language:
           type: string
           description: Code artifact language
+        resultId:
+          type: string
+          description: Action result ID
+        resultVersion:
+          type: number
+          description: Action result version
         previewStorageKey:
           type: string
           description: Code artifact preview storage key
@@ -5598,6 +6089,16 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/CodeArtifact'
+    ListCodeArtifactResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Code artifact list
+              items:
+                $ref: '#/components/schemas/CodeArtifact'
     GetCodeArtifactDetailResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -6145,6 +6646,7 @@ components:
       enum:
         - skill
         - tool
+        - media
     ActionContextType:
       type: string
       enum:
@@ -6333,6 +6835,38 @@ components:
         triggerId:
           type: string
           description: Trigger ID to delete
+    MediaType:
+      type: string
+      description: media type
+      enum: [image, video, audio]
+      example: image
+    MediaGenerateRequest:
+        type: object
+        required:
+          - mediaType
+          - prompt
+        properties:
+          mediaType:
+            $ref: '#/components/schemas/MediaType'
+          model:
+            type: string
+            description: Model name for content generation
+          provider:
+            type: string
+            description: Optional provider selection
+            nullable: true
+          prompt:
+            type: string
+            description: Text prompt for content generation
+    MediaGenerateResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            resultId:
+              type: string
+              description: Media generation result ID
+              example: ar-g30e1b80b5g1itbemc0g5jj3
     PilotStepStatus:
       type: string
       enum:
@@ -6963,6 +7497,18 @@ components:
                 content:
                   type: string
                   description: Converted markdown content
+    MediaGenerationModelCapabilities:
+      type: object
+      properties:
+        image:
+          type: boolean
+          description: Whether this model supports image generation
+        video:
+          type: boolean
+          description: Whether this model supports video generation
+        audio:
+          type: boolean
+          description: Whether this model supports audio generation
     ModelCapabilities:
       type: object
       properties:
@@ -7037,6 +7583,7 @@ components:
         - webSearch
         - urlParsing
         - pdfParsing
+        - mediaGeneration
     Provider:
       type: object
       description: General provider info
@@ -7095,6 +7642,26 @@ components:
         capabilities:
           description: Model capabilities
           $ref: '#/components/schemas/ModelCapabilities'
+
+    MediaGenerationModelConfig:
+      type: object
+      description: Provider config for media generation
+      required:
+        - modelId
+        - modelName
+      properties:
+        modelId:
+          type: string
+          description: Model ID
+        modelName:
+          type: string
+          description: Model name
+        capabilities:
+          description: Model capabilities
+          $ref: '#/components/schemas/MediaGenerationModelCapabilities'
+        description:
+          type: string
+          description: Model description
     EmbeddingModelConfig:
       type: object
       description: Provider config for embeddings
@@ -7137,6 +7704,7 @@ components:
         - $ref: '#/components/schemas/LLMModelConfig'
         - $ref: '#/components/schemas/EmbeddingModelConfig'
         - $ref: '#/components/schemas/RerankerModelConfig'
+        - $ref: '#/components/schemas/MediaGenerationModelConfig'
     ProviderItemOption:
       type: object
       properties:
@@ -7244,6 +7812,62 @@ components:
         providerId:
           type: string
           description: Provider ID
+    TestProviderConnectionRequest:
+      type: object
+      required:
+        - providerId
+      properties:
+        providerId:
+          type: string
+          description: Provider ID to test
+        category:
+          description: Provider category to test (optional)
+          $ref: '#/components/schemas/ProviderCategory'
+    ProviderTestResult:
+      type: object
+      properties:
+        providerId:
+          type: string
+          description: Provider ID
+        providerKey:
+          type: string
+          description: Provider key
+        name:
+          type: string
+          description: Provider name
+        baseUrl:
+          type: string
+          description: Provider base URL
+        categories:
+          type: array
+          description: Provider categories
+          items:
+            type: string
+        status:
+          type: string
+          description: Test result status
+          enum:
+            - success
+            - failed
+            - unknown
+        message:
+          type: string
+          description: Test result message
+        details:
+          type: object
+          description: Detailed test results
+          additionalProperties: true
+        timestamp:
+          type: string
+          description: Test timestamp
+          format: date-time
+    TestProviderConnectionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ProviderTestResult'
     ListProviderItemOptionsResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -7360,6 +7984,10 @@ components:
         - memo
         - group
         - image
+        - video
+        - audio
+        - mediaSkill
+        - mediaSkillResponse
     CanvasNodeData:
       type: object
       required:
@@ -7379,18 +8007,73 @@ components:
           type: object
           additionalProperties: true
           description: Node metadata
+    XYPosition:
+      type: object
+      required:
+        - x
+        - y
+      properties:
+        x:
+          type: number
+          description: Node position x
+        y:
+          type: number
+          description: Node position y
     CanvasNode:
       type: object
       required:
+        - id
         - type
+        - position
         - data
       properties:
+        id:
+          type: string
+          description: Node ID
         type:
           description: Node type
           $ref: '#/components/schemas/CanvasNodeType'
+        position:
+          $ref: '#/components/schemas/XYPosition'
+          description: Node position
+        offsetPosition:
+          $ref: '#/components/schemas/XYPosition'
+          description: Node offset position
         data:
           type: object
           $ref: '#/components/schemas/CanvasNodeData'
+        style:
+          type: object
+          description: Node style
+        selected:
+          type: boolean
+          description: Whether the node is selected
+        dragging:
+          type: boolean
+          description: Whether the node is being dragged
+        parentId:
+          type: string
+          description: Parent node ID
+    CanvasEdge:
+      type: object
+      required:
+        - id
+        - source
+        - target
+        - type
+      properties:
+        id:
+          type: string
+          description: Edge ID
+        source:
+          type: string
+          description: Edge source node ID
+        target:
+          type: string
+          description: Edge target node ID
+        type:
+          type: string
+          description: Edge type
   securitySchemes:
     api_key:
       type: apiKey

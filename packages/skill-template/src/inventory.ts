@@ -30,6 +30,7 @@ import {
   ImageGeneration,
 } from './skills';
 import { Agent } from './skills/agent';
+import { GenerateMedia } from './skills/generate-media';
 
 export const createSkillTemplateInventory = (engine: SkillEngine): BaseSkill[] => {
   return [
@@ -56,7 +57,7 @@ export const createSkillTemplateInventory = (engine: SkillEngine): BaseSkill[] =
 export const createSkillInventory = (engine: SkillEngine): BaseSkill[] => {
   return [
     new CodeArtifacts(engine),
-    new ImageGeneration(engine),
+    new GenerateMedia(engine),
     new WebSearch(engine),
     new LibrarySearch(engine),
     new CustomPrompt(engine),

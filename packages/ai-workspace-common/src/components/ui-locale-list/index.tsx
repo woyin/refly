@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dropdown, MenuProps, message } from 'antd';
-import { useUserStore, useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore, useUserStoreShallow } from '@refly/stores';
 import { safeStringifyJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 import { LOCALE } from '@refly/common-types';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -30,7 +30,9 @@ export const UILocaleList = React.memo(
       const { localSettings, userProfile } = useUserStore.getState();
 
       // Always change i18n language
-      i18n.changeLanguage(lng);
+      if (i18n.isInitialized) {
+        i18n.changeLanguage(lng);
+      }
 
       // Only update local storage and states if not on landing page or user is logged in
       if (!isLandingPage || userStore.isLogin) {

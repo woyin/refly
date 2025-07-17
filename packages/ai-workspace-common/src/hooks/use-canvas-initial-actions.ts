@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useFrontPageStoreShallow } from '../stores/front-page';
+import {
+  useFrontPageStoreShallow,
+  useChatStoreShallow,
+  usePilotStoreShallow,
+  useCanvasStoreShallow,
+} from '@refly/stores';
 import { genActionResultID } from '@refly/utils/id';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
-import { useCanvasContext } from '../context/canvas';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import {
   CreatePilotSessionRequest,
   ModelInfo,
@@ -16,20 +18,24 @@ import {
   SkillTemplateConfig,
 } from '@refly/openapi-schema';
 import { message } from 'antd';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addNode } = useAddNode();
   const { invokeAction } = useInvokeAction();
-  const { query, selectedSkill, runtimeConfig, tplConfig, reset } = useFrontPageStoreShallow(
-    (state) => ({
+  const { query, selectedSkill, runtimeConfig, tplConfig, reset, mediaQueryData } =
+    useFrontPageStoreShallow((state) => ({
       query: state.query,
       selectedSkill: state.selectedSkill,
       runtimeConfig: state.runtimeConfig,
       tplConfig: state.tplConfig,
       reset: state.reset,
-    }),
-  );
+      mediaQueryData: state.mediaQueryData,
+    }));
+  const { canvasInitialized } = useCanvasStoreShallow((state) => ({
+    canvasInitialized: state.canvasInitialized[canvasId],
+  }));
 
   const { skillSelectedModel } = useChatStoreShallow((state) => ({
     skillSelectedModel: state.skillSelectedModel,
@@ -38,10 +44,6 @@ export const useCanvasInitialActions = (canvasId: string) => {
     setActiveSessionId: state.setActiveSessionId,
     setIsPilotOpen: state.setIsPilotOpen,
   }));
-
-  // Get canvas provider to check connection status
-  const { provider } = useCanvasContext();
-  const [isConnected, setIsConnected] = useState(false);
 
   // Store the required data to execute actions after connection
   const pendingActionRef = useRef<{
@@ -52,36 +54,20 @@ export const useCanvasInitialActions = (canvasId: string) => {
     tplConfig: SkillTemplateConfig;
     runtimeConfig: SkillRuntimeConfig;
     isPilotActivated?: boolean;
+    isMediaGeneration?: boolean;
+    mediaQueryData?: any;
   } | null>(null);
-
-  // Update connection status when provider status changes
-  useEffect(() => {
-    if (!provider) return;
-
-    const handleStatus = ({ status }: { status: string }) => {
-      setIsConnected(status === 'connected');
-    };
-
-    // Check initial status
-    setIsConnected(provider.status === 'connected');
-
-    // Listen for status changes
-    provider.on('status', handleStatus);
-
-    return () => {
-      provider.off('status', handleStatus);
-    };
-  }, [provider]);
 
   // Store parameters needed for actions when URL parameters are processed
   useEffect(() => {
     const source = searchParams.get('source');
     const isPilotActivated = Boolean(searchParams.get('isPilotActivated'));
+    const isMediaGeneration = Boolean(searchParams.get('isMediaGeneration'));
     const newParams = new URLSearchParams();
 
     // Copy all params except 'source'
     for (const [key, value] of searchParams.entries()) {
-      if (!['source', 'isPilotActivated'].includes(key)) {
+      if (!['source', 'isPilotActivated', 'isMediaGeneration'].includes(key)) {
         newParams.append(key, value);
       }
     }
@@ -97,9 +83,20 @@ export const useCanvasInitialActions = (canvasId: string) => {
         tplConfig,
         runtimeConfig,
         isPilotActivated,
+        isMediaGeneration,
+        mediaQueryData,
       };
     }
-  }, [canvasId, query, selectedSkill, searchParams, skillSelectedModel, tplConfig, runtimeConfig]);
+  }, [
+    canvasId,
+    query,
+    selectedSkill,
+    searchParams,
+    skillSelectedModel,
+    tplConfig,
+    runtimeConfig,
+    mediaQueryData,
+  ]);
 
   const handleCreatePilotSession = useCallback(async (param: CreatePilotSessionRequest) => {
     const { data, error } = await getClient().createPilotSession({
@@ -118,64 +115,84 @@ export const useCanvasInitialActions = (canvasId: string) => {
     }
   }, []);
 
-  // Execute the actions once connected
   useEffect(() => {
     // Only proceed if we're connected and have pending actions
-    if (isConnected && pendingActionRef.current && canvasId) {
-      const { query, selectedSkill, modelInfo, tplConfig, runtimeConfig, isPilotActivated } =
-        pendingActionRef.current;
+    if (canvasInitialized && pendingActionRef.current && canvasId) {
+      const {
+        query,
+        selectedSkill,
+        modelInfo,
+        tplConfig,
+        runtimeConfig,
+        isPilotActivated,
+        isMediaGeneration,
+        mediaQueryData: pendingMediaQueryData,
+      } = pendingActionRef.current;
 
-      if (isPilotActivated) {
-        handleCreatePilotSession({
-          targetId: canvasId,
-          targetType: 'canvas',
-          title: query,
-          input: { query },
-          maxEpoch: 3,
-          // providerItemId: modelInfo.providerItemId,
+      if (isMediaGeneration) {
+        if (!pendingMediaQueryData) {
+          return;
+        }
+
+        const { mediaType, query, model, providerKey } = pendingMediaQueryData;
+        nodeOperationsEmitter.emit('generateMedia', {
+          providerKey,
+          mediaType: mediaType,
+          query: query,
+          model: model,
+          nodeId: '',
         });
-        pendingActionRef.current = null;
+      } else {
+        if (isPilotActivated) {
+          handleCreatePilotSession({
+            targetId: canvasId,
+            targetType: 'canvas',
+            title: query,
+            input: { query },
+            maxEpoch: 3,
+            // providerItemId: modelInfo.providerItemId,
+          });
+          pendingActionRef.current = null;
 
-        return;
-      }
+          return;
+        }
 
-      const resultId = genActionResultID();
-      invokeAction(
-        {
-          query,
-          resultId,
-          selectedSkill,
-          modelInfo,
-          tplConfig,
-          runtimeConfig,
-        },
-        {
-          entityId: canvasId,
-          entityType: 'canvas',
-        },
-      );
-      addNode({
-        type: 'skillResponse',
-        data: {
-          title: query,
-          entityId: resultId,
-          metadata: {
-            status: 'executing',
+        const resultId = genActionResultID();
+        invokeAction(
+          {
+            query,
+            resultId,
             selectedSkill,
             modelInfo,
-            runtimeConfig,
             tplConfig,
-            structuredData: {
-              query,
+            runtimeConfig,
+          },
+          {
+            entityId: canvasId,
+            entityType: 'canvas',
+          },
+        );
+        addNode({
+          type: 'skillResponse',
+          data: {
+            title: query,
+            entityId: resultId,
+            metadata: {
+              status: 'executing',
+              selectedSkill,
+              modelInfo,
+              runtimeConfig,
+              tplConfig,
+              structuredData: {
+                query,
+              },
             },
           },
-        },
-      });
+        });
+      }
 
       reset();
-
-      // Clear pending action
       pendingActionRef.current = null;
     }
-  }, [canvasId, isConnected, invokeAction, addNode, reset]);
+  }, [canvasId, canvasInitialized, invokeAction, addNode, reset]);
 };

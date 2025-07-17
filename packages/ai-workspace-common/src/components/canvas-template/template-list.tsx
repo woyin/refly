@@ -11,14 +11,14 @@ import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { CanvasTemplate } from '@refly/openapi-schema';
 import { IoPersonOutline } from 'react-icons/io5';
-import { useCanvasTemplateModal } from '@refly-packages/ai-workspace-common/stores/canvas-template-modal';
+import { useCanvasTemplateModal } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { staticPublicEndpoint } from '@refly-packages/ai-workspace-common/utils/env';
 import cn from 'classnames';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useUserStoreShallow } from '@refly/stores';
+import { useAuthStoreShallow } from '@refly/stores';
 
 export const TemplateCard = ({
   template,

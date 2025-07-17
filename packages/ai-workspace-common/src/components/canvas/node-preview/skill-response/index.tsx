@@ -1,24 +1,18 @@
 import { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button, Divider, message, Result, Skeleton, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useActionResultStoreShallow } from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useActionResultStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ActionResult, ActionStep } from '@refly/openapi-schema';
-import {
-  CanvasNode,
-  ResponseNodeMeta,
-} from '@refly-packages/ai-workspace-common/components/canvas/nodes';
+import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { ActionStepCard } from './action-step';
-import {
-  convertResultContextToItems,
-  purgeContextItems,
-} from '@refly-packages/ai-workspace-common/utils/map-context-items';
+import { convertResultContextToItems, purgeContextItems } from '@refly/canvas-common';
 
 import { PreviewChatInput } from './preview-chat-input';
 import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { EditChatInput } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/edit-chat-input';
 import { cn } from '@refly/utils/cn';
@@ -33,7 +27,7 @@ import {
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { processContentPreview } from '@refly-packages/ai-workspace-common/utils/content';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
@@ -225,7 +219,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
         resultId,
         query: title,
         selectedSkill: {
-          name: actionMeta?.name || 'CommonQnA',
+          name: actionMeta?.name || 'commonQnA',
         },
         contextItems,
       },

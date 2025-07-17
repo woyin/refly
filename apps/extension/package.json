@@ -28,6 +28,8 @@
     "@refly/openapi-schema": "workspace:*",
     "@refly/plugin-vite-encoding": "1.3.3",
     "@refly/plugin-vite-watcher": "1.3.3",
+    "@refly/stores": "workspace:*",
+    "@refly/ui-kit": "workspace:*",
     "@refly/utils": "workspace:*",
     "@sentry/cli": "^2.31.2",
     "@sentry/react": "^7.113.0",

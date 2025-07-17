@@ -1,4 +1,4 @@
-import { useSkillStore } from '@refly-packages/ai-workspace-common/stores/skill';
+import { useSkillStore } from '@refly/stores';
 import { Modal } from 'antd';
 
 // 组件

@@ -1,11 +1,11 @@
-import { CanvasNode } from '../nodes/shared/types';
+import { CanvasNode } from '@refly/canvas-common';
 import { ResourceNodePreview } from './resource';
 import { SkillNodePreview } from './skill';
 import { ToolNodePreview } from './tool';
 import { DocumentNodePreview } from './document';
 import { NodePreviewHeader } from './node-preview-header';
 import { useState, useMemo, useCallback, useRef, memo, useEffect } from 'react';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { CodeArtifactNodePreview } from './code-artifact';
 import { WebsiteNodePreview } from './website';
 import { fullscreenEmitter } from '@refly-packages/ai-workspace-common/events/fullscreen';

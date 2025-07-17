@@ -1,21 +1,23 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ReflyService, SkillEngine, SkillEngineOptions } from '@refly/skill-template';
-import { CanvasService } from '@/modules/canvas/canvas.service';
-import { KnowledgeService } from '@/modules/knowledge/knowledge.service';
-import { LabelService } from '@/modules/label/label.service';
-import { McpServerService } from '@/modules/mcp-server/mcp-server.service';
-import { ProviderService } from '@/modules/provider/provider.service';
-import { RAGService } from '@/modules/rag/rag.service';
-import { SearchService } from '@/modules/search/search.service';
-import { buildSuccessResponse } from '@/utils';
-import { mcpServerPO2DTO } from '@/modules/mcp-server/mcp-server.dto';
-import { canvasPO2DTO } from '@/modules/canvas/canvas.dto';
-import { ParserFactory } from '@/modules/knowledge/parsers/factory';
-import { documentPO2DTO, referencePO2DTO, resourcePO2DTO } from '@/modules/knowledge/knowledge.dto';
-import { labelClassPO2DTO, labelPO2DTO } from '@/modules/label/label.dto';
+import { CanvasService } from '../canvas/canvas.service';
+import { KnowledgeService } from '../knowledge/knowledge.service';
+import { LabelService } from '../label/label.service';
+import { McpServerService } from '../mcp-server/mcp-server.service';
+import { ProviderService } from '../provider/provider.service';
+import { RAGService } from '../rag/rag.service';
+import { SearchService } from '../search/search.service';
+import { buildSuccessResponse } from '../../utils';
+import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
+import { canvasPO2DTO } from '../canvas/canvas.dto';
+import { ParserFactory } from '../knowledge/parsers/factory';
+import { documentPO2DTO, referencePO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
+import { labelClassPO2DTO, labelPO2DTO } from '../label/label.dto';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from '@/modules/auth/auth.service';
+import { AuthService } from '../auth/auth.service';
+import { MediaGeneratorService } from '../media-generator/media-generator.service';
+import { ActionService } from '../action/action.service';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -29,6 +31,8 @@ export class SkillEngineService implements OnModuleInit {
   private providerService: ProviderService;
   private mcpServerService: McpServerService;
   private authService: AuthService;
+  private mediaGeneratorService: MediaGeneratorService;
+  private actionService: ActionService;
 
   private engine: SkillEngine;
 
@@ -46,10 +50,28 @@ export class SkillEngineService implements OnModuleInit {
     this.providerService = this.moduleRef.get(ProviderService, { strict: false });
     this.mcpServerService = this.moduleRef.get(McpServerService, { strict: false });
     this.authService = this.moduleRef.get(AuthService, { strict: false });
+    this.mediaGeneratorService = this.moduleRef.get(MediaGeneratorService, { strict: false });
+    this.actionService = this.moduleRef.get(ActionService, { strict: false });
   }
 
+  /**
+   * Build the ReflyService object with all required methods, including the async property.
+   */
   buildReflyService = (): ReflyService => {
     return {
+      async: true,
+      getUserMediaConfig: async (user, mediaType) => {
+        const result = await this.providerService.getUserMediaConfig(user, mediaType);
+        return result;
+      },
+      generateMedia: async (user, req) => {
+        const result = await this.mediaGeneratorService?.generateMedia?.(user, req);
+        return result;
+      },
+      getActionResult: async (user, req) => {
+        const result = await this.actionService.getActionResult(user, req);
+        return result;
+      },
       listMcpServers: async (user, req) => {
         const servers = await this.mcpServerService.listMcpServers(user, req);
         return buildSuccessResponse(servers.map(mcpServerPO2DTO));

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Timeline, Spin, Collapse } from 'antd';
 import { LoadingOutlined } from '@ant-design/icons';
-import { useMultilingualSearchStore } from '../stores/multilingual-search';
+import { useMultilingualSearchStore } from '@refly/stores';
 import './search-progress.scss';
 import { useTranslation } from 'react-i18next';
 

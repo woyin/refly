@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 // stores
-import { useCopilotStore } from '@refly-packages/ai-workspace-common/stores/copilot';
+import { useCopilotStore } from '@refly/stores';
 
 export const useSetContainerDimension = () => {
   const copilotStore = useCopilotStore();

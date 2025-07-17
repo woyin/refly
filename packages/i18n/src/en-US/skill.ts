@@ -62,6 +62,9 @@ const translations = {
       analyzeContext: {
         name: 'Context Analysis',
       },
+      generateTitle: {
+        name: 'Generate Title',
+      },
       generateCodeArtifact: {
         name: 'Generate Code Artifact',
       },
@@ -192,6 +195,55 @@ const translations = {
       prompt: 'Prompt',
       imageId: 'Image ID',
       note: 'Note: If the image is not displayed on the canvas, please check your network connection or refresh the page. If the problem persists, you can try regenerating using the "Image ID".',
+    },
+  },
+  generateMedia: {
+    name: 'Media Generation',
+    description: 'Generate multimedia content including images, videos, and audio using AI models',
+    placeholder: 'Describe the media content you want to generate...',
+    placeholderMac: 'Describe the media content you want to generate...',
+    steps: {
+      generateMedia: {
+        name: 'Generate Media',
+      },
+    },
+    config: {
+      mediaType: {
+        label: 'Media Type',
+        description: 'Type of media to generate',
+        options: {
+          image: 'Image',
+          video: 'Video',
+          audio: 'Audio',
+        },
+      },
+      provider: {
+        label: 'Provider',
+        description: 'AI service provider for media generation',
+      },
+      model: {
+        label: 'Model',
+        description: 'AI model to use for media generation',
+      },
+      quality: {
+        label: 'Quality',
+        description: 'Quality setting for generated content',
+        options: {
+          low: 'Low',
+          medium: 'Medium',
+          high: 'High',
+        },
+      },
+    },
+    ui: {
+      generatedMedia: 'Generated Media',
+      mediaType: 'Media Type',
+      prompt: 'Prompt',
+      resultId: 'Result ID',
+      generating: 'Generating {{mediaType}}...',
+      completed: '{{mediaType}} generation completed',
+      failed: '{{mediaType}} generation failed',
+      note: 'Note: If the media content is not displayed on the canvas, please check your network connection or refresh the page.',
     },
   },
 };

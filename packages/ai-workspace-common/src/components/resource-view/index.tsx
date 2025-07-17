@@ -14,11 +14,11 @@ import { useGetResourceDetail } from '@refly-packages/ai-workspace-common/querie
 import { IndexError, Resource } from '@refly/openapi-schema';
 
 import './index.scss';
-import { IContextItem } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem } from '@refly/common-types';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { TFunction } from 'i18next';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 

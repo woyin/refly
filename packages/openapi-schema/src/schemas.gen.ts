@@ -1075,6 +1075,7 @@ export const EntityTypeSchema = {
     'skillResponse',
     'codeArtifact',
     'page',
+    'mediaResult',
   ],
 } as const;
 
@@ -1901,7 +1902,7 @@ export const ActionStatusSchema = {
 export const ArtifactTypeSchema = {
   type: 'string',
   description: 'Artifact type',
-  enum: ['document', 'codeArtifact'],
+  enum: ['document', 'codeArtifact', 'image', 'video', 'audio'],
 } as const;
 
 export const ArtifactStatusSchema = {
@@ -2074,6 +2075,14 @@ export const CodeArtifactSchema = {
       type: 'string',
       description: 'Code artifact language',
     },
+    resultId: {
+      type: 'string',
+      description: 'Action result ID',
+    },
+    resultVersion: {
+      type: 'number',
+      description: 'Action result version',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',
@@ -2173,6 +2182,16 @@ export const ActionResultSchema = {
       items: {
         type: 'string',
       },
+    },
+    outputUrl: {
+      type: 'string',
+      format: 'uri',
+      description: 'Media generation output URL (for media type actions)',
+      example: 'https://example.com/generated/image_123.png',
+    },
+    storageKey: {
+      type: 'string',
+      description: 'Media generation output storage key',
     },
     pilotStepId: {
       type: 'string',
@@ -2460,7 +2479,7 @@ export const ProviderConfigSchema = {
 export const ModelSceneSchema = {
   type: 'string',
   description: 'Model usage scene',
-  enum: ['chat', 'agent', 'queryAnalysis', 'titleGeneration'],
+  enum: ['chat', 'agent', 'queryAnalysis', 'titleGeneration', 'image', 'video', 'audio'],
 } as const;
 
 export const DefaultModelConfigSchema = {
@@ -2481,6 +2500,18 @@ export const DefaultModelConfigSchema = {
     },
     titleGeneration: {
       description: 'Title generation model for canvas and documents',
+      $ref: '#/components/schemas/ProviderItem',
+    },
+    image: {
+      description: 'Default image generation model',
+      $ref: '#/components/schemas/ProviderItem',
+    },
+    video: {
+      description: 'Default video generation model',
+      $ref: '#/components/schemas/ProviderItem',
+    },
+    audio: {
+      description: 'Default audio generation model',
       $ref: '#/components/schemas/ProviderItem',
     },
   },
@@ -2924,28 +2955,34 @@ export const GetCanvasDetailResponseSchema = {
   ],
 } as const;
 
-export const RawCanvasDataSchema = {
+export const CanvasHistoryVersionSchema = {
   type: 'object',
-  description: 'Raw canvas data',
+  required: ['version', 'hash', 'timestamp'],
   properties: {
-    owner: {
-      type: 'object',
-      description: 'Canvas owner',
-      $ref: '#/components/schemas/ShareUser',
-    },
-    title: {
+    version: {
       type: 'string',
-      description: 'Canvas title',
+      description: 'Canvas version',
     },
-    minimapUrl: {
+    hash: {
       type: 'string',
-      description: 'Minimap URL',
+      description: 'Canvas hash',
     },
+    timestamp: {
+      type: 'number',
+      description: 'Canvas timestamp (in unix milliseconds)',
+    },
+  },
+} as const;
+
+export const CanvasDataSchema = {
+  type: 'object',
+  description: 'Canvas data',
+  required: ['nodes', 'edges'],
+  properties: {
     nodes: {
       type: 'array',
       description: 'Canvas nodes',
       items: {
-        type: 'object',
         $ref: '#/components/schemas/CanvasNode',
       },
     },
@@ -2953,10 +2990,83 @@ export const RawCanvasDataSchema = {
       type: 'array',
       description: 'Canvas edges',
       items: {
-        type: 'object',
+        $ref: '#/components/schemas/CanvasEdge',
       },
     },
   },
+} as const;
+
+export const CanvasStateSchema = {
+  type: 'object',
+  description: 'Canvas state',
+  allOf: [
+    {
+      $ref: '#/components/schemas/CanvasData',
+    },
+    {
+      type: 'object',
+      properties: {
+        version: {
+          type: 'string',
+          description: 'Canvas version',
+        },
+        hash: {
+          type: 'string',
+          description: 'Canvas state hash (sha256), calculated from nodes and edges',
+        },
+        transactions: {
+          type: 'array',
+          description: 'Canvas transaction list',
+          items: {
+            $ref: '#/components/schemas/CanvasTransaction',
+          },
+        },
+        history: {
+          type: 'array',
+          description: 'Canvas history versions',
+          items: {
+            $ref: '#/components/schemas/CanvasHistoryVersion',
+          },
+        },
+        createdAt: {
+          type: 'number',
+          description: 'Canvas creation timestamp (in unix milliseconds)',
+        },
+        updatedAt: {
+          type: 'number',
+          description: 'Canvas last updated timestamp (in unix milliseconds)',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const RawCanvasDataSchema = {
+  type: 'object',
+  description: 'Raw canvas data',
+  allOf: [
+    {
+      $ref: '#/components/schemas/CanvasData',
+    },
+    {
+      type: 'object',
+      properties: {
+        title: {
+          type: 'string',
+          description: 'Canvas title',
+        },
+        owner: {
+          type: 'object',
+          description: 'Canvas owner',
+          $ref: '#/components/schemas/ShareUser',
+        },
+        minimapUrl: {
+          type: 'string',
+          description: 'Minimap URL',
+        },
+      },
+    },
+  ],
 } as const;
 
 export const ExportCanvasResponseSchema = {
@@ -3120,6 +3230,283 @@ export const AutoNameCanvasResponseSchema = {
               description: 'New canvas title',
             },
           },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCanvasStateResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/CanvasState',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const SetCanvasStateRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'state'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    state: {
+      type: 'object',
+      description: 'Canvas state to set',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
+export const GetCanvasTransactionsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Canvas diff list',
+          items: {
+            $ref: '#/components/schemas/CanvasTransaction',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const DiffTypeSchema = {
+  type: 'string',
+  description: 'Diff type',
+  enum: ['add', 'update', 'delete'],
+} as const;
+
+export const NodeDiffSchema = {
+  type: 'object',
+  required: ['id', 'type'],
+  properties: {
+    id: {
+      type: 'string',
+      description: 'Node ID',
+    },
+    type: {
+      type: 'string',
+      description: 'Node diff type',
+      $ref: '#/components/schemas/DiffType',
+    },
+    from: {
+      type: 'object',
+      description: 'Node diff from',
+      $ref: '#/components/schemas/CanvasNode',
+    },
+    to: {
+      type: 'object',
+      description: 'Node diff to',
+      $ref: '#/components/schemas/CanvasNode',
+    },
+  },
+} as const;
+
+export const EdgeDiffSchema = {
+  type: 'object',
+  required: ['id', 'type'],
+  properties: {
+    id: {
+      type: 'string',
+      description: 'Edge ID',
+    },
+    type: {
+      type: 'string',
+      description: 'Edge diff type',
+      $ref: '#/components/schemas/DiffType',
+    },
+    from: {
+      type: 'object',
+      description: 'Edge diff from',
+      $ref: '#/components/schemas/CanvasEdge',
+    },
+    to: {
+      type: 'object',
+      description: 'Edge diff to',
+      $ref: '#/components/schemas/CanvasEdge',
+    },
+  },
+} as const;
+
+export const CanvasTransactionSchema = {
+  type: 'object',
+  required: ['txId', 'nodeDiffs', 'edgeDiffs', 'createdAt'],
+  properties: {
+    txId: {
+      type: 'string',
+      description: 'Transaction ID',
+    },
+    nodeDiffs: {
+      type: 'array',
+      description: 'Node diffs',
+      items: {
+        $ref: '#/components/schemas/NodeDiff',
+      },
+    },
+    edgeDiffs: {
+      type: 'array',
+      description: 'Edge diffs',
+      items: {
+        $ref: '#/components/schemas/EdgeDiff',
+      },
+    },
+    revoked: {
+      type: 'boolean',
+      description: 'Whether the transaction is revoked',
+    },
+    deleted: {
+      type: 'boolean',
+      description: 'Whether the transaction is deleted',
+    },
+    createdAt: {
+      type: 'number',
+      description: 'Transaction creation timestamp (in unix milliseconds)',
+    },
+    syncedAt: {
+      type: 'number',
+      description: 'Transaction synchronization timestamp (in unix milliseconds)',
+    },
+  },
+} as const;
+
+export const SyncCanvasStateRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'transactions'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    version: {
+      type: 'string',
+      description: 'Canvas state version',
+    },
+    transactions: {
+      type: 'array',
+      description: 'Transaction list',
+      items: {
+        $ref: '#/components/schemas/CanvasTransaction',
+      },
+    },
+  },
+} as const;
+
+export const SyncCanvasStateResultSchema = {
+  type: 'object',
+  required: ['transactions'],
+  properties: {
+    transactions: {
+      type: 'array',
+      description: 'Transaction list',
+      items: {
+        $ref: '#/components/schemas/CanvasTransaction',
+      },
+    },
+  },
+} as const;
+
+export const SyncCanvasStateResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Apply canvas state result',
+          $ref: '#/components/schemas/SyncCanvasStateResult',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const CreateCanvasVersionRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'state'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    state: {
+      type: 'object',
+      description: 'Canvas state',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
+export const VersionConflictSchema = {
+  type: 'object',
+  required: ['localState', 'remoteState'],
+  properties: {
+    localState: {
+      type: 'object',
+      description: 'Local canvas state',
+      $ref: '#/components/schemas/CanvasState',
+    },
+    remoteState: {
+      type: 'object',
+      description: 'Server canvas state',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
+export const CreateCanvasVersionResultSchema = {
+  type: 'object',
+  required: ['canvasId'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    conflict: {
+      type: 'object',
+      description: 'Version conflict (when there is a conflict)',
+      $ref: '#/components/schemas/VersionConflict',
+    },
+    newState: {
+      type: 'object',
+      description: 'New canvas state (when there is no conflict)',
+      $ref: '#/components/schemas/CanvasState',
+    },
+  },
+} as const;
+
+export const CreateCanvasVersionResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Create canvas version result',
+          $ref: '#/components/schemas/CreateCanvasVersionResult',
         },
       },
     },
@@ -3874,6 +4261,14 @@ export const UpsertCodeArtifactRequestSchema = {
       type: 'string',
       description: 'Code artifact language',
     },
+    resultId: {
+      type: 'string',
+      description: 'Action result ID',
+    },
+    resultVersion: {
+      type: 'number',
+      description: 'Action result version',
+    },
     previewStorageKey: {
       type: 'string',
       description: 'Code artifact preview storage key',
@@ -3896,6 +4291,26 @@ export const UpsertCodeArtifactResponseSchema = {
       properties: {
         data: {
           $ref: '#/components/schemas/CodeArtifact',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const ListCodeArtifactResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Code artifact list',
+          items: {
+            $ref: '#/components/schemas/CodeArtifact',
+          },
         },
       },
     },
@@ -4711,7 +5126,7 @@ export const SkillInvocationConfigSchema = {
 
 export const ActionTypeSchema = {
   type: 'string',
-  enum: ['skill', 'tool'],
+  enum: ['skill', 'tool', 'media'],
 } as const;
 
 export const ActionContextTypeSchema = {
@@ -4994,6 +5409,54 @@ export const DeleteSkillTriggerRequestSchema = {
       description: 'Trigger ID to delete',
     },
   },
+} as const;
+
+export const MediaTypeSchema = {
+  type: 'string',
+  description: 'media type',
+  enum: ['image', 'video', 'audio'],
+  example: 'image',
+} as const;
+
+export const MediaGenerateRequestSchema = {
+  type: 'object',
+  required: ['mediaType', 'prompt'],
+  properties: {
+    mediaType: {
+      $ref: '#/components/schemas/MediaType',
+    },
+    model: {
+      type: 'string',
+      description: 'Model name for content generation',
+    },
+    provider: {
+      type: 'string',
+      description: 'Optional provider selection',
+      nullable: true,
+    },
+    prompt: {
+      type: 'string',
+      description: 'Text prompt for content generation',
+    },
+  },
+} as const;
+
+export const MediaGenerateResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        resultId: {
+          type: 'string',
+          description: 'Media generation result ID',
+          example: 'ar-g30e1b80b5g1itbemc0g5jj3',
+        },
+      },
+    },
+  ],
 } as const;
 
 export const PilotStepStatusSchema = {
@@ -5922,6 +6385,24 @@ export const ConvertResponseSchema = {
   ],
 } as const;
 
+export const MediaGenerationModelCapabilitiesSchema = {
+  type: 'object',
+  properties: {
+    image: {
+      type: 'boolean',
+      description: 'Whether this model supports image generation',
+    },
+    video: {
+      type: 'boolean',
+      description: 'Whether this model supports video generation',
+    },
+    audio: {
+      type: 'boolean',
+      description: 'Whether this model supports audio generation',
+    },
+  },
+} as const;
+
 export const ModelCapabilitiesSchema = {
   type: 'object',
   properties: {
@@ -6014,7 +6495,15 @@ export const ListModelsResponseSchema = {
 
 export const ProviderCategorySchema = {
   type: 'string',
-  enum: ['llm', 'embedding', 'reranker', 'webSearch', 'urlParsing', 'pdfParsing'],
+  enum: [
+    'llm',
+    'embedding',
+    'reranker',
+    'webSearch',
+    'urlParsing',
+    'pdfParsing',
+    'mediaGeneration',
+  ],
 } as const;
 
 export const ProviderSchema = {
@@ -6088,6 +6577,30 @@ export const LLMModelConfigSchema = {
   },
 } as const;
 
+export const MediaGenerationModelConfigSchema = {
+  type: 'object',
+  description: 'Provider config for media generation',
+  required: ['modelId', 'modelName'],
+  properties: {
+    modelId: {
+      type: 'string',
+      description: 'Model ID',
+    },
+    modelName: {
+      type: 'string',
+      description: 'Model name',
+    },
+    capabilities: {
+      description: 'Model capabilities',
+      $ref: '#/components/schemas/MediaGenerationModelCapabilities',
+    },
+    description: {
+      type: 'string',
+      description: 'Model description',
+    },
+  },
+} as const;
+
 export const EmbeddingModelConfigSchema = {
   type: 'object',
   description: 'Provider config for embeddings',
@@ -6146,6 +6659,9 @@ export const ProviderItemConfigSchema = {
     },
     {
       $ref: '#/components/schemas/RerankerModelConfig',
+    },
+    {
+      $ref: '#/components/schemas/MediaGenerationModelConfig',
     },
   ],
 } as const;
@@ -6303,6 +6819,85 @@ export const DeleteProviderRequestSchema = {
       description: 'Provider ID',
     },
   },
+} as const;
+
+export const TestProviderConnectionRequestSchema = {
+  type: 'object',
+  required: ['providerId'],
+  properties: {
+    providerId: {
+      type: 'string',
+      description: 'Provider ID to test',
+    },
+    category: {
+      description: 'Provider category to test (optional)',
+      $ref: '#/components/schemas/ProviderCategory',
+    },
+  },
+} as const;
+
+export const ProviderTestResultSchema = {
+  type: 'object',
+  properties: {
+    providerId: {
+      type: 'string',
+      description: 'Provider ID',
+    },
+    providerKey: {
+      type: 'string',
+      description: 'Provider key',
+    },
+    name: {
+      type: 'string',
+      description: 'Provider name',
+    },
+    baseUrl: {
+      type: 'string',
+      description: 'Provider base URL',
+    },
+    categories: {
+      type: 'array',
+      description: 'Provider categories',
+      items: {
+        type: 'string',
+      },
+    },
+    status: {
+      type: 'string',
+      description: 'Test result status',
+      enum: ['success', 'failed', 'unknown'],
+    },
+    message: {
+      type: 'string',
+      description: 'Test result message',
+    },
+    details: {
+      type: 'object',
+      description: 'Detailed test results',
+      additionalProperties: true,
+    },
+    timestamp: {
+      type: 'string',
+      description: 'Test timestamp',
+      format: 'date-time',
+    },
+  },
+} as const;
+
+export const TestProviderConnectionResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/ProviderTestResult',
+        },
+      },
+    },
+  ],
 } as const;
 
 export const ListProviderItemOptionsResponseSchema = {
@@ -6495,6 +7090,10 @@ export const CanvasNodeTypeSchema = {
     'memo',
     'group',
     'image',
+    'video',
+    'audio',
+    'mediaSkill',
+    'mediaSkillResponse',
   ],
 } as const;
 
@@ -6522,17 +7121,83 @@ export const CanvasNodeDataSchema = {
   },
 } as const;
 
+export const XYPositionSchema = {
+  type: 'object',
+  required: ['x', 'y'],
+  properties: {
+    x: {
+      type: 'number',
+      description: 'Node position x',
+    },
+    y: {
+      type: 'number',
+      description: 'Node position y',
+    },
+  },
+} as const;
+
 export const CanvasNodeSchema = {
   type: 'object',
-  required: ['type', 'data'],
+  required: ['id', 'type', 'position', 'data'],
   properties: {
+    id: {
+      type: 'string',
+      description: 'Node ID',
+    },
     type: {
       description: 'Node type',
       $ref: '#/components/schemas/CanvasNodeType',
     },
+    position: {
+      $ref: '#/components/schemas/XYPosition',
+      description: 'Node position',
+    },
+    offsetPosition: {
+      $ref: '#/components/schemas/XYPosition',
+      description: 'Node offset position',
+    },
     data: {
       type: 'object',
       $ref: '#/components/schemas/CanvasNodeData',
+    },
+    style: {
+      type: 'object',
+      description: 'Node style',
+    },
+    selected: {
+      type: 'boolean',
+      description: 'Whether the node is selected',
+    },
+    dragging: {
+      type: 'boolean',
+      description: 'Whether the node is being dragged',
+    },
+    parentId: {
+      type: 'string',
+      description: 'Parent node ID',
+    },
+  },
+} as const;
+
+export const CanvasEdgeSchema = {
+  type: 'object',
+  required: ['id', 'source', 'target', 'type'],
+  properties: {
+    id: {
+      type: 'string',
+      description: 'Edge ID',
+    },
+    source: {
+      type: 'string',
+      description: 'Edge source node ID',
+    },
+    target: {
+      type: 'string',
+      description: 'Edge target node ID',
+    },
+    type: {
+      type: 'string',
+      description: 'Edge type',
     },
   },
 } as const;

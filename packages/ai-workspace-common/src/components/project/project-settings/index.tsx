@@ -11,7 +11,7 @@ import { CreateProjectModal } from '@refly-packages/ai-workspace-common/componen
 import { ActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/project-list';
 import { SlPicture } from 'react-icons/sl';
 import { DownOutlined } from '@ant-design/icons';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 
 const { Paragraph, Text } = Typography;
 export const ProjectSettings = ({

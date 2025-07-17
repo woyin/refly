@@ -1,17 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
+import { IContextItem, ContextTarget } from '@refly/common-types';
 import {
-  IContextItem,
   useContextPanelStoreShallow,
   useContextPanelStore,
-  ContextTarget,
-} from '../../stores/context-panel';
+  useCanvasStoreShallow,
+} from '@refly/stores';
 import { getSelectionNodesMarkdown } from '@refly/utils/html2md';
 import { Editor } from '@tiptap/react';
 import { message } from 'antd';
 import React from 'react';
 import { emitAddToContext, emitAddToContextCompleted } from '../../utils/event-emitter/context';
 import AddToContextMessageContent from '../../components/message/add-to-context-message';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
 
 interface UseSelectionContextProps {
   containerClass?: string;

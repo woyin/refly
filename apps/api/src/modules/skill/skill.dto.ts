@@ -2,7 +2,7 @@ import {
   ActionResult,
   InvokeSkillRequest,
   LLMModelConfig,
-  ModelScene,
+  MediaGenerationModelConfig,
   Provider,
   SimpleEventName,
   SkillInstance,
@@ -20,7 +20,15 @@ export interface InvokeSkillJobData extends InvokeSkillRequest {
   rawParam: string;
   result?: ActionResult;
   provider?: Provider;
-  modelConfigMap?: Record<ModelScene, LLMModelConfig>;
+  modelConfigMap?: {
+    chat?: LLMModelConfig;
+    agent?: LLMModelConfig;
+    queryAnalysis?: LLMModelConfig;
+    titleGeneration?: LLMModelConfig;
+    image?: MediaGenerationModelConfig;
+    video?: MediaGenerationModelConfig;
+    audio?: MediaGenerationModelConfig;
+  };
 }
 
 export interface SkillTimeoutCheckJobData {
@@ -29,6 +37,8 @@ export interface SkillTimeoutCheckJobData {
   resultId: string;
   version?: number;
 }
+
+export type CheckStuckActionsJobData = Record<string, never>;
 
 export function skillInstancePO2DTO(skill: SkillInstanceModel): SkillInstance {
   return {

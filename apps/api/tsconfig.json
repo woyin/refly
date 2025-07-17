@@ -2,6 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
+    "composite": true,
     "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -20,9 +21,6 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@/*": ["./src/*"]
-    },
     "types": ["jest", "node", "express", "multer"],
     "resolveJsonModule": true
   },
@@ -35,6 +33,7 @@
     { "path": "../../packages/openapi-schema" },
     { "path": "../../packages/common-types" },
     { "path": "../../packages/utils" },
+    { "path": "../../packages/canvas-common" },
     { "path": "../../packages/skill-template" }
   ],
   "tsc-alias": {

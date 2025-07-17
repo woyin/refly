@@ -23,6 +23,8 @@
 .tiptap {
   caret-color: var(--purple);
   margin: 0.5rem;
+  padding: 1rem;
+
 
   &:focus {
     outline: none;
@@ -32,7 +34,6 @@
     margin-top: 0.75em;
   }
 
-  padding: 1rem;
 
   ul,
   ol {

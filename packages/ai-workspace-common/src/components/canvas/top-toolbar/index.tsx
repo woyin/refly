@@ -1,25 +1,24 @@
-import { useEffect, FC, useState, useCallback, memo } from 'react';
+import { FC, memo } from 'react';
 import { useMatch } from 'react-router-dom';
 import { Button, Divider, message } from 'antd';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
-import { useDebounce } from 'use-debounce';
 import { AiOutlineMenuUnfold } from 'react-icons/ai';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CanvasTitle, ReadonlyCanvasTitle } from './canvas-title';
 import { ToolbarButtons } from './buttons';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import ShareSettings from './share-settings';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import './index.scss';
 import { IconLink } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LuBookCopy } from 'react-icons/lu';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 
 interface TopToolbarProps {
   canvasId: string;
@@ -41,32 +40,25 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
   const isShareCanvas = useMatch('/share/canvas/:canvasId');
   const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
 
-  const { provider, readonly, shareData } = useCanvasContext();
-  const [unsyncedChanges, setUnsyncedChanges] = useState(provider?.unsyncedChanges || 0);
-  const [debouncedUnsyncedChanges] = useDebounce(unsyncedChanges, 500);
+  const { loading, readonly, shareData } = useCanvasContext();
 
-  const handleUnsyncedChanges = useCallback((data: number) => {
-    setUnsyncedChanges(data);
-  }, []);
+  const {
+    canvasInitialized,
+    showPreview,
+    setShowPreview,
+    showMaxRatio,
+    setShowMaxRatio,
+    canvasTitle: canvasTitleFromStore,
+  } = useCanvasStoreShallow((state) => ({
+    canvasInitialized: state.canvasInitialized[canvasId],
+    showPreview: state.showPreview,
+    setShowPreview: state.setShowPreview,
+    showMaxRatio: state.showMaxRatio,
+    setShowMaxRatio: state.setShowMaxRatio,
+    canvasTitle: state.canvasTitle[canvasId],
+  }));
 
-  useEffect(() => {
-    provider?.on('unsyncedChanges', handleUnsyncedChanges);
-    return () => {
-      provider?.off('unsyncedChanges', handleUnsyncedChanges);
-    };
-  }, [provider, handleUnsyncedChanges]);
-
-  const { config, showPreview, setShowPreview, showMaxRatio, setShowMaxRatio } =
-    useCanvasStoreShallow((state) => ({
-      config: state.config[canvasId],
-      showPreview: state.showPreview,
-      setShowPreview: state.setShowPreview,
-      showMaxRatio: state.showMaxRatio,
-      setShowMaxRatio: state.setShowMaxRatio,
-    }));
-
-  const canvasTitle = shareData?.title || provider?.document.getText('title').toJSON() || '';
-  const hasCanvasSynced = config?.localSyncedAt > 0 && config?.remoteSyncedAt > 0;
+  const canvasTitle = shareData?.title || canvasTitleFromStore;
 
   const { duplicateCanvas, loading: duplicating } = useDuplicateCanvas();
   const handleDuplicate = () => {
@@ -113,9 +105,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
             <CanvasTitle
               canvasId={canvasId}
               canvasTitle={canvasTitle}
-              hasCanvasSynced={hasCanvasSynced}
-              providerStatus={provider?.status}
-              debouncedUnsyncedChanges={debouncedUnsyncedChanges}
+              canvasLoading={loading || !canvasInitialized}
               language={language}
             />
           )}

@@ -1,17 +1,14 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
-import {
-  IContextItem,
-  useContextPanelStore,
-} from '@refly-packages/ai-workspace-common/stores/context-panel';
-import { ContextTarget } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem, ContextTarget } from '@refly/common-types';
+import { useContextPanelStore } from '@refly/stores';
 import {
   emitAddToContext,
   emitAddToContextCompleted,
 } from '@refly-packages/ai-workspace-common/utils/event-emitter/context';
 import AddToContextMessageContent from '../../components/message/add-to-context-message';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 
 export const useAddToContext = () => {
   const { t } = useTranslation();

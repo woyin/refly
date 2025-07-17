@@ -256,6 +256,14 @@ export class McpServerNotFoundError extends BaseError {
   };
 }
 
+export class CanvasVersionNotFoundError extends BaseError {
+  code = 'E1018';
+  messageDict = {
+    en: 'Canvas version not found, please refresh',
+    'zh-CN': '画布版本不存在，请刷新重试',
+  };
+}
+
 export class StorageQuotaExceeded extends BaseError {
   code = 'E2001';
   messageDict = {
@@ -323,8 +331,8 @@ export class ModelProviderTimeout extends BaseError {
 export class ActionAborted extends BaseError {
   code = 'E3004';
   messageDict = {
-    en: 'Action was stopped by user',
-    'zh-CN': '操作已被用户停止',
+    en: 'Action was stopped',
+    'zh-CN': '操作已被停止',
   };
 }
 

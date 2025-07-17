@@ -4,11 +4,12 @@ import Moveable from 'react-moveable';
 import classNames from 'classnames';
 import { Divider, Input, message, Typography } from 'antd';
 import type { InputRef } from 'antd';
-import { CanvasNode, SkillResponseNodeProps } from './shared/types';
+import { CanvasNode } from '@refly/canvas-common';
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { CustomHandle } from './shared/custom-handle';
 import { LuChevronRight } from 'react-icons/lu';
 import { getNodeCommonStyles } from './index';
+import { SkillResponseNodeProps } from './shared/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
@@ -24,8 +25,12 @@ import {
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { getArtifactIcon } from '@refly-packages/ai-workspace-common/components/common/result-display';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import {
+  useActionResultStore,
+  useActionResultStoreShallow,
+  useKnowledgeBaseStoreShallow,
+} from '@refly/stores';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -43,7 +48,6 @@ import {
   useNodeSize,
   MAX_HEIGHT_CLASS,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { ContentPreview } from './shared/content-preview';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import cn from 'classnames';
 import { ReasoningContentPreview } from './shared/reasoning-content-preview';
@@ -57,7 +61,8 @@ import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magic
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useActionResultStoreShallow } from '@refly-packages/ai-workspace-common/stores/action-result';
+
+import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 
 export const NodeHeader = memo(
   ({
@@ -113,8 +118,26 @@ export const NodeHeader = memo(
         >
           <div className="flex items-center gap-2">
             {showIcon && (
-              <div className="w-6 h-6 rounded bg-[#F79009] shadow-lg flex items-center justify-center flex-shrink-0">
-                <IconResponse className="w-4 h-4 text-white" />
+              <div
+                className={`w-6 h-6 rounded shadow-lg flex items-center justify-center flex-shrink-0 ${
+                  skillName === 'generateImage'
+                    ? 'bg-[#7C3AED]'
+                    : skillName === 'generateVideo'
+                      ? 'bg-[#DC2626]'
+                      : skillName === 'generateAudio'
+                        ? 'bg-[#059669]'
+                        : 'bg-[#F79009]'
+                }`}
+              >
+                {skillName === 'generateImage' ? (
+                  <span className="text-white text-sm">🖼️</span>
+                ) : skillName === 'generateVideo' ? (
+                  <span className="text-white text-sm">🎬</span>
+                ) : skillName === 'generateAudio' ? (
+                  <span className="text-white text-sm">🎵</span>
+                ) : (
+                  <IconResponse className="w-4 h-4 text-white" />
+                )}
               </div>
             )}
             {isEditing ? (
@@ -177,7 +200,7 @@ const NodeFooter = memo(
             </div>
           )}
           {model && tokenUsage ? <Divider type="vertical" className="mx-1" /> : null}
-          {tokenUsage && (
+          {tokenUsage?.reduce && (
             <div className="flex items-center gap-1 flex-shrink-0">
               <IconToken className="w-3 h-3" />
               {tokenUsage.reduce((acc, t) => acc + t.inputTokens + t.outputTokens, 0)}
@@ -274,13 +297,27 @@ export const SkillResponseNode = memo(
     }));
 
     useEffect(() => {
-      if (!isStreaming && (status === 'executing' || status === 'waiting')) {
-        startPolling(entityId, version);
+      if (!isStreaming) {
+        if (['executing', 'waiting'].includes(status)) {
+          startPolling(entityId, version);
+        }
+      } else {
+        // Only remove stream result if the status has been 'failed' or 'finish'
+        // for a reasonable time to avoid race conditions during rerun
+        if (['failed', 'finish'].includes(status)) {
+          // Add a small delay to handle race conditions during rerun
+          const timeoutId = setTimeout(() => {
+            // Double check the status before removing
+            const currentStream = useActionResultStore.getState().streamResults[entityId];
+            if (currentStream && ['failed', 'finish'].includes(status)) {
+              removeStreamResult(entityId);
+            }
+          }, 100);
+
+          return () => clearTimeout(timeoutId);
+        }
       }
-      if (isStreaming && status !== 'executing' && status !== 'waiting') {
-        removeStreamResult(entityId);
-      }
-    }, [isStreaming, status, startPolling, entityId, version]);
+    }, [isStreaming, status, startPolling, entityId, version, removeStreamResult]);
 
     const sources = Array.isArray(structuredData?.sources) ? structuredData?.sources : [];
 
@@ -300,10 +337,10 @@ export const SkillResponseNode = memo(
       : '';
 
     const skill = {
-      name: currentSkill?.name || 'CommonQnA',
+      name: currentSkill?.name || 'commonQnA',
       icon: currentSkill?.icon,
     };
-    const skillName = currentSkill?.name || 'CommonQnA';
+    const skillName = currentSkill?.name || 'commonQnA';
     const model = modelInfo?.label;
 
     // Get query and response content from result
@@ -513,10 +550,12 @@ export const SkillResponseNode = memo(
         // Create node connect filters - include both the response and its context items
         const connectFilters = [
           { type: 'skillResponse' as CanvasNodeType, entityId: data.entityId },
-          ...responseContextItems.map((item) => ({
-            type: item.type as CanvasNodeType,
-            entityId: item.entityId,
-          })),
+          ...responseContextItems
+            .filter((item) => item.type !== 'skillResponse')
+            .map((item) => ({
+              type: item.type as CanvasNodeType,
+              entityId: item.entityId,
+            })),
         ];
 
         const { position, connectTo } = getConnectionInfo(
@@ -789,12 +828,13 @@ export const SkillResponseNode = memo(
                   )}
 
                   {status !== 'failed' && content && (
-                    <ContentPreview
+                    <MultimodalContentPreview
                       resultId={entityId}
                       content={truncateContent(content)}
                       sizeMode={sizeMode}
                       isOperating={isOperating}
                       sources={sources}
+                      metadata={metadata}
                     />
                   )}
                 </div>

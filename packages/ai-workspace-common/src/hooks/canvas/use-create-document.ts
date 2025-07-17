@@ -6,16 +6,16 @@ import { CanvasNodeType } from '@refly-packages/ai-workspace-common/requests/typ
 import { useDebouncedCallback } from 'use-debounce';
 import { parseMarkdownCitationsAndCanvasTags } from '@refly/utils/parse';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { getAvailableFileCount } from '@refly/utils/quota';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useReactFlow, XYPosition } from '@xyflow/react';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { Document } from '@refly/openapi-schema';
-import { CanvasNodeFilter } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
+import { CanvasNodeFilter } from '@refly/canvas-common';
 
 export const useCreateDocument = () => {
   const [isCreating, setIsCreating] = useState(false);

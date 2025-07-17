@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useState } from 'react';
-import { LightLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
+import { LightLoading } from '@refly/ui-kit';
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 
 export const HomeRedirect = ({ defaultNode }: { defaultNode: ReactNode }) => {
   const [element, setElement] = useState<ReactNode | null>(null);
