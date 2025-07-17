@@ -12,6 +12,13 @@ import { GraphState } from '../scheduler/types';
 import { Runnable } from '@langchain/core/runnables';
 import { SystemMessage } from '@langchain/core/messages';
 
+/**
+ * Interface for log argument objects used in processLogArgs
+ */
+interface LogArgs {
+  [key: string]: string | number | boolean | undefined | null;
+}
+
 export class GenerateMedia extends BaseSkill {
   name = 'generateMedia';
 
@@ -86,8 +93,8 @@ export class GenerateMedia extends BaseSkill {
   /**
    * Process log arguments to decode HTML entities and prevent template variable issues
    */
-  private processLogArgs(args: Record<string, any>): Record<string, any> {
-    const processed: Record<string, any> = {};
+  private processLogArgs(args: LogArgs): LogArgs {
+    const processed: LogArgs = {};
 
     for (const [key, value] of Object.entries(args)) {
       if (typeof value === 'string') {
@@ -193,7 +200,7 @@ export class GenerateMedia extends BaseSkill {
       const artifact: Artifact = {
         type: mediaType,
         entityId: resultId,
-        title: `Generated ${this.getMediaTypeDisplayName(mediaType)}`,
+        title: cleanedQuery || `Generated ${this.getMediaTypeDisplayName(mediaType)}`,
         status: 'generating',
       };
 
@@ -221,7 +228,12 @@ export class GenerateMedia extends BaseSkill {
       );
 
       // Poll for media generation completion
-      const result = await this.pollMediaGenerationCompletion(resultId, mediaType, config);
+      const result = await this.pollMediaGenerationCompletion(
+        resultId,
+        mediaType,
+        cleanedQuery,
+        config,
+      );
 
       if (!result.success) {
         throw new Error(result.error || 'Media generation failed');
@@ -284,6 +296,7 @@ The ${mediaType} has been generated and is ready for use.`,
   private async pollMediaGenerationCompletion(
     resultId: string,
     mediaType: 'image' | 'video' | 'audio',
+    cleanedQuery: string,
     config: SkillRunnableConfig,
   ): Promise<any> {
     try {
@@ -364,7 +377,7 @@ The ${mediaType} has been generated and is ready for use.`,
           const completedArtifact: Artifact = {
             type: mediaType,
             entityId: resultId,
-            title: `Generated ${this.getMediaTypeDisplayName(mediaType)}`,
+            title: cleanedQuery || `Generated ${this.getMediaTypeDisplayName(mediaType)}`,
             status: 'finish',
             metadata: {
               [`${mediaType}Url`]: actionResult.outputUrl,
