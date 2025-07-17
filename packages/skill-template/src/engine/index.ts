@@ -46,6 +46,9 @@ import {
   ModelScene,
   ListMcpServersData,
   ListMcpServersResponse,
+  MediaGenerateRequest,
+  MediaGenerateResponse,
+  GetActionResultData,
 } from '@refly/openapi-schema';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { getChatModel } from '@refly/providers';
@@ -130,6 +133,20 @@ export interface ReflyService {
 
   // Generate JWT token for user (same as AuthService.login)
   generateJwtToken: (user: User) => Promise<string>;
+
+  generateMedia: (user: User, req: MediaGenerateRequest) => Promise<MediaGenerateResponse>;
+  async;
+  getActionResult(user: User, param: GetActionResultData['query']): Promise<any>;
+
+  getUserMediaConfig(
+    user: User,
+    mediaType: 'image' | 'audio' | 'video',
+    model?: string,
+    provider?: string,
+  ): Promise<{
+    provider: string;
+    model: string;
+  } | null>;
 }
 
 export interface SkillEngineOptions {

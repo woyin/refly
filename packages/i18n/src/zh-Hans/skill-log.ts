@@ -191,6 +191,33 @@ const translations = {
     title: '显示说明',
     description: '注意: 如果图像未显示在画板中，请检查网络连接或刷新页面。',
   },
+
+  // 媒体生成相关翻译
+  'media.generating': {
+    title: '生成{{mediaType}}',
+    description:
+      '正在生成{{mediaType}}，提示词: {{prompt}}，使用提供商: {{provider}}，模型: {{model}}，质量: {{quality}}',
+  },
+  'media.api.request': {
+    title: 'API请求',
+    description: '正在向{{provider}}发送{{mediaType}}生成请求，使用模型: {{model}}',
+  },
+  'media.completed': {
+    title: '{{mediaType}}生成完成',
+    description: '{{mediaType}}生成成功完成，输出链接: {{url}}，耗时: {{elapsedTime}}',
+  },
+  'media.error': {
+    title: '{{mediaType}}生成失败',
+    description: '生成过程中出现错误: {{error}}',
+  },
+  'media.started': {
+    title: '{{mediaType}}生成已启动',
+    description: '开始生成{{mediaType}}，任务ID: {{resultId}}',
+  },
+  'media.progress': {
+    title: '{{mediaType}}生成进度',
+    description: '{{mediaType}}生成进度: {{progress}}%',
+  },
 };
 
 export default translations;

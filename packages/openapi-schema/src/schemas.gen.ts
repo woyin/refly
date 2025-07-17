@@ -1902,7 +1902,7 @@ export const ActionStatusSchema = {
 export const ArtifactTypeSchema = {
   type: 'string',
   description: 'Artifact type',
-  enum: ['document', 'codeArtifact'],
+  enum: ['document', 'codeArtifact', 'image', 'video', 'audio'],
 } as const;
 
 export const ArtifactStatusSchema = {
@@ -6593,6 +6593,10 @@ export const MediaGenerationModelConfigSchema = {
     capabilities: {
       description: 'Model capabilities',
       $ref: '#/components/schemas/MediaGenerationModelCapabilities',
+    },
+    description: {
+      type: 'string',
+      description: 'Model description',
     },
   },
 } as const;
