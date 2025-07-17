@@ -28,7 +28,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build:web
+        run: pnpm build:web-next
         env:
           NODE_OPTIONS: '--max_old_space_size=8192'
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
@@ -48,5 +48,5 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: refly-app-staging
           branch: main
-          workingDirectory: apps/web
+          workingDirectory: apps/web-next
           directory: dist
