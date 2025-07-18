@@ -2630,9 +2630,10 @@ const translations = {
     },
     mcpSelector: {
       title: '选择 MCP 服务器',
-      empty: '没有可用的 MCP 服务器',
+      empty: '暂无 MCP 服务器',
       selected: '已选择',
-      browseMcpStore: '去商店添加',
+      browseMcpStore: '去安装',
+      manageMcpServers: '管理 MCP',
     },
     contextItem: {
       current: '当前',

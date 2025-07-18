@@ -2351,7 +2351,8 @@ const translations = {
       mcpSelector: {
         title: 'MCP Selector',
         empty: 'No MCP servers available',
-        browseMcpStore: 'Go to Store',
+        browseMcpStore: 'Go to Install',
+        manageMcpServers: 'Manage MCP',
       },
       recommendQuestions: {
         refresh: 'Refresh',
