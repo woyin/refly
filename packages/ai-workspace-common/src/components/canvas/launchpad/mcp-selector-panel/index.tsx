@@ -390,16 +390,18 @@ export const McpSelectorPopover: React.FC<McpSelectorPopoverProps> = ({
   }, [loading, mcpServers, selectedMcpServers, handleMcpSelect, handleOpenMcpStore, t]);
 
   const defaultTrigger = (
-    <Button
-      className="gap-0"
-      type="text"
-      size="small"
-      icon={<Mcp size={16} className="flex items-center" />}
-    >
-      <span className="text-refly-text-2 text-xs font-semibold ml-[2px]">
-        {selectedMcpServers?.length > 0 ? selectedMcpServers.length : ''}
-      </span>
-    </Button>
+    <Tooltip title={t('copilot.mcpSelector.useMcpServers')} placement="bottom">
+      <Button
+        className="gap-0 h-7 w-7 flex items-center justify-center"
+        type="text"
+        size="small"
+        icon={<Mcp size={16} className="flex items-center" />}
+      >
+        <span className="text-refly-text-2 text-xs font-semibold ml-[2px]">
+          {selectedMcpServers?.length > 0 ? selectedMcpServers.length : ''}
+        </span>
+      </Button>
+    </Tooltip>
   );
 
   return (

@@ -143,10 +143,10 @@ const translations = {
   mode: {
     ask: 'Ask',
     agent: 'Agent',
-    askDescription: 'Answer your question in a single step',
-    agentDescription: 'Solve complex problems with multiple steps',
+    askDescription: 'Ask mode: answer your question in a single step',
+    agentDescription: 'Agent mode: automatically plan and execute tasks',
     media: 'Media',
-    mediaDescription: 'Generate images/videos/audios',
+    mediaDescription: 'Media mode: generate images/videos/audios',
   },
   pages: {
     share: {
@@ -2354,6 +2354,7 @@ const translations = {
         empty: 'No MCP servers available',
         browseMcpStore: 'Go to Install',
         manageMcpServers: 'Manage MCP',
+        useMcpServers: 'Use MCP',
       },
       recommendQuestions: {
         refresh: 'Refresh',
