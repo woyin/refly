@@ -9,7 +9,7 @@ import { TemplatesGuide } from './templates-guide';
 import { useCanvasTemplateModal } from '@refly/stores';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { useImportResourceStoreShallow } from '@refly/stores';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 
 export const EmptyGuide = ({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();

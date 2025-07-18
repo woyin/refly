@@ -9,7 +9,7 @@ import { Button, Form } from 'antd';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions } from '@refly-packages/ai-workspace-common/components/canvas/front-page/action';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
 import Header from '../../components/landing-page-partials/Header';
 import SimpleFooter from '../../components/landing-page-partials/SimpleFooter';

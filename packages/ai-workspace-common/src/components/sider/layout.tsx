@@ -39,7 +39,7 @@ import { AiOutlineMenuFold, AiOutlineUser } from 'react-icons/ai';
 import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { FaGithub } from 'react-icons/fa6';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
 import { SiderLoggedOut } from './sider-logged-out';
 import { CreateProjectModal } from '@refly-packages/ai-workspace-common/components/project/project-create';
@@ -228,7 +228,9 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
       <div className="flex w-40 items-center justify-between">
         <div className="flex items-center gap-3">
           <IconCanvas
-            className={cn({ 'text-green-600 dark:text-green-300': selectedKey === canvas.id })}
+            className={cn({
+              'text-green-600 dark:text-green-300': selectedKey === canvas.id,
+            })}
           />
           <div className="w-28 truncate">{canvas?.name || t('common.untitled')}</div>
         </div>

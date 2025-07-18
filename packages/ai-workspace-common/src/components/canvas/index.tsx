@@ -62,7 +62,7 @@ import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
 import { useListenNodeOperationEvents } from '@refly-packages/ai-workspace-common/hooks/canvas/use-listen-node-events';
-import { runtime } from '@refly-packages/ai-workspace-common/utils/env';
+import { runtime } from '@refly/ui-kit';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   NodeContextMenuSource,

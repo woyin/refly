@@ -7,3 +7,15 @@ export { ReflyConfigProvider } from './components/ConfigProvider';
 
 // Shared store
 export { useConfigProviderStore } from './store/useConfigProviderStore';
+
+export {
+  serverOrigin,
+  wsServerOrigin,
+  staticPublicEndpoint,
+  staticPrivateEndpoint,
+  subscriptionEnabled,
+  canvasTemplateEnabled,
+  sentryEnabled,
+  runtime,
+  isDesktop,
+} from './utils/env';

@@ -18,10 +18,7 @@ import { useChatStoreShallow } from '@refly/stores';
 import { useUserStoreShallow } from '@refly/stores';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { PremiumBanner } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
-import {
-  canvasTemplateEnabled,
-  subscriptionEnabled,
-} from '@refly-packages/ai-workspace-common/utils/env';
+import { canvasTemplateEnabled, subscriptionEnabled } from '@refly/ui-kit';
 import { useCanvasTemplateModalShallow } from '@refly/stores';
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
@@ -102,7 +99,9 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
     setIsExecuting(true);
-    debouncedCreateCanvas('front-page', { isPilotActivated: chatMode === 'agent' });
+    debouncedCreateCanvas('front-page', {
+      isPilotActivated: chatMode === 'agent',
+    });
   }, [query, debouncedCreateCanvas, chatMode]);
 
   const handleAbort = useCallback(() => {

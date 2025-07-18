@@ -28,7 +28,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build:web
+        run: pnpm build:web-next
         env:
           NODE_OPTIONS: '--max_old_space_size=8192'
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
@@ -38,6 +38,7 @@ jobs:
           VITE_SUBSCRIPTION_ENABLED: true
           VITE_CANVAS_TEMPLATE_ENABLED: true
           VITE_SENTRY_ENABLED: true
+          VITE_RUNTIME: web
           VITE_STATIC_PUBLIC_ENDPOINT: https://static.refly.ai
           VITE_STATIC_PRIVATE_ENDPOINT: https://staging-api.refly.ai/v1/misc
 
@@ -48,5 +49,5 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: refly-app-staging
           branch: main
-          workingDirectory: apps/web
+          workingDirectory: apps/web-next
           directory: dist
