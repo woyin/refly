@@ -39,6 +39,12 @@ import { mapServerType } from '@refly-packages/ai-workspace-common/components/se
 const { TabPane } = Tabs;
 const { Option } = Select;
 
+// Type definitions for better type safety
+interface KeyValuePair {
+  key: string;
+  value: string;
+}
+
 export const McpServerForm: React.FC<McpServerFormProps> = ({
   initialData,
   onSubmit,
@@ -56,17 +62,18 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
 
   const [serverType, setServerType] = useState<McpServerType>(initialData?.type || 'sse');
 
-  // Convert environment variables from object format to key-value pair array format for form usage
-  const convertEnvObjectToArray = (envObj: Record<string, string> = {}) => {
-    return Object.entries(envObj || {}).map(([key, value]) => ({ key, value }));
+  // ✅ Unified utility functions for key-value pair conversions
+  const convertObjectToKeyValueArray = (obj: Record<string, string> = {}): KeyValuePair[] => {
+    return Object.entries(obj || {}).map(([key, value]) => ({ key, value }));
   };
 
-  // Convert environment variables from key-value pair array format back to object format
-  const convertEnvArrayToObject = (envArray: any[] = []) => {
-    return (envArray || []).reduce(
+  const convertKeyValueArrayToObject = (array: KeyValuePair[] = []): Record<string, string> => {
+    return (array || []).reduce(
       (acc, { key, value }) => {
-        if (key) {
-          acc[key] = value;
+        // Only add entries where key exists and is not empty
+        if (key && key.trim() !== '') {
+          // Preserve empty string values as they might be intentional
+          acc[key] = value || '';
         }
         return acc;
       },
@@ -74,11 +81,26 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
     );
   };
 
+  // ✅ Enhanced data validation functions
+  const isValidMcpServerFormData = (data: any): data is McpServerFormData => {
+    return (
+      data &&
+      typeof data === 'object' &&
+      typeof data.name === 'string' &&
+      ['sse', 'streamable', 'stdio'].includes(data.type)
+    );
+  };
+
+  const isUniversalFormat = (data: any): boolean => {
+    return (
+      data && typeof data === 'object' && data.mcpServers && typeof data.mcpServers === 'object'
+    );
+  };
+
   // Create and update mutations
   const createMutation = useCreateMcpServer([], {
     onSuccess: (response, _variables, _context) => {
       if (!response?.data?.success) {
-        // Use a more specific error message or re-throw the server's error message
         throw new Error(response?.data?.errMsg || 'Server creation reported failure in onSuccess');
       }
       message.success(t('settings.mcpServer.createSuccess'));
@@ -93,7 +115,6 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
   const updateMutation = useUpdateMcpServer([], {
     onSuccess: (response, _variables, _context) => {
       if (!response?.data?.success) {
-        // Use a more specific error message or re-throw the server's error message
         throw new Error(response?.data?.errMsg || 'Server update reported failure in onSuccess');
       }
       message.success(t('settings.mcpServer.updateSuccess'));
@@ -105,50 +126,85 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
     },
   });
 
-  // Validate server configuration
+  // ✅ Enhanced validate server configuration
   const validateMutation = useValidateMcpServer([], {
     onSuccess: (response) => {
       if (!response?.data?.success) {
         throw response.data.errMsg;
       }
 
-      // Server validation successful, returns true
       message.success(t('settings.mcpServer.validateSuccess'));
-
       setIsEnabled(true);
-      const currentValues = form.getFieldsValue();
-      form.setFieldsValue({ ...currentValues, enabled: true });
 
-      // When updating internal state, ensure environment variables are in object format
-      const updatedFormData = { ...formData, enabled: true };
-      if (currentValues.env && Array.isArray(currentValues.env)) {
-        updatedFormData.env = convertEnvArrayToObject(currentValues.env as any[]);
+      // After successful validation, trigger the actual save operation
+      const currentValues = form.getFieldsValue();
+      const processedValues = processFormDataForSubmission({ ...currentValues, enabled: true });
+
+      if (initialData) {
+        updateMutation.mutate({ body: processedValues });
+      } else {
+        createMutation.mutate({ body: processedValues });
       }
-      setFormData(updatedFormData);
     },
     onError: (error) => {
       message.error(t('settings.mcpServer.validateError'));
       console.error('Failed to validate MCP server:', error);
       setIsEnabled(false);
-      const currentValues = form.getFieldsValue();
-      if (currentValues.enabled) {
-        form.setFieldsValue({ ...currentValues, enabled: false });
-      }
 
-      // When updating internal state, ensure environment variables are in object format
-      const updatedFormData = { ...formData, enabled: false };
-      if (currentValues.env && Array.isArray(currentValues.env)) {
-        updatedFormData.env = convertEnvArrayToObject(currentValues.env as any[]);
-      }
-      setFormData(updatedFormData);
+      // Update form and internal state
+      const currentValues = form.getFieldsValue();
+      form.setFieldsValue({ ...currentValues, enabled: false });
+      updateInternalFormData({ ...currentValues, enabled: false });
     },
   });
+
+  // ✅ Process form data for submission (unified processing)
+  const processFormDataForSubmission = (values: any): McpServerFormData => {
+    const submitValues = { ...values };
+
+    // Convert environment variables from array format to object format
+    if (submitValues.env && Array.isArray(submitValues.env)) {
+      submitValues.env = convertKeyValueArrayToObject(submitValues.env);
+    }
+
+    // Convert headers from array format to object format
+    if (submitValues.headers && Array.isArray(submitValues.headers)) {
+      submitValues.headers = convertKeyValueArrayToObject(submitValues.headers);
+    }
+
+    return {
+      ...submitValues,
+      args: submitValues.args || [],
+      env: submitValues.env || {},
+      headers: submitValues.headers || {},
+      reconnect: submitValues.reconnect || { enabled: false },
+      config: submitValues.config || {},
+    };
+  };
+
+  // ✅ Update internal form data state (unified update)
+  const updateInternalFormData = (values: any) => {
+    const updatedFormData = { ...values };
+
+    // Ensure env is in object format for internal state
+    if (updatedFormData.env && Array.isArray(updatedFormData.env)) {
+      updatedFormData.env = convertKeyValueArrayToObject(updatedFormData.env);
+    }
+
+    // Ensure headers is in object format for internal state
+    if (updatedFormData.headers && Array.isArray(updatedFormData.headers)) {
+      updatedFormData.headers = convertKeyValueArrayToObject(updatedFormData.headers);
+    }
+
+    setFormData(updatedFormData);
+  };
 
   // Initialize form with initial data
   useEffect(() => {
     if (initialData) {
-      // Convert environment variables from object format to array format for form usage
-      const envArray = convertEnvObjectToArray(initialData.env);
+      // Convert both env and headers to array format for form usage
+      const envArray = convertObjectToKeyValueArray(initialData.env);
+      const headersArray = convertObjectToKeyValueArray(initialData.headers);
 
       const formValues: McpServerFormData = {
         name: initialData.name,
@@ -156,23 +212,22 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
         url: initialData.url,
         command: initialData.command,
         args: initialData.args || [],
-        env: initialData.env || {}, // Keep original format for internal state
+        env: initialData.env || {},
         headers: initialData.headers || {},
         reconnect: initialData.reconnect || { enabled: false },
         config: initialData.config || {},
         enabled: initialData.enabled,
       };
 
-      // Set form values, but use array format for environment variables
+      // ✅ Set form values with array format for both env and headers
       const formFieldValues = {
         ...formValues,
+        env: envArray as any, // Form expects array format
+        headers: headersArray as any, // Form expects array format
       };
-      // Use type assertion to resolve type issues
-      (formFieldValues as any).env = envArray;
 
       form.setFieldsValue(formFieldValues);
-
-      setFormData(formValues);
+      setFormData(formValues); // Keep object format for internal state
       setServerType(initialData.type);
     } else {
       form.setFieldsValue({
@@ -182,55 +237,45 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
     }
   }, [initialData, form]);
 
-  // Handle form changes to update JSON editor
+  // ✅ Enhanced form values change handler
   const handleFormValuesChange = () => {
     const values = form.getFieldsValue();
-
-    // Create a new object for setting form data
-    const formDataValues = { ...values };
-
-    // If there are environment variables in array format, convert them to object format
-    if (values.env && Array.isArray(values.env)) {
-      formDataValues.env = convertEnvArrayToObject(values.env);
-    }
-
-    setFormData(formDataValues);
+    updateInternalFormData(values);
   };
 
-  // Convert Refly format to universal format
+  // ✅ Enhanced convert Refly format to universal format
   const convertToUniversalFormat = (server: McpServerFormData): any => {
     const mcpServers: Record<string, any> = {};
 
     // Ensure environment variables are in object format
     let envData = server.env || {};
     if (Array.isArray(envData)) {
-      envData = convertEnvArrayToObject(envData as any[]);
+      envData = convertKeyValueArrayToObject(envData);
     }
 
-    // Filter out empty arguments
-    const filteredArgs = (server.args || []).filter((arg) => arg !== '');
+    // Ensure headers are in object format
+    let headersData = server.headers || {};
+    if (Array.isArray(headersData)) {
+      headersData = convertKeyValueArrayToObject(headersData);
+    }
 
-    // Filter out empty environment variables
+    // ✅ Only filter out completely empty arguments (not just empty strings)
+    const filteredArgs = (server.args || []).filter((arg) => arg !== undefined && arg !== null);
+
+    // ✅ Preserve empty string values but filter out null/undefined
     const filteredEnv: Record<string, string> = {};
     for (const [key, value] of Object.entries(envData)) {
-      if (key && value !== undefined && value !== null && value !== '') {
-        filteredEnv[key] = value;
+      if (key && key.trim() !== '') {
+        filteredEnv[key] = value || '';
       }
     }
 
-    // Process headers for JSON mode
-    let headersData = server.headers ?? {};
-    if (Array.isArray(headersData)) {
-      headersData = headersData.reduce(
-        (acc, item) => {
-          // biome-ignore lint/complexity/useOptionalChain: <explanation>
-          if (item && item.key) {
-            acc[item.key] = item.value ?? '';
-          }
-          return acc;
-        },
-        {} as Record<string, string>,
-      );
+    // ✅ Apply same filtering logic to headers
+    const filteredHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(headersData)) {
+      if (key && key.trim() !== '') {
+        filteredHeaders[key] = value || '';
+      }
     }
 
     mcpServers[server.name] = {
@@ -240,27 +285,22 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
       command: server.command ?? '',
       args: filteredArgs,
       env: filteredEnv,
-      headers: headersData,
+      headers: filteredHeaders,
+      // ✅ Add reconnect configuration to universal format
+      reconnect: server.reconnect || { enabled: false },
     };
 
     return { mcpServers };
   };
 
-  // Convert universal format to Refly format
+  // ✅ Fixed convert universal format to Refly format
   const convertToReflyFormat = (data: any): McpServerFormData => {
-    // If data is already in McpServerFormData format, return directly
-    if (!data.mcpServers && typeof data === 'object') {
-      return data as McpServerFormData;
-    }
-
-    // If data has mcpServers property, it's in universal format
-    if (data?.mcpServers && typeof data.mcpServers === 'object') {
-      // Only take the first server, as the form can only edit one server
+    // Check if data is in universal format
+    if (isUniversalFormat(data)) {
       const entries = Object.entries(data.mcpServers);
       if (entries.length > 0) {
         const [name, serverConfig] = entries[0] as [string, any];
 
-        // Map universal format fields to Refly format
         const server: McpServerFormData = {
           name: name,
           type: mapServerType(serverConfig.type, serverConfig),
@@ -269,11 +309,11 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
           args: serverConfig.args ?? [],
           env: serverConfig.env ?? {},
           headers: serverConfig.headers ?? {},
-          reconnect: { enabled: false },
+          // ✅ Properly handle reconnect configuration from universal format
+          reconnect: serverConfig.reconnect || { enabled: false },
           config: {},
         };
 
-        // If there's a description, add it to config
         if (serverConfig.description) {
           server.config = { ...server.config, description: serverConfig.description };
         }
@@ -282,33 +322,33 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
       }
     }
 
-    // If conversion fails, return original data
+    // ✅ Check if data is already in valid McpServerFormData format
+    if (isValidMcpServerFormData(data)) {
+      return data;
+    }
+
+    // ✅ If conversion fails, return current formData as fallback
     return formData;
   };
 
-  // Handle JSON editor changes
+  // ✅ Enhanced JSON editor change handler
   const handleJsonChange = (newData: any) => {
-    // Convert universal format to Refly format
     const reflyData = convertToReflyFormat(newData);
     setFormData(reflyData);
 
-    // If there are environment variables in object format, convert them to array format for form usage
-    const formValues = { ...reflyData };
+    // Convert object formats to array formats for form display
+    const formValues: any = { ...reflyData };
+
     if (formValues.env && typeof formValues.env === 'object' && !Array.isArray(formValues.env)) {
-      // Use type assertion to resolve type issues
-      (formValues as any).env = convertEnvObjectToArray(formValues.env as Record<string, string>);
+      formValues.env = convertObjectToKeyValueArray(formValues.env);
     }
 
-    // Convert headers from object format to array format for form usage
     if (
       formValues.headers &&
       typeof formValues.headers === 'object' &&
       !Array.isArray(formValues.headers)
     ) {
-      (formValues as any).headers = Object.entries(formValues.headers).map(([key, value]) => ({
-        key,
-        value,
-      }));
+      formValues.headers = convertObjectToKeyValueArray(formValues.headers);
     }
 
     form.setFieldsValue(formValues);
@@ -319,70 +359,23 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
     setServerType(value);
   };
 
-  // Handle form submission
+  // ✅ Enhanced form submission handler
   const handleFinish = (values: McpServerFormData) => {
-    // Create a new object for submission
-    const submitValues = { ...values };
-
-    // Ensure the enabled value in the form matches the isEnabled state
+    const submitValues = processFormDataForSubmission(values);
     submitValues.enabled = isEnabled;
 
-    // Convert environment variables from array format to object format required by API
-    if (submitValues.env && Array.isArray(submitValues.env)) {
-      // Use type assertion to resolve type issues
-      submitValues.env = convertEnvArrayToObject(submitValues.env as any[]) as Record<
-        string,
-        string
-      >;
-    }
-
-    // Convert headers from array format to object format required by API
-    if (submitValues.headers && Array.isArray(submitValues.headers)) {
-      // Similar to env variables, convert headers to object format
-      submitValues.headers = (submitValues.headers as any[]).reduce(
-        (acc, { key, value }) => {
-          if (key) {
-            acc[key] = value || '';
-          }
-          return acc;
-        },
-        {} as Record<string, string>,
-      );
-    }
-
-    // If server is enabled but not validated, automatically validate
-    if (isEnabled) {
+    // ✅ Fixed validation flow - don't interrupt save if already validated
+    if (isEnabled && !validateMutation.data?.data?.success) {
       message.info(t('settings.mcpServer.validatingBeforeEnable'));
-      // Auto validate
       validateMutation.mutate({ body: submitValues });
       return;
     }
 
-    // Prepare data for API
-    const apiData = {
-      ...submitValues,
-      args: submitValues.args || [],
-      env: submitValues.env || {},
-      headers: submitValues.headers || {},
-      reconnect: submitValues.reconnect || {},
-      config: submitValues.config || {},
-    };
-
-    // Call create or update API
+    // Proceed with save operation
     if (initialData) {
-      updateMutation.mutate({ body: apiData });
+      updateMutation.mutate({ body: submitValues });
     } else {
-      createMutation.mutate({ body: apiData });
-    }
-  };
-
-  // Handle enabled status change
-  const handleEnabledChange = async (checked: boolean) => {
-    if (checked) {
-      validateMutation.mutate({ body: form.getFieldsValue() });
-    } else {
-      // When disabling, no validation needed, directly update state
-      setIsEnabled(false);
+      createMutation.mutate({ body: submitValues });
     }
   };
 
@@ -606,9 +599,7 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
                                 type={
                                   // Check if the key contains sensitive information
                                   field.name !== undefined &&
-                                  form.getFieldValue(['env']) &&
-                                  Array.isArray(form.getFieldValue(['env'])) &&
-                                  form.getFieldValue(['env'])[field.name] &&
+                                  form.getFieldValue(['env'])?.[field.name]?.key &&
                                   (form
                                     .getFieldValue(['env'])
                                     [field.name].key.toLowerCase()
@@ -704,21 +695,11 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
             {/* Enabled Switch */}
             <Card title={t('settings.mcpServer.status')} size="small" className="mb-4">
               <div className="flex items-center justify-between">
-                <Typography.Text>
-                  {t('settings.mcpServer.enabled')}
-                  <Tooltip title={t('settings.mcpServer.enabledTooltip')}>
-                    <QuestionCircleOutlined style={{ marginLeft: 8 }} />
-                  </Tooltip>
-                </Typography.Text>
+                <Typography.Text>{t('settings.mcpServer.enabled')}</Typography.Text>
                 <Form.Item noStyle>
-                  <Switch checked={isEnabled} onChange={handleEnabledChange} />
+                  <Switch checked={isEnabled} />
                 </Form.Item>
               </div>
-              {!validateMutation.data && !initialData?.enabled && (
-                <Typography.Text type="secondary" className="block mt-2">
-                  {t('settings.mcpServer.autoValidateHint')}
-                </Typography.Text>
-              )}
             </Card>
 
             {/* Form Actions */}
