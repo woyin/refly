@@ -25,7 +25,7 @@ import { useUserStoreShallow } from '@refly/stores';
 import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { omit } from '@refly/utils/index';
 import { cn } from '@refly/utils/cn';
 import { ActionStatus, SkillTemplateConfig } from '@refly/openapi-schema';

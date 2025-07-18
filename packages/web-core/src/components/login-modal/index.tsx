@@ -10,7 +10,7 @@ import GitHub from '../../assets/github-mark.svg';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useAuthStoreShallow } from '@refly/stores';
-import { serverOrigin } from '@refly-packages/ai-workspace-common/utils/env';
+import { serverOrigin } from '@refly/ui-kit';
 import { useGetAuthConfig } from '@refly-packages/ai-workspace-common/queries';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
 
@@ -48,7 +48,11 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
   const { isGithubEnabled, isGoogleEnabled, isEmailEnabled } = useMemo(() => {
     // Default to showing email login if config is not available
     if (!authConfig?.data || isAuthConfigLoading) {
-      return { isGithubEnabled: false, isGoogleEnabled: false, isEmailEnabled: true };
+      return {
+        isGithubEnabled: false,
+        isGoogleEnabled: false,
+        isEmailEnabled: true,
+      };
     }
 
     return {

@@ -1,8 +1,10 @@
 import { useCallback } from 'react';
-import { serverOrigin } from '@refly-packages/ai-workspace-common/utils/env';
+import { serverOrigin } from '@refly/ui-kit';
 
 // Global variables shared across all hook instances
-export const globalAbortControllerRef = { current: null as AbortController | null };
+export const globalAbortControllerRef = {
+  current: null as AbortController | null,
+};
 export const globalIsAbortedRef = { current: false };
 export const globalCurrentResultIdRef = { current: '' as string };
 

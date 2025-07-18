@@ -25,7 +25,7 @@ import { DuplicateCanvasModal } from '@refly-packages/ai-workspace-common/compon
 import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 
 import { LightLoading } from '@refly/ui-kit';
-import { isDesktop } from '@refly-packages/ai-workspace-common/utils/env';
+import { isDesktop } from '@refly/ui-kit';
 import { useGetUserSettings } from '@refly-packages/ai-workspace-common/hooks/use-get-user-settings';
 import { useGetMediaModel } from '@refly-packages/ai-workspace-common/hooks/use-get-media-model';
 import { useHandleUrlParamsCallback } from '@refly-packages/ai-workspace-common/hooks/use-handle-url-params-callback';

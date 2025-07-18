@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { client } from '@refly-packages/ai-workspace-common/requests';
 import { responseInterceptorWithTokenRefresh } from '@refly-packages/ai-workspace-common/utils/auth';
-import { isDesktop, serverOrigin } from '@refly-packages/ai-workspace-common/utils/env';
+import { isDesktop, serverOrigin } from '@refly/ui-kit';
 
 client.setConfig({
   baseUrl: `${serverOrigin}/v1`,

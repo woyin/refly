@@ -32,12 +32,20 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build:web
+        run: pnpm build:web-next
         if: matrix.app == 'web'
         env:
           NODE_OPTIONS: '--max_old_space_size=8192'
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          VITE_API_URL: ''
+          VITE_COLLAB_URL: ''
+          VITE_SUBSCRIPTION_ENABLED: ''
+          VITE_CANVAS_TEMPLATE_ENABLED: ''
+          VITE_SENTRY_ENABLED: ''
+          VITE_RUNTIME: web
+          VITE_STATIC_PUBLIC_ENDPOINT: ''
+          VITE_STATIC_PRIVATE_ENDPOINT: ''
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

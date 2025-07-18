@@ -45,41 +45,41 @@ const getBrowserValue = <T>(getter: () => T, fallback: T): T => {
 export const serverOrigin =
   getBrowserValue(() => window.electronEnv?.getApiBaseUrl?.(), '') ||
   getBrowserValue(() => window.ENV?.API_URL, '') ||
-  import.meta.env.VITE_API_URL ||
+  process.env.VITE_API_URL ||
   '';
 console.log('serverOrigin', serverOrigin);
 
 export const wsServerOrigin =
   getBrowserValue(() => window.electronEnv?.getCollabUrl?.(), '') ||
   getBrowserValue(() => window.ENV?.COLLAB_URL, '') ||
-  import.meta.env.VITE_COLLAB_URL ||
+  process.env.VITE_COLLAB_URL ||
   '';
 console.log('wsServerOrigin', wsServerOrigin);
 
 export const staticPublicEndpoint =
   getBrowserValue(() => window.electronEnv?.getPublicStaticEndpoint?.(), '') ||
   getBrowserValue(() => window.ENV?.STATIC_PUBLIC_ENDPOINT, '') ||
-  import.meta.env.VITE_STATIC_PUBLIC_ENDPOINT ||
+  process.env.VITE_STATIC_PUBLIC_ENDPOINT ||
   '';
 
 export const staticPrivateEndpoint =
   getBrowserValue(() => window.electronEnv?.getPrivateStaticEndpoint?.(), '') ||
   getBrowserValue(() => window.ENV?.STATIC_PRIVATE_ENDPOINT, '') ||
-  import.meta.env.VITE_STATIC_PRIVATE_ENDPOINT ||
+  process.env.VITE_STATIC_PRIVATE_ENDPOINT ||
   '';
 
 export const subscriptionEnabled =
   getBrowserValue(() => Boolean(window.ENV?.SUBSCRIPTION_ENABLED), false) ||
-  Boolean(import.meta.env.VITE_SUBSCRIPTION_ENABLED);
+  Boolean(process.env.VITE_SUBSCRIPTION_ENABLED);
 
 export const canvasTemplateEnabled =
   getBrowserValue(() => Boolean(window.ENV?.CANVAS_TEMPLATE_ENABLED), false) ||
-  Boolean(import.meta.env.VITE_CANVAS_TEMPLATE_ENABLED);
+  Boolean(process.env.VITE_CANVAS_TEMPLATE_ENABLED);
 
 export const sentryEnabled =
   getBrowserValue(() => Boolean(window.ENV?.SENTRY_ENABLED), false) ||
-  Boolean(import.meta.env.VITE_SENTRY_ENABLED);
+  Boolean(process.env.VITE_SENTRY_ENABLED);
 
-export const runtime = import.meta.env.VITE_RUNTIME as IRuntime;
+export const runtime = process.env.VITE_RUNTIME as IRuntime;
 
 export const isDesktop = () => runtime === 'desktop';
