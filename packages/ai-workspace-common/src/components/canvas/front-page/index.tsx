@@ -8,7 +8,6 @@ import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/can
 import {
   getSkillIcon,
   IconRight,
-  IconPlus,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Form, Button, Badge } from 'antd';
 import { ToolOutlined } from '@ant-design/icons';
@@ -132,14 +131,8 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
         content: t('copilot.chatActions.chooseMcp'),
         onClick: handleMcpSelectorToggle,
       },
-      {
-        icon: <IconPlus className="flex items-center justify-center" />,
-        title: '',
-        content: t('loggedHomePage.siderMenu.newCanvas'),
-        onClick: () => debouncedCreateCanvas(),
-      },
     ],
-    [selectedMcpServers?.length, t, handleMcpSelectorToggle, debouncedCreateCanvas],
+    [selectedMcpServers?.length, t, handleMcpSelectorToggle],
   );
 
   useEffect(() => {
