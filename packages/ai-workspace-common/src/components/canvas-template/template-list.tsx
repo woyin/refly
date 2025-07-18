@@ -15,7 +15,7 @@ import { useCanvasTemplateModal } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
-import { staticPublicEndpoint } from '@refly-packages/ai-workspace-common/utils/env';
+import { staticPublicEndpoint } from '@refly/ui-kit';
 import cn from 'classnames';
 import { useUserStoreShallow } from '@refly/stores';
 import { useAuthStoreShallow } from '@refly/stores';
@@ -24,7 +24,11 @@ export const TemplateCard = ({
   template,
   className,
   showUser = true,
-}: { template: CanvasTemplate; className?: string; showUser?: boolean }) => {
+}: {
+  template: CanvasTemplate;
+  className?: string;
+  showUser?: boolean;
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { setVisible: setModalVisible } = useCanvasTemplateModal((state) => ({

@@ -4,12 +4,13 @@ import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
 import NodePolyfill from 'node-polyfill-webpack-plugin';
+import { codeInspectorPlugin } from 'code-inspector-plugin';
 
 const { publicVars } = loadEnv({ prefixes: ['VITE_'] });
 
 import path from 'node:path';
 
-const GTAG_ID = 'G-ER782LXJ5F';
+const gtagId = process.env.VITE_GTAG_ID;
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -34,6 +35,12 @@ export default defineConfig({
             },
           }),
         );
+      prependPlugins(
+        codeInspectorPlugin({
+          bundler: 'rspack',
+          editor: 'code',
+        }),
+      );
       prependPlugins(new NodePolyfill({ additionalAliases: ['process'] }));
       return config;
     },
@@ -67,13 +74,13 @@ export default defineConfig({
   },
   html: {
     template: './public/index.html',
-    tags: isProduction
+    tags: gtagId
       ? [
           {
             tag: 'script',
             attrs: {
               async: true,
-              src: `https://www.googletagmanager.com/gtag/js?id=${GTAG_ID}`,
+              src: `https://www.googletagmanager.com/gtag/js?id=${gtagId}`,
             },
           },
           {
@@ -84,7 +91,7 @@ export default defineConfig({
             dataLayer.push(arguments);
           }
           gtag('js', new Date());
-          gtag('config', '${GTAG_ID}');
+          gtag('config', '${gtagId}');
       `,
           },
         ]

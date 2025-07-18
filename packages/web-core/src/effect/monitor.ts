@@ -8,10 +8,12 @@ import {
 } from 'react-router-dom';
 
 export const setupSentry = async () => {
-  if (process.env.NODE_ENV !== 'development') {
+  const sentryDsn = process.env.VITE_SENTRY_DSN;
+
+  if (process.env.NODE_ENV !== 'development' && sentryDsn) {
     const Sentry = await import('@sentry/react');
     Sentry.init({
-      dsn: 'https://a687291d5ba3a77b0fa559e6d197eac8@o4507205453414400.ingest.us.sentry.io/4507208398602240',
+      dsn: sentryDsn,
       environment: getEnv(),
       integrations: [
         Sentry.browserTracingIntegration(),
