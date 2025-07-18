@@ -11,6 +11,7 @@ import { StateGraphArgs, StateGraph, START, END } from '@langchain/langgraph';
 import { GraphState } from '../scheduler/types';
 import { Runnable } from '@langchain/core/runnables';
 import { SystemMessage } from '@langchain/core/messages';
+import { MediaProviderNotConfiguredError, MediaModelNotConfiguredError } from '@refly/errors';
 
 /**
  * Interface for log argument objects used in processLogArgs
@@ -138,10 +139,16 @@ export class GenerateMedia extends BaseSkill {
     );
     const quality = parsedParams.quality || String(tplConfig?.quality?.value ?? 'high');
 
-    const { provider, model } = (await this.engine.service.getUserMediaConfig(user, mediaType)) || {
-      provider: 'replicate',
-      model: 'auto-selected',
-    };
+    const { provider, model } =
+      (await this.engine.service.getUserMediaConfig(user, mediaType)) || {};
+
+    if (!provider) {
+      throw new MediaProviderNotConfiguredError();
+    }
+
+    if (!model) {
+      throw new MediaModelNotConfiguredError();
+    }
 
     // Clean the query by removing parameter specifications
     const cleanedQuery = this.cleanQueryFromParameters(query);
