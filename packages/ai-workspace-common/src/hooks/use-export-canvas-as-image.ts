@@ -384,6 +384,10 @@ export const useExportCanvasAsImage = () => {
 
   const uploadCanvasCover = useCallback(async () => {
     const canvas = await getCanvasElement({ scale: 1 });
+    if (!canvas) {
+      // Canvas not found, reject the promise
+      return Promise.reject(new Error('Canvas element not found'));
+    }
     return new Promise<UploadResponse['data']>((resolve, reject) => {
       canvas.toBlob((blob) => {
         if (blob) {
@@ -394,10 +398,13 @@ export const useExportCanvasAsImage = () => {
             .then(({ data }) => {
               if (!data?.success) {
                 reject(new Error('Failed to upload canvas cover'));
+                return;
               }
               resolve(data?.data);
             })
             .catch(reject);
+        } else {
+          reject(new Error('Failed to convert canvas to Blob'));
         }
       });
     });

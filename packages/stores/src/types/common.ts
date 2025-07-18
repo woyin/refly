@@ -1,20 +1,5 @@
 import { CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
 
-// Canvas related types
-export enum CanvasNodeType {
-  Document = 'document',
-  Resource = 'resource',
-  Skill = 'skill',
-  Note = 'note',
-  Memo = 'memo',
-  Folder = 'folder',
-  Project = 'project',
-  Query = 'query',
-  Response = 'response',
-  Tool = 'tool',
-  Action = 'action',
-}
-
 // Navigation context for copilot
 export interface NavigationContext {
   type: 'canvas' | 'document' | 'project' | 'global';

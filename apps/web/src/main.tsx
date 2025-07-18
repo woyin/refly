@@ -4,6 +4,8 @@ import './process-polyfill';
 import '../../web-next/src/tokens.css';
 import './utils/dom-patch';
 
+import '@refly-packages/ai-workspace-common/i18n/config';
+
 import React, { Suspense, useEffect } from 'react';
 import { ConfigProvider } from 'antd';
 import ReactDOM from 'react-dom/client';
@@ -21,14 +23,10 @@ import { queryClient } from '@refly-packages/ai-workspace-common/utils/request';
 import { AppRouter } from './routes';
 import { AppLayout } from '@refly/web-core';
 
-import '@refly-packages/ai-workspace-common/i18n/config';
 import { getEnv, setRuntime } from '@refly/utils/env';
 import { useUserStoreShallow, useThemeStoreShallow, useAppStoreShallow } from '@refly/stores';
 import { theme } from 'antd';
-import {
-  LightLoading,
-  SuspenseLoading,
-} from '@refly-packages/ai-workspace-common/components/common/loading';
+import { LightLoading } from '@refly/ui-kit';
 import { sentryEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
 
@@ -174,7 +172,7 @@ export const App = () => {
   }, [shouldUseDarkTheme]);
 
   if (isInitialLoading) {
-    return <SuspenseLoading />;
+    return <LightLoading />;
   }
 
   return (

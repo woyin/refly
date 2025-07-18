@@ -112,7 +112,9 @@ export const useGetUserSettings = () => {
     }
 
     // Apply locale
-    i18n.changeLanguage(uiLocale);
+    if (i18n.isInitialized) {
+      i18n.changeLanguage(uiLocale);
+    }
 
     userStore.setLocalSettings(localSettings);
     localStorage.setItem('refly-user-profile', safeStringifyJSON(settings));

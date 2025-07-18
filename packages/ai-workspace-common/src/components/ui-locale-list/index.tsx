@@ -30,7 +30,9 @@ export const UILocaleList = React.memo(
       const { localSettings, userProfile } = useUserStore.getState();
 
       // Always change i18n language
-      i18n.changeLanguage(lng);
+      if (i18n.isInitialized) {
+        i18n.changeLanguage(lng);
+      }
 
       // Only update local storage and states if not on landing page or user is logged in
       if (!isLandingPage || userStore.isLogin) {
