@@ -65,7 +65,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./apps/${{ matrix.app }}/Dockerfile
+          file: ./apps/${{ matrix.app == 'web' && 'web-next' || matrix.app }}/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker_tags.outputs.tags }}
