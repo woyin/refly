@@ -493,6 +493,7 @@ const translations = {
       utilText: '注册即表明您同意 ',
       privacyPolicy: '隐私政策',
       terms: '服务条款',
+      or: '或使用邮箱登录',
     },
     resetPasswordModal: {
       title: '重置密码',

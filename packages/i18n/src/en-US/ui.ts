@@ -717,6 +717,7 @@ const translations = {
       utilText: 'By registering, you agree to our',
       privacyPolicy: 'Privacy Policy',
       terms: 'Terms of Service',
+      or: 'or use email to login',
     },
     resetPasswordModal: {
       title: 'Reset Password',
