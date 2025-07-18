@@ -220,8 +220,8 @@ export const MediaModelSelector = memo(
           onClick={handleOpenSettingModal}
           type="text"
           size="small"
-          className="text-xs text-orange-500"
-          danger={true}
+          className="text-xs gap-1.5"
+          style={{ color: '#f59e0b' }}
           icon={<LuInfo className="flex items-center" />}
         >
           {t('copilot.modelSelector.configureModel')}

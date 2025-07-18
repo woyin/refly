@@ -1,7 +1,7 @@
 {
   "name": "@refly/ai-workspace-common",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Common components for Refly AI Workspace",
   "type": "module",
   "main": "src/index.ts",
@@ -38,6 +38,7 @@
     "@refly/i18n": "workspace:*",
     "@refly/openapi-schema": "workspace:*",
     "@refly/stores": "workspace:*",
+    "@refly/ui-kit": "workspace:*",
     "@refly/utils": "workspace:*",
     "@sentry/react": "^7.113.0",
     "@tailwindcss/forms": "^0.5.3",

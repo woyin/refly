@@ -9,8 +9,8 @@ import { Button, Form } from 'antd';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions } from '@refly-packages/ai-workspace-common/components/canvas/front-page/action';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { useAuthStoreShallow } from '@refly/stores';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 import Header from '../../components/landing-page-partials/Header';
 
 import cn from 'classnames';

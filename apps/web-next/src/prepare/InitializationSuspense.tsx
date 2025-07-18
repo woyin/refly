@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { LightLoading, ReflyConfigProvider, useConfigProviderStore } from '@refly/ui-kit';
 import { theme } from 'antd';
 import { useThemeStoreShallow } from '@refly/stores';
+import { setRuntime } from '@refly/utils/env';
 
 export interface InitializationSuspenseProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
   }));
 
   const init = async () => {
+    setRuntime('web');
     initTheme();
 
     // support multiple initialization

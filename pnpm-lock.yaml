@@ -514,6 +514,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../../packages/stores
+      '@refly/ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
       '@refly/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -740,6 +743,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../../packages/stores
+      '@refly/ui-kit':
+        specifier: workspace:*
+        version: link:../../packages/ui-kit
       '@refly/web-core':
         specifier: workspace:*
         version: link:../../packages/web-core
@@ -1132,6 +1138,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.5
         version: 18.3.7(@types/react@18.3.23)
+      code-inspector-plugin:
+        specifier: ~0.19.2
+        version: 0.19.2
       node-polyfill-webpack-plugin:
         specifier: ^4.1.0
         version: 4.1.0(webpack@5.100.1(@swc/core@1.12.14(@swc/helpers@0.5.17)))
@@ -1210,6 +1219,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../stores
+      '@refly/ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
       '@refly/utils':
         specifier: workspace:*
         version: link:../utils
@@ -21369,7 +21381,7 @@ snapshots:
       '@babel/core': 7.28.0
       '@sentry/babel-plugin-component-annotate': 2.23.0
       '@sentry/cli': 2.39.1(encoding@0.1.13)
-      dotenv: 16.6.1
+      dotenv: 16.4.7
       find-up: 5.0.0
       glob: 9.3.5
       magic-string: 0.30.8
@@ -23326,7 +23338,7 @@ snapshots:
       config-file-ts: 0.2.8-rc1
       debug: 4.4.1(supports-color@5.5.0)
       dmg-builder: 26.0.15(electron-builder-squirrel-windows@26.0.15)
-      dotenv: 16.6.1
+      dotenv: 16.4.7
       dotenv-expand: 11.0.7
       ejs: 3.1.10
       electron-builder-squirrel-windows: 26.0.15(dmg-builder@26.0.15)
@@ -23691,7 +23703,7 @@ snapshots:
     dependencies:
       ansi-align: 3.0.1
       camelcase: 7.0.1
-      chalk: 5.0.1
+      chalk: 5.4.1
       cli-boxes: 3.0.0
       string-width: 5.1.2
       type-fest: 2.19.0
@@ -23902,7 +23914,7 @@ snapshots:
       chokidar: 4.0.3
       confbox: 0.1.8
       defu: 6.1.4
-      dotenv: 16.6.1
+      dotenv: 16.4.7
       giget: 1.2.5
       jiti: 2.4.2
       mlly: 1.7.4
@@ -24255,8 +24267,8 @@ snapshots:
   code-inspector-core@0.19.2:
     dependencies:
       '@vue/compiler-dom': 3.5.17
-      chalk: 4.1.1
-      dotenv: 16.6.1
+      chalk: 4.1.2
+      dotenv: 16.4.7
       launch-ide: 1.0.1
       portfinder: 1.0.37
     transitivePeerDependencies:
@@ -24266,7 +24278,7 @@ snapshots:
     dependencies:
       chalk: 4.1.1
       code-inspector-core: 0.19.2
-      dotenv: 16.6.1
+      dotenv: 16.4.7
       esbuild-code-inspector-plugin: 0.19.2
       vite-code-inspector-plugin: 0.19.2
       webpack-code-inspector-plugin: 0.19.2
@@ -25244,7 +25256,7 @@ snapshots:
 
   dotenv-expand@11.0.7:
     dependencies:
-      dotenv: 16.6.1
+      dotenv: 16.4.7
 
   dotenv@16.4.5: {}
 
@@ -28232,8 +28244,8 @@ snapshots:
 
   launch-ide@1.0.1:
     dependencies:
-      chalk: 4.1.1
-      dotenv: 16.6.1
+      chalk: 4.1.2
+      dotenv: 16.4.7
 
   layout-base@1.0.2: {}
 
@@ -32918,7 +32930,7 @@ snapshots:
   static-browser-server@1.0.3:
     dependencies:
       '@open-draft/deferred-promise': 2.2.0
-      dotenv: 16.6.1
+      dotenv: 16.4.7
       mime-db: 1.54.0
       outvariant: 1.4.0
 

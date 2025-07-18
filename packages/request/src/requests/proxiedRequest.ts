@@ -1,7 +1,7 @@
 import { client, BaseResponse } from '@refly/openapi-schema';
 import * as requestModule from '@refly/openapi-schema';
 
-import { isDesktop, serverOrigin } from '@refly-packages/ai-workspace-common/utils/env';
+import { isDesktop, serverOrigin } from '@refly/ui-kit';
 import { getRuntime } from '@refly/utils/env';
 import {
   AuthenticationExpiredError,
@@ -174,7 +174,11 @@ const wrapFunctions = (module: any) => {
             target: module,
             args: serializedArgs,
             hasFileData,
-          })) as { response: Response; data: any; error: { errCode: string; success: boolean } };
+          })) as {
+            response: Response;
+            data: any;
+            error: { errCode: string; success: boolean };
+          };
 
           if (res?.response && runtime !== 'extension-csui') {
             const error = res?.error;
