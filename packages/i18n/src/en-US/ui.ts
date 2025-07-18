@@ -146,7 +146,7 @@ const translations = {
     askDescription: 'Ask mode: answer your question in a single step',
     agentDescription: 'Agent mode: automatically plan and execute tasks',
     media: 'Media',
-    mediaDescription: 'Media mode: generate images/videos/audios',
+    mediaDescription: 'Media mode: generate images, videos, audios',
   },
   pages: {
     share: {
@@ -2349,13 +2349,6 @@ const translations = {
       },
     },
     copilot: {
-      mcpSelector: {
-        title: 'MCP Selector',
-        empty: 'No MCP servers available',
-        browseMcpStore: 'Go to Install',
-        manageMcpServers: 'Manage MCP',
-        useMcpServers: 'Use MCP',
-      },
       recommendQuestions: {
         refresh: 'Refresh',
       },
@@ -2808,6 +2801,9 @@ const translations = {
       title: 'Choose MCP Servers',
       empty: 'No MCP servers available',
       selected: 'Selected',
+      browseMcpStore: 'Go to Install',
+      manageMcpServers: 'Manage MCP',
+      useMcpServers: 'Use MCP',
     },
     contextItem: {
       current: 'Current ',

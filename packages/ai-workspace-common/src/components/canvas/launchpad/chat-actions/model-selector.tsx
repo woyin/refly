@@ -41,14 +41,14 @@ const SelectedModelDisplay = memo(
           type="text"
           size="small"
           className={cn(
-            'text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
+            'h-7text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
             open && 'border-refly-Card-Border',
           )}
           style={{ color: '#f59e0b' }}
           icon={<LuInfo className="flex items-center" />}
           onClick={handleOpenSettingModal}
         >
-          {t('copilot.modelSelector.configureModel')}
+          <div className="leading-5">{t('copilot.modelSelector.configureModel')}</div>
         </Button>
       );
     }
@@ -58,12 +58,12 @@ const SelectedModelDisplay = memo(
         type="text"
         size="small"
         className={cn(
-          'text-xs gap-0.5 p-1 hover:border-refly-Card-Border min-w-0',
+          'h-7 text-xs gap-0.5 p-1 hover:border-refly-Card-Border min-w-0',
           open && 'border-refly-Card-Border',
         )}
         icon={<ModelIcon model={model.name} type={'color'} />}
       >
-        <span className="truncate">{model.label}</span>
+        <span className="truncate leading-5">{model.label}</span>
         <ArrowDown size={12} color="var(--refly-text-0)" className="flex-shrink-0" />
       </Button>
     );
@@ -325,7 +325,7 @@ export const ModelSelector = memo(
         autoAdjustOverflow={true}
       >
         {!briefMode ? (
-          <span className="text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-300">
+          <div className="text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-300">
             <SelectedModelDisplay
               open={dropdownOpen}
               model={model}
@@ -337,7 +337,7 @@ export const ModelSelector = memo(
                 <IconError className="w-3.5 h-3.5 text-[#faad14]" />
               </Tooltip>
             )}
-          </span>
+          </div>
         ) : (
           <ModelIcon model={'gpt-4o'} size={16} type={'color'} />
         )}
