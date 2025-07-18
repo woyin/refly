@@ -4,6 +4,7 @@ import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
 import NodePolyfill from 'node-polyfill-webpack-plugin';
+import { codeInspectorPlugin } from 'code-inspector-plugin';
 
 const { publicVars } = loadEnv({ prefixes: ['VITE_'] });
 
@@ -34,6 +35,12 @@ export default defineConfig({
             },
           }),
         );
+      prependPlugins(
+        codeInspectorPlugin({
+          bundler: 'rspack',
+          editor: 'code',
+        }),
+      );
       prependPlugins(new NodePolyfill({ additionalAliases: ['process'] }));
       return config;
     },

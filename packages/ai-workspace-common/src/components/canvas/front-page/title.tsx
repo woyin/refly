@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 
 export const Title = () => {
   const { i18n } = useTranslation();

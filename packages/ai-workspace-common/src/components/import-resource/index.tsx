@@ -82,40 +82,40 @@ export const ImportResourceModal = memo(() => {
                     }}
                   >
                     <MenuItem key="import-from-web-search">
-                      <span className="flex items-center justify-center mr-2">
+                      <span className="flex items-center mr-2 gap-2">
                         <TbWorldSearch className="text-base" />
+                        {t('resource.import.fromWebSearch')}
                       </span>
-                      {t('resource.import.fromWebSearch')}
                     </MenuItem>
                     <MenuItem key="import-from-file">
-                      <span className="flex items-center justify-center mr-2">
+                      <span className="flex items-center mr-2 gap-2">
                         <TbFile className="text-base" />
+                        {t('resource.import.fromFile')}
                       </span>
-                      {t('resource.import.fromFile')}
                     </MenuItem>
                     <MenuItem key="import-from-image">
-                      <span className="flex items-center justify-center mr-2">
+                      <span className="flex items-center mr-2 gap-2">
                         <PiImagesSquare className="text-base" />
+                        {t('resource.import.fromImage')}
                       </span>
-                      {t('resource.import.fromImage')}
                     </MenuItem>
                     <MenuItem key="import-from-weblink">
-                      <span className="flex items-center justify-center mr-2">
+                      <span className="flex items-center mr-2 gap-2">
                         <HiLink className="text-base" />
+                        {t('resource.import.fromWeblink')}
                       </span>
-                      {t('resource.import.fromWeblink')}
                     </MenuItem>
                     <MenuItem key="import-from-paste-text">
-                      <span className="flex items-center justify-center mr-2">
+                      <span className="flex items-center mr-2 gap-2">
                         <TbClipboard className="text-base" />
+                        {t('resource.import.fromText')}
                       </span>
-                      {t('resource.import.fromText')}
                     </MenuItem>
                     <MenuItem key="import-from-extension">
-                      <span className="flex items-center justify-center mr-2">
+                      <span className="flex items-center mr-2 gap-2">
                         <TbBrowserPlus className="text-base" />
+                        {t('resource.import.fromExtension')}
                       </span>
-                      {t('resource.import.fromExtension')}
                     </MenuItem>
                   </Menu>
                 </div>

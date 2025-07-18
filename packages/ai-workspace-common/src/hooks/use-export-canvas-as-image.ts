@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import html2canvas, { Options } from 'html2canvas';
 import { UploadResponse } from '@refly/openapi-schema';
 import { useSiderStore } from '@refly/stores';
-import { staticPrivateEndpoint } from '@refly-packages/ai-workspace-common/utils/env';
+import { staticPrivateEndpoint } from '@refly/ui-kit';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 export const useExportCanvasAsImage = () => {
@@ -318,7 +318,9 @@ export const useExportCanvasAsImage = () => {
       const svgString = serializer.serializeToString(svgClone);
 
       // create an svg blob
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const svgBlob = new Blob([svgString], {
+        type: 'image/svg+xml;charset=utf-8',
+      });
 
       // Convert SVG Blob to PNG
       const pngBlob = await svgBlobToPngBlob(svgBlob, svgClone);

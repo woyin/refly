@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useMemo } from 'react';
-import { staticPublicEndpoint } from '@refly-packages/ai-workspace-common/utils/env';
+import { staticPublicEndpoint } from '@refly/ui-kit';
 
 /**
  * Hook to fetch share data with type safety

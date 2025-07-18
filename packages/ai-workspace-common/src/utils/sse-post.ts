@@ -2,7 +2,7 @@ import { InvokeSkillRequest, SkillEvent } from '@refly/openapi-schema';
 import { extractBaseResp } from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ConnectionError, AuthenticationExpiredError } from '@refly/errors';
 import { refreshToken } from './auth';
-import { isDesktop, serverOrigin } from './env';
+import { isDesktop, serverOrigin } from '@refly/ui-kit';
 import { scrollToBottom } from '@refly-packages/ai-workspace-common/utils/ui';
 import throttle from 'lodash.throttle';
 

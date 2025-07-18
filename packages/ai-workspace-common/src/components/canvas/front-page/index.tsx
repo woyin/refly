@@ -15,7 +15,7 @@ import { ConfigManager } from '@refly-packages/ai-workspace-common/components/ca
 import { Actions, CustomAction } from './action';
 import { useChatStoreShallow } from '@refly/stores';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 import { useCanvasTemplateModalShallow } from '@refly/stores';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
 import { useLaunchpadStoreShallow } from '@refly/stores';
@@ -96,7 +96,9 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
     setIsExecuting(true);
-    debouncedCreateCanvas('front-page', { isPilotActivated: chatMode === 'agent' });
+    debouncedCreateCanvas('front-page', {
+      isPilotActivated: chatMode === 'agent',
+    });
   }, [query, debouncedCreateCanvas, chatMode]);
 
   const handleAbort = useCallback(() => {

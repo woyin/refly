@@ -15,7 +15,7 @@ import { ConfigManager } from '@refly-packages/ai-workspace-common/components/ca
 import { Actions } from './action';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
 import { useAuthStoreShallow } from '@refly/stores';
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';

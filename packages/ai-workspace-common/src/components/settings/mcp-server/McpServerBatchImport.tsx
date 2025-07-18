@@ -60,6 +60,9 @@ export const McpServerBatchImport: React.FC<McpServerBatchImportProps> = ({ onSu
         command: server.command || '',
         args: server.args || [],
         env: server.env || {},
+        headers: server.headers || {},
+        // ✅ Add reconnect configuration to universal format
+        reconnect: server.reconnect || { enabled: false },
       };
     }
 
@@ -75,14 +78,26 @@ export const McpServerBatchImport: React.FC<McpServerBatchImportProps> = ({ onSu
           description: 'Example SSE server',
           enabled: false,
           url: 'http://localhost:3000',
+          headers: {},
           env: {},
+          reconnect: {
+            enabled: false,
+            maxAttempts: 3,
+            delayMs: 1000,
+          },
         },
         'Example Server 2': {
           type: 'streamable',
           description: 'Example Streamable server',
           enabled: false,
           url: 'http://localhost:3001',
+          headers: {},
           env: {},
+          reconnect: {
+            enabled: false,
+            maxAttempts: 3,
+            delayMs: 1000,
+          },
         },
         'Example Server 3': {
           type: 'stdio',
@@ -91,6 +106,11 @@ export const McpServerBatchImport: React.FC<McpServerBatchImportProps> = ({ onSu
           command: 'npx',
           args: ['-y', '@modelcontextprotocol/server-example'],
           env: {},
+          reconnect: {
+            enabled: false,
+            maxAttempts: 3,
+            delayMs: 1000,
+          },
         },
       },
     };
@@ -128,7 +148,8 @@ export const McpServerBatchImport: React.FC<McpServerBatchImportProps> = ({ onSu
           args: serverConfig.args || [],
           env: serverConfig.env || {},
           headers: serverConfig.headers || {},
-          reconnect: { enabled: false },
+          // ✅ Properly handle reconnect configuration from universal format
+          reconnect: serverConfig.reconnect || { enabled: false },
           config: {},
         };
 

@@ -53,6 +53,7 @@
     "@sentry/webpack-plugin": "^3.5.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "code-inspector-plugin": "~0.19.2",
     "node-polyfill-webpack-plugin": "^4.1.0",
     "tailwindcss": "^3",
     "tailwindcss-animate": "^1.0.6",

@@ -39,7 +39,7 @@ import { SideLeft, SideRight } from 'refly-icons';
 
 import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
 import { SiderLoggedOut } from './sider-logged-out';
 import { LuList } from 'react-icons/lu';
