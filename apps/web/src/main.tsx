@@ -149,8 +149,8 @@ export const App = () => {
         <ConfigProvider
           theme={{
             token: {
-              colorPrimary: '#00968F',
-              borderRadius: 6,
+              colorPrimary: '#0E9F77',
+              borderRadius: 8,
               ...(shouldUseDarkTheme
                 ? {
                     controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
@@ -178,8 +178,8 @@ export const App = () => {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#00968F',
-          borderRadius: 6,
+          colorPrimary: '#0E9F77',
+          borderRadius: 8,
           ...(shouldUseDarkTheme
             ? {
                 controlItemBgActive: 'rgba(255, 255, 255, 0.08)',

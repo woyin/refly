@@ -14,20 +14,20 @@ export const Title = () => {
         canvasTemplateEnabled ? 'mt-48' : '',
       )}
     >
-      <div className="flex flex-col max-w-full w-[800px]">
+      <div className="flex flex-col max-w-full w-[800px] text-refly-text-0">
         <div className="flex gap-2 justify-center items-center self-center">
           {isZh ? (
-            <div className="flex gap-2 items-center text-zinc-900 text-3xl font-semibold leading-10 text-center">
+            <div className="flex gap-2 items-center  text-3xl font-semibold leading-10 text-center">
               <div className="self-stretch my-auto">和</div>
               <Logo logoProps={{ show: false }} textProps={{ show: true, className: 'w-[70px]' }} />
               <div className="self-stretch my-auto">一起探索</div>
-              <div className="self-stretch my-auto text-emerald-600">好奇心</div>
+              <div className="self-stretch my-auto text-refly-primary-default">好奇心</div>
             </div>
           ) : (
             <>
-              <div className="flex gap-2 items-center my-auto text-zinc-900 text-3xl font-semibold leading-none text-center whitespace-nowrap">
+              <div className="flex gap-2 items-center my-auto text-3xl font-semibold leading-none text-center whitespace-nowrap">
                 <span className="self-stretch my-auto">Explore</span>
-                <span className="self-stretch my-auto text-emerald-600">Curiosity</span>
+                <span className="self-stretch my-auto text-refly-primary-default">Curiosity</span>
                 <span className="self-stretch my-auto">With</span>
                 <Logo
                   logoProps={{ show: false }}

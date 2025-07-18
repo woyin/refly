@@ -8,17 +8,14 @@ import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/can
 import {
   getSkillIcon,
   IconRight,
-  IconPlus,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Form, Button, Badge } from 'antd';
 import { ToolOutlined } from '@ant-design/icons';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions, CustomAction } from './action';
 import { useChatStoreShallow } from '@refly/stores';
-import { useUserStoreShallow } from '@refly/stores';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
-import { PremiumBanner } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
-import { canvasTemplateEnabled, subscriptionEnabled } from '@refly/ui-kit';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 import { useCanvasTemplateModalShallow } from '@refly/stores';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
 import { useLaunchpadStoreShallow } from '@refly/stores';
@@ -37,10 +34,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
   const templateLanguage = i18n.language;
   const templateCategoryId = '';
-
-  const { userProfile } = useUserStoreShallow((state) => ({
-    userProfile: state.userProfile,
-  }));
 
   const { collapse } = useSiderStoreShallow((state) => ({
     collapse: state.collapse,
@@ -140,14 +133,8 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
         content: t('copilot.chatActions.chooseMcp'),
         onClick: handleMcpSelectorToggle,
       },
-      {
-        icon: <IconPlus className="flex items-center justify-center" />,
-        title: '',
-        content: t('loggedHomePage.siderMenu.newCanvas'),
-        onClick: () => debouncedCreateCanvas(),
-      },
     ],
-    [selectedMcpServers?.length, t, handleMcpSelectorToggle, debouncedCreateCanvas],
+    [selectedMcpServers?.length, t, handleMcpSelectorToggle],
   );
 
   useEffect(() => {
@@ -159,7 +146,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   return (
     <div
       className={cn(
-        'h-full flex m-2 bg-refly-bg-content-z2 overflow-y-auto rounded-lg ring-1 ring-refly-Card-Border',
+        'h-full flex m-2 bg-refly-bg-content-z2 overflow-y-auto rounded-lg border-1 border border-solid border-refly-Card-Border',
         {
           'ml-0 shadow-sm': !collapse,
         },
@@ -174,10 +161,9 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       >
         <Title />
 
-        <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-600 overflow-hidden">
+        <div className="w-full rounded-[12px] shadow-[0px-2px_20px_4px_rgba(0,0,0,0.04)] overflow-hidden border-1 border border-solid border-refly-primary-default">
           <McpSelectorPanel isOpen={mcpSelectorOpen} onClose={() => setMcpSelectorOpen(false)} />
 
-          {subscriptionEnabled && !userProfile?.subscription && <PremiumBanner />}
           <div className="p-4">
             {selectedSkill && (
               <div className="flex w-full justify-between">

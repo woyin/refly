@@ -1,6 +1,7 @@
 import { Button, Tooltip, Switch } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { LinkOutlined, SendOutlined } from '@ant-design/icons';
+import { LinkOutlined } from '@ant-design/icons';
+import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
@@ -50,7 +51,7 @@ export const Actions = memo(
     const { t } = useTranslation();
 
     // hooks
-    const isWeb = getRuntime() === 'web';
+    const isWeb = getRuntime() !== 'web';
 
     const userStore = useUserStoreShallow((state) => ({
       isLogin: state.isLogin,
@@ -97,7 +98,7 @@ export const Actions = memo(
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center">
           <div className="mr-2">
-            <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
+            <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} className="h-[32px]" />
           </div>
 
           {userStore.isLogin && !isPilotActivated && (
@@ -138,25 +139,21 @@ export const Actions = memo(
 
           {!isWeb ? null : isExecuting ? (
             <Button
-              size="small"
               type="default"
-              className="text-xs flex items-center gap-1 border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:border-red-700 dark:hover:text-red-300 dark:bg-red-950 dark:hover:bg-red-900"
+              className="items-center gap-1 border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:border-red-700 dark:hover:text-red-300 dark:bg-red-950 dark:hover:bg-red-900"
               onClick={handleAbort}
             >
               <span>{t('copilot.chatActions.stop')}</span>
             </Button>
           ) : (
             <Button
-              size="small"
               type="primary"
               disabled={!canSendMessage}
-              className="text-xs flex items-center gap-1"
+              className="flex items-center !h-9 !w-9 rounded-full"
               onClick={handleSend}
               loading={loading}
-            >
-              <SendOutlined />
-              <span>{t('copilot.chatActions.send')}</span>
-            </Button>
+              icon={<Send />}
+            />
           )}
         </div>
       </div>

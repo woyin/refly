@@ -135,7 +135,7 @@ const SettingItem = () => {
           <div className="flex items-center gap-2">
             <Avatar size={32} src={userProfile?.avatar} icon={<AiOutlineUser />} />
             <span
-              className={cn('ml-2 max-w-[180px] truncate font-semibold text-refly-text-0', {
+              className={cn('max-w-[180px] truncate font-semibold text-refly-text-0', {
                 'max-w-[80px]': subscriptionEnabled,
               })}
             >
@@ -362,7 +362,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         'bg-transparent',
         source === 'sider'
           ? 'h-[100vh]'
-          : 'h-[calc(100vh-32px)] rounded-lg border-r border-solid border-[1px] border-refly-Card-Border bg-refly-bg-Glass-content backdrop-blur-md shadow-[0_6px_60px_0px_rgba(0,0,0,0.08)]',
+          : 'h-[calc(100vh-16px)] rounded-lg border-r border-solid border-[1px] border-refly-Card-Border bg-refly-bg-Glass-content backdrop-blur-md shadow-[0_6px_60px_0px_rgba(0,0,0,0.08)]',
       )}
     >
       <div className="flex h-full flex-col gap-3 overflow-hidden p-4">
