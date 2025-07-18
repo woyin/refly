@@ -10,7 +10,7 @@ const { publicVars } = loadEnv({ prefixes: ['VITE_'] });
 
 import path from 'node:path';
 
-const GTAG_ID = 'G-ER782LXJ5F';
+const gtagId = process.env.VITE_GTAG_ID;
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -74,13 +74,13 @@ export default defineConfig({
   },
   html: {
     template: './public/index.html',
-    tags: isProduction
+    tags: gtagId
       ? [
           {
             tag: 'script',
             attrs: {
               async: true,
-              src: `https://www.googletagmanager.com/gtag/js?id=${GTAG_ID}`,
+              src: `https://www.googletagmanager.com/gtag/js?id=${gtagId}`,
             },
           },
           {
@@ -91,7 +91,7 @@ export default defineConfig({
             dataLayer.push(arguments);
           }
           gtag('js', new Date());
-          gtag('config', '${GTAG_ID}');
+          gtag('config', '${gtagId}');
       `,
           },
         ]
