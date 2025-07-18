@@ -286,6 +286,8 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
       args: filteredArgs,
       env: filteredEnv,
       headers: filteredHeaders,
+      // ✅ Add reconnect configuration to universal format
+      reconnect: server.reconnect || { enabled: false },
     };
 
     return { mcpServers };
@@ -307,7 +309,8 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
           args: serverConfig.args ?? [],
           env: serverConfig.env ?? {},
           headers: serverConfig.headers ?? {},
-          reconnect: { enabled: false },
+          // ✅ Properly handle reconnect configuration from universal format
+          reconnect: serverConfig.reconnect || { enabled: false },
           config: {},
         };
 
@@ -373,17 +376,6 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
       updateMutation.mutate({ body: submitValues });
     } else {
       createMutation.mutate({ body: submitValues });
-    }
-  };
-
-  // Handle enabled status change
-  const handleEnabledChange = async (checked: boolean) => {
-    if (checked) {
-      const currentValues = form.getFieldsValue();
-      const processedValues = processFormDataForSubmission(currentValues);
-      validateMutation.mutate({ body: processedValues });
-    } else {
-      setIsEnabled(false);
     }
   };
 
@@ -703,21 +695,11 @@ export const McpServerForm: React.FC<McpServerFormProps> = ({
             {/* Enabled Switch */}
             <Card title={t('settings.mcpServer.status')} size="small" className="mb-4">
               <div className="flex items-center justify-between">
-                <Typography.Text>
-                  {t('settings.mcpServer.enabled')}
-                  <Tooltip title={t('settings.mcpServer.enabledTooltip')}>
-                    <QuestionCircleOutlined style={{ marginLeft: 8 }} />
-                  </Tooltip>
-                </Typography.Text>
+                <Typography.Text>{t('settings.mcpServer.enabled')}</Typography.Text>
                 <Form.Item noStyle>
-                  <Switch checked={isEnabled} onChange={handleEnabledChange} />
+                  <Switch checked={isEnabled} />
                 </Form.Item>
               </div>
-              {!validateMutation.data && !initialData?.enabled && (
-                <Typography.Text type="secondary" className="block mt-2">
-                  {t('settings.mcpServer.autoValidateHint')}
-                </Typography.Text>
-              )}
             </Card>
 
             {/* Form Actions */}
