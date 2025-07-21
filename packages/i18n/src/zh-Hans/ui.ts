@@ -24,6 +24,7 @@ const translations = {
     edit: '编辑',
     save: '保存',
     saveToCanvas: '添加到画布',
+    search: '搜索',
     skip: '跳过',
     finish: '完成',
     add: '添加',
