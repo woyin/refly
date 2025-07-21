@@ -2503,6 +2503,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CheckSettingsFieldResponse'
+  /credit/recharge:
+    get:
+      tags:
+        - credit
+      summary: Get credit recharge
+      description: Get credit recharge
+      operationId: getCreditRecharge
+      responses:
+        '200':
+          description: successful operation
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditRechargeResponse'      
+  /credit/usage:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage
+      description: Get credit usage
+      operationId: getCreditUsage
+      responses:
+        '200':
+          description: successful operation
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageResponse'
+  /credit/balance:
+    get:
+      tags:
+        - credit
+      summary: Get credit balance
+      description: Get credit balance
+      operationId: getCreditBalance
+      responses:
+        '200':
+          description: successful operation
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getCreditBalanceResponse'
   /subscription/plans:
     get:
       tags:
@@ -7119,6 +7161,41 @@ components:
                 url:
                   type: string
                   description: Portal session URL
+    GetCreditRechargeResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Credit recharge list
+              items:
+                $ref: '#/components/schemas/CreditRecharge'
+    GetCreditUsageResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Credit usage list
+              items:
+                $ref: '#/components/schemas/CreditUsage'
+    getCreditBalanceResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit balance
+              properties:
+                creditBalance:
+                  type: number
+                  description: Credit balance
+                creditAmount:
+                  type: number
+                  description: Credit amount
     SubscriptionPlan:
       type: object
       properties:

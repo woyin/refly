@@ -3,6 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { User, CreditBilling } from '@refly/openapi-schema';
 import { CheckRequestCreditUsageResult, SyncTokenCreditUsageJobData } from './credit.dto';
 import { genCreditUsageId } from '@refly/utils';
+import { CreditRecharge, CreditUsage } from '@refly/openapi-schema';
+import { CreditBalance } from './credit.dto';
 
 @Injectable()
 export class CreditService {
@@ -150,5 +152,69 @@ export class CreditService {
       // Execute all deduction operations
       ...deductionOperations,
     ]);
+  }
+
+  async getCreditRecharge(user: User): Promise<CreditRecharge[]> {
+    const records = await this.prisma.creditRecharge.findMany({
+      where: {
+        uid: user.uid,
+        enabled: true,
+      },
+    });
+    return records.map((record) => ({
+      ...record,
+      source: record.source as 'purchase' | 'gift' | 'promotion' | 'refund',
+      expiresAt: record.expiresAt.toISOString(),
+      createdAt: record.createdAt.toISOString(),
+      updatedAt: record.updatedAt.toISOString(),
+    }));
+  }
+
+  async getCreditUsage(user: User): Promise<CreditUsage[]> {
+    const records = await this.prisma.creditUsage.findMany({
+      where: {
+        uid: user.uid,
+      },
+    });
+    return records.map((record) => ({
+      ...record,
+      usageType: record.usageType as
+        | 'model_call'
+        | 'media_generation'
+        | 'embedding'
+        | 'reranking'
+        | 'other',
+      createdAt: record.createdAt.toISOString(),
+    }));
+  }
+
+  async getCreditBalance(user: User): Promise<CreditBalance> {
+    // Query all active (unexpired) credit recharge records
+    const activeRecharges = await this.prisma.creditRecharge.findMany({
+      where: {
+        uid: user.uid,
+        enabled: true,
+        expiresAt: {
+          gt: new Date(), // Not expired
+        },
+      },
+      orderBy: {
+        expiresAt: 'asc',
+      },
+    });
+
+    // Calculate total balance and total amount
+    const totalBalance = activeRecharges.reduce((sum, record) => {
+      return sum + record.balance;
+    }, 0);
+
+    const totalAmount = activeRecharges.reduce((sum, record) => {
+      return sum + record.amount;
+    }, 0);
+
+    return {
+      creditAmount: totalAmount,
+      creditUsage: totalBalance,
+    };
   }
 }

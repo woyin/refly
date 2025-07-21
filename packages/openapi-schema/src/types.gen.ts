@@ -4056,6 +4056,36 @@ export type CreatePortalSessionResponse = BaseResponse & {
   };
 };
 
+export type GetCreditRechargeResponse = BaseResponse & {
+  /**
+   * Credit recharge list
+   */
+  data?: Array<CreditRecharge>;
+};
+
+export type GetCreditUsageResponse = BaseResponse & {
+  /**
+   * Credit usage list
+   */
+  data?: Array<CreditUsage>;
+};
+
+export type getCreditBalanceResponse = BaseResponse & {
+  /**
+   * Credit balance
+   */
+  data?: {
+    /**
+     * Credit balance
+     */
+    creditBalance?: number;
+    /**
+     * Credit amount
+     */
+    creditAmount?: number;
+  };
+};
+
 export type SubscriptionPlan = {
   /**
    * Subscription plan type
@@ -6366,6 +6396,18 @@ export type CheckSettingsFieldData = {
 export type CheckSettingsFieldResponse2 = CheckSettingsFieldResponse;
 
 export type CheckSettingsFieldError = unknown;
+
+export type GetCreditRechargeResponse2 = GetCreditRechargeResponse;
+
+export type GetCreditRechargeError = unknown;
+
+export type GetCreditUsageResponse2 = GetCreditUsageResponse;
+
+export type GetCreditUsageError = unknown;
+
+export type GetCreditBalanceResponse = getCreditBalanceResponse;
+
+export type GetCreditBalanceError = unknown;
 
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 

@@ -5823,6 +5823,73 @@ export const CreatePortalSessionResponseSchema = {
   ],
 } as const;
 
+export const GetCreditRechargeResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Credit recharge list',
+          items: {
+            $ref: '#/components/schemas/CreditRecharge',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCreditUsageResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Credit usage list',
+          items: {
+            $ref: '#/components/schemas/CreditUsage',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const getCreditBalanceResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'Credit balance',
+          properties: {
+            creditBalance: {
+              type: 'number',
+              description: 'Credit balance',
+            },
+            creditAmount: {
+              type: 'number',
+              description: 'Credit amount',
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const SubscriptionPlanSchema = {
   type: 'object',
   properties: {

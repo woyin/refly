@@ -11,3 +11,8 @@ export interface SyncTokenCreditUsageJobData {
   creditBilling?: CreditBilling;
   timestamp: Date;
 }
+
+export interface CreditBalance {
+  creditAmount: number;
+  creditUsage: number;
+}
