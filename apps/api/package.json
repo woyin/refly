@@ -9,7 +9,8 @@
     "type": "git",
     "url": "git+https://github.com/refly-ai/refly.git"
   },
-  "main": "dist/index.js",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "copy-env": "ncp .env.example .env",
     "copy-env:develop": "ncp .env.development .env",
@@ -21,7 +22,7 @@
     "gen-sqlite-schema": "ts-node src/scripts/gen-sqlite-schema.ts",
     "format-schema": "prisma format && prisma format --schema=prisma/sqlite-schema.prisma",
     "sync-db-schema": "prisma format && prisma generate && node -r ts-node/register --env-file=.env src/scripts/sync-db-schema.ts && prisma format --schema=prisma/sqlite-schema.prisma",
-    "dev": "nodemon",
+    "dev": "prisma format && prisma generate && nodemon",
     "dev:debug": "nodemon --inspect",
     "start": "node --env-file=.env dist/scripts/sync-db-schema.js && node --env-file=.env dist/main.js",
     "test": "jest",

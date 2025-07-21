@@ -62,6 +62,12 @@ export default defineConfig({
   performance: {
     removeConsole: isProduction,
   },
+  output: {
+    sourceMap: {
+      js: isProduction ? 'source-map' : 'cheap-module-source-map',
+      css: true,
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

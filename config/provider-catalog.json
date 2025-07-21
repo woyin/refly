@@ -86,7 +86,7 @@
     },
     {
       "name": "OpenRouter",
-      "providerKey": "openrouter",
+      "providerKey": "openai",
       "baseUrl": "https://openrouter.ai/api/v1",
       "description": {
         "en": "OpenRouter provides unified access to hundreds of AI models (including embedding models) from various providers through a single OpenAI-compatible API.",
@@ -98,7 +98,7 @@
     },
     {
       "name": "Hugging Face Inference",
-      "providerKey": "huggingface",
+      "providerKey": "openai",
       "baseUrl": "https://api-inference.huggingface.co",
       "description": {
         "en": "Hugging Face Inference provides access to a vast library of open-source AI models for various tasks, including text generation and embedding, through its Inference Providers API.",
@@ -134,7 +134,7 @@
     },
     {
       "name": "Cohere",
-      "providerKey": "cohere",
+      "providerKey": "openai",
       "baseUrl": "https://api.cohere.ai/v1",
       "description": {
         "en": "Cohere provides enterprise-grade large language models for text generation (Command) and state-of-the-art text and image embedding models (Embed).",
@@ -182,7 +182,7 @@
     },
     {
       "name": "Anthropic Claude",
-      "providerKey": "anthropic",
+      "providerKey": "openai",
       "baseUrl": "https://api.anthropic.com/v1",
       "description": {
         "en": "Anthropic provides the Claude family of large language models, known for their performance, reliability, and safety, accessible via a native API.",
@@ -205,20 +205,8 @@
       "icon": "https://static.refly.ai/icons/providers/moonshot.png"
     },
     {
-      "name": "Perplexity",
-      "providerKey": "openai",
-      "baseUrl": "https://api.perplexity.ai",
-      "description": {
-        "en": "Perplexity provides real-time, conversational AI search with up-to-date information and citations, powered by its advanced models.",
-        "zh-CN": "Perplexity 提供实时的对话式 AI 搜索，能够获取最新信息并提供引用，由其先进的模型驱动。"
-      },
-      "categories": ["llm"],
-      "documentation": "https://docs.perplexity.ai/",
-      "icon": "https://static.refly.ai/icons/providers/perplexity.png"
-    },
-    {
       "name": "Google Gemini",
-      "providerKey": "google",
+      "providerKey": "openai",
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
       "description": {
         "en": "Google Gemini offers a family of powerful, multimodal models for advanced reasoning, text generation, and embedding tasks.",
@@ -227,18 +215,6 @@
       "categories": ["llm", "embedding"],
       "documentation": "https://ai.google.dev/gemini-api/docs",
       "icon": "https://static.refly.ai/icons/providers/google.png"
-    },
-    {
-      "name": "DeepSeek",
-      "providerKey": "openai",
-      "baseUrl": "https://api.deepseek.com",
-      "description": {
-        "en": "DeepSeek provides powerful open-source models with strong coding and reasoning capabilities, accessible via an OpenAI-compatible API.",
-        "zh-CN": "深度求索（DeepSeek）提供性能强大的开源模型，在代码和推理方面表现出色，可通过兼容 OpenAI 的 API 进行访问。"
-      },
-      "categories": ["llm", "embedding"],
-      "documentation": "https://platform.deepseek.com/api-docs/",
-      "icon": "https://static.refly.ai/icons/providers/deepseek.png"
     },
     {
       "name": "NVIDIA",
@@ -254,7 +230,7 @@
     },
     {
       "name": "Stability AI",
-      "providerKey": "stability-ai",
+      "providerKey": "openai",
       "baseUrl": "https://api.stability.ai/v1",
       "description": {
         "en": "Stability AI provides open-source generative models for image, video, audio, and 3D generation, accessible via its native API.",
@@ -290,7 +266,7 @@
     },
     {
       "name": "Minimax",
-      "providerKey": "minimax",
+      "providerKey": "openai",
       "baseUrl": "https://api.minimax.chat/v1",
       "description": {
         "en": "Minimax offers powerful foundation models including text and multimodal capabilities, accessible via its native API.",
