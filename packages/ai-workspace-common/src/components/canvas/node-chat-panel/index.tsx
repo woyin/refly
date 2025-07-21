@@ -20,7 +20,7 @@ import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/compone
 import { useUserStoreShallow } from '@refly/stores';
 import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useLaunchpadStoreShallow } from '@refly/stores';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { cn } from '@refly/utils/cn';
 import classNames from 'classnames';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
@@ -156,7 +156,13 @@ const NodeHeader = memo(
               disabled={readonly}
               placement="bottomLeft"
               dropdownRender={(menu) => (
-                <div style={{ minWidth: '240px', maxHeight: '300px', overflowY: 'auto' }}>
+                <div
+                  style={{
+                    minWidth: '240px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                  }}
+                >
                   {menu}
                 </div>
               )}

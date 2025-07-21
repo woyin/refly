@@ -4,7 +4,7 @@ import {
   BetaProtectedRoute,
   RequestAccessRoute,
 } from '@refly-packages/ai-workspace-common/components/request-access/protected-route';
-import { LightLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
+import { LightLoading } from '@refly/ui-kit';
 import { HomeRedirect } from '@refly-packages/ai-workspace-common/components/home-redirect';
 
 // Lazy load components

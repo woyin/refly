@@ -4,8 +4,6 @@ import './utils/dom-patch';
 import './index.css';
 import './tokens.css';
 
-import '@refly-packages/ai-workspace-common/i18n/config';
-
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';

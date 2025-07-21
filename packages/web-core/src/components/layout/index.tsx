@@ -25,7 +25,7 @@ import { DuplicateCanvasModal } from '@refly-packages/ai-workspace-common/compon
 import { safeParseJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 
 import { LightLoading } from '@refly/ui-kit';
-import { isDesktop } from '@refly-packages/ai-workspace-common/utils/env';
+import { isDesktop } from '@refly/ui-kit';
 import { useGetUserSettings } from '@refly-packages/ai-workspace-common/hooks/use-get-user-settings';
 import { useGetMediaModel } from '@refly-packages/ai-workspace-common/hooks/use-get-media-model';
 import { useHandleUrlParamsCallback } from '@refly-packages/ai-workspace-common/hooks/use-handle-url-params-callback';
@@ -77,7 +77,7 @@ export const AppLayout = (props: AppLayoutProps) => {
   // Change locale if not matched
   const { i18n } = useTranslation();
   useEffect(() => {
-    if (locale && i18n.languages?.[0] !== locale) {
+    if (locale && i18n.isInitialized && i18n.languages?.[0] !== locale) {
       i18n.changeLanguage(locale);
     }
   }, [i18n, locale]);

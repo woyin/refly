@@ -11,7 +11,7 @@
 
 Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.
 
-[🚀 v0.7.1 Released! Now Supporting MCP Store and Background Skill Invocation ⚡️](https://docs.refly.ai/changelog/v0.7.1)
+[🚀 v0.8.0 Released! Multimodal Agent Is Officially Launched 🚀](https://docs.refly.ai/changelog/v0.8.0)
 
 [Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/guide/self-deploy) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
 

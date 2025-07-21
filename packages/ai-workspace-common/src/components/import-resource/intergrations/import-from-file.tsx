@@ -15,7 +15,7 @@ import { getAvailableFileCount } from '@refly/utils/quota';
 import { useSubscriptionStoreShallow } from '@refly/stores';
 import { GrUnlock } from 'react-icons/gr';
 import { useUserStoreShallow } from '@refly/stores';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useUpdateSourceList } from '@refly-packages/ai-workspace-common/hooks/canvas/use-update-source-list';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';

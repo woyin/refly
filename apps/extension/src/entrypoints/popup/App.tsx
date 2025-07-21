@@ -11,7 +11,7 @@ import { setRuntime } from '@refly/utils/env';
 import { Unsupported } from '@/entrypoints/popup/unsupported';
 import { LoginHeader } from '@/entrypoints/popup/login-header';
 
-import { SuspenseLoading } from '@refly-packages/ai-workspace-common/components/common/loading/index';
+import { LightLoading } from '@refly/ui-kit';
 /**
  * 打开 popup 页面的规则
  * 1. 如果未登录，显示登录提示
@@ -43,7 +43,7 @@ const App = () => {
     setRuntime('extension-sidepanel');
   }, []);
 
-  if (loading) return <SuspenseLoading />;
+  if (loading) return <LightLoading />;
 
   return (
     <div className="popup-page">

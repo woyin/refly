@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useState } from 'react';
-import { LightLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
+import { LightLoading } from '@refly/ui-kit';
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useUserStoreShallow } from '@refly/stores';
