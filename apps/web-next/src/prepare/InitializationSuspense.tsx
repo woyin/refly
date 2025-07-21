@@ -11,7 +11,7 @@ export interface InitializationSuspenseProps {
 
 export function InitializationSuspense({ children }: InitializationSuspenseProps) {
   const [isInitialized, setIsInitialized] = useState(false);
-  const updateConfig = useConfigProviderStore((state) => state.updateConfig);
+  const updateTheme = useConfigProviderStore((state) => state.updateTheme);
 
   const { isDarkMode, initTheme } = useThemeStoreShallow((state) => ({
     isDarkMode: state.isDarkMode,
@@ -33,25 +33,18 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
 
   useEffect(() => {
     const themeConfig = {
-      cssVar: {
-        key: 'refly',
-      },
-      token: {
-        colorPrimary: '#00968F',
-        borderRadius: 6,
-        ...(isDarkMode
-          ? {
-              controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
-              controlItemBgActiveHover: 'rgba(255, 255, 255, 0.12)',
-            }
-          : {
-              controlItemBgActive: '#f1f1f0',
-              controlItemBgActiveHover: '#e0e0e0',
-            }),
-      },
+      token: isDarkMode
+        ? {
+            controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
+            controlItemBgActiveHover: 'rgba(255, 255, 255, 0.12)',
+          }
+        : {
+            controlItemBgActive: '#f1f1f0',
+            controlItemBgActiveHover: '#e0e0e0',
+          },
       algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
     };
-    updateConfig(themeConfig);
+    updateTheme(themeConfig);
 
     ConfigProvider.config({
       holderRender: (children) => <ConfigProvider theme={themeConfig}>{children}</ConfigProvider>,

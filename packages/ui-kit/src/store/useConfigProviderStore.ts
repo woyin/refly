@@ -1,9 +1,10 @@
 import { type ThemeConfig, theme } from 'antd';
 import { create } from 'zustand';
+import merge from 'deepmerge';
 
 export interface ConfigProviderState {
   theme: ThemeConfig;
-  updateConfig: (config: Partial<ThemeConfig>) => void;
+  updateTheme: (config: Partial<ThemeConfig>) => void;
 }
 
 export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
@@ -19,5 +20,10 @@ export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
     },
     algorithm: theme.defaultAlgorithm,
   },
-  updateConfig: (config) => set((state) => ({ theme: { ...state.theme, ...config } })),
+  updateTheme: (config) =>
+    set((state) => ({
+      theme: merge(state.theme, config, {
+        arrayMerge: (_target, source) => source,
+      }),
+    })),
 }));
