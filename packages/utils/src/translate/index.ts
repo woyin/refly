@@ -29,24 +29,38 @@ const calculateRetryDelay = (attempt: number): number => {
  * @param error Error object
  * @returns Whether the error should be retried
  */
-const isRetryableError = (error: any): boolean => {
+const isRetryableError = (error: unknown): boolean => {
+  // Type guard for error-like objects
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const err = error as Record<string, unknown>;
+
   // Network-related errors are retryable
-  if (error?.name === 'TypeError' && error?.message?.includes('fetch failed')) {
+  if (
+    err.name === 'TypeError' &&
+    typeof err.message === 'string' &&
+    err.message.includes('fetch failed')
+  ) {
     return true;
   }
 
   // Connection timeout errors are retryable
-  if (error?.code === 'UND_ERR_CONNECT_TIMEOUT' || error?.message?.includes('timeout')) {
+  if (
+    err.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+    (typeof err.message === 'string' && err.message.includes('timeout'))
+  ) {
     return true;
   }
 
   // HTTP 5xx server errors are retryable
-  if (error?.status >= 500 && error?.status < 600) {
+  if (typeof err.status === 'number' && err.status >= 500 && err.status < 600) {
     return true;
   }
 
   // 429 rate limiting errors are retryable
-  if (error?.status === 429) {
+  if (err.status === 429) {
     return true;
   }
 
@@ -60,7 +74,7 @@ const isRetryableError = (error: any): boolean => {
  * @returns Promise<Response>
  */
 const fetchWithRetry = async (url: string, options?: RequestInit): Promise<Response> => {
-  let lastError: any;
+  let lastError: unknown;
 
   for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
     try {
@@ -89,8 +103,9 @@ const fetchWithRetry = async (url: string, options?: RequestInit): Promise<Respo
       }
 
       const retryDelay = calculateRetryDelay(attempt);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.warn(
-        `Translation request failed: ${error?.message}, retrying in ${retryDelay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1})`,
+        `Translation request failed: ${errorMessage}, retrying in ${retryDelay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1})`,
       );
       await sleep(retryDelay);
     }
