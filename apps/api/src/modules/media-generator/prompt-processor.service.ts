@@ -111,11 +111,15 @@ export class PromptProcessorService {
     }
 
     try {
-      // Use batchTranslateText from utils to translate to English
+      this.logger.log(
+        `Starting translation: ${sourceLanguage} → en, text length: ${prompt.length}`,
+      );
+
+      // Use batchTranslateText from utils to translate to English (now with retry logic)
       const translatedTexts = await batchTranslateText([prompt], 'en', sourceLanguage);
 
       if (!translatedTexts || translatedTexts.length === 0) {
-        this.logger.warn('Translation failed, using original prompt');
+        this.logger.warn('Translation service returned empty result');
         return {
           translatedPrompt: prompt,
           originalPrompt: prompt,
@@ -124,10 +128,22 @@ export class PromptProcessorService {
       }
 
       const translatedText = translatedTexts[0] || prompt;
-      const translationSucceeded = translatedText !== prompt;
 
-      if (!translationSucceeded) {
-        this.logger.warn('Translation returned original text, likely due to network issues');
+      // More sophisticated success detection
+      const translationSucceeded = this.isTranslationSuccessful(
+        prompt,
+        translatedText,
+        sourceLanguage,
+      );
+
+      if (translationSucceeded) {
+        this.logger.log(
+          `Translation successful: ${sourceLanguage} → en, output length: ${translatedText.length}`,
+        );
+      } else {
+        this.logger.warn(
+          'Translation validation failed: output appears to be unchanged or invalid',
+        );
       }
 
       return {
@@ -136,7 +152,7 @@ export class PromptProcessorService {
         translationSucceeded,
       };
     } catch (error) {
-      this.logger.error(`Translation failed: ${error?.message}`, error?.stack);
+      this.logger.error(`Translation failed after retries: ${error?.message}`, error?.stack);
       // Fallback to original prompt if translation fails
       return {
         translatedPrompt: prompt,
@@ -147,18 +163,60 @@ export class PromptProcessorService {
   }
 
   /**
+   * Check if translation was actually successful
+   * @param original Original text
+   * @param translated Translated text
+   * @param sourceLanguage Source language
+   * @returns Whether translation appears successful
+   */
+  private isTranslationSuccessful(
+    original: string,
+    translated: string,
+    sourceLanguage: string,
+  ): boolean {
+    // If texts are identical, translation likely failed
+    if (original === translated) {
+      return false;
+    }
+
+    // If source is Chinese and translated text still contains significant Chinese characters
+    if (sourceLanguage === 'zh-CN') {
+      const chineseRegex = /[\u4e00-\u9fff]/g;
+      const chineseInTranslated = translated.match(chineseRegex);
+      const chineseRatio = (chineseInTranslated?.length || 0) / translated.length;
+
+      // If more than 30% of translated text is still Chinese, likely failed
+      if (chineseRatio > 0.3) {
+        return false;
+      }
+    }
+
+    // If translated text is much longer than original (suspicious)
+    if (translated.length > original.length * 3) {
+      return false;
+    }
+
+    // If translated text is much shorter (suspicious)
+    if (translated.length < original.length * 0.2) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Process prompt: detect language and translate to English if needed
    * @param originalPrompt The user's original prompt
    * @returns Complete processing result
    */
   async processPrompt(originalPrompt: string): Promise<PromptProcessingResult> {
     try {
-      this.logger.log(`Processing prompt: "${originalPrompt.substring(0, 100)}..."`);
+      this.logger.log(`Processing prompt: length=${originalPrompt.length}`);
 
       // Step 1: Detect language
       const detection = await this.detectLanguage(originalPrompt);
       this.logger.log(
-        `Detected language: ${detection.language}, isEnglish: ${detection.isEnglish}, confidence: ${detection.confidence}`,
+        `Language detected: ${detection.language}, isEnglish=${detection.isEnglish}, confidence=${detection.confidence.toFixed(2)}`,
       );
 
       // Step 2: If already English, return as-is
@@ -171,12 +229,12 @@ export class PromptProcessorService {
         };
       }
 
-      // Step 3: Translate to English
-      this.logger.log(`Translating from ${detection.language} to English...`);
+      // Step 3: Translate to English with retry mechanism
+      this.logger.log(`Translating from ${detection.language} to English with retry logic`);
       const translation = await this.translateToEnglish(originalPrompt, detection.language);
 
       this.logger.log(
-        `Translation completed. Original: "${originalPrompt}", Translated: "${translation.translatedPrompt}", Success: ${translation.translationSucceeded}`,
+        `Translation completed: success=${translation.translationSucceeded}, originalLength=${originalPrompt.length}, translatedLength=${translation.translatedPrompt.length}`,
       );
 
       return {
