@@ -14,15 +14,8 @@ export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
     token: {
       colorPrimary: '#00968F',
       borderRadius: 6,
-      // ...(isDarkMode
-      //   ? {
-      //       controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
-      //       controlItemBgActiveHover: 'rgba(255, 255, 255, 0.12)',
-      //     }
-      //   : {
-      //       controlItemBgActive: '#f1f1f0',
-      //       controlItemBgActiveHover: '#e0e0e0',
-      //     }),
+      controlItemBgActive: '#f1f1f0',
+      controlItemBgActiveHover: '#e0e0e0',
     },
     algorithm: theme.defaultAlgorithm,
   },
