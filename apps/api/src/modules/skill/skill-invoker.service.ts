@@ -422,35 +422,6 @@ export class SkillInvokerService {
       }
     };
 
-    // const job = await this.timeoutCheckQueue.add(
-    //   `idle_timeout_check:${resultId}`,
-    //   {
-    //     uid: user.uid,
-    //     resultId,
-    //     version,
-    //     type: 'idle',
-    //   },
-    //   { delay: Number.parseInt(this.config.get('skill.idleTimeout')) },
-    // );
-
-    // const throttledResetIdleTimeout = throttle(
-    //   async () => {
-    //     try {
-    //       // Get current job state
-    //       const jobState = await job.getState();
-
-    //       // Only attempt to change delay if job is in delayed state
-    //       if (jobState === 'delayed') {
-    //         await job.changeDelay(this.config.get('skill.idleTimeout'));
-    //       }
-    //     } catch (err) {
-    //       this.logger.warn(`Failed to reset idle timeout: ${err.message}`);
-    //     }
-    //   },
-    //   100,
-    //   { leading: true, trailing: true },
-    // );
-
     const resultAggregator = new ResultAggregator();
 
     // NOTE: Artifacts include both code artifacts and documents
@@ -470,10 +441,8 @@ export class SkillInvokerService {
         }
 
         // Record output event for simple timeout tracking
-        if (SkillInvokerService.OUTPUT_EVENTS.has(data.event)) {
-          lastOutputTime = Date.now();
-          hasAnyOutput = true;
-        }
+        lastOutputTime = Date.now();
+        hasAnyOutput = true;
 
         if (res) {
           writeSSEResponse(res, { ...data, resultId, version });
@@ -791,13 +760,8 @@ export class SkillInvokerService {
         const chunk: AIMessageChunk = event.data?.chunk ?? event.data?.output;
 
         // Record stream output for simple timeout tracking
-        if (event.event === 'on_chat_model_stream' && chunk?.content) {
-          lastOutputTime = Date.now();
-          hasAnyOutput = true;
-        } else if (event.event === 'on_tool_end' && event.data?.output) {
-          lastOutputTime = Date.now();
-          hasAnyOutput = true;
-        }
+        lastOutputTime = Date.now();
+        hasAnyOutput = true;
 
         switch (event.event) {
           case 'on_tool_end':
