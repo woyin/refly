@@ -82,4 +82,4 @@ COPY --from=builder /app/packages/ ./packages/
 ENV NODE_ENV=production
 
 EXPOSE 3000
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["node", "-r", "./apps/api/scripts/preload.js", "apps/api/dist/main.js"]
