@@ -1,7 +1,11 @@
 import { PrismaService } from '../common/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { User, CreditBilling } from '@refly/openapi-schema';
-import { CheckRequestCreditUsageResult, SyncTokenCreditUsageJobData } from './credit.dto';
+import {
+  CheckRequestCreditUsageResult,
+  SyncTokenCreditUsageJobData,
+  SyncMediaCreditUsageJobData,
+} from './credit.dto';
 import { genCreditUsageId } from '@refly/utils';
 import { CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import { CreditBalance } from './credit.dto';
@@ -145,6 +149,96 @@ export class CreditService {
           usageId: genCreditUsageId(),
           actionResultId: resultId,
           modelName: usage.modelName,
+          amount: creditCost,
+          createdAt: timestamp,
+        },
+      }),
+      // Execute all deduction operations
+      ...deductionOperations,
+    ]);
+  }
+
+  async syncMediaCreditUsage(data: SyncMediaCreditUsageJobData) {
+    const { uid, creditBilling, timestamp, resultId } = data;
+
+    // Find user
+    const user = await this.prisma.user.findUnique({ where: { uid } });
+    if (!user) {
+      throw new Error(`No user found for uid ${uid}`);
+    }
+
+    // Calculate credit cost directly from unitCost
+    const creditCost = creditBilling?.unitCost || 0;
+
+    // If no credit cost, just create usage record
+    if (creditCost <= 0) {
+      await this.prisma.creditUsage.create({
+        data: {
+          uid,
+          usageId: genCreditUsageId(),
+          actionResultId: resultId,
+          usageType: 'media_generation',
+          amount: 0,
+          createdAt: timestamp,
+        },
+      });
+      return;
+    }
+
+    // Get available credit recharge records ordered by expiresAt (oldest first)
+    const creditRecharges = await this.prisma.creditRecharge.findMany({
+      where: {
+        uid,
+        enabled: true,
+        balance: {
+          gt: 0,
+        },
+      },
+      orderBy: {
+        expiresAt: 'asc', // Deduct from earliest records first
+      },
+    });
+
+    // Prepare deduction operations
+    const deductionOperations = [];
+    let remainingCost = creditCost;
+
+    for (let i = 0; i < creditRecharges.length; i++) {
+      const recharge = creditRecharges[i];
+      if (remainingCost <= 0) break;
+
+      let deductAmount: number;
+      let newBalance: number;
+
+      // If this is the last record, deduct all remaining cost even if it goes negative
+      if (i === creditRecharges.length - 1) {
+        deductAmount = remainingCost;
+        newBalance = recharge.balance - deductAmount;
+      } else {
+        // For non-last records, only deduct up to available balance
+        deductAmount = Math.min(recharge.balance, remainingCost);
+        newBalance = recharge.balance - deductAmount;
+      }
+
+      deductionOperations.push(
+        this.prisma.creditRecharge.update({
+          where: { pk: recharge.pk },
+          data: { balance: newBalance },
+        }),
+      );
+
+      remainingCost -= deductAmount;
+    }
+
+    // Execute transaction: create usage record and deduct credits
+    await this.prisma.$transaction([
+      // Create credit usage record
+      this.prisma.creditUsage.create({
+        data: {
+          uid,
+          usageId: genCreditUsageId(),
+          actionResultId: resultId,
+          usageType: 'media_generation',
           amount: creditCost,
           createdAt: timestamp,
         },

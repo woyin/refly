@@ -15,8 +15,14 @@ import {
   VolcesVideoGenerator,
   VolcesImageGenerator,
 } from '@refly/providers';
+import { ModelUsageQuotaExceeded } from '@refly/errors';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_SYNC_MEDIA_CREDIT_USAGE } from '../../utils/const';
+import { SyncMediaCreditUsageJobData } from '../subscription/subscription.dto';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
+import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
 import { PromptProcessorService } from './prompt-processor.service';
 import { genActionResultID } from '@refly/utils';
@@ -59,8 +65,11 @@ export class MediaGeneratorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
+    private readonly credit: CreditService,
     private readonly providerService: ProviderService,
     private readonly promptProcessor: PromptProcessorService,
+    @InjectQueue(QUEUE_SYNC_MEDIA_CREDIT_USAGE)
+    private readonly mediaCreditUsageReportQueue: Queue<SyncMediaCreditUsageJobData>,
   ) {}
 
   /**
@@ -134,6 +143,23 @@ export class MediaGeneratorService {
         },
       });
 
+      const providerItem = await this.providerService.findMediaProviderItemByModelID(
+        user,
+        request.model,
+      );
+
+      const creditBilling: CreditBilling = providerItem?.creditBilling
+        ? JSON.parse(providerItem?.creditBilling)
+        : undefined;
+
+      if (creditBilling) {
+        const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
+        console.log('creditUsageResult', creditUsageResult);
+        if (!creditUsageResult.canUse) {
+          throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
+        }
+      }
+
       const providerKey = request.provider;
 
       const provider = await this.providerService.findProvider(user, {
@@ -161,15 +187,6 @@ export class MediaGeneratorService {
         visibility: 'private',
       });
 
-      const providerItem = await this.providerService.findMediaProviderItemByModelID(
-        user,
-        request.model,
-      );
-
-      const _creditBilling: CreditBilling = providerItem?.creditBilling
-        ? JSON.parse(providerItem?.creditBilling)
-        : undefined;
-
       // The update status is completed, saving the storage information inside the system
       await this.prisma.actionResult.update({
         where: { resultId_version: { resultId, version: 0 } },
@@ -179,6 +196,22 @@ export class MediaGeneratorService {
           storageKey: uploadResult.storageKey, // Save storage key
         },
       });
+      const basicUsageData = {
+        uid: user.uid,
+        resultId,
+      };
+
+      const mediaCreditUsage: SyncMediaCreditUsageJobData = {
+        ...basicUsageData,
+        creditBilling,
+        timestamp: new Date(),
+      };
+      if (this.mediaCreditUsageReportQueue) {
+        await this.mediaCreditUsageReportQueue.add(
+          `media_credit_usage_report:${resultId}`,
+          mediaCreditUsage,
+        );
+      }
     } catch (error) {
       console.error(`Media generation failed for ${resultId}:`, error);
 

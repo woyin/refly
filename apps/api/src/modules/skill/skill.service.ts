@@ -83,7 +83,7 @@ export class SkillService implements OnModuleInit {
     private readonly config: ConfigService,
     private readonly knowledgeService: KnowledgeService,
     private readonly subscriptionService: SubscriptionService,
-    private credit: CreditService,
+    private readonly credit: CreditService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly providerService: ProviderService,
     private readonly skillInvokerService: SkillInvokerService,
