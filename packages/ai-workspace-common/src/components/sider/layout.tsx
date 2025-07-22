@@ -8,13 +8,7 @@ import {
 } from '@refly-packages/ai-workspace-common/utils/router';
 
 import { IconCanvas } from '@refly-packages/ai-workspace-common/components/common/icon';
-import {
-  Project as IconProject,
-  KnowledgeBase as IconKnowledgeBase,
-  InterfaceDark,
-  InterfaceLight,
-  Setting,
-} from 'refly-icons';
+import { Project as IconProject, KnowledgeBase as IconKnowledgeBase, Setting } from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 
@@ -47,7 +41,6 @@ import { LuList } from 'react-icons/lu';
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
-import { useThemeStoreShallow } from '@refly/stores';
 
 const Sider = Layout.Sider;
 
@@ -120,10 +113,7 @@ const SettingItem = () => {
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-  const { isDarkMode, setThemeMode } = useThemeStoreShallow((state) => ({
-    isDarkMode: state.isDarkMode,
-    setThemeMode: state.setThemeMode,
-  }));
+
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
@@ -143,14 +133,6 @@ const SettingItem = () => {
             </span>
           </div>
           <div className="flex items-center">
-            <Button
-              type="text"
-              icon={isDarkMode ? <InterfaceDark size={20} /> : <InterfaceLight size={20} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                setThemeMode(isDarkMode ? 'light' : 'dark');
-              }}
-            />
             <Button
               type="text"
               icon={<Setting size={20} />}

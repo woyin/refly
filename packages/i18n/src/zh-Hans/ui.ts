@@ -1568,7 +1568,7 @@ const translations = {
       libraryTitle: '知识库',
       libraryDescription:
         '创建、编辑和查看知识库，包含所有导入的资源以及创建的文档，支持 AI 语义搜索和回答。',
-      subscription: '订阅',
+      subscription: '订阅管理',
       canvas: '画布',
       newCanvas: '新建画布',
       news: '新特性',
@@ -1592,6 +1592,7 @@ const translations = {
       tour: '查看教程',
       template: '模板',
       home: '首页',
+      systemTheme: '系统主题',
     },
   },
   knowledgeLibrary: {

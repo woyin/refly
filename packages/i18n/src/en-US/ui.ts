@@ -1785,6 +1785,7 @@ const translations = {
       tour: 'View Tutorial',
       template: 'Template',
       home: 'Home',
+      systemTheme: 'System Theme',
     },
   },
   knowledgeLibrary: {
