@@ -1068,7 +1068,7 @@ model CreditRecharge {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
-  
+
   @@index([uid, createdAt])
   @@index([uid, enabled, createdAt])
   @@index([expiresAt, enabled])
