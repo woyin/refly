@@ -1,5 +1,6 @@
 export * from './cn';
 export * from './dayjsConfig';
+export * from './env';
 export * from './id';
 export * from './parse';
 export * from './time';
