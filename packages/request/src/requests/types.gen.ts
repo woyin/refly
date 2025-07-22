@@ -1436,7 +1436,7 @@ export type ActionStatus = 'waiting' | 'executing' | 'finish' | 'failed';
 /**
  * Artifact type
  */
-export type ArtifactType = 'document' | 'codeArtifact';
+export type ArtifactType = 'document' | 'codeArtifact' | 'image' | 'video' | 'audio';
 
 /**
  * Artifact status
@@ -1907,7 +1907,14 @@ export type ProviderConfig = {
 /**
  * Model usage scene
  */
-export type ModelScene = 'chat' | 'agent' | 'queryAnalysis' | 'titleGeneration';
+export type ModelScene =
+  | 'chat'
+  | 'agent'
+  | 'queryAnalysis'
+  | 'titleGeneration'
+  | 'image'
+  | 'video'
+  | 'audio';
 
 /**
  * Default model config
@@ -1929,6 +1936,18 @@ export type DefaultModelConfig = {
    * Title generation model for canvas and documents
    */
   titleGeneration?: ProviderItem;
+  /**
+   * Default image generation model
+   */
+  image?: ProviderItem;
+  /**
+   * Default video generation model
+   */
+  video?: ProviderItem;
+  /**
+   * Default audio generation model
+   */
+  audio?: ProviderItem;
 };
 
 /**
@@ -4574,6 +4593,10 @@ export type MediaGenerationModelConfig = {
    * Model capabilities
    */
   capabilities?: MediaGenerationModelCapabilities;
+  /**
+   * Model description
+   */
+  description?: string;
 };
 
 /**
