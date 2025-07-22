@@ -25,8 +25,6 @@ import { StorageExceededModal } from '@refly-packages/ai-workspace-common/compon
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { SiderData, useSiderStoreShallow, type SettingsModalActiveTab } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-// icons
-import { IconRight } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import { AiOutlineUser } from 'react-icons/ai';
 import { SideLeft, SideRight } from 'refly-icons';
@@ -219,24 +217,6 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
   );
 };
 
-const ViewAllButton = ({ onClick }: { onClick: () => void }) => {
-  const { t } = useTranslation();
-  return (
-    <Button
-      className="group w-full px-2 text-gray-500 text-xs mb-2 !bg-transparent hover:!text-green-600 dark:text-gray-400 dark:hover:!text-green-300"
-      type="text"
-      size="small"
-      onClick={onClick}
-      iconPosition="end"
-      icon={
-        <IconRight className="flex items-center text-gray-500 hover:text-green-600 group-hover:text-green-600 dark:text-gray-400 dark:hover:!text-green-300" />
-      }
-    >
-      {t('common.viewAll')}
-    </Button>
-  );
-};
-
 const getSelectedKey = (pathname: string) => {
   if (pathname.startsWith('/canvas')) {
     const arr = pathname?.split('?')[0]?.split('/');
@@ -402,7 +382,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
                       {canvasList.map((canvas) => (
                         <CanvasListItem key={canvas.id} canvas={canvas} />
                       ))}
-                      <ViewAllButton onClick={() => setShowCanvasListModal(true)} />
                     </div>
                   ) : (
                     <div className="text-gray-400 text-sm px-2 py-4 text-center">
