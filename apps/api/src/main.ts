@@ -15,6 +15,7 @@ import tracer from './tracer';
 import { setTraceID } from './utils/middleware/set-trace-id';
 import { GlobalExceptionFilter } from './utils/filters/global-exception.filter';
 import { CustomWsAdapter } from './utils/adapters/ws-adapter';
+import { setupStatsig } from '@refly/telemetry-node';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -59,6 +60,8 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter(configService));
 
   tracer.start();
+
+  await setupStatsig();
 
   await app.listen(configService.get('port'));
 }
