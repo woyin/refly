@@ -1,7 +1,7 @@
 import { setupI18n, setupSentry } from '@refly/web-core';
 import { useEffect, useState } from 'react';
 import { LightLoading, ReflyConfigProvider, useConfigProviderStore } from '@refly/ui-kit';
-import { theme } from 'antd';
+import { ConfigProvider, theme } from 'antd';
 import { useThemeStoreShallow } from '@refly/stores';
 import { setRuntime } from '@refly/utils/env';
 
@@ -11,7 +11,7 @@ export interface InitializationSuspenseProps {
 
 export function InitializationSuspense({ children }: InitializationSuspenseProps) {
   const [isInitialized, setIsInitialized] = useState(false);
-  const updateConfig = useConfigProviderStore((state) => state.updateConfig);
+  const updateTheme = useConfigProviderStore((state) => state.updateTheme);
 
   const { isDarkMode, initTheme } = useThemeStoreShallow((state) => ({
     isDarkMode: state.isDarkMode,
@@ -32,8 +32,22 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
   }, []);
 
   useEffect(() => {
-    updateConfig({
+    const themeConfig = {
+      token: isDarkMode
+        ? {
+            controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
+            controlItemBgActiveHover: 'rgba(255, 255, 255, 0.12)',
+          }
+        : {
+            controlItemBgActive: '#f1f1f0',
+            controlItemBgActiveHover: '#e0e0e0',
+          },
       algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    };
+    updateTheme(themeConfig);
+
+    ConfigProvider.config({
+      holderRender: (children) => <ConfigProvider theme={themeConfig}>{children}</ConfigProvider>,
     });
   }, [isDarkMode]);
 
