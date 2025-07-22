@@ -73,15 +73,11 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
         <title>{canvasTitle?.toString() || t('common.untitled')} · Refly</title>
         {shareData?.minimapUrl && <meta property="og:image" content={shareData.minimapUrl} />}
       </Helmet>
-      <div
-        className={`absolute h-16 top-0 left-0 right-0  box-border flex justify-between items-center py-2 px-4 pr-0 bg-transparent ${
-          collapse ? 'w-[calc(100vw-12px)]' : 'w-[calc(100vw-260px)]'
-        }`}
-      >
+      <div className="absolute h-16 top-0 left-0 right-0  box-border flex justify-between items-center py-2 px-4 bg-transparent">
         <div className="flex items-center relative z-10">
           {collapse && (
             <>
-              <SiderPopover />
+              <SiderPopover align={{ offset: [0, -8] }} />
               <Divider type="vertical" className="pr-[4px] h-4" />
             </>
           )}

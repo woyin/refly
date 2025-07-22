@@ -10,14 +10,21 @@ const CanvasPage = () => {
     collapse: state.collapse,
   }));
 
-  return canvasId && canvasId !== 'empty' ? (
-    <Canvas canvasId={canvasId} />
-  ) : (
-    <div className="flex h-full w-full flex-col">
-      {collapse && (
-        <SiderPopover align={{ offset: [8, -48] }} childrenClassName="absolute top-6 left-6 z-10" />
+  return (
+    <div className="w-full h-full p-2 rounded-lg">
+      {canvasId && canvasId !== 'empty' ? (
+        <Canvas canvasId={canvasId} />
+      ) : (
+        <div className="flex h-full w-full flex-col">
+          {collapse && (
+            <SiderPopover
+              align={{ offset: [8, -48] }}
+              childrenClassName="absolute top-6 left-6 z-10"
+            />
+          )}
+          <FrontPage projectId={null} />
+        </div>
       )}
-      <FrontPage projectId={null} />
     </div>
   );
 };
