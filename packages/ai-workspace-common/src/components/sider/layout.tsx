@@ -133,7 +133,7 @@ const SettingItem = () => {
           </div>
 
           {subscriptionEnabled && (
-            <div className="flex h-6 items-center justify-center text-refly-text-0 rounded-full py-2 px-3 text-xs font-medium bg-refly-bg-content-z2 border-solid border-refly-Card-Border">
+            <div className="flex h-6 items-center justify-center text-refly-text-0 rounded-full py-2 px-3 text-xs font-medium bg-refly-bg-content-z2 border-[1px] border-solid border-refly-Card-Border">
               {t(`settings.subscription.subscriptionStatus.${planType}`)}
             </div>
           )}
@@ -150,7 +150,7 @@ export const NewCanvasButton = () => {
   return (
     <div className="w-full" onClick={() => debouncedCreateCanvas()}>
       <Button
-        className="w-full h-9 border-solid border-1 border-refly-Card-Border bg-refly-bg-control-z1"
+        className="w-full h-9 border-solid border-[1px] border-refly-Card-Border bg-refly-bg-control-z1"
         key="newCanvas"
         loading={createCanvasLoading}
         type="default"

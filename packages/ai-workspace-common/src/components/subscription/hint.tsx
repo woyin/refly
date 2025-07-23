@@ -19,7 +19,7 @@ export const SubscriptionHint = memo(() => {
   };
 
   return (
-    <div className="w-full rounded-md p-2 border border-solid border-refly-Card-Border bg-refly-bg-control-z1">
+    <div className="w-full rounded-md p-2 border-[1px] border-solid border-refly-Card-Border bg-refly-bg-control-z1">
       <div className="mb-1 text-sm font-medium text-refly-text-0">
         {t('settings.subscription.currentPlan')}:{' '}
         {t('settings.subscription.subscriptionStatus.free')}

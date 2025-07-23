@@ -1,15 +1,9 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { Popover, Select, Button, Divider, message, Tooltip } from 'antd';
-import { ButtonProps } from 'antd/es/button';
-import {
-  IconShare,
-  IconClose,
-  IconLink,
-  IconTemplate,
-  IconRefresh,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
-import { RiUserForbidLine } from 'react-icons/ri';
-import { GrLanguage } from 'react-icons/gr';
+import { Popover, Button, message, Divider, Tooltip } from 'antd';
+import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
+
+import { Share, Checked } from 'refly-icons';
+
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { CreateTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template/create-template-modal';
@@ -24,42 +18,56 @@ interface ShareSettingsProps {
   canvasTitle: string;
 }
 
-const labelRender = (props: any) => {
-  const { label, value, title } = props;
-  return (
-    <div className="flex items-center gap-2">
-      <div
-        className={`text-white rounded-lg h-[30px] w-[30px] flex items-center justify-center translate-y-1 dark:text-gray-900 ${
-          value === 'off' ? 'bg-gray-500 dark:bg-gray-400' : 'bg-green-600 dark:bg-green-500'
-        }`}
-      >
-        {value === 'off' ? (
-          <RiUserForbidLine className="w-6 h-6" />
-        ) : (
-          <GrLanguage className="w-6 h-6" />
-        )}
-      </div>
-      <div className="text-sm py-1 flex flex-col">
-        <div className="font-medium">{label}</div>
-        <div className="text-xs leading-none">{title}</div>
-      </div>
-    </div>
-  );
-};
+// Access option item component
+interface AccessOptionItemProps {
+  value: ShareAccess;
+  currentAccess: ShareAccess;
+  title: string;
+  description: string;
+  isFirst?: boolean;
+  isLast?: boolean;
+  onClick: (value: ShareAccess) => void;
+}
 
-const optionRender = (props: any) => {
-  const { value, label } = props;
-  return (
-    <div className="flex items-center gap-2">
-      {value === 'off' ? (
-        <RiUserForbidLine className="w-4 h-4" />
-      ) : (
-        <GrLanguage className="w-4 h-4" />
-      )}
-      {label}
-    </div>
-  );
-};
+const AccessOptionItem = React.memo(
+  ({
+    value,
+    currentAccess,
+    title,
+    description,
+    isFirst = false,
+    isLast = false,
+    onClick,
+  }: AccessOptionItemProps) => {
+    const isSelected = currentAccess === value;
+
+    const getBorderRadius = () => {
+      if (isFirst && isLast) return 'rounded-[12px]';
+      if (isFirst) return 'rounded-t-[12px]';
+      if (isLast) return 'rounded-b-[12px]';
+      return '';
+    };
+
+    return (
+      <div
+        className={`px-4 py-3 cursor-pointer transition-all hover:bg-refly-tertiary-hover ${getBorderRadius()} ${
+          isSelected ? 'bg-refly-tertiary-default' : ''
+        }`}
+        onClick={() => onClick(value)}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="font-semibold text-refly-text-0 leading-5">{title}</div>
+            <div className="text-xs text-refly-text-2 leading-4">{description}</div>
+          </div>
+          {isSelected && <Checked size={20} color="var(--refly-primary-default)" />}
+        </div>
+      </div>
+    );
+  },
+);
+
+AccessOptionItem.displayName = 'AccessOptionItem';
 
 // Memoized ShareSettings component for better performance
 const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps) => {
@@ -69,22 +77,8 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   const [access, setAccess] = useState<ShareAccess>('off');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateShareLoading, setUpdateShareLoading] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
-  const accessOptions = useMemo(
-    () => [
-      {
-        label: t('shareContent.accessOptions.off'),
-        value: 'off',
-        title: t('shareContent.accessOptions.offDescription'),
-      },
-      {
-        label: t('shareContent.accessOptions.anyone'),
-        value: 'anyone',
-        title: t('shareContent.accessOptions.anyoneDescription'),
-      },
-    ],
-    [t],
-  );
   const {
     data,
     refetch: refetchShares,
@@ -133,46 +127,23 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         setUpdateShareLoading(false);
       }
     })();
-  }, [access, canvasId, refetchShares, shareRecord?.shareId, t]);
+  }, [access, canvasId, refetchShares, shareRecord?.shareId, t, uploadCanvasCover]);
 
   const copyLink = useCallback(async () => {
     if (access === 'off') return;
     // Copy link to clipboard immediately for better UX
     const newShareLink = getShareLink('canvas', shareRecord?.shareId ?? '');
     await navigator.clipboard.writeText(newShareLink);
+    setLinkCopied(true);
     message.success(t('shareContent.copyLinkSuccess'));
+    // Reset copied state after 3 seconds
+    setTimeout(() => setLinkCopied(false), 3000);
   }, [access, shareRecord?.shareId, t]);
 
-  const buttons = useMemo(
-    () => [
-      {
-        label: 'updateShare',
-        icon: <IconRefresh className="w-3 h-3 flex items-center justify-center" />,
-        onClick: () => updateShare(),
-        disabled: access === 'off' || updateShareLoading,
-        type: 'default',
-        loading: updateShareLoading,
-      },
-      {
-        label: 'copyLink',
-        icon: <IconLink className="w-3 h-3 flex items-center justify-center" />,
-        onClick: () => copyLink(),
-        disabled: access === 'off',
-        type: 'default',
-      },
-      {
-        label: 'publishTemplate',
-        icon: <IconTemplate className="w-3 h-3 flex items-center justify-center" />,
-        onClick: () => {
-          setCreateTemplateModalVisible(true);
-          setOpen(false);
-        },
-        disabled: false,
-        type: 'primary',
-      },
-    ],
-    [access, updateShare, t, updateShareLoading],
-  );
+  const handlePublishToCommunity = useCallback(() => {
+    setCreateTemplateModalVisible(true);
+    setOpen(false);
+  }, []);
 
   useEffect(() => {
     setAccess(shareRecord ? 'anyone' : 'off');
@@ -226,7 +197,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         setUpdateLoading(false);
       }
     },
-    [canvasId, t, refetchShares],
+    [canvasId, t, refetchShares, uploadCanvasCover],
   );
 
   const handleAccessChange = useCallback(
@@ -239,60 +210,95 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   // Memoize content to prevent unnecessary re-renders
   const content = useMemo(
     () => (
-      <div className="w-[320px]">
-        <div className="flex justify-between items-center p-3">
-          <div className="flex items-center gap-2">
-            <IconShare className="w-4 h-4 flex items-center justify-center" />
-            <span className="font-medium">{t('common.share')}</span>
-          </div>
-          <Button
-            type="text"
-            size="small"
-            icon={<IconClose className="w-4 h-4 flex items-center justify-center" />}
-            onClick={() => setOpen(false)}
-          />
+      <div className="w-[480px] p-6 bg-refly-bg-content-z2 rounded-[12px] shadow-lg border-[1px] border-solid border-refly-Card-Border">
+        <div className="text-lg font-semibold text-refly-text-0 leading-6 mb-4">
+          {t('common.share')}
         </div>
-        <Divider className="my-0" />
-        <div className="p-5 pt-3 pb-5 canvas-share-setting">
-          <div className="text-base font-medium mb-2">{t('shareContent.linkShare')}</div>
-          <div className="flex items-center justify-between gap-4">
-            <Select
-              className="flex-1"
-              variant="borderless"
-              options={accessOptions}
-              value={access}
-              loading={updateLoading || isLoadingShares}
-              disabled={updateLoading || isLoadingShares}
-              onChange={handleAccessChange}
-              labelRender={labelRender}
-              optionRender={optionRender}
+
+        {/* Access Options */}
+        <div className="border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z1 rounded-[12px]">
+          <Spin spinning={updateLoading || isLoadingShares}>
+            <AccessOptionItem
+              value="off"
+              currentAccess={access}
+              title={t('shareContent.accessOptions.off')}
+              description={t('shareContent.accessOptions.offDescription')}
+              isFirst={true}
+              onClick={handleAccessChange}
             />
-          </div>
+
+            <Divider className="my-0 bg-refly-Card-Border" />
+
+            <AccessOptionItem
+              value="anyone"
+              currentAccess={access}
+              title={t('shareContent.accessOptions.anyone')}
+              description={t('shareContent.accessOptions.anyoneDescription')}
+              isLast={true}
+              onClick={handleAccessChange}
+            />
+          </Spin>
         </div>
-        <div className="px-3 py-4 bg-[#F5F6F7] flex items-center justify-center gap-2 rounded-b-lg dark:bg-[#1f1f1f]">
-          {buttons.map((button) => (
-            <Tooltip
-              title={t(`shareContent.${button.label}Tooltip`)}
-              key={button.label}
-              placement="bottom"
-            >
+
+        {access === 'anyone' && (
+          <div className="my-2 pl-4 pr-2 py-2 border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z1 rounded-[12px] flex items-center gap-3">
+            <div className="flex-1 text-sm text-refly-text-1 leading-4 truncate">{shareLink}</div>
+            <Tooltip title={t('shareContent.updateShareTooltip')}>
               <Button
-                className="w-full h-[28px] text-xs"
-                type={button.type as ButtonProps['type']}
-                icon={button.icon}
-                size="small"
-                disabled={button.disabled || updateLoading}
-                loading={button.loading}
-                onClick={() => button.onClick()}
+                color="default"
+                variant="filled"
+                className="flex-shrink-0 w-[104px] h-[32px] text-sm text-refly-text-0 leading-5 font-semibold"
+                onClick={updateShare}
+                loading={updateShareLoading}
+                disabled={updateShareLoading}
               >
-                {t(`shareContent.${button.label}`)}
+                {t('shareContent.updateShare')}
               </Button>
             </Tooltip>
-          ))}
+
+            <Tooltip title={t('shareContent.copyLinkTooltip')}>
+              <Button
+                color="default"
+                variant="filled"
+                onClick={copyLink}
+                disabled={linkCopied}
+                className="flex-shrink-0 w-[104px] h-[32px] text-sm text-refly-text-0 leading-5 font-semibold"
+              >
+                {linkCopied ? t('shareContent.linkCopied') : t('shareContent.copyLink')}
+              </Button>
+            </Tooltip>
+          </div>
+        )}
+
+        {/* Publish to Community Section */}
+        <div className="mt-2 pl-4 pr-2 py-2 border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z1 rounded-[12px] flex items-center justify-between">
+          <div className="text-sm text-refly-text-0 leading-5 font-semibold flex-1 truncate">
+            {t('shareContent.publishTemplate')}
+          </div>
+          <Button
+            type="primary"
+            size="small"
+            className="w-[104px] h-[32px]"
+            onClick={handlePublishToCommunity}
+          >
+            {t('shareContent.publish')}
+          </Button>
         </div>
       </div>
     ),
-    [accessOptions, access, setAccess, t, shareLink, buttons, updateLoading, isLoadingShares],
+    [
+      t,
+      access,
+      shareLink,
+      linkCopied,
+      updateLoading,
+      isLoadingShares,
+      updateShareLoading,
+      handleAccessChange,
+      updateShare,
+      copyLink,
+      handlePublishToCommunity,
+    ],
   );
 
   return (
@@ -309,10 +315,14 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         onOpenChange={setOpen}
         trigger="click"
         placement="bottomLeft"
-        overlayInnerStyle={{ padding: 0 }}
+        overlayInnerStyle={{ padding: 0, borderRadius: '12px', background: 'transparent' }}
         content={content}
+        arrow={false}
       >
-        <Button type="primary" icon={<IconShare className="flex items-center justify-center" />}>
+        <Button
+          type="primary"
+          icon={<Share size={16} className="flex items-center justify-center" />}
+        >
           {t('common.share')}
         </Button>
       </Popover>
