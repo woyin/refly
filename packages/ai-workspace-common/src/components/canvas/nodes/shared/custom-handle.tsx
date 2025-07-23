@@ -126,7 +126,7 @@ export const CustomHandle = React.memo(
                 className="hover:scale-110"
                 onClick={handlePlusClick}
               >
-                <AiChat color="#FFFFFF" size={18} />
+                <AiChat color="#FFFFFF" size={18} className="pointer-events-none" />
               </Handle>
             </Tooltip>
           </div>
