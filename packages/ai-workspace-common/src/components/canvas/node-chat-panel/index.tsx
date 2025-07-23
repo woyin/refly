@@ -412,7 +412,7 @@ export const ChatPanel = memo(
           }}
           selectedSkillName={selectedSkill?.name}
           inputClassName="px-1 py-0"
-          maxRows={20}
+          maxRows={6}
           handleSendMessage={handleMessageSend}
           handleSelectSkill={(skill) => {
             setQuery(query?.slice(0, -1));
@@ -500,9 +500,7 @@ export const ChatPanel = memo(
     }
 
     return (
-      <div
-        className={`flex flex-col gap-3 h-full p-3 box-border ${className} max-w-[1024px] mx-auto`}
-      >
+      <div className={`flex flex-col gap-3 h-full box-border ${className} max-w-[1024px]`}>
         <NodeHeader
           readonly={readonly}
           selectedSkillName={selectedSkill?.name}

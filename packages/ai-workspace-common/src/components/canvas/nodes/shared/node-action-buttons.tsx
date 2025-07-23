@@ -46,6 +46,10 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const nodeData = useMemo(() => node?.data, [node]);
     const buttonContainerRef = useRef<HTMLDivElement>(null);
 
+    const showMoreButton = useMemo(() => {
+      return !['skill', 'mediaSkill', 'video', 'audio', 'image'].includes(nodeType);
+    }, [nodeType]);
+
     const { nodes } = useStore(
       useShallow((state) => ({
         nodes: state.nodes,
@@ -235,19 +239,21 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     return (
       <div
         className={cn(
-          '-right-1 -top-11 -left-1 -right-1 -bottom-1 -z-1 rounded-3xl bg-refly-bg-control-z0 border-[1px] border-solid border-refly-Card-Border',
+          '-right-1 -top-11 -left-1 -right-1 -bottom-1 -z-1 rounded-[20px] bg-refly-bg-control-z0 border-[1px] border-solid border-refly-Card-Border',
           {
             'opacity-100': shouldShowButtons,
             'opacity-0 pointer-events-none': !shouldShowButtons,
           },
-          ['memo', 'image', 'video'].includes(nodeType) ? 'block' : 'absolute',
-          nodeType === 'memo'
-            ? '!py-0 gap-0'
-            : 'gap-1 bg-white dark:bg-gray-800 rounded-md shadow-md dark:shadow-gray-900 transition-opacity duration-200',
+          ['memo', 'video'].includes(nodeType) ? 'block' : 'absolute',
+          nodeType === 'memo' ? '!py-0 gap-0' : 'gap-1 shadow-md transition-opacity duration-200',
         )}
         ref={buttonContainerRef}
       >
-        <div className="flex items-center justify-between pt-3 pb-2 px-3">
+        <div
+          className={cn('flex items-center justify-between pt-3 pb-2 px-3', {
+            '!justify-end': !showMoreButton,
+          })}
+        >
           <div className="flex items-center gap-3">
             {actionButtons.map((button) => (
               <Tooltip key={button.key} title={button.tooltip} placement="top">
@@ -272,7 +278,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             ))}
           </div>
 
-          {!['skill', 'mediaSkill', 'video', 'audio', 'image'].includes(nodeType) && (
+          {showMoreButton && (
             <Tooltip title={t('canvas.nodeActions.more')} placement="top">
               <Button
                 type="text"

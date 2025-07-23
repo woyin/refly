@@ -1,7 +1,6 @@
-import { memo, useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { memo, useState, useCallback, useEffect, useMemo } from 'react';
 import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
-import Moveable from 'react-moveable';
 import { CanvasNode } from '@refly/canvas-common';
 import { CodeArtifactNodeProps } from './shared/types';
 import { CustomHandle } from './shared/custom-handle';
@@ -10,7 +9,6 @@ import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
-import cn from 'classnames';
 import { useCanvasStoreShallow } from '@refly/stores';
 import classNames from 'classnames';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -20,13 +18,8 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
-import {
-  MAX_HEIGHT_CLASS,
-  useNodeSize,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
 import { NodeHeader } from './shared/node-header';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
 import { IconCodeArtifact } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
@@ -46,6 +39,14 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+
+// Fixed node size configuration
+const NODE_WIDTH = 320;
+const NODE_SIDE_CONFIG = {
+  width: NODE_WIDTH,
+  height: 'auto',
+};
 
 interface NodeContentProps {
   status: 'generating' | 'finish' | 'failed' | 'executing';
@@ -98,7 +99,6 @@ const NodeContent = memo(
 export const CodeArtifactNode = memo(
   ({ id, data, isPreview, selected, hideHandles, onNodeClick }: CodeArtifactNodeProps) => {
     const [isHovered, setIsHovered] = useState(false);
-    const [isResizing] = useState(false);
     const { edges } = useCanvasData();
     const { getNode } = useReactFlow();
     const { addNode } = useAddNode();
@@ -107,14 +107,10 @@ export const CodeArtifactNode = memo(
     useSelectedNodeZIndex(id, selected);
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-
-    const { sizeMode = 'adaptive' } = data?.metadata ?? {};
+    const { setNodeStyle } = useNodeData();
 
     const { i18n } = useTranslation();
     const language = i18n.languages?.[0];
-    const moveableRef = useRef<Moveable>(null);
-    const targetRef = useRef<HTMLDivElement>(null);
-    const codeViewerRef = useRef<HTMLDivElement>(null);
 
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
@@ -154,35 +150,10 @@ export const CodeArtifactNode = memo(
       };
     }, [data?.entityId, setNodeDataByEntity]);
 
-    const { containerStyle, handleResize } = useNodeSize({
-      id,
-      node,
-      sizeMode,
-      isOperating,
-      minWidth: 100,
-      maxWidth: 800,
-      minHeight: 80,
-      defaultWidth: 288,
-      defaultHeight: 384,
-    });
-
-    // Enhanced resize handler
-    const handleEnhancedResize = useCallback(
-      (params: any) => {
-        // Disable pointer events on code viewer during resize
-        if (codeViewerRef.current) {
-          codeViewerRef.current.style.pointerEvents = 'none';
-        }
-        handleResize(params);
-      },
-      [handleResize],
-    );
-
-    const handleResizeEnd = useCallback(() => {
-      if (codeViewerRef.current) {
-        codeViewerRef.current.style.pointerEvents = '';
-      }
-    }, []);
+    // Set fixed node style
+    useEffect(() => {
+      setNodeStyle(id, NODE_SIDE_CONFIG);
+    }, [id, setNodeStyle]);
 
     // Check if node has any connections
     const isTargetConnected = edges?.some((edge) => edge.target === id);
@@ -310,19 +281,6 @@ export const CodeArtifactNode = memo(
       updateNodeTitle(newTitle, data.entityId, id, 'codeArtifact');
     };
 
-    const resizeMoveable = useCallback((width: number, height: number) => {
-      moveableRef.current?.request('resizable', { width, height });
-    }, []);
-
-    // Update size when content changes
-    useEffect(() => {
-      requestAnimationFrame(() => {
-        if (!targetRef.current) return;
-        const { offsetWidth, offsetHeight } = targetRef.current;
-        resizeMoveable(offsetWidth, offsetHeight);
-      });
-    }, [resizeMoveable, targetRef.current?.offsetHeight]);
-
     // Add event handling
     useEffect(() => {
       // Create node-specific event handlers
@@ -354,111 +312,76 @@ export const CodeArtifactNode = memo(
 
     return (
       <div
-        className={classNames({ nowheel: isOperating && isHovered })}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={classNames({
+          'rounded-2xl relative': true,
+          nowheel: isOperating && isHovered,
+          'relative nodrag nopan select-text': isOperating,
+        })}
+        style={isPreview ? { width: NODE_WIDTH, height: 214 } : NODE_SIDE_CONFIG}
         data-cy="code-artifact-node"
+        onClick={onNodeClick}
       >
-        <div
-          ref={targetRef}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={classNames({
-            'relative nodrag nopan select-text': isOperating,
-            'pointer-events-none': isResizing,
-          })}
-          style={isPreview ? { width: 288, height: 200 } : containerStyle}
-          onClick={onNodeClick}
-        >
-          <div
-            className={`h-full flex flex-col ${getNodeCommonStyles({ selected, isHovered })} ${isResizing ? 'pointer-events-none' : ''}`}
-          >
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={isTargetConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="codeArtifact"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={isSourceConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="codeArtifact"
-                />
-              </>
-            )}
-
-            {!isPreview && !readonly && (
-              <NodeActionButtons
-                nodeId={id}
-                nodeType="codeArtifact"
-                isNodeHovered={isHovered}
-                isSelected={selected}
-              />
-            )}
-
-            <div className={cn('flex flex-col h-full p-3 box-border', MAX_HEIGHT_CLASS)}>
-              <NodeHeader
-                title={data?.title}
-                fixedTitle={t('canvas.nodeTypes.codeArtifact')}
-                canEdit={!readonly}
-                Icon={IconCodeArtifact}
-                iconBgColor="#3E63DD"
-                updateTitle={updateTitle}
-              />
-
-              <div
-                className={cn('relative flex-grow overflow-y-auto pr-2 -mr-2', {
-                  'pointer-events-none': isResizing,
-                })}
-              >
-                {/* Only render content when not in compact mode */}
-                {sizeMode === 'adaptive' && (
-                  <div
-                    ref={codeViewerRef}
-                    style={{
-                      height: '100%',
-                      minHeight: '384px',
-                      overflowY: 'auto',
-                    }}
-                    className={isResizing ? 'pointer-events-none' : ''}
-                  >
-                    <NodeContent
-                      status={data.metadata?.status}
-                      entityId={data.entityId}
-                      shareId={data.metadata?.shareId}
-                      legacyData={legacyData}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-end items-center text-[10px] text-gray-400 mt-1 px-1">
-                {time(data.createdAt, language as LOCALE)
-                  ?.utc()
-                  ?.fromNow()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {!isPreview && selected && sizeMode === 'adaptive' && !readonly && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="codeArtifact"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={isPreview}
-            sizeMode={sizeMode}
-            onResize={handleEnhancedResize}
-            onResizeEnd={handleResizeEnd}
           />
         )}
+
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={isTargetConnected}
+              isNodeHovered={isHovered}
+              nodeType="codeArtifact"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={isSourceConnected}
+              isNodeHovered={isHovered}
+              nodeType="codeArtifact"
+            />
+          </>
+        )}
+
+        <div
+          className={`h-full flex flex-col relative z-1 p-4 box-border max-h-[800px] ${getNodeCommonStyles({ selected, isHovered })}`}
+        >
+          <NodeHeader
+            title={data?.title}
+            fixedTitle={t('canvas.nodeTypes.codeArtifact')}
+            canEdit={!readonly}
+            Icon={IconCodeArtifact}
+            iconBgColor="#3E63DD"
+            updateTitle={updateTitle}
+          />
+
+          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
+            <NodeContent
+              status={data.metadata?.status}
+              entityId={data.entityId}
+              shareId={data.metadata?.shareId}
+              legacyData={legacyData}
+            />
+          </div>
+
+          <div className="flex justify-end items-center text-[10px] text-gray-400 mt-1 px-1">
+            {time(data.createdAt, language as LOCALE)
+              ?.utc()
+              ?.fromNow()}
+          </div>
+        </div>
       </div>
     );
   },
@@ -467,10 +390,6 @@ export const CodeArtifactNode = memo(
     const prevStyle = prevProps.data?.metadata?.style;
     const nextStyle = nextProps.data?.metadata?.style;
     const styleEqual = JSON.stringify(prevStyle) === JSON.stringify(nextStyle);
-
-    const prevSizeMode = prevProps.data?.metadata?.sizeMode;
-    const nextSizeMode = nextProps.data?.metadata?.sizeMode;
-    const sizeModeEqual = prevSizeMode === nextSizeMode;
 
     // Compare activeTab specifically
     const prevActiveTab = prevProps.data?.metadata?.activeTab;
@@ -493,8 +412,7 @@ export const CodeArtifactNode = memo(
       prevProps.data?.metadata?.language === nextProps.data?.metadata?.language &&
       activeTabEqual &&
       typeEqual &&
-      styleEqual &&
-      sizeModeEqual
+      styleEqual
     );
   },
 );

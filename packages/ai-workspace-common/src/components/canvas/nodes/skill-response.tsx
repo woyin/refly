@@ -682,71 +682,69 @@ export const SkillResponseNode = memo(
           </>
         )}
         <div
-          className={`h-full flex flex-col relative z-1 ${getNodeCommonStyles({ selected, isHovered })}`}
+          className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
         >
-          <div className={cn('flex flex-col h-full p-3 box-border')}>
-            <NodeHeader
-              showIcon
-              disabled={readonly}
-              query={query}
-              skillName={skillName}
-              skill={skill}
-              updateTitle={onTitleChange}
-            />
+          <NodeHeader
+            showIcon
+            disabled={readonly}
+            query={query}
+            skillName={skillName}
+            skill={skill}
+            updateTitle={onTitleChange}
+          />
 
-            <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
-              <div className="flex flex-col gap-3">
-                {status === 'failed' && (
-                  <div
-                    className={cn(
-                      'flex items-center justify-center gap-1 mt-1 hover:bg-gray-50 rounded-md p-2 dark:hover:bg-gray-900',
-                      readonly ? 'cursor-not-allowed' : 'cursor-pointer',
+          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
+            <div className="flex flex-col gap-3">
+              {status === 'failed' && (
+                <div
+                  className={cn(
+                    'flex items-center justify-center gap-1 mt-1 hover:bg-gray-50 rounded-md p-2 dark:hover:bg-gray-900',
+                    readonly ? 'cursor-not-allowed' : 'cursor-pointer',
+                  )}
+                  onClick={() => handleRerun()}
+                >
+                  <IconError className="h-4 w-4 text-red-500" />
+                  <span className="text-xs text-red-500 max-w-48 truncate">
+                    {errMsg || t('canvas.skillResponse.executionFailed')}
+                  </span>
+                </div>
+              )}
+
+              {(status === 'waiting' || status === 'executing') && (
+                <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
+                  <IconLoading className="h-3 w-3 animate-spin text-green-500" />
+                  <span className="text-xs text-gray-500 max-w-48 truncate">
+                    {log ? (
+                      <>
+                        <span className="text-green-500 font-medium">{`${logTitle} `}</span>
+                        <span className="text-gray-500">{logDescription}</span>
+                      </>
+                    ) : (
+                      t('canvas.skillResponse.aiThinking')
                     )}
-                    onClick={() => handleRerun()}
-                  >
-                    <IconError className="h-4 w-4 text-red-500" />
-                    <span className="text-xs text-red-500 max-w-48 truncate">
-                      {errMsg || t('canvas.skillResponse.executionFailed')}
-                    </span>
-                  </div>
-                )}
+                  </span>
+                </div>
+              )}
 
-                {(status === 'waiting' || status === 'executing') && (
-                  <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
-                    <IconLoading className="h-3 w-3 animate-spin text-green-500" />
-                    <span className="text-xs text-gray-500 max-w-48 truncate">
-                      {log ? (
-                        <>
-                          <span className="text-green-500 font-medium">{`${logTitle} `}</span>
-                          <span className="text-gray-500">{logDescription}</span>
-                        </>
-                      ) : (
-                        t('canvas.skillResponse.aiThinking')
-                      )}
-                    </span>
-                  </div>
-                )}
-
-                {status !== 'failed' && content && (
-                  <MultimodalContentPreview
-                    resultId={entityId}
-                    content={truncateContent(content)}
-                    isOperating={isOperating}
-                    sources={sources}
-                    metadata={metadata}
-                  />
-                )}
-              </div>
+              {status !== 'failed' && content && (
+                <MultimodalContentPreview
+                  resultId={entityId}
+                  content={truncateContent(content)}
+                  isOperating={isOperating}
+                  sources={sources}
+                  metadata={metadata}
+                />
+              )}
             </div>
-
-            <NodeFooter
-              model={model}
-              modelInfo={modelInfo}
-              tokenUsage={tokenUsage}
-              createdAt={createdAt}
-              language={language}
-            />
           </div>
+
+          <NodeFooter
+            model={model}
+            modelInfo={modelInfo}
+            tokenUsage={tokenUsage}
+            createdAt={createdAt}
+            language={language}
+          />
         </div>
       </div>
     );
