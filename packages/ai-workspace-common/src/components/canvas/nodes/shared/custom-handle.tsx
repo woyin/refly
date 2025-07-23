@@ -1,7 +1,7 @@
 import { Handle, Position, HandleType } from '@xyflow/react';
 import React, { CSSProperties, useCallback } from 'react';
 import { Tooltip } from 'antd';
-import { IconPlus } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { AiChat } from 'refly-icons';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
@@ -126,7 +126,7 @@ export const CustomHandle = React.memo(
                 className="hover:scale-110"
                 onClick={handlePlusClick}
               >
-                <IconPlus className="w-5 h-5 text-[#fff] pointer-events-none" />
+                <AiChat color="#FFFFFF" size={18} />
               </Handle>
             </Tooltip>
           </div>

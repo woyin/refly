@@ -1,13 +1,11 @@
 import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
-import Moveable from 'react-moveable';
 import classNames from 'classnames';
 import { Divider, Input, message, Typography } from 'antd';
 import type { InputRef } from 'antd';
 import { CanvasNode } from '@refly/canvas-common';
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { CustomHandle } from './shared/custom-handle';
-import { LuChevronRight } from 'react-icons/lu';
 import { getNodeCommonStyles } from './index';
 import { SkillResponseNodeProps } from './shared/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
@@ -19,17 +17,11 @@ import {
   IconError,
   IconLoading,
   IconResponse,
-  IconSearch,
   IconToken,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
-import { getArtifactIcon } from '@refly-packages/ai-workspace-common/components/common/result-display';
-import {
-  useActionResultStore,
-  useActionResultStoreShallow,
-  useKnowledgeBaseStoreShallow,
-} from '@refly/stores';
+import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
@@ -43,26 +35,23 @@ import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { genSkillID } from '@refly/utils/id';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
-import {
-  useNodeSize,
-  MAX_HEIGHT_CLASS,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
+
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import cn from 'classnames';
-import { ReasoningContentPreview } from './shared/reasoning-content-preview';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { truncateContent } from '@refly-packages/ai-workspace-common/utils/content';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { ModelIcon } from '@lobehub/icons';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
-import { BorderBeam } from '@refly-packages/ai-workspace-common/components/magicui/border-beam';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
+
+const NODE_WIDTH = 320;
+const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
 
 export const NodeHeader = memo(
   ({
@@ -243,12 +232,11 @@ export const SkillResponseNode = memo(
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
     }));
-    const { setNodeData } = useNodeData();
-    const { getNode, getEdges } = useReactFlow();
+    const { setNodeData, setNodeStyle } = useNodeData();
+    const { getEdges } = useReactFlow();
     const updateNodeTitle = useUpdateNodeTitle();
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
 
-    const targetRef = useRef<HTMLDivElement>(null);
     const { t, i18n } = useTranslation();
     const language = i18n.languages?.[0];
 
@@ -258,27 +246,10 @@ export const SkillResponseNode = memo(
     const { errMsg } = useSkillError(metadata?.errors?.[0]);
 
     const isOperating = operatingNodeId === id;
-    const sizeMode = data?.metadata?.sizeMode || 'adaptive';
-    const node = getNode(id);
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-
-    const { containerStyle, handleResize, updateSize } = useNodeSize({
-      id,
-      node,
-      sizeMode,
-      readonly,
-      isOperating,
-      minWidth: 100,
-      maxWidth: 800,
-      minHeight: 80,
-      defaultWidth: 288,
-      defaultHeight: 'auto',
-    });
-    const moveableRef = useRef<Moveable>(null);
 
     const {
       status,
-      artifacts,
       currentLog: log,
       modelInfo,
       structuredData,
@@ -286,7 +257,6 @@ export const SkillResponseNode = memo(
       actionMeta,
       tokenUsage,
       version,
-      pilotStepId,
     } = metadata ?? {};
     const currentSkill = actionMeta || selectedSkill;
 
@@ -376,7 +346,7 @@ export const SkillResponseNode = memo(
 
       message.info(t('canvas.skillResponse.startRerun'));
 
-      updateSize({ width: 288, height: 'auto' });
+      setNodeStyle(id, NODE_SIDE_CONFIG);
 
       // Reset failed state if the action previously failed
       if (data?.metadata?.status === 'failed') {
@@ -411,7 +381,6 @@ export const SkillResponseNode = memo(
       id,
       title,
       t,
-      updateSize,
       invokeAction,
       setNodeData,
       readonly,
@@ -493,22 +462,6 @@ export const SkillResponseNode = memo(
         metadata: data?.metadata,
       });
     }, [data, entityId, title, addToContext]);
-
-    const knowledgeBaseStore = useKnowledgeBaseStoreShallow((state) => ({
-      updateSourceListDrawer: state.updateSourceListDrawer,
-    }));
-
-    const handleClickSources = useCallback(() => {
-      knowledgeBaseStore.updateSourceListDrawer({
-        visible: true,
-        sources: sources,
-        query: query,
-      });
-    }, [sources, query, knowledgeBaseStore]);
-
-    const resizeMoveable = useCallback((width: number, height: number) => {
-      moveableRef.current?.request('resizable', { width, height });
-    }, []);
 
     const { addNode } = useAddNode();
 
@@ -629,13 +582,9 @@ export const SkillResponseNode = memo(
       updateNodeTitle(newTitle, data.entityId, id, 'skillResponse');
     };
 
-    // Update size when content changes
     useEffect(() => {
-      if (!targetRef.current) return;
-
-      const { offsetWidth, offsetHeight } = targetRef.current;
-      resizeMoveable(offsetWidth, offsetHeight);
-    }, [resizeMoveable, targetRef.current?.offsetHeight]);
+      setNodeStyle(id, NODE_SIDE_CONFIG);
+    }, [id, setNodeStyle]);
 
     // Update event handling
     useEffect(() => {
@@ -688,195 +637,117 @@ export const SkillResponseNode = memo(
 
     return (
       <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         className={classNames({
-          'rounded-lg': true,
+          'rounded-2xl relative': true,
           nowheel: isOperating && isHovered,
-          relative: true,
+          'relative nodrag nopan select-text': isOperating,
         })}
+        style={
+          isPreview ? { width: NODE_WIDTH, height: 214 } : { width: NODE_WIDTH, maxHeight: 214 }
+        }
         data-cy="skill-response-node"
+        onClick={onNodeClick}
       >
-        <div
-          ref={targetRef}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={classNames({
-            'relative nodrag nopan select-text': isOperating,
-          })}
-          style={isPreview ? { width: 288, height: 200 } : containerStyle}
-          onClick={onNodeClick}
-        >
-          <div
-            className={`h-full flex flex-col dark:bg-gray-900 ${getNodeCommonStyles({ selected, isHovered })}`}
-          >
-            {!isPreview && !readonly && (
-              <NodeActionButtons
-                nodeId={id}
-                nodeType="skillResponse"
-                isNodeHovered={isHovered}
-                isSelected={selected}
-              />
-            )}
-
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={isTargetConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="skillResponse"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={isSourceConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="skillResponse"
-                />
-              </>
-            )}
-
-            <div className={cn('flex flex-col h-full p-3 box-border', MAX_HEIGHT_CLASS)}>
-              <NodeHeader
-                showIcon
-                disabled={readonly}
-                query={query}
-                skillName={skillName}
-                skill={skill}
-                updateTitle={onTitleChange}
-              />
-
-              <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
-                <div className="flex flex-col gap-3">
-                  {status === 'failed' && (
-                    <div
-                      className={cn(
-                        'flex items-center justify-center gap-1 mt-1 hover:bg-gray-50 rounded-md p-2 dark:hover:bg-gray-900',
-                        readonly ? 'cursor-not-allowed' : 'cursor-pointer',
-                      )}
-                      onClick={() => handleRerun()}
-                    >
-                      <IconError className="h-4 w-4 text-red-500" />
-                      <span className="text-xs text-red-500 max-w-48 truncate">
-                        {errMsg || t('canvas.skillResponse.executionFailed')}
-                      </span>
-                    </div>
-                  )}
-
-                  {(status === 'waiting' || status === 'executing') && (
-                    <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
-                      <IconLoading className="h-3 w-3 animate-spin text-green-500" />
-                      <span className="text-xs text-gray-500 max-w-48 truncate">
-                        {log ? (
-                          <>
-                            <span className="text-green-500 font-medium">{`${logTitle} `}</span>
-                            <span className="text-gray-500">{logDescription}</span>
-                          </>
-                        ) : (
-                          t('canvas.skillResponse.aiThinking')
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  {status !== 'failed' && sources.length > 0 && (
-                    <div
-                      className="flex items-center rounded-md justify-between gap-2 border-gray-100 border-solid p-2 hover:bg-gray-50 cursor-pointer dark:hover:bg-gray-900 dark:border-gray-800"
-                      onClick={handleClickSources}
-                    >
-                      <span className="flex items-center gap-1 text-xs text-gray-500">
-                        <>
-                          <IconSearch className="h-3 w-3 text-gray-500" />
-                          {t('canvas.skillResponse.sourcesCnt', { count: sources.length })}
-                        </>
-                      </span>
-                      <LuChevronRight className="h-3 w-3 text-gray-500" />
-                    </div>
-                  )}
-
-                  {status !== 'failed' && artifacts?.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      {artifacts
-                        ?.filter((artifact) => artifact.title)
-                        .map((artifact) => (
-                          <div
-                            key={artifact.entityId}
-                            className="border border-solid border-gray-200 rounded-md px-2 py-2 w-full flex items-center gap-1 dark:border-gray-700"
-                          >
-                            {getArtifactIcon(artifact, 'text-gray-500')}
-                            <span className="text-xs text-gray-500 max-w-[200px] truncate inline-block">
-                              {artifact.title}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-
-                  {status !== 'failed' && metadata?.reasoningContent && (
-                    <ReasoningContentPreview
-                      resultId={entityId}
-                      content={truncateContent(metadata.reasoningContent)}
-                      sources={sources}
-                      isOperating={isOperating}
-                      stepStatus={status === 'executing' ? 'executing' : 'finish'}
-                      sizeMode={sizeMode}
-                    />
-                  )}
-
-                  {status !== 'failed' && content && (
-                    <MultimodalContentPreview
-                      resultId={entityId}
-                      content={truncateContent(content)}
-                      sizeMode={sizeMode}
-                      isOperating={isOperating}
-                      sources={sources}
-                      metadata={metadata}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <NodeFooter
-                model={model}
-                modelInfo={modelInfo}
-                tokenUsage={tokenUsage}
-                createdAt={createdAt}
-                language={language}
-              />
-            </div>
-          </div>
-        </div>
-
-        {!isPreview && selected && sizeMode === 'adaptive' && !readonly && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="skillResponse"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={isPreview}
-            sizeMode={sizeMode}
-            onResize={handleResize}
           />
         )}
-        {['waiting', 'executing'].includes(status) && pilotStepId && (
+
+        {!isPreview && !hideHandles && (
           <>
-            <BorderBeam
-              duration={2}
-              size={300}
-              className="from-transparent via-red-500 to-transparent"
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={isTargetConnected}
+              isNodeHovered={isHovered}
+              nodeType="skillResponse"
             />
-            <BorderBeam
-              duration={2}
-              delay={3}
-              size={300}
-              className="from-transparent via-blue-500 to-transparent"
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={isSourceConnected}
+              isNodeHovered={isHovered}
+              nodeType="skillResponse"
             />
           </>
         )}
+        <div
+          className={`h-full flex flex-col relative z-1 ${getNodeCommonStyles({ selected, isHovered })}`}
+        >
+          <div className={cn('flex flex-col h-full p-3 box-border')}>
+            <NodeHeader
+              showIcon
+              disabled={readonly}
+              query={query}
+              skillName={skillName}
+              skill={skill}
+              updateTitle={onTitleChange}
+            />
+
+            <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
+              <div className="flex flex-col gap-3">
+                {status === 'failed' && (
+                  <div
+                    className={cn(
+                      'flex items-center justify-center gap-1 mt-1 hover:bg-gray-50 rounded-md p-2 dark:hover:bg-gray-900',
+                      readonly ? 'cursor-not-allowed' : 'cursor-pointer',
+                    )}
+                    onClick={() => handleRerun()}
+                  >
+                    <IconError className="h-4 w-4 text-red-500" />
+                    <span className="text-xs text-red-500 max-w-48 truncate">
+                      {errMsg || t('canvas.skillResponse.executionFailed')}
+                    </span>
+                  </div>
+                )}
+
+                {(status === 'waiting' || status === 'executing') && (
+                  <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
+                    <IconLoading className="h-3 w-3 animate-spin text-green-500" />
+                    <span className="text-xs text-gray-500 max-w-48 truncate">
+                      {log ? (
+                        <>
+                          <span className="text-green-500 font-medium">{`${logTitle} `}</span>
+                          <span className="text-gray-500">{logDescription}</span>
+                        </>
+                      ) : (
+                        t('canvas.skillResponse.aiThinking')
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {status !== 'failed' && content && (
+                  <MultimodalContentPreview
+                    resultId={entityId}
+                    content={truncateContent(content)}
+                    isOperating={isOperating}
+                    sources={sources}
+                    metadata={metadata}
+                  />
+                )}
+              </div>
+            </div>
+
+            <NodeFooter
+              model={model}
+              modelInfo={modelInfo}
+              tokenUsage={tokenUsage}
+              createdAt={createdAt}
+              language={language}
+            />
+          </div>
+        </div>
       </div>
     );
   },
@@ -885,10 +756,6 @@ export const SkillResponseNode = memo(
     const prevStyle = prevProps.data?.metadata?.style;
     const nextStyle = nextProps.data?.metadata?.style;
     const styleEqual = JSON.stringify(prevStyle) === JSON.stringify(nextStyle);
-
-    const prevSizeMode = prevProps.data?.metadata?.sizeMode;
-    const nextSizeMode = nextProps.data?.metadata?.sizeMode;
-    const sizeModeEqual = prevSizeMode === nextSizeMode;
 
     return (
       prevProps.id === nextProps.id &&
@@ -900,8 +767,7 @@ export const SkillResponseNode = memo(
       prevProps.data?.contentPreview === nextProps.data?.contentPreview &&
       prevProps.data?.createdAt === nextProps.data?.createdAt &&
       JSON.stringify(prevProps.data?.metadata) === JSON.stringify(nextProps.data?.metadata) &&
-      styleEqual &&
-      sizeModeEqual
+      styleEqual
     );
   },
 );

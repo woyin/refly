@@ -983,7 +983,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           <DropOverlay />
           <ReactFlow
             {...flowConfig}
-            className="bg-green-50 dark:bg-green-900"
+            className="bg-refly-bg-canvas"
             snapToGrid={true}
             snapGrid={[GRID_SIZE, GRID_SIZE]}
             edgeTypes={edgeTypes}

@@ -5,6 +5,7 @@ import { useNodeData } from './use-node-data';
 export const MAX_HEIGHT = 1200;
 export const MAX_HEIGHT_CLASS = 'max-h-[1200px]';
 const COMPACT_MAX_HEIGHT = 384;
+export const NODE_WIDTH = 320;
 
 const getMaxHeight = (height: number) => {
   return Math.min(height, MAX_HEIGHT);
@@ -38,7 +39,7 @@ export const useNodeSize = ({
   minWidth = 100,
   maxWidth = 800,
   minHeight = 80,
-  defaultWidth = 288,
+  defaultWidth = NODE_WIDTH,
   defaultHeight = 384,
 }: UseNodeSizeProps) => {
   const { setNodeStyle } = useNodeData();
