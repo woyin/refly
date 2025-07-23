@@ -8,13 +8,7 @@ import {
 } from '@refly-packages/ai-workspace-common/utils/router';
 
 import { IconCanvas } from '@refly-packages/ai-workspace-common/components/common/icon';
-import {
-  Project as IconProject,
-  KnowledgeBase as IconKnowledgeBase,
-  InterfaceDark,
-  InterfaceLight,
-  Setting,
-} from 'refly-icons';
+import { Project as IconProject, KnowledgeBase as IconKnowledgeBase } from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 
@@ -31,8 +25,6 @@ import { StorageExceededModal } from '@refly-packages/ai-workspace-common/compon
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { SiderData, useSiderStoreShallow, type SettingsModalActiveTab } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-// icons
-import { IconRight } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import { AiOutlineUser } from 'react-icons/ai';
 import { SideLeft, SideRight } from 'refly-icons';
@@ -42,12 +34,10 @@ import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
 import { SiderLoggedOut } from './sider-logged-out';
-import { LuList } from 'react-icons/lu';
 
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
-import { useThemeStoreShallow } from '@refly/stores';
 
 const Sider = Layout.Sider;
 
@@ -64,7 +54,10 @@ const SiderSectionHeader = ({
   actionIcon?: React.ReactNode;
 }) => {
   return (
-    <div className="h-12 flex items-center justify-between w-full text-refly-text-0 group select-none px-2 py-2 hover:bg-refly-tertiary-hover rounded-md">
+    <div
+      className="h-12 flex items-center justify-between w-full text-refly-text-0 group select-none px-2 py-2 hover:bg-refly-tertiary-hover rounded-md cursor-pointer"
+      onClick={!actionIcon && onActionClick ? onActionClick : undefined}
+    >
       <div className="flex items-center gap-2">
         {icon}
         <span className="font-normal">{title}</span>
@@ -120,13 +113,9 @@ const SettingItem = () => {
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-  const { isDarkMode, setThemeMode } = useThemeStoreShallow((state) => ({
-    isDarkMode: state.isDarkMode,
-    setThemeMode: state.setThemeMode,
-  }));
-  const { setShowSettingModal } = useSiderStoreShallow((state) => ({
-    setShowSettingModal: state.setShowSettingModal,
-  }));
+
+  const planType = userProfile?.subscription?.planType || 'free';
+  const { t } = useTranslation();
 
   return (
     <div className="group w-full">
@@ -142,24 +131,12 @@ const SettingItem = () => {
               {userProfile?.nickname}
             </span>
           </div>
-          <div className="flex items-center">
-            <Button
-              type="text"
-              icon={isDarkMode ? <InterfaceDark size={20} /> : <InterfaceLight size={20} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                setThemeMode(isDarkMode ? 'light' : 'dark');
-              }}
-            />
-            <Button
-              type="text"
-              icon={<Setting size={20} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSettingModal(true);
-              }}
-            />
-          </div>
+
+          {subscriptionEnabled && (
+            <div className="flex h-6 items-center justify-center text-refly-text-0 rounded-full py-2 px-3 text-xs font-medium bg-refly-bg-content-z2 border-[1px] border-solid border-refly-Card-Border">
+              {t(`settings.subscription.subscriptionStatus.${planType}`)}
+            </div>
+          )}
         </div>
       </SiderMenuSettingList>
     </div>
@@ -173,7 +150,7 @@ export const NewCanvasButton = () => {
   return (
     <div className="w-full" onClick={() => debouncedCreateCanvas()}>
       <Button
-        className="w-full h-9 border-solid border-1 border-refly-Card-Border bg-refly-bg-control-z1"
+        className="w-full h-9 border-solid border-[1px] border-refly-Card-Border bg-refly-bg-control-z1"
         key="newCanvas"
         loading={createCanvasLoading}
         type="default"
@@ -234,24 +211,6 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
         </div>
       </div>
     </div>
-  );
-};
-
-const ViewAllButton = ({ onClick }: { onClick: () => void }) => {
-  const { t } = useTranslation();
-  return (
-    <Button
-      className="group w-full px-2 text-gray-500 text-xs mb-2 !bg-transparent hover:!text-green-600 dark:text-gray-400 dark:hover:!text-green-300"
-      type="text"
-      size="small"
-      onClick={onClick}
-      iconPosition="end"
-      icon={
-        <IconRight className="flex items-center text-gray-500 hover:text-green-600 group-hover:text-green-600 dark:text-gray-400 dark:hover:!text-green-300" />
-      }
-    >
-      {t('common.viewAll')}
-    </Button>
   );
 };
 
@@ -382,12 +341,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             icon={<IconKnowledgeBase key="library" style={{ fontSize: 20 }} />}
             title={t('loggedHomePage.siderMenu.library')}
             onActionClick={() => setShowLibraryModal(true)}
-            actionIcon={
-              <LuList
-                size={16}
-                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:!text-gray-200"
-              />
-            }
           />
 
           <div className="flex-1 overflow-hidden flex flex-col">
@@ -397,12 +350,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
                 icon={<IconProject key="canvas" style={{ fontSize: 20 }} />}
                 title={t('loggedHomePage.siderMenu.canvas')}
                 onActionClick={() => setShowCanvasListModal(true)}
-                actionIcon={
-                  <LuList
-                    size={16}
-                    className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:!text-gray-200"
-                  />
-                }
               />
 
               <div className="rounded-md flex-1 min-h-20">
@@ -420,7 +367,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
                       {canvasList.map((canvas) => (
                         <CanvasListItem key={canvas.id} canvas={canvas} />
                       ))}
-                      <ViewAllButton onClick={() => setShowCanvasListModal(true)} />
                     </div>
                   ) : (
                     <div className="text-gray-400 text-sm px-2 py-4 text-center">

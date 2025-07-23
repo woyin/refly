@@ -144,10 +144,10 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
 
   return (
     <Layout.Sider
-      width={source === 'sider' ? (collapse ? 0 : 220) : 220}
+      width={source === 'sider' ? (collapse ? 0 : 248) : 248}
       className={cn(
         'border border-solid border-gray-100 bg-white shadow-sm relative dark:border-gray-800 dark:bg-gray-900',
-        source === 'sider' ? 'h-[calc(100vh)]' : 'h-[calc(100vh-100px)] rounded-r-lg',
+        source === 'sider' ? 'h-[calc(100vh)]' : 'h-[calc(100vh-16px)] rounded-r-lg',
       )}
     >
       <div className="project-directory flex h-full flex-col py-3 pb-0 overflow-y-auto overflow-x-hidden">

@@ -4,6 +4,7 @@ import { SideRight } from 'refly-icons';
 import { useSiderStoreShallow } from '@refly/stores';
 import { Logo } from '../common/logo';
 import { GithubStar } from '../common/github-star';
+import cn from 'classnames';
 
 interface SiderPopoverProps {
   children?: React.ReactNode;
@@ -22,35 +23,33 @@ export const SiderPopover = (props: SiderPopoverProps) => {
   }));
 
   return (
-    <Popover
-      zIndex={11}
-      overlayInnerStyle={{ padding: 0, boxShadow: 'none', border: 'none' }}
-      className="shadow-none"
-      arrow={false}
-      placement="bottom"
-      align={align}
-      mouseEnterDelay={0.5}
-      content={<SiderLayout source="popover" />}
-    >
-      {children || (
-        <div className={childrenClassName}>
-          <div className="flex items-center gap-2">
-            <Button
-              type="text"
-              icon={<SideRight size={20} />}
-              onClick={() => {
-                setCollapse(!collapse);
-              }}
-            />
-            {showBrand && (
-              <>
-                <Logo />
-                <GithubStar />
-              </>
-            )}
-          </div>
-        </div>
+    <div className={cn('flex items-center gap-2', childrenClassName)}>
+      <Popover
+        zIndex={11}
+        overlayInnerStyle={{ padding: 0, boxShadow: 'none', border: 'none' }}
+        className="shadow-none"
+        arrow={false}
+        placement="bottom"
+        align={align}
+        mouseEnterDelay={0.5}
+        content={<SiderLayout source="popover" />}
+      >
+        {children || (
+          <Button
+            type="text"
+            icon={<SideRight size={20} />}
+            onClick={() => {
+              setCollapse(!collapse);
+            }}
+          />
+        )}
+      </Popover>
+      {showBrand && (
+        <>
+          <Logo />
+          <GithubStar />
+        </>
       )}
-    </Popover>
+    </div>
   );
 };

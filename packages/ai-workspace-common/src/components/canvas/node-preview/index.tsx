@@ -171,7 +171,7 @@ export const DraggableNodePreview = memo(
 
     const previewStyles = useMemo(
       () => ({
-        height: isMaximized ? '100vh' : 'calc(100vh - 72px)',
+        height: isMaximized ? '100vh' : 'calc(100vh - 92px)',
         width: isMaximized ? 'calc(100vw)' : isWideMode ? '840px' : '420px',
         top: isMaximized ? 0 : null,
         right: isMaximized ? 0 : null,

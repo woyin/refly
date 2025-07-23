@@ -110,7 +110,7 @@ export const SettingsButton = memo(
     return (
       <div
         onClick={handleClick}
-        className="p-3 flex items-center rounded-b-lg gap-2 hover:bg-refly-tertiary-hover cursor-pointer border-t-1 border-x-0 border-b-0 border-solid border-refly-Card-Border"
+        className="p-3 flex items-center rounded-b-lg gap-2 hover:bg-refly-tertiary-hover cursor-pointer border-t-[1px] border-x-0 border-b-0 border-solid border-refly-Card-Border"
       >
         <Settings size={14} />
         <span className="text-xs font-semibold text-refly-text-0">
@@ -257,7 +257,7 @@ export const ModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border border-1 border-solid border-refly-Card-Border">
+        <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {droplist.map((item) => (
               <div key={item.key} className="model-list-item">

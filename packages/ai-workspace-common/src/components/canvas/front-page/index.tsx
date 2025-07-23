@@ -20,7 +20,6 @@ import { Title } from './title';
 import { useAbortAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-abort-action';
 import cn from 'classnames';
 import { MediaChatInput } from '@refly-packages/ai-workspace-common/components/canvas/nodes/media/media-input';
-import { useSiderStoreShallow } from '@refly/stores';
 
 export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const { t, i18n } = useTranslation();
@@ -30,10 +29,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
   const templateLanguage = i18n.language;
   const templateCategoryId = '';
-
-  const { collapse } = useSiderStoreShallow((state) => ({
-    collapse: state.collapse,
-  }));
 
   const { skillSelectedModel, setSkillSelectedModel, chatMode } = useChatStoreShallow((state) => ({
     skillSelectedModel: state.skillSelectedModel,
@@ -116,10 +111,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   return (
     <div
       className={cn(
-        'h-full flex m-2 bg-refly-bg-content-z2 overflow-y-auto rounded-lg border-1 border border-solid border-refly-Card-Border',
-        {
-          'ml-0 shadow-sm': !collapse,
-        },
+        'h-full flex bg-refly-bg-content-z2 overflow-y-auto rounded-lg border-[1px] border border-solid border-refly-Card-Border shadow-sm',
       )}
       id="front-page-scrollable-div"
     >
@@ -131,7 +123,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       >
         <Title />
 
-        <div className="w-full rounded-[12px] shadow-[0px-2px_20px_4px_rgba(0,0,0,0.04)] overflow-hidden border-1 border border-solid border-refly-primary-default">
+        <div className="w-full rounded-[12px] shadow-[0px-2px_20px_4px_rgba(0,0,0,0.04)] overflow-hidden border-[1px] border border-solid border-refly-primary-default">
           <div className="p-4">
             {selectedSkill && (
               <div className="flex w-full justify-between">
