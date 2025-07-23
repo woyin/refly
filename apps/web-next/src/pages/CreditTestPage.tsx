@@ -8,6 +8,7 @@ import {
   UserSwitchOutlined,
   LoginOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import CreditBalance from '../components/CreditBalance';
 import CreditRechargeHistory from '../components/CreditRechargeHistory';
 import CreditUsageHistory from '../components/CreditUsageHistory';
@@ -22,32 +23,33 @@ const { Option } = Select;
  * 积分系统测试页面 - 为开发者和测试人员提供完整的积分功能测试界面
  */
 const CreditTestPage: React.FC = () => {
+  const { t } = useTranslation();
   const { selectedUser, currentUser, isMockMode, switchUser, enableMockMode, loginAsTestUser } =
     useMockUser();
 
   const handleUserSwitch = (userUid: string) => {
     const newUser = TEST_USERS.find((u) => u.uid === userUid);
-    message.loading(`正在切换到用户: ${newUser?.displayName}...`, 1);
+    message.loading(t('credit.test.switchingUser', { userName: newUser?.displayName }), 1);
     switchUser(userUid);
 
     // Show success message after data loading
     setTimeout(() => {
-      message.success(`✅ 已切换到用户: ${newUser?.displayName}，数据已刷新`);
+      message.success(t('credit.test.switchUserSuccess', { userName: newUser?.displayName }));
     }, 600);
   };
 
   const handleLoginAsTestUser = async () => {
     if (!currentUser) return;
-    message.loading('正在登录测试用户...', 2.5);
+    message.loading(t('credit.test.loggingIn'), 2.5);
     try {
       const success = await loginAsTestUser(selectedUser);
       if (success) {
-        message.success(`✅ 成功登录: ${currentUser.displayName}，数据已刷新`);
+        message.success(t('credit.test.loginSuccess', { userName: currentUser.displayName }));
       } else {
-        message.error('❌ 登录失败，请检查网络或服务器状态');
+        message.error(t('credit.test.loginFailed'));
       }
     } catch (error) {
-      message.error('❌ 登录过程中发生错误');
+      message.error(t('credit.test.loginError'));
       console.error('Login error:', error);
     }
   };
@@ -60,11 +62,11 @@ const CreditTestPage: React.FC = () => {
           <div className="flex items-center gap-3 mb-4">
             <ExperimentOutlined className="text-2xl text-blue-600" />
             <Title level={2} className="!mb-0">
-              积分系统测试页面
+              {t('credit.test.pageTitle')}
             </Title>
           </div>
           <Paragraph className="text-gray-600 text-lg">
-            完整的积分功能测试界面，支持多用户场景验证和实时数据查看
+            {t('credit.test.pageDescription')}
           </Paragraph>
         </div>
 
@@ -74,244 +76,191 @@ const CreditTestPage: React.FC = () => {
           title={
             <div className="flex items-center gap-2">
               <UserSwitchOutlined className="text-blue-600" />
-              <span>测试用户选择器</span>
+              <span>{t('credit.test.userSelector')}</span>
             </div>
           }
         >
           <Alert
-            message="快速测试说明"
-            description="选择不同的测试用户来验证各种积分场景。可以直接切换查看数据，或者点击登录按钮实际登录该用户。"
+            message={t('credit.test.quickTestTitle')}
+            description={t('credit.test.quickTestDescription')}
             type="info"
             showIcon
             className="mb-4"
           />
 
-          <Row gutter={16} align="middle">
-            <Col span={10}>
-              <div className="mb-2">
-                <Text strong>选择测试用户:</Text>
-              </div>
-              <Select
-                value={selectedUser}
-                onChange={handleUserSwitch}
-                className="w-full"
-                size="large"
-                placeholder="选择测试用户"
-              >
-                {TEST_USERS.map((user) => (
-                  <Option key={user.uid} value={user.uid}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: user.color }}
-                      />
-                      <span>{user.displayName}</span>
-                      <span className="text-gray-500">({user.expectedBalance} credits)</span>
-                    </div>
-                  </Option>
-                ))}
-              </Select>
-            </Col>
-
-            <Col span={8}>
-              <div className="mb-2">
-                <Text strong>登录操作:</Text>
-              </div>
-              <Space>
-                <Button
-                  type="primary"
-                  icon={<LoginOutlined />}
-                  onClick={handleLoginAsTestUser}
-                  size="large"
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <div className="mb-4">
+                <label
+                  htmlFor="test-user-select"
+                  className="block text-sm font-medium text-gray-700 mb-2"
                 >
-                  登录此用户
-                </Button>
-                <Button
-                  type={isMockMode ? 'primary' : 'default'}
-                  onClick={enableMockMode}
-                  size="large"
+                  {t('credit.test.selectTestUser')}
+                </label>
+                <Select
+                  id="test-user-select"
+                  value={selectedUser}
+                  onChange={handleUserSwitch}
+                  className="w-full"
+                  placeholder={t('credit.test.selectUserPlaceholder')}
                 >
-                  {isMockMode ? '模拟模式' : '启用模拟'}
-                </Button>
-              </Space>
-            </Col>
+                  {TEST_USERS.map((user) => (
+                    <Option key={user.uid} value={user.uid}>
+                      <div className="flex items-center justify-between">
+                        <span>{user.displayName}</span>
+                        <Text type="secondary" className="text-xs ml-2">
+                          {t('credit.test.expectedBalance')}: {user.expectedBalance}
+                        </Text>
+                      </div>
+                    </Option>
+                  ))}
+                </Select>
+              </div>
 
-            <Col span={6}>
-              <div className="mb-2">
-                <Text strong>帮助链接:</Text>
-              </div>
-              <Space>
-                <Button
-                  type="link"
-                  onClick={() => window.open('/credit-test-validation', '_blank')}
-                >
-                  测试指南
-                </Button>
-                <Button
-                  type="link"
-                  onClick={() => window.open('http://localhost:5800/api-docs', '_blank')}
-                >
-                  API文档
-                </Button>
-              </Space>
-            </Col>
-          </Row>
-
-          {currentUser && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3 mb-2">
-                <div
-                  className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: currentUser.color }}
-                />
-                <Text strong className="text-lg">
-                  {currentUser.displayName}
-                </Text>
-                <Text code>{currentUser.email}</Text>
-                {isMockMode && (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                    模拟模式
-                  </span>
-                )}
-              </div>
-              <Text className="text-gray-600">{currentUser.description}</Text>
-              <div className="mt-2">
-                <Text strong>测试场景: </Text>
-                <Text>{currentUser.scenario}</Text>
-              </div>
-              <div className="mt-1">
-                <Text strong>预期余额: </Text>
-                <Text type="success">{currentUser.expectedBalance} credits</Text>
-              </div>
-              <div className="mt-1">
-                <Text strong>登录密码: </Text>
-                <Text code>testPassword123</Text>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Quick Testing Guide */}
-        <Card className="mb-6" title="🚀 快速测试指南">
-          <Row gutter={16}>
-            <Col span={6}>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl mb-2">1️⃣</div>
-                <Text strong>选择用户</Text>
-                <div className="text-sm text-gray-500 mt-1">从下拉菜单选择测试用户</div>
-              </div>
-            </Col>
-            <Col span={6}>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl mb-2">2️⃣</div>
-                <Text strong>登录用户</Text>
-                <div className="text-sm text-gray-500 mt-1">点击"登录此用户"或启用模拟模式</div>
-              </div>
-            </Col>
-            <Col span={6}>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl mb-2">3️⃣</div>
-                <Text strong>查看数据</Text>
-                <div className="text-sm text-gray-500 mt-1">观察余额、充值记录和使用记录</div>
-              </div>
-            </Col>
-            <Col span={6}>
-              <div className="text-center p-4 border rounded-lg">
-                <div className="text-2xl mb-2">4️⃣</div>
-                <Text strong>验证结果</Text>
-                <div className="text-sm text-gray-500 mt-1">确认数据与预期值一致</div>
-              </div>
-            </Col>
-          </Row>
-        </Card>
-
-        {/* Current Status */}
-        <div className="mb-6">
-          <Alert
-            message={
-              <div className="flex items-center justify-between">
-                <span>
-                  <ApiOutlined className="mr-2" />
-                  当前测试: <Text strong>{currentUser?.displayName}</Text> | 预期余额:{' '}
-                  <Text type="success">{currentUser?.expectedBalance}</Text> | 状态:{' '}
-                  <Text type={isMockMode ? 'warning' : undefined}>
-                    {isMockMode ? '模拟模式' : '实际登录'}
-                  </Text>
-                </span>
-                <Space>
-                  <Button type="link" size="small" onClick={() => window.location.reload()}>
-                    刷新页面
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Button
+                    type="primary"
+                    onClick={handleLoginAsTestUser}
+                    icon={<LoginOutlined />}
+                    className="w-full"
+                    disabled={!currentUser}
+                  >
+                    {t('credit.test.actualLogin')}
                   </Button>
-                </Space>
+                </Col>
+                <Col span={12}>
+                  <Button
+                    type="default"
+                    onClick={() => enableMockMode(true)}
+                    icon={<UserSwitchOutlined />}
+                    className="w-full"
+                  >
+                    {t('credit.test.simulationMode')}
+                  </Button>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <Text strong className="text-blue-600">
+                    {t('credit.test.currentMode')}
+                  </Text>
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${
+                      isMockMode ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800'
+                    }`}
+                  >
+                    {isMockMode ? t('credit.test.simulation') : t('credit.test.realMode')}
+                  </span>
+                </div>
+                <Text type="secondary" className="text-sm">
+                  {isMockMode
+                    ? t('credit.test.simulationDescription')
+                    : t('credit.test.realModeDescription')}
+                </Text>
               </div>
-            }
-            type="success"
-            showIcon
-          />
+
+              {currentUser && (
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <div className="mb-2">
+                    <Text strong className="text-blue-800">
+                      {t('credit.test.selectedUser')}
+                    </Text>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div>
+                      <Text className="text-blue-700">
+                        {t('credit.test.userName')}: {currentUser.displayName}
+                      </Text>
+                    </div>
+                    <div>
+                      <Text className="text-blue-700">
+                        {t('credit.test.userId')}: {currentUser.uid}
+                      </Text>
+                    </div>
+                    <div>
+                      <Text className="text-blue-700">
+                        {t('credit.test.expectedBalance')}: {currentUser.expectedBalance}{' '}
+                        {t('credit.balance.creditsUnit')}
+                      </Text>
+                    </div>
+                    <div>
+                      <Text className="text-blue-700">
+                        {t('credit.test.scenario')}: {currentUser.scenario}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Credit Balance */}
+        <CreditBalance />
+
+        {/* Credit History */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+          <CreditRechargeHistory />
+          <CreditUsageHistory />
         </div>
 
-        {/* Main Testing Interface */}
-        <div className="space-y-6">
-          {/* Credit Balance Section */}
-          <CreditBalance key={`balance-${selectedUser}-${isMockMode}`} />
+        {/* Testing Info */}
+        <Card
+          title={
+            <div className="flex items-center gap-2">
+              <BookOutlined className="text-green-600" />
+              <span>{t('credit.test.testingInfo')}</span>
+            </div>
+          }
+          className="mb-6"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 bg-blue-50 rounded-lg text-center">
+              <div className="text-2xl font-bold text-blue-600 mb-1">3</div>
+              <div className="text-sm text-blue-800">{t('credit.test.apiEndpoints')}</div>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg text-center">
+              <div className="text-2xl font-bold text-green-600 mb-1">{TEST_USERS.length}</div>
+              <div className="text-sm text-green-800">{t('credit.test.testUsers')}</div>
+            </div>
+            <div className="p-4 bg-orange-50 rounded-lg text-center">
+              <div className="text-2xl font-bold text-orange-600 mb-1">5</div>
+              <div className="text-sm text-orange-800">{t('credit.test.testScenarios')}</div>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg text-center">
+              <div className="text-2xl font-bold text-purple-600 mb-1">2</div>
+              <div className="text-sm text-purple-800">{t('credit.test.testModes')}</div>
+            </div>
+          </div>
 
-          {/* Credit Recharge History Section */}
-          <CreditRechargeHistory key={`recharge-${selectedUser}-${isMockMode}`} />
-
-          {/* Credit Usage History Section */}
-          <CreditUsageHistory key={`usage-${selectedUser}-${isMockMode}`} />
-        </div>
-
-        {/* Testing Tips */}
-        <Card className="mt-8" title="💡 测试提示">
-          <Row gutter={16}>
-            <Col span={12}>
-              <div>
-                <Text strong className="block mb-2">
-                  重点测试场景：
-                </Text>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>
-                    <Text strong>Alice (重度用户)</Text>: 验证大量数据的显示和分页
-                  </li>
-                  <li>
-                    <Text strong>Charlie (过期积分)</Text>: 测试过期积分的处理逻辑
-                  </li>
-                  <li>
-                    <Text strong>Zero (零余额)</Text>: 验证零余额状态的展示
-                  </li>
-                  <li>
-                    <Text strong>Diana (企业用户)</Text>: 测试大额积分的显示格式
-                  </li>
-                </ul>
-              </div>
-            </Col>
-            <Col span={12}>
-              <div>
-                <Text strong className="block mb-2">
-                  两种测试模式：
-                </Text>
-                <ul className="list-disc list-inside space-y-1 text-sm">
-                  <li>
-                    <Text strong>实际登录模式</Text>: 点击"登录此用户"进行真实API调用
-                  </li>
-                  <li>
-                    <Text strong>模拟模式</Text>: 快速切换用户查看不同数据，适合UI测试
-                  </li>
-                  <li>
-                    <Text strong>数据对比</Text>: 两种模式可以用来对比验证数据一致性
-                  </li>
-                  <li>
-                    <Text strong>调试信息</Text>: 查看浏览器控制台获取详细的切换日志
-                  </li>
-                </ul>
-              </div>
-            </Col>
-          </Row>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-medium mb-3">{t('credit.test.coreFeatures')}</h3>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>• {t('credit.test.feature1')}</li>
+                <li>• {t('credit.test.feature2')}</li>
+                <li>• {t('credit.test.feature3')}</li>
+                <li>• {t('credit.test.feature4')}</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium mb-3">{t('credit.test.testingFeatures')}</h3>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>• {t('credit.test.testFeature1')}</li>
+                <li>• {t('credit.test.testFeature2')}</li>
+                <li>• {t('credit.test.testFeature3')}</li>
+                <li>• {t('credit.test.testFeature4')}</li>
+              </ul>
+            </div>
+          </div>
 
           <Alert
-            message="使用建议"
-            description="首次测试建议使用'实际登录模式'验证API功能，然后使用'模拟模式'快速切换不同用户场景进行UI测试。"
+            message={t('credit.test.usageSuggestion')}
+            description={t('credit.test.usageSuggestionDesc')}
             type="info"
             showIcon
             className="mt-4"
@@ -324,19 +273,19 @@ const CreditTestPage: React.FC = () => {
                 icon={<BookOutlined />}
                 onClick={() => window.open('/credit-test-validation', '_blank')}
               >
-                详细测试方案
+                {t('credit.test.detailedTestPlan')}
               </Button>
               <Button
                 icon={<ApiOutlined />}
                 onClick={() => window.open('http://localhost:5800/api-docs', '_blank')}
               >
-                API 文档
+                {t('credit.test.apiDocs')}
               </Button>
               <Button
                 icon={<LinkOutlined />}
                 onClick={() => window.open('https://github.com/refly-ai/refly', '_blank')}
               >
-                项目仓库
+                {t('credit.test.projectRepo')}
               </Button>
             </Space>
           </div>

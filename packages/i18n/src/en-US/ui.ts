@@ -140,6 +140,8 @@ const translations = {
     validate: 'Validate',
     refresh: 'Refresh',
     generating: 'Generating...',
+    yes: 'Yes',
+    no: 'No',
   },
   mode: {
     ask: 'Ask',

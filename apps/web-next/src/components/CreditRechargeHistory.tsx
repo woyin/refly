@@ -10,6 +10,7 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useGetCreditRecharge } from '@refly-packages/ai-workspace-common/queries/queries';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -29,13 +30,14 @@ interface CreditRecharge {
  * 显示用户的积分充值记录，包含统计分析
  */
 const CreditRechargeHistory: React.FC = () => {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useGetCreditRecharge();
 
   if (isLoading) {
     return (
-      <Card title="充值记录" className="mb-6">
+      <Card title={t('credit.recharge.title')} className="mb-6">
         <div className="flex justify-center items-center h-32">
-          <Spin size="large" tip="加载中..." />
+          <Spin size="large" tip={t('common.loading')} />
         </div>
       </Card>
     );
@@ -43,14 +45,14 @@ const CreditRechargeHistory: React.FC = () => {
 
   if (error) {
     return (
-      <Card title="充值记录" className="mb-6">
+      <Card title={t('credit.recharge.title')} className="mb-6">
         <Alert
-          message="加载失败"
-          description="无法获取充值记录信息，请稍后重试"
+          message={t('credit.recharge.loadFailed')}
+          description={t('credit.recharge.loadFailedDesc')}
           type="error"
           showIcon
           action={
-            <Tooltip title="重新加载数据">
+            <Tooltip title={t('credit.recharge.reload')}>
               <ReloadOutlined className="cursor-pointer text-blue-500" onClick={() => refetch()} />
             </Tooltip>
           }
@@ -101,10 +103,18 @@ const CreditRechargeHistory: React.FC = () => {
 
   const getSourceTag = (source: string) => {
     const sourceConfig = {
-      purchase: { color: 'blue', icon: <DollarCircleOutlined />, text: '购买' },
-      gift: { color: 'green', icon: <GiftOutlined />, text: '赠送' },
-      promotion: { color: 'orange', icon: <TrophyOutlined />, text: '促销' },
-      refund: { color: 'red', icon: <UndoOutlined />, text: '退款' },
+      purchase: {
+        color: 'blue',
+        icon: <DollarCircleOutlined />,
+        text: t('credit.recharge.source.purchase'),
+      },
+      gift: { color: 'green', icon: <GiftOutlined />, text: t('credit.recharge.source.gift') },
+      promotion: {
+        color: 'orange',
+        icon: <TrophyOutlined />,
+        text: t('credit.recharge.source.promotion'),
+      },
+      refund: { color: 'red', icon: <UndoOutlined />, text: t('credit.recharge.source.refund') },
     };
 
     const config = sourceConfig[source as keyof typeof sourceConfig] || sourceConfig.purchase;
@@ -122,23 +132,23 @@ const CreditRechargeHistory: React.FC = () => {
     if (usageRate === 0) {
       return (
         <Tag color="green" icon={<CheckCircleOutlined />}>
-          未使用
+          {t('credit.recharge.status.unused')}
         </Tag>
       );
     } else if (usageRate < 1) {
       return (
         <Tag color="orange" icon={<ExclamationCircleOutlined />}>
-          部分使用
+          {t('credit.recharge.status.partial')}
         </Tag>
       );
     } else {
-      return <Tag color="red">已耗尽</Tag>;
+      return <Tag color="red">{t('credit.recharge.status.depleted')}</Tag>;
     }
   };
 
   const columns: ColumnsType<CreditRecharge> = [
     {
-      title: '充值ID',
+      title: t('credit.recharge.columns.rechargeId'),
       dataIndex: 'rechargeId',
       key: 'rechargeId',
       render: (id: string) => (
@@ -149,24 +159,28 @@ const CreditRechargeHistory: React.FC = () => {
       width: 100,
     },
     {
-      title: '充值金额',
+      title: t('credit.recharge.columns.amount'),
       dataIndex: 'amount',
       key: 'amount',
       render: (amount: number) => (
-        <span className="font-medium text-blue-600">{amount.toLocaleString()} 积分</span>
+        <span className="font-medium text-blue-600">
+          {amount.toLocaleString()} {t('credit.recharge.unit.credit')}
+        </span>
       ),
       sorter: (a, b) => a.amount - b.amount,
       width: 120,
     },
     {
-      title: '剩余余额',
+      title: t('credit.recharge.columns.balance'),
       dataIndex: 'balance',
       key: 'balance',
       render: (balance: number, record) => (
         <div className="space-y-1">
-          <span className="font-medium text-green-600">{balance.toLocaleString()} 积分</span>
+          <span className="font-medium text-green-600">
+            {balance.toLocaleString()} {t('credit.recharge.unit.credit')}
+          </span>
           <div className="text-xs text-gray-500">
-            已用: {(record.amount - balance).toLocaleString()}
+            {t('credit.recharge.columns.used')}: {(record.amount - balance).toLocaleString()}
           </div>
         </div>
       ),
@@ -174,7 +188,7 @@ const CreditRechargeHistory: React.FC = () => {
       width: 120,
     },
     {
-      title: '使用情况',
+      title: t('credit.recharge.columns.usage'),
       key: 'usage',
       render: (_, record) => (
         <div className="space-y-1">
@@ -190,21 +204,21 @@ const CreditRechargeHistory: React.FC = () => {
       width: 100,
     },
     {
-      title: '来源',
+      title: t('credit.recharge.columns.source'),
       dataIndex: 'source',
       key: 'source',
       render: getSourceTag,
       filters: [
-        { text: '购买', value: 'purchase' },
-        { text: '赠送', value: 'gift' },
-        { text: '促销', value: 'promotion' },
-        { text: '退款', value: 'refund' },
+        { text: t('credit.recharge.source.purchase'), value: 'purchase' },
+        { text: t('credit.recharge.source.gift'), value: 'gift' },
+        { text: t('credit.recharge.source.promotion'), value: 'promotion' },
+        { text: t('credit.recharge.source.refund'), value: 'refund' },
       ],
       onFilter: (value, record) => record.source === value,
       width: 80,
     },
     {
-      title: '描述',
+      title: t('credit.recharge.columns.description'),
       dataIndex: 'description',
       key: 'description',
       ellipsis: {
@@ -217,7 +231,7 @@ const CreditRechargeHistory: React.FC = () => {
       ),
     },
     {
-      title: '创建时间',
+      title: t('credit.recharge.columns.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => (
@@ -229,7 +243,7 @@ const CreditRechargeHistory: React.FC = () => {
       width: 100,
     },
     {
-      title: '到期时间',
+      title: t('credit.recharge.columns.expiresAt'),
       dataIndex: 'expiresAt',
       key: 'expiresAt',
       render: (date: string) => {
@@ -254,10 +268,12 @@ const CreditRechargeHistory: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <DollarCircleOutlined className="text-green-500" />
-            <span>充值记录</span>
-            <span className="text-sm text-gray-500">({rechargeRecords.length} 条)</span>
+            <span>{t('credit.recharge.title')}</span>
+            <span className="text-sm text-gray-500">
+              ({rechargeRecords.length} {t('credit.recharge.totalRecords')})
+            </span>
           </div>
-          <Tooltip title="刷新数据">
+          <Tooltip title={t('credit.recharge.reloadData')}>
             <ReloadOutlined className="cursor-pointer text-blue-500" onClick={() => refetch()} />
           </Tooltip>
         </div>
@@ -268,40 +284,40 @@ const CreditRechargeHistory: React.FC = () => {
       <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg">
         <div className="flex items-center gap-2 mb-3">
           <CalculatorOutlined className="text-blue-600" />
-          <span className="font-medium text-gray-800">充值统计概览</span>
+          <span className="font-medium text-gray-800">{t('credit.recharge.stats.overview')}</span>
         </div>
 
         <Row gutter={16}>
           <Col span={6}>
             <Statistic
-              title="总充值金额"
+              title={t('credit.recharge.stats.totalAmount')}
               value={stats.totalAmount}
               precision={0}
               valueStyle={{ color: '#1677ff', fontSize: '16px' }}
-              suffix="积分"
+              suffix={t('credit.recharge.unit.credit')}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="剩余余额"
+              title={t('credit.recharge.stats.remainingBalance')}
               value={stats.totalBalance}
               precision={0}
               valueStyle={{ color: '#52c41a', fontSize: '16px' }}
-              suffix="积分"
+              suffix={t('credit.recharge.unit.credit')}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="已使用积分"
+              title={t('credit.recharge.stats.usedCredit')}
               value={stats.totalUsed}
               precision={0}
               valueStyle={{ color: '#fa8c16', fontSize: '16px' }}
-              suffix="积分"
+              suffix={t('credit.recharge.unit.credit')}
             />
           </Col>
           <Col span={6}>
             <Statistic
-              title="使用率"
+              title={t('credit.recharge.stats.usageRate')}
               value={usageRate}
               precision={1}
               valueStyle={{
@@ -315,13 +331,16 @@ const CreditRechargeHistory: React.FC = () => {
 
         {/* 来源统计 */}
         <div className="mt-4 pt-3 border-t border-gray-200">
-          <div className="text-sm font-medium text-gray-700 mb-2">按来源统计:</div>
+          <div className="text-sm font-medium text-gray-700 mb-2">
+            {t('credit.recharge.stats.bySource')}:
+          </div>
           <div className="flex flex-wrap gap-2">
             {Object.entries(stats.bySource).map(([source, data]) => (
               <div key={source} className="px-3 py-1 bg-white rounded border text-xs">
                 {getSourceTag(source)}
                 <span className="ml-2 text-gray-600">
-                  {data.count}次 / {data.amount.toLocaleString()}积分
+                  {data.count} {t('credit.recharge.stats.times')}, {data.amount.toLocaleString()}{' '}
+                  {t('credit.recharge.unit.credit')}
                 </span>
               </div>
             ))}
@@ -330,25 +349,27 @@ const CreditRechargeHistory: React.FC = () => {
 
         {/* 使用状态统计 */}
         <div className="mt-3 pt-3 border-t border-gray-200">
-          <div className="text-sm font-medium text-gray-700 mb-2">使用状态统计:</div>
+          <div className="text-sm font-medium text-gray-700 mb-2">
+            {t('credit.recharge.stats.usageStatus')}:
+          </div>
           <div className="flex gap-4 text-xs">
             <span className="flex items-center gap-1">
               <Tag color="green" size="small">
-                未使用
+                {t('credit.recharge.status.unused')}
               </Tag>
-              {stats.statusCounts.unused} 条
+              {stats.statusCounts.unused} {t('credit.recharge.stats.records')}
             </span>
             <span className="flex items-center gap-1">
               <Tag color="orange" size="small">
-                部分使用
+                {t('credit.recharge.status.partial')}
               </Tag>
-              {stats.statusCounts.partial} 条
+              {stats.statusCounts.partial} {t('credit.recharge.stats.records')}
             </span>
             <span className="flex items-center gap-1">
               <Tag color="red" size="small">
-                已耗尽
+                {t('credit.recharge.status.depleted')}
               </Tag>
-              {stats.statusCounts.depleted} 条
+              {stats.statusCounts.depleted} {t('credit.recharge.stats.records')}
             </span>
           </div>
         </div>
@@ -363,7 +384,8 @@ const CreditRechargeHistory: React.FC = () => {
           pageSize: 10,
           showSizeChanger: true,
           showQuickJumper: true,
-          showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条记录`,
+          showTotal: (total, range) =>
+            `${t('credit.recharge.totalRecordsRange', { start: range[0], end: range[1], total: total })}`,
         }}
         summary={(pageData) => {
           if (pageData.length === 0) return null;
@@ -376,20 +398,28 @@ const CreditRechargeHistory: React.FC = () => {
             <Table.Summary fixed>
               <Table.Summary.Row className="bg-blue-50">
                 <Table.Summary.Cell index={0}>
-                  <strong>当前页合计</strong>
+                  <strong>{t('credit.recharge.currentPageTotal')}</strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1}>
-                  <strong className="text-blue-600">{pageAmount.toLocaleString()} 积分</strong>
+                  <strong className="text-blue-600">
+                    {pageAmount.toLocaleString()} {t('credit.recharge.unit.credit')}
+                  </strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={2}>
-                  <strong className="text-green-600">{pageBalance.toLocaleString()} 积分</strong>
+                  <strong className="text-green-600">
+                    {pageBalance.toLocaleString()} {t('credit.recharge.unit.credit')}
+                  </strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={3}>
-                  <span className="text-orange-600">已用: {pageUsed.toLocaleString()}</span>
+                  <span className="text-orange-600">
+                    {t('credit.recharge.currentPageUsed')}: {pageUsed.toLocaleString()}
+                  </span>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={4} colSpan={4}>
                   <span className="text-xs text-gray-500">
-                    页面使用率: {pageAmount > 0 ? ((pageUsed / pageAmount) * 100).toFixed(1) : 0}%
+                    {t('credit.recharge.pageUsageRate', {
+                      rate: pageAmount > 0 ? ((pageUsed / pageAmount) * 100).toFixed(1) : 0,
+                    })}
                   </span>
                 </Table.Summary.Cell>
               </Table.Summary.Row>
@@ -400,22 +430,27 @@ const CreditRechargeHistory: React.FC = () => {
 
       {/* 数据说明 */}
       <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-        <div className="font-medium mb-1">数据说明:</div>
+        <div className="font-medium mb-1">{t('credit.recharge.dataExplanation')}:</div>
         <ul className="space-y-1 text-xs">
           <li>
-            • <strong>充值金额</strong>: 每次充值的原始积分数量
+            • <strong>{t('credit.recharge.dataExplanation.amount')}</strong>:{' '}
+            {t('credit.recharge.dataExplanation.amountDesc')}
           </li>
           <li>
-            • <strong>剩余余额</strong>: 该笔充值记录的当前可用积分
+            • <strong>{t('credit.recharge.dataExplanation.balance')}</strong>:{' '}
+            {t('credit.recharge.dataExplanation.balanceDesc')}
           </li>
           <li>
-            • <strong>使用情况</strong>: 该笔充值的积分消耗状态和百分比
+            • <strong>{t('credit.recharge.dataExplanation.usage')}</strong>:{' '}
+            {t('credit.recharge.dataExplanation.usageDesc')}
           </li>
           <li>
-            • <strong>FIFO原则</strong>: 积分按先进先出顺序消耗，最早充值的先被使用
+            • <strong>{t('credit.recharge.dataExplanation.fifo')}</strong>:{' '}
+            {t('credit.recharge.dataExplanation.fifoDesc')}
           </li>
           <li>
-            • <strong>有效期</strong>: 充值后30天内有效，过期后自动失效
+            • <strong>{t('credit.recharge.dataExplanation.validity')}</strong>:{' '}
+            {t('credit.recharge.dataExplanation.validityDesc')}
           </li>
         </ul>
       </div>

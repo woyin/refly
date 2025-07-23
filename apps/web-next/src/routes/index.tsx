@@ -16,7 +16,6 @@ import {
 } from '@refly/web-core';
 import MemorialPage from '../pages/MemorialPage';
 import CreditTestPage from '../pages/CreditTestPage';
-import CreditTestValidation from '../pages/CreditTestValidation';
 import PricingModalPage from '../pages/PricingModalPage';
 import PricingModalTestPage from '../pages/PricingModalTestPage';
 
@@ -83,10 +82,7 @@ export const RoutesList: RouteObject[] = [
     path: '/credit-test',
     element: <CreditTestPage />,
   },
-  {
-    path: '/credit-test-validation',
-    element: <CreditTestValidation />,
-  },
+
   {
     path: '/pricing-modal',
     element: <PricingModalPage />,
