@@ -3,13 +3,16 @@ import { Statsig, StatsigUser } from '@statsig/statsig-node-core';
 let statsig: Statsig | null = null;
 
 export const setupStatsig = async () => {
-  if (!process.env.STATSIG_SECRET_KEY) {
-    console.warn('STATSIG_SECRET_KEY is not set, skipping statsig setup');
+  const secretKey = process.env.STATSIG_SECRET_KEY;
+  if (!secretKey) {
+    console.warn('VITE_STATSIG_CLIENT_KEY is not set, skipping statsig setup');
     return;
   }
 
-  statsig = new Statsig(process.env.STATSIG_SECRET_KEY);
+  statsig = new Statsig(secretKey, { environment: process.env.NODE_ENV });
   await statsig.initialize();
+
+  console.log(`statsig initialized for env: ${process.env.NODE_ENV}`);
 };
 
 export const logEvent = (

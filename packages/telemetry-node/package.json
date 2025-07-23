@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.0.1",
   "description": "Telemetry utilities for Refly.AI Node.js App",
-  "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
