@@ -362,7 +362,7 @@ export const SkillResponseNode = memo(
       onHoverEnd();
     }, [onHoverEnd]);
 
-    const { invokeAction } = useInvokeAction();
+    const { invokeAction } = useInvokeAction({ source: 'skill-response-node' });
 
     const handleRerun = useCallback(() => {
       if (readonly) {

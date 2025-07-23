@@ -86,7 +86,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const { deleteNode } = useDeleteNode();
 
   const { canvasId, readonly } = useCanvasContext();
-  const { invokeAction } = useInvokeAction();
+  const { invokeAction } = useInvokeAction({ source: 'skill-response-node-preview' });
   const { resetFailedState } = useActionPolling();
 
   const { t } = useTranslation();

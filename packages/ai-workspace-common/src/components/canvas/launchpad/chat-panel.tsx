@@ -145,7 +145,7 @@ export const ChatPanel = ({
   const { canvasId, readonly } = useCanvasContext();
   const { handleFilterErrorTip } = useContextFilterErrorTip();
   const { addNode } = useAddNode();
-  const { invokeAction, abortAction } = useInvokeAction();
+  const { invokeAction, abortAction } = useInvokeAction({ source: 'chat-panel' });
   const { handleUploadImage, handleUploadMultipleImages } = useUploadImage();
 
   // Handle input focus
