@@ -121,7 +121,7 @@ const PricingModalPage: React.FC<PricingModalPageProps> = React.memo(({ onClose 
     [],
   );
 
-  const handleClose = useCallback(() => {
+  const _handleClose = useCallback(() => {
     onClose?.();
   }, [onClose]);
 
@@ -163,23 +163,6 @@ const PricingModalPage: React.FC<PricingModalPageProps> = React.memo(({ onClose 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-7xl mx-6 max-h-[95vh] overflow-y-auto">
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={handleClose}
-          className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors z-10"
-        >
-          <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4">
-            <path
-              d="M12 4L4 12M4 4L12 12"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-
         {/* Header */}
         <div className="text-center pt-16 pb-12 px-12">
           <h1 className="text-3xl font-semibold text-gray-900 mb-10">升级套餐获得更多积分</h1>
