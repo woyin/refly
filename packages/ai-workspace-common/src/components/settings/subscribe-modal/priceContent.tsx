@@ -30,6 +30,7 @@ const gridSpan = {
 
 interface Feature {
   name: string;
+  type?: string;
 }
 
 const PlanItem = (props: {
@@ -168,7 +169,7 @@ const PlanItem = (props: {
         </div>
 
         <div className="plane-features">
-          {(features || [])?.map((feature, index) => {
+          {features.map((feature, index) => {
             const parts = feature.name.split('\n');
             const name = parts[0];
             const description = parts.length > 1 ? parts.slice(1).join('\n') : null;
@@ -213,7 +214,9 @@ export const PriceContent = (props: { source: PriceSource }) => {
         title: t(`subscription.plans.${planType}.title`),
         titleCn: t(`subscription.plans.${planType}.titleCn`),
         description: t(`subscription.plans.${planType}.description`),
-        features: t(`subscription.plans.${planType}.features`, { returnObjects: true }) as string[],
+        features: (
+          (t(`subscription.plans.${planType}.features`, { returnObjects: true }) as string[]) || []
+        ).map((name) => ({ name })),
       };
     }
     return data;
@@ -302,7 +305,7 @@ export const PriceContent = (props: { source: PriceSource }) => {
               planType={planType}
               title={plansData[planType].title}
               description={plansData[planType].description}
-              features={plansData[planType].features.map((name) => ({ name }))}
+              features={plansData[planType].features}
               handleClick={() => {
                 if (planType === 'free') {
                   handleFreeClick();
