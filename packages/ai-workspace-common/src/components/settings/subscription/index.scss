@@ -43,10 +43,10 @@
     padding: 24px;
     border-radius: 12px;
     background-color: #f7f7f7;
-    background-image: url("https://refly.imgix.net/refly-website/account/points-card-bg.svg");
+    background-image: url("./banner-bg.svg");
+    background-size: cover;
+    background-position: center;
     background-repeat: no-repeat;
-    background-position: right center;
-    background-size: contain;
     margin-bottom: 16px;
 
     .plan-info {
@@ -216,7 +216,10 @@
 
     .subscription-plan-card {
       background-color: #333;
-      background-image: url("https://refly.imgix.net/refly-website/account/points-card-bg-dark.svg");
+      background-image: url("./banner-bg.svg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
 
       .plan-info {
         .current-plan-label,
