@@ -1,153 +1,172 @@
-import { useState, useEffect, useMemo } from 'react';
-import dayjs from 'dayjs';
-import { Button, Progress, Tooltip, Tag, Typography } from 'antd';
-import { HiOutlineQuestionMarkCircle } from 'react-icons/hi2';
+import { useEffect, useState } from 'react';
+import { Button, Typography, Table, Segmented } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
-import { useSubscriptionStoreShallow } from '@refly/stores';
+import {
+  useSubscriptionStoreShallow,
+  useUserStoreShallow,
+  useSiderStoreShallow,
+} from '@refly/stores';
+import {
+  useGetCreditBalance,
+  useGetCreditUsage,
+  useGetCreditRecharge,
+} from '@refly-packages/ai-workspace-common/queries/queries';
+import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { formatDate } from '@refly-packages/ai-workspace-common/utils/date';
 
 // styles
 import './index.scss';
-import { useUserStoreShallow } from '@refly/stores';
-import { useTranslation } from 'react-i18next';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-
-import { PiInvoiceBold } from 'react-icons/pi';
-import { IconSubscription } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useSiderStoreShallow } from '@refly/stores';
-import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 
 const { Title } = Typography;
-const formatDate = (date: string) => {
-  return dayjs(date).format('YYYY-MM-DD');
-};
 
-const formatNumber = (num: number) => {
-  if (num < 0) {
-    return '∞';
-  }
-  return num?.toLocaleString() || '0';
-};
+// Define interfaces for the table data
+interface CreditUsageRecord {
+  usageId: string;
+  description?: string;
+  createdAt: string;
+  amount: number;
+}
 
-const UsageItem = ({
-  title,
-  used,
-  quota,
-  description,
-  endAt,
-}: {
-  title: string;
-  used: number;
-  quota: number;
-  description: string;
-  endAt?: string;
-}) => {
-  const { t } = useTranslation();
-
-  return (
-    <div className="subscription-usage-item">
-      <div className="subscription-usage-item-title">
-        <div className="title">
-          <div className="title-left">
-            {title}
-            <Tooltip color="white" title={<div className="dark:text-gray-800">{description}</div>}>
-              <HiOutlineQuestionMarkCircle className="info-icon dark:text-gray-400" />
-            </Tooltip>
-          </div>
-          <div className="title-right">
-            {`${formatNumber(used)} / ${formatNumber(quota)}`}
-            {quota > 0 && endAt && (
-              <div style={{ fontSize: 10, textAlign: 'right', marginTop: 2 }}>
-                {t('settings.subscription.subscribe.resetAt', { date: formatDate(endAt) })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="subscription-usage-item-progress">
-        <Progress
-          strokeWidth={10}
-          strokeColor={quota >= 0 && used >= quota ? '#dc2626' : '#00968F'}
-          percent={(used / quota) * 100}
-          showInfo={false}
-        />
-      </div>
-    </div>
-  );
-};
+interface CreditRechargeRecord {
+  rechargeId: string;
+  description?: string;
+  createdAt: string;
+  expiredAt: string;
+  amount: number;
+  balance: number;
+}
 
 export const Subscription = () => {
-  const { t } = useTranslation();
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-  const { subscription, customerId } = userProfile ?? {};
+  const { subscription } = userProfile ?? {};
 
-  const { setSubscribeModalVisible, planType, setPlanType } = useSubscriptionStoreShallow(
-    (state) => ({
-      setSubscribeModalVisible: state.setSubscribeModalVisible,
-      planType: state.planType,
-      setPlanType: state.setPlanType,
-    }),
-  );
+  const { setSubscribeModalVisible, setPlanType } = useSubscriptionStoreShallow((state) => ({
+    setSubscribeModalVisible: state.setSubscribeModalVisible,
+    setPlanType: state.setPlanType,
+  }));
 
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
 
-  const { isUsageLoading, tokenUsage, storageUsage, fileParsingUsage } = useSubscriptionUsage();
+  const { isUsageLoading: isStorageUsageLoading, storageUsage } = useSubscriptionUsage();
 
-  const [portalLoading, setPortalLoading] = useState(false);
-  const createPortalSession = async () => {
-    if (portalLoading) return;
-    setPortalLoading(true);
-    const { data } = await getClient().createPortalSession();
-    setPortalLoading(false);
-    if (data?.data?.url) {
-      window.location.href = data.data.url;
-    }
-  };
+  // Fetch credit balance
+  const { data: balanceData, isLoading: isBalanceLoading } = useGetCreditBalance();
+  const creditBalance = balanceData?.data?.creditBalance ?? 0;
+
+  // State for active history tab
+  const [activeTab, setActiveTab] = useState<'usage' | 'recharge'>('usage');
+
+  // Fetch credit history data
+  const { data: usageData, isLoading: isUsageHistoryLoading } = useGetCreditUsage({
+    enabled: activeTab === 'usage',
+  });
+  const { data: rechargeData, isLoading: isRechargeHistoryLoading } = useGetCreditRecharge({
+    enabled: activeTab === 'recharge',
+  });
+
+  const isHistoryLoading = isUsageHistoryLoading || isRechargeHistoryLoading;
 
   useEffect(() => {
     setPlanType(subscription?.planType || 'free');
   }, [subscription?.planType, setPlanType]);
 
-  const hintTag = useMemo(() => {
-    if (planType === 'free') return null;
-    if (subscription?.isTrial) {
-      return (
-        <Tag className="interval" color="blue">
-          {t('settings.subscription.subscribe.trialExpireAt', {
-            date: formatDate(subscription?.cancelAt),
-          })}
-        </Tag>
-      );
-    }
-    if (subscription?.cancelAt) {
-      return (
-        <Tag className="interval" color="orange">
-          {t('settings.subscription.subscribe.cancelAt', {
-            date: formatDate(subscription?.cancelAt),
-          })}
-        </Tag>
-      );
-    }
-    return (
-      <Tag className="interval" color="blue">
-        {t(`settings.subscription.subscribe.${subscription?.interval}Plan`)}
-      </Tag>
-    );
-  }, [t, planType, subscription?.interval, subscription?.cancelAt]);
+  // Columns for Usage History Table
+  const usageColumns: ColumnsType<CreditUsageRecord> = [
+    {
+      title: '使用详情',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text) => text || 'N/A',
+    },
+    {
+      title: '使用时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (text) => formatDate(text),
+    },
+    {
+      title: '积分变更',
+      dataIndex: 'amount',
+      key: 'amount',
+      render: (amount) => {
+        if (amount > 0) {
+          return <span style={{ color: '#52c41a' }}>{`+${amount}`}</span>;
+        }
+        // For negative values, the number itself will have the minus sign
+        return <span>{amount}</span>;
+      },
+    },
+  ];
+
+  // Columns for Recharge History Table
+  const rechargeColumns: ColumnsType<CreditRechargeRecord> = [
+    {
+      title: '获取途径',
+      dataIndex: 'description',
+      key: 'description',
+      render: (text) => text || 'N/A',
+    },
+    {
+      title: '获取时间',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (text) => formatDate(text),
+    },
+    {
+      title: '有效期至',
+      dataIndex: 'expiredAt',
+      key: 'expiredAt',
+      render: (text) => formatDate(text),
+    },
+    {
+      title: '积分变更',
+      dataIndex: 'amount',
+      key: 'amount',
+      render: (amount) => <span style={{ color: '#52c41a' }}>{`+${amount}`}</span>,
+    },
+    {
+      title: '剩余',
+      dataIndex: 'balance',
+      key: 'balance',
+    },
+    {
+      title: '状态',
+      key: 'status',
+      render: (_, record) => {
+        const now = new Date();
+        const expiryDate = new Date(record.expiredAt);
+        if (record.balance <= 0) {
+          return <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>已用尽</span>;
+        }
+        if (expiryDate < now) {
+          return <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>已失效</span>;
+        }
+        return <span style={{ color: 'rgba(0, 0, 0, 0.85)' }}>可用</span>;
+      },
+    },
+  ];
+
+  const isLoading = isStorageUsageLoading || isBalanceLoading;
 
   return (
-    <div className="p-4 pt-0 pl-0 h-full overflow-hidden flex flex-col">
-      <Title level={4} className="pb-4 pl-4">
-        {t('settings.tabs.subscription')}
-      </Title>
-      <div className="subscription h-full overflow-y-auto">
-        {isUsageLoading ? (
+    <div className="subscription-management-page">
+      <div className="subscription-header">
+        <Title level={4} className="title">
+          订阅管理
+        </Title>
+        <div className="subtitle">管理订阅方案与积分</div>
+      </div>
+
+      <div className="subscription-content">
+        {isLoading ? (
           <Spin
-            spinning={isUsageLoading}
+            spinning={isLoading}
             style={{
               height: '100%',
               width: '100%',
@@ -158,72 +177,58 @@ export const Subscription = () => {
           />
         ) : (
           <>
-            <div
-              className={`subscription-plan dark:bg-gray-900/50 ${planType === 'free' ? 'free' : ''}`}
-            >
-              <div className="subscription-plan-info">
-                <div className="subscription-plan-info-title">
-                  {t('settings.subscription.currentPlan')}
-                </div>
-                <div className="subscription-plan-info-status">
-                  {t(`settings.subscription.subscriptionStatus.${planType}`)}
-                  {hintTag}
-                </div>
+            <div className="subscription-plan-card">
+              <div className="plan-info">
+                <div className="current-plan-label">当前订阅方案</div>
+                <div className="current-plan-name">{subscription?.planType || 'Free'} 免费版</div>
               </div>
-              {planType === 'free' || subscription?.isTrial ? (
-                <Button
-                  type={subscription?.isTrial ? 'default' : 'primary'}
-                  icon={<IconSubscription className="flex items-center justify-center text-base" />}
-                  onClick={() => {
-                    setShowSettingModal(false);
-                    setSubscribeModalVisible(true);
-                  }}
-                >
-                  {t('settings.subscription.subscribeNow')}
-                </Button>
-              ) : (
-                customerId && (
-                  <Button
-                    type="default"
-                    className="text-gray-500 font-medium border-none shadow-lg"
-                    loading={portalLoading}
-                    onClick={createPortalSession}
-                    icon={<PiInvoiceBold className="flex items-center justify-center text-base" />}
-                  >
-                    {t('settings.subscription.manage')}
-                  </Button>
-                )
-              )}
+              <Button
+                type="primary"
+                className="upgrade-button"
+                onClick={() => {
+                  setShowSettingModal(false);
+                  setSubscribeModalVisible(true);
+                }}
+              >
+                升级套餐
+              </Button>
             </div>
 
-            <div className="subscription-usage">
-              <UsageItem
-                title={t('settings.subscription.t1Requests')}
-                description={t('settings.subscription.t1RequestsDescription')}
-                used={tokenUsage?.t1CountUsed}
-                quota={tokenUsage?.t1CountQuota}
-                endAt={tokenUsage?.endAt}
+            <div className="usage-cards">
+              <div className="usage-card points-card">
+                <div className="usage-label">剩余可用积分</div>
+                <div className="usage-value">{creditBalance.toLocaleString()}</div>
+              </div>
+              <div className="usage-card files-card">
+                <div className="usage-label">知识库文件</div>
+                <div className="usage-value">
+                  {`${storageUsage?.fileCountUsed || 0} / ${storageUsage?.fileCountQuota < 0 ? '∞' : storageUsage?.fileCountQuota}`}
+                </div>
+              </div>
+            </div>
+
+            <div className="points-history">
+              <Segmented
+                options={[
+                  { label: '积分使用明细', value: 'usage' },
+                  { label: '积分获取明细', value: 'recharge' },
+                ]}
+                value={activeTab}
+                onChange={(value) => setActiveTab(value as 'usage' | 'recharge')}
+                className="history-tabs"
+                size="large"
               />
-              <UsageItem
-                title={t('settings.subscription.t2Requests')}
-                description={t('settings.subscription.t2RequestsDescription')}
-                used={tokenUsage?.t2CountUsed}
-                quota={tokenUsage?.t2CountQuota}
-                endAt={tokenUsage?.endAt}
-              />
-              <UsageItem
-                title={t('settings.subscription.libraryStorage')}
-                description={t('settings.subscription.libraryStorageDescription')}
-                used={storageUsage?.fileCountUsed}
-                quota={storageUsage?.fileCountQuota}
-              />
-              <UsageItem
-                title={t('settings.subscription.advancedFileParsing')}
-                description={t('settings.subscription.advancedFileParsingDescription')}
-                used={fileParsingUsage?.pagesParsed}
-                quota={fileParsingUsage?.pagesLimit}
-                endAt={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()}
-              />
+              <Spin spinning={isHistoryLoading}>
+                <Table<any>
+                  columns={activeTab === 'usage' ? usageColumns : rechargeColumns}
+                  dataSource={
+                    activeTab === 'usage' ? usageData?.data || [] : rechargeData?.data || []
+                  }
+                  rowKey={activeTab === 'usage' ? 'usageId' : 'rechargeId'}
+                  pagination={{ showSizeChanger: false }}
+                  className="history-table"
+                />
+              </Spin>
             </div>
           </>
         )}

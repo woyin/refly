@@ -21,5 +21,5 @@ export interface SyncMediaCreditUsageJobData {
 
 export interface CreditBalance {
   creditAmount: number;
-  creditUsage: number;
+  creditBalance: number;
 }
