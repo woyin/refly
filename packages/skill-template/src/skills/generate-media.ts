@@ -211,7 +211,6 @@ export class GenerateMedia extends BaseSkill {
         type: mediaType,
         entityId: resultId,
         title: cleanedQuery || `Generated ${this.getMediaTypeDisplayName(mediaType)}`,
-        status: 'generating',
       };
 
       this.emitEvent(
