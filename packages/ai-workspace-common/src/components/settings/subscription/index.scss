@@ -76,6 +76,36 @@
       }
     }
 
+    .plan-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .plan-renewal-info {
+        font-size: 12px;
+        color: var(--text-icon-refly-text-1, rgba(28, 31, 35, 0.8));
+        white-space: nowrap;
+      }
+
+      .ant-btn {
+        display: flex;
+        width: 120px;
+        height: var(--height-button_default, 32px);
+        padding: var(--spacing-button_default-paddingTop, 6px)
+          var(--spacing-button_default-paddingRight, 12px)
+          var(--spacing-button_default-paddingTop, 6px)
+          var(--spacing-button_default-paddingLeft, 12px);
+        justify-content: center;
+        align-items: center;
+        border-radius: 8px;
+
+        &.ant-btn-primary {
+          border: 0 solid var(--border---refly-Card-Border, rgba(0, 0, 0, 0.1));
+          background: var(--primary---refly-primary-default, #0e9f77);
+        }
+      }
+    }
+
     .upgrade-button {
       display: flex;
       width: 120px;
@@ -90,6 +120,48 @@
       border-radius: 8px;
       border: 0 solid var(--border---refly-Card-Border, rgba(0, 0, 0, 0.1));
       background: var(--primary---refly-primary-default, #0e9f77);
+    }
+
+    // Free plan style (current style)
+    &.plan-free {
+      // This class preserves the existing look for free plan.
+      // The default styles of .subscription-plan-card already handle this.
+    }
+
+    // Starter plan style
+    &.plan-starter {
+      background-color: rgba(223, 255, 246, 0.7); // Light blue overlay
+      .current-plan-name {
+        color: var(--text-icon-refly-text-0, #1c1f23);
+      }
+      .plan-actions {
+        .plan-renewal-info {
+          color: var(--text-icon-refly-text-1, rgba(28, 31, 35, 0.8));
+        }
+        .ant-btn-default {
+          background-color: #f0f0f0;
+          border-color: #f0f0f0;
+          color: var(--text-icon-refly-text-0, #1c1f23);
+        }
+      }
+    }
+
+    // Maker plan style
+    &.plan-maker {
+      background-color: rgba(223, 255, 246, 0.7); // Light blue overlay
+      .current-plan-name {
+        color: var(--text-icon-refly-text-0, #1c1f23);
+      }
+      .plan-actions {
+        .plan-renewal-info {
+          color: var(--text-icon-refly-text-1, rgba(28, 31, 35, 0.8));
+        }
+        .ant-btn-default {
+          background-color: #f0f0f0;
+          border-color: #f0f0f0;
+          color: var(--text-icon-refly-text-0, #1c1f23);
+        }
+      }
     }
   }
 

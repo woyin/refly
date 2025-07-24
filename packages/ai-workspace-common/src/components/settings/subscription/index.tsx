@@ -14,12 +14,44 @@ import {
   useGetCreditRecharge,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { formatDate } from '@refly-packages/ai-workspace-common/utils/date';
 
 // styles
 import './index.scss';
 
 const { Title } = Typography;
+
+// --- Test Data for Development ---
+const mockSubscriptions = {
+  free: {
+    planType: 'free',
+    isPaid: false,
+    displayName: 'Free Plan',
+  },
+  starter: {
+    planType: 'starter',
+    isPaid: true,
+    displayName: 'Starter',
+    stripePortalUrl: '#',
+    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+    willCancelAtPeriodEnd: false,
+  },
+  maker_active: {
+    planType: 'maker',
+    isPaid: true,
+    displayName: 'Maker',
+    stripePortalUrl: '#',
+    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    willCancelAtPeriodEnd: false,
+  },
+  maker_canceling: {
+    planType: 'maker',
+    isPaid: true,
+    displayName: 'Maker',
+    stripePortalUrl: '#',
+    currentPeriodEnd: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 days from now
+    willCancelAtPeriodEnd: true,
+  },
+};
 
 // Define interfaces for the table data
 interface CreditUsageRecord {
@@ -42,7 +74,32 @@ export const Subscription = () => {
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-  const { subscription } = userProfile ?? {};
+
+  // State to hold the subscription data for display, defaults to real data
+  const [displaySubscription, setDisplaySubscription] = useState(userProfile?.subscription);
+
+  // Update display subscription when real subscription data changes
+  useEffect(() => {
+    setDisplaySubscription(userProfile?.subscription);
+  }, [userProfile?.subscription]);
+
+  const handleTestPlanChange = (value: string) => {
+    if (value === 'real') {
+      setDisplaySubscription(userProfile?.subscription);
+    } else {
+      // @ts-ignore
+      setDisplaySubscription(mockSubscriptions[value]);
+    }
+  };
+
+  const {
+    isPaid,
+    displayName,
+    stripePortalUrl,
+    currentPeriodEnd,
+    willCancelAtPeriodEnd,
+    planType,
+  } = displaySubscription ?? {};
 
   const { setSubscribeModalVisible, setPlanType } = useSubscriptionStoreShallow((state) => ({
     setSubscribeModalVisible: state.setSubscribeModalVisible,
@@ -59,81 +116,86 @@ export const Subscription = () => {
   const { data: balanceData, isLoading: isBalanceLoading } = useGetCreditBalance();
   const creditBalance = balanceData?.data?.creditBalance ?? 0;
 
+  const isLoading = isStorageUsageLoading || isBalanceLoading;
+
   // State for active history tab
   const [activeTab, setActiveTab] = useState<'usage' | 'recharge'>('usage');
 
   // Fetch credit history data
-  const { data: usageData, isLoading: isUsageHistoryLoading } = useGetCreditUsage({
-    enabled: activeTab === 'usage',
-  });
-  const { data: rechargeData, isLoading: isRechargeHistoryLoading } = useGetCreditRecharge({
-    enabled: activeTab === 'recharge',
-  });
+  const { data: usageData, isLoading: isUsageHistoryLoading } = useGetCreditUsage(
+    {},
+    [],
+    // @ts-ignore
+    { enabled: activeTab === 'usage' },
+  );
+  const { data: rechargeData, isLoading: isRechargeHistoryLoading } = useGetCreditRecharge(
+    {},
+    [],
+    // @ts-ignore
+    { enabled: activeTab === 'recharge' },
+  );
 
   const isHistoryLoading = isUsageHistoryLoading || isRechargeHistoryLoading;
 
   useEffect(() => {
-    setPlanType(subscription?.planType || 'free');
-  }, [subscription?.planType, setPlanType]);
+    setPlanType(displaySubscription?.planType || 'free');
+  }, [displaySubscription?.planType, setPlanType]);
+
+  const handleManageBilling = () => {
+    if (stripePortalUrl) {
+      window.open(stripePortalUrl, '_blank');
+    }
+  };
 
   // Columns for Usage History Table
   const usageColumns: ColumnsType<CreditUsageRecord> = [
     {
-      title: '使用详情',
+      title: '使用说明',
       dataIndex: 'description',
       key: 'description',
-      render: (text) => text || 'N/A',
     },
     {
       title: '使用时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text) => formatDate(text, 'YYYY.MM.DD HH:mm:ss'),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
-      align: 'right',
-      render: (amount) => {
-        const value = amount > 0 ? `+${amount}` : amount;
-        return <span>{value}</span>;
-      },
+      render: (amount) => <span style={{ color: '#F5222D' }}>{`-${amount.toLocaleString()}`}</span>,
     },
   ];
 
   // Columns for Recharge History Table
   const rechargeColumns: ColumnsType<CreditRechargeRecord> = [
     {
-      title: '获取途径',
+      title: '获取说明',
       dataIndex: 'description',
       key: 'description',
-      render: (text) => text || 'N/A',
     },
     {
       title: '获取时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text) => formatDate(text, 'YYYY.MM.DD HH:mm:ss'),
-    },
-    {
-      title: '有效期至',
-      dataIndex: 'expiredAt',
-      key: 'expiredAt',
-      render: (text) => (text ? formatDate(text, 'YYYY.MM.DD HH:mm:ss') : '-'),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
-      align: 'right',
-      render: (amount) => <span>{`+${amount}`}</span>,
+      render: (amount) => <span style={{ color: '#52C41A' }}>{`+${amount.toLocaleString()}`}</span>,
     },
     {
-      title: '剩余',
+      title: '当时总额',
       dataIndex: 'balance',
       key: 'balance',
-      align: 'right',
+      render: (_, record) => <span>{(record.amount + record.balance).toLocaleString()}</span>,
+    },
+    {
+      title: '有效期至',
+      dataIndex: 'expiredAt',
+      key: 'expiredAt',
+      render: (text) => (text ? text : '-'),
     },
     {
       title: '状态',
@@ -153,10 +215,81 @@ export const Subscription = () => {
     },
   ];
 
-  const isLoading = isStorageUsageLoading || isBalanceLoading;
+  const planDisplayNameMap = {
+    starter: '启程版',
+    maker: '创造者版',
+  };
+
+  const PaidPlanCard = () => (
+    <div className={`subscription-plan-card plan-${planType}`}>
+      <div className="plan-info">
+        <div className="current-plan-label">当前订阅方案</div>
+        <div className="current-plan-name">
+          {displayName} {planDisplayNameMap[planType as keyof typeof planDisplayNameMap]}
+        </div>
+      </div>
+      <div className="plan-actions">
+        <div className="plan-renewal-info">
+          {`${currentPeriodEnd ? currentPeriodEnd.split('T')[0].replace(/-/g, '.') : ''} ${willCancelAtPeriodEnd ? '到期' : '将自动续订'}`}
+        </div>
+        <Button type="default" onClick={handleManageBilling}>
+          查看账单
+        </Button>
+        <Button
+          type="primary"
+          onClick={() => {
+            setShowSettingModal(false);
+            setSubscribeModalVisible(true);
+          }}
+        >
+          变更套餐
+        </Button>
+      </div>
+    </div>
+  );
+
+  const FreePlanCard = () => (
+    <div className="subscription-plan-card plan-free">
+      <div className="plan-info">
+        <div className="current-plan-label">当前订阅方案</div>
+        <div className="current-plan-name">
+          {displaySubscription?.displayName?.split(' ')[0] || 'Free'} 免费版
+        </div>
+      </div>
+      <Button
+        type="primary"
+        className="upgrade-button"
+        onClick={() => {
+          setShowSettingModal(false);
+          setSubscribeModalVisible(true);
+        }}
+      >
+        升级套餐
+      </Button>
+    </div>
+  );
 
   return (
     <div className="subscription-management-page">
+      {/* --- Development Test Harness -- */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ padding: '0 16px 16px', border: '1px dashed #ccc', margin: '0 16px 16px' }}>
+          <Title level={5} style={{ marginTop: '16px' }}>
+            🧪 Test Controls
+          </Title>
+          <Segmented
+            options={[
+              { label: 'Real Data', value: 'real' },
+              { label: 'Free', value: 'free' },
+              { label: 'Starter', value: 'starter' },
+              { label: 'Maker (Active)', value: 'maker_active' },
+              { label: 'Maker (Canceling)', value: 'maker_canceling' },
+            ]}
+            onChange={handleTestPlanChange}
+          />
+        </div>
+      )}
+      {/* --- End Test Harness -- */}
       <div className="subscription-header">
         <Title level={4} className="title">
           订阅管理
@@ -178,22 +311,7 @@ export const Subscription = () => {
           />
         ) : (
           <>
-            <div className="subscription-plan-card">
-              <div className="plan-info">
-                <div className="current-plan-label">当前订阅方案</div>
-                <div className="current-plan-name">{subscription?.planType || 'Free'} 免费版</div>
-              </div>
-              <Button
-                type="primary"
-                className="upgrade-button"
-                onClick={() => {
-                  setShowSettingModal(false);
-                  setSubscribeModalVisible(true);
-                }}
-              >
-                升级套餐
-              </Button>
-            </div>
+            {isPaid ? <PaidPlanCard /> : <FreePlanCard />}
 
             <div className="usage-cards">
               <div className="usage-card points-card">
