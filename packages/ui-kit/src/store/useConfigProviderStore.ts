@@ -14,6 +14,8 @@ export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
     token: {
       colorPrimary: '#0E9F77',
       borderRadius: 8,
+      controlItemBgActive: 'var(--refly-tertiary-hover)',
+      controlItemBgActiveHover: 'var(--refly-tertiary-hover)',
     },
     algorithm: theme.defaultAlgorithm,
   },
