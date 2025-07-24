@@ -17,6 +17,7 @@ import {
 import { pick } from '../../utils';
 
 export interface PlanQuota {
+  creditQuota: number;
   t1CountQuota: number;
   t2CountQuota: number;
   fileCountQuota: number;

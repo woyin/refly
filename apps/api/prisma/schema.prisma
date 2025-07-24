@@ -947,6 +947,8 @@ model SubscriptionPlan {
   interval           String?  @map("interval")
   /// Lookup key
   lookupKey          String   @map("lookup_key")
+  /// Credit quota
+  creditQuota        Int      @default(0) @map("credit_quota")
   /// Request count quota (T1)
   t1CountQuota       Int      @default(0) @map("t1_count_quota")
   /// Request count quota (T2)
@@ -1117,7 +1119,7 @@ model StorageUsageMeter {
   subscriptionId     String?   @map("subscription_id")
   /// File count quota
   fileCountQuota     Int       @default(10) @map("file_count_quota")
-  /// File count used
+  /// File count used 
   fileCountUsed      Int       @default(0) @map("file_count_used")
   /// Object storage quota (in bytes), including resource, canvas and static files
   objectStorageQuota BigInt    @default(0) @map("object_storage_quota")

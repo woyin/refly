@@ -5897,6 +5897,10 @@ export const SubscriptionPlanSchema = {
       type: 'string',
       description: 'Subscription plan type',
     },
+    creditQuota: {
+      type: 'number',
+      description: 'Credit quota per month',
+    },
     t1TokenQuota: {
       type: 'number',
       description: 'Token quota per month (T1)',
@@ -6745,8 +6749,8 @@ export const CreditBillingSchema = {
     },
     unit: {
       type: 'string',
-      description: 'Measurement unit (e.g., token, image, second)',
-      example: '5Ktoken',
+      description: 'Measurement unit (e.g., token, product, second)',
+      example: '5k_tokens',
     },
     minCharge: {
       type: 'number',
@@ -6872,7 +6876,7 @@ export const CreditRechargeSchema = {
     source: {
       type: 'string',
       description: 'Recharge source type',
-      enum: ['purchase', 'gift', 'promotion', 'refund'],
+      enum: ['subscription', 'purchase', 'gift', 'promotion', 'refund'],
       default: 'purchase',
     },
     description: {

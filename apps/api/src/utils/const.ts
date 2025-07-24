@@ -19,6 +19,7 @@ export const QUEUE_SYNC_PILOT_STEP = 'syncPilotStep';
 
 export const QUEUE_SEND_VERIFICATION_EMAIL = 'sendVerificationEmail';
 export const QUEUE_CHECK_CANCELED_SUBSCRIPTIONS = 'checkCanceledSubscriptions';
+export const QUEUE_EXPIRE_AND_RECHARGE_CREDITS = 'expireAndRechargeCredits';
 export const QUEUE_SYNC_REQUEST_USAGE = 'syncRequestUsage';
 export const QUEUE_IMAGE_PROCESSING = 'imageProcessing';
 export const QUEUE_CLEAN_STATIC_FILES = 'cleanStaticFiles';

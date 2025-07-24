@@ -7202,6 +7202,9 @@ components:
         planType:
           type: string
           description: Subscription plan type
+        creditQuota:
+          type: number
+          description: Credit quota per month
         t1TokenQuota:
           type: number
           description: Token quota per month (T1)
@@ -7796,8 +7799,8 @@ components:
           minimum: 0
         unit:
           type: string
-          description: Measurement unit (e.g., token, image, second)
-          example: "5Ktoken"
+          description: Measurement unit (e.g., token, product, second)
+          example: "5k_tokens"
         minCharge:
           type: number
           description: Minimum credit charge per request
@@ -7898,6 +7901,7 @@ components:
           type: string
           description: Recharge source type
           enum:
+            - subscription
             - purchase
             - gift
             - promotion

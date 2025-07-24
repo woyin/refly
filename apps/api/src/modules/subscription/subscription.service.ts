@@ -5,7 +5,12 @@ import { PrismaService } from '../common/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { CreateCheckoutSessionRequest, SubscriptionUsageData, User } from '@refly/openapi-schema';
-import { genTokenUsageMeterID, genStorageUsageMeterID, safeParseJSON } from '@refly/utils';
+import {
+  genTokenUsageMeterID,
+  genStorageUsageMeterID,
+  genCreditRechargeId,
+  safeParseJSON,
+} from '@refly/utils';
 import {
   CreateSubscriptionParam,
   SyncTokenUsageJobData,
@@ -25,7 +30,10 @@ import {
 } from '../../generated/client';
 import { ConfigService } from '@nestjs/config';
 import { OperationTooFrequent, ParamsError } from '@refly/errors';
-import { QUEUE_CHECK_CANCELED_SUBSCRIPTIONS } from '../../utils/const';
+import {
+  QUEUE_CHECK_CANCELED_SUBSCRIPTIONS,
+  QUEUE_EXPIRE_AND_RECHARGE_CREDITS,
+} from '../../utils/const';
 import { RedisService } from '../common/redis.service';
 
 @Injectable()
@@ -45,6 +53,9 @@ export class SubscriptionService implements OnModuleInit {
     @Optional()
     @InjectQueue(QUEUE_CHECK_CANCELED_SUBSCRIPTIONS)
     private readonly checkCanceledSubscriptionsQueue?: Queue,
+    @Optional()
+    @InjectQueue(QUEUE_EXPIRE_AND_RECHARGE_CREDITS)
+    private readonly expireAndRechargeCreditsQueue?: Queue,
   ) {}
 
   async onModuleInit() {
@@ -65,6 +76,25 @@ export class SubscriptionService implements OnModuleInit {
       }
     } else {
       this.logger.log('Subscription queue not available, skipping cronjob setup');
+    }
+
+    if (this.expireAndRechargeCreditsQueue) {
+      const initPromise = this.setupExpireAndRechargeCreditsJobs();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(`Credit cronjob timed out after ${this.INIT_TIMEOUT}ms`);
+        }, this.INIT_TIMEOUT);
+      });
+
+      try {
+        await Promise.race([initPromise, timeoutPromise]);
+        this.logger.log('Credit cronjob scheduled successfully');
+      } catch (error) {
+        this.logger.error(`Failed to schedule credit cronjob: ${error}`);
+        throw error;
+      }
+    } else {
+      this.logger.log('Credit queue not available, skipping cronjob setup');
     }
   }
 
@@ -98,6 +128,38 @@ export class SubscriptionService implements OnModuleInit {
     );
 
     this.logger.log('Canceled subscriptions check job scheduled');
+  }
+
+  private async setupExpireAndRechargeCreditsJobs() {
+    if (!this.expireAndRechargeCreditsQueue) return;
+
+    // Remove any existing recurring jobs
+    const existingJobs = await this.expireAndRechargeCreditsQueue.getJobSchedulers();
+    await Promise.all(
+      existingJobs.map((job) => this.expireAndRechargeCreditsQueue!.removeJobScheduler(job.id)),
+    );
+
+    // Add the new recurring job with concurrency options
+    await this.expireAndRechargeCreditsQueue.add(
+      'expire-and-recharge',
+      {},
+      {
+        repeat: {
+          // Run every minute
+          pattern: '*/1 * * * *',
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
+        // Add job options for distributed environment
+        jobId: 'expire-and-recharge-credits', // Unique job ID to prevent duplicates
+        attempts: 3, // Number of retry attempts
+        backoff: {
+          type: 'exponential',
+          delay: 1000, // Initial delay in milliseconds
+        },
+      },
+    );
+    this.logger.log('Expire and recharge credits job scheduled');
   }
 
   async createCheckoutSession(user: User, param: CreateCheckoutSessionRequest) {
@@ -285,6 +347,21 @@ export class SubscriptionService implements OnModuleInit {
         },
       });
 
+      // Create a new credit recharge record
+      await prisma.creditRecharge.create({
+        data: {
+          rechargeId: genCreditRechargeId(),
+          uid,
+          amount: plan?.creditQuota ?? this.config.get('quota.credit'),
+          balance: plan?.creditQuota ?? this.config.get('quota.credit'),
+          source: 'subscription',
+          createdAt: now,
+          updatedAt: now,
+          expiresAt: endAt,
+          enabled: true,
+        },
+      });
+
       // Update storage usage meter
       await prisma.storageUsageMeter.updateMany({
         where: {
@@ -342,6 +419,28 @@ export class SubscriptionService implements OnModuleInit {
         data: { deletedAt: now },
       });
 
+      // Expire all active credit recharge records for this user
+      await prisma.creditRecharge.updateMany({
+        where: {
+          uid: sub.uid,
+          enabled: true,
+          createdAt: {
+            lte: now,
+          },
+          expiresAt: {
+            gte: now,
+          },
+        },
+        data: {
+          enabled: false,
+          updatedAt: now,
+        },
+      });
+
+      this.logger.log(
+        `Expired credit recharge records for user ${sub.uid} due to subscription cancellation`,
+      );
+
       const freePlan = await this.prisma.subscriptionPlan.findFirst({
         where: { planType: 'free' },
       });
@@ -375,6 +474,133 @@ export class SubscriptionService implements OnModuleInit {
     for (const subscription of canceledSubscriptions) {
       this.logger.log(`Processing canceled subscription: ${subscription.subscriptionId}`);
       await this.cancelSubscription(subscription);
+    }
+  }
+
+  async expireAndRechargeCredits() {
+    this.logger.log('Starting expire and recharge credits job');
+
+    try {
+      await this.prisma.$transaction(async (prisma) => {
+        const now = new Date();
+
+        // Step 1: Find all non-duplicate credit recharge records that are not expired yet
+        const activeRecharges = await prisma.creditRecharge.findMany({
+          where: {
+            expiresAt: {
+              gte: now,
+            },
+            enabled: true,
+          },
+          distinct: ['rechargeId'],
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        this.logger.log(`Found ${activeRecharges.length} active credit recharge records`);
+
+        // Step 2: Disable all active recharge records
+        if (activeRecharges.length > 0) {
+          await prisma.creditRecharge.updateMany({
+            where: {
+              rechargeId: {
+                in: activeRecharges.map((r) => r.rechargeId),
+              },
+            },
+            data: {
+              enabled: false,
+            },
+          });
+
+          this.logger.log(`Disabled ${activeRecharges.length} credit recharge records`);
+        }
+
+        // Step 3: Process subscription-based recharges
+        const subscriptionRecharges = activeRecharges.filter((r) => r.source === 'subscription');
+
+        for (const recharge of subscriptionRecharges) {
+          try {
+            // Check if user has active subscription
+            const subscription = await prisma.subscription.findFirst({
+              where: {
+                uid: recharge.uid,
+                status: {
+                  in: ['active', 'trialing'],
+                },
+                OR: [{ cancelAt: null }, { cancelAt: { gt: now } }],
+              },
+              orderBy: {
+                createdAt: 'desc',
+              },
+            });
+
+            if (subscription) {
+              // Find plan quota for credit amount
+              let plan: PlanQuota | null = null;
+              if (subscription.overridePlan) {
+                plan = safeParseJSON(subscription.overridePlan) as PlanQuota;
+              }
+              if (!plan) {
+                const subscriptionPlan = await prisma.subscriptionPlan.findFirst({
+                  where: {
+                    planType: subscription.planType,
+                    interval: subscription.interval,
+                  },
+                });
+                if (subscriptionPlan) {
+                  plan = {
+                    creditQuota: subscriptionPlan.creditQuota,
+                    t1CountQuota: subscriptionPlan.t1CountQuota,
+                    t2CountQuota: subscriptionPlan.t2CountQuota,
+                    fileCountQuota: subscriptionPlan.fileCountQuota,
+                  };
+                }
+              }
+
+              // Create new credit recharge record if plan has credit quota
+              if (plan && plan.creditQuota > 0) {
+                const newExpiresAt = new Date();
+                newExpiresAt.setDate(newExpiresAt.getDate() + 30); // 30 days from now
+
+                await prisma.creditRecharge.create({
+                  data: {
+                    rechargeId: genCreditRechargeId(),
+                    uid: recharge.uid,
+                    amount: plan.creditQuota,
+                    balance: plan.creditQuota,
+                    enabled: true,
+                    source: 'subscription',
+                    description: `Monthly subscription credit recharge for plan ${subscription.planType}`,
+                    createdAt: now,
+                    updatedAt: now,
+                    expiresAt: newExpiresAt,
+                  },
+                });
+
+                this.logger.log(
+                  `Created new credit recharge for user ${recharge.uid} with ${plan.creditQuota} credits`,
+                );
+              }
+            } else {
+              this.logger.log(
+                `No active subscription found for user ${recharge.uid}, skipping credit recharge`,
+              );
+            }
+          } catch (error) {
+            this.logger.error(
+              `Error processing subscription recharge for user ${recharge.uid}:`,
+              error,
+            );
+            // Continue processing other records even if one fails
+          }
+        }
+      });
+
+      this.logger.log('Expire and recharge credits job completed successfully');
+    } catch (error) {
+      this.logger.error('Error in expire and recharge credits job:', error);
+      throw error;
     }
   }
 
