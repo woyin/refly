@@ -65,10 +65,12 @@ interface CreditUsageRecord {
 interface CreditRechargeRecord {
   rechargeId: string;
   description?: string;
+  source: string;
   createdAt: string;
-  expiredAt: string;
+  expiresAt: string;
   amount: number;
   balance: number;
+  enabled: boolean;
 }
 
 export const Subscription = () => {
@@ -151,7 +153,7 @@ export const Subscription = () => {
   // Columns for Usage History Table
   const usageColumns: ColumnsType<CreditUsageRecord> = [
     {
-      title: '使用说明',
+      title: '使用详情',
       dataIndex: 'description',
       key: 'description',
     },
@@ -159,55 +161,72 @@ export const Subscription = () => {
       title: '使用时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <span style={{ color: '#F5222D' }}>{`-${amount.toLocaleString()}`}</span>,
+      align: 'right',
+      render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
     },
   ];
 
   // Columns for Recharge History Table
   const rechargeColumns: ColumnsType<CreditRechargeRecord> = [
     {
-      title: '获取说明',
-      dataIndex: 'description',
-      key: 'description',
+      title: '获取途径',
+      dataIndex: 'source',
+      key: 'source',
+      render: (source) => {
+        const sourceMap: Record<string, string> = {
+          purchase: '购买',
+          gift: '赠送',
+          promotion: '促销',
+          refund: '退款',
+        };
+        return sourceMap[source] || source;
+      },
     },
     {
       title: '获取时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
+    },
+    {
+      title: '有效期至',
+      dataIndex: 'expiresAt',
+      key: 'expiresAt',
+      render: (text) => (text ? dayjs(text).format('YYYY.MM.DD') : '-'),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <span style={{ color: '#52C41A' }}>{`+${amount.toLocaleString()}`}</span>,
+      align: 'right',
+      render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
     },
     {
-      title: '当时总额',
+      title: '剩余',
       dataIndex: 'balance',
       key: 'balance',
-      render: (_, record) => <span>{(record.amount + record.balance).toLocaleString()}</span>,
-    },
-    {
-      title: '有效期至',
-      dataIndex: 'expiredAt',
-      key: 'expiredAt',
-      render: (text) => (text ? text : '-'),
+      align: 'right',
+      render: (balance) => balance.toLocaleString(),
     },
     {
       title: '状态',
       key: 'status',
       align: 'right',
       render: (_, record) => {
-        const now = new Date();
-        const expiryDate = new Date(record.expiredAt);
+        if (!record.enabled) {
+          return '已禁用';
+        }
         if (record.balance <= 0) {
           return '已用尽';
         }
+        const now = new Date();
+        const expiryDate = new Date(record.expiresAt);
         if (expiryDate < now) {
           return '已失效';
         }
@@ -354,6 +373,7 @@ export const Subscription = () => {
                   rowKey={activeTab === 'usage' ? 'usageId' : 'rechargeId'}
                   pagination={{ showSizeChanger: false }}
                   className="history-table"
+                  bordered={false}
                 />
               </Spin>
             </div>
