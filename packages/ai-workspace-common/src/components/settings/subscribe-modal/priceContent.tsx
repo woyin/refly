@@ -91,15 +91,19 @@ const PlanItem = (props: {
     const priceInfo = prices[planType];
 
     if (interval === 'monthly') {
-      return t('subscription.plans.starter.priceMonthly', { price: priceInfo.monthly });
+      return (
+        <span className="price-monthly">
+          $ {t('subscription.plans.starter.priceMonthly', { price: priceInfo.monthly })}
+        </span>
+      );
     }
     return (
       <div className="yearly-price-container">
         <span className="price-monthly">
-          {t('subscription.plans.starter.priceYearly', { price: priceInfo.yearly })}
+          $ {t('subscription.plans.starter.priceYearly', { price: priceInfo.yearly })}
         </span>
         <span className="price-yearly">
-          {t('subscription.plans.starter.priceYearlyTotal', { price: priceInfo.yearlyTotal })}
+          $ {t('subscription.plans.starter.priceYearlyTotal', { price: priceInfo.yearlyTotal })}
         </span>
       </div>
     );
@@ -234,13 +238,7 @@ export const PriceContent = (props: { source: PriceSource }) => {
   const createCheckoutSession = async (plan: string) => {
     if (loadingInfo.isLoading) return;
 
-    const planTypeMapping: { [key: string]: string } = {
-      starter: 'plus',
-      maker: 'pro',
-    };
-    const backendPlanType = planTypeMapping[plan] || plan;
-
-    const planType = backendPlanType as SubscriptionPlanType;
+    const planType = plan as SubscriptionPlanType;
 
     setLoadingInfo({ isLoading: true, plan });
     try {
