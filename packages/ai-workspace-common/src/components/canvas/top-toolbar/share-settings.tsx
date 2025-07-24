@@ -150,7 +150,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   }, [shareRecord]);
 
   const updateCanvasPermission = useCallback(
-    async (value: ShareAccess) => {
+    async (value: ShareAccess): Promise<boolean> => {
       setUpdateLoading(true);
       let success: boolean;
 
@@ -196,15 +196,23 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
       } finally {
         setUpdateLoading(false);
       }
+
+      return success;
     },
     [canvasId, t, refetchShares, uploadCanvasCover],
   );
 
   const handleAccessChange = useCallback(
-    (value: ShareAccess) => {
-      updateCanvasPermission(value);
+    async (value: ShareAccess) => {
+      const success = await updateCanvasPermission(value);
+
+      if (success && value === 'anyone') {
+        setTimeout(async () => {
+          copyLink();
+        }, 500);
+      }
     },
-    [updateCanvasPermission],
+    [updateCanvasPermission, copyLink],
   );
 
   // Memoize content to prevent unnecessary re-renders
