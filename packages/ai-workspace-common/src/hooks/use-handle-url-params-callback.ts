@@ -53,9 +53,7 @@ export const useHandleUrlParamsCallback = () => {
 
           Modal.success({
             centered: true,
-            title: paySuccess
-              ? t('settings.action.paySuccessNotify')
-              : t('settings.action.payCancelNotify'),
+            title,
             content: description,
             okButtonProps,
             autoFocusButton: null,
