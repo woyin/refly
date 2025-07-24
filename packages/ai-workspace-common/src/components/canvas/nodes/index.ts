@@ -229,19 +229,14 @@ export const getNodeCommonStyles = ({
   selected,
   isHovered,
 }: { selected: boolean; isHovered: boolean }) => `
-  bg-white dark:bg-gray-900
-  rounded-xl
+  bg-refly-bg-content-z2
+  rounded-2xl
   box-border
   transition-all
   duration-200
   border-[1px]
   border-solid
   overflow-hidden
-  ${selected ? 'border-[#00968F] border-solid border-2' : 'border-transparent'}
-  ${
-    isHovered
-      ? 'shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.08),0px_4px_6px_-2px_rgba(16,24,40,0.03)]'
-      : 'shadow-[0px_1px_2px_0px_rgba(16,24,60,0.05)]'
-  }
-  hover:shadow-[0px_12px_16px_-4px_rgba(16,24,40,0.08),0px_4px_6px_-2px_rgba(16,24,40,0.03)]
+  ${selected ? 'border-refly-primary-default' : 'border-refly-Card-Border'}
+  ${isHovered || selected ? 'shadow-md' : ''}
 `;

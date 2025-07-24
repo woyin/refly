@@ -1,14 +1,9 @@
-import { memo, useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { useReactFlow, Position } from '@xyflow/react';
+import { memo, useState, useCallback, useRef, useEffect } from 'react';
+import { Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import {
-  useNodeSize,
-  MAX_HEIGHT_CLASS,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
+
 import { useCanvasStoreShallow } from '@refly/stores';
-import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
 import { ImageNodeProps } from './shared/types';
 import classNames from 'classnames';
@@ -33,18 +28,17 @@ import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 
+const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
 export const ImageNode = memo(
   ({ id, data, isPreview, selected, hideHandles, onNodeClick }: ImageNodeProps) => {
     const { metadata } = data ?? {};
     const imageUrl = metadata?.imageUrl ?? '';
-    const showBorder = metadata?.showBorder ?? false;
-    const showTitle = metadata?.showTitle ?? true;
     const [isHovered, setIsHovered] = useState(false);
     const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
     const targetRef = useRef<HTMLDivElement>(null);
-    const { getNode } = useReactFlow();
     useSelectedNodeZIndex(id, selected);
     const { addNode } = useAddNode();
     const { addToContext } = useAddToContext();
@@ -52,35 +46,13 @@ export const ImageNode = memo(
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
     const { readonly } = useCanvasContext();
+    const { setNodeStyle } = useNodeData();
 
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
     }));
 
     const isOperating = operatingNodeId === id;
-    const node = useMemo(() => getNode(id), [id, getNode]);
-
-    const { containerStyle, handleResize } = useNodeSize({
-      id,
-      node,
-      readonly,
-      isOperating,
-      minWidth: 100,
-      maxWidth: 800,
-      minHeight: 80,
-      defaultWidth: 288,
-      defaultHeight: 'auto',
-    });
-
-    // Ensure containerStyle has valid height value
-    const safeContainerStyle = useMemo(() => {
-      const style = { ...containerStyle };
-      // If height is NaN, set it to 'auto'
-      if (typeof style.height === 'number' && Number.isNaN(style.height)) {
-        style.height = 'auto';
-      }
-      return style;
-    }, [containerStyle]);
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -166,6 +138,10 @@ export const ImageNode = memo(
       );
     };
 
+    useEffect(() => {
+      setNodeStyle(id, NODE_SIDE_CONFIG);
+    }, [id, setNodeStyle]);
+
     // Add event handling
     useEffect(() => {
       // Create node-specific event handlers
@@ -213,114 +189,87 @@ export const ImageNode = memo(
     }
 
     return (
-      <div className={isOperating && isHovered ? 'nowheel' : ''}>
-        <div
-          ref={targetRef}
-          onMouseEnter={!isPreview ? handleMouseEnter : undefined}
-          onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-          style={isPreview ? { width: 288, height: 200 } : safeContainerStyle}
-          onClick={onNodeClick}
-          className={classNames({
-            'nodrag nopan select-text': isOperating,
-          })}
-        >
-          <div className="absolute w-full -top-8 left-0 right-0 z-10 flex items-center h-8 gap-2">
-            {showTitle && (
-              <div
-                className={cn(
-                  'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
-                  {
-                    'opacity-100': selected || isHovered,
-                    'opacity-0': !selected && !isHovered,
-                  },
-                )}
-              >
-                <NodeHeader
-                  title={data.title}
-                  Icon={IconImage}
-                  iconBgColor="#02b0c7"
-                  canEdit={!readonly}
-                  updateTitle={onTitleChange}
-                />
-              </div>
-            )}
-
-            {!isPreview && !readonly && (
-              <div className="flex-shrink-0">
-                <NodeActionButtons
-                  nodeId={id}
-                  nodeType="image"
-                  isNodeHovered={isHovered}
-                  isSelected={selected}
-                />
-              </div>
-            )}
-          </div>
-
+      <div
+        onMouseEnter={!isPreview ? handleMouseEnter : undefined}
+        onMouseLeave={!isPreview ? handleMouseLeave : undefined}
+        style={NODE_SIDE_CONFIG}
+        onClick={onNodeClick}
+        className={classNames({
+          relative: true,
+          nowheel: isOperating && isHovered,
+          'nodrag nopan select-text': isOperating,
+        })}
+      >
+        <div className="absolute w-full -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[60%]">
           <div
-            className={`
-                w-full
-                h-full
-                ${showBorder ? getNodeCommonStyles({ selected: !isPreview && selected, isHovered }) : ''}
-              `}
-          >
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="image"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="image"
-                />
-              </>
+            className={cn(
+              'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
+              {
+                'opacity-100': selected || isHovered,
+                'opacity-0': !selected && !isHovered,
+              },
             )}
-
-            <div className={cn('flex flex-col h-full relative box-border', MAX_HEIGHT_CLASS)}>
-              <div className="relative w-full h-full rounded-lg overflow-hidden">
-                <img
-                  onClick={handleImageClick}
-                  src={imageUrl}
-                  alt={data.title || 'Image'}
-                  className="w-full h-full object-contain"
-                  style={{ cursor: selected || readonly ? 'pointer' : 'default' }}
-                />
-
-                {/* only for preview image */}
-                {isPreviewModalVisible && !isPreview && (
-                  <ImagePreview
-                    isPreviewModalVisible={isPreviewModalVisible}
-                    setIsPreviewModalVisible={setIsPreviewModalVisible}
-                    imageUrl={imageUrl}
-                    imageTitle={data?.title}
-                  />
-                )}
-              </div>
-            </div>
+          >
+            <NodeHeader
+              title={data.title}
+              Icon={IconImage}
+              iconBgColor="#02b0c7"
+              canEdit={!readonly}
+              updateTitle={onTitleChange}
+            />
           </div>
         </div>
 
-        {!isPreview && selected && !readonly && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="image"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={isPreview}
-            onResize={handleResize}
           />
         )}
+
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={false}
+              isNodeHovered={isHovered}
+              nodeType="image"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={false}
+              isNodeHovered={isHovered}
+              nodeType="image"
+            />
+          </>
+        )}
+
+        <div className="w-full relative z-1 rounded-2xl overflow-hidden flex items-center justify-center">
+          <img
+            onClick={handleImageClick}
+            src={imageUrl}
+            alt={data.title || 'Image'}
+            className="w-full h-full object-cover"
+            style={{ cursor: selected || readonly ? 'pointer' : 'default' }}
+          />
+          {/* only for preview image */}
+          {isPreviewModalVisible && !isPreview && (
+            <ImagePreview
+              isPreviewModalVisible={isPreviewModalVisible}
+              setIsPreviewModalVisible={setIsPreviewModalVisible}
+              imageUrl={imageUrl}
+              imageTitle={data?.title}
+            />
+          )}
+        </div>
       </div>
     );
   },

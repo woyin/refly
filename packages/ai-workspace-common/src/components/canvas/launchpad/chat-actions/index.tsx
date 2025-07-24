@@ -97,7 +97,7 @@ export const ChatActions = memo(
 
     return readonly ? null : (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
           <ModelSelector
             model={model}
             setModel={setModel}

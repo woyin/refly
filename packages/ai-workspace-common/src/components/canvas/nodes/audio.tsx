@@ -1,14 +1,14 @@
-import { memo, useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { memo, useState, useCallback, useEffect } from 'react';
 import { Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import { MAX_HEIGHT_CLASS } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
 import classNames from 'classnames';
 import { NodeHeader } from './shared/node-header';
-import { HiOutlineSpeakerWave, HiExclamationTriangle } from 'react-icons/hi2';
+import { HiExclamationTriangle } from 'react-icons/hi2';
+import { Audio } from 'refly-icons';
 import {
   nodeActionEmitter,
   createNodeEventName,
@@ -28,6 +28,11 @@ import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspac
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { NodeProps } from '@xyflow/react';
 import { CanvasNodeData } from '@refly/canvas-common';
+
+const NODE_SIDE_CONFIG = {
+  width: 350,
+  height: 120,
+};
 
 // Define AudioNodeMeta interface
 interface AudioNodeMeta {
@@ -63,8 +68,6 @@ export const AudioNode = memo(
     const [currentAudioUrl, setCurrentAudioUrl] = useState(audioUrl);
     const [fallbackIndex, setFallbackIndex] = useState(0);
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
-    const targetRef = useRef<HTMLDivElement>(null);
-    const audioRef = useRef<HTMLAudioElement>(null);
     useSelectedNodeZIndex(id, selected);
     const { addNode } = useAddNode();
     const { addToContext } = useAddToContext();
@@ -78,15 +81,6 @@ export const AudioNode = memo(
     }));
 
     const isOperating = operatingNodeId === id;
-
-    // Fixed size for audio node - no resizing allowed
-    const containerStyle = useMemo(
-      () => ({
-        width: 350,
-        height: 150,
-      }),
-      [],
-    );
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -122,7 +116,6 @@ export const AudioNode = memo(
           { entityId: data.entityId, type: 'audio' },
           dragCreateInfo,
         );
-        console.log('data', data);
 
         addNode(
           {
@@ -219,112 +212,95 @@ export const AudioNode = memo(
     }
 
     return (
-      <div className={isOperating && isHovered ? 'nowheel' : ''}>
-        <div
-          ref={targetRef}
-          onMouseEnter={!isPreview ? handleMouseEnter : undefined}
-          onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-          style={isPreview ? { width: 350, height: 150 } : containerStyle}
-          onClick={onNodeClick}
-          className={classNames({
-            'nodrag nopan select-text': isOperating,
-          })}
-        >
-          {!isPreview && !readonly && (
-            <NodeActionButtons
-              nodeId={id}
-              nodeType="audio"
-              isNodeHovered={isHovered}
-              isSelected={selected}
-            />
-          )}
+      <div
+        onMouseEnter={!isPreview ? handleMouseEnter : undefined}
+        onMouseLeave={!isPreview ? handleMouseLeave : undefined}
+        style={NODE_SIDE_CONFIG}
+        onClick={onNodeClick}
+        className={classNames({
+          relative: true,
+          nowheel: isOperating && isHovered,
+          'nodrag nopan select-text': isOperating,
+        })}
+      >
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="audio"
+            isNodeHovered={isHovered}
+            isSelected={selected}
+          />
+        )}
 
-          <div
-            className={`
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={false}
+              isNodeHovered={isHovered}
+              nodeType="audio"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={false}
+              isNodeHovered={isHovered}
+              nodeType="audio"
+            />
+          </>
+        )}
+
+        <div
+          className={`
                 w-full
-                h-full,
-                bg-white dark:bg-gray-900 rounded-md
+                h-full
+               rounded-2xl
+               relative
+               z-1
+               p-4
                 ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
               `}
-          >
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="audio"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="audio"
-                />
-              </>
+        >
+          <div className={cn('flex flex-col h-full relative box-border')}>
+            {showTitle && (
+              <NodeHeader
+                title={data.title}
+                Icon={Audio}
+                iconBgColor="#F93920"
+                canEdit={!readonly}
+                updateTitle={onTitleChange}
+              />
             )}
 
-            <div className={cn('flex flex-col h-full relative box-border', MAX_HEIGHT_CLASS)}>
-              <div className="flex flex-col h-full p-4 gap-3 justify-center">
-                {showTitle && (
-                  <NodeHeader
-                    title={data.title}
-                    Icon={HiOutlineSpeakerWave}
-                    iconBgColor="#4ECDC4"
-                    canEdit={!readonly}
-                    updateTitle={onTitleChange}
-                  />
-                )}
-
-                {/* Audio Player or Error Message */}
-                {audioError ? (
-                  <div className="flex flex-col items-center justify-center gap-2 text-red-500">
-                    <HiExclamationTriangle className="w-8 h-8" />
-                    <p className="text-sm text-center">Audio failed to load</p>
-                    <p className="text-xs text-gray-500 text-center">
-                      Please check your network connection
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-center">
-                      <audio
-                        ref={audioRef}
-                        src={currentAudioUrl}
-                        controls
-                        className="w-full max-w-sm rounded-lg"
-                        preload="metadata"
-                        onError={handleAudioError}
-                        onLoadStart={() => setAudioError(false)}
-                      >
-                        <track kind="captions" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    </div>
-
-                    {/* Audio wave visualization placeholder */}
-                    <div className="flex items-center justify-center space-x-1 opacity-30">
-                      {[...Array(20)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-1 bg-gradient-to-t from-cyan-400 to-cyan-600 rounded-full animate-pulse"
-                          style={{
-                            height: Math.random() * 20 + 10,
-                            animationDelay: `${i * 0.1}s`,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
+            {/* Audio Player or Error Message */}
+            {audioError ? (
+              <div className="flex flex-col items-center justify-center gap-2 text-red-500">
+                <HiExclamationTriangle className="w-8 h-8" />
+                <p className="text-sm text-center">Audio failed to load</p>
+                <p className="text-xs text-gray-500 text-center">
+                  Please check your network connection
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <audio
+                  src={currentAudioUrl}
+                  controls
+                  className="w-full max-w-sm rounded-md"
+                  preload="metadata"
+                  onError={handleAudioError}
+                  onLoadStart={() => setAudioError(false)}
+                >
+                  <track kind="captions" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
           </div>
         </div>
       </div>

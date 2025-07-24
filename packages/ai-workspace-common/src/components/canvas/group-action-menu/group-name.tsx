@@ -2,7 +2,7 @@ import { Button, Input } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { FC, useCallback, useState, useEffect } from 'react';
 import CommonColorPicker from '../nodes/shared/color-picker';
-import { IconMoreHorizontal } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { More } from 'refly-icons';
 import { CanvasNodeType } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
@@ -73,9 +73,9 @@ export const GroupName: FC<GroupNameProps> = ({
         pointerEvents: showInput ? 'auto' : 'none',
       }}
     >
-      <div className="flex gap-3">
+      <div className="flex gap-3 justify-between">
         <Input
-          className="!bg-transparent !border-none !shadow-none !pl-0 !text-base !text-gray-600 dark:!text-gray-100"
+          className="!bg-refly-tertiary-default !border-none !shadow-none !p-2 !text-sm !leading-5 !text-text-refly-2"
           disabled={readonly}
           placeholder={t('canvas.nodeActions.editGroupNamePlaceholder')}
           value={name}
@@ -85,15 +85,15 @@ export const GroupName: FC<GroupNameProps> = ({
         />
 
         <div
-          className="items-center gap-2 bg-white dark:bg-[#1f1f1f] rounded-md px-2"
+          className="items-center gap-2 bg-refly-bg-content-z2 border-solid border-[1px] border-refly-Card-Border rounded-xl px-2"
           style={{ display: selected ? 'flex' : 'none' }}
         >
           <CommonColorPicker disabledAlpha={true} color={bgColor} onChange={onChangeBgColor} />
           <Button
             type="text"
             size="small"
-            className="text-gray-600 dark:text-gray-300"
-            icon={<IconMoreHorizontal className=" w-4 h-4 flex items-center justify-center" />}
+            className="text-refly-0"
+            icon={<More size={18} />}
             onClick={handleOpenContextMenu}
           />
         </div>

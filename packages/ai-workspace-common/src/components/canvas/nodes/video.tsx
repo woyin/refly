@@ -2,11 +2,6 @@ import { memo, useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useReactFlow, Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import {
-  useNodeSize,
-  MAX_HEIGHT_CLASS,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
@@ -23,7 +18,6 @@ import { genSkillID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import Moveable from 'react-moveable';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import cn from 'classnames';
@@ -49,17 +43,16 @@ interface VideoNodeProps extends NodeProps {
   onNodeClick?: () => void;
 }
 
+// Fixed dimensions for video node
+const NODE_SIDE_CONFIG = { width: 420, height: 'auto' };
+
 export const VideoNode = memo(
   ({ id, data, isPreview, selected, hideHandles, onNodeClick }: VideoNodeProps) => {
     const { metadata } = data ?? {};
     const videoUrl = metadata?.videoUrl ?? '';
-    const showBorder = metadata?.showBorder ?? false;
-    const showTitle = metadata?.showTitle ?? true;
     const [isHovered, setIsHovered] = useState(false);
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
-    const targetRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
-    const { getNode } = useReactFlow();
     useSelectedNodeZIndex(id, selected);
     const { addNode } = useAddNode();
     const { addToContext } = useAddToContext();
@@ -73,29 +66,12 @@ export const VideoNode = memo(
     }));
 
     const isOperating = operatingNodeId === id;
-    const node = useMemo(() => getNode(id), [id, getNode]);
 
-    const { containerStyle, handleResize } = useNodeSize({
-      id,
-      node,
-      readonly,
-      isOperating,
-      minWidth: 200,
-      maxWidth: 800,
-      minHeight: 150,
-      defaultWidth: 400,
-      defaultHeight: 300,
-    });
-
-    // Ensure containerStyle has valid height value
-    const safeContainerStyle = useMemo(() => {
-      const style = { ...containerStyle };
-      // If height is NaN, set it to 'auto'
-      if (typeof style.height === 'number' && Number.isNaN(style.height)) {
-        style.height = 300;
-      }
-      return style;
-    }, [containerStyle]);
+    // Check if node has any connections
+    const { getEdges } = useReactFlow();
+    const edges = useMemo(() => getEdges(), [getEdges]);
+    const isTargetConnected = edges?.some((edge) => edge.target === id);
+    const isSourceConnected = edges?.some((edge) => edge.source === id);
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -196,131 +172,103 @@ export const VideoNode = memo(
       };
     }, [id, handleAddToContext, handleDelete, handleAskAI]);
 
-    const moveableRef = useRef<Moveable>(null);
-
-    const resizeMoveable = useCallback((width: number, height: number) => {
-      moveableRef.current?.request('resizable', { width, height });
-    }, []);
-
-    useEffect(() => {
-      setTimeout(() => {
-        if (!targetRef.current || readonly) return;
-        const { offsetWidth, offsetHeight } = targetRef.current;
-        resizeMoveable(offsetWidth, offsetHeight);
-      }, 1);
-    }, [resizeMoveable, targetRef.current?.offsetHeight]);
-
     if (!data || !videoUrl) {
       return null;
     }
 
     return (
-      <div className={isOperating && isHovered ? 'nowheel' : ''}>
-        <div
-          ref={targetRef}
-          onMouseEnter={!isPreview ? handleMouseEnter : undefined}
-          onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-          style={isPreview ? { width: 400, height: 300 } : safeContainerStyle}
-          onClick={onNodeClick}
-          className={classNames({
-            'nodrag nopan select-text': isOperating,
-          })}
-        >
+      <div
+        onMouseEnter={!isPreview ? handleMouseEnter : undefined}
+        onMouseLeave={!isPreview ? handleMouseLeave : undefined}
+        className={classNames({
+          'rounded-2xl relative': true,
+          nowheel: isOperating && isHovered,
+          'relative nodrag nopan select-text': isOperating,
+        })}
+        style={NODE_SIDE_CONFIG}
+        onClick={onNodeClick}
+      >
+        <div className="absolute w-full -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[80%]">
           <div
-            className={`
-                w-full
-                h-full
-                ${showBorder ? getNodeCommonStyles({ selected: !isPreview && selected, isHovered }) : ''}
-              `}
-          >
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="video"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="video"
-                />
-              </>
+            className={cn(
+              'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
+              {
+                'opacity-100': selected || isHovered,
+                'opacity-0': !selected && !isHovered,
+              },
             )}
-
-            <div className={cn('flex flex-col h-full relative box-border', MAX_HEIGHT_CLASS)}>
-              <div className="absolute w-full -top-8 left-0 right-0 z-10 flex items-center h-8 gap-2">
-                {showTitle && (
-                  <div
-                    className={cn(
-                      'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
-                      {
-                        'opacity-100': selected || isHovered,
-                        'opacity-0': !selected && !isHovered,
-                      },
-                    )}
-                  >
-                    <NodeHeader
-                      title={data.title}
-                      Icon={HiOutlineFilm}
-                      iconBgColor="#FF6B6B"
-                      canEdit={!readonly}
-                      updateTitle={onTitleChange}
-                    />
-                  </div>
-                )}
-
-                {!isPreview && !readonly && (
-                  <div className="flex-shrink-0">
-                    <NodeActionButtons
-                      nodeId={id}
-                      nodeType="video"
-                      isNodeHovered={isHovered}
-                      isSelected={selected}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="relative w-full h-full rounded-lg overflow-hidden">
-                <video
-                  ref={videoRef}
-                  src={videoUrl}
-                  controls
-                  className="w-full h-full object-contain bg-black"
-                  style={{ cursor: 'default' }}
-                  preload="metadata"
-                  onError={(e) => {
-                    console.error('Video failed to load:', e);
-                  }}
-                >
-                  <track kind="captions" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            </div>
+          >
+            <NodeHeader
+              title={data.title}
+              Icon={HiOutlineFilm}
+              iconBgColor="#FF6B6B"
+              canEdit={!readonly}
+              updateTitle={onTitleChange}
+            />
           </div>
         </div>
 
-        {!readonly && !isPreview && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="video"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={false}
-            onResize={handleResize}
           />
         )}
+
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={isTargetConnected}
+              isNodeHovered={isHovered}
+              nodeType="video"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={isSourceConnected}
+              isNodeHovered={isHovered}
+              nodeType="video"
+            />
+          </>
+        )}
+
+        <div
+          className={`h-full flex items-center justify-center relative z-1 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
+        >
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            controls
+            className="w-full h-full object-contain bg-black"
+            style={{ cursor: 'default' }}
+            preload="metadata"
+            onError={(e) => {
+              console.error('Video failed to load:', e);
+            }}
+          >
+            <track kind="captions" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
       </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.id === nextProps.id &&
+      prevProps.selected === nextProps.selected &&
+      prevProps.isPreview === nextProps.isPreview &&
+      prevProps.hideHandles === nextProps.hideHandles &&
+      prevProps.data?.title === nextProps.data?.title &&
+      JSON.stringify(prevProps.data?.metadata) === JSON.stringify(nextProps.data?.metadata)
     );
   },
 );

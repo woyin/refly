@@ -6,7 +6,6 @@ import { Markdown } from '@refly-packages/ai-workspace-common/components/markdow
 interface MultimodalContentPreviewProps {
   content: string;
   sources?: Source[];
-  sizeMode: 'compact' | 'adaptive';
   isOperating: boolean;
   className?: string;
   resultId?: string;
@@ -65,26 +64,24 @@ const TextContent = memo(
   ({
     content,
     sources,
-    sizeMode,
     isOperating,
     className,
     resultId,
   }: {
     content: string;
     sources?: Source[];
-    sizeMode: 'compact' | 'adaptive';
     isOperating: boolean;
     className?: string;
     resultId?: string;
   }) => {
     const markdownClassName = useMemo(
       () =>
-        `text-xs overflow-hidden ${sizeMode === 'compact' ? 'max-h-[1.5rem] line-clamp-1' : ''} ${
+        `text-xs overflow-hidden max-h-[120px] truncate ${
           isOperating
             ? 'pointer-events-auto cursor-text select-text'
             : 'pointer-events-none select-none'
         } ${className}`,
-      [isOperating, sizeMode, className],
+      [isOperating, className],
     );
 
     return (
@@ -102,7 +99,6 @@ export const MultimodalContentPreview = memo(
   ({
     content,
     sources,
-    sizeMode,
     isOperating,
     className = '',
     resultId,
@@ -124,7 +120,6 @@ export const MultimodalContentPreview = memo(
             <TextContent
               content={content}
               sources={sources}
-              sizeMode={sizeMode}
               isOperating={isOperating}
               className={className}
               resultId={resultId}
@@ -138,7 +133,6 @@ export const MultimodalContentPreview = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.content === nextProps.content &&
-      prevProps.sizeMode === nextProps.sizeMode &&
       prevProps.isOperating === nextProps.isOperating &&
       prevProps.className === nextProps.className &&
       JSON.stringify(prevProps.sources) === JSON.stringify(nextProps.sources) &&

@@ -9,7 +9,7 @@ import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CanvasTitle, ReadonlyCanvasTitle } from './canvas-title';
-import { ToolbarButtons } from './buttons';
+import { ToolbarButtons, type Mode } from './buttons';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import ShareSettings from './share-settings';
 import { useUserStoreShallow } from '@refly/stores';
@@ -18,12 +18,23 @@ import { IconLink } from '@refly-packages/ai-workspace-common/components/common/
 import { LuBookCopy } from 'react-icons/lu';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { useAuthStoreShallow } from '@refly/stores';
+import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/canvas-layout-controls';
 
 interface TopToolbarProps {
   canvasId: string;
+  mode: Mode;
+  changeMode: (mode: Mode) => void;
 }
 
-export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
+const ToolContainer = memo(({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="h-12 box-border p-2 flex items-center gap-2 relative z-10 bg-refly-bg-content-z2 rounded-xl border-[1px] border-solid border-refly-Card-Border shadow-md">
+      {children}
+    </div>
+  );
+});
+
+export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMode }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.language as LOCALE;
   const { collapse } = useSiderStoreShallow((state) => ({
@@ -40,21 +51,12 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
 
   const { loading, readonly, shareData } = useCanvasContext();
 
-  const {
-    canvasInitialized,
-    showPreview,
-    setShowPreview,
-    showMaxRatio,
-    setShowMaxRatio,
-    canvasTitle: canvasTitleFromStore,
-  } = useCanvasStoreShallow((state) => ({
-    canvasInitialized: state.canvasInitialized[canvasId],
-    showPreview: state.showPreview,
-    setShowPreview: state.setShowPreview,
-    showMaxRatio: state.showMaxRatio,
-    setShowMaxRatio: state.setShowMaxRatio,
-    canvasTitle: state.canvasTitle[canvasId],
-  }));
+  const { canvasInitialized, canvasTitle: canvasTitleFromStore } = useCanvasStoreShallow(
+    (state) => ({
+      canvasInitialized: state.canvasInitialized[canvasId],
+      canvasTitle: state.canvasTitle[canvasId],
+    }),
+  );
 
   const canvasTitle = shareData?.title || canvasTitleFromStore;
 
@@ -73,12 +75,13 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
         <title>{canvasTitle?.toString() || t('common.untitled')} · Refly</title>
         {shareData?.minimapUrl && <meta property="og:image" content={shareData.minimapUrl} />}
       </Helmet>
-      <div className="absolute h-16 top-0 left-0 right-0  box-border flex justify-between items-center py-2 px-4 bg-transparent">
-        <div className="flex items-center relative z-10">
+
+      <div className="absolute h-16 p-2 top-0 left-0 right-0 box-border flex justify-between items-center bg-transparent">
+        <ToolContainer>
           {collapse && (
             <>
-              <SiderPopover align={{ offset: [0, -8] }} />
-              <Divider type="vertical" className="pr-[4px] h-4" />
+              <SiderPopover align={{ offset: [0, -8] }} showBrand={false} />
+              <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
             </>
           )}
           {readonly ? (
@@ -88,23 +91,18 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
               owner={shareData?.owner}
             />
           ) : (
-            <CanvasTitle
-              canvasId={canvasId}
-              canvasTitle={canvasTitle}
-              canvasLoading={loading || !canvasInitialized}
-              language={language}
-            />
+            <CanvasActionDropdown canvasId={canvasId} canvasName={canvasTitle} offset={[0, 4]}>
+              <CanvasTitle
+                canvasTitle={canvasTitle}
+                canvasLoading={loading || !canvasInitialized}
+                language={language}
+              />
+            </CanvasActionDropdown>
           )}
-        </div>
+        </ToolContainer>
 
-        <div className="flex items-center gap-2 relative z-10">
-          <ToolbarButtons
-            canvasTitle={canvasTitle}
-            showPreview={showPreview}
-            showMaxRatio={showMaxRatio}
-            setShowPreview={setShowPreview}
-            setShowMaxRatio={setShowMaxRatio}
-          />
+        <ToolContainer>
+          <CanvasLayoutControls />
 
           {isPreviewCanvas ? (
             <Button
@@ -138,10 +136,11 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
           ) : (
             <>
               <ShareSettings canvasId={canvasId} canvasTitle={canvasTitle} />
-              <CanvasActionDropdown canvasId={canvasId} canvasName={canvasTitle} btnSize="large" />
             </>
           )}
-        </div>
+
+          <ToolbarButtons canvasTitle={canvasTitle} mode={mode} changeMode={changeMode} />
+        </ToolContainer>
       </div>
     </>
   );

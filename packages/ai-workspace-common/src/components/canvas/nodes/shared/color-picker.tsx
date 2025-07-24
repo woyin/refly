@@ -39,7 +39,7 @@ const CommonColorPicker: FC<CommonColorPickerProps> = ({
 
   return (
     <AntdColorPicker
-      className={`memo-color-picker items-center border-none rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 ${className}`}
+      className={`memo-color-picker items-center border-none rounded-lg hover:refly-tertiary-hover ${className}`}
       defaultValue={color}
       onChange={handleColorChange}
       showText={false}
