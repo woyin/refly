@@ -1048,7 +1048,7 @@ const translations = {
       toggleLaunchpadTitle: '切换 AI 提问框展示状态',
       editTitle: '编辑画布标题',
       editTitlePlaceholder: '请输入画布标题',
-      rename: '重命名',
+      rename: '编辑画布标题',
       duplicate: '复制画布',
       syncingChanges: '同步中',
       synced: '上次同步于{{time}}',

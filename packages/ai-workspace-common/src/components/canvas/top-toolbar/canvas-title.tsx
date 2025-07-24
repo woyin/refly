@@ -1,41 +1,30 @@
-import { useCallback, memo } from 'react';
+import { memo } from 'react';
 import { Tooltip, Skeleton, Typography, Avatar, Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
-import { IconCanvas, IconEdit } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconCanvas } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { ShareUser } from '@refly/openapi-schema';
 import { AiOutlineUser } from 'react-icons/ai';
-import { useCanvasOperationStoreShallow } from '@refly/stores';
 
 export const CanvasTitle = memo(
   ({
-    canvasId,
     canvasLoading,
     canvasTitle,
     language,
   }: {
-    canvasId: string;
     canvasLoading: boolean;
     canvasTitle: string;
     language: LOCALE;
   }) => {
     const { t } = useTranslation();
-    const { openRenameModal } = useCanvasOperationStoreShallow((state) => ({
-      openRenameModal: state.openRenameModal,
-    }));
-
-    const handleEditClick = useCallback(() => {
-      openRenameModal(canvasId, canvasTitle);
-    }, [openRenameModal, canvasId, canvasTitle]);
 
     const isSyncing = canvasLoading;
 
     return (
       <>
         <div
-          className="ml-1 group flex items-center gap-2 text-sm font-bold cursor-pointer"
-          onClick={handleEditClick}
+          className="py-1 px-1.5 group flex items-center gap-2 text-sm font-semibold cursor-pointer hover:bg-refly-tertiary-hover rounded-lg"
           data-cy="canvas-title-edit"
         >
           <Tooltip
@@ -58,14 +47,10 @@ export const CanvasTitle = memo(
           {canvasLoading ? (
             <Skeleton className="w-32" active paragraph={false} />
           ) : (
-            <Typography.Text
-              className="!max-w-72 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
-              ellipsis={{ tooltip: true }}
-            >
+            <Typography.Text className="!max-w-72 text-refly-text-0" ellipsis={{ tooltip: true }}>
               {canvasTitle || t('common.untitled')}
             </Typography.Text>
           )}
-          <IconEdit className="text-gray-500 flex items-center justify-center" />
         </div>
       </>
     );

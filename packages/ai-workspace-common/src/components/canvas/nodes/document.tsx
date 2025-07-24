@@ -243,7 +243,6 @@ export const DocumentNode = memo(
           'relative nodrag nopan select-text': isOperating,
         })}
         onClick={onNodeClick}
-        style={NODE_SIDE_CONFIG}
       >
         {!isPreview && !hideHandles && (
           <>
@@ -278,6 +277,7 @@ export const DocumentNode = memo(
         )}
 
         <div
+          style={NODE_SIDE_CONFIG}
           className={`
             h-full
             flex flex-col
@@ -302,7 +302,7 @@ export const DocumentNode = memo(
             />
           </div>
 
-          <div className="flex justify-end items-center flex-shrink-0 mt-2 text-[10px] text-gray-400 z-20">
+          <div className="flex justify-end items-center flex-shrink-0 mt-1 text-[10px] text-gray-400 z-20">
             {time(data.createdAt, language as LOCALE)
               ?.utc()
               ?.fromNow()}

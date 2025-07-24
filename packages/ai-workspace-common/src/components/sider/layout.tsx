@@ -324,7 +324,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
           : 'h-[calc(100vh-16px)] rounded-lg border-r border-solid border-[1px] border-refly-Card-Border bg-refly-bg-Glass-content backdrop-blur-md shadow-[0_6px_60px_0px_rgba(0,0,0,0.08)]',
       )}
     >
-      <div className="flex h-full flex-col gap-3 overflow-hidden p-4">
+      <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pt-6">
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
           <SiderLogo
             navigate={(path) => navigate(path)}

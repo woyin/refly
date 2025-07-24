@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { Divider, Input, message, Typography } from 'antd';
 import type { InputRef } from 'antd';
 import { CanvasNode } from '@refly/canvas-common';
-import { useState, useCallback, useRef, useEffect, memo } from 'react';
+import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './index';
 import { SkillResponseNodeProps } from './shared/types';
@@ -236,6 +236,11 @@ export const SkillResponseNode = memo(
     const { getEdges } = useReactFlow();
     const updateNodeTitle = useUpdateNodeTitle();
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
+
+    const nodeStyle = useMemo(
+      () => (isPreview ? { width: NODE_WIDTH, height: 214 } : NODE_SIDE_CONFIG),
+      [isPreview],
+    );
 
     const { t, i18n } = useTranslation();
     const language = i18n.languages?.[0];
@@ -644,9 +649,6 @@ export const SkillResponseNode = memo(
           nowheel: isOperating && isHovered,
           'relative nodrag nopan select-text': isOperating,
         })}
-        style={
-          isPreview ? { width: NODE_WIDTH, height: 214 } : { width: NODE_WIDTH, maxHeight: 214 }
-        }
         data-cy="skill-response-node"
         onClick={onNodeClick}
       >
@@ -682,6 +684,7 @@ export const SkillResponseNode = memo(
           </>
         )}
         <div
+          style={nodeStyle}
           className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
         >
           <NodeHeader

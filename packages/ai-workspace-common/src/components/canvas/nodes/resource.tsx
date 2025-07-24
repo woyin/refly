@@ -332,7 +332,6 @@ export const ResourceNode = memo(
       <div
         onMouseEnter={!isPreview ? handleMouseEnter : undefined}
         onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-        style={NODE_SIDE_CONFIG}
         onClick={onNodeClick}
         className={classNames({
           nowheel: isOperating && isHovered,
@@ -373,6 +372,7 @@ export const ResourceNode = memo(
         )}
 
         <div
+          style={NODE_SIDE_CONFIG}
           className={`h-full flex flex-col relative p-4 box-border z-1
             ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
           `}
@@ -390,7 +390,7 @@ export const ResourceNode = memo(
             <NodeContent data={data} isOperating={isOperating} isPreview={isPreview} />
           </div>
           {/* Timestamp container */}
-          <div className="flex justify-end items-center text-[10px] text-gray-400 mt-1 px-1">
+          <div className="flex justify-end items-center text-[10px] text-gray-400 mt-1">
             {time(data.createdAt, language as LOCALE)
               ?.utc()
               ?.fromNow()}

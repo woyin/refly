@@ -1231,7 +1231,7 @@ const translations = {
       toggleLaunchpadTitle: 'Toggle Ask AI Display State',
       editTitle: 'Edit Canvas Title',
       editTitlePlaceholder: 'Please enter the title of the canvas',
-      rename: 'Rename',
+      rename: 'Edit Canvas Name',
       duplicate: 'Duplicate Canvas',
       syncingChanges: 'Syncing Changes',
       synced: 'Last synced at {{time}}',

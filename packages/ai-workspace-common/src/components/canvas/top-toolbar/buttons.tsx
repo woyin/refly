@@ -1,13 +1,11 @@
 import { useState, useCallback, memo } from 'react';
 import { Button, Tooltip, Popover } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { MdOutlineImage } from 'react-icons/md';
 import {
   IconAskAI,
-  IconDownloadFile,
-  IconSearch,
   IconSlideshow,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { Download, Search } from 'refly-icons';
 import { NodeSelector } from '../common/node-selector';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { IContextItem } from '@refly/common-types';
@@ -17,18 +15,13 @@ import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hove
 import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { Help } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/help';
 
 export const ToolbarButtons = memo(
   ({
     canvasTitle,
-    showPreview,
-    setShowPreview,
   }: {
     canvasTitle: string;
-    showPreview: boolean;
-    showMaxRatio: boolean;
-    setShowPreview: (show: boolean) => void;
-    setShowMaxRatio: (show: boolean) => void;
   }) => {
     const { t } = useTranslation();
     const { exportCanvasAsImage, isLoading } = useExportCanvasAsImage();
@@ -52,18 +45,10 @@ export const ToolbarButtons = memo(
         const node = nodes.find((n) => n.data?.entityId === item.entityId);
         if (node) {
           setNodeCenter(node.id, true);
-          // setSearchOpen(false);
         }
       },
       [getNodes, setNodeCenter],
     );
-
-    const previewButtonConfig = {
-      title: t(`canvas.toolbar.${showPreview ? 'hidePreview' : 'showPreview'}`),
-      description: t('canvas.toolbar.togglePreviewDescription'),
-      videoUrl: 'https://static.refly.ai/onboarding/top-toolbar/topToolbar-togglePreview.webm',
-      placement: 'bottom' as const,
-    };
 
     const linearThreadButtonConfig = {
       title: t(`canvas.toolbar.${showLinearThread ? 'hideLaunchpad' : 'showLaunchpad'}`, {
@@ -74,22 +59,6 @@ export const ToolbarButtons = memo(
       }),
       placement: 'bottom' as const,
     };
-
-    const previewButton = (
-      <Button
-        type="text"
-        icon={
-          <MdOutlineImage
-            size={16}
-            className={`flex items-center justify-center ${
-              showPreview ? 'text-gray-900 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'
-            }`}
-          />
-        }
-        onClick={() => setShowPreview(!showPreview)}
-        className="w-8 h-6 flex items-center justify-center mr-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-      />
-    );
 
     const linearThreadButton = (
       <Button
@@ -113,29 +82,22 @@ export const ToolbarButtons = memo(
       <Button
         type="text"
         loading={isLoading}
-        icon={<IconDownloadFile size={16} className="#000 flex items-center justify-center " />}
+        icon={<Download size={18} />}
         onClick={() => exportCanvasAsImage(canvasTitle)}
-        className="w-8 h-6 flex items-center justify-center"
       />
     );
 
     const slideshowButton = (
       <Button
         type="text"
-        icon={
-          <IconSlideshow
-            size={16}
-            className={`flex items-center justify-center ${showSlideshow ? 'text-green-600' : '#000'}`}
-          />
-        }
-        className="w-8 h-6 flex items-center justify-center"
+        icon={<IconSlideshow size={18} />}
         onClick={() => setShowSlideshow(!showSlideshow)}
       />
     );
 
     return (
       <>
-        {!readonly && (
+        {false && (
           <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
             {hoverCardEnabled ? (
               <HoverCard {...linearThreadButtonConfig}>{linearThreadButton}</HoverCard>
@@ -145,7 +107,7 @@ export const ToolbarButtons = memo(
           </div>
         )}
 
-        <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
+        <div className="flex items-center">
           {!readonly && <Tooltip title={t('canvas.toolbar.slideshow')}>{slideshowButton}</Tooltip>}
 
           <Popover
@@ -164,26 +126,12 @@ export const ToolbarButtons = memo(
             overlayClassName="node-search-popover"
           >
             <Tooltip title={t('canvas.toolbar.searchNode')}>
-              <Button
-                type="text"
-                icon={
-                  <IconSearch
-                    size={16}
-                    className="flex items-center justify-center text-gray-900 dark:text-gray-300"
-                  />
-                }
-                className="w-8 h-6 flex items-center justify-center mr-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-              />
+              <Button type="text" icon={<Search size={18} />} />
             </Tooltip>
           </Popover>
 
-          {hoverCardEnabled ? (
-            <HoverCard {...previewButtonConfig}>{previewButton}</HoverCard>
-          ) : (
-            <Tooltip title={previewButtonConfig.title}>{previewButton}</Tooltip>
-          )}
-
           <Tooltip title={t('canvas.toolbar.exportImage')}>{exportImageButton}</Tooltip>
+          <Help />
         </div>
       </>
     );
