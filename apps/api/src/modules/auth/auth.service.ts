@@ -271,7 +271,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (user) {
       this.logger.log(`user ${user.uid} already registered for email ${email}`);
-      logEvent(user, 'login_success', null, { provider });
+      logEvent(user, 'login_success', provider);
       return user;
     }
 
@@ -324,7 +324,7 @@ export class AuthService {
     });
     this.logger.log(`new account created for ${newAccount.uid}`);
 
-    logEvent(newUser, 'signup_success', null, { provider });
+    logEvent(newUser, 'signup_success', provider);
 
     return newUser;
   }
@@ -395,15 +395,12 @@ export class AuthService {
       }
     } catch (error) {
       this.logger.error(`Password verification failed: ${error.message}`);
-      logEvent(user, 'login_failed', null, {
-        provider: 'email',
-        reason: 'password_incorrect',
-      });
+      logEvent(user, 'login_failed', 'email', { reason: 'password_incorrect' });
 
       throw new PasswordIncorrect();
     }
 
-    logEvent(user, 'login_success', null, { provider: 'email' });
+    logEvent(user, 'login_success', 'email');
 
     return this.login(user);
   }
@@ -505,9 +502,7 @@ export class AuthService {
       user = newUser;
       await this.postCreateUser(user);
 
-      logEvent(user, 'signup_success', null, {
-        provider: 'email',
-      });
+      logEvent(user, 'signup_success', 'email');
     } else if (purpose === 'resetPassword') {
       user = await this.prisma.user.findUnique({ where: { email } });
       if (!user) {
@@ -518,9 +513,7 @@ export class AuthService {
         data: { password: hashedPassword },
       });
 
-      logEvent(user, 'reset_password_success', null, {
-        provider: 'email',
-      });
+      logEvent(user, 'reset_password_success');
     } else {
       throw new ParamsError(`Invalid verification purpose: ${purpose}`);
     }
