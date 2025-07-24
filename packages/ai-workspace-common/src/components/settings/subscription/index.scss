@@ -1,4 +1,9 @@
 .subscription-management-page {
+  // antd override
+  .ant-table-wrapper .ant-table-pagination.ant-pagination {
+    background: transparent;
+  }
+
   padding: 16px;
   height: 100%;
   display: flex;
@@ -123,12 +128,13 @@
   .points-history {
     margin-top: 24px;
 
-    .history-tabs {
+        .history-tabs {
       margin-bottom: 24px;
-      background-color: #f5f5f5;
-      padding: 5px;
+      background-color: #fff;
+      padding: 4px;
       border-radius: 20px;
       display: inline-block;
+      border: 1px solid #e8e8e8;
 
       .ant-segmented-item {
         border-radius: 16px !important;
@@ -139,20 +145,17 @@
         text-align: center;
         font-size: 12px;
         font-weight: 400;
-
         padding: 2px 8px;
         min-height: unset;
         line-height: unset;
       }
 
       .ant-segmented-item-selected {
-        background-color: #fff !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        background-color: #f5f5f5 !important;
 
         .ant-segmented-item-label {
           color: var(--text-icon-refly-text-0, #1c1f23);
           text-align: center;
-
           font-size: 12px;
           font-weight: 600;
         }
@@ -191,6 +194,108 @@
         padding: 16px;
         justify-content: flex-start;
         border-top: none;
+      }
+    }
+  }
+}
+
+.dark {
+  .subscription-management-page {
+    .subscription-header {
+      .subtitle {
+        color: var(--text-color-secondary);
+      }
+    }
+
+    .subscription-plan-card {
+      background-color: #333;
+      background-image: url("https://refly.imgix.net/refly-website/account/points-card-bg-dark.svg");
+
+      .plan-info {
+        .current-plan-label,
+        .current-plan-name {
+          color: var(--text-color-primary);
+        }
+      }
+    }
+
+    .usage-cards {
+      .usage-card {
+        background-color: #333;
+
+        .usage-label,
+        .usage-value {
+          color: var(--text-color-primary);
+        }
+
+        .usage-label {
+          color: var(--text-color-secondary);
+        }
+      }
+    }
+
+    .points-history {
+      .history-tabs {
+        background-color: #1c1f23;
+        border: 1px solid #424242;
+
+        .ant-segmented-item-label {
+          color: var(--text-color-primary);
+        }
+
+        .ant-segmented-item-selected {
+          background-color: #424242 !important;
+
+          .ant-segmented-item-label {
+            color: var(--text-color-primary);
+          }
+        }
+      }
+
+      .history-table {
+        border: 1px solid #424242;
+
+        .ant-table {
+          background-color: #1c1f23;
+        }
+
+        .ant-table-thead > tr > th {
+          background: #1c1f23 !important;
+          color: var(--text-color-primary);
+          border-bottom: 1px solid #424242;
+        }
+
+        .ant-table-tbody > tr > td {
+          background: #1c1f23;
+          color: var(--text-color-primary);
+          border-bottom: 1px solid #424242;
+        }
+
+        .ant-table-tbody > tr.ant-table-row:hover > td {
+          background: #2c2c2c;
+        }
+
+        .ant-table-pagination.ant-pagination {
+          background: #1c1f23;
+          border-top: 1px solid #424242;
+
+          .ant-pagination-item a {
+            color: var(--text-color-primary);
+          }
+          .ant-pagination-item-active a {
+            color: #fff;
+          }
+          .ant-pagination-item-active {
+            background-color: #00968f;
+            border-color: #00968f;
+          }
+
+          .ant-pagination-prev .ant-pagination-item-link,
+          .ant-pagination-next .ant-pagination-item-link {
+            background-color: transparent;
+            color: var(--text-color-primary);
+          }
+        }
       }
     }
   }

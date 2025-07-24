@@ -207,27 +207,25 @@
           line-height: 20px;
         }
 
-        &.ant-btn-default:disabled {
-          background-color: #f3f4f6;
-          color: #9ca3af;
-          border-color: #d1d5db;
-        }
-
         background-color: #f3f4f6;
         border-color: #d1d5db;
-        color: #374151;
-        &:hover:not(:disabled) {
-          background-color: #e5e7eb;
-          border-color: #9ca3af;
-        }
-
         color: var(--primary---refly-primary-default, #0e9f77);
-
         font-family: "PingFang SC";
         font-size: 14px;
         font-style: normal;
         font-weight: 600;
         line-height: 20px;
+
+        &:disabled {
+          background-color: #f3f4f6;
+          color: #9ca3af;
+          border-color: #d1d5db;
+        }
+
+        &:hover:not(:disabled) {
+          background-color: #e5e7eb;
+          border-color: #9ca3af;
+        }
       }
 
       .plane-features {
