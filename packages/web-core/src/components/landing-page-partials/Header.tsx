@@ -47,7 +47,7 @@ function Header() {
             <span>{t('landingPage.tab.wechat')}</span>
           </div>
         ),
-        onClick: () => window.open('https://docs.refly.ai/images/wechat-qrcode.webp', '_blank'),
+        onClick: () => window.open('https://static.refly.ai/landing/wechat-qrcode.webp', '_blank'),
       },
     ],
     [t],

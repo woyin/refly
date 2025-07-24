@@ -2,12 +2,8 @@
   "name": "@refly/openapi-schema",
   "version": "0.8.0",
   "description": "Refly OpenAPI Schema",
-  "main": "dist/index.js",
-  "exports": {
-    ".": "./src/index.ts",
-    "./queries": "./src/queries/index.ts",
-    "./requests": "./src/requests/index.ts"
-  },
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "scripts": {
     "dev": "nodemon",
     "codegen": "openapi-ts && tsc --build --verbose",

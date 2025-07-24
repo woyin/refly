@@ -54,7 +54,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
       },
     },
     null,
-    { enabled: Boolean(isLogin && !shareId && artifactId && status?.startsWith('finish')) },
+    { enabled: Boolean(isLogin && !shareId && artifactId) },
   );
   const { data: shareData, loading: isShareLoading } = useFetchShareData<CodeArtifact>(shareId);
 
@@ -95,19 +95,6 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
 
         if (data?.type !== currentType) {
           setCurrentType(detectActualTypeFromType(data?.type));
-        }
-
-        // Save to node metadata when status updates
-        if (artifactId) {
-          setNodeDataByEntity(
-            { type: 'codeArtifact', entityId: artifactId },
-            {
-              metadata: {
-                activeTab: data?.status === 'finish' ? 'preview' : 'code',
-                type: detectActualTypeFromType(data?.type),
-              },
-            },
-          );
         }
       }
     };

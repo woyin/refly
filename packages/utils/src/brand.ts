@@ -1,1 +1,1 @@
-export const BRANDING_NAME = 'Refly2';
+export const BRANDING_NAME = 'Refly';

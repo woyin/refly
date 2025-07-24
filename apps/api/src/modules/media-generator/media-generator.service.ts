@@ -13,6 +13,7 @@ import {
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
 import { ProviderService } from '../provider/provider.service';
+import { PromptProcessorService } from './prompt-processor.service';
 import { genActionResultID } from '@refly/utils';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class MediaGeneratorService {
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
     private readonly providerService: ProviderService,
+    private readonly promptProcessor: PromptProcessorService,
   ) {}
 
   /**
@@ -75,10 +77,23 @@ export class MediaGeneratorService {
   ): Promise<void> {
     let result: { output: string };
     try {
-      // Update status to Executing
+      // ===== Language Processing: Detect and translate prompt =====
+      const promptProcessingResult = await this.promptProcessor.processPrompt(request.prompt);
+
+      // Update status to Executing with language processing info
       await this.prisma.actionResult.update({
         where: { resultId_version: { resultId, version: 0 } },
-        data: { status: 'executing' },
+        data: {
+          status: 'executing',
+          // Store language processing info while keeping original request intact
+          input: JSON.stringify({
+            ...request, // Keep original request fields unchanged (prompt = original user input)
+            // Add new fields for language processing
+            englishPrompt: promptProcessingResult.translatedPrompt, // English version for generation
+            detectedLanguage: promptProcessingResult.detectedLanguage,
+            isTranslated: promptProcessingResult.isTranslated,
+          }),
+        },
       });
 
       const providerKey = request.provider;
@@ -93,12 +108,18 @@ export class MediaGeneratorService {
         throw new Error('No media generation provider found');
       }
 
+      // Create request with translated prompt for third-party service
+      const translatedRequest: MediaGenerateRequest = {
+        ...request,
+        prompt: promptProcessingResult.translatedPrompt, // Use English prompt for generation
+      };
+
       if (providerKey === 'replicate') {
-        result = await this.generateWithReplicate(user, request, provider.apiKey);
+        result = await this.generateWithReplicate(user, translatedRequest, provider.apiKey);
       } else if (providerKey === 'fal') {
-        result = await this.generateWithFal(user, request, provider.apiKey);
+        result = await this.generateWithFal(user, translatedRequest, provider.apiKey);
       } else if (providerKey === 'volces') {
-        result = await this.generateWithVolces(user, request, provider.apiKey);
+        result = await this.generateWithVolces(user, translatedRequest, provider.apiKey);
       } else {
         throw new Error(`Unsupported provider: ${providerKey}`);
       }
@@ -120,14 +141,14 @@ export class MediaGeneratorService {
         },
       });
     } catch (error) {
-      console.error(`Media generation execution failed for ${resultId}:`, error);
+      console.error(`Media generation failed for ${resultId}:`, error);
 
-      // Update status is failed
+      // Update status to failed
       await this.prisma.actionResult.update({
         where: { resultId_version: { resultId, version: 0 } },
         data: {
           status: 'failed',
-          errors: JSON.stringify([error.message || 'Media generation failed']),
+          errors: JSON.stringify([error instanceof Error ? error.message : 'Unknown error']),
         },
       });
     }
