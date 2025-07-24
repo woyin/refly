@@ -25,6 +25,11 @@
     .ant-modal-close {
       top: 20px;
       right: 20px;
+      color: var(--text-icon-refly-text-2, #6b7280);
+
+      &:hover {
+        color: var(--text-icon-refly-text-0, #111827);
+      }
     }
   }
 }
