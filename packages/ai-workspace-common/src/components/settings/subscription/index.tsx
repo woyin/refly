@@ -88,18 +88,16 @@ export const Subscription = () => {
       title: '使用时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text) => formatDate(text),
+      render: (text) => formatDate(text, 'YYYY.MM.DD HH:mm:ss'),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
+      align: 'right',
       render: (amount) => {
-        if (amount > 0) {
-          return <span style={{ color: '#52c41a' }}>{`+${amount}`}</span>;
-        }
-        // For negative values, the number itself will have the minus sign
-        return <span>{amount}</span>;
+        const value = amount > 0 ? `+${amount}` : amount;
+        return <span>{value}</span>;
       },
     },
   ];
@@ -116,38 +114,41 @@ export const Subscription = () => {
       title: '获取时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text) => formatDate(text),
+      render: (text) => formatDate(text, 'YYYY.MM.DD HH:mm:ss'),
     },
     {
       title: '有效期至',
       dataIndex: 'expiredAt',
       key: 'expiredAt',
-      render: (text) => formatDate(text),
+      render: (text) => (text ? formatDate(text, 'YYYY.MM.DD HH:mm:ss') : '-'),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <span style={{ color: '#52c41a' }}>{`+${amount}`}</span>,
+      align: 'right',
+      render: (amount) => <span>{`+${amount}`}</span>,
     },
     {
       title: '剩余',
       dataIndex: 'balance',
       key: 'balance',
+      align: 'right',
     },
     {
       title: '状态',
       key: 'status',
+      align: 'right',
       render: (_, record) => {
         const now = new Date();
         const expiryDate = new Date(record.expiredAt);
         if (record.balance <= 0) {
-          return <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>已用尽</span>;
+          return '已用尽';
         }
         if (expiryDate < now) {
-          return <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>已失效</span>;
+          return '已失效';
         }
-        return <span style={{ color: 'rgba(0, 0, 0, 0.85)' }}>可用</span>;
+        return '可用';
       },
     },
   ];

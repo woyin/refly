@@ -15,8 +15,13 @@
       margin-bottom: 4px;
     }
     .subtitle {
-      font-size: 14px;
-      color: #888;
+      color: var(--text-icon-refly-text-1, rgba(28, 31, 35, 0.8));
+
+      font-family: "PingFang SC";
+      font-size: 12px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 16px;
     }
   }
 
@@ -42,11 +47,27 @@
     .plan-info {
       .current-plan-label {
         font-size: 14px;
-        color: #555;
+
+        color: var(--text-icon-refly-text-0, #1c1f23);
+
+        font-family: "PingFang SC";
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 16px;
       }
       .current-plan-name {
+        margin-top: 4px;
         font-size: 24px;
         font-weight: bold;
+
+        color: var(--text-icon-refly-text-0, #1c1f23);
+
+        font-family: "PingFang SC";
+        font-size: 22px;
+        font-style: normal;
+        font-weight: 600;
+        line-height: 32px;
       }
     }
 
@@ -75,10 +96,26 @@
         font-size: 14px;
         color: #555;
         margin-bottom: 8px;
+
+        color: var(--text-icon-refly-text-0, #1c1f23);
+
+        font-family: "PingFang SC";
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 400;
+        line-height: 16px;
       }
       .usage-value {
         font-size: 24px;
         font-weight: bold;
+
+        color: var(--text-icon-refly-text-0, #1c1f23);
+
+        font-family: "PingFang SC";
+        font-size: 18px;
+        font-style: normal;
+        font-weight: 600;
+        line-height: 28px;
       }
     }
   }
@@ -127,11 +164,15 @@
       border-radius: 8px;
       overflow: hidden;
 
+      .ant-table {
+        background-color: #fff;
+      }
+
       .ant-table-thead > tr > th {
-        background-color: #fff !important;
-        font-weight: 400;
-        color: rgba(0, 0, 0, 0.85);
-        border-bottom: 1px solid #f0f0f0;
+        background: #fff !important;
+        border-bottom: none;
+        color: var(--text-icon-refly-text-0, #1c1f23);
+        font-weight: normal;
         padding: 12px 16px;
       }
 
@@ -145,10 +186,11 @@
       }
 
       .ant-table-pagination.ant-pagination {
-        padding: 16px;
+        background: #fff;
         margin: 0;
-        border-top: 1px solid #f0f0f0;
+        padding: 16px;
         justify-content: flex-start;
+        border-top: none;
       }
     }
   }
