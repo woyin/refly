@@ -9,7 +9,7 @@ import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CanvasTitle, ReadonlyCanvasTitle } from './canvas-title';
-import { ToolbarButtons } from './buttons';
+import { ToolbarButtons, type Mode } from './buttons';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import ShareSettings from './share-settings';
 import { useUserStoreShallow } from '@refly/stores';
@@ -19,8 +19,11 @@ import { LuBookCopy } from 'react-icons/lu';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { useAuthStoreShallow } from '@refly/stores';
 import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/canvas-layout-controls';
+
 interface TopToolbarProps {
   canvasId: string;
+  mode: Mode;
+  changeMode: (mode: Mode) => void;
 }
 
 const ToolContainer = memo(({ children }: { children: React.ReactNode }) => {
@@ -31,7 +34,7 @@ const ToolContainer = memo(({ children }: { children: React.ReactNode }) => {
   );
 });
 
-export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
+export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMode }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.language as LOCALE;
   const { collapse } = useSiderStoreShallow((state) => ({
@@ -136,7 +139,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId }) => {
             </>
           )}
 
-          <ToolbarButtons canvasTitle={canvasTitle} />
+          <ToolbarButtons canvasTitle={canvasTitle} mode={mode} changeMode={changeMode} />
         </ToolContainer>
       </div>
     </>

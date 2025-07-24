@@ -37,7 +37,6 @@ import {
   usePilotStoreShallow,
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-import { LayoutControl } from './layout-control';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { MenuPopper } from './menu-popper';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
@@ -966,7 +965,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             {t('pilot.name', { defaultValue: 'Pilot' })} <ChevronUp className="w-4 h-4" />
           </Button>
         )}
-        <TopToolbar canvasId={canvasId} />
+        <TopToolbar canvasId={canvasId} mode={interactionMode} changeMode={toggleInteractionMode} />
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>
           {readonly && (
@@ -1030,12 +1029,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             {memoizedMiniMap}
             <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
           </ReactFlow>
-
-          <LayoutControl
-            mode={interactionMode}
-            changeMode={toggleInteractionMode}
-            readonly={readonly}
-          />
         </div>
 
         {/* Display the not found overlay when shareNotFound is true */}

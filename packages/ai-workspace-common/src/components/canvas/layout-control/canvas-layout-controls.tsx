@@ -50,7 +50,7 @@ export const CanvasLayoutControls = memo(() => {
   const { onLayout } = useCanvasLayout();
   const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const minZoom = 0.1;
+  const minZoom = 0.25;
   const maxZoom = 2;
 
   // Handle viewport changes to update zoom percentage
@@ -83,15 +83,23 @@ export const CanvasLayoutControls = memo(() => {
   // Zoom control handlers
   const handleZoomIn = useCallback(() => {
     if (currentZoom < maxZoom) {
-      reactFlowInstance?.zoomIn?.();
+      const newZoom = Math.min(currentZoom + 0.25, maxZoom);
+      const viewport = reactFlowInstance?.getViewport?.();
+      if (viewport) {
+        reactFlowInstance?.setViewport?.({ ...viewport, zoom: newZoom });
+      }
     }
-  }, [currentZoom, reactFlowInstance]);
+  }, [currentZoom, reactFlowInstance, maxZoom]);
 
   const handleZoomOut = useCallback(() => {
     if (currentZoom > minZoom) {
-      reactFlowInstance?.zoomOut?.();
+      const newZoom = Math.max(currentZoom - 0.25, minZoom);
+      const viewport = reactFlowInstance?.getViewport?.();
+      if (viewport) {
+        reactFlowInstance?.setViewport?.({ ...viewport, zoom: newZoom });
+      }
     }
-  }, [currentZoom, reactFlowInstance]);
+  }, [currentZoom, reactFlowInstance, minZoom]);
 
   const handleZoomReset = useCallback(() => {
     reactFlowInstance?.zoomTo(1);
@@ -117,7 +125,7 @@ export const CanvasLayoutControls = memo(() => {
           <MenuItemLabel
             icon={<ZoomIn size={18} />}
             text={t('canvas.toolbar.tooltip.zoomIn')}
-            shortcut="⌘+"
+            // shortcut="⌘+"
             handleClick={handleZoomIn}
           />
         ),
@@ -129,7 +137,7 @@ export const CanvasLayoutControls = memo(() => {
           <MenuItemLabel
             icon={<ZoomOut size={18} />}
             text={t('canvas.toolbar.tooltip.zoomOut')}
-            shortcut="⌘-"
+            // shortcut="⌘-"
             handleClick={handleZoomOut}
           />
         ),
@@ -141,7 +149,7 @@ export const CanvasLayoutControls = memo(() => {
           <MenuItemLabel
             icon={<Reload size={18} />}
             text={t('canvas.toolbar.tooltip.zoomReset')}
-            shortcut="⌘1"
+            // shortcut="⌘1"
             handleClick={handleZoomReset}
           />
         ),
