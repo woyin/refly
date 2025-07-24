@@ -2,6 +2,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Modal } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { logEvent } from '@refly/telemetry-web';
 
 export const useHandleUrlParamsCallback = () => {
   const { t } = useTranslation();
@@ -48,9 +49,13 @@ export const useHandleUrlParamsCallback = () => {
           ? t('settings.action.paySuccessDescription')
           : t('settings.action.payCancelDescription');
         if (paySuccess) {
+          logEvent('subscription::pay_success');
+
           Modal.success({
             centered: true,
-            title,
+            title: paySuccess
+              ? t('settings.action.paySuccessNotify')
+              : t('settings.action.payCancelNotify'),
             content: description,
             okButtonProps,
             autoFocusButton: null,
@@ -62,6 +67,8 @@ export const useHandleUrlParamsCallback = () => {
             },
           });
         } else {
+          logEvent('subscription::pay_cancel');
+
           Modal.error({
             centered: true,
             title,

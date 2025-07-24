@@ -19,6 +19,7 @@ import { staticPublicEndpoint } from '@refly/ui-kit';
 import cn from 'classnames';
 import { useUserStoreShallow } from '@refly/stores';
 import { useAuthStoreShallow } from '@refly/stores';
+import { logEvent } from '@refly/telemetry-web';
 
 export const TemplateCard = ({
   template,
@@ -41,6 +42,11 @@ export const TemplateCard = ({
   }));
 
   const handlePreview = (e: React.MouseEvent<HTMLDivElement>) => {
+    logEvent('home::template_preview', null, {
+      templateId: template.templateId,
+      templateName: template.title,
+    });
+
     e.stopPropagation();
     if (template.shareId) {
       setModalVisible(false);
@@ -49,6 +55,11 @@ export const TemplateCard = ({
   };
 
   const handleUse = (e: React.MouseEvent<HTMLDivElement>) => {
+    logEvent('home::template_use', null, {
+      templateId: template.templateId,
+      templateName: template.title,
+    });
+
     e.stopPropagation();
     if (!isLogin) {
       setLoginModalOpen(true);

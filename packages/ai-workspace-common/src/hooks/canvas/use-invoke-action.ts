@@ -72,7 +72,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
       return;
     }
 
-    logEvent('model_invoke_start', Date.now(), {
+    logEvent('model::invoke_start', Date.now(), {
       resultId,
       source,
       model: result.modelInfo?.name,
@@ -428,7 +428,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
       return;
     }
 
-    logEvent('model_invoke_end', Date.now(), {
+    logEvent('model::invoke_end', Date.now(), {
       resultId: result.resultId,
       source,
       model: result.modelInfo?.name,
@@ -499,7 +499,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
       return;
     }
 
-    logEvent('model_invoke_error', Date.now(), {
+    logEvent('model::invoke_error', Date.now(), {
       resultId,
       source,
       model: result.modelInfo?.name,
@@ -565,7 +565,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         projectId,
       } = payload;
 
-      logEvent('model_invoke_trigger', Date.now(), {
+      logEvent('model::invoke_trigger', Date.now(), {
         source,
         resultId,
         model: modelInfo?.name,
