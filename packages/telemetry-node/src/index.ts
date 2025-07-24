@@ -5,7 +5,7 @@ let statsig: Statsig | null = null;
 export const setupStatsig = async () => {
   const secretKey = process.env.STATSIG_SECRET_KEY;
   if (!secretKey) {
-    console.warn('VITE_STATSIG_CLIENT_KEY is not set, skipping statsig setup');
+    console.warn('STATSIG_CLIENT_KEY is not set, skipping statsig setup');
     return;
   }
 

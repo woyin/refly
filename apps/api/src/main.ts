@@ -61,7 +61,12 @@ async function bootstrap() {
 
   tracer.start();
 
-  await setupStatsig();
+  try {
+    await setupStatsig();
+  } catch (err) {
+    // Continue boot-strapping even if telemetry is unavailable
+    console.warn('Statsig init failed – proceeding without telemetry', err);
+  }
 
   await app.listen(configService.get('port'));
 }
