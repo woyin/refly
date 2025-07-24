@@ -46,7 +46,7 @@
       padding: 4px;
       box-sizing: border-box;
       border-radius: 18px;
-      background-color: #f3f4f6; // Light grey background for the container
+      background-color: var(--bg-refly-bg-subtle, #f3f4f6);
 
       &-item {
         display: flex;
@@ -59,20 +59,24 @@
         font-size: 14px;
         font-weight: 500;
         padding: 0 16px;
-        color: #6b7280; // Softer text color for inactive item
+        color: var(--text-icon-refly-text-2, #6b7280); // Softer text color for inactive item
         transition: all 0.3s ease;
 
         .ant-tag {
-          margin-left: 8px;
+          color: var(--functional-refly-functional-orange-6-default, #fa8c16);
+          background: var(--functional-refly-functional-orange-1-light, #fff7e6);
+          border-color: var(--functional-refly-functional-orange-3-light, #ffd591);
           border-radius: 4px;
+          margin-left: 8px;
         }
 
         &.active {
-          color: #111827; // Dark text for active item
-          background: #fff; // White background for active item
+          color: var(--text-icon-refly-text-0, #111827); // Dark text for active item
+          background: var(
+            --bg-refly-bg-container,
+            #fff
+          ); // White background for active item
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); // Subtle shadow for depth
-
-          // No need to override .ant-tag styles, let the default apply
         }
       }
     }
@@ -86,14 +90,14 @@
 
     .pro-plan {
       border-radius: 12px;
-      padding: 2px; // For the gradient border
-      box-shadow:
-        0 10px 25px -5px rgba(0, 150, 143, 0.2),
-        0 8px 10px -6px rgba(0, 150, 143, 0.2);
+      // Apply border to the outer container to wrap the 'Most Popular' tag
+      border: 2px solid var(--primary---refly-primary-default, #0e9f77);
+      // Update box-shadow to match the new design
+      box-shadow: 0px 4px 12px 0px rgba(14, 159, 119, 0.2);
+
+      // The inner item should not have its own border
       .subscribe-content-plans-item {
         border: none;
-
-        border: 2px solid var(--primary---refly-primary-default, #0e9f77);
       }
     }
 

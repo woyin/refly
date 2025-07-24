@@ -145,7 +145,7 @@ const PlanItem = (props: {
 
   return (
     <div className={`w-full h-full flex flex-col ${planType === 'starter' ? 'pro-plan' : ''}`}>
-      <div className="h-[20px] text-center text-xs text-white font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4 ">
+      <div className="pt-1 h-[24px] text-center text-xs text-white font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4 ">
         {planType === 'starter' && t('subscription.mostPopular')}
       </div>
       <div className={`subscribe-content-plans-item item-${planType}`}>
