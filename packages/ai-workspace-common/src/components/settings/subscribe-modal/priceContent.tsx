@@ -57,8 +57,30 @@ const PlanItem = (props: {
   const currentPlan: string = userProfile?.subscription?.planType || 'free';
 
   const getPrice = () => {
-    if (planType === 'free') return t('subscription.plans.free.price');
-    if (planType === 'enterprise') return null;
+    if (planType === 'free') {
+      if (interval === 'monthly') {
+        return t('subscription.plans.free.price');
+      } else {
+        return (
+          <div className="yearly-price-container">
+            <span className="price-monthly">{t('subscription.plans.free.price')}</span>
+            <span className="price-yearly">&nbsp;</span>
+          </div>
+        );
+      }
+    }
+    if (planType === 'enterprise') {
+      if (interval === 'monthly') {
+        return <div>&nbsp;</div>;
+      } else {
+        return (
+          <div className="yearly-price-container">
+            <span className="price-monthly">&nbsp;</span>
+            <span className="price-yearly">&nbsp;</span>
+          </div>
+        );
+      }
+    }
 
     const prices = {
       starter: { monthly: 24.9, yearly: 19.9, yearlyTotal: 238.8 },
