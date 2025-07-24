@@ -35,13 +35,5 @@
     { "path": "../../packages/utils" },
     { "path": "../../packages/canvas-common" },
     { "path": "../../packages/skill-template" }
-  ],
-  "tsc-alias": {
-    "verbose": true,
-    "resolveFullPaths": true,
-    "fileExtensions": {
-      "inputGlob": "{js,jsx,mjs}",
-      "outputCheck": ["js", "json", "jsx", "mjs"]
-    }
-  }
+  ]
 }

@@ -14,9 +14,9 @@
   "scripts": {
     "copy-env": "ncp .env.example .env",
     "copy-env:develop": "ncp .env.development .env",
-    "build": "prisma generate && tsc --build --verbose && tsc-alias --project tsconfig.json && ncp prisma/ dist/prisma/ && ncp src/generated dist/generated",
+    "build": "prisma generate && tsc --build --verbose && ncp prisma/ dist/prisma/ && ncp src/generated dist/generated",
     "build:fast": "pnpm prisma:generate && swc src -d dist --config-file .swcrc --strip-leading-paths && ncp prisma/ dist/prisma/ && ncp src/generated dist/generated",
-    "build:electron": "pnpm prisma:generate:sqlite && tsc --build --verbose && tsc-alias --project tsconfig.json && ncp src/generated dist/generated",
+    "build:electron": "pnpm prisma:generate:sqlite && tsc --build --verbose && ncp src/generated dist/generated",
     "prisma:generate": "prisma format && prisma generate",
     "prisma:generate:sqlite": "prisma format --schema=prisma/sqlite-schema.prisma && prisma generate --schema=prisma/sqlite-schema.prisma",
     "gen-sqlite-schema": "ts-node src/scripts/gen-sqlite-schema.ts",
@@ -24,13 +24,12 @@
     "sync-db-schema": "prisma format && prisma generate && node -r ts-node/register --env-file=.env src/scripts/sync-db-schema.ts && prisma format --schema=prisma/sqlite-schema.prisma",
     "dev": "prisma format && prisma generate && nodemon",
     "dev:debug": "nodemon --inspect",
-    "start": "node --env-file=.env dist/scripts/sync-db-schema.js && node --env-file=.env dist/main.js",
+    "start": "node -r ./scripts/preload.js dist/main.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org refly-ai --project reflyd ./dist && sentry-cli sourcemaps upload --org refly-ai --project reflyd ./dist",
-    "download-binaries": "node scripts/download-binaries.js"
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org refly-ai --project reflyd ./dist && sentry-cli sourcemaps upload --org refly-ai --project reflyd ./dist"
   },
   "dependencies": {
     "@agentic/searxng": "^7.6.4",
@@ -151,7 +150,6 @@
     "source-map-support": "^0.5.20",
     "supertest": "^6.1.3",
     "ts-jest": "29.1.0",
-    "ts-node": "^10.9.2",
-    "tsc-alias": "^1.8.16"
+    "ts-node": "^10.9.2"
   }
 }

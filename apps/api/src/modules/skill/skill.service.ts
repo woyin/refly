@@ -186,7 +186,9 @@ export class SkillService implements OnModuleInit {
         return;
       }
 
-      this.logger.warn(`Found ${stuckResults.length} stuck actions, marking them as failed`);
+      this.logger.warn(
+        `Found stuck actions ${stuckResults.map((r) => r.resultId).join(', ')}, marking them as failed`,
+      );
 
       // Use ActionService.abortAction to handle stuck actions consistently
       const timeoutDuration = Math.ceil(stuckTimeoutThreshold / 1000 / 60); // Convert to minutes
