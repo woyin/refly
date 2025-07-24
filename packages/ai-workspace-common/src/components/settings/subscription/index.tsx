@@ -326,7 +326,10 @@ export const Subscription = () => {
               <div className="usage-card files-card">
                 <div className="usage-label">知识库文件</div>
                 <div className="usage-value">
-                  {`${storageUsage?.fileCountUsed || 0} / ${storageUsage?.fileCountQuota < 0 ? '∞' : storageUsage?.fileCountQuota}`}
+                  {storageUsage?.fileCountUsed || 0}{' '}
+                  <span style={{ color: 'rgba(28, 31, 35, 0.5)' }}>
+                    / {storageUsage?.fileCountQuota < 0 ? '∞' : storageUsage?.fileCountQuota}
+                  </span>
                 </div>
               </div>
             </div>
