@@ -28,9 +28,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
         if (!response?.data?.success) {
           throw response.data.errMsg;
         }
-        message.success(t('settings.mcpServer.community.installSuccess', { name: config.name }));
         setIsCurrentlyInstalling(false);
-        onInstallSuccess?.(config);
       },
       onError: (error) => {
         console.error('Installation error:', error);
@@ -50,9 +48,6 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
             body: request,
           });
 
-          message.success(
-            t('settings.modelProviders.community.installSuccess', { name: config.name }),
-          );
           setShowApiKeyModal(false);
           onInstallSuccess?.(config);
         } catch (error) {
@@ -178,7 +173,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
               >
                 <Space size={4}>
                   <LinkOutlined style={{ fontSize: '12px' }} />
-                  <span>查看文档</span>
+                  <span>{t('settings.modelProviders.community.viewDocumentation')}</span>
                 </Space>
               </span>
             )}

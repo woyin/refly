@@ -324,7 +324,7 @@ ${recentHistory.map((msg) => `${(msg as HumanMessage)?.getType?.()}: ${msg.conte
     this.emitEvent(
       {
         event: 'artifact',
-        artifact: { ...artifact, status: 'generating' },
+        artifact,
       },
       config,
     );
