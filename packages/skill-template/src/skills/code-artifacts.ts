@@ -319,7 +319,7 @@ export class CodeArtifacts extends BaseSkill {
     this.emitEvent(
       {
         event: 'artifact',
-        artifact: { ...artifact, status: 'generating' },
+        artifact,
       },
       config,
     );
