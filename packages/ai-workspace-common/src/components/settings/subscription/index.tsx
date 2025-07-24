@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 import { Button, Typography, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
@@ -221,51 +222,55 @@ export const Subscription = () => {
   };
 
   const PaidPlanCard = () => (
-    <div className={`subscription-plan-card plan-${planType}`}>
-      <div className="plan-info">
+    <div className={`subscription-plan-card plan-${planType} w-full`}>
+      <div className="plan-info w-full">
         <div className="current-plan-label">当前订阅方案</div>
-        <div className="current-plan-name">
+        <div className="current-plan-name flex items-center w-full justify-between">
           {displayName} {planDisplayNameMap[planType as keyof typeof planDisplayNameMap]}
+          <div className="flex items-center gap-3 plan-actions">
+            <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
+              {`${currentPeriodEnd ? dayjs(currentPeriodEnd).format('YYYY.MM.DD') : ''} ${willCancelAtPeriodEnd ? '到期' : '将自动续订'}`}
+            </div>
+            <div
+              className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] rounded-lg border-0 border-solid"
+              onClick={handleManageBilling}
+            >
+              查看账单
+            </div>
+            <Button
+              type="primary"
+              className="ant-btn-primary"
+              onClick={() => {
+                setShowSettingModal(false);
+                setSubscribeModalVisible(true);
+              }}
+            >
+              变更套餐
+            </Button>
+          </div>
         </div>
-      </div>
-      <div className="plan-actions">
-        <div className="plan-renewal-info">
-          {`${currentPeriodEnd ? currentPeriodEnd.split('T')[0].replace(/-/g, '.') : ''} ${willCancelAtPeriodEnd ? '到期' : '将自动续订'}`}
-        </div>
-        <Button type="default" onClick={handleManageBilling}>
-          查看账单
-        </Button>
-        <Button
-          type="primary"
-          onClick={() => {
-            setShowSettingModal(false);
-            setSubscribeModalVisible(true);
-          }}
-        >
-          变更套餐
-        </Button>
       </div>
     </div>
   );
 
   const FreePlanCard = () => (
-    <div className="subscription-plan-card plan-free">
-      <div className="plan-info">
+    <div className="subscription-plan-card plan-free w-full">
+      <div className="plan-info w-full">
         <div className="current-plan-label">当前订阅方案</div>
-        <div className="current-plan-name">
+        <div className="current-plan-name flex items-center w-full justify-between">
           {displaySubscription?.displayName?.split(' ')[0] || 'Free'} 免费版
+          <Button
+            type="primary"
+            className="upgrade-button ant-btn-primary"
+            onClick={() => {
+              setShowSettingModal(false);
+              setSubscribeModalVisible(true);
+            }}
+          >
+            升级套餐
+          </Button>
         </div>
       </div>
-      <Button
-        type="primary"
-        className="upgrade-button"
-        onClick={() => {
-          setShowSettingModal(false);
-          setSubscribeModalVisible(true);
-        }}
-      >
-        升级套餐
-      </Button>
     </div>
   );
 
