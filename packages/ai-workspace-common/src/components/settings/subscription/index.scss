@@ -77,12 +77,19 @@
     }
 
     .upgrade-button {
-      background-color: #00968f;
-      border-color: #00968f;
-      &:hover {
-        background-color: #007a74;
-        border-color: #007a74;
-      }
+      display: flex;
+      width: 120px;
+      height: var(--height-button_default, 32px);
+      padding: var(--spacing-button_default-paddingTop, 6px)
+        var(--spacing-button_default-paddingRight, 12px)
+        var(--spacing-button_default-paddingTop, 6px)
+        var(--spacing-button_default-paddingLeft, 12px);
+      justify-content: center;
+      align-items: center;
+
+      border-radius: 8px;
+      border: 0 solid var(--border---refly-Card-Border, rgba(0, 0, 0, 0.1));
+      background: var(--primary---refly-primary-default, #0e9f77);
     }
   }
 
@@ -128,7 +135,7 @@
   .points-history {
     margin-top: 24px;
 
-        .history-tabs {
+    .history-tabs {
       margin-bottom: 24px;
       background-color: #fff;
       padding: 4px;
