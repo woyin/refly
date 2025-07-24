@@ -239,22 +239,24 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     return (
       <div
         className={cn(
-          '-right-1 -top-11 -left-1 -right-1 -bottom-1 -z-1 rounded-[20px] bg-refly-bg-control-z0 border-[1px] border-solid border-refly-Card-Border',
+          '',
           {
             'opacity-100': shouldShowButtons,
             'opacity-0 pointer-events-none': !shouldShowButtons,
           },
-          ['memo', 'video'].includes(nodeType) ? 'block' : 'absolute',
-          nodeType === 'memo' ? '!py-0 gap-0' : 'gap-1 shadow-md transition-opacity duration-200',
+          nodeType === 'memo'
+            ? 'block !py-0 gap-0 h-8'
+            : '-right-1 -top-11 -left-1 -right-1 -bottom-1 -z-1 rounded-[20px] bg-refly-bg-control-z0 border-[1px] border-solid border-refly-Card-Border absolute gap-1 shadow-md transition-opacity duration-200',
         )}
         ref={buttonContainerRef}
       >
         <div
-          className={cn('flex items-center justify-between pt-3 pb-2 px-3', {
+          className={cn('flex items-center justify-between', {
             '!justify-end': !showMoreButton,
+            'pt-3 pb-2 px-3': nodeType !== 'memo',
           })}
         >
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center ${nodeType === 'memo' ? 'gap-2' : 'gap-3'}`}>
             {actionButtons.map((button) => (
               <Tooltip key={button.key} title={button.tooltip} placement="top">
                 <Button

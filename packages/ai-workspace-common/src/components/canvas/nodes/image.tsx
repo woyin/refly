@@ -200,7 +200,7 @@ export const ImageNode = memo(
           'nodrag nopan select-text': isOperating,
         })}
       >
-        <div className="absolute w-full -top-8 left-0 right-0 z-10 flex items-center h-8 gap-2 w-[60%]">
+        <div className="absolute w-full -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[60%]">
           <div
             className={cn(
               'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
