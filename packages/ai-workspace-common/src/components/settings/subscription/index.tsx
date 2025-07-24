@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Typography, Table, Tag } from 'antd';
+import { Button, Typography, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
@@ -14,6 +14,7 @@ import {
   useGetCreditRecharge,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { formatDate } from '@refly-packages/ai-workspace-common/utils/date';
 
 // styles
 import './index.scss';
@@ -87,13 +88,19 @@ export const Subscription = () => {
       title: '使用时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text) => new Date(text).toLocaleString(),
+      render: (text) => formatDate(text),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <Tag color="red">{`-${amount}`}</Tag>,
+      render: (amount) => {
+        if (amount > 0) {
+          return <span style={{ color: '#52c41a' }}>{`+${amount}`}</span>;
+        }
+        // For negative values, the number itself will have the minus sign
+        return <span>{amount}</span>;
+      },
     },
   ];
 
@@ -109,19 +116,19 @@ export const Subscription = () => {
       title: '获取时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (text) => new Date(text).toLocaleString(),
+      render: (text) => formatDate(text),
     },
     {
-      title: '有效截至',
+      title: '有效期至',
       dataIndex: 'expiredAt',
       key: 'expiredAt',
-      render: (text) => new Date(text).toLocaleString(),
+      render: (text) => formatDate(text),
     },
     {
       title: '积分变更',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount) => <Tag color="green">{`+${amount}`}</Tag>,
+      render: (amount) => <span style={{ color: '#52c41a' }}>{`+${amount}`}</span>,
     },
     {
       title: '剩余',
@@ -135,12 +142,12 @@ export const Subscription = () => {
         const now = new Date();
         const expiryDate = new Date(record.expiredAt);
         if (record.balance <= 0) {
-          return <Tag color="default">已用尽</Tag>;
+          return <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>已用尽</span>;
         }
         if (expiryDate < now) {
-          return <Tag color="orange">已失效</Tag>;
+          return <span style={{ color: 'rgba(0, 0, 0, 0.45)' }}>已失效</span>;
         }
-        return <Tag color="success">可用</Tag>;
+        return <span style={{ color: 'rgba(0, 0, 0, 0.85)' }}>可用</span>;
       },
     },
   ];
@@ -201,30 +208,24 @@ export const Subscription = () => {
             </div>
 
             <div className="points-history">
-              <div className="history-tabs">
-                <Button
-                  type="text"
-                  className={activeTab === 'usage' ? 'active-tab' : ''}
-                  onClick={() => setActiveTab('usage')}
-                >
-                  积分使用明细
-                </Button>
-                <Button
-                  type="text"
-                  className={activeTab === 'recharge' ? 'active-tab' : ''}
-                  onClick={() => setActiveTab('recharge')}
-                >
-                  积分获取明细
-                </Button>
-              </div>
+              <Segmented
+                options={[
+                  { label: '积分使用明细', value: 'usage' },
+                  { label: '积分获取明细', value: 'recharge' },
+                ]}
+                value={activeTab}
+                onChange={(value) => setActiveTab(value as 'usage' | 'recharge')}
+                className="history-tabs"
+                size="large"
+              />
               <Spin spinning={isHistoryLoading}>
-                <Table
+                <Table<any>
                   columns={activeTab === 'usage' ? usageColumns : rechargeColumns}
                   dataSource={
                     activeTab === 'usage' ? usageData?.data || [] : rechargeData?.data || []
                   }
                   rowKey={activeTab === 'usage' ? 'usageId' : 'rechargeId'}
-                  pagination={{ pageSize: 10 }}
+                  pagination={{ showSizeChanger: false }}
                   className="history-table"
                 />
               </Spin>

@@ -33,23 +33,20 @@
     padding: 24px;
     border-radius: 12px;
     background-color: #f7f7f7;
-    background-image: url('https://refly.imgix.net/refly-website/account/points-card-bg.svg');
+    background-image: url("https://refly.imgix.net/refly-website/account/points-card-bg.svg");
     background-repeat: no-repeat;
     background-position: right center;
     background-size: contain;
     margin-bottom: 16px;
-    @apply dark:bg-gray-800;
 
     .plan-info {
       .current-plan-label {
         font-size: 14px;
         color: #555;
-        @apply dark:text-gray-400;
       }
       .current-plan-name {
         font-size: 24px;
         font-weight: bold;
-        @apply dark:text-white;
       }
     }
 
@@ -73,70 +70,85 @@
       padding: 16px;
       border-radius: 12px;
       background-color: #f7f7f7;
-      @apply dark:bg-gray-800;
 
       .usage-label {
         font-size: 14px;
         color: #555;
         margin-bottom: 8px;
-        @apply dark:text-gray-400;
       }
       .usage-value {
         font-size: 24px;
         font-weight: bold;
-        @apply dark:text-white;
       }
     }
   }
 
   .points-history {
+    margin-top: 24px;
+
     .history-tabs {
-      margin-bottom: 16px;
-      .ant-btn {
-        font-weight: 500;
-        color: #888;
-        &.active-tab {
-          color: #333;
-          border-bottom: 2px solid #333;
-          border-radius: 0;
-          @apply dark:text-white dark:border-white;
+      margin-bottom: 24px;
+      background-color: #f5f5f5;
+      padding: 5px;
+      border-radius: 20px;
+      display: inline-block;
+
+      .ant-segmented-item {
+        border-radius: 16px !important;
+      }
+
+      .ant-segmented-item-label {
+        color: var(--text-icon-refly-text-0, #1c1f23);
+        text-align: center;
+        font-size: 12px;
+        font-weight: 400;
+
+        padding: 2px 8px;
+        min-height: unset;
+        line-height: unset;
+      }
+
+      .ant-segmented-item-selected {
+        background-color: #fff !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+        .ant-segmented-item-label {
+          color: var(--text-icon-refly-text-0, #1c1f23);
+          text-align: center;
+
+          font-size: 12px;
+          font-weight: 600;
         }
       }
     }
 
     .history-table {
-      font-size: 14px;
-      .table-header, .table-row {
-        display: grid;
-        grid-template-columns: 3fr 2fr 1fr;
-        padding: 12px 0;
+      border: 1px solid #f0f0f0;
+      border-radius: 8px;
+      overflow: hidden;
+
+      .ant-table-thead > tr > th {
+        background-color: #fff !important;
+        font-weight: 400;
+        color: rgba(0, 0, 0, 0.85);
         border-bottom: 1px solid #f0f0f0;
-        @apply dark:border-gray-700;
+        padding: 12px 16px;
       }
 
-      .table-header {
-        color: #888;
-        font-weight: 500;
-        @apply dark:text-gray-400;
+      .ant-table-tbody > tr > td {
+        border-bottom: none;
+        padding: 12px 16px;
       }
 
-      .table-body {
-        .table-row {
-          .col-change {
-            text-align: right;
-            font-weight: 500;
-            &.positive {
-              color: #00968f;
-            }
-            &.negative {
-              color: #ef4444;
-            }
-          }
-        }
+      .ant-table-tbody > tr.ant-table-row:hover > td {
+        background: #fafafa;
       }
 
-      .col-change {
-        text-align: right;
+      .ant-table-pagination.ant-pagination {
+        padding: 16px;
+        margin: 0;
+        border-top: 1px solid #f0f0f0;
+        justify-content: flex-start;
       }
     }
   }
