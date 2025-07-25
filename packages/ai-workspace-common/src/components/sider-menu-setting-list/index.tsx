@@ -10,7 +10,7 @@ import { useThemeStoreShallow } from '@refly/stores';
 import { useCallback, useMemo } from 'react';
 import { SettingsModalActiveTab } from '@refly/stores';
 import {
-  Setting,
+  Settings,
   Subscription,
   InterfaceDark,
   InterfaceLight,
@@ -168,7 +168,7 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
       {
         key: 'settings',
         label: (
-          <DropdownItem icon={<Setting size={18} />}>
+          <DropdownItem icon={<Settings size={18} />}>
             {t('loggedHomePage.siderMenu.settings')}
           </DropdownItem>
         ),

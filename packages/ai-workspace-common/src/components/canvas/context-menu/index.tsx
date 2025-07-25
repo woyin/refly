@@ -10,8 +10,6 @@ import { CanvasNodeType, SearchDomain } from '@refly/openapi-schema';
 import { ContextItem } from '@refly-packages/ai-workspace-common/types/context';
 import {
   IconPreview,
-  IconExpand,
-  IconShrink,
   IconAskAIInput,
   IconGuideLine,
   IconAskAI,
@@ -26,7 +24,6 @@ import {
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { IoAnalyticsOutline } from 'react-icons/io5';
 import { useEdgeVisible } from '@refly-packages/ai-workspace-common/hooks/canvas/use-edge-visible';
-import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { genMemoID, genSkillID, genMediaSkillID } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { cn } from '@refly/utils/cn';
@@ -81,28 +78,23 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
     showEdges,
     showLinearThread,
     clickToPreview,
-    nodeSizeMode,
     setShowLinearThread,
     setClickToPreview,
-    setNodeSizeMode,
     autoLayout,
     setAutoLayout,
   } = useCanvasStoreShallow((state) => ({
     showEdges: state.showEdges,
     showLinearThread: state.showLinearThread,
     clickToPreview: state.clickToPreview,
-    nodeSizeMode: state.nodeSizeMode,
     setShowEdges: state.setShowEdges,
     setShowLinearThread: state.setShowLinearThread,
     setClickToPreview: state.setClickToPreview,
-    setNodeSizeMode: state.setNodeSizeMode,
     autoLayout: state.autoLayout,
     setAutoLayout: state.setAutoLayout,
   }));
 
   const { hoverCardEnabled, toggleHoverCard } = useHoverCard();
   const { toggleEdgeVisible } = useEdgeVisible();
-  const { updateAllNodesSizeMode } = useNodeOperations();
 
   // Creation utility functions
   const createSkillNode = (position: { x: number; y: number }) => {
@@ -296,18 +288,7 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
       description: t('canvas.contextMenu.toggleClickPreviewDescription'),
       videoUrl: 'https://static.refly.ai/onboarding/contextMenu/contextMenu-toggleClickView.webm',
     },
-    {
-      key: 'toggleNodeSizeMode',
-      icon: nodeSizeMode === 'compact' ? IconExpand : IconShrink,
-      type: 'button',
-      active: nodeSizeMode === 'compact',
-      title:
-        nodeSizeMode === 'compact'
-          ? t('canvas.contextMenu.adaptiveMode')
-          : t('canvas.contextMenu.compactMode'),
-      description: t('canvas.contextMenu.toggleNodeSizeModeDescription'),
-      videoUrl: 'https://static.refly.ai/onboarding/contextMenu/contextMenu-toggleAdaptive.webm',
-    },
+
     {
       key: 'toggleHoverCard',
       icon: IconGuideLine,
@@ -427,13 +408,6 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
         setClickToPreview(!clickToPreview);
         setOpen(false);
         break;
-      case 'toggleNodeSizeMode': {
-        const newMode = nodeSizeMode === 'compact' ? 'adaptive' : 'compact';
-        setNodeSizeMode(newMode);
-        updateAllNodesSizeMode(newMode);
-        setOpen(false);
-        break;
-      }
       case 'toggleAutoLayout':
         setAutoLayout(!autoLayout);
         setOpen(false);
