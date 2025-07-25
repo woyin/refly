@@ -40,6 +40,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
+import { logEvent } from '@refly/telemetry-node';
 
 @Injectable()
 export class AuthService {
@@ -154,6 +155,14 @@ export class AuthService {
     });
   }
 
+  async logout(user: User, res: Response) {
+    await this.revokeAllRefreshTokens(user.uid);
+
+    this.clearAuthCookie(res);
+
+    logEvent(user, 'logout_success', null);
+  }
+
   cookieOptions(key: string): CookieOptions {
     const baseOptions: CookieOptions = {
       domain: this.configService.get('auth.cookie.domain'),
@@ -262,6 +271,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (user) {
       this.logger.log(`user ${user.uid} already registered for email ${email}`);
+      logEvent(user, 'login_success', provider);
       return user;
     }
 
@@ -313,6 +323,8 @@ export class AuthService {
       },
     });
     this.logger.log(`new account created for ${newAccount.uid}`);
+
+    logEvent(newUser, 'signup_success', provider);
 
     return newUser;
   }
@@ -383,8 +395,12 @@ export class AuthService {
       }
     } catch (error) {
       this.logger.error(`Password verification failed: ${error.message}`);
+      logEvent(user, 'login_failed', 'email', { reason: 'password_incorrect' });
+
       throw new PasswordIncorrect();
     }
+
+    logEvent(user, 'login_success', 'email');
 
     return this.login(user);
   }
@@ -485,6 +501,8 @@ export class AuthService {
       ]);
       user = newUser;
       await this.postCreateUser(user);
+
+      logEvent(user, 'signup_success', 'email');
     } else if (purpose === 'resetPassword') {
       user = await this.prisma.user.findUnique({ where: { email } });
       if (!user) {
@@ -494,6 +512,8 @@ export class AuthService {
         where: { email },
         data: { password: hashedPassword },
       });
+
+      logEvent(user, 'reset_password_success');
     } else {
       throw new ParamsError(`Invalid verification purpose: ${purpose}`);
     }

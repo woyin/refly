@@ -13,6 +13,7 @@ import { useAuthStoreShallow } from '@refly/stores';
 import { serverOrigin } from '@refly/ui-kit';
 import { useGetAuthConfig } from '@refly-packages/ai-workspace-common/queries';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
+import { logEvent } from '@refly/telemetry-web';
 
 interface FormValues {
   email: string;
@@ -70,6 +71,7 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
    */
   const handleLogin = useCallback(
     (provider: 'github' | 'google') => {
+      logEvent('auth::oauth_login_click', provider);
       authStore.setLoginInProgress(true);
       authStore.setLoginProvider(provider);
       location.href = `${serverOrigin}/v1/auth/${provider}`;
@@ -90,6 +92,7 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
     authStore.setLoginInProgress(true);
 
     if (authStore.isSignUpMode) {
+      logEvent('auth::signup_click', 'email');
       const { data } = await getClient().emailSignup({
         body: {
           email: values.email,
@@ -111,6 +114,7 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
         }
       }
     } else {
+      logEvent('auth::login_click', 'email');
       const { data } = await getClient().emailLogin({
         body: {
           email: values.email,

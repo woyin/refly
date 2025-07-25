@@ -20,6 +20,7 @@
     "@refly/layout": "workspace:*",
     "@refly/openapi-schema": "workspace:*",
     "@refly/stores": "workspace:*",
+    "@refly/telemetry-web": "workspace:*",
     "@refly/ui-kit": "workspace:*",
     "@refly/web-core": "workspace:*",
     "@sentry/react": "^7.113.0",

@@ -7,6 +7,7 @@ import { ActionResultNotFoundError, getErrorMessage } from '@refly/errors';
 
 import { UnknownError } from '@refly/errors';
 import { BaseResponse } from '@refly/openapi-schema';
+import { logEvent } from '@refly/telemetry-web';
 
 const errTitle = {
   en: 'Oops, something went wrong',
@@ -17,6 +18,8 @@ const ignoredErrorCodes = [new ActionResultNotFoundError().code];
 
 export const showErrorNotification = (res: BaseResponse, locale: LOCALE) => {
   const { errCode, traceId, stack } = res;
+  logEvent('global::error_notification', errCode, { traceId });
+
   if (ignoredErrorCodes.includes(errCode)) {
     return;
   }
