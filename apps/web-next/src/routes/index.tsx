@@ -15,7 +15,6 @@ import {
   ProjectPage,
 } from '@refly/web-core';
 import MemorialPage from '../pages/MemorialPage';
-import CreditTestPage from '../pages/CreditTestPage';
 
 import type { RouteObject } from 'react-router-dom';
 
@@ -75,9 +74,5 @@ export const RoutesList: RouteObject[] = [
   {
     path: '/memorial',
     element: <MemorialPage />,
-  },
-  {
-    path: '/credit-test',
-    element: <CreditTestPage />,
   },
 ];
