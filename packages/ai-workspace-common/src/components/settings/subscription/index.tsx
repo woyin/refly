@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { Button, Typography, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
+import { useTranslation } from 'react-i18next';
 
 import {
   useSubscriptionStoreShallow,
@@ -74,6 +75,7 @@ interface CreditRechargeRecord {
 }
 
 export const Subscription = () => {
+  const { t } = useTranslation('ui');
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
@@ -153,18 +155,18 @@ export const Subscription = () => {
   // Columns for Usage History Table
   const usageColumns: ColumnsType<CreditUsageRecord> = [
     {
-      title: '使用详情',
+      title: t('subscription.subscriptionManagement.usageDetails'),
       dataIndex: 'description',
       key: 'description',
     },
     {
-      title: '使用时间',
+      title: t('subscription.subscriptionManagement.usageTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
-      title: '积分变更',
+      title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
       align: 'right',
@@ -175,86 +177,88 @@ export const Subscription = () => {
   // Columns for Recharge History Table
   const rechargeColumns: ColumnsType<CreditRechargeRecord> = [
     {
-      title: '获取途径',
+      title: t('subscription.subscriptionManagement.rechargeSource'),
       dataIndex: 'source',
       key: 'source',
       render: (source) => {
         const sourceMap: Record<string, string> = {
-          purchase: '购买',
-          gift: '赠送',
-          promotion: '促销',
-          refund: '退款',
+          purchase: t('credit.recharge.source.purchase'),
+          gift: t('credit.recharge.source.gift'),
+          promotion: t('credit.recharge.source.promotion'),
+          refund: t('credit.recharge.source.refund'),
         };
         return sourceMap[source] || source;
       },
     },
     {
-      title: '获取时间',
+      title: t('subscription.subscriptionManagement.rechargeTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
-      title: '有效期至',
+      title: t('subscription.subscriptionManagement.expiryDate'),
       dataIndex: 'expiresAt',
       key: 'expiresAt',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD') : '-'),
     },
     {
-      title: '积分变更',
+      title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
       align: 'right',
       render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
     },
     {
-      title: '剩余',
+      title: t('subscription.subscriptionManagement.remaining'),
       dataIndex: 'balance',
       key: 'balance',
       align: 'right',
       render: (balance) => balance.toLocaleString(),
     },
     {
-      title: '状态',
+      title: t('subscription.subscriptionManagement.status'),
       key: 'status',
       align: 'right',
       render: (_, record) => {
         if (!record.enabled) {
-          return '已禁用';
+          return t('subscription.subscriptionManagement.disabled');
         }
         if (record.balance <= 0) {
-          return '已用尽';
+          return t('subscription.subscriptionManagement.depleted');
         }
         const now = new Date();
         const expiryDate = new Date(record.expiresAt);
         if (expiryDate < now) {
-          return '已失效';
+          return t('subscription.subscriptionManagement.expired');
         }
-        return '可用';
+        return t('subscription.subscriptionManagement.available');
       },
     },
   ];
 
   const planDisplayNameMap = {
-    starter: '启程版',
-    maker: '创造者版',
+    starter: t('subscription.subscriptionManagement.planNames.starter'),
+    maker: t('subscription.subscriptionManagement.planNames.maker'),
   };
 
   const PaidPlanCard = () => (
     <div className={`subscription-plan-card plan-${planType} w-full`}>
       <div className="plan-info w-full">
-        <div className="current-plan-label">当前订阅方案</div>
+        <div className="current-plan-label">
+          {t('subscription.subscriptionManagement.currentPlan')}
+        </div>
         <div className="current-plan-name flex items-center w-full justify-between">
           {displayName} {planDisplayNameMap[planType as keyof typeof planDisplayNameMap]}
           <div className="flex items-center gap-3 plan-actions">
             <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
-              {`${currentPeriodEnd ? dayjs(currentPeriodEnd).format('YYYY.MM.DD') : ''} ${willCancelAtPeriodEnd ? '到期' : '将自动续订'}`}
+              {`${currentPeriodEnd ? dayjs(currentPeriodEnd).format('YYYY.MM.DD') : ''} ${willCancelAtPeriodEnd ? t('subscription.subscriptionManagement.willExpire') : t('subscription.subscriptionManagement.willAutoRenew')}`}
             </div>
             <div
               className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] rounded-lg border-0 border-solid"
               onClick={handleManageBilling}
             >
-              查看账单
+              {t('subscription.subscriptionManagement.viewBilling')}
             </div>
             <Button
               type="primary"
@@ -264,7 +268,7 @@ export const Subscription = () => {
                 setSubscribeModalVisible(true);
               }}
             >
-              变更套餐
+              {t('subscription.subscriptionManagement.changePlan')}
             </Button>
           </div>
         </div>
@@ -275,9 +279,12 @@ export const Subscription = () => {
   const FreePlanCard = () => (
     <div className="subscription-plan-card plan-free w-full">
       <div className="plan-info w-full">
-        <div className="current-plan-label">当前订阅方案</div>
+        <div className="current-plan-label">
+          {t('subscription.subscriptionManagement.currentPlan')}
+        </div>
         <div className="current-plan-name flex items-center w-full justify-between">
-          {displaySubscription?.displayName?.split(' ')[0] || 'Free'} 免费版
+          {displaySubscription?.displayName?.split(' ')[0] || 'Free'}{' '}
+          {t('subscription.subscriptionManagement.planNames.freePlan')}
           <Button
             type="primary"
             className="upgrade-button ant-btn-primary"
@@ -286,7 +293,7 @@ export const Subscription = () => {
               setSubscribeModalVisible(true);
             }}
           >
-            升级套餐
+            {t('subscription.subscriptionManagement.upgradePlan')}
           </Button>
         </div>
       </div>
@@ -316,9 +323,9 @@ export const Subscription = () => {
       {/* --- End Test Harness -- */}
       <div className="subscription-header">
         <Title level={4} className="title">
-          订阅管理
+          {t('subscription.subscriptionManagement.title')}
         </Title>
-        <div className="subtitle">管理订阅方案与积分</div>
+        <div className="subtitle">{t('subscription.subscriptionManagement.subtitle')}</div>
       </div>
 
       <div className="subscription-content">
@@ -339,11 +346,15 @@ export const Subscription = () => {
 
             <div className="usage-cards">
               <div className="usage-card points-card">
-                <div className="usage-label">剩余可用积分</div>
+                <div className="usage-label">
+                  {t('subscription.subscriptionManagement.availableCredits')}
+                </div>
                 <div className="usage-value">{creditBalance.toLocaleString()}</div>
               </div>
               <div className="usage-card files-card">
-                <div className="usage-label">知识库文件</div>
+                <div className="usage-label">
+                  {t('subscription.subscriptionManagement.knowledgeBaseFiles')}
+                </div>
                 <div className="usage-value">
                   {storageUsage?.fileCountUsed || 0}{' '}
                   <span style={{ color: 'rgba(28, 31, 35, 0.5)' }}>
@@ -356,8 +367,14 @@ export const Subscription = () => {
             <div className="points-history">
               <Segmented
                 options={[
-                  { label: '积分使用明细', value: 'usage' },
-                  { label: '积分获取明细', value: 'recharge' },
+                  {
+                    label: t('subscription.subscriptionManagement.creditUsageDetails'),
+                    value: 'usage',
+                  },
+                  {
+                    label: t('subscription.subscriptionManagement.creditRechargeDetails'),
+                    value: 'recharge',
+                  },
                 ]}
                 value={activeTab}
                 onChange={(value) => setActiveTab(value as 'usage' | 'recharge')}
