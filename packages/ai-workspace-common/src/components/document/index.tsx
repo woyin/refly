@@ -23,7 +23,7 @@ import {
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { ydoc2Markdown } from '@refly/utils/editor';
-import { time } from '@refly/utils/time';
+import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useDocumentSync } from '@refly-packages/ai-workspace-common/hooks/use-document-sync';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -356,11 +356,9 @@ const DocumentEditorHeader = memo(
       );
 
       if (projectId) {
-        const source = sourceList.find((s) => s.entityId === docId);
+        const source = sourceList.find((s) => s.id === docId);
         if (source) {
-          setSourceList(
-            sourceList.map((s) => (s.entityId === docId ? { ...s, title: newTitle } : s)),
-          );
+          setSourceList(sourceList.map((s) => (s.id === docId ? { ...s, title: newTitle } : s)));
         }
       }
     };
@@ -436,7 +434,7 @@ const DocumentBody = memo(
               <DocumentEditorHeader docId={docId} readonly={readonly} />
 
               <div className="flex flex-row w-full">
-                <div className={`flex-1 ${isMaximized ? 'mr-4' : ''}`}>
+                <div className={`flex-1 w-full ${isMaximized ? 'mr-4' : ''}`}>
                   {readonly ? (
                     <ReadonlyEditor docId={docId} />
                   ) : (
