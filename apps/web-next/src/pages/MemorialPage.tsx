@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import earlyBirdsData from './early-birds.json';
 import { Button, Avatar, Modal, message, Tooltip } from 'antd';
 import {
   ShareAltOutlined,
@@ -27,13 +28,79 @@ import './MemorialPage.css';
 interface Member {
   id: string;
   name: string;
+  nickname: string;
   avatar: string;
-  joinDate: string;
-  badge: 'legendary' | 'founder' | 'pioneer' | 'supporter';
-  tier: 'diamond' | 'platinum' | 'gold' | 'silver';
-  wallNumber: number;
-  contributions: number;
   isCurrentUser?: boolean;
+}
+
+// 生成默认头像的背景色数组
+const avatarBgColors = [
+  '#F44336',
+  '#E91E63',
+  '#9C27B0',
+  '#673AB7',
+  '#3F51B5',
+  '#2196F3',
+  '#03A9F4',
+  '#00BCD4',
+  '#009688',
+  '#4CAF50',
+  '#8BC34A',
+  '#CDDC39',
+  '#FFEB3B',
+  '#FFC107',
+  '#FF9800',
+  '#FF5722',
+  '#795548',
+  '#9E9E9E',
+  '#607D8B',
+];
+
+// 生成基于文本的头像
+function generateTextAvatar(name: string | null | undefined): string {
+  // 处理空值情况
+  const safeName = name || 'User';
+
+  // 基于名字生成一个稳定的索引
+  const colorIndex =
+    safeName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % avatarBgColors.length;
+  const bgColor = avatarBgColors[colorIndex];
+
+  // 计算文字颜色（浅色背景用深色文字，深色背景用浅色文字）
+  const textColor = isLightColor(bgColor) ? '#000000' : '#FFFFFF';
+
+  // 根据昵称长度自动调整字体大小
+  let displayText = safeName;
+  let fontSize = 40;
+
+  // 根据文本长度调整字体大小
+  if (displayText.length > 4) {
+    fontSize = 20; // 较长文本使用小字体
+  } else if (displayText.length > 2) {
+    fontSize = 30; // 中等长度文本
+  }
+
+  // 如果文本太长，截取前4个字符
+  if (displayText.length > 4) {
+    displayText = displayText.substring(0, 4);
+  }
+
+  // 创建SVG
+  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="${bgColor.replace('#', '%23')}"/><text x="50" y="50" font-family="Arial" font-size="${fontSize}" font-weight="bold" fill="${textColor.replace('#', '%23')}" text-anchor="middle" dominant-baseline="central">${displayText}</text></svg>`;
+}
+
+// 判断颜色是否为浅色
+function isLightColor(color: string): boolean {
+  // 移除#号
+  const hex = color.replace('#', '');
+  // 转换为RGB
+  const r = Number.parseInt(hex.substring(0, 2), 16);
+  const g = Number.parseInt(hex.substring(2, 4), 16);
+  const b = Number.parseInt(hex.substring(4, 6), 16);
+  // 计算亮度
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  // 亮度大于128认为是浅色
+  return brightness > 128;
 }
 
 const MemorialPage: React.FC = () => {
@@ -71,24 +138,8 @@ const MemorialPage: React.FC = () => {
   const rotateX = useTransform(time, [0, 4000], [0, 360], { clamp: false });
   const rotateY = useTransform(time, [0, 6000], [0, 360], { clamp: false });
 
-  // Advanced badge and tier styles with gradients
-  const badgeStyles = {
-    legendary:
-      'bg-gradient-to-r from-amber-400 via-yellow-500 to-orange-500 text-white shadow-xl border border-amber-300/30 animate-pulse',
-    founder:
-      'bg-gradient-to-r from-teal-500 via-emerald-500 to-green-500 text-white shadow-xl border border-teal-300/30',
-    pioneer:
-      'bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 text-white shadow-xl border border-blue-300/30',
-    supporter:
-      'bg-gradient-to-r from-pink-500 via-rose-500 to-red-500 text-white shadow-xl border border-pink-300/30',
-  };
-
-  const tierStyles = {
-    diamond: 'ring-4 ring-teal-400/40 shadow-2xl shadow-teal-500/20 hover:ring-teal-400/60',
-    platinum: 'ring-4 ring-gray-300/40 shadow-2xl shadow-gray-500/20 hover:ring-gray-300/60',
-    gold: 'ring-4 ring-yellow-400/40 shadow-2xl shadow-yellow-500/20 hover:ring-yellow-400/60',
-    silver: 'ring-4 ring-gray-400/40 shadow-2xl shadow-gray-400/20 hover:ring-gray-400/60',
-  };
+  // 注意：由于简化了Member接口，不再需要这些样式了
+  // 保留注释以便将来可能需要时可以参考
 
   // Premium animation variants
   const containerVariants = {
@@ -157,59 +208,32 @@ const MemorialPage: React.FC = () => {
   };
 
   function generateEarlyBirdUsers(): Member[] {
-    const badges: Array<'legendary' | 'founder' | 'pioneer' | 'supporter'> = [
-      'legendary',
-      'founder',
-      'pioneer',
-      'supporter',
-    ];
-    const tiers: Array<'diamond' | 'platinum' | 'gold' | 'silver'> = [
-      'diamond',
-      'platinum',
-      'gold',
-      'silver',
-    ];
-    const names = [
-      'Alex Chen',
-      'Sarah Kim',
-      'Michael Zhang',
-      'Emily Wang',
-      'David Liu',
-      'Jessica Wu',
-      'Ryan Park',
-      'Anna Li',
-      'Kevin Zhao',
-      'Maya Patel',
-      'Chris Yang',
-      'Sophie Lin',
-      'Jason Wu',
-      'Chloe Kim',
-      'Eric Chen',
-      'Lily Zhang',
-      'Tom Wang',
-      'Grace Liu',
-      'Daniel Park',
-      'Amy Lin',
-      'Steven Kim',
-      'Mia Chen',
-      'Oliver Zhang',
-      'Eva Wang',
-    ];
+    // 使用真实的早鸟数据
+    return earlyBirdsData.map((user, index) => {
+      // 处理空值情况
+      if (!user || (!user.name && !user.nickname)) {
+        return {
+          id: `user-${index}`, // 使用索引作为ID
+          name: `用户${index}`,
+          nickname: `用户${index}`,
+          avatar: generateTextAvatar(null),
+          isCurrentUser: false,
+        };
+      }
 
-    return Array.from({ length: 215 }, (_, index) => {
-      const isCurrentUser = index === 42;
-      const badge = badges[Math.floor(Math.random() * badges.length)];
-      const tier = tiers[Math.floor(Math.random() * tiers.length)];
+      // 设置当前用户（这里假设第一个用户是当前用户）
+      const isCurrentUser = index === 0;
+      const displayName = user.nickname || user.name;
+
+      // 直接使用name作为ID，如果name为空则使用索引
+      // 对于当前用户，保持使用'current-user'作为ID
+      const uniqueId = isCurrentUser ? 'current-user' : user.name || `user-${index}`;
 
       return {
-        id: isCurrentUser ? 'current-user' : `user-${index}`,
-        name: isCurrentUser ? '当前用户' : names[index % names.length],
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${index}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`,
-        joinDate: new Date(2024, 0, Math.floor(Math.random() * 90) + 1).toISOString().split('T')[0],
-        badge,
-        tier,
-        wallNumber: index + 1,
-        contributions: Math.floor(Math.random() * 100) + 10,
+        id: uniqueId,
+        name: user.name || `用户${index}`,
+        nickname: displayName || `用户${index}`,
+        avatar: user.avatar || generateTextAvatar(displayName),
         isCurrentUser,
       };
     });
@@ -256,7 +280,7 @@ const MemorialPage: React.FC = () => {
     loadAvatars();
   }, [earlyBirdUsers]);
 
-  const getBadgeIcon = (badge: string) => {
+  const _getBadgeIcon = (badge: string) => {
     switch (badge) {
       case 'legendary':
         return <CrownOutlined className="text-amber-600" />;
@@ -280,7 +304,10 @@ const MemorialPage: React.FC = () => {
       });
 
       const link = document.createElement('a');
-      link.download = `refly-early-bird-${currentUser.wallNumber}.png`;
+      // 使用名字生成一个唯一的编号，替代之前的wallNumber
+      const uniqueNumber =
+        Array.from(currentUser.name).reduce((acc, char) => acc + char.charCodeAt(0), 0) % 1000;
+      link.download = `refly-early-bird-${uniqueNumber}.png`;
       link.href = canvas.toDataURL();
       link.click();
 
@@ -659,7 +686,7 @@ const MemorialPage: React.FC = () => {
                 <Avatar
                   size={80}
                   src={currentUser.avatar}
-                  className={`${tierStyles[currentUser.tier]} transition-all duration-500 hover:shadow-2xl`}
+                  className={'transition-all duration-500 hover:shadow-2xl'}
                 />
               </motion.div>
               <div className="flex-1">
@@ -670,22 +697,9 @@ const MemorialPage: React.FC = () => {
                   >
                     {currentUser.name}
                   </motion.span>
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: 'spring' as const, stiffness: 300 }}
-                  >
-                    <div
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${badgeStyles[currentUser.badge]}`}
-                    >
-                      {getBadgeIcon(currentUser.badge)}
-                      <span>{currentUser.badge.toUpperCase()}</span>
-                    </div>
-                  </motion.div>
                 </div>
                 <motion.div className="text-gray-600" whileHover={{ color: '#374151' }}>
-                  第 <span className="font-bold text-teal-600">{currentUser.wallNumber}</span>{' '}
-                  位早鸟 • 贡献值{' '}
-                  <span className="font-bold text-emerald-600">{currentUser.contributions}</span>
+                  <span className="font-bold text-teal-600">{currentUser.nickname}</span>
                 </motion.div>
               </div>
             </div>
@@ -726,10 +740,7 @@ const MemorialPage: React.FC = () => {
                         transition={{ type: 'spring' as const, stiffness: 200 }}
                       >
                         <div className="font-medium text-lg">{member.name}</div>
-                        <div className="text-xs opacity-75">第 {member.wallNumber} 位早鸟</div>
-                        <div className="text-xs opacity-75 font-semibold">
-                          {member.badge.toUpperCase()}
-                        </div>
+                        <div className="text-xs opacity-75">{member.nickname}</div>
                       </motion.div>
                     }
                     placement="top"
@@ -745,11 +756,20 @@ const MemorialPage: React.FC = () => {
                         <Avatar
                           size={56}
                           src={member.avatar}
-                          className={`
-                            ${tierStyles[member.tier]} 
-                            ${member.isCurrentUser ? 'ring-4 ring-teal-400/60 ring-offset-2' : ''}
-                            transition-all duration-500 hover:shadow-2xl
-                          `}
+                          className={'transition-all duration-500 hover:shadow-2xl'}
+                          onError={() => {
+                            // 当头像加载失败时，将该成员的头像替换为生成的文本头像
+                            const index = visibleAvatars.findIndex((m) => m.id === member.id);
+                            if (index !== -1) {
+                              const updatedAvatars = [...visibleAvatars];
+                              updatedAvatars[index] = {
+                                ...updatedAvatars[index],
+                                avatar: generateTextAvatar(member.nickname || member.name),
+                              };
+                              setVisibleAvatars(updatedAvatars);
+                            }
+                            return false; // 返回false以符合Ant Design的要求
+                          }}
                         />
 
                         {/* Ripple effect on hover */}
@@ -761,18 +781,6 @@ const MemorialPage: React.FC = () => {
                             transition={{ duration: 0.6, ease: 'easeOut' }}
                           />
                         )}
-                      </motion.div>
-
-                      {/* Enhanced badge indicator with glow */}
-                      <motion.div
-                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white shadow-lg flex items-center justify-center text-xs border-2 border-white"
-                        whileHover={{
-                          scale: 1.2,
-                          boxShadow: '0 0 15px rgba(0, 212, 170, 0.6)',
-                        }}
-                        transition={{ type: 'spring' as const, stiffness: 300 }}
-                      >
-                        {getBadgeIcon(member.badge)}
                       </motion.div>
 
                       {/* Current user indicator with pulse */}
@@ -914,7 +922,19 @@ const MemorialPage: React.FC = () => {
                   <Avatar
                     size={100}
                     src={selectedMember.avatar}
-                    className={`${tierStyles[selectedMember.tier]} mx-auto mb-4 shadow-2xl`}
+                    className={'transition-all duration-500 hover:shadow-2xl'}
+                    onError={() => {
+                      // 当头像加载失败时，将选中成员的头像替换为生成的文本头像
+                      setSelectedMember((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              avatar: generateTextAvatar(prev.nickname || prev.name),
+                            }
+                          : null,
+                      );
+                      return false; // 返回false以符合Ant Design的要求
+                    }}
                   />
                 </motion.div>
                 <motion.h3
@@ -925,18 +945,6 @@ const MemorialPage: React.FC = () => {
                 >
                   {selectedMember.name}
                 </motion.h3>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4, type: 'spring' as const }}
-                >
-                  <div
-                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${badgeStyles[selectedMember.badge]}`}
-                  >
-                    {getBadgeIcon(selectedMember.badge)}
-                    <span>{selectedMember.badge.toUpperCase()}</span>
-                  </div>
-                </motion.div>
               </div>
 
               <motion.div
@@ -954,28 +962,34 @@ const MemorialPage: React.FC = () => {
                 initial="hidden"
                 animate="visible"
               >
-                {[
-                  { label: '墙号', value: `#${selectedMember.wallNumber}` },
-                  { label: '加入时间', value: selectedMember.joinDate },
-                  { label: '贡献值', value: selectedMember.contributions },
-                  { label: '等级', value: selectedMember.tier },
-                ].map((item) => (
-                  <motion.div
-                    key={item.label}
-                    className="flex justify-between py-2 px-4 bg-gradient-to-r from-teal-50/50 to-emerald-50/50 rounded-xl"
-                    variants={{
-                      hidden: { opacity: 0, x: -20 },
-                      visible: { opacity: 1, x: 0 },
-                    }}
-                    whileHover={{
-                      scale: 1.02,
-                      backgroundColor: 'rgba(0, 212, 170, 0.1)',
-                    }}
-                  >
-                    <span className="font-medium">{item.label}</span>
-                    <span className="font-bold text-gray-900">{item.value}</span>
-                  </motion.div>
-                ))}
+                <motion.div
+                  className="flex justify-between py-2 px-4 bg-gradient-to-r from-teal-50/50 to-emerald-50/50 rounded-xl"
+                  variants={{
+                    hidden: { opacity: 0, x: -20 },
+                    visible: { opacity: 1, x: 0 },
+                  }}
+                  whileHover={{
+                    scale: 1.02,
+                    backgroundColor: 'rgba(0, 212, 170, 0.1)',
+                  }}
+                >
+                  <span className="font-medium">用户名</span>
+                  <span className="font-bold text-gray-900">{selectedMember.name}</span>
+                </motion.div>
+                <motion.div
+                  className="flex justify-between py-2 px-4 bg-gradient-to-r from-teal-50/50 to-emerald-50/50 rounded-xl"
+                  variants={{
+                    hidden: { opacity: 0, x: -20 },
+                    visible: { opacity: 1, x: 0 },
+                  }}
+                  whileHover={{
+                    scale: 1.02,
+                    backgroundColor: 'rgba(0, 212, 170, 0.1)',
+                  }}
+                >
+                  <span className="font-medium">昵称</span>
+                  <span className="font-bold text-gray-900">{selectedMember.nickname}</span>
+                </motion.div>
               </motion.div>
             </motion.div>
           )}
@@ -1029,6 +1043,19 @@ const MemorialPage: React.FC = () => {
                       size={120}
                       src={currentUser.avatar}
                       className="mx-auto mb-6 ring-6 ring-teal-400 ring-offset-6 shadow-2xl"
+                      onError={() => {
+                        // 当分享模态框中头像加载失败时，使用生成的文本头像
+                        const updatedUser = {
+                          ...currentUser,
+                          avatar: generateTextAvatar(currentUser.nickname || currentUser.name),
+                        };
+                        // 更新当前用户的头像
+                        const updatedUsers = visibleAvatars.map((user) =>
+                          user.id === currentUser.id ? updatedUser : user,
+                        );
+                        setVisibleAvatars(updatedUsers);
+                        return false; // 返回false以符合Ant Design的要求
+                      }}
                     />
                   </motion.div>
                   <motion.h3
@@ -1039,18 +1066,6 @@ const MemorialPage: React.FC = () => {
                   >
                     {currentUser.name}
                   </motion.h3>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.6, type: 'spring' as const }}
-                  >
-                    <div
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${badgeStyles[currentUser.badge]}`}
-                    >
-                      {getBadgeIcon(currentUser.badge)}
-                      <span>{currentUser.badge.toUpperCase()}</span>
-                    </div>
-                  </motion.div>
                 </div>
 
                 <motion.div
@@ -1060,7 +1075,11 @@ const MemorialPage: React.FC = () => {
                   transition={{ delay: 0.7 }}
                 >
                   <div className="text-4xl font-bold text-teal-600 mb-2">
-                    #{currentUser.wallNumber}
+                    #
+                    {Array.from(currentUser.name).reduce(
+                      (acc, char) => acc + char.charCodeAt(0),
+                      0,
+                    ) % 1000}
                   </div>
                   <div className="text-gray-600 font-medium">早鸟编号</div>
                 </motion.div>
