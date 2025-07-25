@@ -73,7 +73,7 @@ export const EnhancedSkillResponse = memo(
 
     // Hooks
     const selectedSkill = useFindSkill(selectedSkillName);
-    const { invokeAction, abortAction } = useInvokeAction();
+    const { invokeAction, abortAction } = useInvokeAction({ source: 'enhanced-skill-response' });
     const { addNode } = useAddNode();
 
     const { debouncedUpdateContextItems } = useContextUpdateByResultId({

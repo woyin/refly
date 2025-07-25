@@ -111,7 +111,7 @@ export const SkillNode = memo(
       setSkillSelectedModel: state.setSkillSelectedModel,
     }));
 
-    const { invokeAction, abortAction } = useInvokeAction();
+    const { invokeAction, abortAction } = useInvokeAction({ source: 'skill-node' });
 
     const setQuery = useCallback(
       (query: string) => {

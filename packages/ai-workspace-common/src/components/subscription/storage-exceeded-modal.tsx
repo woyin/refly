@@ -1,8 +1,9 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { Modal, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { LuDatabase } from 'react-icons/lu';
 import { useSubscriptionStoreShallow } from '@refly/stores';
+import { logEvent } from '@refly/telemetry-web';
 
 export const StorageExceededModal = memo(() => {
   const { t } = useTranslation();
@@ -14,10 +15,11 @@ export const StorageExceededModal = memo(() => {
       setSubscribeModalVisible: state.setSubscribeModalVisible,
     }));
 
-  const handleUpgrade = () => {
+  const handleUpgrade = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'storage_exceeded_modal');
     setStorageExceededModalVisible(false);
     setSubscribeModalVisible(true);
-  };
+  }, [setStorageExceededModalVisible, setSubscribeModalVisible]);
 
   return (
     <Modal

@@ -161,9 +161,7 @@ export class AuthController {
     try {
       this.logger.log(`Logging out user: ${user.uid}`);
 
-      await this.authService.revokeAllRefreshTokens(user.uid);
-
-      this.authService.clearAuthCookie(res);
+      await this.authService.logout(user, res);
 
       this.logger.log(`Successfully logged out user: ${user.uid}`);
       return res.status(200).json(buildSuccessResponse());

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, message, Upload, UploadProps } from 'antd';
 import { TbFile } from 'react-icons/tb';
 import { RiInboxArchiveLine } from 'react-icons/ri';
@@ -19,6 +19,7 @@ import { subscriptionEnabled } from '@refly/ui-kit';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useUpdateSourceList } from '@refly-packages/ai-workspace-common/hooks/canvas/use-update-source-list';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { logEvent } from '@refly/telemetry-web';
 
 const { Dragger } = Upload;
 
@@ -217,6 +218,11 @@ export const ImportFromFile = () => {
     setStorageFileList(fileList);
   }, [fileList, setStorageFileList]);
 
+  const handleClickUnlockButton = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'import_file');
+    setSubscribeModalVisible(true);
+  }, [setSubscribeModalVisible]);
+
   return (
     <div className="h-full flex flex-col min-w-[500px] box-border intergation-import-from-weblink">
       {/* header */}
@@ -229,7 +235,7 @@ export const ImportFromFile = () => {
           <Button
             type="text"
             icon={<GrUnlock className="flex items-center justify-center" />}
-            onClick={() => setSubscribeModalVisible(true)}
+            onClick={handleClickUnlockButton}
             className="text-green-600 font-medium"
           >
             {t('resource.import.unlockUploadLimit')}

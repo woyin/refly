@@ -1,0 +1,3 @@
+{
+  "extends": "@refly/tsconfig/node.json"
+}

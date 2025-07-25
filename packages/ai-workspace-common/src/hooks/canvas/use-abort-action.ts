@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
 import { serverOrigin } from '@refly/ui-kit';
+import { logEvent } from '@refly/telemetry-web';
+import { useActionResultStore } from '@refly/stores';
 
 // Global variables shared across all hook instances
 export const globalAbortControllerRef = {
@@ -8,10 +10,26 @@ export const globalAbortControllerRef = {
 export const globalIsAbortedRef = { current: false };
 export const globalCurrentResultIdRef = { current: '' as string };
 
-export const useAbortAction = () => {
+export const useAbortAction = (params?: { source?: string }) => {
+  const { source } = params || {};
+
   const abortAction = useCallback(async (resultId?: string, _msg?: string) => {
     // Use current active resultId if none provided
     const activeResultId = resultId || globalCurrentResultIdRef.current;
+
+    const { resultMap } = useActionResultStore.getState();
+    const result = resultMap[activeResultId];
+
+    if (!result) {
+      return;
+    }
+
+    logEvent('model_invoke_abort', Date.now(), {
+      resultId: activeResultId,
+      source,
+      model: result.modelInfo?.name,
+      skill: result.actionMeta?.name,
+    });
 
     try {
       // Abort the local controller

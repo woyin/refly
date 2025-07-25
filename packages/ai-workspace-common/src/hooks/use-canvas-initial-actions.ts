@@ -23,7 +23,7 @@ import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/event
 export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addNode } = useAddNode();
-  const { invokeAction } = useInvokeAction();
+  const { invokeAction } = useInvokeAction({ source: 'canvas-initial-actions' });
   const { query, selectedSkill, runtimeConfig, tplConfig, reset, mediaQueryData } =
     useFrontPageStoreShallow((state) => ({
       query: state.query,
