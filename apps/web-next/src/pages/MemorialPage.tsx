@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useSiderStoreShallow } from '@refly/stores';
 import earlyBirdsData from './early-birds.json';
 import { Button, Avatar, Modal, message, Tooltip } from 'antd';
 import {
@@ -24,6 +25,9 @@ import {
   OrbitingCircles,
 } from '../components/magicui';
 import './MemorialPage.css';
+
+// 当前登录用户的名称，实际项目中应该从登录状态获取
+const CURRENT_USER_NAME = 'digua'; // 示例：当前登录用户名称
 
 interface Member {
   id: string;
@@ -56,6 +60,28 @@ const avatarBgColors = [
   '#607D8B',
 ];
 
+// 获取文本的简拼（拼音首字母缩写）
+function getSimplePinyin(text: string | null | undefined): string {
+  if (!text) return 'U';
+
+  // 简单处理：取每个字的第一个字符
+  // 对于中文，这不是真正的拼音，但可以作为简单实现
+  // 实际项目中可以使用专门的拼音库（如pinyin.js）
+  return text
+    .split('')
+    .map((char) => char.charAt(0).toUpperCase())
+    .join('')
+    .substring(0, 2); // 最多取两个字符
+}
+
+// 检查URL是否有效
+function isValidImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+
+  // 检查是否是有效的URL格式
+  return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/');
+}
+
 // 生成基于文本的头像
 function generateTextAvatar(name: string | null | undefined): string {
   // 处理空值情况
@@ -69,24 +95,17 @@ function generateTextAvatar(name: string | null | undefined): string {
   // 计算文字颜色（浅色背景用深色文字，深色背景用浅色文字）
   const textColor = isLightColor(bgColor) ? '#000000' : '#FFFFFF';
 
-  // 根据昵称长度自动调整字体大小
-  let displayText = safeName;
+  // 获取昵称的简拼
+  const simplePinyin = getSimplePinyin(safeName);
   let fontSize = 40;
 
-  // 根据文本长度调整字体大小
-  if (displayText.length > 4) {
-    fontSize = 20; // 较长文本使用小字体
-  } else if (displayText.length > 2) {
-    fontSize = 30; // 中等长度文本
-  }
-
-  // 如果文本太长，截取前4个字符
-  if (displayText.length > 4) {
-    displayText = displayText.substring(0, 4);
+  // 根据简拼长度调整字体大小
+  if (simplePinyin.length > 1) {
+    fontSize = 36; // 两个字符时稍微小一点
   }
 
   // 创建SVG
-  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="${bgColor.replace('#', '%23')}"/><text x="50" y="50" font-family="Arial" font-size="${fontSize}" font-weight="bold" fill="${textColor.replace('#', '%23')}" text-anchor="middle" dominant-baseline="central">${displayText}</text></svg>`;
+  return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="${bgColor.replace('#', '%23')}"/><text x="50" y="50" font-family="Arial" font-size="${fontSize}" font-weight="bold" fill="${textColor.replace('#', '%23')}" text-anchor="middle" dominant-baseline="central">${simplePinyin}</text></svg>`;
 }
 
 // 判断颜色是否为浅色
@@ -107,17 +126,26 @@ const MemorialPage: React.FC = () => {
   const [visibleAvatars, setVisibleAvatars] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [shareModalVisible, setShareModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [hoveredAvatar, setHoveredAvatar] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const shareImageRef = useRef<HTMLDivElement>(null);
 
+  // 获取 setCollapse 方法用于控制侧边栏
+  const { setCollapse } = useSiderStoreShallow((state) => ({
+    setCollapse: state.setCollapse,
+  }));
+
+  // 在组件加载时自动收起侧边栏
+  useEffect(() => {
+    setCollapse(true);
+  }, []);
+
   // Generate mock early bird users
   const earlyBirdUsers = useMemo(() => generateEarlyBirdUsers(), []);
 
-  // Find current user (simulated)
+  // Find current user
   const currentUser = useMemo(
-    () => earlyBirdUsers.find((user) => user.id === 'current-user') || earlyBirdUsers[0],
+    () => earlyBirdUsers.find((user) => user.isCurrentUser) || earlyBirdUsers[0],
     [earlyBirdUsers],
   );
 
@@ -209,7 +237,7 @@ const MemorialPage: React.FC = () => {
 
   function generateEarlyBirdUsers(): Member[] {
     // 使用真实的早鸟数据
-    return earlyBirdsData.map((user, index) => {
+    const users = earlyBirdsData.map((user, index) => {
       // 处理空值情况
       if (!user || (!user.name && !user.nickname)) {
         return {
@@ -221,21 +249,31 @@ const MemorialPage: React.FC = () => {
         };
       }
 
-      // 设置当前用户（这里假设第一个用户是当前用户）
-      const isCurrentUser = index === 0;
+      // 根据name字段匹配当前用户
+      const isCurrentUser = user.name === CURRENT_USER_NAME;
       const displayName = user.nickname || user.name;
 
       // 直接使用name作为ID，如果name为空则使用索引
-      // 对于当前用户，保持使用'current-user'作为ID
+      // 对于当前用户，使用'current-user'作为ID
       const uniqueId = isCurrentUser ? 'current-user' : user.name || `user-${index}`;
+
+      // 检查头像URL是否有效
+      const avatar = isValidImageUrl(user.avatar) ? user.avatar : generateTextAvatar(displayName);
 
       return {
         id: uniqueId,
         name: user.name || `用户${index}`,
         nickname: displayName || `用户${index}`,
-        avatar: user.avatar || generateTextAvatar(displayName),
+        avatar,
         isCurrentUser,
       };
+    });
+
+    // 确保当前用户排在第一位
+    return users.sort((a, b) => {
+      if (a.isCurrentUser) return -1;
+      if (b.isCurrentUser) return 1;
+      return 0;
     });
   }
 
@@ -258,25 +296,20 @@ const MemorialPage: React.FC = () => {
 
   // Enhanced avatar loading with wave animation
   useEffect(() => {
-    const loadAvatars = () => {
-      const batchSize = 12;
-      let currentIndex = 0;
-
-      const loadNextBatch = () => {
-        const nextBatch = earlyBirdUsers.slice(currentIndex, currentIndex + batchSize);
-        setVisibleAvatars((prev) => [...prev, ...nextBatch]);
-        currentIndex += batchSize;
-
-        if (currentIndex < earlyBirdUsers.length) {
-          setTimeout(loadNextBatch, 80);
-        } else {
-          setIsLoading(false);
+    const loadAvatars = async () => {
+      // 预处理头像，检查URL是否有效
+      const processedUsers = earlyBirdUsers.map((user) => {
+        // 如果头像URL不是以http或data:开头，可能是无效URL，直接使用文本头像
+        if (user.avatar && !(user.avatar.startsWith('http') || user.avatar.startsWith('data:'))) {
+          return {
+            ...user,
+            avatar: generateTextAvatar(user.nickname || user.name),
+          };
         }
-      };
-
-      setTimeout(loadNextBatch, 800);
+        return user;
+      });
+      setVisibleAvatars(processedUsers);
     };
-
     loadAvatars();
   }, [earlyBirdUsers]);
 
@@ -576,12 +609,7 @@ const MemorialPage: React.FC = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-12 mb-12"
             initial={{ opacity: 0, scale: 0.8, rotateX: 20 }}
             animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-            transition={{
-              delay: 1.5,
-              duration: 1,
-              type: 'spring' as const,
-              stiffness: 100,
-            }}
+            transition={{ delay: 1.5, duration: 1, type: 'spring' as const }}
           >
             <motion.div
               className="flex items-center gap-6"
@@ -687,6 +715,20 @@ const MemorialPage: React.FC = () => {
                   size={80}
                   src={currentUser.avatar}
                   className={'transition-all duration-500 hover:shadow-2xl'}
+                  // 添加默认文本作为备选
+                  icon={<span>{getSimplePinyin(currentUser.nickname || currentUser.name)}</span>}
+                  onError={() => {
+                    // 当头像加载失败时，将选中成员的头像替换为生成的文本头像
+                    setSelectedMember((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            avatar: generateTextAvatar(prev.nickname || prev.name),
+                          }
+                        : null,
+                    );
+                    return true; // 返回true表示使用Ant Design的内置fallback
+                  }}
                 />
               </motion.div>
               <div className="flex-1">
@@ -723,7 +765,7 @@ const MemorialPage: React.FC = () => {
                   initial="hidden"
                   animate="visible"
                   whileHover="hover"
-                  className="relative cursor-pointer group"
+                  className="relative cursor-pointer group flex flex-col items-center"
                   style={{
                     animationDelay: `${Math.floor(index / 12) * 0.1 + (index % 12) * 0.05}s`,
                   }}
@@ -757,6 +799,8 @@ const MemorialPage: React.FC = () => {
                           size={56}
                           src={member.avatar}
                           className={'transition-all duration-500 hover:shadow-2xl'}
+                          // 添加默认文本作为备选
+                          icon={<span>{getSimplePinyin(member.nickname || member.name)}</span>}
                           onError={() => {
                             // 当头像加载失败时，将该成员的头像替换为生成的文本头像
                             const index = visibleAvatars.findIndex((m) => m.id === member.id);
@@ -768,7 +812,7 @@ const MemorialPage: React.FC = () => {
                               };
                               setVisibleAvatars(updatedAvatars);
                             }
-                            return false; // 返回false以符合Ant Design的要求
+                            return true; // 返回true表示使用Ant Design的内置fallback
                           }}
                         />
 
@@ -806,45 +850,15 @@ const MemorialPage: React.FC = () => {
                       )}
                     </div>
                   </Tooltip>
+
+                  {/* 头像下方显示昵称 */}
+                  <div className="mt-2 text-xs text-center text-gray-600 font-medium truncate w-full">
+                    {member.nickname}
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
-
-          {/* Enhanced loading indicator */}
-          {isLoading && (
-            <motion.div
-              className="text-center mt-12"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                className="inline-flex items-center gap-3 text-gray-500 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-              >
-                <div className="flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-2 h-2 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full"
-                      animate={{
-                        scale: [1, 1.5, 1],
-                        opacity: [0.5, 1, 0.5],
-                      }}
-                      transition={{
-                        duration: 1,
-                        repeat: Number.POSITIVE_INFINITY,
-                        delay: i * 0.2,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm font-medium">正在加载更多早鸟用户...</span>
-              </motion.div>
-            </motion.div>
-          )}
         </motion.div>
 
         {/* Enhanced Share Section */}
@@ -923,6 +937,10 @@ const MemorialPage: React.FC = () => {
                     size={100}
                     src={selectedMember.avatar}
                     className={'transition-all duration-500 hover:shadow-2xl'}
+                    // 添加默认文本作为备选
+                    icon={
+                      <span>{getSimplePinyin(selectedMember.nickname || selectedMember.name)}</span>
+                    }
                     onError={() => {
                       // 当头像加载失败时，将选中成员的头像替换为生成的文本头像
                       setSelectedMember((prev) =>
@@ -933,7 +951,7 @@ const MemorialPage: React.FC = () => {
                             }
                           : null,
                       );
-                      return false; // 返回false以符合Ant Design的要求
+                      return true; // 返回true表示使用Ant Design的内置fallback
                     }}
                   />
                 </motion.div>

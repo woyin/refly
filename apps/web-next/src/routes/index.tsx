@@ -72,7 +72,7 @@ export const RoutesList: RouteObject[] = [
     element: <ProjectPage />,
   },
   {
-    path: '/memorial',
+    path: '/earlybirds',
     element: <MemorialPage />,
   },
 ];
