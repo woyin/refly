@@ -70,27 +70,20 @@ const TestPanel: React.FC<TestPanelProps> = ({ visible, onClose }) => {
             style={{ width: '100%' }}
             loading={isLoading}
             placeholder="选择测试用户"
+            optionLabelProp="label"
+            dropdownRender={(menu) => menu}
           >
             {TEST_USERS.map((user) => (
-              <Select.Option key={user.uid} value={user.uid}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar
-                      size="small"
-                      style={{ backgroundColor: user.color, marginRight: '8px' }}
-                      icon={<UserOutlined />}
-                    />
-                    <span>{user.displayName}</span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: '#999',
-                      marginTop: '4px',
-                      paddingLeft: '24px',
-                    }}
-                  >
-                    {user.email}
+              <Select.Option key={user.uid} value={user.uid} label={user.displayName}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Avatar
+                    size="small"
+                    style={{ backgroundColor: user.color, marginRight: '8px' }}
+                    icon={<UserOutlined />}
+                  />
+                  <div>
+                    <div>{user.displayName}</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>{user.email}</div>
                   </div>
                 </div>
               </Select.Option>
