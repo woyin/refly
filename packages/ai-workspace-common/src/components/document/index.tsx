@@ -356,11 +356,9 @@ const DocumentEditorHeader = memo(
       );
 
       if (projectId) {
-        const source = sourceList.find((s) => s.entityId === docId);
+        const source = sourceList.find((s) => s.id === docId);
         if (source) {
-          setSourceList(
-            sourceList.map((s) => (s.entityId === docId ? { ...s, title: newTitle } : s)),
-          );
+          setSourceList(sourceList.map((s) => (s.id === docId ? { ...s, title: newTitle } : s)));
         }
       }
     };
@@ -436,7 +434,7 @@ const DocumentBody = memo(
               <DocumentEditorHeader docId={docId} readonly={readonly} />
 
               <div className="flex flex-row w-full">
-                <div className={`flex-1 ${isMaximized ? 'mr-4' : ''}`}>
+                <div className={`flex-1 w-full ${isMaximized ? 'mr-4' : ''}`}>
                   {readonly ? (
                     <ReadonlyEditor docId={docId} />
                   ) : (
