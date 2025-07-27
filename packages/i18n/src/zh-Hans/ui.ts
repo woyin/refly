@@ -2372,6 +2372,9 @@ const translations = {
       viewCode: '查看代码',
       viewPreview: '查看预览',
       createCodeArtifact: '创建代码组件',
+      collapse: '折叠',
+      expand: '展开',
+      collapsed: '已折叠',
       mermaidError: '渲染 Mermaid 图表时出错',
       mermaid: {
         copySourceSuccess: '源代码已复制到剪贴板',

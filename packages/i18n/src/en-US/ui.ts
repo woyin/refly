@@ -2586,6 +2586,9 @@ const translations = {
       viewPreview: 'View preview',
       createCodeArtifact: 'Create code artifact',
       copySourceCode: 'Copy source code',
+      collapse: 'Collapse',
+      expand: 'Expand',
+      collapsed: 'Collapsed',
       mermaidError: 'Error rendering Mermaid diagram',
       mermaid: {
         copySourceSuccess: 'Source code copied to clipboard',
