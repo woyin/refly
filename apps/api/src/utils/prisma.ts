@@ -1,13 +1,13 @@
 import { execSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { findTargetFile } from './runtime';
+import { findTargetDirectory } from './runtime';
 
 export const migrateDbSchema = async () => {
   // Start looking for node_modules from the directory of this script
   const nodeModulesPath =
-    findTargetFile(__dirname, 'node_modules') ||
-    findTargetFile(resolve(process.cwd()), 'node_modules') ||
+    findTargetDirectory(__dirname, 'node_modules') ||
+    findTargetDirectory(resolve(process.cwd()), 'node_modules') ||
     join(process.cwd(), 'node_modules');
 
   // Check if the prisma binary exists
@@ -22,8 +22,15 @@ export const migrateDbSchema = async () => {
     prismaBin = join(binPath, 'prisma');
   }
 
+  const prismaRoot = findTargetDirectory(__dirname, 'prisma');
+  if (!prismaRoot) {
+    throw new Error('Could not find prisma root directory');
+  }
+
+  const prismaSchemaPath = join(prismaRoot, 'schema.prisma');
+
   execSync(
-    `${prismaBin} migrate diff --from-url ${process.env.DATABASE_URL} --to-schema-datamodel prisma/schema.prisma --script | ${prismaBin} db execute --stdin`,
+    `${prismaBin} migrate diff --from-url ${process.env.DATABASE_URL} --to-schema-datamodel ${prismaSchemaPath} --script | ${prismaBin} db execute --stdin`,
     { stdio: 'inherit' },
   );
 };
