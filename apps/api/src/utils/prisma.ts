@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { findTargetDirectory } from './runtime';
 
-export const migrateDbSchema = async () => {
+export const migrateDbSchema = () => {
   // Start looking for node_modules from the directory of this script
   const nodeModulesPath =
     findTargetDirectory(__dirname, 'node_modules') ||

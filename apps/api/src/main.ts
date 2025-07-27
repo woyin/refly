@@ -29,7 +29,7 @@ Sentry.init({
 async function bootstrap() {
   // Auto migrate db schema if the environment variable is set
   if (process.env.AUTO_MIGRATE_DB_SCHEMA) {
-    await migrateDbSchema();
+    migrateDbSchema();
   }
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
