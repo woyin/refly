@@ -82,5 +82,9 @@ COPY --from=builder /app/packages/ ./packages/
 # Set environment variables
 ENV NODE_ENV=production
 
+# Set working directory to the dist directory
+WORKDIR /app/apps/api/dist
+
 EXPOSE 3000
-CMD ["node", "-r", "./apps/api/dist/scripts/preload.js", "apps/api/dist/main.js"]
+
+CMD ["node", "-r", "./scripts/preload.js", "main.js"]
