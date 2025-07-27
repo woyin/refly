@@ -7,20 +7,25 @@ import { existsSync } from 'node:fs';
 export const isDesktop = (): boolean => process.env.MODE === 'desktop';
 
 /**
- * Finds the path to node_modules by traversing up from the current directory
+ * Finds the path to the target file by traversing up from the current directory
  * @param startDir Directory to start searching from
+ * @param filename Name of the target file to find
  * @param maxDepth Maximum number of parent directories to check
- * @returns Path to the node_modules directory or null if not found
+ * @returns Path to the target file or null if not found
  */
-export const findNodeModules = (startDir: string, maxDepth = 10): string | null => {
+export const findTargetFile = (
+  startDir: string,
+  filename: string,
+  maxDepth = 10,
+): string | null => {
   let currentDir = startDir;
   let depth = 0;
 
   while (depth < maxDepth) {
-    const nodeModulesPath = path.join(currentDir, 'node_modules');
+    const targetFile = path.join(currentDir, filename);
 
-    if (existsSync(nodeModulesPath)) {
-      return nodeModulesPath;
+    if (existsSync(targetFile)) {
+      return targetFile;
     }
 
     const parentDir = path.dirname(currentDir);

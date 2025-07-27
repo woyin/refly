@@ -1,13 +1,13 @@
 import { execSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { findNodeModules } from './runtime';
+import { findTargetFile } from './runtime';
 
 export const migrateDbSchema = async () => {
   // Start looking for node_modules from the directory of this script
   const nodeModulesPath =
-    findNodeModules(__dirname) ||
-    findNodeModules(resolve(process.cwd())) ||
+    findTargetFile(__dirname, 'node_modules') ||
+    findTargetFile(resolve(process.cwd()), 'node_modules') ||
     join(process.cwd(), 'node_modules');
 
   // Check if the prisma binary exists
