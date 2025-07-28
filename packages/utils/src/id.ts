@@ -35,6 +35,7 @@ export enum IDPrefix {
   MEDIA_SKILL_RESPONSE = 'msr-',
   CREDIT_RECHARGE = 'cr-',
   CREDIT_USAGE = 'cu-',
+  CREDIT_DEBT = 'cd-',
 }
 
 export function genUID(): string {
@@ -181,3 +182,8 @@ export const genCreditUsageId = () => {
   const timestamp = Date.now();
   return `${IDPrefix.CREDIT_USAGE}${timestamp}-${createId()}`;
 };
+
+export function genCreditDebtId() {
+  const timestamp = Date.now();
+  return `${IDPrefix.CREDIT_DEBT}${timestamp}-${createId()}`;
+}

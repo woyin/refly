@@ -12,6 +12,13 @@ export interface SyncTokenCreditUsageJobData {
   timestamp: Date;
 }
 
+export interface SyncMediaCreditUsageJobData {
+  uid: string;
+  resultId?: string;
+  creditBilling?: CreditBilling;
+  timestamp: Date;
+}
+
 export interface CreditBalance {
   creditAmount: number;
   creditBalance: number;

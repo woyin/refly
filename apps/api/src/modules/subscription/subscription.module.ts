@@ -8,10 +8,14 @@ import {
   SyncStorageUsageProcessor,
   SyncRequestUsageProcessor,
   CheckCanceledSubscriptionsProcessor,
+  ExpireAndRechargeCreditsProcessor,
 } from './subscription.processor';
 import { SubscriptionController } from './subscription.controller';
 import { CommonModule } from '../common/common.module';
-import { QUEUE_CHECK_CANCELED_SUBSCRIPTIONS } from '../../utils/const';
+import {
+  QUEUE_CHECK_CANCELED_SUBSCRIPTIONS,
+  QUEUE_EXPIRE_AND_RECHARGE_CREDITS,
+} from '../../utils/const';
 import { isDesktop } from '../../utils/runtime';
 
 @Module({
@@ -28,6 +32,14 @@ import { isDesktop } from '../../utils/runtime';
               removeOnFail: false,
             },
           }),
+          BullModule.registerQueue({
+            name: QUEUE_EXPIRE_AND_RECHARGE_CREDITS,
+            prefix: 'subscription_cron',
+            defaultJobOptions: {
+              removeOnComplete: true,
+              removeOnFail: false,
+            },
+          }),
           StripeModule.externallyConfigured(StripeModule, 0),
         ]),
   ],
@@ -36,7 +48,13 @@ import { isDesktop } from '../../utils/runtime';
     SyncTokenUsageProcessor,
     SyncStorageUsageProcessor,
     SyncRequestUsageProcessor,
-    ...(isDesktop() ? [] : [CheckCanceledSubscriptionsProcessor, SubscriptionWebhooks]),
+    ...(isDesktop()
+      ? []
+      : [
+          CheckCanceledSubscriptionsProcessor,
+          ExpireAndRechargeCreditsProcessor,
+          SubscriptionWebhooks,
+        ]),
   ],
   controllers: [SubscriptionController],
   exports: [SubscriptionService],

@@ -4092,6 +4092,10 @@ export type SubscriptionPlan = {
    */
   planType?: string;
   /**
+   * Credit quota per month
+   */
+  creditQuota?: number;
+  /**
    * Token quota per month (T1)
    */
   t1TokenQuota?: number;
@@ -4688,13 +4692,17 @@ export type CreditBilling = {
    */
   unitCost: number;
   /**
-   * Measurement unit (e.g., token, image, second)
+   * Measurement unit (e.g., token, product, second)
    */
   unit: string;
   /**
    * Minimum credit charge per request
    */
   minCharge: number;
+  /**
+   * Whether this billing is free for early bird users
+   */
+  isEarlyBirdFree?: boolean;
 };
 
 export type ProviderItemOption = {
@@ -4790,7 +4798,7 @@ export type CreditRecharge = {
   /**
    * Recharge source type
    */
-  source?: 'purchase' | 'gift' | 'promotion' | 'refund';
+  source?: 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
   /**
    * Optional description for this recharge
    */
@@ -4812,7 +4820,7 @@ export type CreditRecharge = {
 /**
  * Recharge source type
  */
-export type source = 'purchase' | 'gift' | 'promotion' | 'refund';
+export type source = 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
 
 /**
  * Credit usage record for tracking consumption

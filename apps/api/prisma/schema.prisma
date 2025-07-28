@@ -1077,6 +1077,32 @@ model CreditRecharge {
   @@map("credit_recharges")
 }
 
+model CreditDebt {
+  /// Primary key
+  pk          BigInt   @id @default(autoincrement())
+  /// Debt record ID
+  debtId      String   @unique @map("debt_id")
+  /// User UID
+  uid         String   @map("uid")
+  /// Debt amount (in credits)
+  amount      Int      @map("amount")
+  /// Remaining debt balance
+  balance     Int      @map("balance")
+  /// Whether this debt record is active
+  enabled     Boolean  @default(true) @map("enabled")
+  /// Debt source (usage_overdraft, etc.)
+  source      String   @default("usage_overdraft") @map("source")
+  /// Debt description
+  description String?  @map("description")
+  /// Create timestamp
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([uid, enabled, createdAt])
+  @@map("credit_debts")
+}
+
 model CreditUsage {
   /// Primary key
   pk             BigInt   @id @default(autoincrement())
@@ -1119,7 +1145,7 @@ model StorageUsageMeter {
   subscriptionId     String?   @map("subscription_id")
   /// File count quota
   fileCountQuota     Int       @default(10) @map("file_count_quota")
-  /// File count used
+  /// File count used 
   fileCountUsed      Int       @default(0) @map("file_count_used")
   /// Object storage quota (in bytes), including resource, canvas and static files
   objectStorageQuota BigInt    @default(0) @map("object_storage_quota")

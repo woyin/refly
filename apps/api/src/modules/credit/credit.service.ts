@@ -1,8 +1,12 @@
 import { PrismaService } from '../common/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { User, CreditBilling } from '@refly/openapi-schema';
-import { CheckRequestCreditUsageResult, SyncTokenCreditUsageJobData } from './credit.dto';
-import { genCreditUsageId } from '@refly/utils';
+import {
+  CheckRequestCreditUsageResult,
+  SyncTokenCreditUsageJobData,
+  SyncMediaCreditUsageJobData,
+} from './credit.dto';
+import { genCreditUsageId, genCreditDebtId } from '@refly/utils';
 import { CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import { CreditBalance } from './credit.dto';
 
@@ -56,6 +60,146 @@ export class CreditService {
     return result;
   }
 
+  /**
+   * Check if user has outstanding debt before allowing usage
+   */
+  private async checkUserDebt(uid: string): Promise<{ hasDebt: boolean; totalDebt: number }> {
+    const activeDebts = await this.prisma.creditDebt.findMany({
+      where: {
+        uid,
+        enabled: true,
+        balance: {
+          gt: 0,
+        },
+      },
+    });
+
+    const totalDebt = activeDebts.reduce((sum, debt) => sum + debt.balance, 0);
+    return {
+      hasDebt: totalDebt > 0,
+      totalDebt,
+    };
+  }
+
+  /**
+   * Create a debt record when credits are insufficient
+   */
+  private async createDebtRecord(
+    uid: string,
+    debtAmount: number,
+    description?: string,
+  ): Promise<void> {
+    await this.prisma.creditDebt.create({
+      data: {
+        debtId: genCreditDebtId(),
+        uid,
+        amount: debtAmount,
+        balance: debtAmount,
+        enabled: true,
+        source: 'usage_overdraft',
+        description,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Deduct credits from user's recharge records and create usage record
+   * If insufficient credits, create debt record instead of negative balance
+   */
+  private async deductCreditsAndCreateUsage(
+    uid: string,
+    creditCost: number,
+    usageData: {
+      usageId: string;
+      actionResultId: string;
+      modelName?: string;
+      usageType?: string;
+      createdAt: Date;
+    },
+  ): Promise<void> {
+    // Get available credit recharge records ordered by expiresAt (oldest first)
+    const creditRecharges = await this.prisma.creditRecharge.findMany({
+      where: {
+        uid,
+        enabled: true,
+        balance: {
+          gt: 0,
+        },
+      },
+      orderBy: {
+        expiresAt: 'asc', // Deduct from earliest records first
+      },
+    });
+
+    // Calculate total available credits
+    const _totalAvailableCredits = creditRecharges.reduce((sum, record) => {
+      return sum + record.balance;
+    }, 0);
+
+    // Prepare deduction operations
+    const deductionOperations = [];
+    let remainingCost = creditCost;
+
+    // Deduct from available credits first
+    for (const recharge of creditRecharges) {
+      if (remainingCost <= 0) break;
+
+      const deductAmount = Math.min(recharge.balance, remainingCost);
+      const newBalance = recharge.balance - deductAmount;
+
+      deductionOperations.push(
+        this.prisma.creditRecharge.update({
+          where: { pk: recharge.pk },
+          data: { balance: newBalance },
+        }),
+      );
+
+      remainingCost -= deductAmount;
+    }
+
+    // If there's still remaining cost, create a debt record
+    const transactionOperations = [
+      // Create credit usage record
+      this.prisma.creditUsage.create({
+        data: {
+          uid,
+          usageId: usageData.usageId,
+          actionResultId: usageData.actionResultId,
+          modelName: usageData.modelName,
+          usageType: usageData.usageType,
+          amount: creditCost,
+          createdAt: usageData.createdAt,
+        },
+      }),
+      // Execute all deduction operations
+      ...deductionOperations,
+    ];
+
+    // Add debt creation if needed
+    if (remainingCost > 0) {
+      transactionOperations.push(
+        this.prisma.creditDebt.create({
+          data: {
+            debtId: genCreditDebtId(),
+            uid,
+            amount: remainingCost,
+            balance: remainingCost,
+            enabled: true,
+            source: 'usage_overdraft',
+            description: `Overdraft from usage: ${usageData.actionResultId}`,
+            createdAt: usageData.createdAt,
+            updatedAt: usageData.createdAt,
+          },
+        }),
+      );
+    }
+
+    // Execute transaction
+    await this.prisma.$transaction(transactionOperations);
+  }
+
   async syncTokenCreditUsage(data: SyncTokenCreditUsageJobData) {
     const { uid, usage, creditBilling, timestamp, resultId } = data;
 
@@ -91,67 +235,49 @@ export class CreditService {
       return;
     }
 
-    // Get available credit recharge records ordered by createdAt (oldest first)
-    const creditRecharges = await this.prisma.creditRecharge.findMany({
-      where: {
-        uid,
-        enabled: true,
-        balance: {
-          gt: 0,
-        },
-      },
-      orderBy: {
-        expiresAt: 'asc', // Deduct from earliest records first
-      },
+    // Use the extracted method to handle credit deduction
+    await this.deductCreditsAndCreateUsage(uid, creditCost, {
+      usageId: genCreditUsageId(),
+      actionResultId: resultId,
+      modelName: usage.modelName,
+      createdAt: timestamp,
     });
+  }
 
-    // Prepare deduction operations
-    const deductionOperations = [];
-    let remainingCost = creditCost;
+  async syncMediaCreditUsage(data: SyncMediaCreditUsageJobData) {
+    const { uid, creditBilling, timestamp, resultId } = data;
 
-    for (let i = 0; i < creditRecharges.length; i++) {
-      const recharge = creditRecharges[i];
-      if (remainingCost <= 0) break;
-
-      let deductAmount: number;
-      let newBalance: number;
-
-      // If this is the last record, deduct all remaining cost even if it goes negative
-      if (i === creditRecharges.length - 1) {
-        deductAmount = remainingCost;
-        newBalance = recharge.balance - deductAmount;
-      } else {
-        // For non-last records, only deduct up to available balance
-        deductAmount = Math.min(recharge.balance, remainingCost);
-        newBalance = recharge.balance - deductAmount;
-      }
-
-      deductionOperations.push(
-        this.prisma.creditRecharge.update({
-          where: { pk: recharge.pk },
-          data: { balance: newBalance },
-        }),
-      );
-
-      remainingCost -= deductAmount;
+    // Find user
+    const user = await this.prisma.user.findUnique({ where: { uid } });
+    if (!user) {
+      throw new Error(`No user found for uid ${uid}`);
     }
 
-    // Execute transaction: create usage record and deduct credits
-    await this.prisma.$transaction([
-      // Create credit usage record
-      this.prisma.creditUsage.create({
+    // Calculate credit cost directly from unitCost
+    const creditCost = creditBilling?.unitCost || 0;
+
+    // If no credit cost, just create usage record
+    if (creditCost <= 0) {
+      await this.prisma.creditUsage.create({
         data: {
           uid,
           usageId: genCreditUsageId(),
           actionResultId: resultId,
-          modelName: usage.modelName,
-          amount: creditCost,
+          usageType: 'media_generation',
+          amount: 0,
           createdAt: timestamp,
         },
-      }),
-      // Execute all deduction operations
-      ...deductionOperations,
-    ]);
+      });
+      return;
+    }
+
+    // Use the extracted method to handle credit deduction
+    await this.deductCreditsAndCreateUsage(uid, creditCost, {
+      usageId: genCreditUsageId(),
+      actionResultId: resultId,
+      usageType: 'media_generation',
+      createdAt: timestamp,
+    });
   }
 
   async getCreditRecharge(user: User): Promise<CreditRecharge[]> {
@@ -233,6 +359,20 @@ export class CreditService {
       },
     });
 
+    // Query active debts
+    const activeDebts = await this.prisma.creditDebt.findMany({
+      where: {
+        uid: user.uid,
+        enabled: true,
+        balance: {
+          gt: 0,
+        },
+      },
+      select: {
+        balance: true,
+      },
+    });
+
     // Calculate total balance and total amount
     const totalBalance = activeRecharges.reduce((sum, record) => {
       return sum + Number(record.balance); // Convert BigInt to number
@@ -242,9 +382,16 @@ export class CreditService {
       return sum + Number(record.amount); // Convert BigInt to number
     }, 0);
 
+    const totalDebt = activeDebts.reduce((sum, debt) => {
+      return sum + Number(debt.balance);
+    }, 0);
+
+    // Net balance is positive balance minus debt
+    const netBalance = totalBalance - totalDebt;
+
     return {
       creditAmount: totalAmount,
-      creditBalance: totalBalance,
+      creditBalance: netBalance,
     };
   }
 }

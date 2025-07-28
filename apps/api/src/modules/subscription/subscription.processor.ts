@@ -7,6 +7,7 @@ import {
   QUEUE_SYNC_TOKEN_USAGE,
   QUEUE_SYNC_STORAGE_USAGE,
   QUEUE_CHECK_CANCELED_SUBSCRIPTIONS,
+  QUEUE_EXPIRE_AND_RECHARGE_CREDITS,
   QUEUE_SYNC_REQUEST_USAGE,
 } from '../../utils/const';
 import {
@@ -88,6 +89,25 @@ export class SyncRequestUsageProcessor extends WorkerHost {
       await this.subscriptionService.syncRequestUsage(job.data);
     } catch (error) {
       this.logger.error(`[${QUEUE_SYNC_REQUEST_USAGE}] error: ${error?.stack}`);
+      throw error;
+    }
+  }
+}
+
+@Processor(QUEUE_EXPIRE_AND_RECHARGE_CREDITS)
+export class ExpireAndRechargeCreditsProcessor extends WorkerHost {
+  private readonly logger = new Logger(ExpireAndRechargeCreditsProcessor.name);
+
+  constructor(private subscriptionService: SubscriptionService) {
+    super();
+  }
+
+  async process() {
+    this.logger.log(`[${QUEUE_EXPIRE_AND_RECHARGE_CREDITS}] Starting expire and recharge credits`);
+    try {
+      await this.subscriptionService.expireAndRechargeCredits();
+    } catch (error) {
+      this.logger.error(`[${QUEUE_EXPIRE_AND_RECHARGE_CREDITS}] error: ${error?.stack}`);
       throw error;
     }
   }

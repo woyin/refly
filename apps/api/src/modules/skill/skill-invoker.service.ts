@@ -905,6 +905,32 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 ? JSON.parse(providerItem?.creditBilling)
                 : undefined;
 
+              // Check if user is early bird and credit billing is free for early bird users
+              let shouldSkipCreditBilling = false;
+              if (creditBilling?.isEarlyBirdFree) {
+                // Get user's subscription to check if they are early bird user
+                const userSubscription = await this.prisma.subscription.findFirst({
+                  where: {
+                    uid: user.uid,
+                    status: 'active',
+                    OR: [{ cancelAt: null }, { cancelAt: { gt: new Date() } }],
+                  },
+                  orderBy: {
+                    createdAt: 'desc',
+                  },
+                });
+
+                if (userSubscription?.overridePlan) {
+                  const overridePlan = JSON.parse(userSubscription.overridePlan);
+                  if (overridePlan.isEarlyBird === true) {
+                    shouldSkipCreditBilling = true;
+                    this.logger.log(
+                      `Early bird user ${user.uid} skipping credit billing for action ${resultId}`,
+                    );
+                  }
+                }
+              }
+
               const tokenCreditUsage: SyncTokenCreditUsageJobData = {
                 ...basicUsageData,
                 usage,
@@ -916,7 +942,8 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
               }
 
-              if (this.creditUsageReportQueue) {
+              // Only add to credit usage queue if not skipping for early bird users
+              if (this.creditUsageReportQueue && !shouldSkipCreditBilling) {
                 await this.creditUsageReportQueue.add(
                   `credit_usage_report:${resultId}`,
                   tokenCreditUsage,
