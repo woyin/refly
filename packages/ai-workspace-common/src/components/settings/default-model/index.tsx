@@ -81,6 +81,7 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
     query: {
       enabled: true,
       category: 'mediaGeneration',
+      isGlobal: userProfile?.preferences?.providerMode === 'global',
     },
   });
 
