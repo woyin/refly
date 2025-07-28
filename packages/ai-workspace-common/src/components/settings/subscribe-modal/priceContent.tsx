@@ -164,7 +164,7 @@ const PlanItem = (props: {
         <div className="price-section">{getPrice()}</div>
 
         <div
-          className={`subscribe-btn subscribe-btn--${planType} ${planType === 'starter' && 'subscribe-btn--most-popular'}`}
+          className={`subscribe-btn cursor-pointer subscribe-btn--${planType} ${planType === 'starter' && 'subscribe-btn--most-popular'}`}
           onClick={handleButtonClick}
           // loading={loadingInfo.isLoading && loadingInfo.plan === planType}
           // disabled={isButtonDisabled}

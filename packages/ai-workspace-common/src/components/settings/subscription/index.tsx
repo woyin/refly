@@ -204,11 +204,6 @@ export const Subscription = () => {
     },
   ];
 
-  const planDisplayNameMap = {
-    starter: t('subscription.subscriptionManagement.planNames.starter'),
-    maker: t('subscription.subscriptionManagement.planNames.maker'),
-  };
-
   const PaidPlanCard = () => {
     return (
       <div className={`subscription-plan-card plan-${planType} w-full`}>
@@ -218,7 +213,6 @@ export const Subscription = () => {
           </div>
           <div className="current-plan-name flex items-center w-full justify-between">
             {t(`subscription.plans.${planType}.title`)}{' '}
-            {planDisplayNameMap[planType as keyof typeof planDisplayNameMap]}
             <div className="flex items-center gap-3 plan-actions">
               <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
                 {cancelAt
