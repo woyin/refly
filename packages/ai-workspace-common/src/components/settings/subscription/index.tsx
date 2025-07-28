@@ -22,39 +22,6 @@ import './index.scss';
 
 const { Title } = Typography;
 
-// --- Test Data for Development ---
-const mockSubscriptions = {
-  free: {
-    planType: 'free',
-    isPaid: false,
-    displayName: 'Free Plan',
-  },
-  starter: {
-    planType: 'starter',
-    isPaid: true,
-    displayName: 'Starter',
-    stripePortalUrl: '#',
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-    willCancelAtPeriodEnd: false,
-  },
-  maker_active: {
-    planType: 'maker',
-    isPaid: true,
-    displayName: 'Maker',
-    stripePortalUrl: '#',
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    willCancelAtPeriodEnd: false,
-  },
-  maker_canceling: {
-    planType: 'maker',
-    isPaid: true,
-    displayName: 'Maker',
-    stripePortalUrl: '#',
-    currentPeriodEnd: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 days from now
-    willCancelAtPeriodEnd: true,
-  },
-};
-
 // Define interfaces for the table data
 interface CreditUsageRecord {
   usageId: string;
@@ -87,15 +54,6 @@ export const Subscription = () => {
   useEffect(() => {
     setDisplaySubscription(userProfile?.subscription);
   }, [userProfile?.subscription]);
-
-  const handleTestPlanChange = (value: string) => {
-    if (value === 'real') {
-      setDisplaySubscription(userProfile?.subscription);
-    } else {
-      // @ts-ignore
-      setDisplaySubscription(mockSubscriptions[value]);
-    }
-  };
 
   const {
     isPaid,
@@ -302,25 +260,6 @@ export const Subscription = () => {
 
   return (
     <div className="subscription-management-page">
-      {/* --- Development Test Harness -- */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ padding: '0 16px 16px', border: '1px dashed #ccc', margin: '0 16px 16px' }}>
-          <Title level={5} style={{ marginTop: '16px' }}>
-            🧪 Test Controls
-          </Title>
-          <Segmented
-            options={[
-              { label: 'Real Data', value: 'real' },
-              { label: 'Free', value: 'free' },
-              { label: 'Starter', value: 'starter' },
-              { label: 'Maker (Active)', value: 'maker_active' },
-              { label: 'Maker (Canceling)', value: 'maker_canceling' },
-            ]}
-            onChange={handleTestPlanChange}
-          />
-        </div>
-      )}
-      {/* --- End Test Harness -- */}
       <div className="subscription-header">
         <Title level={4} className="title">
           {t('subscription.subscriptionManagement.title')}
