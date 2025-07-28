@@ -291,6 +291,88 @@ export class SubscriptionService implements OnModuleInit {
     });
   }
 
+  /**
+   * Create a credit recharge record for a user
+   */
+  private async createCreditRecharge(
+    prisma: any,
+    uid: string,
+    creditAmount: number,
+    expiresAt: Date,
+    source = 'subscription',
+    description?: string,
+    now: Date = new Date(),
+  ) {
+    // Check for existing debts
+    const activeDebts = await prisma.creditDebt.findMany({
+      where: {
+        uid,
+        enabled: true,
+        balance: {
+          gt: 0,
+        },
+      },
+      orderBy: {
+        createdAt: 'asc', // Pay off oldest debts first
+      },
+    });
+
+    let remainingCredits = creditAmount;
+    const debtPaymentOperations = [];
+
+    // Pay off debts first
+    for (const debt of activeDebts) {
+      if (remainingCredits <= 0) break;
+
+      const paymentAmount = Math.min(debt.balance, remainingCredits);
+      const newDebtBalance = debt.balance - paymentAmount;
+
+      debtPaymentOperations.push(
+        prisma.creditDebt.update({
+          where: { pk: debt.pk },
+          data: {
+            balance: newDebtBalance,
+            enabled: newDebtBalance > 0, // Disable if fully paid
+            updatedAt: now,
+          },
+        }),
+      );
+
+      remainingCredits -= paymentAmount;
+    }
+
+    // Create recharge record only if there are remaining credits after debt payment
+    const operations = [...debtPaymentOperations];
+
+    if (remainingCredits > 0) {
+      operations.push(
+        prisma.creditRecharge.create({
+          data: {
+            rechargeId: genCreditRechargeId(),
+            uid,
+            amount: remainingCredits,
+            balance: remainingCredits,
+            enabled: true,
+            source,
+            description,
+            createdAt: now,
+            updatedAt: now,
+            expiresAt,
+          },
+        }),
+      );
+    }
+
+    // Execute all operations in a transaction
+    await Promise.all(operations);
+
+    this.logger.log(
+      `Processed credit recharge for user ${uid}: ${creditAmount} credits total, ` +
+        `${creditAmount - remainingCredits} used for debt payment, ` +
+        `${remainingCredits} added as new balance, expires at ${expiresAt.toISOString()}`,
+    );
+  }
+
   async createSubscription(uid: string, param: CreateSubscriptionParam) {
     this.logger.log(`Creating subscription for user ${uid}: ${JSON.stringify(param)}`);
 
@@ -348,19 +430,8 @@ export class SubscriptionService implements OnModuleInit {
       });
 
       // Create a new credit recharge record
-      await prisma.creditRecharge.create({
-        data: {
-          rechargeId: genCreditRechargeId(),
-          uid,
-          amount: plan?.creditQuota ?? this.config.get('quota.credit'),
-          balance: plan?.creditQuota ?? this.config.get('quota.credit'),
-          source: 'subscription',
-          createdAt: now,
-          updatedAt: now,
-          expiresAt: endAt,
-          enabled: true,
-        },
-      });
+      const creditAmount = plan?.creditQuota ?? this.config.get('quota.credit');
+      await this.createCreditRecharge(prisma, uid, creditAmount, endAt, 'subscription');
 
       // Update storage usage meter
       await prisma.storageUsageMeter.updateMany({
@@ -484,11 +555,11 @@ export class SubscriptionService implements OnModuleInit {
       await this.prisma.$transaction(async (prisma) => {
         const now = new Date();
 
-        // Step 1: Find all non-duplicate credit recharge records that are not expired yet
+        // Step 1: Find all non-duplicate credit recharge records that are expired but not disabled
         const activeRecharges = await prisma.creditRecharge.findMany({
           where: {
             expiresAt: {
-              gte: now,
+              lte: now,
             },
             enabled: true,
           },
@@ -525,9 +596,7 @@ export class SubscriptionService implements OnModuleInit {
             const subscription = await prisma.subscription.findFirst({
               where: {
                 uid: recharge.uid,
-                status: {
-                  in: ['active', 'trialing'],
-                },
+                status: 'active',
                 OR: [{ cancelAt: null }, { cancelAt: { gt: now } }],
               },
               orderBy: {
@@ -563,23 +632,14 @@ export class SubscriptionService implements OnModuleInit {
                 const newExpiresAt = new Date();
                 newExpiresAt.setDate(newExpiresAt.getDate() + 30); // 30 days from now
 
-                await prisma.creditRecharge.create({
-                  data: {
-                    rechargeId: genCreditRechargeId(),
-                    uid: recharge.uid,
-                    amount: plan.creditQuota,
-                    balance: plan.creditQuota,
-                    enabled: true,
-                    source: 'subscription',
-                    description: `Monthly subscription credit recharge for plan ${subscription.planType}`,
-                    createdAt: now,
-                    updatedAt: now,
-                    expiresAt: newExpiresAt,
-                  },
-                });
-
-                this.logger.log(
-                  `Created new credit recharge for user ${recharge.uid} with ${plan.creditQuota} credits`,
+                await this.createCreditRecharge(
+                  prisma,
+                  recharge.uid,
+                  plan.creditQuota,
+                  newExpiresAt,
+                  'subscription',
+                  `Monthly subscription credit recharge for plan ${subscription.planType}`,
+                  now,
                 );
               }
             } else {

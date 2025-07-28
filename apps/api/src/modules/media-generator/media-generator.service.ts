@@ -63,6 +63,7 @@ export class MediaGeneratorService {
   };
 
   constructor(
+    private logger,
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
     private readonly credit: CreditService,
@@ -154,7 +155,7 @@ export class MediaGeneratorService {
 
       if (creditBilling) {
         const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
-        console.log('creditUsageResult', creditUsageResult);
+        this.logger.log('creditUsageResult', creditUsageResult);
         if (!creditUsageResult.canUse) {
           throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
         }

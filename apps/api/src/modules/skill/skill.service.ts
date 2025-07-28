@@ -472,7 +472,7 @@ export class SkillService implements OnModuleInit {
       : undefined;
     console.log('creditBilling', creditBilling);
 
-    if (tiers.length > 0) {
+    /*if (tiers.length > 0) {
       // Check for usage quota
       const usageResult = await this.subscriptionService.checkRequestUsage(user);
 
@@ -483,7 +483,7 @@ export class SkillService implements OnModuleInit {
           );
         }
       }
-    }
+    }*/
 
     if (creditBilling) {
       const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
