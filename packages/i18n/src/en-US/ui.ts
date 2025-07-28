@@ -2415,10 +2415,10 @@ const translations = {
       groupPlaceholder: 'Please set up group name to categorize and manage the models',
       providerMode: 'Configuration Mode',
       providerModeDescription:
-        'Custom models will use your configured models, global models will use Refly provided models',
+        'Global mode will use server-configured models, and custom mode supports configuring your own provider models',
       custom: 'Custom',
       global: 'Global',
-      syncSuccessfully: 'providerMode configuration updated successfully!',
+      syncSuccessfully: 'Configuration mode updated successfully!',
       syncFailed: 'Failed to update providerMode configuration, please try again!',
       description: 'Description',
       descriptionPlaceholder: 'Please enter a description for this model',
