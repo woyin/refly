@@ -284,7 +284,6 @@ export class CreditService {
     const records = await this.prisma.creditRecharge.findMany({
       where: {
         uid: user.uid,
-        enabled: true,
       },
       select: {
         rechargeId: true,
