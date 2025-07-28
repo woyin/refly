@@ -2,7 +2,7 @@ import { Tag } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { IconGithub } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 
 export const Title = () => {
   const { t } = useTranslation();

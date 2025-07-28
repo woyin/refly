@@ -10,8 +10,8 @@ import { useToggleCSUI } from '@/modules/toggle-copilot/hooks/use-handle-toggle-
 import { useBindCommands } from '@/hooks/use-bind-commands';
 import { useSetContainerDimension } from '@/hooks/use-set-container-dimension';
 // stores
-import { useCopilotStore } from '@refly-packages/ai-workspace-common/stores/copilot';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useCopilotStore } from '@refly/stores';
+import { useUserStore } from '@refly/stores';
 
 // 组件
 import { Message, Spin } from '@arco-design/web-react';
@@ -19,7 +19,6 @@ import { AppRouter } from '@/routes/index';
 
 // 加载国际化
 import '@/i18n/config';
-import { SENTRY_DSN } from '@refly/utils/url';
 
 // 样式
 import '@/styles/style.css';
@@ -29,9 +28,10 @@ import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui'
 import { getEnv, setRuntime } from '@refly/utils/env';
 const Sentry = _Sentry;
 
-if (process.env.NODE_ENV !== 'development') {
+const sentryDsn = process.env.VITE_SENTRY_DSN;
+if (process.env.NODE_ENV !== 'development' && sentryDsn) {
   Sentry.init({
-    dsn: SENTRY_DSN,
+    dsn: sentryDsn,
     environment: getEnv(),
     integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
     tracesSampleRate: 1.0, //  Capture 100% of the transactions

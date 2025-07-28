@@ -1,12 +1,16 @@
 {
   "name": "@refly/ai-workspace-common",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "Common components for Refly AI Workspace",
   "type": "module",
   "main": "src/index.ts",
+  "types": "src/index.ts",
   "exports": {
-    "import": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./components": "./src/components/index.ts",
+    "./stores": "./src/stores/index.ts",
+    "./utils": "./src/utils/index.ts"
   },
   "scripts": {
     "preview": "vite preview",
@@ -33,6 +37,8 @@
     "@refly/errors": "workspace:*",
     "@refly/i18n": "workspace:*",
     "@refly/openapi-schema": "workspace:*",
+    "@refly/telemetry-web": "workspace:*",
+    "@refly/ui-kit": "workspace:*",
     "@refly/utils": "workspace:*",
     "@sentry/react": "^7.113.0",
     "@tailwindcss/forms": "^0.5.3",
@@ -85,8 +91,10 @@
     "highlight.js": "^11.9.0",
     "hotkeys-js": "~3.10.2",
     "html2canvas": "^1.4.1",
-    "i18next": "^23.11.2",
+    "i18next": "^25.3.2",
     "i18next-browser-languagedetector": "^8.0.2",
+    "idb": "^8.0.3",
+    "idb-keyval": "^6.2.2",
     "immer": "^10.1.1",
     "is-hotkey": "~0.2.0",
     "jotai": "~2.6.4",
@@ -115,7 +123,7 @@
     "react-dom": "^18.2.0",
     "react-draggable": "~4.4.5",
     "react-helmet": "^6.1.0",
-    "react-i18next": "^14.1.0",
+    "react-i18next": "^15.6.0",
     "react-icons": "~5.4.0",
     "react-infinite-scroll-component": "~6.1.0",
     "react-markdown": "^8.0.7",
@@ -150,7 +158,8 @@
     "y-prosemirror": "^1.2.6",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.16",
-    "zustand": "~4.5.1"
+    "zustand": "~4.5.1",
+    "@refly/stores": "workspace:*"
   },
   "devDependencies": {
     "@7nohe/openapi-react-query-codegen": "2.0.0-beta.3",

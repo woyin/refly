@@ -13,7 +13,7 @@ import {
 import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
 import { getRuntime } from '@refly/utils/env';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
-import { useActionResultStore } from '@refly-packages/ai-workspace-common/stores/action-result';
+import { useActionResultStore } from '@refly/stores';
 import { aggregateTokenUsage, genActionResultID, detectActualTypeFromType } from '@refly/utils';
 import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
@@ -26,7 +26,8 @@ import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@ref
 import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
 import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
 import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useLaunchpadStoreShallow } from '@refly/stores';
+import { logEvent } from '@refly/telemetry-web';
 import {
   useAbortAction,
   globalAbortControllerRef,
@@ -34,9 +35,11 @@ import {
   globalCurrentResultIdRef,
 } from './use-abort-action';
 
-export const useInvokeAction = () => {
+export const useInvokeAction = (params?: { source?: string }) => {
+  const { source } = params || {};
+
   const setNodeDataByEntity = useSetNodeDataByEntity();
-  const { abortAction } = useAbortAction();
+  const { abortAction } = useAbortAction(params);
 
   const deletedNodeIdsRef = useRef<Set<string>>(new Set());
 
@@ -61,6 +64,21 @@ export const useInvokeAction = () => {
 
   const onSkillStart = (skillEvent: SkillEvent) => {
     const { resultId } = skillEvent;
+
+    const { resultMap } = useActionResultStore.getState();
+    const result = resultMap[resultId];
+
+    if (!result) {
+      return;
+    }
+
+    logEvent('model::invoke_start', Date.now(), {
+      resultId,
+      source,
+      model: result.modelInfo?.name,
+      skill: result.actionMeta?.name,
+    });
+
     stopPolling(resultId);
 
     // Clear any pending throttled updates for this result
@@ -410,6 +428,13 @@ export const useInvokeAction = () => {
       return;
     }
 
+    logEvent('model::invoke_end', Date.now(), {
+      resultId: result.resultId,
+      source,
+      model: result.modelInfo?.name,
+      skill: result.actionMeta?.name,
+    });
+
     stopPolling(skillEvent.resultId);
 
     const updatedResult = {
@@ -474,6 +499,14 @@ export const useInvokeAction = () => {
       return;
     }
 
+    logEvent('model::invoke_error', Date.now(), {
+      resultId,
+      source,
+      model: result.modelInfo?.name,
+      skill: result.actionMeta?.name,
+      error: originError,
+    });
+
     stopPolling(resultId);
 
     // Set traceId if available (check for traceId in different possible locations)
@@ -500,8 +533,6 @@ export const useInvokeAction = () => {
         return;
       }
     }
-
-    abortAction(resultId);
   };
 
   const onCompleted = () => {};
@@ -533,6 +564,14 @@ export const useInvokeAction = () => {
         runtimeConfig = {},
         projectId,
       } = payload;
+
+      logEvent('model::invoke_trigger', Date.now(), {
+        source,
+        resultId,
+        model: modelInfo?.name,
+        target: target?.entityType,
+        skill: selectedSkill?.name,
+      });
 
       globalAbortControllerRef.current = new AbortController();
       globalCurrentResultIdRef.current = resultId; // Track current active resultId

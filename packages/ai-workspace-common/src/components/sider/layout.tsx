@@ -15,7 +15,7 @@ import {
 import cn from 'classnames';
 
 import Logo from '@/assets/logo.svg';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 // components
 import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
 import { useTranslation } from 'react-i18next';
@@ -26,11 +26,7 @@ import { SettingsGuideModal } from '@refly-packages/ai-workspace-common/componen
 import { StorageExceededModal } from '@refly-packages/ai-workspace-common/components/subscription/storage-exceeded-modal';
 // hooks
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
-import {
-  SiderData,
-  useSiderStoreShallow,
-  type SettingsModalActiveTab,
-} from '@refly-packages/ai-workspace-common/stores/sider';
+import { SiderData, useSiderStoreShallow, type SettingsModalActiveTab } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 // icons
 import {
@@ -42,8 +38,8 @@ import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/compon
 import { AiOutlineMenuFold, AiOutlineUser } from 'react-icons/ai';
 import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { FaGithub } from 'react-icons/fa6';
-import { useKnowledgeBaseStoreShallow } from '@refly-packages/ai-workspace-common/stores/knowledge-base';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { useKnowledgeBaseStoreShallow } from '@refly/stores';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
 import { SiderLoggedOut } from './sider-logged-out';
 import { CreateProjectModal } from '@refly-packages/ai-workspace-common/components/project/project-create';
@@ -232,7 +228,9 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
       <div className="flex w-40 items-center justify-between">
         <div className="flex items-center gap-3">
           <IconCanvas
-            className={cn({ 'text-green-600 dark:text-green-300': selectedKey === canvas.id })}
+            className={cn({
+              'text-green-600 dark:text-green-300': selectedKey === canvas.id,
+            })}
           />
           <div className="w-28 truncate">{canvas?.name || t('common.untitled')}</div>
         </div>
@@ -580,9 +578,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
           )}
 
           <div
-            onClick={() =>
-              window.open('https://github.com/refly-ai/refly/releases/tag/v0.7.0', '_blank')
-            }
+            onClick={() => window.open('https://docs.refly.ai/changelog/v0.8.0', '_blank')}
             className="mb-2 flex items-start text-[#00968F] hover:bg-gray-50 rounded-md whitespace-normal h-auto cursor-pointer dark:text-gray-300"
           >
             <span className="flex items-start gap-2 leading-6 w-full ">

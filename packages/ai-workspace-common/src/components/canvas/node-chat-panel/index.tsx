@@ -12,18 +12,17 @@ import {
 } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
-import { IContextItem } from '@refly/common-types';
-import { useContextPanelStoreShallow } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { IContextItem, ContextTarget } from '@refly/common-types';
+import { useContextPanelStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { IoClose } from 'react-icons/io5';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { useUserStoreShallow } from '@refly/stores';
+import { useSubscriptionStoreShallow } from '@refly/stores';
+import { useLaunchpadStoreShallow } from '@refly/stores';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { cn } from '@refly/utils/cn';
 import classNames from 'classnames';
-import { ContextTarget } from '@refly-packages/ai-workspace-common/stores/context-panel';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -32,6 +31,7 @@ import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-fin
 import './index.scss';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
 import { t } from 'i18next';
+import { logEvent } from '@refly/telemetry-web';
 
 // Memoized Premium Banner Component
 export const PremiumBanner = memo(() => {
@@ -45,8 +45,14 @@ export const PremiumBanner = memo(() => {
   );
 
   const handleUpgrade = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'home_banner');
     setSubscribeModalVisible(true);
   }, [setSubscribeModalVisible]);
+
+  const handleClose = useCallback(() => {
+    logEvent('subscription::home_banner_close');
+    setShowPremiumBanner(false);
+  }, [setShowPremiumBanner]);
 
   if (!showPremiumBanner) return null;
 
@@ -69,7 +75,7 @@ export const PremiumBanner = memo(() => {
             type="text"
             size="small"
             icon={<IoClose size={14} className="flex items-center justify-center" />}
-            onClick={() => setShowPremiumBanner(false)}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-500 flex items-center justify-center w-5 h-5 min-w-0 p-0"
           />
         </div>
@@ -157,7 +163,13 @@ const NodeHeader = memo(
               disabled={readonly}
               placement="bottomLeft"
               dropdownRender={(menu) => (
-                <div style={{ minWidth: '240px', maxHeight: '300px', overflowY: 'auto' }}>
+                <div
+                  style={{
+                    minWidth: '240px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                  }}
+                >
                   {menu}
                 </div>
               )}

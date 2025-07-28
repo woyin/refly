@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { usePilotStore, usePilotStoreShallow } from '../stores/pilot';
+import { usePilotStore, usePilotStoreShallow } from '@refly/stores';
 import { ResponseNodeMeta } from '@refly/canvas-common';
 
 /**

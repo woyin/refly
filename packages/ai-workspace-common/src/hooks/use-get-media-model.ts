@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 
 export const useGetMediaModel = () => {
   const { setMediaModelList, setMediaModelListLoading } = useChatStoreShallow((state) => ({

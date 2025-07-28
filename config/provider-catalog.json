@@ -1,18 +1,6 @@
 {
   "providers": [
     {
-      "name": "litellm",
-      "providerKey": "openai",
-      "baseUrl": "https://litellm.powerformer.net/v1",
-      "description": {
-        "en": "LiteLLM is a lightweight library to simplify LLM completion and embedding calls, providing a consistent interface for over 100 LLMs.",
-        "zh-CN": "LiteLLM 是一个轻量级库，用于简化 LLM 的补全和嵌入调用，为 100 多个 LLM 提供一致的接口。"
-      },
-      "categories": ["llm", "embedding"],
-      "documentation": "https://docs.litellm.ai/",
-      "icon": "https://static.refly.ai/icons/providers/litellm.png"
-    },
-    {
       "name": "SiliconFlow",
       "providerKey": "openai",
       "baseUrl": "https://api.siliconflow.cn/v1",
@@ -23,6 +11,18 @@
       "categories": ["llm", "embedding"],
       "documentation": "https://docs.siliconflow.cn/",
       "icon": "https://static.refly.ai/icons/providers/siliconflow.png"
+    },
+    {
+      "name": "litellm",
+      "providerKey": "openai",
+      "baseUrl": "https://litellm.powerformer.net/v1",
+      "description": {
+        "en": "LiteLLM is a lightweight library to simplify LLM completion and embedding calls, providing a consistent interface for over 100 LLMs.",
+        "zh-CN": "LiteLLM 是一个轻量级库，用于简化 LLM 的补全和嵌入调用，为 100 多个 LLM 提供一致的接口。"
+      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://docs.litellm.ai/",
+      "icon": "https://static.refly.ai/icons/providers/litellm.png"
     },
     {
       "name": "七牛云AI",
@@ -86,7 +86,7 @@
     },
     {
       "name": "OpenRouter",
-      "providerKey": "openrouter",
+      "providerKey": "openai",
       "baseUrl": "https://openrouter.ai/api/v1",
       "description": {
         "en": "OpenRouter provides unified access to hundreds of AI models (including embedding models) from various providers through a single OpenAI-compatible API.",
@@ -98,7 +98,7 @@
     },
     {
       "name": "Hugging Face Inference",
-      "providerKey": "huggingface",
+      "providerKey": "openai",
       "baseUrl": "https://api-inference.huggingface.co",
       "description": {
         "en": "Hugging Face Inference provides access to a vast library of open-source AI models for various tasks, including text generation and embedding, through its Inference Providers API.",
@@ -134,7 +134,7 @@
     },
     {
       "name": "Cohere",
-      "providerKey": "cohere",
+      "providerKey": "openai",
       "baseUrl": "https://api.cohere.ai/v1",
       "description": {
         "en": "Cohere provides enterprise-grade large language models for text generation (Command) and state-of-the-art text and image embedding models (Embed).",
@@ -182,7 +182,7 @@
     },
     {
       "name": "Anthropic Claude",
-      "providerKey": "anthropic",
+      "providerKey": "openai",
       "baseUrl": "https://api.anthropic.com/v1",
       "description": {
         "en": "Anthropic provides the Claude family of large language models, known for their performance, reliability, and safety, accessible via a native API.",
@@ -205,20 +205,8 @@
       "icon": "https://static.refly.ai/icons/providers/moonshot.png"
     },
     {
-      "name": "Perplexity",
-      "providerKey": "openai",
-      "baseUrl": "https://api.perplexity.ai",
-      "description": {
-        "en": "Perplexity provides real-time, conversational AI search with up-to-date information and citations, powered by its advanced models.",
-        "zh-CN": "Perplexity 提供实时的对话式 AI 搜索，能够获取最新信息并提供引用，由其先进的模型驱动。"
-      },
-      "categories": ["llm"],
-      "documentation": "https://docs.perplexity.ai/",
-      "icon": "https://static.refly.ai/icons/providers/perplexity.png"
-    },
-    {
       "name": "Google Gemini",
-      "providerKey": "google",
+      "providerKey": "openai",
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
       "description": {
         "en": "Google Gemini offers a family of powerful, multimodal models for advanced reasoning, text generation, and embedding tasks.",
@@ -227,18 +215,6 @@
       "categories": ["llm", "embedding"],
       "documentation": "https://ai.google.dev/gemini-api/docs",
       "icon": "https://static.refly.ai/icons/providers/google.png"
-    },
-    {
-      "name": "DeepSeek",
-      "providerKey": "openai",
-      "baseUrl": "https://api.deepseek.com",
-      "description": {
-        "en": "DeepSeek provides powerful open-source models with strong coding and reasoning capabilities, accessible via an OpenAI-compatible API.",
-        "zh-CN": "深度求索（DeepSeek）提供性能强大的开源模型，在代码和推理方面表现出色，可通过兼容 OpenAI 的 API 进行访问。"
-      },
-      "categories": ["llm", "embedding"],
-      "documentation": "https://platform.deepseek.com/api-docs/",
-      "icon": "https://static.refly.ai/icons/providers/deepseek.png"
     },
     {
       "name": "NVIDIA",
@@ -254,7 +230,7 @@
     },
     {
       "name": "Stability AI",
-      "providerKey": "stability-ai",
+      "providerKey": "openai",
       "baseUrl": "https://api.stability.ai/v1",
       "description": {
         "en": "Stability AI provides open-source generative models for image, video, audio, and 3D generation, accessible via its native API.",
@@ -290,7 +266,7 @@
     },
     {
       "name": "Minimax",
-      "providerKey": "minimax",
+      "providerKey": "openai",
       "baseUrl": "https://api.minimax.chat/v1",
       "description": {
         "en": "Minimax offers powerful foundation models including text and multimodal capabilities, accessible via its native API.",
@@ -323,6 +299,18 @@
       "categories": ["llm"],
       "documentation": "https://platform.stepfun.com/docs",
       "icon": "https://static.refly.ai/icons/providers/stepfun-ai.png"
+    },
+    {
+      "name": "火山引擎",
+      "providerKey": "volces",
+      "baseUrl": "https://ark.cn-beijing.volces.com/api/v3",
+      "description": {
+        "en": "Volces (Volcano Engine) provides ByteDance's Doubao (豆包) large language models and comprehensive AI services, offering powerful text generation, embedding, and multimodal capabilities through an OpenAI-compatible API.",
+        "zh-CN": "Volces（火山引擎）提供字节跳动的豆包大模型和全面的 AI 服务，通过兼容 OpenAI 的 API 提供强大的文本生成、向量嵌入和多模态能力。"
+      },
+      "categories": ["llm", "embedding", "mediaGeneration"],
+      "documentation": "https://www.volcengine.com/docs/82379/1099475",
+      "icon": "https://static.refly.ai/icons/providers/volces.png"
     },
     {
       "name": "FAL",

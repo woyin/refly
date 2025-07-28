@@ -2,8 +2,8 @@ import { memo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar, Divider } from 'antd';
 import { SkillResponseNodePreview } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response';
-import { LinearThreadMessage } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { LinearThreadMessage } from '@refly/stores';
+import { useUserStoreShallow } from '@refly/stores';
 import { AiOutlineUser } from 'react-icons/ai';
 
 interface LinearThreadContentProps {

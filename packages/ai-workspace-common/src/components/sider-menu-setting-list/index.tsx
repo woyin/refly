@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { MenuProps, Dropdown } from 'antd';
 import { LuSettings, LuLogOut } from 'react-icons/lu';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useUserStore } from '@refly/stores';
+import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
 import { GrGroup } from 'react-icons/gr';
 import { MemoizedIcon } from '@refly-packages/ai-workspace-common/components/common/icon';

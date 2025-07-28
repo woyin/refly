@@ -1,10 +1,11 @@
-import { memo, FC } from 'react';
+import { memo, FC, useCallback } from 'react';
 import { Button, Alert } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { getAvailableFileCount } from '@refly/utils/quota';
 import { ProjectSelect } from './project-select';
+import { logEvent } from '@refly/telemetry-web';
 
 interface StorageLimitProps {
   resourceCount: number;
@@ -19,9 +20,10 @@ export const StorageLimit: FC<StorageLimitProps> = memo(
       setSubscribeModalVisible: state.setSubscribeModalVisible,
     }));
 
-    const handleUpgrade = () => {
+    const handleUpgrade = useCallback(() => {
+      logEvent('subscription::upgrade_click', 'storage_limit');
       setSubscribeModalVisible(true);
-    };
+    }, [setSubscribeModalVisible]);
 
     const { storageUsage } = useSubscriptionUsage();
     const canImportCount = getAvailableFileCount(storageUsage);

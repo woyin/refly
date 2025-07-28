@@ -1,14 +1,6 @@
 name: Deploy Web To Staging
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - '!packages/skill-template/**'
-      - '!packages/wxt/**'
   workflow_dispatch:
 
 jobs:
@@ -36,9 +28,10 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build:web
+        run: pnpm build:web-next
         env:
           NODE_OPTIONS: '--max_old_space_size=8192'
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           VITE_API_URL: https://staging-api.refly.ai
@@ -46,6 +39,10 @@ jobs:
           VITE_SUBSCRIPTION_ENABLED: true
           VITE_CANVAS_TEMPLATE_ENABLED: true
           VITE_SENTRY_ENABLED: true
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_STATSIG_CLIENT_KEY: ${{ secrets.STATSIG_CLIENT_KEY }}
+          VITE_GTAG_ID: ${{ secrets.GTAG_ID }}
+          VITE_RUNTIME: web
           VITE_STATIC_PUBLIC_ENDPOINT: https://static.refly.ai
           VITE_STATIC_PRIVATE_ENDPOINT: https://staging-api.refly.ai/v1/misc
 
@@ -56,5 +53,5 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: refly-app-staging
           branch: main
-          workingDirectory: apps/web
+          workingDirectory: apps/web-next
           directory: dist

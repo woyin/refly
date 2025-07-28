@@ -15,6 +15,8 @@ import tracer from './tracer';
 import { setTraceID } from './utils/middleware/set-trace-id';
 import { GlobalExceptionFilter } from './utils/filters/global-exception.filter';
 import { CustomWsAdapter } from './utils/adapters/ws-adapter';
+import { setupStatsig } from '@refly/telemetry-node';
+import { migrateDbSchema } from './utils/prisma';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -25,6 +27,11 @@ Sentry.init({
 });
 
 async function bootstrap() {
+  // Auto migrate db schema if the environment variable is set
+  if (process.env.AUTO_MIGRATE_DB_SCHEMA) {
+    migrateDbSchema();
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
     bufferLogs: false,
@@ -59,6 +66,13 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter(configService));
 
   tracer.start();
+
+  try {
+    await setupStatsig();
+  } catch (err) {
+    // Continue boot-strapping even if telemetry is unavailable
+    console.warn('Statsig init failed – proceeding without telemetry', err);
+  }
 
   await app.listen(configService.get('port'));
 }

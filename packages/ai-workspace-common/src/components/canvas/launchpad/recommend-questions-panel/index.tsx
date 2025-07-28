@@ -3,14 +3,14 @@ import { Button, Empty, message, Skeleton } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { ReloadOutlined } from '@ant-design/icons';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useChatStore } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStore } from '@refly/stores';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { genActionResultID } from '@refly/utils/id';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
-import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStore } from '@refly/stores';
 import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useLaunchpadStoreShallow } from '@refly/stores';
 
 interface RecommendQuestionsPanelProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ export const RecommendQuestionsPanel: React.FC<RecommendQuestionsPanelProps> = (
   const { t } = useTranslation();
   const [questions, setQuestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const { invokeAction } = useInvokeAction();
+  const { invokeAction } = useInvokeAction({ source: 'recommend-questions-panel' });
   const { setNewQAText } = useChatStore();
   const { runtimeConfig } = useContextPanelStore.getState();
 

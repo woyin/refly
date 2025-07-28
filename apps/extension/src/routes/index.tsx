@@ -1,5 +1,5 @@
 import { Route, Routes } from '@refly-packages/ai-workspace-common/utils/router';
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore } from '@refly/stores';
 import { LOCALE } from '@refly/common-types';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ import { Login } from '@/pages/login';
 
 // Hooks
 import { useGetUserSettings } from '@/hooks/use-get-user-settings';
-import { SuspenseLoading } from '@refly-packages/ai-workspace-common/components/common/loading';
+import { LightLoading } from '@refly/ui-kit';
 
 export const AppRouter = (props: {
   children: React.ReactNode;
@@ -38,7 +38,7 @@ export const AppRouter = (props: {
 
   // Show loading while checking login status
   if (userStore.isCheckingLoginStatus === undefined || userStore.isCheckingLoginStatus) {
-    return props?.loadingElement || <SuspenseLoading />;
+    return props?.loadingElement || <LightLoading />;
   }
 
   // Show login page if not logged in

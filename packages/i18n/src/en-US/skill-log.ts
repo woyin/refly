@@ -192,6 +192,34 @@ const translations = {
     description:
       'Note: If the image is not displayed in the canvas, check your network connection or refresh the page.',
   },
+
+  // Media Generation Translations
+  'media.generating': {
+    title: 'Generating {{mediaType}}',
+    description:
+      'Generating {{mediaType}} with prompt: {{prompt}}, provider: {{provider}}, model: {{model}}, quality: {{quality}}',
+  },
+  'media.api.request': {
+    title: 'API Request',
+    description: 'Sending {{mediaType}} generation request to {{provider}} using model: {{model}}',
+  },
+  'media.completed': {
+    title: '{{mediaType}} Generation Complete',
+    description:
+      '{{mediaType}} generation completed successfully, output URL: {{url}}, elapsed time: {{elapsedTime}}',
+  },
+  'media.error': {
+    title: '{{mediaType}} Generation Failed',
+    description: 'Error occurred during generation: {{error}}',
+  },
+  'media.started': {
+    title: '{{mediaType}} Generation Started',
+    description: 'Started generating {{mediaType}}, task ID: {{resultId}}',
+  },
+  'media.progress': {
+    title: '{{mediaType}} Generation Progress',
+    description: '{{mediaType}} generation progress: {{progress}}%',
+  },
 };
 
 export default translations;

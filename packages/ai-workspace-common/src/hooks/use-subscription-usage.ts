@@ -1,6 +1,6 @@
 import { useGetSubscriptionUsage } from '@refly-packages/ai-workspace-common/queries/queries';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { useUserStoreShallow } from '@refly/stores';
+import { subscriptionEnabled } from '@refly/ui-kit';
 
 export const useSubscriptionUsage = () => {
   const isLogin = useUserStoreShallow((state) => state.isLogin);

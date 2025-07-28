@@ -11,20 +11,25 @@ import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { CanvasTemplate } from '@refly/openapi-schema';
 import { IoPersonOutline } from 'react-icons/io5';
-import { useCanvasTemplateModal } from '@refly-packages/ai-workspace-common/stores/canvas-template-modal';
+import { useCanvasTemplateModal } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
-import { staticPublicEndpoint } from '@refly-packages/ai-workspace-common/utils/env';
+import { staticPublicEndpoint } from '@refly/ui-kit';
 import cn from 'classnames';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useUserStoreShallow } from '@refly/stores';
+import { useAuthStoreShallow } from '@refly/stores';
+import { logEvent } from '@refly/telemetry-web';
 
 export const TemplateCard = ({
   template,
   className,
   showUser = true,
-}: { template: CanvasTemplate; className?: string; showUser?: boolean }) => {
+}: {
+  template: CanvasTemplate;
+  className?: string;
+  showUser?: boolean;
+}) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { setVisible: setModalVisible } = useCanvasTemplateModal((state) => ({
@@ -37,6 +42,11 @@ export const TemplateCard = ({
   }));
 
   const handlePreview = (e: React.MouseEvent<HTMLDivElement>) => {
+    logEvent('home::template_preview', null, {
+      templateId: template.templateId,
+      templateName: template.title,
+    });
+
     e.stopPropagation();
     if (template.shareId) {
       setModalVisible(false);
@@ -45,6 +55,11 @@ export const TemplateCard = ({
   };
 
   const handleUse = (e: React.MouseEvent<HTMLDivElement>) => {
+    logEvent('home::template_use', null, {
+      templateId: template.templateId,
+      templateName: template.title,
+    });
+
     e.stopPropagation();
     if (!isLogin) {
       setLoginModalOpen(true);

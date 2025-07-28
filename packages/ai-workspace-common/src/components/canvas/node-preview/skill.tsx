@@ -13,11 +13,11 @@ import {
 } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { IContextItem } from '@refly/common-types';
-import { useContextPanelStore } from '@refly-packages/ai-workspace-common/stores/context-panel';
+import { useContextPanelStore } from '@refly/stores';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
@@ -26,7 +26,7 @@ import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useReactFlow } from '@xyflow/react';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useLaunchpadStoreShallow } from '@refly/stores';
 import { t } from 'i18next';
 
 // Memoized Header Component
@@ -99,7 +99,7 @@ export const SkillNodePreview = memo(({ node }: SkillNodePreviewProps) => {
     setSkillSelectedModel: state.setSkillSelectedModel,
   }));
 
-  const { invokeAction, abortAction } = useInvokeAction();
+  const { invokeAction, abortAction } = useInvokeAction({ source: 'skill-node-preview' });
   const { canvasId, readonly } = useCanvasContext();
   const { handleUploadImage } = useUploadImage();
   const { addNode } = useAddNode();

@@ -7,7 +7,7 @@ import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use
 import { genSkillID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
 import { detectActualTypeFromType } from '@refly/utils';
-import { useChatStore } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStore } from '@refly/stores';
 import { ConfigScope, Skill, CodeArtifactType, CodeArtifact } from '@refly/openapi-schema';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { fullscreenEmitter } from '@refly-packages/ai-workspace-common/events/fullscreen';
@@ -16,7 +16,7 @@ import { useGetCodeArtifactDetail } from '@refly-packages/ai-workspace-common/qu
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useDebouncedCallback } from 'use-debounce';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 import { useNodesData } from '@xyflow/react';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 
@@ -54,7 +54,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
       },
     },
     null,
-    { enabled: Boolean(isLogin && !shareId && artifactId && status?.startsWith('finish')) },
+    { enabled: Boolean(isLogin && !shareId && artifactId) },
   );
   const { data: shareData, loading: isShareLoading } = useFetchShareData<CodeArtifact>(shareId);
 
@@ -95,19 +95,6 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
 
         if (data?.type !== currentType) {
           setCurrentType(detectActualTypeFromType(data?.type));
-        }
-
-        // Save to node metadata when status updates
-        if (artifactId) {
-          setNodeDataByEntity(
-            { type: 'codeArtifact', entityId: artifactId },
-            {
-              metadata: {
-                activeTab: data?.status === 'finish' ? 'preview' : 'code',
-                type: detectActualTypeFromType(data?.type),
-              },
-            },
-          );
         }
       }
     };

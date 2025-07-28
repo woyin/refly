@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useContextPanelStoreShallow } from '@refly-packages/ai-workspace-common/stores/context-panel';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
-import { useSkillStoreShallow } from '@refly-packages/ai-workspace-common/stores/skill';
+import { useCanvasStoreShallow } from '@refly/stores';
+import { useContextPanelStoreShallow } from '@refly/stores';
+import { useChatStoreShallow } from '@refly/stores';
+import { useLaunchpadStoreShallow } from '@refly/stores';
+import { useSkillStoreShallow } from '@refly/stores';
 
 /**
  * Hook to handle resetting linear thread state when canvas ID changes

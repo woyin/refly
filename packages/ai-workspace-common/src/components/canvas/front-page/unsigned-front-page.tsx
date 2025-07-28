@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { useFrontPageStoreShallow } from '@refly-packages/ai-workspace-common/stores/front-page';
+import { useFrontPageStoreShallow } from '@refly/stores';
 import { SkillDisplay } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/skill-display';
 import {
   getSkillIcon,
@@ -15,9 +15,9 @@ import { ConfigManager } from '@refly-packages/ai-workspace-common/components/ca
 import { Actions } from './action';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 import { AnimatedGridPattern } from '@refly-packages/ai-workspace-common/components/magicui/animated-grid-pattern';
-import { useAuthStoreShallow } from '@refly-packages/ai-workspace-common/stores/auth';
+import { useAuthStoreShallow } from '@refly/stores';
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';
 
 import cn from 'classnames';

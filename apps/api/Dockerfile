@@ -73,6 +73,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 
 # Copy only necessary files from builder
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
@@ -81,5 +82,9 @@ COPY --from=builder /app/packages/ ./packages/
 # Set environment variables
 ENV NODE_ENV=production
 
+# Set working directory to the dist directory
+WORKDIR /app/apps/api/dist
+
 EXPOSE 3000
-CMD ["node", "apps/api/dist/main.js"]
+
+CMD ["node", "-r", "./scripts/preload.js", "main.js"]

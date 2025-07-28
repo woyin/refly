@@ -2,6 +2,7 @@ export interface ImageGenerationRequest {
   prompt: string;
   model: string;
   aspectRatio?: string;
+  apiKey: string;
 }
 
 export interface ImageGenerationResponse {

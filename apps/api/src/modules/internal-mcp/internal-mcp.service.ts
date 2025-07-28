@@ -23,6 +23,9 @@ export class InternalMcpService {
     'private',
   ];
 
+  // List of fields that should be exempted from sensitive field filtering
+  private readonly exemptedFields = ['providerKey', 'modelId'];
+
   constructor(
     private readonly mcpServerService: McpServerService,
     private readonly encryptionService: EncryptionService,
@@ -78,13 +81,18 @@ export class InternalMcpService {
       const result = { ...data };
 
       for (const key in result) {
+        // Check if the key is in the exempted fields list
+        const isExempted = this.exemptedFields.some(
+          (exemptedField) => key.toLowerCase() === exemptedField.toLowerCase(),
+        );
+
         // Check if the key name contains sensitive fields
         const isKeySensitive = this.sensitiveFields.some((field) =>
           key.toLowerCase().includes(field.toLowerCase()),
         );
 
-        if (isKeySensitive) {
-          // If it's a sensitive field, replace with [REDACTED]
+        if (isKeySensitive && !isExempted) {
+          // If it's a sensitive field and not exempted, replace with [REDACTED]
           result[key] = '[REDACTED]';
         } else if (typeof result[key] === 'object' && result[key] !== null) {
           // Recursively filter nested objects

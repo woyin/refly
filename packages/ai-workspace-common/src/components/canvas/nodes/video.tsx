@@ -7,7 +7,7 @@ import {
   MAX_HEIGHT_CLASS,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
 import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
 import classNames from 'classnames';

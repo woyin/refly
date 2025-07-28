@@ -1,6 +1,6 @@
 import { Modal } from 'antd';
 import { Search } from './index';
-import { useSearchStoreShallow } from '@refly-packages/ai-workspace-common/stores/search';
+import { useSearchStoreShallow } from '@refly/stores';
 import { useEffect } from 'react';
 import { bigSearchQuickOpenEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/big-search-quick-open';
 
@@ -35,7 +35,7 @@ export const BigSearchModal = () => {
       closeIcon={null}
       styles={{
         mask: { background: 'transparent' },
-        content: { background: 'transparent', top: '10%', width: 750 },
+        content: { boxShadow: 'none', background: 'transparent', top: '10%', width: 750 },
       }}
     >
       {isSearchOpen ? <Search showList /> : null}

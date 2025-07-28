@@ -3,16 +3,17 @@ import { useEffect, useState } from 'react';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { AiOutlineUser } from 'react-icons/ai';
 
-import { useUserStore } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore, useUserStoreShallow } from '@refly/stores';
 // components
 import { useTranslation } from 'react-i18next';
 import { useDebouncedCallback } from 'use-debounce';
 import ImgCrop from 'antd-img-crop';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow } from '@refly/stores';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { BiSolidEdit } from 'react-icons/bi';
 
 const { Title } = Typography;
+
 export const AccountSetting = () => {
   const [form] = Form.useForm();
   const userStore = useUserStore();
@@ -24,6 +25,14 @@ export const AccountSetting = () => {
   }));
   const [avatarKey, setAvatarKey] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const userProfile = useUserStoreShallow((state) => state.userProfile);
+
+  useEffect(() => {
+    if (userProfile?.avatar) {
+      setAvatarUrl(userProfile.avatar);
+    }
+  }, [userProfile?.avatar]);
+
   const [avatarError, setAvatarError] = useState(false);
 
   const [nameStatus, setNameStatus] = useState<'error' | 'success' | 'warning' | 'validating'>(

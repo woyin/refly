@@ -31,8 +31,11 @@ import { useEdgeStyles } from './constants';
 import {
   useCanvasStore,
   useCanvasStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useCanvasNodesStore } from '@refly-packages/ai-workspace-common/stores/canvas-nodes';
+  useCanvasNodesStore,
+  useUserStore,
+  useUserStoreShallow,
+  usePilotStoreShallow,
+} from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { LayoutControl } from './layout-control';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
@@ -54,14 +57,12 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 import '@xyflow/react/dist/style.css';
 import './index.scss';
 import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
-import { useUserStore, useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
 import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
-import { useCanvasSync } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-sync';
 import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
 import { useListenNodeOperationEvents } from '@refly-packages/ai-workspace-common/hooks/canvas/use-listen-node-events';
-import { runtime } from '@refly-packages/ai-workspace-common/utils/env';
+import { runtime } from '@refly/ui-kit';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   NodeContextMenuSource,
@@ -69,7 +70,6 @@ import {
   nodeOperationsEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
 import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ChevronUp } from 'lucide-react';
@@ -213,7 +213,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const reactFlowInstance = useReactFlow();
 
   const { pendingNode, clearPendingNode } = useCanvasNodesStore();
-  const { provider, readonly, shareNotFound, shareLoading } = useCanvasContext();
+  const { loading, readonly, shareNotFound, shareLoading, undo, redo } = useCanvasContext();
 
   const { isPilotOpen, setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
     isPilotOpen: state.isPilotOpen,
@@ -222,7 +222,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   }));
 
   const {
-    config,
+    canvasInitialized,
     operatingNodeId,
     setOperatingNodeId,
     setInitialFitViewCompleted,
@@ -232,7 +232,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     setShowSlideshow,
     setContextMenuOpenedCanvasId,
   } = useCanvasStoreShallow((state) => ({
-    config: state.config[canvasId],
+    canvasInitialized: state.canvasInitialized[canvasId],
     operatingNodeId: state.operatingNodeId,
     setOperatingNodeId: state.setOperatingNodeId,
     setInitialFitViewCompleted: state.setInitialFitViewCompleted,
@@ -242,7 +242,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     setShowSlideshow: state.setShowSlideshow,
     setContextMenuOpenedCanvasId: state.setContextMenuOpenedCanvasId,
   }));
-  const hasCanvasSynced = config?.localSyncedAt > 0 && config?.remoteSyncedAt > 0;
 
   const { handleNodePreview } = useNodePreviewControl({ canvasId });
 
@@ -439,10 +438,10 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   useEffect(() => {
     // Skip if no provider or in desktop mode
-    if (!provider || runtime === 'desktop') return;
+    if (runtime === 'desktop') return;
 
     // Clear timeout state if provider becomes connected
-    if (provider?.status === 'connected') {
+    if (!loading) {
       setConnectionTimeout(false);
       unhealthyStartTimeRef.current = null;
       return;
@@ -455,9 +454,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
     // Check status every two seconds after provider becomes unhealthy
     const intervalId = setInterval(() => {
-      // Skip if provider is gone
-      if (!provider) return;
-
       if (unhealthyStartTimeRef.current) {
         const unhealthyDuration = Date.now() - unhealthyStartTimeRef.current;
 
@@ -469,7 +465,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       }
 
       // Provider became healthy, reset everything
-      if (provider?.status === 'connected') {
+      if (!loading) {
         clearInterval(intervalId);
         unhealthyStartTimeRef.current = null;
         setConnectionTimeout(false);
@@ -479,7 +475,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     return () => {
       clearInterval(intervalId);
     };
-  }, [provider?.status]);
+  }, [loading]);
 
   useEffect(() => {
     if (!readonly) {
@@ -613,6 +609,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: CanvasNode<any>) => {
+      if (!node) return;
+
       if (node.id.startsWith('ghost-')) {
         setContextMenu((prev) => ({ ...prev, open: false }));
         return;
@@ -758,6 +756,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   // Handle node drag stop and apply snap positions
   const handleNodeDragStop = useCallback(
     (_event: React.MouseEvent, node: Node) => {
+      if (!node) return;
+
       // Call the hook's onNodeDragStop method
       onNodeDragStop(node.id);
 
@@ -785,8 +785,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     },
     [reactFlowInstance],
   );
-
-  const { undoManager } = useCanvasSync();
 
   // Use the new drag, drop, paste hook
   const { handlers, DropOverlay } = useDragDropPaste({
@@ -826,10 +824,10 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         e.preventDefault();
         if (e.shiftKey) {
           // Mod+Shift+Z for Redo
-          undoManager?.redo();
+          redo();
         } else {
           // Mod+Z for Undo
-          undoManager?.undo();
+          undo();
         }
       }
 
@@ -841,7 +839,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         setSelectedEdgeId(null);
       }
     },
-    [selectedEdgeId, reactFlowInstance, undoManager, readonly],
+    [selectedEdgeId, reactFlowInstance, undo, redo, readonly],
   );
 
   // Add edge click handler for delete button
@@ -869,7 +867,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undoManager, handleKeyDown]);
+  }, [handleKeyDown]);
 
   useEffect(() => {
     const { setEdges } = reactFlowInstance;
@@ -933,10 +931,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     <Spin
       className="w-full h-full"
       style={{ maxHeight: '100%' }}
-      spinning={
-        (!readonly && !hasCanvasSynced && provider?.status !== 'connected' && !connectionTimeout) ||
-        (readonly && shareLoading)
-      }
+      spinning={(readonly && shareLoading) || loading}
       tip={connectionTimeout ? t('common.connectionFailed') : t('common.loading')}
     >
       <Modal
@@ -1029,7 +1024,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             nodesFocusable={!readonly}
             onEdgeClick={readonly ? undefined : handleEdgeClick}
           >
-            {nodes?.length === 0 && hasCanvasSynced && <EmptyGuide canvasId={canvasId} />}
+            {nodes?.length === 0 && canvasInitialized && <EmptyGuide canvasId={canvasId} />}
 
             {memoizedBackground}
             {memoizedMiniMap}

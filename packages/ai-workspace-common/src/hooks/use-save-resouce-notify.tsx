@@ -2,8 +2,6 @@ import { message } from 'antd';
 import { showErrorNotification } from '@refly-packages/ai-workspace-common/utils/notification';
 import type { LOCALE } from '@refly/common-types';
 import type { BaseResponse } from '@refly/openapi-schema';
-
-import { delay } from '@refly/utils';
 import { useTranslation } from 'react-i18next';
 
 export const useSaveResourceNotify = () => {
@@ -22,9 +20,9 @@ export const useSaveResourceNotify = () => {
 
     const { res, url } = await saveResource();
 
-    await delay(2000);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     message.destroy(messageKey);
-    await delay(200);
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     if (res?.success) {
       message.success({

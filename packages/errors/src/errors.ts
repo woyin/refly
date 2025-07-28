@@ -120,6 +120,22 @@ export class EmbeddingNotConfiguredError extends BaseError {
   };
 }
 
+export class MediaProviderNotConfiguredError extends BaseError {
+  code = 'E0016';
+  messageDict = {
+    en: 'Media provider not configured, please configure a media provider in the settings',
+    'zh-CN': '未配置媒体提供方，请先在设置中进行配置',
+  };
+}
+
+export class MediaModelNotConfiguredError extends BaseError {
+  code = 'E0017';
+  messageDict = {
+    en: 'Media model not configured, please configure a media model in the settings',
+    'zh-CN': '未配置媒体模型，请先在设置中进行配置',
+  };
+}
+
 export class CanvasNotFoundError extends BaseError {
   code = 'E1000';
   messageDict = {
@@ -256,6 +272,14 @@ export class McpServerNotFoundError extends BaseError {
   };
 }
 
+export class CanvasVersionNotFoundError extends BaseError {
+  code = 'E1018';
+  messageDict = {
+    en: 'Canvas version not found, please refresh',
+    'zh-CN': '画布版本不存在，请刷新重试',
+  };
+}
+
 export class StorageQuotaExceeded extends BaseError {
   code = 'E2001';
   messageDict = {
@@ -323,8 +347,8 @@ export class ModelProviderTimeout extends BaseError {
 export class ActionAborted extends BaseError {
   code = 'E3004';
   messageDict = {
-    en: 'Action was stopped by user',
-    'zh-CN': '操作已被用户停止',
+    en: 'Action was stopped',
+    'zh-CN': '操作已被停止',
   };
 }
 
@@ -345,6 +369,8 @@ const errorMap = {
   E0013: EmbeddingNotAllowedToChangeError,
   E0014: ChatModelNotConfiguredError,
   E0015: EmbeddingNotConfiguredError,
+  E0016: MediaProviderNotConfiguredError,
+  E0017: MediaModelNotConfiguredError,
   E1000: CanvasNotFoundError,
   E1002: ResourceNotFoundError,
   E1003: DocumentNotFoundError,

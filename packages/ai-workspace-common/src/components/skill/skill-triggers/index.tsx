@@ -8,7 +8,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { useCreateTrigger } from '@refly-packages/ai-workspace-common/hooks/use-create-trigger';
 import { useSearchParams } from '@refly-packages/ai-workspace-common/utils/router';
 import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-fetch-data-list';
-import { useImportNewTriggerModal } from '@refly-packages/ai-workspace-common/stores/import-new-trigger-modal';
+import { useImportNewTriggerModal } from '@refly/stores';
 
 import './index.scss';
 import { SkillTrigger } from '@refly/openapi-schema';

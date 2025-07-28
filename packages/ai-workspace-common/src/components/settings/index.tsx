@@ -1,9 +1,6 @@
 import { Tabs, Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
-import {
-  useSiderStoreShallow,
-  SettingsModalActiveTab,
-} from '@refly-packages/ai-workspace-common/stores/sider';
+import { useSiderStoreShallow, SettingsModalActiveTab } from '@refly/stores';
 
 // components
 import { AccountSetting } from '@refly-packages/ai-workspace-common/components/settings/account-setting';
@@ -33,11 +30,11 @@ import {
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { GrCube } from 'react-icons/gr';
 
-import { subscriptionEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { subscriptionEnabled } from '@refly/ui-kit';
 import { useEffect, useState } from 'react';
 import { ToolOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 
 const iconStyle = { fontSize: 16, transform: 'translateY(3px)' };
 

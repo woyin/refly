@@ -1,9 +1,10 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { UsageProgress } from './usage-progress';
 import { Button } from 'antd';
+import { logEvent } from '@refly/telemetry-web';
 import { IconSubscription } from '@refly-packages/ai-workspace-common/components/common/icon';
 
 export const SubscriptionHint = memo(() => {
@@ -14,9 +15,10 @@ export const SubscriptionHint = memo(() => {
 
   const { tokenUsage, storageUsage } = useSubscriptionUsage();
 
-  const handleUpgrade = () => {
+  const handleUpgrade = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'sider');
     setSubscribeModalVisible(true);
-  };
+  }, [setSubscribeModalVisible]);
 
   return (
     <div className="w-full rounded-md p-2 bg-gray-100 dark:bg-gray-800">

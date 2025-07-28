@@ -18,9 +18,10 @@ import { IContextItem } from '@refly/common-types';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { TFunction } from 'i18next';
-import { useSubscriptionStoreShallow } from '@refly-packages/ai-workspace-common/stores/subscription';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
+import { logEvent } from '@refly/telemetry-web';
 
 interface ResourceViewProps {
   resourceId: string;
@@ -251,6 +252,11 @@ export const ResourceView = memo(
       };
     }, [resourceDetail?.indexStatus, refetchResourceDetail]);
 
+    const handleClickUpgrade = useCallback(() => {
+      logEvent('subscription::upgrade_click', 'parse_page_limit_exceeded');
+      setSubscribeModalVisible(true);
+    }, [setSubscribeModalVisible]);
+
     if (!resourceId) {
       return (
         <div className="w-full h-full flex justify-center items-center">
@@ -295,7 +301,7 @@ export const ResourceView = memo(
                             <Button
                               type="primary"
                               icon={<IconSubscription />}
-                              onClick={() => setSubscribeModalVisible(true)}
+                              onClick={handleClickUpgrade}
                             >
                               {t('common.upgradeSubscription')}
                             </Button>

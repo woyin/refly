@@ -1,9 +1,7 @@
 import { BaseImageGenerator, ImageGenerationRequest, ImageGenerationResponse } from './base';
 
 export class ReplicateImageGenerator extends BaseImageGenerator {
-  async generate(
-    request: ImageGenerationRequest & { apiKey: string },
-  ): Promise<ImageGenerationResponse> {
+  async generate(request: ImageGenerationRequest): Promise<ImageGenerationResponse> {
     const url = `https://api.replicate.com/v1/models/${request.model}/predictions`;
 
     const headers = {
@@ -35,7 +33,8 @@ export class ReplicateImageGenerator extends BaseImageGenerator {
     const result = await response.json();
 
     if (!result.output) {
-      throw new Error('No output URL found in response');
+      const errorMessage = result.error ? `:${JSON.stringify(result.error)}` : '';
+      throw new Error(`No URL${errorMessage}`);
     }
 
     return {

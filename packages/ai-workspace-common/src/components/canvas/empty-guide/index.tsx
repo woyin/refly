@@ -6,10 +6,10 @@ import {
   IconImportResource,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { TemplatesGuide } from './templates-guide';
-import { useCanvasTemplateModal } from '@refly-packages/ai-workspace-common/stores/canvas-template-modal';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useImportResourceStoreShallow } from '@refly-packages/ai-workspace-common/stores/import-resource';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { useCanvasTemplateModal } from '@refly/stores';
+import { useCanvasStoreShallow } from '@refly/stores';
+import { useImportResourceStoreShallow } from '@refly/stores';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 
 export const EmptyGuide = ({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();

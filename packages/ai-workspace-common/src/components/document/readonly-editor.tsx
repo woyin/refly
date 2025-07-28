@@ -9,7 +9,7 @@ import {
 
 import { handleCommandNavigation } from '@refly-packages/ai-workspace-common/components/editor/core/extensions';
 import { defaultExtensions } from '@refly-packages/ai-workspace-common/components/editor/components/extensions';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { ImagePreview } from '@refly-packages/ai-workspace-common/components/common/image-preview';
 import UpdatedImage from '@refly-packages/ai-workspace-common/components/editor/core/extensions/updated-image';
 

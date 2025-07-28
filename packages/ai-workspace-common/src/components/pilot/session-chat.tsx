@@ -1,12 +1,12 @@
 import { Input, Button, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
-import { useChatStoreShallow } from '@refly-packages/ai-workspace-common/stores/chat';
+import { useChatStoreShallow } from '@refly/stores';
 import { SendOutlined } from '@ant-design/icons';
 import { useCallback, useState } from 'react';
 import { CreatePilotSessionRequest } from '@refly/openapi-schema';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
+import { usePilotStoreShallow } from '@refly/stores';
 import { useAbortAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-abort-action';
 
 export const SessionChat = ({ canvasId }: { canvasId: string }) => {
@@ -14,7 +14,7 @@ export const SessionChat = ({ canvasId }: { canvasId: string }) => {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
-  const { abortAction } = useAbortAction();
+  const { abortAction } = useAbortAction({ source: 'session-chat' });
   const { setActiveSessionId } = usePilotStoreShallow((state) => ({
     setActiveSessionId: state.setActiveSessionId,
   }));

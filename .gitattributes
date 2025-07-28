@@ -215,3 +215,4 @@ Procfile          text
 
 # Prevents massive diffs from built files
 dist/*            binary
+pnpm-lock.yaml               merge=ours

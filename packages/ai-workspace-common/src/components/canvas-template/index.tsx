@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCanvasTemplateModal } from '@refly-packages/ai-workspace-common/stores/canvas-template-modal';
+import { useCanvasTemplateModal } from '@refly/stores';
 import { IconTemplate } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { Modal, Divider, Select } from 'antd';

@@ -26,9 +26,11 @@ import { CreateProjectModal } from '@refly-packages/ai-workspace-common/componen
 import { useNavigate } from 'react-router-dom';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { SlPicture } from 'react-icons/sl';
-import { useProjectSelectorStoreShallow } from '@refly-packages/ai-workspace-common/stores/project-selector';
-import { useSiderStoreShallow } from '@refly-packages/ai-workspace-common/stores/sider';
+import { useProjectSelectorStoreShallow } from '@refly/stores';
+import { useSiderStoreShallow } from '@refly/stores';
 import { DATA_NUM } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
+import { useUserStore } from '@refly/stores';
+
 export const ActionDropdown = ({
   project,
   afterDelete,
@@ -261,6 +263,9 @@ const ProjectList = ({
 
   const { dataList, loadMore, reload, hasMore, isRequesting, setDataList } = useFetchDataList({
     fetchData: async (queryPayload) => {
+      const { isLogin } = useUserStore.getState();
+      if (!isLogin) return;
+
       const res = await getClient().listProjects({
         query: queryPayload,
       });

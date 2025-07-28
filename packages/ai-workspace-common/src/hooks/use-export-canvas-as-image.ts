@@ -4,8 +4,8 @@ import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import html2canvas, { Options } from 'html2canvas';
 import { UploadResponse } from '@refly/openapi-schema';
-import { useSiderStore } from '@refly-packages/ai-workspace-common/stores/sider';
-import { staticPrivateEndpoint } from '@refly-packages/ai-workspace-common/utils/env';
+import { useSiderStore } from '@refly/stores';
+import { staticPrivateEndpoint } from '@refly/ui-kit';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 export const useExportCanvasAsImage = () => {
@@ -318,7 +318,9 @@ export const useExportCanvasAsImage = () => {
       const svgString = serializer.serializeToString(svgClone);
 
       // create an svg blob
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const svgBlob = new Blob([svgString], {
+        type: 'image/svg+xml;charset=utf-8',
+      });
 
       // Convert SVG Blob to PNG
       const pngBlob = await svgBlobToPngBlob(svgBlob, svgClone);
@@ -384,6 +386,10 @@ export const useExportCanvasAsImage = () => {
 
   const uploadCanvasCover = useCallback(async () => {
     const canvas = await getCanvasElement({ scale: 1 });
+    if (!canvas) {
+      // Canvas not found, reject the promise
+      return Promise.reject(new Error('Canvas element not found'));
+    }
     return new Promise<UploadResponse['data']>((resolve, reject) => {
       canvas.toBlob((blob) => {
         if (blob) {
@@ -394,10 +400,13 @@ export const useExportCanvasAsImage = () => {
             .then(({ data }) => {
               if (!data?.success) {
                 reject(new Error('Failed to upload canvas cover'));
+                return;
               }
               resolve(data?.data);
             })
             .catch(reject);
+        } else {
+          reject(new Error('Failed to convert canvas to Blob'));
         }
       });
     });

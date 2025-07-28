@@ -9,7 +9,6 @@ import {
   PostDeleteCanvasProcessor,
   VerifyNodeAdditionProcessor,
 } from './canvas.processor';
-import { CollabModule } from '../collab/collab.module';
 import {
   QUEUE_DELETE_KNOWLEDGE_ENTITY,
   QUEUE_POST_DELETE_CANVAS,
@@ -23,11 +22,11 @@ import { ActionModule } from '../action/action.module';
 import { ProviderModule } from '../provider/provider.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { isDesktop } from '../../utils/runtime';
+import { CanvasSyncService } from './canvas-sync.service';
 
 @Module({
   imports: [
     CommonModule,
-    CollabModule,
     MiscModule,
     KnowledgeModule,
     ActionModule,
@@ -51,6 +50,7 @@ import { isDesktop } from '../../utils/runtime';
   controllers: [CanvasController],
   providers: [
     CanvasService,
+    CanvasSyncService,
     ...(isDesktop()
       ? []
       : [
@@ -61,6 +61,6 @@ import { isDesktop } from '../../utils/runtime';
           VerifyNodeAdditionProcessor,
         ]),
   ],
-  exports: [CanvasService],
+  exports: [CanvasService, CanvasSyncService],
 })
 export class CanvasModule {}

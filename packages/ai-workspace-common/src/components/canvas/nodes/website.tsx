@@ -19,7 +19,7 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { NodeHeader } from './shared/node-header';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import {
   MAX_HEIGHT_CLASS,

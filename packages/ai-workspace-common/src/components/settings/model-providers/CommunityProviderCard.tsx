@@ -28,9 +28,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
         if (!response?.data?.success) {
           throw response.data.errMsg;
         }
-        message.success(t('settings.mcpServer.community.installSuccess', { name: config.name }));
         setIsCurrentlyInstalling(false);
-        onInstallSuccess?.(config);
       },
       onError: (error) => {
         console.error('Installation error:', error);
@@ -50,9 +48,6 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
             body: request,
           });
 
-          message.success(
-            t('settings.modelProviders.community.installSuccess', { name: config.name }),
-          );
           setShowApiKeyModal(false);
           onInstallSuccess?.(config);
         } catch (error) {
@@ -126,11 +121,9 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
       <>
         <Card
           hoverable={!isInstalled}
-          className="transition-all duration-200 hover:shadow-md"
+          className="transition-all duration-200 hover:shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
           style={{
             borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            backgroundColor: '#ffffff',
             transition: 'all 0.2s ease',
             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
             overflow: 'hidden',
@@ -162,7 +155,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
                 <div className="flex items-center space-x-2">
                   <Text
                     strong
-                    className="text-gray-900 text-base leading-tight truncate"
+                    className="text-gray-900 dark:text-gray-100 text-base leading-tight truncate"
                     style={{ fontWeight: 600 }}
                   >
                     {config.name}
@@ -175,12 +168,12 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
             {config.documentation && (
               <span
                 onClick={handleDocumentationClick}
-                className="text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer flex-shrink-0"
+                className="text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200 cursor-pointer flex-shrink-0"
                 style={{ fontSize: '12px' }}
               >
                 <Space size={4}>
                   <LinkOutlined style={{ fontSize: '12px' }} />
-                  <span>查看文档</span>
+                  <span>{t('settings.modelProviders.community.viewDocumentation')}</span>
                 </Space>
               </span>
             )}
@@ -189,7 +182,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
           {/* Description */}
           <div className="flex-1 mb-3">
             <Text
-              className="text-gray-600 text-sm leading-relaxed block"
+              className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed block"
               style={{
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
@@ -211,7 +204,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
                 ? config.categories.map((category, index) => (
                     <span
                       key={`${category}-${index}`}
-                      className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200 whitespace-nowrap"
+                      className="px-2 py-1 text-xs rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 whitespace-nowrap"
                       style={{
                         fontSize: '11px',
                         fontWeight: 500,
@@ -223,7 +216,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
                   ))
                 : config.category && (
                     <span
-                      className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200"
+                      className="px-2 py-1 text-xs rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
                       style={{
                         fontSize: '11px',
                         fontWeight: 500,

@@ -11,7 +11,7 @@
 
 Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.
 
-[🚀 v0.7.1 Released! Now Supporting MCP Store and Background Skill Invocation ⚡️](https://docs.refly.ai/changelog/v0.7.1)
+[🚀 v0.8.0 Released! Multimodal Agent Is Officially Launched 🚀](https://docs.refly.ai/changelog/v0.8.0)
 
 [Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/guide/self-deploy) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
 
@@ -28,7 +28,7 @@ Refly is a pioneering vibe workflow platform designed to solve your most complex
         <img alt="TypeScript-version-icon" src="https://img.shields.io/badge/TypeScript-^5.3.3-blue"></a>
 </p>
 
-
+[<img src="https://raw.githubusercontent.com/ClawCloud/Run-Template/refs/heads/main/Run-on-ClawCloud.svg" alt="SVG" style="height:45px; vertical-align:middle;">](https://template.run.claw.cloud/?openapp=system-fastdeploy%3FtemplateName%3Drefly)
 [![Deploy on Sealos](https://sealos.io/Deploy-on-Sealos.svg)](https://template.sealos.io/deploy?templateName=refly)
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/refly-ai/refly)
 

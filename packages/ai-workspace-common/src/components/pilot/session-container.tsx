@@ -19,7 +19,7 @@ import {
   IconThreadHistory,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { RiChatNewLine } from 'react-icons/ri';
-import { usePilotStoreShallow } from '@refly-packages/ai-workspace-common/stores/pilot';
+import { usePilotStoreShallow } from '@refly/stores';
 import { SessionChat } from './session-chat';
 
 const SessionHeader = memo(

@@ -4,8 +4,8 @@ import { FC, useEffect, useRef, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { SearchList } from '@refly-packages/ai-workspace-common/modules/entity-selector/components';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { useImportResourceStoreShallow } from '@refly-packages/ai-workspace-common/stores/import-resource';
+import { useCanvasStoreShallow } from '@refly/stores';
+import { useImportResourceStoreShallow } from '@refly/stores';
 import { CanvasNodeType, SearchDomain } from '@refly/openapi-schema';
 import { ContextItem } from '@refly-packages/ai-workspace-common/types/context';
 import {

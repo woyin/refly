@@ -27,7 +27,7 @@ import { ConfigManager } from '@refly-packages/ai-workspace-common/components/ca
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
 import { ToolOutlined } from '@ant-design/icons';
-import { useLaunchpadStoreShallow } from '@refly-packages/ai-workspace-common/stores/launchpad';
+import { useLaunchpadStoreShallow } from '@refly/stores';
 
 interface EditChatInputProps {
   enabled: boolean;
@@ -84,7 +84,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   );
 
   const { canvasId, readonly: canvasReadonly } = useCanvasContext();
-  const { invokeAction } = useInvokeAction();
+  const { invokeAction } = useInvokeAction({ source: 'edit-chat-input' });
   const skill = useFindSkill(localActionMeta?.name);
   const {
     handleUploadImage: uploadImageHook,

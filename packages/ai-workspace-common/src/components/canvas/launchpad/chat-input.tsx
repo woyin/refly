@@ -2,13 +2,13 @@ import { AutoComplete, AutoCompleteProps, Input } from 'antd';
 import { memo, useRef, useMemo, useState, useCallback, forwardRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import { useSearchStoreShallow } from '@refly-packages/ai-workspace-common/stores/search';
+import { useSearchStoreShallow } from '@refly/stores';
 import type { Skill } from '@refly/openapi-schema';
-import { useSkillStoreShallow } from '@refly-packages/ai-workspace-common/stores/skill';
+import { useSkillStoreShallow } from '@refly/stores';
 import { cn } from '@refly/utils/cn';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStoreShallow } from '@refly/stores';
 
 const TextArea = Input.TextArea;
 

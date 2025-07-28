@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite';
 
-const GTAG_ID = 'G-ER782LXJ5F';
+const GTAG_ID = process.env.VITE_GTAG_ID;
 
 export function gtagPlugin(): Plugin {
   return {

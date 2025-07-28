@@ -3,9 +3,9 @@ import * as Y from 'yjs';
 import { HocuspocusProvider } from '@hocuspocus/provider';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { editorEmitter } from '@refly/utils/event-emitter/editor';
-import { useDocumentStoreShallow } from '@refly-packages/ai-workspace-common/stores/document';
+import { useDocumentStoreShallow } from '@refly/stores';
 import { useCollabToken } from '@refly-packages/ai-workspace-common/hooks/use-collab-token';
-import { wsServerOrigin } from '@refly-packages/ai-workspace-common/utils/env';
+import { wsServerOrigin } from '@refly/ui-kit';
 import { Document } from '@refly/openapi-schema';
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 

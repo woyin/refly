@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { Resource } from '@refly/openapi-schema';
-import { serverOrigin } from '@refly-packages/ai-workspace-common/utils/env';
+import { serverOrigin } from '@refly/ui-kit';
 
 export const useDownloadFile = () => {
   const downloadFile = useCallback((resource: Resource) => {

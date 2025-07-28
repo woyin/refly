@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { Button, Divider } from 'antd';
 import { useListCanvasTemplates } from '@refly-packages/ai-workspace-common/queries';
 import { TemplateCard } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
-import { useCanvasTemplateModal } from '@refly-packages/ai-workspace-common/stores/canvas-template-modal';
+import { useCanvasTemplateModal } from '@refly/stores';
 import { VscNotebookTemplate } from 'react-icons/vsc';
 import { useDebouncedCallback } from 'use-debounce';
-import { useCanvasStoreShallow } from '@refly-packages/ai-workspace-common/stores/canvas';
-import { canvasTemplateEnabled } from '@refly-packages/ai-workspace-common/utils/env';
+import { useCanvasStoreShallow } from '@refly/stores';
+import { canvasTemplateEnabled } from '@refly/ui-kit';
 
 export const TemplatesGuide = ({ canvasId }: { canvasId: string }) => {
   const { setVisible } = useCanvasTemplateModal((state) => ({

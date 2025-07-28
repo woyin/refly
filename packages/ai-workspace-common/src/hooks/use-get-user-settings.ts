@@ -8,17 +8,14 @@ import {
 } from '@refly-packages/ai-workspace-common/utils/router';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import {
-  LocalSettings,
-  useUserStoreShallow,
-} from '@refly-packages/ai-workspace-common/stores/user';
+import { LocalSettings, useUserStoreShallow } from '@refly/stores';
 import { safeStringifyJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 import { mapDefaultLocale } from '@refly-packages/ai-workspace-common/utils/locale';
 import { LOCALE } from '@refly/common-types';
 import { UserSettings } from '@refly/openapi-schema';
 import { UID_COOKIE } from '@refly/utils/cookie';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
-import { isDesktop } from '@refly-packages/ai-workspace-common/utils/env';
+import { isDesktop } from '@refly/ui-kit';
 
 export const useGetUserSettings = () => {
   const userStore = useUserStoreShallow((state) => ({
@@ -115,7 +112,9 @@ export const useGetUserSettings = () => {
     }
 
     // Apply locale
-    i18n.changeLanguage(uiLocale);
+    if (i18n.isInitialized) {
+      i18n.changeLanguage(uiLocale);
+    }
 
     userStore.setLocalSettings(localSettings);
     localStorage.setItem('refly-user-profile', safeStringifyJSON(settings));

@@ -1,5 +1,5 @@
 import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
-import { useUserStore, useUserStoreShallow } from '@refly-packages/ai-workspace-common/stores/user';
+import { useUserStore, useUserStoreShallow } from '@refly/stores';
 
 export const useHoverCard = () => {
   const { localSettings, setLocalSettings } = useUserStoreShallow((state) => ({
