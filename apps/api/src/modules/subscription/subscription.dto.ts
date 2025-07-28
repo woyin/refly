@@ -21,6 +21,7 @@ export interface PlanQuota {
   t1CountQuota: number;
   t2CountQuota: number;
   fileCountQuota: number;
+  isEarlyBird?: boolean;
 }
 
 export interface CreateSubscriptionParam {

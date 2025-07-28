@@ -6757,6 +6757,11 @@ export const CreditBillingSchema = {
       description: 'Minimum credit charge per request',
       minimum: 0,
     },
+    isEarlyBirdFree: {
+      type: 'boolean',
+      description: 'Whether this billing is free for early bird users',
+      default: false,
+    },
   },
 } as const;
 

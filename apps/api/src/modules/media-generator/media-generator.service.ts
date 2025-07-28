@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   User,
   MediaGenerateRequest,
@@ -44,6 +44,8 @@ type GeneratorConfig = {
 
 @Injectable()
 export class MediaGeneratorService {
+  private readonly logger = new Logger(MediaGeneratorService.name);
+
   // Generator configuration mapping
   private readonly generatorConfig: GeneratorConfig = {
     replicate: {
@@ -63,7 +65,6 @@ export class MediaGeneratorService {
   };
 
   constructor(
-    private logger,
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
     private readonly credit: CreditService,
