@@ -559,6 +559,8 @@ export class ProviderService implements OnModuleInit {
 
     const defaultModel = this.configService.get('defaultModel');
     const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+    userPreferences.providerMode ||= this.configService.get('provider.defaultMode');
+
     const defaultModelConfig: DefaultModelConfig = { ...userPreferences.defaultModel };
 
     if (defaultModel.chat && !userPreferences.defaultModel?.chat) {
