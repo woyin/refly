@@ -244,7 +244,7 @@ export class CreditService {
 
     return {
       creditAmount: totalAmount,
-      creditBalance: totalBalance, // 修复字段名以匹配OpenAPI schema
+      creditBalance: totalBalance,
     };
   }
 }

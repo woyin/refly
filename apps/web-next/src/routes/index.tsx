@@ -14,7 +14,6 @@ import {
   UseCasesGalleryPage,
   ProjectPage,
 } from '@refly/web-core';
-import MemorialPage from '../pages/MemorialPage';
 
 import type { RouteObject } from 'react-router-dom';
 
@@ -70,9 +69,5 @@ export const RoutesList: RouteObject[] = [
   {
     path: '/project/:projectId',
     element: <ProjectPage />,
-  },
-  {
-    path: '/earlybirds',
-    element: <MemorialPage />,
   },
 ];
