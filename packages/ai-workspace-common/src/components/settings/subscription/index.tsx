@@ -78,21 +78,24 @@ export const Subscription = () => {
   // State for active history tab
   const [activeTab, setActiveTab] = useState<'usage' | 'recharge'>('usage');
 
-  // Fetch credit history data
+  // Fetch credit history data - preload both types of data
   const { data: usageData, isLoading: isUsageHistoryLoading } = useGetCreditUsage(
     {},
     [],
     // @ts-ignore
-    { enabled: activeTab === 'usage' },
+    { enabled: true }, // Always load usage data regardless of active tab
   );
   const { data: rechargeData, isLoading: isRechargeHistoryLoading } = useGetCreditRecharge(
     {},
     [],
     // @ts-ignore
-    { enabled: activeTab === 'recharge' },
+    { enabled: true }, // Always load recharge data regardless of active tab
   );
 
-  const isHistoryLoading = isUsageHistoryLoading || isRechargeHistoryLoading;
+  // Only show loading state during initial data loading, not when switching tabs
+  const isHistoryLoading =
+    (activeTab === 'usage' && isUsageHistoryLoading) ||
+    (activeTab === 'recharge' && isRechargeHistoryLoading);
   const isLoading = isBalanceLoading || isHistoryLoading || isUsageLoading;
 
   useEffect(() => {

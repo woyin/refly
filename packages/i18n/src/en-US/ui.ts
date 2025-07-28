@@ -2161,6 +2161,8 @@ const translations = {
       subscriptionManagement: 'Manage Billing and Subscriptions',
       subscriptionStatus: {
         free: 'FREE',
+        maker: 'MAKER',
+        starter: 'STARTER',
         ultra: 'ULTRA',
         pro: 'PRO',
         max: 'MAX',

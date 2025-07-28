@@ -2058,6 +2058,8 @@ const translations = {
       subscriptionManagement: '管理账单及订阅',
       subscriptionStatus: {
         free: 'FREE',
+        maker: 'MAKER',
+        starter: 'STARTER',
         ultra: 'ULTRA',
         pro: 'PRO',
         max: 'MAX',
