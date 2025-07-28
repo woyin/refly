@@ -74,6 +74,9 @@ class CustomThrottlerGuard extends ThrottlerGuard {
           uid: (req as any).user?.uid || 'anonymous',
         }),
         transport: process.env.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
+        formatters: {
+          level: (level) => ({ level }),
+        },
       },
     }),
     AuthModule,
