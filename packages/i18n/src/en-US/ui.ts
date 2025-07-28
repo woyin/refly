@@ -2955,6 +2955,75 @@ const translations = {
     cancelAnytime: "Cancel anytime. By subscribing, you agree to Refly's",
     privacy: 'Privacy',
     terms: 'Terms',
+    plans: {
+      priceMonthly: '{{price}}/month',
+      priceYearly: '{{price}}/month',
+      priceYearlyTotal: '{{price}}/year Save 20%',
+      upgrade: 'Upgrade to {{planType}}',
+      free: {
+        title: 'Free',
+        titleCn: 'Current Plan',
+        description: 'The perfect starting point for your creative journey',
+        price: 'Free forever',
+        buttonText: 'Continue for free',
+        buttonTextDowngrade: 'Downgrade to Free',
+        features: [
+          'Daily new credits\n100 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Unlimited conversations',
+          'Access to all AI tools',
+          'Community support',
+        ],
+      },
+      starter: {
+        title: 'Starter',
+        titleCn: 'Starter',
+        description: 'For individuals who need more credits and features',
+        buttonText: 'Get Starter',
+        features: [
+          'Monthly credits\n2,000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Unlimited conversations',
+          'Access to all AI tools',
+          'Priority support',
+          'Faster response times',
+          'Higher rate limits',
+        ],
+      },
+      maker: {
+        title: 'Maker',
+        titleCn: 'Maker',
+        description: 'For power users who need maximum productivity',
+        buttonText: 'Get Maker',
+        features: [
+          'Monthly credits\n5,000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Unlimited conversations',
+          'Access to all AI tools',
+          'Priority support',
+          'Fastest response times',
+          'Highest rate limits',
+          'Early access to new features',
+        ],
+      },
+      enterprise: {
+        title: 'Enterprise',
+        titleCn: 'Enterprise',
+        description: 'Custom solutions for teams and organizations',
+        buttonText: 'Contact Sales',
+        features: [
+          'Custom credit packages',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Unlimited conversations',
+          'Access to all AI tools',
+          'Dedicated account manager',
+          'Custom integrations',
+          'SSO & advanced security',
+          'Team collaboration features',
+          'Custom training and onboarding',
+        ],
+      },
+    },
     subscriptionManagement: {
       title: 'Subscription Management',
       subtitle: 'Manage subscription plans and credits',
@@ -2977,6 +3046,13 @@ const translations = {
       remaining: 'Remaining',
       status: 'Status',
       disabled: 'Disabled',
+      usageType: {
+        model_call: 'Model Call',
+        media_generation: 'Media Generation',
+        embedding: 'Embedding',
+        reranking: 'Reranking',
+        other: 'Other',
+      },
       depleted: 'Depleted',
       expired: 'Expired',
       available: 'Available',
@@ -2996,7 +3072,7 @@ const translations = {
         'Your storage space has reached its limit. Upgrade your plan for more storage to continue using our services.',
       upgrade: 'Upgrade Now',
     },
-    plans: {
+    storageFullModal: {
       free: {
         title: 'Free',
         titleCn: 'Current Plan',
@@ -3185,6 +3261,17 @@ const translations = {
     pageId: 'Page ID',
     unknown: 'Unknown',
     refresh: 'Refresh Nodes',
+  },
+  credit: {
+    recharge: {
+      source: {
+        purchase: 'Purchase',
+        gift: 'Gift',
+        promotion: 'Promotion',
+        refund: 'Refund',
+        subscription: 'Subscription',
+      },
+    },
   },
 };
 

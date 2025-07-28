@@ -126,8 +126,12 @@ export const Subscription = () => {
   const usageColumns: ColumnsType<CreditUsageRecord> = [
     {
       title: t('subscription.subscriptionManagement.usageDetails'),
-      dataIndex: 'description',
-      key: 'description',
+      dataIndex: 'usageType',
+      key: 'usageType',
+      render: (value: string) => {
+        const key = `subscription.subscriptionManagement.usageType.${value}`;
+        return t(key);
+      },
     },
     {
       title: t('subscription.subscriptionManagement.usageTime'),
@@ -156,6 +160,7 @@ export const Subscription = () => {
           gift: t('credit.recharge.source.gift'),
           promotion: t('credit.recharge.source.promotion'),
           refund: t('credit.recharge.source.refund'),
+          subscription: t('credit.recharge.source.subscription'),
         };
         return sourceMap[source] || source;
       },
@@ -317,7 +322,7 @@ export const Subscription = () => {
                 <div className="usage-value">
                   {storageUsage?.fileCountUsed || 0}{' '}
                   <span style={{ color: 'rgba(28, 31, 35, 0.5)' }}>
-                    / {storageUsage?.fileCountQuota < 0 ? '∞' : storageUsage?.fileCountQuota}
+                    / {storageUsage?.fileCountQuota < 0 ? '100' : storageUsage?.fileCountQuota}
                   </span>
                 </div>
               </div>

@@ -59,28 +59,21 @@ const PlanItem = (props: {
 
   const getPrice = () => {
     if (planType === 'free') {
-      if (interval === 'monthly') {
-        return t('subscription.plans.free.price');
-      } else {
-        return (
-          <div className="yearly-price-container">
-            <span className="price-monthly">{t('subscription.plans.free.price')}</span>
-            <span className="price-yearly">&nbsp;</span>
-          </div>
-        );
-      }
+      return (
+        <div className="yearly-price-container">
+          <span className="price-monthly">{t('subscription.plans.free.price')}</span>
+          <span className="price-yearly">&nbsp;</span>
+        </div>
+      );
     }
+
     if (planType === 'enterprise') {
-      if (interval === 'monthly') {
-        return <div>&nbsp;</div>;
-      } else {
-        return (
-          <div className="yearly-price-container">
-            <span className="price-monthly">&nbsp;</span>
-            <span className="price-yearly">&nbsp;</span>
-          </div>
-        );
-      }
+      return (
+        <div className="yearly-price-container">
+          <span className="price-monthly">&nbsp;</span>
+          <span className="price-yearly">&nbsp;</span>
+        </div>
+      );
     }
 
     const prices = {
@@ -93,44 +86,24 @@ const PlanItem = (props: {
     if (interval === 'monthly') {
       return (
         <span className="price-monthly">
-          $ {t('subscription.plans.starter.priceMonthly', { price: priceInfo.monthly })}
+          {t('subscription.plans.priceMonthly', { price: priceInfo.monthly })}
         </span>
       );
     }
+
     return (
       <div className="yearly-price-container">
         <span className="price-monthly">
-          $ {t('subscription.plans.starter.priceYearly', { price: priceInfo.yearly })}
+          {t('subscription.plans.priceYearly', { price: priceInfo.yearly })}
         </span>
         <span className="price-yearly">
-          $ {t('subscription.plans.starter.priceYearlyTotal', { price: priceInfo.yearlyTotal })}
+          {t('subscription.plans.priceYearlyTotal', { price: priceInfo.yearlyTotal })}
         </span>
       </div>
     );
   };
 
-  const getButtonText = () => {
-    if (planType === 'enterprise') return t('subscription.plans.enterprise.buttonText');
-
-    if (!isLogin) {
-      if (planType === 'free') return t('subscription.plans.free.buttonText');
-      return t('subscription.plans.starter.buttonText', {
-        planName: t(`subscription.plans.${planType}.title`),
-      });
-    }
-
-    if (currentPlan === planType) {
-      return t('subscription.plans.currentPlan');
-    }
-
-    if (planType === 'free') {
-      return t('subscription.plans.free.buttonTextDowngrade');
-    }
-
-    return t('subscription.plans.starter.buttonText', {
-      planName: t(`subscription.plans.${planType}.title`),
-    });
-  };
+  // 根据截图2的效果，按钮文本已直接硬编码在JSX中，此函数不再需要
 
   const handleButtonClick = () => {
     if (isLogin) {
@@ -145,17 +118,19 @@ const PlanItem = (props: {
 
   return (
     <div className={`w-full h-full flex flex-col ${planType === 'starter' ? 'pro-plan' : ''}`}>
-      <div className="pt-1 h-[24px] text-center text-xs text-white font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4 ">
+      <div className="pt-1 h-[24px] text-center text-xs font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4">
         {planType === 'starter' && t('subscription.mostPopular')}
       </div>
       <div className={`subscribe-content-plans-item item-${planType}`}>
         <div className="subscribe-content-plans-item-title">
-          {planType === 'free' && currentPlan === 'free' ? (
+          {planType === 'free' ? (
             <>
-              {t('subscription.plans.free.title')} <Tag>{t('subscription.plans.free.titleCn')}</Tag>
+              {t('subscription.plans.free.title')} {isCurrentPlan && <Tag>当前套餐</Tag>}
             </>
           ) : (
-            title
+            <>
+              {title} {isCurrentPlan && <Tag>当前套餐</Tag>}
+            </>
           )}
         </div>
 
@@ -166,10 +141,14 @@ const PlanItem = (props: {
         <div
           className={`subscribe-btn cursor-pointer subscribe-btn--${planType} ${planType === 'starter' && 'subscribe-btn--most-popular'}`}
           onClick={handleButtonClick}
-          // loading={loadingInfo.isLoading && loadingInfo.plan === planType}
-          // disabled={isButtonDisabled}
         >
-          {getButtonText()}
+          {planType === 'free'
+            ? t('subscription.plans.free.buttonText')
+            : planType === 'enterprise'
+              ? t('subscription.plans.enterprise.buttonText')
+              : t('subscription.plans.upgrade', {
+                  planType: planType.charAt(0).toUpperCase() + planType.slice(1),
+                })}
         </div>
 
         <div className="plane-features">
@@ -325,7 +304,7 @@ export const PriceContent = (props: { source: PriceSource }) => {
         <a href="https://docs.refly.ai/about/privacy-policy" target="_blank" rel="noreferrer">
           {t('subscription.privacy')}
         </a>{' '}
-        和{' '}
+        {t('common.and')}{' '}
         <a href="https://docs.refly.ai/about/terms-of-service" target="_blank" rel="noreferrer">
           {t('subscription.terms')}
         </a>

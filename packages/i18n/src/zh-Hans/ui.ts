@@ -29,6 +29,13 @@ const translations = {
       remaining: '剩余',
       status: '状态',
       disabled: '已禁用',
+      usageType: {
+        model_call: '模型调用',
+        media_generation: '媒体生成',
+        embedding: '向量嵌入',
+        reranking: '重排序',
+        other: '其他',
+      },
       depleted: '已用尽',
       expired: '已失效',
       available: '可用',
@@ -51,11 +58,12 @@ const translations = {
     plans: {
       free: {
         title: 'Free',
-        titleCn: '当前套餐',
+        titleCn: '终身免费',
         description: '开启创意之旅的完美起点',
         price: '永久免费',
         buttonText: '继续免费使用',
         buttonTextDowngrade: '变更为 Free',
+        continueUse: '继续免费使用',
         features: [
           '每日可获取新积分\n100点',
           '世界顶级AI模型\nOpenAI, Claude, Grok, DeepSeek...',
@@ -78,7 +86,7 @@ const translations = {
           '世界顶级AI模型\nOpenAI, Claude, Grok, DeepSeek...',
           '知识库文件数\n200个',
           '文件上传限制\n最大 10MB',
-          '服务支持\n高信邮件支持',
+          '服务支持\n高优邮件支持',
         ],
       },
       maker: {
@@ -95,7 +103,7 @@ const translations = {
           '世界顶级AI模型\nOpenAI, Claude, Grok, DeepSeek...',
           '知识库文件数\n500个',
           '文件上传限制\n最大 20MB',
-          '服务支持\n高信邮件支持',
+          '服务支持\n高优邮件支持',
         ],
       },
       enterprise: {
@@ -103,6 +111,7 @@ const translations = {
         titleCn: '企业版',
         description: '专为企业打造的 AI 工作台',
         buttonText: '联系销售咨询',
+        contactSales: '联系销售咨询',
         features: [
           '每月享有更多的积分',
           '可视化 Canvas + 节点',
@@ -113,6 +122,10 @@ const translations = {
         ],
       },
       currentPlan: '当前套餐',
+      priceMonthly: '$ {{price}}/月',
+      priceYearly: '$ {{price}}/月',
+      priceYearlyTotal: '$ {{price}}/年 节省 20%',
+      upgrade: '升级到 {{planType}}',
     },
   },
   privacyPage: {
@@ -178,6 +191,7 @@ const translations = {
     dismiss: '关闭',
     copyRequestInfo: '复制请求信息',
     tryAgain: '重试',
+    and: '和',
     copy: {
       title: '复制',
       success: '内容已复制到剪切板！',
@@ -3147,6 +3161,7 @@ const translations = {
         gift: '赠送',
         promotion: '促销',
         refund: '退款',
+        subscription: '订阅',
       },
       status: {
         unused: '未使用',
