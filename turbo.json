@@ -4,8 +4,7 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["*"],
-      "dependsOn": ["sync-db-schema"]
+      "env": ["*"]
     },
     "dev:electron": {
       "cache": false,
@@ -22,10 +21,6 @@
       "persistent": true,
       "env": ["*"],
       "dependsOn": ["build:electron"]
-    },
-    "sync-db-schema": {
-      "cache": false,
-      "persistent": false
     },
     "copy-env": {
       "cache": false,
