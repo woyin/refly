@@ -4712,10 +4712,8 @@ components:
       description: Subscription plan type
       enum:
         - free
-        - plus
-        - pro
-        - max
-        - ultra
+        - starter
+        - maker
     SubscriptionStatus:
       type: string
       description: Subscription status

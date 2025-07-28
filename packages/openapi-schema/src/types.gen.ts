@@ -1716,7 +1716,7 @@ export type SubscriptionInterval = 'monthly' | 'yearly';
 /**
  * Subscription plan type
  */
-export type SubscriptionPlanType = 'free' | 'plus' | 'pro' | 'max' | 'ultra';
+export type SubscriptionPlanType = 'free' | 'starter' | 'maker';
 
 /**
  * Subscription status
@@ -1756,26 +1756,6 @@ export type Subscription = {
    * Subscription cancel time
    */
   cancelAt?: string;
-  /**
-   * @description Whether the subscription is a paid plan
-   */
-  isPaid?: boolean;
-  /**
-   * @description The display name for the plan, e.g., "Starter 启动版"
-   */
-  displayName?: string;
-  /**
-   * @description URL to the Stripe customer portal for managing billing
-   */
-  stripePortalUrl?: string;
-  /**
-   * @description The end of the current billing period, as a timestamp string.
-   */
-  currentPeriodEnd?: string;
-  /**
-   * @description Whether the subscription is scheduled to be canceled at the end of the current period.
-   */
-  willCancelAtPeriodEnd?: boolean;
 };
 
 export type TokenUsageMeter = {

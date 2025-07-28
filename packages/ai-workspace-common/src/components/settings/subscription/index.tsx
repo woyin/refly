@@ -4,6 +4,7 @@ import { Button, Typography, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 import {
   useSubscriptionStoreShallow,
@@ -55,31 +56,24 @@ export const Subscription = () => {
     setDisplaySubscription(userProfile?.subscription);
   }, [userProfile?.subscription]);
 
-  const {
-    isPaid,
-    displayName,
-    stripePortalUrl,
-    currentPeriodEnd,
-    willCancelAtPeriodEnd,
-    planType,
-  } = displaySubscription ?? {};
+  const { planType: subscriptionPlanType, cancelAt } = displaySubscription ?? {};
 
-  const { setSubscribeModalVisible, setPlanType } = useSubscriptionStoreShallow((state) => ({
-    setSubscribeModalVisible: state.setSubscribeModalVisible,
-    setPlanType: state.setPlanType,
-  }));
+  const { setSubscribeModalVisible, setPlanType, planType } = useSubscriptionStoreShallow(
+    (state) => ({
+      setSubscribeModalVisible: state.setSubscribeModalVisible,
+      setPlanType: state.setPlanType,
+      planType: state.planType,
+    }),
+  );
 
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
 
-  const { isUsageLoading: isStorageUsageLoading, storageUsage } = useSubscriptionUsage();
+  const { storageUsage, isUsageLoading } = useSubscriptionUsage();
 
-  // Fetch credit balance
   const { data: balanceData, isLoading: isBalanceLoading } = useGetCreditBalance();
   const creditBalance = balanceData?.data?.creditBalance ?? 0;
-
-  const isLoading = isStorageUsageLoading || isBalanceLoading;
 
   // State for active history tab
   const [activeTab, setActiveTab] = useState<'usage' | 'recharge'>('usage');
@@ -99,14 +93,29 @@ export const Subscription = () => {
   );
 
   const isHistoryLoading = isUsageHistoryLoading || isRechargeHistoryLoading;
+  const isLoading = isBalanceLoading || isHistoryLoading || isUsageLoading;
 
   useEffect(() => {
-    setPlanType(displaySubscription?.planType || 'free');
+    if (displaySubscription?.planType) {
+      setPlanType(displaySubscription.planType);
+    }
   }, [displaySubscription?.planType, setPlanType]);
 
-  const handleManageBilling = () => {
-    if (stripePortalUrl) {
-      window.open(stripePortalUrl, '_blank');
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handleManageBilling = async () => {
+    if (portalLoading) return;
+
+    setPortalLoading(true);
+    try {
+      const { data } = await getClient().createPortalSession();
+      setPortalLoading(false);
+      if (data?.data?.url) {
+        window.open(data.data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Failed to create portal session:', error);
+      setPortalLoading(false);
     }
   };
 
@@ -200,39 +209,46 @@ export const Subscription = () => {
     maker: t('subscription.subscriptionManagement.planNames.maker'),
   };
 
-  const PaidPlanCard = () => (
-    <div className={`subscription-plan-card plan-${planType} w-full`}>
-      <div className="plan-info w-full">
-        <div className="current-plan-label">
-          {t('subscription.subscriptionManagement.currentPlan')}
-        </div>
-        <div className="current-plan-name flex items-center w-full justify-between">
-          {displayName} {planDisplayNameMap[planType as keyof typeof planDisplayNameMap]}
-          <div className="flex items-center gap-3 plan-actions">
-            <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
-              {`${currentPeriodEnd ? dayjs(currentPeriodEnd).format('YYYY.MM.DD') : ''} ${willCancelAtPeriodEnd ? t('subscription.subscriptionManagement.willExpire') : t('subscription.subscriptionManagement.willAutoRenew')}`}
+  const PaidPlanCard = () => {
+    return (
+      <div className={`subscription-plan-card plan-${planType} w-full`}>
+        <div className="plan-info w-full">
+          <div className="current-plan-label">
+            {t('subscription.subscriptionManagement.currentPlan')}
+          </div>
+          <div className="current-plan-name flex items-center w-full justify-between">
+            {t(`subscription.plans.${planType}.title`)}{' '}
+            {planDisplayNameMap[planType as keyof typeof planDisplayNameMap]}
+            <div className="flex items-center gap-3 plan-actions">
+              <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
+                {cancelAt
+                  ? `${dayjs(cancelAt).format('YYYY.MM.DD')} ${t('subscription.subscriptionManagement.willExpire')}`
+                  : t('subscription.subscriptionManagement.willAutoRenew')}
+              </div>
+              <div
+                className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] rounded-lg border-0 border-solid"
+                onClick={handleManageBilling}
+              >
+                {portalLoading
+                  ? t('common.loading')
+                  : t('subscription.subscriptionManagement.viewBilling')}
+              </div>
+              <Button
+                type="primary"
+                className="ant-btn-primary"
+                onClick={() => {
+                  setShowSettingModal(false);
+                  setSubscribeModalVisible(true);
+                }}
+              >
+                {t('subscription.subscriptionManagement.changePlan')}
+              </Button>
             </div>
-            <div
-              className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] rounded-lg border-0 border-solid"
-              onClick={handleManageBilling}
-            >
-              {t('subscription.subscriptionManagement.viewBilling')}
-            </div>
-            <Button
-              type="primary"
-              className="ant-btn-primary"
-              onClick={() => {
-                setShowSettingModal(false);
-                setSubscribeModalVisible(true);
-              }}
-            >
-              {t('subscription.subscriptionManagement.changePlan')}
-            </Button>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const FreePlanCard = () => (
     <div className="subscription-plan-card plan-free w-full">
@@ -241,7 +257,7 @@ export const Subscription = () => {
           {t('subscription.subscriptionManagement.currentPlan')}
         </div>
         <div className="current-plan-name flex items-center w-full justify-between">
-          {displaySubscription?.displayName?.split(' ')[0] || 'Free'}{' '}
+          {t('subscription.plans.free.title')}{' '}
           {t('subscription.subscriptionManagement.planNames.freePlan')}
           <Button
             type="primary"
@@ -257,6 +273,13 @@ export const Subscription = () => {
       </div>
     </div>
   );
+
+  const renderPlanCard = () => {
+    if (subscriptionPlanType && subscriptionPlanType !== 'free') {
+      return <PaidPlanCard />;
+    }
+    return <FreePlanCard />;
+  };
 
   return (
     <div className="subscription-management-page">
@@ -281,7 +304,7 @@ export const Subscription = () => {
           />
         ) : (
           <>
-            {isPaid ? <PaidPlanCard /> : <FreePlanCard />}
+            {renderPlanCard()}
 
             <div className="usage-cards">
               <div className="usage-card points-card">
