@@ -162,17 +162,13 @@ const PlanItem = (props: {
         >
           {isCurrentPlan
             ? t('subscription.plans.currentPlan')
-            : isButtonDisabled
-              ? t('subscription.plans.cannotChangeTo', {
-                  planType: planType.charAt(0).toUpperCase() + planType.slice(1),
-                })
-              : planType === 'free'
-                ? t('subscription.plans.free.buttonText')
-                : planType === 'enterprise'
-                  ? t('subscription.plans.enterprise.buttonText')
-                  : t('subscription.plans.upgrade', {
-                      planType: planType.charAt(0).toUpperCase() + planType.slice(1),
-                    })}
+            : planType === 'free'
+              ? t('subscription.plans.free.buttonText')
+              : planType === 'enterprise'
+                ? t('subscription.plans.enterprise.buttonText')
+                : t('subscription.plans.upgrade', {
+                    planType: planType.charAt(0).toUpperCase() + planType.slice(1),
+                  })}
         </div>
 
         <div className="plane-features">
