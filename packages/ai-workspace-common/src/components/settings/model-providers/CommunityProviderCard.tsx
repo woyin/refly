@@ -20,7 +20,8 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
   ({ config, isInstalled = false, onInstallSuccess }) => {
     const [isCurrentlyInstalling, setIsCurrentlyInstalling] = useState(false);
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language;
 
     // Initialize the create MCP server mutation
     const createProvider = useCreateProvider([], {
@@ -79,7 +80,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
     // Get localized description
     const description =
       typeof config.description === 'object'
-        ? config.description?.['zh-CN'] || config.description?.en || ''
+        ? config.description?.[language] || config.description?.en || ''
         : config.description || '';
 
     // Get button properties based on state

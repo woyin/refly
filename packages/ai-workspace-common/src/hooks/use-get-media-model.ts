@@ -17,7 +17,7 @@ export const useGetMediaModel = () => {
     {
       query: {
         category: 'mediaGeneration',
-        global: userProfile?.preferences?.providerMode === 'global',
+        isGlobal: userProfile?.preferences?.providerMode === 'global',
         enabled: true,
       },
     },

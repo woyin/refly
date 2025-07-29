@@ -323,7 +323,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const getProviderItems = useCallback(async () => {
     setIsLoading(true);
     const res = await getClient().listProviderItems({
-      query: providerMode === 'global' ? { global: true } : {},
+      query: providerMode === 'global' ? { isGlobal: true } : {},
     });
     setIsLoading(false);
     if (res?.data?.success) {
@@ -641,16 +641,18 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
                 key: group.key,
                 label: <span className="font-medium text-base">{group.name}</span>,
                 style: panelStyle,
-                children: group.models.map((model) => (
-                  <ModelItem
-                    key={model.itemId}
-                    model={model}
-                    onEdit={handleEditModel}
-                    onDelete={handleDeleteModel}
-                    onToggleEnabled={handleToggleEnabled}
-                    isSubmitting={isUpdating}
-                  />
-                )),
+                children: group.models
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((model) => (
+                    <ModelItem
+                      key={model.itemId}
+                      model={model}
+                      onEdit={handleEditModel}
+                      onDelete={handleDeleteModel}
+                      onToggleEnabled={handleToggleEnabled}
+                      isSubmitting={isUpdating}
+                    />
+                  )),
               }))}
             />
 
@@ -811,7 +813,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
 
         <Tooltip title={t('settings.modelConfig.providerModeDescription')}>
           <div className="flex items-center gap-2">
-            <div className="text-sm">{t('settings.modelConfig.providerMode')}</div>
+            <div className="text-xs">{t('settings.modelConfig.providerMode')}</div>
 
             <Switch
               checkedChildren={t('settings.modelConfig.custom')}
