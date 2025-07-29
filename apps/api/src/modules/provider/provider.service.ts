@@ -25,7 +25,7 @@ import {
   Provider as ProviderModel,
   ProviderItem as ProviderItemModel,
 } from '../../generated/client';
-import { genProviderItemID, genProviderID, providerInfoList, pick } from '@refly/utils';
+import { genProviderItemID, genProviderID, providerInfoList } from '@refly/utils';
 import {
   ProviderNotFoundError,
   ProviderItemNotFoundError,
@@ -537,19 +537,6 @@ export class ProviderService implements OnModuleInit {
   }
 
   async prepareGlobalProviderItemsForUser(user: User) {
-    const { items } = await this.globalProviderCache.get();
-
-    const providerItems = await this.prisma.providerItem.createManyAndReturn({
-      data: items
-        .filter((item) => item.enabled)
-        .map((item) => ({
-          itemId: genProviderItemID(),
-          uid: user.uid,
-          ...pick(item, ['providerId', 'category', 'name', 'enabled', 'config', 'tier']),
-          ...(item.tier ? { groupName: item.tier.toUpperCase() } : {}),
-        })),
-    });
-
     const { preferences } = await this.prisma.user.findUnique({
       where: { uid: user.uid },
       select: {
@@ -563,8 +550,10 @@ export class ProviderService implements OnModuleInit {
 
     const defaultModelConfig: DefaultModelConfig = { ...userPreferences.defaultModel };
 
+    const { items } = await this.globalProviderCache.get();
+
     if (defaultModel.chat && !userPreferences.defaultModel?.chat) {
-      const chatItem = providerItems.find((item) => {
+      const chatItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.chat;
       });
@@ -574,7 +563,7 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.agent && !userPreferences.defaultModel?.agent) {
-      const agentItem = providerItems.find((item) => {
+      const agentItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.agent;
       });
@@ -584,7 +573,7 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.queryAnalysis && !userPreferences.defaultModel?.queryAnalysis) {
-      const queryAnalysisItem = providerItems.find((item) => {
+      const queryAnalysisItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.queryAnalysis;
       });
@@ -594,12 +583,42 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.titleGeneration && !userPreferences.defaultModel?.titleGeneration) {
-      const titleGenerationItem = providerItems.find((item) => {
+      const titleGenerationItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.titleGeneration;
       });
       if (titleGenerationItem) {
         defaultModelConfig.titleGeneration = providerItemPO2DTO(titleGenerationItem);
+      }
+    }
+
+    if (defaultModel.image && !userPreferences.defaultModel?.image) {
+      const imageItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.image;
+      });
+      if (imageItem) {
+        defaultModelConfig.image = providerItemPO2DTO(imageItem);
+      }
+    }
+
+    if (defaultModel.video && !userPreferences.defaultModel?.video) {
+      const videoItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.video;
+      });
+      if (videoItem) {
+        defaultModelConfig.video = providerItemPO2DTO(videoItem);
+      }
+    }
+
+    if (defaultModel.audio && !userPreferences.defaultModel?.audio) {
+      const audioItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.audio;
+      });
+      if (audioItem) {
+        defaultModelConfig.audio = providerItemPO2DTO(audioItem);
       }
     }
 
