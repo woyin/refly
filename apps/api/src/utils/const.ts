@@ -4,6 +4,8 @@ export const QUEUE_ACTION = 'action';
 export const QUEUE_SIMPLE_EVENT = 'simpleEvent';
 export const QUEUE_SKILL_TIMEOUT_CHECK = 'skillTimeoutCheck';
 export const QUEUE_SYNC_TOKEN_USAGE = 'syncTokenUsage';
+export const QUEUE_SYNC_TOKEN_CREDIT_USAGE = 'syncTokenCreditUsage';
+export const QUEUE_SYNC_MEDIA_CREDIT_USAGE = 'syncMediaCreditUsage';
 export const QUEUE_SYNC_STORAGE_USAGE = 'syncStorageUsage';
 export const QUEUE_SYNC_CANVAS_ENTITY = 'syncCanvasEntity';
 export const QUEUE_CLEAR_CANVAS_ENTITY = 'clearCanvasEntity';
@@ -17,6 +19,7 @@ export const QUEUE_SYNC_PILOT_STEP = 'syncPilotStep';
 
 export const QUEUE_SEND_VERIFICATION_EMAIL = 'sendVerificationEmail';
 export const QUEUE_CHECK_CANCELED_SUBSCRIPTIONS = 'checkCanceledSubscriptions';
+export const QUEUE_EXPIRE_AND_RECHARGE_CREDITS = 'expireAndRechargeCredits';
 export const QUEUE_SYNC_REQUEST_USAGE = 'syncRequestUsage';
 export const QUEUE_IMAGE_PROCESSING = 'imageProcessing';
 export const QUEUE_CLEAN_STATIC_FILES = 'cleanStaticFiles';

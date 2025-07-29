@@ -21,6 +21,7 @@ export function modelInfoPO2DTO(modelInfo: ModelInfoPO): ModelInfo {
 export function subscriptionPlanPO2DTO(plan: SubscriptionPlanPO): SubscriptionPlan {
   return {
     planType: plan.planType,
+    creditQuota: plan.creditQuota,
     t1TokenQuota: plan.t1TokenQuota,
     t2TokenQuota: plan.t2TokenQuota,
     objectStorageQuota: String(plan.objectStorageQuota),

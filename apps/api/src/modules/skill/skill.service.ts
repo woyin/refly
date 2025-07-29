@@ -33,6 +33,7 @@ import {
   LLMModelConfig,
   CodeArtifact,
   MediaGenerationModelConfig,
+  CreditBilling,
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
 import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
@@ -42,6 +43,7 @@ import { InvokeSkillJobData, CheckStuckActionsJobData } from './skill.dto';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { CreditService } from '../credit/credit.service';
 import {
   ModelUsageQuotaExceeded,
   ParamsError,
@@ -81,6 +83,7 @@ export class SkillService implements OnModuleInit {
     private readonly config: ConfigService,
     private readonly knowledgeService: KnowledgeService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly credit: CreditService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly providerService: ProviderService,
     private readonly skillInvokerService: SkillInvokerService,
@@ -314,7 +317,7 @@ export class SkillService implements OnModuleInit {
       }
       let tpl = this.skillInventory.find((tpl) => tpl.name === instance.tplName);
       if (!tpl) {
-        console.log(`skill ${instance.tplName} not found`);
+        this.logger.log(`skill ${instance.tplName} not found`);
         tpl = this.skillInventory?.[0];
       }
       tplConfigMap.set(instance.tplName, tpl);
@@ -464,16 +467,16 @@ export class SkillService implements OnModuleInit {
       }
     }
 
-    if (tiers.length > 0) {
-      // Check for usage quota
-      const usageResult = await this.subscriptionService.checkRequestUsage(user);
+    const creditBilling: CreditBilling = providerItem?.creditBilling
+      ? JSON.parse(providerItem?.creditBilling)
+      : undefined;
+    this.logger.log('creditBilling', creditBilling);
 
-      for (const tier of tiers) {
-        if (!usageResult[tier]) {
-          throw new ModelUsageQuotaExceeded(
-            `model provider (${tier}) not available for current plan`,
-          );
-        }
+    if (creditBilling) {
+      const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
+      this.logger.log('creditUsageResult', creditUsageResult);
+      if (!creditUsageResult.canUse) {
+        throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
       }
     }
 

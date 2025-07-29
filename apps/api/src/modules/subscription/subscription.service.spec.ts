@@ -78,9 +78,9 @@ describe('SubscriptionService', () => {
     service = module.get<SubscriptionService>(SubscriptionService);
 
     const mockPlan = {
-      planType: 'pro' as SubscriptionPlanType,
+      planType: 'maker' as SubscriptionPlanType,
       interval: 'monthly' as SubscriptionInterval,
-      lookupKey: 'pro_monthly',
+      lookupKey: 'maker_monthly',
     };
 
     // Mock subscriptionPlans
@@ -102,7 +102,7 @@ describe('SubscriptionService', () => {
       (stripeClient.checkout.sessions.create as jest.Mock).mockResolvedValue(mockSession);
 
       const result = await service.createCheckoutSession(mockUser, {
-        planType: 'pro',
+        planType: 'maker' as SubscriptionPlanType,
         interval: 'monthly',
       });
 
