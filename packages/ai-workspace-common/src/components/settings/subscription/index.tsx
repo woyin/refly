@@ -42,6 +42,8 @@ interface CreditRechargeRecord {
   enabled: boolean;
 }
 
+const filesPlanMap = { free: 100, starter: 200, maker: 500 };
+
 export const Subscription = () => {
   const { t } = useTranslation('ui');
   const { userProfile } = useUserStoreShallow((state) => ({
@@ -322,7 +324,10 @@ export const Subscription = () => {
                 <div className="usage-value">
                   {storageUsage?.fileCountUsed || 0}{' '}
                   <span style={{ color: 'rgba(28, 31, 35, 0.5)' }}>
-                    / {storageUsage?.fileCountQuota < 0 ? '100' : storageUsage?.fileCountQuota}
+                    /{' '}
+                    {storageUsage?.fileCountQuota < 0
+                      ? filesPlanMap[planType]
+                      : storageUsage?.fileCountQuota}
                   </span>
                 </div>
               </div>
