@@ -315,7 +315,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const getProviderItems = useCallback(async () => {
     setIsLoading(true);
     const res = await getClient().listProviderItems({
-      query: providerMode === 'global' ? { global: true } : {},
+      query: providerMode === 'global' ? { isGlobal: true } : {},
     });
     setIsLoading(false);
     if (res?.data?.success) {
@@ -588,16 +588,18 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
               <div className="text-xs text-refly-text-1 font-semibold mb-2 px-1.5 pt-2 pb-1">
                 {group.name}
               </div>
-              {group.models.map((model) => (
-                <ModelItem
-                  key={model.itemId}
-                  model={model}
-                  onEdit={handleEditModel}
-                  onDelete={handleDeleteModel}
-                  onToggleEnabled={handleToggleEnabled}
-                  isSubmitting={isUpdating}
-                />
-              ))}
+              {group.models
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((model) => (
+                  <ModelItem
+                    key={model.itemId}
+                    model={model}
+                    onEdit={handleEditModel}
+                    onDelete={handleDeleteModel}
+                    onToggleEnabled={handleToggleEnabled}
+                    isSubmitting={isUpdating}
+                  />
+                ))}
             </div>
           ))}
 

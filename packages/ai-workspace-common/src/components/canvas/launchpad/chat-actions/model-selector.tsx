@@ -160,7 +160,7 @@ export const ModelSelector = memo(
         query: {
           category: 'llm',
           enabled: true,
-          global: userProfile?.preferences?.providerMode === 'global',
+          isGlobal: userProfile?.preferences?.providerMode === 'global',
         },
       },
       [],
