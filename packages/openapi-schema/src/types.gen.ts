@@ -1716,7 +1716,7 @@ export type SubscriptionInterval = 'monthly' | 'yearly';
 /**
  * Subscription plan type
  */
-export type SubscriptionPlanType = 'free' | 'plus' | 'pro' | 'max' | 'ultra';
+export type SubscriptionPlanType = 'free' | 'starter' | 'maker' | 'enterprise';
 
 /**
  * Subscription status

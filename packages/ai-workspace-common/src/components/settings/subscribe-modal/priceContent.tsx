@@ -5,9 +5,8 @@ import { useTranslation } from 'react-i18next';
 
 // styles
 import './index.scss';
-
+import { Checked, Wait } from 'refly-icons';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { CheckOutlined, HourglassOutlined } from '@ant-design/icons';
 import {
   useSubscriptionStoreShallow,
   useUserStoreShallow,
@@ -31,6 +30,13 @@ const gridSpan = {
 interface Feature {
   name: string;
   type?: string;
+}
+
+enum PlanPriorityMap {
+  free = 0,
+  starter = 1,
+  maker = 2,
+  enterprise = 3,
 }
 
 const PlanItem = (props: {
@@ -59,28 +65,21 @@ const PlanItem = (props: {
 
   const getPrice = () => {
     if (planType === 'free') {
-      if (interval === 'monthly') {
-        return t('subscription.plans.free.price');
-      } else {
-        return (
-          <div className="yearly-price-container">
-            <span className="price-monthly">{t('subscription.plans.free.price')}</span>
-            <span className="price-yearly">&nbsp;</span>
-          </div>
-        );
-      }
+      return (
+        <div className="yearly-price-container">
+          <span className="price-monthly">{t('subscription.plans.free.price')}</span>
+          <span className="price-yearly">&nbsp;</span>
+        </div>
+      );
     }
+
     if (planType === 'enterprise') {
-      if (interval === 'monthly') {
-        return <div>&nbsp;</div>;
-      } else {
-        return (
-          <div className="yearly-price-container">
-            <span className="price-monthly">&nbsp;</span>
-            <span className="price-yearly">&nbsp;</span>
-          </div>
-        );
-      }
+      return (
+        <div className="yearly-price-container">
+          <span className="price-monthly">&nbsp;</span>
+          <span className="price-yearly">&nbsp;</span>
+        </div>
+      );
     }
 
     const prices = {
@@ -92,47 +91,37 @@ const PlanItem = (props: {
 
     if (interval === 'monthly') {
       return (
-        <span className="price-monthly">
-          $ {t('subscription.plans.starter.priceMonthly', { price: priceInfo.monthly })}
-        </span>
+        <div className="yearly-price-container">
+          <span className="price-monthly">
+            {t('subscription.plans.priceMonthly', { price: priceInfo.monthly })}
+          </span>
+          <span className="price-yearly">&nbsp;</span>
+        </div>
       );
     }
+
     return (
       <div className="yearly-price-container">
         <span className="price-monthly">
-          $ {t('subscription.plans.starter.priceYearly', { price: priceInfo.yearly })}
+          {t('subscription.plans.priceYearly', { price: priceInfo.yearly })}
         </span>
         <span className="price-yearly">
-          $ {t('subscription.plans.starter.priceYearlyTotal', { price: priceInfo.yearlyTotal })}
+          {t('subscription.plans.priceYearlyTotal', { price: priceInfo.yearlyTotal })}
         </span>
       </div>
     );
   };
 
-  const getButtonText = () => {
-    if (planType === 'enterprise') return t('subscription.plans.enterprise.buttonText');
+  const isCurrentPlan = currentPlan === planType;
+  const upgradePlan = PlanPriorityMap[PlanPriorityMap[currentPlan] + 1] || 'enterprise';
 
-    if (!isLogin) {
-      if (planType === 'free') return t('subscription.plans.free.buttonText');
-      return t('subscription.plans.starter.buttonText', {
-        planName: t(`subscription.plans.${planType}.title`),
-      });
-    }
-
-    if (currentPlan === planType) {
-      return t('subscription.plans.currentPlan');
-    }
-
-    if (planType === 'free') {
-      return t('subscription.plans.free.buttonTextDowngrade');
-    }
-
-    return t('subscription.plans.starter.buttonText', {
-      planName: t(`subscription.plans.${planType}.title`),
-    });
-  };
+  const isUpgrade = upgradePlan === planType;
+  const isDowngrade = PlanPriorityMap[currentPlan] > PlanPriorityMap[planType];
+  const isButtonDisabled = (isCurrentPlan || isDowngrade) && planType !== 'enterprise';
 
   const handleButtonClick = () => {
+    if (isButtonDisabled) return;
+
     if (isLogin) {
       handleClick?.();
     } else {
@@ -140,22 +129,28 @@ const PlanItem = (props: {
     }
   };
 
-  const isCurrentPlan = currentPlan === planType;
-  const _isButtonDisabled = isCurrentPlan && planType !== 'enterprise';
-
   return (
-    <div className={`w-full h-full flex flex-col ${planType === 'starter' ? 'pro-plan' : ''}`}>
-      <div className="pt-1 h-[24px] text-center text-xs text-white font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4 ">
+    <div
+      className={`w-full h-full flex flex-col ${planType === 'starter' ? 'pro-plan bg-[var(--bg-control---refly-bg-control-z0,_#F6F6F6)]' : ''}`}
+    >
+      <div
+        className={
+          'pt-1 h-[24px] text-center text-xs font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4'
+        }
+      >
         {planType === 'starter' && t('subscription.mostPopular')}
       </div>
       <div className={`subscribe-content-plans-item item-${planType}`}>
         <div className="subscribe-content-plans-item-title">
-          {planType === 'free' && currentPlan === 'free' ? (
+          {planType === 'free' ? (
             <>
-              {t('subscription.plans.free.title')} <Tag>{t('subscription.plans.free.titleCn')}</Tag>
+              {t('subscription.plans.free.title')}{' '}
+              {isCurrentPlan && <Tag>{t('subscription.plans.currentPlan')}</Tag>}
             </>
           ) : (
-            title
+            <>
+              {title} {isCurrentPlan && <Tag>{t('subscription.plans.currentPlan')}</Tag>}
+            </>
           )}
         </div>
 
@@ -164,12 +159,20 @@ const PlanItem = (props: {
         <div className="price-section">{getPrice()}</div>
 
         <div
-          className={`subscribe-btn subscribe-btn--${planType} ${planType === 'starter' && 'subscribe-btn--most-popular'}`}
+          className={`subscribe-btn cursor-pointer subscribe-btn--${planType} ${planType === 'starter' && 'subscribe-btn--most-popular'} ${isUpgrade && 'subscribe-btn--upgrade'} ${isButtonDisabled && 'subscribe-btn--disabled'}`}
           onClick={handleButtonClick}
-          // loading={loadingInfo.isLoading && loadingInfo.plan === planType}
-          // disabled={isButtonDisabled}
         >
-          {getButtonText()}
+          {isButtonDisabled
+            ? t('subscription.plans.cannotChangeTo', {
+                planType: planType.charAt(0).toUpperCase() + planType.slice(1),
+              })
+            : planType === 'free'
+              ? t('subscription.plans.free.buttonText')
+              : planType === 'enterprise'
+                ? t('subscription.plans.enterprise.buttonText')
+                : t('subscription.plans.upgrade', {
+                    planType: planType.charAt(0).toUpperCase() + planType.slice(1),
+                  })}
         </div>
 
         <div className="plane-features">
@@ -180,7 +183,13 @@ const PlanItem = (props: {
 
             return (
               <div className="plane-features-item" key={index}>
-                {feature.type === 'coming-soon' ? <HourglassOutlined /> : <CheckOutlined />}
+                <div style={{ marginTop: !description ? 2 : 0 }}>
+                  {planType === 'enterprise' && index === features.length - 1 ? (
+                    <Wait size={16} color="rgba(28, 31, 35, 0.6)" />
+                  ) : (
+                    <Checked size={16} color="#0E9F77" />
+                  )}
+                </div>
                 <div className="plane-features-item-text">
                   <span className={!description ? 'feature-description' : 'feature-name'}>
                     {name}
@@ -325,7 +334,7 @@ export const PriceContent = (props: { source: PriceSource }) => {
         <a href="https://docs.refly.ai/about/privacy-policy" target="_blank" rel="noreferrer">
           {t('subscription.privacy')}
         </a>{' '}
-        和{' '}
+        {t('common.and')}{' '}
         <a href="https://docs.refly.ai/about/terms-of-service" target="_blank" rel="noreferrer">
           {t('subscription.terms')}
         </a>

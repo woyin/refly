@@ -2229,7 +2229,7 @@ export const SubscriptionIntervalSchema = {
 export const SubscriptionPlanTypeSchema = {
   type: 'string',
   description: 'Subscription plan type',
-  enum: ['free', 'plus', 'pro', 'max', 'ultra'],
+  enum: ['free', 'starter', 'maker', 'enterprise'],
 } as const;
 
 export const SubscriptionStatusSchema = {

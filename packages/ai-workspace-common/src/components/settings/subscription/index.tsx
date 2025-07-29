@@ -4,6 +4,7 @@ import { Button, Typography, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 import {
   useSubscriptionStoreShallow,
@@ -21,39 +22,6 @@ import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/
 import './index.scss';
 
 const { Title } = Typography;
-
-// --- Test Data for Development ---
-const mockSubscriptions = {
-  free: {
-    planType: 'free',
-    isPaid: false,
-    displayName: 'Free Plan',
-  },
-  starter: {
-    planType: 'starter',
-    isPaid: true,
-    displayName: 'Starter',
-    stripePortalUrl: '#',
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-    willCancelAtPeriodEnd: false,
-  },
-  maker_active: {
-    planType: 'maker',
-    isPaid: true,
-    displayName: 'Maker',
-    stripePortalUrl: '#',
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    willCancelAtPeriodEnd: false,
-  },
-  maker_canceling: {
-    planType: 'maker',
-    isPaid: true,
-    displayName: 'Maker',
-    stripePortalUrl: '#',
-    currentPeriodEnd: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 days from now
-    willCancelAtPeriodEnd: true,
-  },
-};
 
 // Define interfaces for the table data
 interface CreditUsageRecord {
@@ -74,6 +42,8 @@ interface CreditRechargeRecord {
   enabled: boolean;
 }
 
+const filesPlanMap = { free: 100, starter: 200, maker: 500 };
+
 export const Subscription = () => {
   const { t } = useTranslation('ui');
   const { userProfile } = useUserStoreShallow((state) => ({
@@ -88,67 +58,69 @@ export const Subscription = () => {
     setDisplaySubscription(userProfile?.subscription);
   }, [userProfile?.subscription]);
 
-  const handleTestPlanChange = (value: string) => {
-    if (value === 'real') {
-      setDisplaySubscription(userProfile?.subscription);
-    } else {
-      // @ts-ignore
-      setDisplaySubscription(mockSubscriptions[value]);
-    }
-  };
+  const { planType: subscriptionPlanType, cancelAt } = displaySubscription ?? {};
 
-  const {
-    isPaid,
-    displayName,
-    stripePortalUrl,
-    currentPeriodEnd,
-    willCancelAtPeriodEnd,
-    planType,
-  } = displaySubscription ?? {};
-
-  const { setSubscribeModalVisible, setPlanType } = useSubscriptionStoreShallow((state) => ({
-    setSubscribeModalVisible: state.setSubscribeModalVisible,
-    setPlanType: state.setPlanType,
-  }));
+  const { setSubscribeModalVisible, setPlanType, planType } = useSubscriptionStoreShallow(
+    (state) => ({
+      setSubscribeModalVisible: state.setSubscribeModalVisible,
+      setPlanType: state.setPlanType,
+      planType: state.planType,
+    }),
+  );
 
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
   }));
 
-  const { isUsageLoading: isStorageUsageLoading, storageUsage } = useSubscriptionUsage();
+  const { storageUsage, isUsageLoading } = useSubscriptionUsage();
 
-  // Fetch credit balance
   const { data: balanceData, isLoading: isBalanceLoading } = useGetCreditBalance();
   const creditBalance = balanceData?.data?.creditBalance ?? 0;
-
-  const isLoading = isStorageUsageLoading || isBalanceLoading;
 
   // State for active history tab
   const [activeTab, setActiveTab] = useState<'usage' | 'recharge'>('usage');
 
-  // Fetch credit history data
+  // Fetch credit history data - preload both types of data
   const { data: usageData, isLoading: isUsageHistoryLoading } = useGetCreditUsage(
     {},
     [],
     // @ts-ignore
-    { enabled: activeTab === 'usage' },
+    { enabled: true }, // Always load usage data regardless of active tab
   );
   const { data: rechargeData, isLoading: isRechargeHistoryLoading } = useGetCreditRecharge(
     {},
     [],
     // @ts-ignore
-    { enabled: activeTab === 'recharge' },
+    { enabled: true }, // Always load recharge data regardless of active tab
   );
 
-  const isHistoryLoading = isUsageHistoryLoading || isRechargeHistoryLoading;
+  // Only show loading state during initial data loading, not when switching tabs
+  const isHistoryLoading =
+    (activeTab === 'usage' && isUsageHistoryLoading) ||
+    (activeTab === 'recharge' && isRechargeHistoryLoading);
+  const isLoading = isBalanceLoading || isHistoryLoading || isUsageLoading;
 
   useEffect(() => {
-    setPlanType(displaySubscription?.planType || 'free');
+    if (displaySubscription?.planType) {
+      setPlanType(displaySubscription.planType);
+    }
   }, [displaySubscription?.planType, setPlanType]);
 
-  const handleManageBilling = () => {
-    if (stripePortalUrl) {
-      window.open(stripePortalUrl, '_blank');
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handleManageBilling = async () => {
+    if (portalLoading) return;
+
+    setPortalLoading(true);
+    try {
+      const { data } = await getClient().createPortalSession();
+      setPortalLoading(false);
+      if (data?.data?.url) {
+        window.open(data.data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Failed to create portal session:', error);
+      setPortalLoading(false);
     }
   };
 
@@ -156,8 +128,12 @@ export const Subscription = () => {
   const usageColumns: ColumnsType<CreditUsageRecord> = [
     {
       title: t('subscription.subscriptionManagement.usageDetails'),
-      dataIndex: 'description',
-      key: 'description',
+      dataIndex: 'usageType',
+      key: 'usageType',
+      render: (value: string) => {
+        const key = `subscription.subscriptionManagement.usageType.${value}`;
+        return t(key);
+      },
     },
     {
       title: t('subscription.subscriptionManagement.usageTime'),
@@ -170,7 +146,7 @@ export const Subscription = () => {
       dataIndex: 'amount',
       key: 'amount',
       align: 'right',
-      render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
+      render: (amount) => `${amount > 0 ? '-' : ''}${amount.toLocaleString()}`,
     },
   ];
 
@@ -186,6 +162,7 @@ export const Subscription = () => {
           gift: t('credit.recharge.source.gift'),
           promotion: t('credit.recharge.source.promotion'),
           refund: t('credit.recharge.source.refund'),
+          subscription: t('credit.recharge.source.subscription'),
         };
         return sourceMap[source] || source;
       },
@@ -237,44 +214,45 @@ export const Subscription = () => {
     },
   ];
 
-  const planDisplayNameMap = {
-    starter: t('subscription.subscriptionManagement.planNames.starter'),
-    maker: t('subscription.subscriptionManagement.planNames.maker'),
-  };
-
-  const PaidPlanCard = () => (
-    <div className={`subscription-plan-card plan-${planType} w-full`}>
-      <div className="plan-info w-full">
-        <div className="current-plan-label">
-          {t('subscription.subscriptionManagement.currentPlan')}
-        </div>
-        <div className="current-plan-name flex items-center w-full justify-between">
-          {displayName} {planDisplayNameMap[planType as keyof typeof planDisplayNameMap]}
-          <div className="flex items-center gap-3 plan-actions">
-            <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
-              {`${currentPeriodEnd ? dayjs(currentPeriodEnd).format('YYYY.MM.DD') : ''} ${willCancelAtPeriodEnd ? t('subscription.subscriptionManagement.willExpire') : t('subscription.subscriptionManagement.willAutoRenew')}`}
+  const PaidPlanCard = () => {
+    return (
+      <div className={`subscription-plan-card plan-${planType} w-full`}>
+        <div className="plan-info w-full">
+          <div className="current-plan-label">
+            {t('subscription.subscriptionManagement.currentPlan')}
+          </div>
+          <div className="current-plan-name flex items-center w-full justify-between">
+            {t(`subscription.plans.${planType}.title`)}{' '}
+            <div className="flex items-center gap-3 plan-actions">
+              <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
+                {cancelAt
+                  ? `${dayjs(cancelAt).format('YYYY.MM.DD')} ${t('subscription.subscriptionManagement.willExpire')}`
+                  : t('subscription.subscriptionManagement.willAutoRenew')}
+              </div>
+              <div
+                className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] rounded-lg border-0 border-solid"
+                onClick={handleManageBilling}
+              >
+                {portalLoading
+                  ? t('common.loading')
+                  : t('subscription.subscriptionManagement.viewBilling')}
+              </div>
+              <Button
+                type="primary"
+                className="ant-btn-primary"
+                onClick={() => {
+                  setShowSettingModal(false);
+                  setSubscribeModalVisible(true);
+                }}
+              >
+                {t('subscription.subscriptionManagement.changePlan')}
+              </Button>
             </div>
-            <div
-              className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] rounded-lg border-0 border-solid"
-              onClick={handleManageBilling}
-            >
-              {t('subscription.subscriptionManagement.viewBilling')}
-            </div>
-            <Button
-              type="primary"
-              className="ant-btn-primary"
-              onClick={() => {
-                setShowSettingModal(false);
-                setSubscribeModalVisible(true);
-              }}
-            >
-              {t('subscription.subscriptionManagement.changePlan')}
-            </Button>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const FreePlanCard = () => (
     <div className="subscription-plan-card plan-free w-full">
@@ -283,7 +261,6 @@ export const Subscription = () => {
           {t('subscription.subscriptionManagement.currentPlan')}
         </div>
         <div className="current-plan-name flex items-center w-full justify-between">
-          {displaySubscription?.displayName?.split(' ')[0] || 'Free'}{' '}
           {t('subscription.subscriptionManagement.planNames.freePlan')}
           <Button
             type="primary"
@@ -300,27 +277,15 @@ export const Subscription = () => {
     </div>
   );
 
+  const renderPlanCard = () => {
+    if (subscriptionPlanType && subscriptionPlanType !== 'free') {
+      return <PaidPlanCard />;
+    }
+    return <FreePlanCard />;
+  };
+
   return (
     <div className="subscription-management-page">
-      {/* --- Development Test Harness -- */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ padding: '0 16px 16px', border: '1px dashed #ccc', margin: '0 16px 16px' }}>
-          <Title level={5} style={{ marginTop: '16px' }}>
-            🧪 Test Controls
-          </Title>
-          <Segmented
-            options={[
-              { label: 'Real Data', value: 'real' },
-              { label: 'Free', value: 'free' },
-              { label: 'Starter', value: 'starter' },
-              { label: 'Maker (Active)', value: 'maker_active' },
-              { label: 'Maker (Canceling)', value: 'maker_canceling' },
-            ]}
-            onChange={handleTestPlanChange}
-          />
-        </div>
-      )}
-      {/* --- End Test Harness -- */}
       <div className="subscription-header">
         <Title level={4} className="title">
           {t('subscription.subscriptionManagement.title')}
@@ -342,7 +307,7 @@ export const Subscription = () => {
           />
         ) : (
           <>
-            {isPaid ? <PaidPlanCard /> : <FreePlanCard />}
+            {renderPlanCard()}
 
             <div className="usage-cards">
               <div className="usage-card points-card">
@@ -358,7 +323,10 @@ export const Subscription = () => {
                 <div className="usage-value">
                   {storageUsage?.fileCountUsed || 0}{' '}
                   <span style={{ color: 'rgba(28, 31, 35, 0.5)' }}>
-                    / {storageUsage?.fileCountQuota < 0 ? '∞' : storageUsage?.fileCountQuota}
+                    /{' '}
+                    {storageUsage?.fileCountQuota < 0
+                      ? filesPlanMap[planType]
+                      : storageUsage?.fileCountQuota}
                   </span>
                 </div>
               </div>

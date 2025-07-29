@@ -2161,6 +2161,8 @@ const translations = {
       subscriptionManagement: 'Manage Billing and Subscriptions',
       subscriptionStatus: {
         free: 'FREE',
+        maker: 'MAKER',
+        starter: 'STARTER',
         ultra: 'ULTRA',
         pro: 'PRO',
         max: 'MAX',
@@ -2953,6 +2955,67 @@ const translations = {
     cancelAnytime: "Cancel anytime. By subscribing, you agree to Refly's",
     privacy: 'Privacy',
     terms: 'Terms',
+    plans: {
+      priceMonthly: '{{price}}/month',
+      priceYearly: '{{price}}/month',
+      priceYearlyTotal: '{{price}}/year Save 20%',
+      upgrade: 'Upgrade to {{planType}}',
+      cannotChangeTo: 'Cannot change to {{planType}}',
+      currentPlan: 'Current Plan',
+      free: {
+        title: 'Free Plan',
+        description: 'The perfect starting point for your creative journey',
+        price: 'Free forever',
+        buttonText: 'Continue for free',
+        buttonTextDowngrade: 'Downgrade to Free',
+        features: [
+          'Daily new credits\n100 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n100 files',
+          'File upload limit\nMax 5MB',
+          'Service support\nCommunity support (WeChat, Lark, Discord)',
+        ],
+      },
+      starter: {
+        title: 'Starter Plan',
+        description: 'For individuals who need more credits and features',
+        buttonText: 'Get Starter',
+        features: [
+          'Daily new credits\n300 points',
+          'Monthly credits\n2,000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n200 files',
+          'File upload limit\nMax 10MB',
+          'Service support\nHigh priority email support',
+        ],
+      },
+      maker: {
+        title: 'Maker Plan',
+        description: 'For power users who need maximum productivity',
+        buttonText: 'Get Maker',
+        features: [
+          'Daily new credits\n300 points',
+          'Monthly credits\n4000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n500 files',
+          'File upload limit\nMax 20MB',
+          'Service support\nHigh priority support',
+        ],
+      },
+      enterprise: {
+        title: 'Enterprise Plan',
+        description: 'Custom solutions for teams and organizations',
+        buttonText: 'Contact Sales',
+        features: [
+          'Monthly customized credits',
+          'Visualization Canvas + Nodes',
+          'Multi-model integration + Smart retrieval',
+          'Knowledge base deep connection',
+          'Template and node sharing',
+          'More enterprise capabilities coming soon',
+        ],
+      },
+    },
     subscriptionManagement: {
       title: 'Subscription Management',
       subtitle: 'Manage subscription plans and credits',
@@ -2975,12 +3038,19 @@ const translations = {
       remaining: 'Remaining',
       status: 'Status',
       disabled: 'Disabled',
+      usageType: {
+        model_call: 'Model Call',
+        media_generation: 'Media Generation',
+        embedding: 'Embedding',
+        reranking: 'Reranking',
+        other: 'Other',
+      },
       depleted: 'Depleted',
       expired: 'Expired',
       available: 'Available',
       planNames: {
-        starter: 'Starter',
-        maker: 'Maker',
+        starter: 'Starter Plan',
+        maker: 'Maker Plan',
         freePlan: 'Free Plan',
       },
     },
@@ -2994,9 +3064,9 @@ const translations = {
         'Your storage space has reached its limit. Upgrade your plan for more storage to continue using our services.',
       upgrade: 'Upgrade Now',
     },
-    plans: {
+    storageFullModal: {
       free: {
-        title: 'Free',
+        title: 'Free Plan',
         titleCn: 'Current Plan',
         description: 'The perfect starting point for your creative journey',
         price: 'Free forever',
@@ -3011,12 +3081,12 @@ const translations = {
         ],
       },
       starter: {
-        title: 'Starter',
+        title: 'Starter Plan',
         titleCn: 'Starter Plan',
         description: 'The ideal choice for light explorers',
-        priceMonthly: '{{price}}/month',
-        priceYearly: '{{price}}/month',
-        priceYearlyTotal: '{{price}}/year, save 20%',
+        priceMonthly: '$ {{price}}/month',
+        priceYearly: '$ {{price}}/month',
+        priceYearlyTotal: '$ {{price}}/year, save 20%',
         buttonText: 'Upgrade to {{planName}}',
         features: [
           'Daily new credits\n300 points',
@@ -3028,12 +3098,12 @@ const translations = {
         ],
       },
       maker: {
-        title: 'Maker',
+        title: 'Maker Plan',
         titleCn: 'Maker Plan',
         description: 'The high-performance choice for advanced creators',
-        priceMonthly: '{{price}}/month',
-        priceYearly: '{{price}}/month',
-        priceYearlyTotal: '{{price}}/year, save 20%',
+        priceMonthly: '$ {{price}}/month',
+        priceYearly: '$ {{price}}/month',
+        priceYearlyTotal: '$ {{price}}/year, save 20%',
         buttonText: 'Upgrade to {{planName}}',
         features: [
           'Daily new credits\n300 points',
@@ -3183,6 +3253,17 @@ const translations = {
     pageId: 'Page ID',
     unknown: 'Unknown',
     refresh: 'Refresh Nodes',
+  },
+  credit: {
+    recharge: {
+      source: {
+        purchase: 'Purchase',
+        gift: 'Gift',
+        promotion: 'Promotion',
+        refund: 'Refund',
+        subscription: 'Subscription',
+      },
+    },
   },
 };
 
