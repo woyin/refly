@@ -193,8 +193,8 @@ export const VideoNode = memo(
             className={cn(
               'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
               {
-                'opacity-100': selected || isHovered,
-                'opacity-0': !selected && !isHovered,
+                'opacity-100': isHovered,
+                'opacity-0': !isHovered,
               },
             )}
           >

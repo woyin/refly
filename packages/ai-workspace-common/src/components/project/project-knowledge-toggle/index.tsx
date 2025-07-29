@@ -91,7 +91,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
 
   return (
     <div className={`project-kb-toggle mt-auto pt-2 pb-2 ${className}`}>
-      <div className="rounded-lg flex items-center justify-between bg-gray-50 p-2 pt-0 pb-0 border border-solid border-refly-Card-Border hover:border-[#00968F]/30 transition-all cursor-pointer">
+      <div className="rounded-lg flex items-center justify-between bg-refly-bg-content-z2 p-2 pt-0 pb-0 border border-solid border-refly-Card-Border hover:border-[#00968F]/30 transition-all cursor-pointer">
         <div className="flex items-center gap-2 flex-shrink overflow-hidden">
           <LuBrain
             className={`transition-colors duration-300 flex-shrink-0 ${enabledKnowledgeBase ? 'text-[#00968F]' : 'text-gray-500'}`}

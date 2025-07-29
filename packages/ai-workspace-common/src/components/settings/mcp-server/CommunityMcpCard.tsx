@@ -189,7 +189,7 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
     return (
       <>
-        <div className="p-4 border-solid border-[1px] border-refly-Card-Border rounded-lg hover:shadow-md transition-all duration-200">
+        <div className="p-4 bg-refly-bg-content-z2 border-solid border-[1px] border-refly-Card-Border rounded-lg hover:shadow-md transition-all duration-200">
           {/* Header section with icon, title and badge */}
           <div className="mb-2">
             <div className="flex items-center mb-0.5">

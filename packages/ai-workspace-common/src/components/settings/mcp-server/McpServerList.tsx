@@ -177,7 +177,7 @@ const ServerItem = React.memo(
                           type="text"
                           size="small"
                           onClick={() => setExpanded(!expanded)}
-                          className="text-xs text-refly-text-2 hover:text-refly-text-1 p-0 h-auto"
+                          className="text-xs text-refly-text-2 hover:text-refly-text-0 p-0 h-auto"
                         >
                           {expanded
                             ? t('settings.mcpServer.collapse')
