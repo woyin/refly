@@ -130,7 +130,7 @@ const ServerItem = React.memo(
     }, []);
 
     return (
-      <div className="mb-5 py-1 px-2 rounded-lg cursor-pointer hover:bg-refly-tertiary-hover">
+      <div className="mb-5 p-2 rounded-lg cursor-pointer hover:bg-refly-tertiary-hover">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div className="flex-1 flex">
             <div className="flex-shrink-0 h-10 w-10 rounded-md bg-refly-tertiary-default flex items-center justify-center mr-3">

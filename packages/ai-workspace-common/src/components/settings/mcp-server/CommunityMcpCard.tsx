@@ -1,6 +1,6 @@
 import React, { memo, useState } from 'react';
-import { Card, Button, Badge, Typography, Tooltip, Space, message } from 'antd';
-import { DownloadOutlined, CheckOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Button, Typography, Tooltip, message } from 'antd';
+import { CheckOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import {
   useCreateMcpServer,
@@ -15,8 +15,10 @@ import {
 } from './utils';
 import { CommunityMcpApiKeyModal } from './CommunityMcpApiKeyModal';
 import { Favicon } from '../../common/favicon';
+import { Doc } from 'refly-icons';
+import { CategoryTag } from '../model-providers/CommunityProviderCard';
 
-const { Text, Title, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
   ({ config, isInstalled, isInstalling, onInstall }) => {
@@ -85,22 +87,6 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
     // Get description with locale support
     const description = getConfigDescription(config, t);
-
-    // Get type color for badge
-    const getTypeColor = (type: string) => {
-      switch (type) {
-        case 'sse':
-          return '#1890ff';
-        case 'streamable':
-          return '#52c41a';
-        case 'stdio':
-          return '#fa8c16';
-        case 'websocket':
-          return '#722ed1';
-        default:
-          return '#d9d9d9';
-      }
-    };
 
     // Handle installation
     const handleInstall = async () => {
@@ -177,7 +163,6 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
       if (validating) {
         return {
-          type: 'primary' as const,
           loading: true,
           disabled: true,
           children: t('settings.mcpServer.community.validating'),
@@ -186,7 +171,6 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
       if (isInstalling || installing) {
         return {
-          type: 'primary' as const,
           loading: true,
           disabled: true,
           children: t('settings.mcpServer.community.installing'),
@@ -194,8 +178,6 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
       }
 
       return {
-        type: 'primary' as const,
-        icon: <DownloadOutlined />,
         onClick: handleInstall,
         children: t('settings.mcpServer.community.install'),
       };
@@ -207,37 +189,17 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
 
     return (
       <>
-        <Card
-          hoverable={!isInstalled && !isInstalling}
-          className="community-mcp-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-          style={{
-            height: '100px',
-            display: 'flex',
-            flexDirection: 'column',
-            transition: 'all 0.3s ease',
-            borderRadius: '8px',
-            overflow: 'hidden',
-          }}
-          styles={{
-            body: {
-              padding: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              height: '100%',
-            },
-          }}
-        >
-          {/* Main content layout */}
-          <div className="flex items-center justify-between h-full">
-            {/* Left side - Logo, title and description */}
-            <div className="flex items-center flex-1 min-w-0">
-              {/* Logo with favicon or placeholder */}
-              <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center mr-3 flex-shrink-0 overflow-hidden shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200 cursor-pointer">
+        <div className="p-4 border-solid border-[1px] border-refly-Card-Border rounded-lg hover:shadow-md transition-all duration-200">
+          {/* Header section with icon, title and badge */}
+          <div className="mb-2">
+            <div className="flex items-center mb-0.5">
+              {/* Favicon/Icon */}
+              <div className="w-11 h-11 rounded-lg bg-refly-bg-control-z0 flex items-center justify-center mr-2 flex-shrink-0 overflow-hidden">
                 {faviconUrl ? (
                   <img
                     src={faviconUrl}
                     alt={`${config.name} icon`}
-                    className="w-8 h-8 object-contain rounded-lg"
+                    className="w-6 h-6 object-contain rounded"
                     style={{
                       imageRendering: '-webkit-optimize-contrast',
                     }}
@@ -245,115 +207,66 @@ export const CommunityMcpCard: React.FC<CommunityMcpCardProps> = memo(
                     onLoad={() => setFaviconError(false)}
                   />
                 ) : (
-                  <Favicon url={faviconServiceUrl} size={32} />
+                  <Favicon url={faviconServiceUrl} size={24} />
                 )}
               </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                {/* Title and badge row */}
-                <div className="flex items-center mb-1">
-                  <Title
-                    level={5}
-                    className="truncate text-gray-900 dark:text-gray-100"
-                    style={{
-                      margin: 0,
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      marginRight: '8px',
-                    }}
-                    title={config.name}
-                  >
-                    {config.name}
-                  </Title>
-                  <Badge
-                    color={getTypeColor(config.type)}
-                    text={config.type?.toUpperCase()}
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: 500,
-                      flexShrink: 0,
-                    }}
-                  />
+              {/* Title */}
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <div className="text-refly-text-0 text-base leading-[26px] line-clamp-1 font-semibold">
+                  {config.name}
                 </div>
-
-                {/* Description */}
-                <Paragraph
-                  className="text-gray-600 dark:text-gray-400"
-                  style={{
-                    margin: 0,
-                    fontSize: '12px',
-                    lineHeight: '1.3',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    height: '32px',
-                  }}
-                  title={description}
-                >
-                  {description}
-                </Paragraph>
-
-                {/* Metadata */}
-                {(config.author || config.version) && (
-                  <div className="flex items-center mt-1">
-                    <Space size={6}>
-                      {config.author && (
-                        <Text type="secondary" style={{ fontSize: '11px' }}>
-                          # {config.author}
-                        </Text>
-                      )}
-                      {config.version && (
-                        <Text type="secondary" style={{ fontSize: '11px' }}>
-                          v{config.version}
-                        </Text>
-                      )}
-                    </Space>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <CategoryTag category={config.type?.toUpperCase()} />
+                </div>
               </div>
-            </div>
-
-            {/* Right side - Actions */}
-            <div className="flex items-center ml-3 flex-shrink-0">
-              {/* Documentation button */}
-              {config.documentation && (
-                <Tooltip title={t('settings.mcpServer.community.viewDocumentation')}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<ExclamationCircleOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (config.documentation) {
-                        window.open(config.documentation, '_blank');
-                      }
-                    }}
-                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 mr-2"
-                    style={{
-                      padding: '2px',
-                      fontSize: '12px',
-                    }}
-                  />
-                </Tooltip>
-              )}
-
-              {/* Install button */}
-              <Button
-                size="small"
-                {...buttonProps}
-                style={{
-                  minWidth: '70px',
-                  height: '28px',
-                  fontWeight: 500,
-                  fontSize: '12px',
-                  ...buttonProps.style,
-                }}
-              />
             </div>
           </div>
-        </Card>
+
+          {/* Description section */}
+          <div className="mb-5">
+            <div className="text-refly-text-1 text-sm leading-relaxed min-h-[4.5rem] flex items-start">
+              <Paragraph
+                className="text-refly-text-1 text-sm !mb-0"
+                ellipsis={{ rows: 3, tooltip: true }}
+              >
+                {description}
+              </Paragraph>
+            </div>
+          </div>
+
+          {/* Action section */}
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              {...buttonProps}
+              size="middle"
+              type="text"
+              variant="filled"
+              className={`h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default ${
+                buttonProps.disabled ? '' : 'hover:!bg-refly-tertiary-hover'
+              }`}
+            />
+
+            {config.documentation && (
+              <Tooltip
+                title={t('settings.mcpServer.community.viewDocumentation')}
+                placement="bottom"
+              >
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (config.documentation) {
+                      window.open(config.documentation, '_blank');
+                    }
+                  }}
+                  className="w-8 h-8 cursor-pointer flex-shrink-0 rounded-md bg-refly-tertiary-default flex items-center justify-center hover:bg-refly-tertiary-hover"
+                >
+                  <Doc size={24} />
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        </div>
 
         {/* API Key Configuration Modal */}
         <CommunityMcpApiKeyModal

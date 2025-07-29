@@ -154,8 +154,11 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
             <Button
               {...buttonProps}
               size="middle"
+              type="text"
               variant="filled"
-              className="h-8 flex-1 cursor-pointer"
+              className={`h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default ${
+                buttonProps.disabled ? '' : 'hover:!bg-refly-tertiary-hover'
+              }`}
             />
 
             {config.documentation && (
