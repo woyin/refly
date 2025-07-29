@@ -514,6 +514,56 @@ export class ProviderService implements OnModuleInit {
     });
   }
 
+  /**
+   * Try to find credit billing config for user-specific provider items
+   * @param items - The provider items to find credit billing for
+   * @returns A map of itemId to credit billing config
+   */
+  private async findCreditBillingForItems(
+    items: ProviderItemModel[],
+  ): Promise<Record<string, string>> {
+    if (!items?.length) {
+      return {};
+    }
+
+    // Get global items once instead of calling cache multiple times
+    const { items: globalItems } = await this.globalProviderCache.get();
+
+    // Create a lookup map for global items to avoid O(n) search for each item
+    const globalItemsMap = new Map<string, ProviderItemModel>();
+
+    for (const globalItem of globalItems) {
+      try {
+        const config = JSON.parse(globalItem.config);
+        const key = `${globalItem.providerId}:${config.modelId}`;
+        globalItemsMap.set(key, globalItem);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse config for global item ${globalItem.itemId}: ${error?.message}`,
+        );
+      }
+    }
+
+    const creditBillingMap: Record<string, string> = {};
+
+    // Process all items in a single pass
+    for (const item of items) {
+      try {
+        const config = JSON.parse(item.config);
+        const key = `${item.providerId}:${config.modelId}`;
+        const sourceGlobalProviderItem = globalItemsMap.get(key);
+
+        if (sourceGlobalProviderItem) {
+          creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to parse config for item ${item.itemId}: ${error?.message}`);
+      }
+    }
+
+    return creditBillingMap;
+  }
+
   async findProviderItemById(user: User, itemId: string) {
     const item = await this.prisma.providerItem.findUnique({
       where: { itemId, deletedAt: null },
@@ -529,6 +579,15 @@ export class ProviderService implements OnModuleInit {
     // If the provider item is not global, check if it belongs to the user
     if (item.uid && item.uid !== user.uid) {
       throw new ProviderItemNotFoundError(`provider item ${itemId} not found`);
+    }
+
+    if (item.uid) {
+      // Try to inherit credit billing from global provider item
+      const creditBillingMap = await this.findCreditBillingForItems([item]);
+      const creditBilling = creditBillingMap[item.itemId];
+      if (creditBilling) {
+        item.creditBilling = creditBilling;
+      }
     }
 
     // Decrypt API key
@@ -668,9 +727,13 @@ export class ProviderService implements OnModuleInit {
     });
 
     if (items.length > 0) {
+      // Try to inherit credit billing from global provider items using batch lookup
+      const creditBillingMap = await this.findCreditBillingForItems(items);
+
       // Decrypt API key and return
       return items.map((item) => ({
         ...item,
+        creditBilling: creditBillingMap[item.itemId],
         provider: {
           ...item.provider,
           apiKey: this.encryptionService.decrypt(item.provider.apiKey),
@@ -683,11 +746,23 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findGlobalProviderItemByModelID(modelId: string) {
+    if (!modelId) {
+      return null;
+    }
+
     const { items: globalItems } = await this.globalProviderCache.get();
     const item = globalItems.find((item) => {
-      const config: LLMModelConfig = JSON.parse(item.config);
-      return config.modelId === modelId;
+      try {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        return config.modelId === modelId;
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse config for global item ${item.itemId}: ${error?.message}`,
+        );
+        return false;
+      }
     });
+
     if (!item) {
       return null;
     }
@@ -695,12 +770,20 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findLLMProviderItemByModelID(user: User, modelId: string) {
+    if (!modelId) {
+      return null;
+    }
+
     const items = await this.findProviderItemsByCategory(user, 'llm');
 
     for (const item of items) {
-      const config: LLMModelConfig = JSON.parse(item.config);
-      if (config.modelId === modelId) {
-        return item;
+      try {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        if (config.modelId === modelId) {
+          return item;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to parse config for item ${item.itemId}: ${error?.message}`);
       }
     }
 
@@ -708,12 +791,20 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findMediaProviderItemByModelID(user: User, modelId: string) {
+    if (!modelId) {
+      return null;
+    }
+
     const items = await this.findProviderItemsByCategory(user, 'mediaGeneration');
 
     for (const item of items) {
-      const config: LLMModelConfig = JSON.parse(item.config);
-      if (config.modelId === modelId) {
-        return item;
+      try {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        if (config.modelId === modelId) {
+          return item;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to parse config for item ${item.itemId}: ${error?.message}`);
       }
     }
 
