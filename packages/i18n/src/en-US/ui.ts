@@ -2960,6 +2960,7 @@ const translations = {
       priceYearly: '{{price}}/month',
       priceYearlyTotal: '{{price}}/year Save 20%',
       upgrade: 'Upgrade to {{planType}}',
+      cannotChangeTo: 'Cannot change to {{planType}}',
       currentPlan: 'Current Plan',
       free: {
         title: 'Free',

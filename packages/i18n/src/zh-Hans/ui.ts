@@ -126,6 +126,7 @@ const translations = {
       priceYearly: '$ {{price}}/月',
       priceYearlyTotal: '$ {{price}}/年 节省 20%',
       upgrade: '升级到 {{planType}}',
+      cannotChangeTo: '不可变更为 {{planType}}',
     },
   },
   privacyPage: {

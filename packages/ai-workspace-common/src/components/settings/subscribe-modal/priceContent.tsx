@@ -130,8 +130,14 @@ const PlanItem = (props: {
   };
 
   return (
-    <div className={`w-full h-full flex flex-col ${planType === 'starter' ? 'pro-plan' : ''}`}>
-      <div className="pt-1 h-[24px] text-center text-xs font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4">
+    <div
+      className={`w-full h-full flex flex-col ${planType === 'starter' ? 'pro-plan bg-[var(--bg-control---refly-bg-control-z0,_#F6F6F6)]' : ''}`}
+    >
+      <div
+        className={
+          'pt-1 h-[24px] text-center text-xs font-bold text-[color:var(--primary---refly-primary-default,#0E9F77)] leading-4'
+        }
+      >
         {planType === 'starter' && t('subscription.mostPopular')}
       </div>
       <div className={`subscribe-content-plans-item item-${planType}`}>
@@ -157,7 +163,9 @@ const PlanItem = (props: {
           onClick={handleButtonClick}
         >
           {isButtonDisabled
-            ? `不可变更为 ${planType.charAt(0).toUpperCase() + planType.slice(1)}`
+            ? t('subscription.plans.cannotChangeTo', {
+                planType: planType.charAt(0).toUpperCase() + planType.slice(1),
+              })
             : planType === 'free'
               ? t('subscription.plans.free.buttonText')
               : planType === 'enterprise'
