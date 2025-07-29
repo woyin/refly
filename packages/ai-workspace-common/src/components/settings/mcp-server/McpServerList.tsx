@@ -130,7 +130,7 @@ const ServerItem = React.memo(
     }, []);
 
     return (
-      <div className="mb-5 py-1 px-2 rounded-lg cursor-pointer hover:bg-refly-tertiary-hover">
+      <div className="mb-5 p-2 rounded-lg cursor-pointer hover:bg-refly-tertiary-hover">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div className="flex-1 flex">
             <div className="flex-shrink-0 h-10 w-10 rounded-md bg-refly-tertiary-default flex items-center justify-center mr-3">
@@ -177,7 +177,7 @@ const ServerItem = React.memo(
                           type="text"
                           size="small"
                           onClick={() => setExpanded(!expanded)}
-                          className="text-xs text-refly-text-2 hover:text-refly-text-1 p-0 h-auto"
+                          className="text-xs text-refly-text-2 hover:text-refly-text-0 p-0 h-auto"
                         >
                           {expanded
                             ? t('settings.mcpServer.collapse')

@@ -15,10 +15,13 @@ import ShareSettings from './share-settings';
 import { useUserStoreShallow } from '@refly/stores';
 import './index.scss';
 import { IconLink } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { LuBookCopy } from 'react-icons/lu';
+import { Undo, Redo, Copy } from 'refly-icons';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { useAuthStoreShallow } from '@refly/stores';
 import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/canvas-layout-controls';
+import { TooltipButton } from './buttons';
+
+const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
 interface TopToolbarProps {
   canvasId: string;
@@ -49,7 +52,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
   const isShareCanvas = useMatch('/share/canvas/:canvasId');
   const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
 
-  const { loading, readonly, shareData } = useCanvasContext();
+  const { loading, readonly, shareData, undo, redo } = useCanvasContext();
 
   const { canvasInitialized, canvasTitle: canvasTitleFromStore } = useCanvasStoreShallow(
     (state) => ({
@@ -102,24 +105,39 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
         </ToolContainer>
 
         <ToolContainer>
+          {!readonly && (
+            <>
+              <TooltipButton
+                tooltip={t('canvas.toolbar.tooltip.undo')}
+                onClick={() => undo()}
+                className={buttonClass}
+              >
+                <Undo size={16} />
+              </TooltipButton>
+
+              <TooltipButton
+                tooltip={t('canvas.toolbar.tooltip.redo')}
+                onClick={() => redo()}
+                className={buttonClass}
+              >
+                <Redo size={16} />
+              </TooltipButton>
+            </>
+          )}
           <CanvasLayoutControls />
 
           {isPreviewCanvas ? (
             <Button
               loading={duplicating}
               type="primary"
-              icon={<LuBookCopy className="flex items-center" />}
+              icon={<Copy size={16} />}
               onClick={handleDuplicate}
             >
               {t('template.use')}
             </Button>
           ) : isShareCanvas ? (
             <>
-              <Button
-                loading={duplicating}
-                icon={<LuBookCopy className="flex items-center" />}
-                onClick={handleDuplicate}
-              >
+              <Button loading={duplicating} icon={<Copy size={16} />} onClick={handleDuplicate}>
                 {t('template.duplicateCanvas')}
               </Button>
               <Button

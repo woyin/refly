@@ -84,7 +84,7 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
         <div className="h-full w-full overflow-hidden flex flex-col">
           <div className="flex items-center justify-between p-5 border-solid border-[1px] border-x-0 border-t-0 border-refly-Card-Border">
             <div className="text-lg font-semibold text-refly-text-0 leading-7">
-              {t('settings.modelProviders.providerStore')}
+              {t('settings.mcpServer.mcpStore')}
             </div>
             <Button
               type="text"

@@ -10,7 +10,6 @@ import {
   IconTouchpad,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Download, Search } from 'refly-icons';
-import { LuUndo, LuRedo } from 'react-icons/lu';
 import { NodeSelector } from '../common/node-selector';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { IContextItem } from '@refly/common-types';
@@ -43,10 +42,9 @@ interface ModeSelectorProps {
 }
 
 const iconClass = 'flex items-center justify-center text-base';
-const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
 // Update component definition
-const TooltipButton = memo(({ tooltip, children, ...buttonProps }: TooltipButtonProps) => (
+export const TooltipButton = memo(({ tooltip, children, ...buttonProps }: TooltipButtonProps) => (
   <Tooltip title={tooltip} arrow={false}>
     <Button type="text" {...buttonProps}>
       {children}
@@ -100,7 +98,7 @@ export const ToolbarButtons = memo(
     const { setNodeCenter } = useNodePosition();
     const { getNodes } = useReactFlow();
     const { hoverCardEnabled } = useHoverCard();
-    const { readonly, undo, redo } = useCanvasContext();
+    const { readonly } = useCanvasContext();
 
     const { showSlideshow, showLinearThread, setShowSlideshow, setShowLinearThread } =
       useCanvasStoreShallow((state) => ({
@@ -229,26 +227,6 @@ export const ToolbarButtons = memo(
           <Tooltip title={t('canvas.toolbar.exportImage')}>{exportImageButton}</Tooltip>
 
           <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
-
-          {!readonly && (
-            <>
-              <TooltipButton
-                tooltip={t('canvas.toolbar.tooltip.undo')}
-                onClick={() => undo()}
-                className={buttonClass}
-              >
-                <LuUndo className={iconClass} size={16} />
-              </TooltipButton>
-
-              <TooltipButton
-                tooltip={t('canvas.toolbar.tooltip.redo')}
-                onClick={() => redo()}
-                className={buttonClass}
-              >
-                <LuRedo className={iconClass} size={16} />
-              </TooltipButton>
-            </>
-          )}
 
           <ModeSelector
             mode={mode}

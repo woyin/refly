@@ -1,5 +1,5 @@
 import React from 'react';
-import logoIcon from '../../../assets/logo.svg';
+import logoIcon from '../../../assets/logo-old.svg';
 import cn from 'classnames';
 
 interface LogoIconProps {

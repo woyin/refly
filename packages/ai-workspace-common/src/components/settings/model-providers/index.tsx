@@ -98,7 +98,7 @@ const ActionDropdown = ({
 
   return (
     <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
-      <Button type="text" icon={<More />} />
+      <Button type="text" icon={<More size={18} />} />
     </Dropdown>
   );
 };
@@ -130,7 +130,7 @@ const ProviderItem = React.memo(
     }, []);
 
     return (
-      <div className="mb-5 py-1 px-2 rounded-md cursor-pointer hover:bg-refly-tertiary-hover">
+      <div className="mb-5 p-2 rounded-md cursor-pointer hover:bg-refly-tertiary-hover">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex-1 flex items-center">
             <div className="flex-shrink-0 h-10 w-10 rounded-md bg-refly-tertiary-default flex items-center justify-center mr-3">
@@ -144,14 +144,17 @@ const ProviderItem = React.memo(
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <div className="font-semibold">{provider.name}</div>
-                <div className="px-1 h-[18px] flex items-center justify-center rounded-[4px] bg-refly-bg-control-z0 text-[10px] leading-[14px] text-refly-text-1 border-solid border-[1px] border-refly-Card-Border">
+                <div className="px-1 h-[18px] flex items-center justify-center rounded-[4px] bg-refly-bg-control-z0 text-[10px] leading-[14px] text-refly-text-1 border-solid border-[1px] border-refly-Card-Border font-semibold">
                   {provider.providerKey.toUpperCase()}
                 </div>
               </div>
               {provider.categories?.length > 0 && (
-                <div>
+                <div className="flex items-center gap-2">
                   {provider.categories.map((category) => (
-                    <Tag key={category} color="green" bordered={false}>
+                    <Tag
+                      key={category}
+                      className="m-0 px-1 h-[18px] flex items-center justify-center rounded-[4px] bg-refly-bg-control-z0 text-[10px] leading-[14px] text-refly-text-1 border-solid border-[1px] border-refly-Card-Border font-semibold"
+                    >
                       {category}
                     </Tag>
                   ))}

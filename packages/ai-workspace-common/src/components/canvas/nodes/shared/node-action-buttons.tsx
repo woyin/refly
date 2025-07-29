@@ -37,7 +37,7 @@ type NodeActionButtonsProps = {
 };
 
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
-  ({ nodeId, nodeType, isNodeHovered, isSelected }) => {
+  ({ nodeId, nodeType, isNodeHovered, isSelected: _isSelected }) => {
     const { t } = useTranslation();
     const { readonly } = useCanvasContext();
     const { getNode } = useReactFlow();
@@ -68,9 +68,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const [copyRunning, setCopyRunning] = useState(false);
 
     const shouldShowButtons =
-      !readonly &&
-      !isMultiSelected &&
-      (isNodeHovered || isSelected || contextMenuOpenedCanvasId === nodeId);
+      !readonly && !isMultiSelected && (isNodeHovered || contextMenuOpenedCanvasId === nodeId);
 
     const handleCloneAskAI = useCallback(() => {
       setCloneAskAIRunning(true);

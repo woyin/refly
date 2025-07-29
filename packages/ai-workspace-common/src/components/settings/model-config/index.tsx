@@ -718,7 +718,9 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       <div className="flex items-center gap-3">
         <Tooltip title={t('settings.modelConfig.providerModeDescription')}>
           <div className="flex items-center gap-2">
-            <div className="text-sm">{t('settings.modelConfig.providerMode')}</div>
+            <div className="text-sm font-semibold text-refly-text-0">
+              {t('settings.modelConfig.providerMode')}
+            </div>
 
             <Switch
               checkedChildren={t('settings.modelConfig.custom')}
@@ -728,6 +730,8 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
             />
           </div>
         </Tooltip>
+
+        <Divider type="vertical" className="h-6 bg-refly-Card-Border m-0" />
 
         <Button
           type="text"

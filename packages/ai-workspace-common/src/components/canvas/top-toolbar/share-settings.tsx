@@ -161,7 +161,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         });
         const shareRecords = latestSharesData?.data?.data;
         const latestShareRecord = shareRecords?.filter((shareRecord) => !shareRecord.templateId)[0];
-
+        console.log('latestShareRecord', value, latestShareRecord);
         if (value === 'off') {
           if (latestShareRecord?.shareId) {
             const { data, error } = await getClient().deleteShare({
@@ -174,7 +174,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
           }
         } else {
           const { storageKey } = await uploadCanvasCover();
-          const { data, error } = await getClient().createShare({
+          const { data } = await getClient().createShare({
             body: {
               entityId: canvasId,
               entityType: 'canvas',
@@ -182,7 +182,10 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
               coverStorageKey: storageKey,
             },
           });
-          success = data?.success && !error;
+          success = data?.success;
+          if (!data.success) {
+            message.error(data?.errMsg);
+          }
         }
 
         if (success) {
