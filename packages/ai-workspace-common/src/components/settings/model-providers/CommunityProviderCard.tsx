@@ -1,6 +1,7 @@
 import React, { memo, useState, useCallback } from 'react';
-import { Card, Button, Typography, Space, message } from 'antd';
-import { DownloadOutlined, CheckOutlined, LinkOutlined } from '@ant-design/icons';
+import { Button, Typography, message, Tooltip } from 'antd';
+import { CheckOutlined } from '@ant-design/icons';
+import { Doc } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 
 import { CommunityProviderConfig } from './provider-store-types';
@@ -8,7 +9,15 @@ import { convertCommunityConfigToProviderRequest, requiresApiKey } from './provi
 import { CommunityProviderApiKeyModal } from './CommunityProviderApiKeyModal';
 import { useCreateProvider } from '@refly-packages/ai-workspace-common/queries';
 
-const { Text } = Typography;
+const { Paragraph } = Typography;
+
+export const CategoryTag = ({ category }: { category: string }) => {
+  return (
+    <span className="px-2 py-1 text-[10px] leading-[14px] rounded-md bg-refly-bg-control-z0 text-refly-text-1 border-solid border-[1px] border-refly-Card-Border whitespace-nowrap font-semibold">
+      {category}
+    </span>
+  );
+};
 
 interface CommunityProviderCardProps {
   config: CommunityProviderConfig;
@@ -86,7 +95,6 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
     const getButtonProps = () => {
       if (isInstalled) {
         return {
-          type: 'default' as const,
           icon: <CheckOutlined />,
           children: t('settings.modelProviders.community.installed'),
           disabled: true,
@@ -100,7 +108,6 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
 
       if (isCurrentlyInstalling) {
         return {
-          type: 'primary' as const,
           loading: true,
           children: t('settings.modelProviders.community.installing'),
           disabled: true,
@@ -108,8 +115,6 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
       }
 
       return {
-        type: 'primary' as const,
-        icon: <DownloadOutlined />,
         children: t('settings.modelProviders.community.install'),
         onClick: handleInstall,
       };
@@ -119,119 +124,55 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
 
     return (
       <>
-        <Card
-          hoverable={!isInstalled}
-          className="transition-all duration-200 hover:shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-          style={{
-            borderRadius: '12px',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
-            overflow: 'hidden',
-            position: 'relative',
-          }}
-          bodyStyle={{
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-          }}
-        >
-          {/* Header with name and documentation */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center space-x-3 flex-1 min-w-0">
-              {/* <Avatar
-                src={config.icon}
-                size={40}
-                className="flex-shrink-0"
-                style={{
-                  backgroundColor: config.icon ? 'transparent' : '#1890ff',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                }}
-              >
-                {!config.icon && config.name.charAt(0).toUpperCase()}
-              </Avatar> */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2">
-                  <Text
-                    strong
-                    className="text-gray-900 dark:text-gray-100 text-base leading-tight truncate"
-                    style={{ fontWeight: 600 }}
-                  >
-                    {config.name}
-                  </Text>
-                </div>
-              </div>
+        <div className="p-4 border-solid border-[1px] border-refly-Card-Border rounded-lg hover:shadow-md transition-all duration-200">
+          <div className="mb-2">
+            <div className="flex items-center mb-0.5 text-refly-text-0 text-base leading-[26px] line-clamp-1 font-semibold">
+              {config.name}
             </div>
 
-            {/* Documentation link in top right */}
-            {config.documentation && (
-              <span
-                onClick={handleDocumentationClick}
-                className="text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-200 cursor-pointer flex-shrink-0"
-                style={{ fontSize: '12px' }}
-              >
-                <Space size={4}>
-                  <LinkOutlined style={{ fontSize: '12px' }} />
-                  <span>{t('settings.modelProviders.community.viewDocumentation')}</span>
-                </Space>
-              </span>
-            )}
-          </div>
-
-          {/* Description */}
-          <div className="flex-1 mb-3">
-            <Text
-              className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed block"
-              style={{
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                lineHeight: '1.4',
-                height: '2.8em',
-              }}
-            >
-              {description || t('settings.modelProviders.community.noDescription')}
-            </Text>
-          </div>
-
-          {/* Footer with categories and install button */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 flex-wrap flex-1 min-w-0">
-              {/* Category tags */}
+            <div className="flex items-center flex-wrap gap-1 h-5">
               {config.categories?.length > 0
                 ? config.categories.map((category, index) => (
-                    <span
-                      key={`${category}-${index}`}
-                      className="px-2 py-1 text-xs rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 whitespace-nowrap"
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 500,
-                        lineHeight: '16px',
-                      }}
-                    >
-                      {category}
-                    </span>
+                    <CategoryTag key={`${category}-${index}`} category={category} />
                   ))
-                : config.category && (
-                    <span
-                      className="px-2 py-1 text-xs rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 500,
-                        lineHeight: '16px',
-                      }}
-                    >
-                      {config.category}
-                    </span>
-                  )}
+                : config.category && <CategoryTag category={config.category} />}
             </div>
-
-            {/* Install Button */}
-            <Button {...buttonProps} size="small" className="ml-auto" />
           </div>
-        </Card>
+
+          <div className="mb-5">
+            <div className="text-refly-text-1 text-sm leading-relaxed min-h-[4.5rem] flex items-start">
+              <Paragraph
+                className="text-refly-text-1 text-sm !mb-0"
+                ellipsis={{ rows: 3, tooltip: true }}
+              >
+                {description || t('settings.modelProviders.community.noDescription')}
+              </Paragraph>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              {...buttonProps}
+              size="middle"
+              variant="filled"
+              className="h-8 flex-1 cursor-pointer"
+            />
+
+            {config.documentation && (
+              <Tooltip
+                title={t('settings.modelProviders.community.viewDocumentation')}
+                placement="bottom"
+              >
+                <div
+                  onClick={handleDocumentationClick}
+                  className="w-8 h-8 cursor-pointer flex-shrink-0 rounded-md bg-refly-tertiary-default flex items-center justify-center hover:bg-refly-tertiary-hover"
+                >
+                  <Doc size={24} />
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        </div>
 
         {/* API Key Configuration Modal */}
         <CommunityProviderApiKeyModal

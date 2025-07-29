@@ -1759,7 +1759,7 @@ const translations = {
   settings: {
     title: '设置',
     tabs: {
-      providers: '供应商',
+      providers: '供应商配置',
       modelConfig: '模型配置',
       parserConfig: '解析配置',
       resourceParser: '资源解析',
@@ -1772,7 +1772,7 @@ const translations = {
     },
     mcpServer: {
       myServers: '我的服务器',
-      mcpStore: 'MCP 商店',
+      mcpStore: 'MCP 市场',
       title: 'MCP 服务器管理',
       name: '名称',
       type: '类型',
@@ -1784,9 +1784,10 @@ const translations = {
       reconnect: '重连设置',
       enabled: '启用状态',
       status: '状态',
-      addServer: '添加服务器',
-      editServer: '编辑服务器',
-      deleteServer: '删除服务器',
+      noServers: '暂无 MCP 服务器',
+      addServer: '添加 MCP',
+      editServer: '编辑 MCP',
+      deleteServer: '删除 MCP',
       deleteConfirmTitle: '删除 MCP 服务器',
       deleteConfirmMessage: '确定要删除 MCP 服务器 "{{name}}" 吗？',
       deleteSuccess: 'MCP 服务器删除成功',
@@ -1845,6 +1846,7 @@ const translations = {
       noToolsAvailable: '暂无可用工具',
       availableToolsPrefix: '可用工具: ',
       collapse: '收起',
+      viewMore: '查看更多',
       viewToolsWithCount: '查看工具 ({{count}})',
       // 社区 MCP
       community: {
@@ -1892,7 +1894,7 @@ const translations = {
       },
     },
     appearance: {
-      title: '外观设置',
+      title: '外观',
       themeMode: '主题模式',
       lightMode: '浅色模式',
       darkMode: '深色模式',
@@ -1916,6 +1918,7 @@ const translations = {
       updateError: '更新用户信息失败，请重试',
       updateSuccess: '更新用户信息成功',
       nameInvalid: '该用户名已被占用',
+      editAccount: '编辑账号资料',
 
       logout: '退出登录',
       logoutConfirmation: {
@@ -2222,7 +2225,7 @@ const translations = {
       settingPlaceholder: ' 未配置',
     },
     defaultModel: {
-      title: '默认模型',
+      title: '默认模型设置',
       chat: '默认问答模型',
       agent: '默认 Agent 模型',
       queryAnalysis: '问题分析与上下文处理',

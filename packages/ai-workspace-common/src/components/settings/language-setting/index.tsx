@@ -1,17 +1,28 @@
-import { Button, Typography } from 'antd';
+import { Button } from 'antd';
 
-// styles
-import './index.scss';
 import { useUserStoreShallow } from '@refly/stores';
-// components
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';
-import { DownOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { OutputLocaleList } from '../../output-locale-list';
 import { LOCALE } from '@refly/common-types';
 import { localeToLanguageName } from '@refly-packages/ai-workspace-common/utils/i18n';
+import { ContentHeader } from '../contentHeader';
+import { ArrowDown } from 'refly-icons';
 
-const { Title } = Typography;
+const LanguageSettingItem = ({
+  title,
+  description,
+  children,
+}: { title: string; description: string; children: React.ReactNode }) => {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="text-sm font-semibold text-refly-text-0 leading-5">{title}</div>
+      {children}
+      <div className="text-xs text-refly-text-2 leading-4">{description}</div>
+    </div>
+  );
+};
+
 export const LanguageSetting = () => {
   const { localSettings } = useUserStoreShallow((state) => ({
     localSettings: state.localSettings,
@@ -22,38 +33,32 @@ export const LanguageSetting = () => {
   const outputLocale = localSettings?.outputLocale;
 
   return (
-    <div className="p-4 pt-0 h-full overflow-hidden flex flex-col">
-      <Title level={4} className="pb-4">
-        {t('settings.tabs.language')}
-      </Title>
-      <div className="language-setting h-full overflow-y-auto">
-        <div className="language-setting-content">
-          <div className="language-setting-content-item">
-            <Typography.Title level={5}>{t('settings.language.uiLocale.title')}</Typography.Title>
-            <Typography.Paragraph type="secondary">
-              {t('settings.language.uiLocale.description')}
-            </Typography.Paragraph>
-            <UILocaleList width={200}>
-              <Button>
-                {t('language')} <DownOutlined />
-              </Button>
-            </UILocaleList>
-          </div>
+    <div className="h-full overflow-hidden flex flex-col">
+      <ContentHeader title={t('settings.tabs.language')} />
 
-          <div className="language-setting-content-item">
-            <Typography.Title level={5}>
-              {t('settings.language.outputLocale.title')}
-            </Typography.Title>
-            <Typography.Paragraph type="secondary">
-              {t('settings.language.outputLocale.description')}
-            </Typography.Paragraph>
-            <OutputLocaleList width={200} position="bl">
-              <Button>
-                {localeToLanguageName?.[uiLocale]?.[outputLocale]} <DownOutlined />
-              </Button>
-            </OutputLocaleList>
-          </div>
-        </div>
+      <div className="px-5 py-6 flex flex-col gap-6 w-full h-full box-border overflow-y-auto">
+        <LanguageSettingItem
+          title={t('settings.language.uiLocale.title')}
+          description={t('settings.language.uiLocale.description')}
+        >
+          <UILocaleList className="w-full">
+            <Button className="w-full px-3 justify-between" color="default" variant="filled">
+              {t('language')} <ArrowDown size={14} color="var(--refly-text-2)" />
+            </Button>
+          </UILocaleList>
+        </LanguageSettingItem>
+
+        <LanguageSettingItem
+          title={t('settings.language.outputLocale.title')}
+          description={t('settings.language.outputLocale.description')}
+        >
+          <OutputLocaleList>
+            <Button className="w-full px-3 justify-between" color="default" variant="filled">
+              {localeToLanguageName?.[uiLocale]?.[outputLocale]}{' '}
+              <ArrowDown size={14} color="var(--refly-text-2)" />
+            </Button>
+          </OutputLocaleList>
+        </LanguageSettingItem>
       </div>
     </div>
   );

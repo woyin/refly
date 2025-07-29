@@ -1970,7 +1970,7 @@ const translations = {
       description: "👋 Welcome to Refly! Let's proceed with some necessary configurations.",
     },
     tabs: {
-      providers: 'Providers',
+      providers: 'Provider Config',
       modelConfig: 'Model Config',
       parserConfig: 'Parser Config',
       resourceParser: 'Resource Parser',
@@ -1987,6 +1987,7 @@ const translations = {
       noToolsAvailable: 'No tools available',
       availableToolsPrefix: 'Available Tools: ',
       collapse: 'Collapse',
+      viewMore: 'View More',
       viewToolsWithCount: 'View Tools ({{count}})',
       title: 'MCP Server Management',
       name: 'Name',
@@ -1999,9 +2000,10 @@ const translations = {
       reconnect: 'Reconnection Settings',
       enabled: 'Enabled',
       status: 'Status',
-      addServer: 'Add Server',
-      editServer: 'Edit Server',
-      deleteServer: 'Delete Server',
+      noServers: 'No MCP servers',
+      addServer: 'Add MCP',
+      editServer: 'Edit MCP',
+      deleteServer: 'Delete MCP',
       deleteConfirmTitle: 'Delete MCP Server',
       deleteConfirmMessage: 'Are you sure you want to delete the MCP server "{{name}}"?',
       deleteSuccess: 'MCP server deleted successfully',
@@ -2122,6 +2124,7 @@ const translations = {
       updateError: 'Failed to update user information. Please try again!',
       updateSuccess: 'User information updated successfully!',
       nameInvalid: 'The username is taken',
+      editAccount: 'Edit Account Information',
 
       logout: 'Log Out',
       logoutConfirmation: {
@@ -2441,7 +2444,7 @@ const translations = {
       settingPlaceholder: 'Not configured',
     },
     defaultModel: {
-      title: 'Default Model',
+      title: 'Default Model Config',
       chat: 'Default Q&A Model',
       agent: 'Default Agent Model',
       queryAnalysis: 'Question Analysis & Context Processing',

@@ -6,7 +6,6 @@ import { ProviderIcon } from '@lobehub/icons';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import {
   Button,
-  Input,
   Empty,
   Switch,
   Tooltip,
@@ -16,17 +15,18 @@ import {
   MenuProps,
   message,
   Tag,
+  Modal,
 } from 'antd';
-import { LuGlobe, LuPlus, LuSearch, LuList, LuStore } from 'react-icons/lu';
+import { HiMiniBuildingStorefront } from 'react-icons/hi2';
+
+import { LuGlobe, LuPlus } from 'react-icons/lu';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { Provider } from '@refly-packages/ai-workspace-common/requests/types.gen';
-import {
-  IconDelete,
-  IconEdit,
-  IconMoreHorizontal,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ProviderModal } from './provider-modal';
 import { ProviderStore } from './ProviderStore';
+import { ContentHeader } from '@refly-packages/ai-workspace-common/components/settings/contentHeader';
+import { Close, More, Delete, Edit } from 'refly-icons';
+import './index.scss';
 
 const ActionDropdown = ({
   provider,
@@ -57,7 +57,7 @@ const ActionDropdown = ({
     {
       label: (
         <div className="flex items-center flex-grow">
-          <IconEdit size={16} className="mr-2" />
+          <Edit size={18} className="mr-2" />
           {t('common.edit')}
         </div>
       ),
@@ -81,7 +81,7 @@ const ActionDropdown = ({
             className="flex items-center text-red-600 flex-grow"
             onClick={(e) => e.stopPropagation()}
           >
-            <IconDelete size={16} className="mr-2" />
+            <Delete size={18} className="mr-2" />
             {t('common.delete')}
           </div>
         </Popconfirm>
@@ -98,7 +98,7 @@ const ActionDropdown = ({
 
   return (
     <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
-      <Button type="text" icon={<IconMoreHorizontal />} />
+      <Button type="text" icon={<More />} />
     </Dropdown>
   );
 };
@@ -130,21 +130,23 @@ const ProviderItem = React.memo(
     }, []);
 
     return (
-      <div className="mb-3 p-4 rounded-md cursor-pointer border border-solid border-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-700">
+      <div className="mb-5 py-1 px-2 rounded-md cursor-pointer border-[1px] border-solid border-refly-Card-Border hover:bg-refly-tertiary-hover">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex-1 flex items-center">
-            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 dark:bg-gray-800">
+            <div className="flex-shrink-0 h-10 w-10 rounded-md bg-refly-tertiary-default flex items-center justify-center mr-3">
               {provider.isGlobal ? (
-                <LuGlobe size={18} />
+                <LuGlobe size={24} className="text-refly-text-2" />
               ) : (
-                <ProviderIcon provider={provider.name?.toLowerCase()} size={18} type={'color'} />
+                <ProviderIcon provider={provider.name?.toLowerCase()} size={24} type={'color'} />
               )}
             </div>
 
             <div className="flex flex-col gap-1">
-              <div className="font-medium flex items-center gap-2">
-                <span>{provider.name}</span>
-                <span className="text-sm text-gray-400">{provider.providerKey.toUpperCase()}</span>
+              <div className="flex items-center gap-2">
+                <div className="font-semibold">{provider.name}</div>
+                <div className="px-1 py-0.5 rounded-md bg-refly-bg-control-z0 text-[10px] leading-[14px] text-refly-text-1 border-solid border-[1px] border-refly-Card-Border">
+                  {provider.providerKey.toUpperCase()}
+                </div>
               </div>
               {provider.categories?.length > 0 && (
                 <div>
@@ -158,15 +160,7 @@ const ProviderItem = React.memo(
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {!provider.isGlobal && (
-              <ActionDropdown
-                provider={provider}
-                handleEdit={() => onSettingsClick({ ...provider, apiKey: 'default' })}
-                refetch={refetch}
-              />
-            )}
-
+          <div className="flex items-center gap-3">
             <Tooltip
               title={
                 provider.isGlobal
@@ -186,6 +180,14 @@ const ProviderItem = React.memo(
                 />
               </div>
             </Tooltip>
+
+            {!provider.isGlobal && (
+              <ActionDropdown
+                provider={provider}
+                handleEdit={() => onSettingsClick({ ...provider, apiKey: 'default' })}
+                refetch={refetch}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -196,13 +198,13 @@ const ProviderItem = React.memo(
 ProviderItem.displayName = 'ProviderItem';
 
 // My Providers Tab Component
-const MyProviders: React.FC<{ visible: boolean; onRefetch: () => void }> = ({
-  visible,
-  onRefetch,
-}) => {
+const MyProviders: React.FC<{
+  onRefetch: () => void;
+  isAddDialogOpen: boolean;
+  setIsAddDialogOpen: (open: boolean) => void;
+}> = ({ onRefetch, isAddDialogOpen, setIsAddDialogOpen }) => {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [searchQuery, _setSearchQuery] = useState('');
   const [editProvider, setEditProvider] = useState<Provider | null>(null);
 
   const { data, isLoading, refetch } = useListProviders();
@@ -249,42 +251,14 @@ const MyProviders: React.FC<{ visible: boolean; onRefetch: () => void }> = ({
     );
   }, [data?.data, searchQuery]);
 
-  useEffect(() => {
-    if (visible) {
-      refetch();
-    }
-  }, [visible, refetch]);
-
   return (
     <div className="h-full overflow-hidden flex flex-col">
-      {/* Search and Add Bar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="relative flex-1 max-w-xs">
-          <Input
-            prefix={<LuSearch className="h-4 w-4 text-gray-400" />}
-            placeholder={t('settings.modelProviders.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <Button
-          type="primary"
-          icon={<LuPlus className="h-5 w-5 flex items-center" />}
-          onClick={() => setIsAddDialogOpen(true)}
-        >
-          {t('settings.modelProviders.addProvider')}
-        </Button>
-      </div>
-
       {/* Providers List */}
       <div
         className={cn(
-          'flex-1 overflow-auto',
+          'flex-1 overflow-auto px-5',
           isLoading || filteredProviders.length === 0 ? 'flex items-center justify-center' : '',
-          filteredProviders.length === 0
-            ? 'border-dashed border-gray-200 dark:border-gray-600 rounded-md'
-            : '',
+          filteredProviders.length === 0 ? 'border-dashed border-refly-Card-Border rounded-md' : '',
         )}
       >
         {isLoading ? (
@@ -357,8 +331,8 @@ interface ModelProvidersProps {
 
 export const ModelProviders = ({ visible }: ModelProvidersProps) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('my-providers');
-
+  const [isProviderStoreOpen, setIsProviderStoreOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   // Get installed providers for Provider Store
   const { data: providersData, refetch: refetchProviders } = useListProviders();
   const installedProviders = providersData?.data || [];
@@ -377,69 +351,63 @@ export const ModelProviders = ({ visible }: ModelProvidersProps) => {
     }
   }, [visible, refetchProviders]);
 
-  const tabItems = [
-    {
-      key: 'my-providers',
-      label: t('settings.modelProviders.myProviders'),
-      icon: <LuList className="h-4 w-4 flex items-center" />,
-    },
-    {
-      key: 'provider-store',
-      label: t('settings.modelProviders.providerStore'),
-      icon: <LuStore className="h-4 w-4 flex items-center" />,
-    },
-  ];
+  return (
+    <div className="h-full overflow-hidden flex flex-col">
+      <ContentHeader
+        title={t('settings.tabs.providers')}
+        customActions={
+          <div className="flex items-center gap-3">
+            <Button
+              type="text"
+              className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
+              icon={<HiMiniBuildingStorefront className="h-4 w-4 flex items-center" />}
+              onClick={() => setIsProviderStoreOpen(true)}
+            >
+              {t('settings.modelProviders.providerStore')}
+            </Button>
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'my-providers':
-        return (
-          <MyProviders
-            visible={visible && activeTab === 'my-providers'}
-            onRefetch={handleRefetch}
-          />
-        );
-      case 'provider-store':
-        return (
+            <Button type="primary" onClick={() => setIsAddDialogOpen(true)}>
+              {t('settings.modelProviders.addProvider')}
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="flex-1 overflow-hidden py-6">
+        <MyProviders
+          onRefetch={handleRefetch}
+          isAddDialogOpen={isAddDialogOpen}
+          setIsAddDialogOpen={setIsAddDialogOpen}
+        />
+      </div>
+
+      <Modal
+        className="provider-store-modal"
+        width="calc(100vw - 80px)"
+        height="calc(100vh - 80px)"
+        centered
+        open={isProviderStoreOpen}
+        closable={false}
+        footer={null}
+      >
+        <div className="h-full w-full overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between p-5 border-solid border-[1px] border-x-0 border-t-0 border-refly-Card-Border">
+            <div className="text-lg font-semibold text-refly-text-0 leading-7">
+              {t('settings.modelProviders.providerStore')}
+            </div>
+            <Button
+              type="text"
+              icon={<Close size={24} />}
+              onClick={() => setIsProviderStoreOpen(false)}
+            />
+          </div>
           <ProviderStore
-            visible={visible && activeTab === 'provider-store'}
+            visible={isProviderStoreOpen}
             installedProviders={installedProviders}
             onInstallSuccess={handleInstallSuccess}
           />
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="p-4 pt-0 h-full overflow-hidden flex flex-col">
-      {/* Custom Tab Header */}
-      <div className="flex border-b border-gray-100 dark:border-gray-800">
-        {tabItems.map((tab) => (
-          <div
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`
-              cursor-pointer relative px-4 py-2.5 flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 ease-in-out 
-              ${
-                activeTab === tab.key
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }
-            `}
-          >
-            <div className="text-sm">{tab.icon}</div>
-            <div>{tab.label}</div>
-            {activeTab === tab.key && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-400 rounded-t-sm" />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      <div className="flex-1 overflow-hidden mt-4">{renderTabContent()}</div>
+        </div>
+      </Modal>
     </div>
   );
 };
