@@ -261,7 +261,6 @@ export const Subscription = () => {
           {t('subscription.subscriptionManagement.currentPlan')}
         </div>
         <div className="current-plan-name flex items-center w-full justify-between">
-          {t('subscription.plans.free.title')}{' '}
           {t('subscription.subscriptionManagement.planNames.freePlan')}
           <Button
             type="primary"

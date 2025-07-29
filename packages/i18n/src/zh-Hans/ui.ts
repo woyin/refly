@@ -40,9 +40,9 @@ const translations = {
       expired: '已失效',
       available: '可用',
       planNames: {
-        starter: '启程版',
-        maker: '创造者版',
-        freePlan: '免费版',
+        starter: 'Starter 启程版',
+        maker: 'Maker 创造者版',
+        freePlan: 'Free 免费版',
       },
     },
     yearly: '按年',

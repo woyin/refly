@@ -2963,8 +2963,7 @@ const translations = {
       cannotChangeTo: 'Cannot change to {{planType}}',
       currentPlan: 'Current Plan',
       free: {
-        title: 'Free',
-        titleCn: 'Current Plan',
+        title: 'Free Plan',
         description: 'The perfect starting point for your creative journey',
         price: 'Free forever',
         buttonText: 'Continue for free',
@@ -2978,8 +2977,7 @@ const translations = {
         ],
       },
       starter: {
-        title: 'Starter',
-        titleCn: 'Starter',
+        title: 'Starter Plan',
         description: 'For individuals who need more credits and features',
         buttonText: 'Get Starter',
         features: [
@@ -2992,8 +2990,7 @@ const translations = {
         ],
       },
       maker: {
-        title: 'Maker',
-        titleCn: 'Maker',
+        title: 'Maker Plan',
         description: 'For power users who need maximum productivity',
         buttonText: 'Get Maker',
         features: [
@@ -3006,8 +3003,7 @@ const translations = {
         ],
       },
       enterprise: {
-        title: 'Enterprise',
-        titleCn: 'Enterprise',
+        title: 'Enterprise Plan',
         description: 'Custom solutions for teams and organizations',
         buttonText: 'Contact Sales',
         features: [
@@ -3053,8 +3049,8 @@ const translations = {
       expired: 'Expired',
       available: 'Available',
       planNames: {
-        starter: 'Starter',
-        maker: 'Maker',
+        starter: 'Starter Plan',
+        maker: 'Maker Plan',
         freePlan: 'Free Plan',
       },
     },
@@ -3070,7 +3066,7 @@ const translations = {
     },
     storageFullModal: {
       free: {
-        title: 'Free',
+        title: 'Free Plan',
         titleCn: 'Current Plan',
         description: 'The perfect starting point for your creative journey',
         price: 'Free forever',
@@ -3085,7 +3081,7 @@ const translations = {
         ],
       },
       starter: {
-        title: 'Starter',
+        title: 'Starter Plan',
         titleCn: 'Starter Plan',
         description: 'The ideal choice for light explorers',
         priceMonthly: '$ {{price}}/month',
@@ -3102,7 +3098,7 @@ const translations = {
         ],
       },
       maker: {
-        title: 'Maker',
+        title: 'Maker Plan',
         titleCn: 'Maker Plan',
         description: 'The high-performance choice for advanced creators',
         priceMonthly: '$ {{price}}/month',
