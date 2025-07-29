@@ -1,4 +1,4 @@
-import { getEnv } from '@refly/utils/env';
+import { getEnv } from '@refly/utils';
 import React from 'react';
 import {
   useLocation,

@@ -20,6 +20,7 @@ import { Title } from './title';
 import { useAbortAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-abort-action';
 import cn from 'classnames';
 import { MediaChatInput } from '@refly-packages/ai-workspace-common/components/canvas/nodes/media/media-input';
+import { logEvent } from '@refly/telemetry-web';
 
 export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const { t, i18n } = useTranslation();
@@ -69,7 +70,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
     setVisible: state.setVisible,
   }));
 
-  const { abortAction } = useAbortAction();
+  const { abortAction } = useAbortAction({ source: 'front-page' });
 
   const handleSelectSkill = useCallback(
     (skill: Skill) => {
@@ -81,6 +82,12 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
+
+    logEvent('home::send_message', Date.now(), {
+      chatMode,
+      model: skillSelectedModel?.name,
+    });
+
     setIsExecuting(true);
     debouncedCreateCanvas('front-page', {
       isPilotActivated: chatMode === 'agent',

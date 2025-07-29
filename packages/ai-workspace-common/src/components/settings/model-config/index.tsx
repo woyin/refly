@@ -19,7 +19,12 @@ import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin
 import { LuPlus, LuMessageCircle, LuImage, LuSettings } from 'react-icons/lu';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { IconDelete, IconEdit } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { LLMModelConfig, ProviderCategory, ProviderItem } from '@refly/openapi-schema';
+import {
+  LLMModelConfig,
+  ProviderCategory,
+  ProviderItem,
+  ProviderMode,
+} from '@refly/openapi-schema';
 import { ModelIcon } from '@lobehub/icons';
 import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/model';
 import { useGroupModels } from '@refly-packages/ai-workspace-common/hooks/use-group-models';
@@ -109,6 +114,11 @@ const ModelItem = memo(
     isSubmitting: boolean;
   }) => {
     const { t } = useTranslation();
+    const { userProfile } = useUserStoreShallow((state) => ({
+      userProfile: state.userProfile,
+    }));
+
+    const editable = userProfile?.preferences?.providerMode === 'custom';
 
     const handleToggleChange = useCallback(
       (checked: boolean) => {
@@ -131,7 +141,7 @@ const ModelItem = memo(
 
     return (
       <div className="relative px-1.5 py-0.5 rounded-md cursor-pointer group hover:bg-refly-tertiary-hover">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="min-h-8 flex items-center justify-between flex-wrap gap-3">
           <div className="flex-1 flex items-center gap-2">
             <ModelIcon
               model={(model.config as LLMModelConfig)?.modelId || model.name}
@@ -155,21 +165,28 @@ const ModelItem = memo(
                 </Tag>
               </>
             )}
-            <Tooltip
-              title={
-                model.enabled ? t('settings.modelConfig.disable') : t('settings.modelConfig.enable')
-              }
-            >
-              <div onClick={handleSwitchWrapperClick} className="flex items-center">
-                <Switch
-                  size="small"
-                  checked={model.enabled ?? false}
-                  onChange={handleToggleChange}
-                  loading={isSubmitting}
-                />
-              </div>
-            </Tooltip>
-            <ActionDropdown model={model} handleEdit={handleEdit} handleDelete={handleDelete} />
+
+            {editable && (
+              <>
+                <Tooltip
+                  title={
+                    model.enabled
+                      ? t('settings.modelConfig.disable')
+                      : t('settings.modelConfig.enable')
+                  }
+                >
+                  <div onClick={handleSwitchWrapperClick} className="flex items-center">
+                    <Switch
+                      size="small"
+                      checked={model.enabled ?? false}
+                      onChange={handleToggleChange}
+                      loading={isSubmitting}
+                    />
+                  </div>
+                </Tooltip>
+                <ActionDropdown model={model} handleEdit={handleEdit} handleDelete={handleDelete} />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -198,6 +215,8 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     setUserProfile: state.setUserProfile,
   }));
 
+  const editable = userProfile?.preferences?.providerMode === 'custom';
+
   const { setMediaModelList } = useChatStoreShallow((state) => ({
     setMediaModelList: state.setMediaModelList,
   }));
@@ -211,6 +230,41 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const chatModel = defaultModel.chat;
   const queryAnalysisModel = defaultModel.queryAnalysis;
   const titleGenerationModel = defaultModel.titleGeneration;
+
+  const [providerMode, setProviderMode] = useState<ProviderMode>(
+    defaultPreferences.providerMode || 'global',
+  );
+
+  const handleProviderModeChange = useCallback(
+    async (checked: boolean) => {
+      const newMode: ProviderMode = checked ? 'custom' : 'global';
+
+      const updatedPreferences = {
+        ...defaultPreferences,
+        providerMode: newMode,
+      };
+
+      try {
+        const res = await getClient().updateSettings({
+          body: {
+            preferences: updatedPreferences,
+          },
+        });
+
+        if (res?.data?.success) {
+          message.success(t('settings.modelConfig.syncSuccessfully'));
+          setUserProfile({
+            ...userProfile,
+            preferences: updatedPreferences,
+          });
+          setProviderMode(newMode);
+        }
+      } catch {
+        message.error(t('settings.modelConfig.syncFailed'));
+      }
+    },
+    [defaultPreferences, setUserProfile, userProfile, t],
+  );
 
   const getDefaultModelTypes = (itemId: string) => {
     const type = [];
@@ -260,7 +314,9 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
 
   const getProviderItems = useCallback(async () => {
     setIsLoading(true);
-    const res = await getClient().listProviderItems();
+    const res = await getClient().listProviderItems({
+      query: providerMode === 'global' ? { global: true } : {},
+    });
     setIsLoading(false);
     if (res?.data?.success) {
       const list = res?.data?.data || [];
@@ -269,7 +325,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       setReranker(list.filter((item) => item.category === 'reranker')?.[0]);
       setMediaGenerationModels(list.filter((item) => item.category === 'mediaGeneration'));
     }
-  }, []);
+  }, [providerMode]);
 
   const updateModelMutation = async (enabled: boolean, model: ProviderItem) => {
     setIsUpdating(true);
@@ -453,7 +509,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     if (visible) {
       getProviderItems();
     }
-  }, [visible, getProviderItems]);
+  }, [visible, getProviderItems, providerMode]);
 
   // Segmented options for model categories
   const segmentedOptions = [
@@ -516,7 +572,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
             )
           }
         >
-          {!searchQuery && (
+          {!searchQuery && editable && (
             <Button
               onClick={() => handleAddModel('llm')}
               icon={<LuPlus className="flex items-center" />}
@@ -561,12 +617,14 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={t('settings.modelConfig.noMediaModels')}
           >
-            <Button
-              onClick={() => handleAddModel('mediaGeneration')}
-              icon={<LuPlus className="flex items-center" />}
-            >
-              {t('settings.modelConfig.addFirstModel')}
-            </Button>
+            {editable && (
+              <Button
+                onClick={() => handleAddModel('mediaGeneration')}
+                icon={<LuPlus className="flex items-center" />}
+              >
+                {t('settings.modelConfig.addFirstModel')}
+              </Button>
+            )}
           </Empty>
         ) : (
           <div className="space-y-2">
@@ -658,6 +716,19 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const customActions = useMemo(() => {
     return (
       <div className="flex items-center gap-3">
+        <Tooltip title={t('settings.modelConfig.providerModeDescription')}>
+          <div className="flex items-center gap-2">
+            <div className="text-sm">{t('settings.modelConfig.providerMode')}</div>
+
+            <Switch
+              checkedChildren={t('settings.modelConfig.custom')}
+              unCheckedChildren={t('settings.modelConfig.global')}
+              checked={providerMode === 'custom'}
+              onChange={handleProviderModeChange}
+            />
+          </div>
+        </Tooltip>
+
         <Button
           type="text"
           className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
@@ -666,7 +737,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         >
           {t('settings.defaultModel.title')}
         </Button>
-        {['conversation', 'media'].includes(activeTab) && (
+        {['conversation', 'media'].includes(activeTab) && editable && (
           <Button
             type="primary"
             onClick={() => {
@@ -682,7 +753,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         )}
       </div>
     );
-  }, [handleAddModel, t, activeTab, setIsConfigDefaultModel]);
+  }, [handleAddModel, t, activeTab, setIsConfigDefaultModel, editable]);
 
   return (
     <div className="h-full overflow-hidden flex flex-col">

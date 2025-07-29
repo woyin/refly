@@ -130,7 +130,7 @@ const ServerItem = React.memo(
     }, []);
 
     return (
-      <div className="mb-5 py-1 px-2 rounded-lg cursor-pointer">
+      <div className="mb-5 py-1 px-2 rounded-lg cursor-pointer hover:bg-refly-tertiary-hover">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div className="flex-1 flex">
             <div className="flex-shrink-0 h-10 w-10 rounded-md bg-refly-tertiary-default flex items-center justify-center mr-3">
@@ -140,7 +140,7 @@ const ServerItem = React.memo(
             <div className="min-h-10 flex flex-col justify-center gap-1">
               <div className="flex items-center gap-2">
                 <div className="font-semibold">{server.name}</div>
-                <Tag className="bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1">
+                <Tag className="bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px]">
                   {server.isGlobal ? 'Global' : server.type.toUpperCase()}
                 </Tag>
               </div>
@@ -161,7 +161,7 @@ const ServerItem = React.memo(
                         return (
                           <Tag
                             key={index}
-                            className={`bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 ${
+                            className={`bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px] ${
                               isVisible ? 'block' : 'hidden'
                             }`}
                           >

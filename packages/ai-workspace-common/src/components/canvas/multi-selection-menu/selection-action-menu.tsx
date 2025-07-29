@@ -52,7 +52,7 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
   const { createGroupFromSelectedNodes } = useGroupNodes();
   const { addContextItems } = useAddToContext();
   const { deleteNodes } = useDeleteNode();
-  const { invokeAction } = useInvokeAction();
+  const { invokeAction } = useInvokeAction({ source: 'selection-action-menu' });
   const { selectNodeCluster, groupNodeCluster, layoutNodeCluster } = useNodeCluster();
   const nodes = useStore((state) => state.nodes);
   const { hoverCardEnabled } = useHoverCard();

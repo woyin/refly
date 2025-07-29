@@ -70,6 +70,7 @@
     "@refly/openapi-schema": "workspace:*",
     "@refly/providers": "workspace:*",
     "@refly/skill-template": "workspace:*",
+    "@refly/telemetry-node": "workspace:*",
     "@refly/utils": "workspace:*",
     "@rekog/mcp-nest": "^1.5.2",
     "@sentry/cli": "^2.31.2",

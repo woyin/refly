@@ -14,7 +14,7 @@ export const SessionChat = ({ canvasId }: { canvasId: string }) => {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
-  const { abortAction } = useAbortAction();
+  const { abortAction } = useAbortAction({ source: 'session-chat' });
   const { setActiveSessionId } = usePilotStoreShallow((state) => ({
     setActiveSessionId: state.setActiveSessionId,
   }));

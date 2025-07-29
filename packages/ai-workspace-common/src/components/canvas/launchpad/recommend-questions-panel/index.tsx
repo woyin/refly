@@ -24,7 +24,7 @@ export const RecommendQuestionsPanel: React.FC<RecommendQuestionsPanelProps> = (
   const { t } = useTranslation();
   const [questions, setQuestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const { invokeAction } = useInvokeAction();
+  const { invokeAction } = useInvokeAction({ source: 'recommend-questions-panel' });
   const { setNewQAText } = useChatStore();
   const { runtimeConfig } = useContextPanelStore.getState();
 

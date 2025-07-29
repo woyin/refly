@@ -7,7 +7,9 @@
     "build": "rsbuild build",
     "dev": "rsbuild dev",
     "preview": "rsbuild preview",
-    "update:tokens": "node token/generate-css.cjs"
+    "update:tokens": "node token/generate-css.cjs",
+    "copy-env": "ncp .env.example .env",
+    "copy-env:develop": "ncp .env.example .env"
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
@@ -20,6 +22,7 @@
     "@refly/layout": "workspace:*",
     "@refly/openapi-schema": "workspace:*",
     "@refly/stores": "workspace:*",
+    "@refly/telemetry-web": "workspace:*",
     "@refly/ui-kit": "workspace:*",
     "@refly/web-core": "workspace:*",
     "@sentry/react": "^7.113.0",

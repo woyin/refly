@@ -81,7 +81,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   );
 
   const { canvasId, readonly: canvasReadonly } = useCanvasContext();
-  const { invokeAction } = useInvokeAction();
+  const { invokeAction } = useInvokeAction({ source: 'edit-chat-input' });
   const skill = useFindSkill(localActionMeta?.name);
   const {
     handleUploadImage: uploadImageHook,

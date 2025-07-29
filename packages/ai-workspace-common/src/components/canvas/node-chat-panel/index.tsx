@@ -26,6 +26,7 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 
 import './index.scss';
+import { logEvent } from '@refly/telemetry-web';
 
 // Memoized Premium Banner Component
 export const PremiumBanner = memo(() => {
@@ -39,8 +40,14 @@ export const PremiumBanner = memo(() => {
   );
 
   const handleUpgrade = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'home_banner');
     setSubscribeModalVisible(true);
   }, [setSubscribeModalVisible]);
+
+  const handleClose = useCallback(() => {
+    logEvent('subscription::home_banner_close');
+    setShowPremiumBanner(false);
+  }, [setShowPremiumBanner]);
 
   if (!showPremiumBanner) return null;
 
@@ -63,7 +70,7 @@ export const PremiumBanner = memo(() => {
             type="text"
             size="small"
             icon={<IoClose size={14} className="flex items-center justify-center" />}
-            onClick={() => setShowPremiumBanner(false)}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-500 flex items-center justify-center w-5 h-5 min-w-0 p-0"
           />
         </div>

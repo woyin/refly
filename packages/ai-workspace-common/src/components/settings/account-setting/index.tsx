@@ -1,9 +1,9 @@
 import { Button, Form, Input, Upload, message, Modal } from 'antd';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { AiOutlineUser } from 'react-icons/ai';
 
-import { useUserStore } from '@refly/stores';
+import { useUserStore, useUserStoreShallow } from '@refly/stores';
 // components
 import { useTranslation } from 'react-i18next';
 import { useDebouncedCallback } from 'use-debounce';
@@ -22,6 +22,14 @@ export const AccountSetting = () => {
 
   const [avatarKey, setAvatarKey] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const userProfile = useUserStoreShallow((state) => state.userProfile);
+
+  useEffect(() => {
+    if (userProfile?.avatar) {
+      setAvatarUrl(userProfile.avatar);
+    }
+  }, [userProfile?.avatar]);
+
   const [avatarError, setAvatarError] = useState(false);
 
   const [nameStatus, setNameStatus] = useState<'error' | 'success' | 'warning' | 'validating'>(
@@ -31,9 +39,6 @@ export const AccountSetting = () => {
   const [loading, setLoading] = useState(false);
 
   const { handleLogout, contextHolder } = useLogout();
-
-  // Get user profile data
-  const userProfile = userStore.userProfile;
 
   const uploadAvatar = async (file: File) => {
     if (loadingAvatar) return;

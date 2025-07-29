@@ -93,7 +93,7 @@ export const SkillNodePreview = memo(({ node }: SkillNodePreviewProps) => {
     setSkillSelectedModel: state.setSkillSelectedModel,
   }));
 
-  const { invokeAction, abortAction } = useInvokeAction();
+  const { invokeAction, abortAction } = useInvokeAction({ source: 'skill-node-preview' });
   const { canvasId, readonly } = useCanvasContext();
   const { handleUploadImage } = useUploadImage();
   const { addNode } = useAddNode();

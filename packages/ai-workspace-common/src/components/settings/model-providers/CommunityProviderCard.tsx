@@ -13,7 +13,7 @@ const { Paragraph } = Typography;
 
 export const CategoryTag = ({ category }: { category: string }) => {
   return (
-    <span className="px-2 py-1 text-[10px] leading-[14px] rounded-md bg-refly-bg-control-z0 text-refly-text-1 border-solid border-[1px] border-refly-Card-Border whitespace-nowrap font-semibold">
+    <span className="px-2 h-[18px] flex items-center justify-center rounded-[4px] bg-refly-bg-control-z0 text-[10px] leading-[14px] text-refly-text-1 border-solid border-[1px] border-refly-Card-Border whitespace-nowrap font-semibold">
       {category}
     </span>
   );

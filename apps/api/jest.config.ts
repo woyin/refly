@@ -2,6 +2,11 @@ import type { Config } from 'jest';
 import { pathsToModuleNameMapper } from 'ts-jest';
 import { compilerOptions } from './tsconfig.json';
 
+// Type assertion to handle optional paths property
+const typedCompilerOptions = compilerOptions as typeof compilerOptions & {
+  paths?: Record<string, string[]>;
+};
+
 const config: Config = {
   rootDir: '.',
   moduleDirectories: ['node_modules'],
@@ -19,7 +24,9 @@ const config: Config = {
     ],
   },
   moduleNameMapper: {
-    ...pathsToModuleNameMapper(compilerOptions.paths ?? {}, { prefix: '<rootDir>' }),
+    ...(typedCompilerOptions.paths
+      ? pathsToModuleNameMapper(typedCompilerOptions.paths, { prefix: '<rootDir>' })
+      : {}),
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   collectCoverageFrom: ['src/**/*.(t|j)s'],

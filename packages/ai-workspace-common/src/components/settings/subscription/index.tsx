@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { Button, Progress, Tooltip, Tag, Typography } from 'antd';
 import { HiOutlineQuestionMarkCircle } from 'react-icons/hi2';
@@ -16,6 +16,7 @@ import { PiInvoiceBold } from 'react-icons/pi';
 import { IconSubscription } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { logEvent } from '@refly/telemetry-web';
 
 const { Title } = Typography;
 const formatDate = (date: string) => {
@@ -112,6 +113,12 @@ export const Subscription = () => {
     setPlanType(subscription?.planType || 'free');
   }, [subscription?.planType, setPlanType]);
 
+  const handleClickSubscription = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'settings');
+    setShowSettingModal(false);
+    setSubscribeModalVisible(true);
+  }, [setSubscribeModalVisible, setShowSettingModal]);
+
   const hintTag = useMemo(() => {
     if (planType === 'free') return null;
     if (subscription?.isTrial) {
@@ -174,10 +181,7 @@ export const Subscription = () => {
                 <Button
                   type={subscription?.isTrial ? 'default' : 'primary'}
                   icon={<IconSubscription className="flex items-center justify-center text-base" />}
-                  onClick={() => {
-                    setShowSettingModal(false);
-                    setSubscribeModalVisible(true);
-                  }}
+                  onClick={handleClickSubscription}
                 >
                   {t('settings.subscription.subscribeNow')}
                 </Button>
