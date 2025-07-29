@@ -5,9 +5,8 @@ import { useTranslation } from 'react-i18next';
 
 // styles
 import './index.scss';
-
+import { Checked, Wait } from 'refly-icons';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { CheckOutlined, HourglassOutlined } from '@ant-design/icons';
 import {
   useSubscriptionStoreShallow,
   useUserStoreShallow,
@@ -85,9 +84,12 @@ const PlanItem = (props: {
 
     if (interval === 'monthly') {
       return (
-        <span className="price-monthly">
-          {t('subscription.plans.priceMonthly', { price: priceInfo.monthly })}
-        </span>
+        <div className="yearly-price-container">
+          <span className="price-monthly">
+            {t('subscription.plans.priceMonthly', { price: priceInfo.monthly })}
+          </span>
+          <span className="price-yearly">&nbsp;</span>
+        </div>
       );
     }
 
@@ -102,8 +104,6 @@ const PlanItem = (props: {
       </div>
     );
   };
-
-  // 根据截图2的效果，按钮文本已直接硬编码在JSX中，此函数不再需要
 
   const handleButtonClick = () => {
     if (isLogin) {
@@ -159,7 +159,13 @@ const PlanItem = (props: {
 
             return (
               <div className="plane-features-item" key={index}>
-                {feature.type === 'coming-soon' ? <HourglassOutlined /> : <CheckOutlined />}
+                <div style={{ marginTop: !description ? 2 : 0 }}>
+                  {planType === 'enterprise' && index === features.length - 1 ? (
+                    <Wait size={16} color="rgba(28, 31, 35, 0.6)" />
+                  ) : (
+                    <Checked size={16} color="#0E9F77" />
+                  )}
+                </div>
                 <div className="plane-features-item-text">
                   <span className={!description ? 'feature-description' : 'feature-name'}>
                     {name}
