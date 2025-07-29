@@ -125,11 +125,12 @@ const PlanItem = (props: {
         <div className="subscribe-content-plans-item-title">
           {planType === 'free' ? (
             <>
-              {t('subscription.plans.free.title')} {isCurrentPlan && <Tag>当前套餐</Tag>}
+              {t('subscription.plans.free.title')}{' '}
+              {isCurrentPlan && <Tag>{t('subscription.plans.currentPlan')}</Tag>}
             </>
           ) : (
             <>
-              {title} {isCurrentPlan && <Tag>当前套餐</Tag>}
+              {title} {isCurrentPlan && <Tag>{t('subscription.plans.currentPlan')}</Tag>}
             </>
           )}
         </div>

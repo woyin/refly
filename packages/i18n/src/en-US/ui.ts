@@ -2960,6 +2960,7 @@ const translations = {
       priceYearly: '{{price}}/month',
       priceYearlyTotal: '{{price}}/year Save 20%',
       upgrade: 'Upgrade to {{planType}}',
+      currentPlan: 'Current Plan',
       free: {
         title: 'Free',
         titleCn: 'Current Plan',
@@ -3086,9 +3087,9 @@ const translations = {
         title: 'Starter',
         titleCn: 'Starter Plan',
         description: 'The ideal choice for light explorers',
-        priceMonthly: '{{price}}/month',
-        priceYearly: '{{price}}/month',
-        priceYearlyTotal: '{{price}}/year, save 20%',
+        priceMonthly: '$ {{price}}/month',
+        priceYearly: '$ {{price}}/month',
+        priceYearlyTotal: '$ {{price}}/year, save 20%',
         buttonText: 'Upgrade to {{planName}}',
         features: [
           'Daily new credits\n300 points',
@@ -3103,9 +3104,9 @@ const translations = {
         title: 'Maker',
         titleCn: 'Maker Plan',
         description: 'The high-performance choice for advanced creators',
-        priceMonthly: '{{price}}/month',
-        priceYearly: '{{price}}/month',
-        priceYearlyTotal: '{{price}}/year, save 20%',
+        priceMonthly: '$ {{price}}/month',
+        priceYearly: '$ {{price}}/month',
+        priceYearlyTotal: '$ {{price}}/year, save 20%',
         buttonText: 'Upgrade to {{planName}}',
         features: [
           'Daily new credits\n300 points',
