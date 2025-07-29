@@ -101,8 +101,10 @@ const NodeHeader = memo(
         key: 'default',
         label: (
           <div className="flex flex-col">
-            <span className="text-sm font-medium">{t('canvas.skill.askAI')}</span>
-            <span className="text-xs text-gray-500">{t('canvas.skill.askAIDescription')}</span>
+            <span className="text-xs font-medium">{t('canvas.skill.askAI')}</span>
+            <span className="text-[10px] text-refly-text-2">
+              {t('canvas.skill.askAIDescription')}
+            </span>
           </div>
         ),
       };
@@ -111,8 +113,8 @@ const NodeHeader = memo(
         key: skill.name,
         label: (
           <div className="flex flex-col">
-            <span className="text-sm font-medium">{t(`${skill.name}.name`, { ns: 'skill' })}</span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs font-medium">{t(`${skill.name}.name`, { ns: 'skill' })}</span>
+            <span className="text-[10px] text-refly-text-2">
               {t(`${skill.name}.description`, { ns: 'skill' })}
             </span>
           </div>
@@ -157,17 +159,6 @@ const NodeHeader = memo(
               trigger={['click']}
               disabled={readonly}
               placement="bottomLeft"
-              dropdownRender={(menu) => (
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '300px',
-                    overflowY: 'auto',
-                  }}
-                >
-                  {menu}
-                </div>
-              )}
             >
               <Button
                 type="text"
