@@ -51,7 +51,7 @@ const PlanItem = (props: {
     plan: string;
   };
 }) => {
-  const { t } = useTranslation('ui');
+  const { t, i18n } = useTranslation('ui');
   const { planType, title, description, features, handleClick, interval } = props;
   const { isLogin, userProfile } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
@@ -67,7 +67,7 @@ const PlanItem = (props: {
     if (planType === 'free') {
       return (
         <div className="yearly-price-container">
-          <span className="price-monthly">{t('subscription.plans.free.price')}</span>
+          <span className="price-monthly">&nbsp;</span>
           <span className="price-yearly">&nbsp;</span>
         </div>
       );
@@ -152,7 +152,11 @@ const PlanItem = (props: {
           {planType === 'free' ? <>{t('subscription.plans.free.title')} </> : <>{title}</>}
         </div>
 
-        <div className="description">{description}</div>
+        <div
+          className={`description ${i18n.language === 'en' || i18n.language.startsWith('en-') ? 'description-en' : ''}`}
+        >
+          {description}
+        </div>
 
         <div className="price-section">{getPrice()}</div>
 
@@ -226,7 +230,6 @@ export const PriceContent = (props: { source: PriceSource }) => {
     for (const planType of planTypes) {
       data[planType] = {
         title: t(`subscription.plans.${planType}.title`),
-        titleCn: t(`subscription.plans.${planType}.titleCn`),
         description: t(`subscription.plans.${planType}.description`),
         features: (
           (t(`subscription.plans.${planType}.features`, { returnObjects: true }) as string[]) || []

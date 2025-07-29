@@ -244,9 +244,15 @@ export const Subscription = () => {
                   ? t('common.loading')
                   : t('subscription.subscriptionManagement.viewBilling')}
               </div>
-              <Button type="primary" className="ant-btn-primary" onClick={handleClickSubscription}>
-                {t('subscription.subscriptionManagement.changePlan')}
-              </Button>
+              {subscriptionPlanType === 'free' && (
+                <Button
+                  type="primary"
+                  className="ant-btn-primary"
+                  onClick={handleClickSubscription}
+                >
+                  {t('subscription.subscriptionManagement.changePlan')}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -260,6 +266,7 @@ export const Subscription = () => {
         <div className="current-plan-label">
           {t('subscription.subscriptionManagement.currentPlan')}
         </div>
+
         <div className="current-plan-name flex items-center w-full justify-between">
           {t('subscription.subscriptionManagement.planNames.freePlan')}
           <Button

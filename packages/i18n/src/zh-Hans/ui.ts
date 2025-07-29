@@ -2125,7 +2125,7 @@ const translations = {
         dailyPagesCount: '{{count}} 页/每天',
         fileSizeLimit: '最大 {{count}} MB',
         free: {
-          description: '开启创意之旅的完美起点',
+          description: '创意之旅的起点',
           serviceSupport: {
             name: '服务支持',
             details: '社区支持（微信或飞书群）',
