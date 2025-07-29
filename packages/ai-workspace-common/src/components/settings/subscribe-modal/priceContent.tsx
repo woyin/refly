@@ -32,6 +32,13 @@ interface Feature {
   type?: string;
 }
 
+enum PlanPriorityMap {
+  free = 0,
+  starter = 1,
+  maker = 2,
+  enterprise = 3,
+}
+
 const PlanItem = (props: {
   planType: string;
   title: string;
@@ -105,16 +112,22 @@ const PlanItem = (props: {
     );
   };
 
+  const isCurrentPlan = currentPlan === planType;
+  const upgradePlan = PlanPriorityMap[PlanPriorityMap[currentPlan] + 1] || 'enterprise';
+
+  const isUpgrade = upgradePlan === planType;
+  const isDowngrade = PlanPriorityMap[currentPlan] > PlanPriorityMap[planType];
+  const isButtonDisabled = (isCurrentPlan || isDowngrade) && planType !== 'enterprise';
+
   const handleButtonClick = () => {
+    if (isButtonDisabled) return;
+
     if (isLogin) {
       handleClick?.();
     } else {
       setLoginModalOpen(true);
     }
   };
-
-  const isCurrentPlan = currentPlan === planType;
-  const _isButtonDisabled = isCurrentPlan && planType !== 'enterprise';
 
   return (
     <div className={`w-full h-full flex flex-col ${planType === 'starter' ? 'pro-plan' : ''}`}>
@@ -140,16 +153,18 @@ const PlanItem = (props: {
         <div className="price-section">{getPrice()}</div>
 
         <div
-          className={`subscribe-btn cursor-pointer subscribe-btn--${planType} ${planType === 'starter' && 'subscribe-btn--most-popular'}`}
+          className={`subscribe-btn cursor-pointer subscribe-btn--${planType} ${planType === 'starter' && 'subscribe-btn--most-popular'} ${isUpgrade && 'subscribe-btn--upgrade'} ${isButtonDisabled && 'subscribe-btn--disabled'}`}
           onClick={handleButtonClick}
         >
-          {planType === 'free'
-            ? t('subscription.plans.free.buttonText')
-            : planType === 'enterprise'
-              ? t('subscription.plans.enterprise.buttonText')
-              : t('subscription.plans.upgrade', {
-                  planType: planType.charAt(0).toUpperCase() + planType.slice(1),
-                })}
+          {isButtonDisabled
+            ? `不可变更为 ${planType.charAt(0).toUpperCase() + planType.slice(1)}`
+            : planType === 'free'
+              ? t('subscription.plans.free.buttonText')
+              : planType === 'enterprise'
+                ? t('subscription.plans.enterprise.buttonText')
+                : t('subscription.plans.upgrade', {
+                    planType: planType.charAt(0).toUpperCase() + planType.slice(1),
+                  })}
         </div>
 
         <div className="plane-features">

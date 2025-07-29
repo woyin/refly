@@ -73,8 +73,8 @@ const translations = {
         ],
       },
       starter: {
-        title: 'Starter 启航版',
-        titleCn: '启航版',
+        title: 'Starter 启程版',
+        titleCn: '启程版',
         description: '轻量探索者的理想选择',
         priceMonthly: '$ {{price}}/月',
         priceYearly: '$ {{price}}/月',

@@ -146,7 +146,7 @@ export const Subscription = () => {
       dataIndex: 'amount',
       key: 'amount',
       align: 'right',
-      render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
+      render: (amount) => `${amount > 0 ? '-' : ''}${amount.toLocaleString()}`,
     },
   ];
 
