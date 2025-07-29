@@ -289,6 +289,9 @@ export class CreditService {
         createdAt: true,
         updatedAt: true,
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     return records.map((record) => ({
       ...record,
@@ -317,6 +320,9 @@ export class CreditService {
         pilotSessionId: true,
         description: true,
         createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
     return records.map((record) => ({
