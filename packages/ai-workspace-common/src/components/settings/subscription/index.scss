@@ -347,48 +347,55 @@
       }
 
       .history-table {
-        border: 1px solid #424242;
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 16px;
+        background-color: #222222;
 
         .ant-table {
-          background-color: #1c1f23;
+          background-color: #222222;
+          border-radius: 12px;
         }
 
         .ant-table-thead > tr > th {
-          background: #1c1f23 !important;
-          color: var(--text-color-primary);
-          border-bottom: 1px solid #424242;
+          background: #222222 !important;
+          color: rgba(255, 255, 255, 0.85);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
           border-right: none !important;
+          font-weight: 500;
         }
 
         .ant-table-tbody > tr > td {
-          background: #1c1f23;
-          color: var(--text-color-primary);
-          border-bottom: 1px solid #424242;
+          background: #222222;
+          color: rgba(255, 255, 255, 0.85);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .ant-table-tbody > tr.ant-table-row:hover > td {
-          background: #2c2c2c;
+          background: #333333;
         }
 
         .ant-table-pagination.ant-pagination {
-          background: #1c1f23;
-          border-top: 1px solid #424242;
+          background: #222222;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 16px 8px;
 
           .ant-pagination-item a {
-            color: var(--text-color-primary);
+            color: rgba(255, 255, 255, 0.85);
           }
           .ant-pagination-item-active a {
             color: #fff;
           }
           .ant-pagination-item-active {
-            background-color: #00968f;
-            border-color: #00968f;
+            background-color: #0E9F77;
+            border-color: #0E9F77;
           }
 
           .ant-pagination-prev .ant-pagination-item-link,
           .ant-pagination-next .ant-pagination-item-link {
             background-color: transparent;
-            color: var(--text-color-primary);
+            color: rgba(255, 255, 255, 0.85);
           }
         }
       }
