@@ -9,13 +9,16 @@ export const useGetMediaModel = () => {
     setMediaModelList: state.setMediaModelList,
     setMediaModelListLoading: state.setMediaModelListLoading,
   }));
-  const { isLogin } = useUserStoreShallow((state) => ({
+  const { isLogin, userProfile } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
+    userProfile: state.userProfile,
   }));
   const { data, isLoading } = useListProviderItems(
     {
       query: {
         category: 'mediaGeneration',
+        global: userProfile?.preferences?.providerMode === 'global',
+        enabled: true,
       },
     },
     null,

@@ -136,6 +136,10 @@ export const ModelSelector = memo(
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const { t } = useTranslation();
 
+    const { userProfile } = useUserStoreShallow((state) => ({
+      userProfile: state.userProfile,
+    }));
+
     const {
       data: providerItemList,
       isLoading: isModelListLoading,
@@ -145,6 +149,7 @@ export const ModelSelector = memo(
         query: {
           category: 'llm',
           enabled: true,
+          global: userProfile?.preferences?.providerMode === 'global',
         },
       },
       [],
@@ -169,9 +174,6 @@ export const ModelSelector = memo(
     }, [refetchModelList]);
 
     const { tokenUsage, isUsageLoading } = useSubscriptionUsage();
-    const { userProfile } = useUserStoreShallow((state) => ({
-      userProfile: state.userProfile,
-    }));
 
     const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
       setShowSettingModal: state.setShowSettingModal,
