@@ -1,5 +1,5 @@
 import { PrismaService } from '../common/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { User, CreditBilling } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
@@ -12,6 +12,8 @@ import { CreditBalance } from './credit.dto';
 
 @Injectable()
 export class CreditService {
+  private readonly logger = new Logger(CreditService.name);
+
   constructor(protected readonly prisma: PrismaService) {}
 
   async checkRequestCreditUsage(
@@ -159,6 +161,26 @@ export class CreditService {
     await this.prisma.$transaction(transactionOperations);
   }
 
+  private async isEarlyBirdUser(user: User) {
+    // Get user's subscription to check if they are early bird user
+    const userSubscription = await this.prisma.subscription.findFirst({
+      where: {
+        uid: user.uid,
+        status: 'active',
+        OR: [{ cancelAt: null }, { cancelAt: { gt: new Date() } }],
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (userSubscription?.overridePlan) {
+      const overridePlan = JSON.parse(userSubscription.overridePlan);
+      return overridePlan.isEarlyBird === true;
+    }
+    return false;
+  }
+
   async syncTokenCreditUsage(data: SyncTokenCreditUsageJobData) {
     const { uid, usage, providerItemId, creditBilling, timestamp, resultId } = data;
 
@@ -177,6 +199,15 @@ export class CreditService {
       // Round up to nearest 5k tokens (not enough 5K counts as 5K)
       const tokenUnits = Math.ceil(totalTokens / 5000);
       creditCost = tokenUnits * (creditBilling.unitCost || 0);
+    }
+
+    // Check if user is early bird user
+    const isEarlyBirdUser = await this.isEarlyBirdUser(user);
+    if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
+      this.logger.log(
+        `Early bird user ${uid} skipping credit billing for provider item ${providerItemId}`,
+      );
+      creditCost = 0;
     }
 
     // If no credit cost, just create usage record

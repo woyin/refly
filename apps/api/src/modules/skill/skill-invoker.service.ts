@@ -894,56 +894,29 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 });
               }
 
-              const tokenUsage: SyncTokenUsageJobData = {
-                ...basicUsageData,
-                usage,
-                timestamp: new Date(),
-              };
+              if (this.usageReportQueue) {
+                const tokenUsage: SyncTokenUsageJobData = {
+                  ...basicUsageData,
+                  usage,
+                  timestamp: new Date(),
+                };
+                await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
+              }
 
               const creditBilling: CreditBilling = providerItem?.creditBilling
                 ? JSON.parse(providerItem?.creditBilling)
                 : undefined;
 
-              // Check if user is early bird and credit billing is free for early bird users
-              let shouldSkipCreditBilling = false;
-              if (creditBilling?.isEarlyBirdFree) {
-                // Get user's subscription to check if they are early bird user
-                const userSubscription = await this.prisma.subscription.findFirst({
-                  where: {
-                    uid: user.uid,
-                    status: 'active',
-                    OR: [{ cancelAt: null }, { cancelAt: { gt: new Date() } }],
-                  },
-                  orderBy: {
-                    createdAt: 'desc',
-                  },
-                });
-
-                if (userSubscription?.overridePlan) {
-                  const overridePlan = JSON.parse(userSubscription.overridePlan);
-                  if (overridePlan.isEarlyBird === true) {
-                    shouldSkipCreditBilling = true;
-                    this.logger.log(
-                      `Early bird user ${user.uid} skipping credit billing for action ${resultId}`,
-                    );
-                  }
-                }
-              }
-
-              const tokenCreditUsage: SyncTokenCreditUsageJobData = {
-                ...basicUsageData,
-                providerItemId: providerItem?.itemId,
-                usage,
-                creditBilling,
-                timestamp: new Date(),
-              };
-
-              if (this.usageReportQueue) {
-                await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
-              }
-
               // Only add to credit usage queue if not skipping for early bird users
-              if (this.creditUsageReportQueue && !shouldSkipCreditBilling) {
+              if (this.creditUsageReportQueue && creditBilling) {
+                const tokenCreditUsage: SyncTokenCreditUsageJobData = {
+                  ...basicUsageData,
+                  providerItemId: providerItem?.itemId,
+                  usage,
+                  creditBilling,
+                  timestamp: new Date(),
+                };
+
                 await this.creditUsageReportQueue.add(
                   `credit_usage_report:${resultId}`,
                   tokenCreditUsage,
