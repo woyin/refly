@@ -1,47 +1,43 @@
-import { Tag } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { IconGithub } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
+import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { canvasTemplateEnabled } from '@refly/ui-kit';
 
 export const Title = () => {
-  const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const isZh = i18n.language === 'zh-CN';
 
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center',
+        'flex flex-col items-center justify-center mb-6',
         canvasTemplateEnabled ? 'mt-48' : '',
       )}
     >
-      <Tag
-        color="orange"
-        className="mb-6 mx-2 text-sm cursor-pointer flex items-center px-2 py-1"
-        icon={<IconGithub className="w-3.5 h-3.5 mr-1" />}
-        onClick={() => {
-          window.open('https://github.com/refly-ai/refly', '_blank');
-        }}
-      >
-        {t('frontPage.githubStar')}
-      </Tag>
-      <h3
-        className={cn(
-          'text-3xl font-medium text-center text-gray-800 mb-6 mx-2 dark:text-gray-100',
-        )}
-      >
-        <span className="mr-1">{t('frontPage.welcome.part1')}</span>
-        <span
-          className="relative font-bold mr-1 inline-block bg-gradient-to-r from-[#2D36FF] to-[#DC55DF] bg-clip-text text-transparent"
-          style={{
-            backgroundImage: 'linear-gradient(55deg, #2D36FF 8%, #DC55DF 114%)',
-            paddingRight: '4px',
-          }}
-        >
-          {t('frontPage.welcome.part2')}
-        </span>
-
-        <span className="">{t('frontPage.welcome.part3')}</span>
-      </h3>
+      <div className="flex flex-col max-w-full w-[800px] text-refly-text-0">
+        <div className="flex gap-2 justify-center items-center self-center">
+          {isZh ? (
+            <div className="flex gap-2 items-center  text-3xl font-semibold leading-10 text-center">
+              <div className="self-stretch my-auto">和</div>
+              <Logo logoProps={{ show: false }} textProps={{ show: true, className: 'w-[70px]' }} />
+              <div className="self-stretch my-auto">一起探索</div>
+              <div className="self-stretch my-auto text-refly-primary-default">好奇心</div>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2 items-center my-auto text-3xl font-semibold leading-none text-center whitespace-nowrap">
+                <span className="self-stretch my-auto">Explore</span>
+                <span className="self-stretch my-auto text-refly-primary-default">Curiosity</span>
+                <span className="self-stretch my-auto">With</span>
+                <Logo
+                  logoProps={{ show: false }}
+                  textProps={{ show: true, className: 'w-[70px]' }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

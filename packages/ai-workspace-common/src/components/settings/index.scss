@@ -1,51 +1,57 @@
+// Custom Tabbar Styles
 .settings-modal {
-  
   .ant-modal-content {
-    height: 100vh;
+    height: 80vh;
+    background: var(--refly-bg-content-z2);
+    box-shadow: none;
     padding: 0;
     margin: 0;
     box-sizing: border-box;
-    border-radius: 0;
-    .ant-modal-header {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100px;
-      margin-bottom: 0;
-      .ant-modal-title {
-        max-width: 1048px;
-        flex: 1;
-        text-align: center;
-      }
-    }
+    border-radius: 20px;
+  }
 
-    .ant-modal-body {
-      display: flex;
-      justify-content: center;
-      height: calc(100% - 100px);
-      width: 100%;
-      overflow: hidden;
-      .ant-tabs {
-        flex: 1;
-        flex-shrink: 0;
-        height: 100%;
-        max-width: 1048px;
-        .ant-tabs-nav {
-          height: 100%;
-          overflow: auto;
-          .ant-tabs-tab {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 500;
-          }
-        }
-        .ant-tabs-content {
-          height: 100%;
-          .ant-tabs-tabpane {
-            height: 100%;
-          }
+  .ant-modal-body {
+    padding: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+  }
+}
+
+
+// Icon styles
+.tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #6B7280;
+  transition: color 0.2s ease-in-out;
+  
+  .active & {
+    color: #155EEF;
+  }
+}
+
+// Dark mode adjustments
+.dark {
+  .custom-tabbar {
+    .tab-item {
+      &.active {
+        &::before {
+          background: #60A5FA;
         }
       }
     }
   }
-}
+  
+  .tab-icon {
+    color: #9CA3AF;
+    
+    .active & {
+      color: #60A5FA;
+    }
+  }
+} 

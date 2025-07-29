@@ -8,6 +8,7 @@ export const reflyColors = {
   'refly-bg-control-z0': 'var(--refly-bg-control-z0)',
   'refly-bg-control-z1': 'var(--refly-bg-control-z1)',
   'refly-bg-glass-content': 'var(--refly-bg-glass-content)',
+  'refly-bg-canvas': 'var(--refly-bg-canvas)',
   'refly-bg-main-z1': 'var(--refly-bg-main-z1)',
   'refly-fill-active': 'var(--refly-fill-active)',
   'refly-fill-default': 'var(--refly-fill-default)',

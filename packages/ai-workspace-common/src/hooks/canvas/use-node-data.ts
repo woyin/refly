@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { CanvasNode, CanvasNodeData } from '../../components/canvas/nodes';
+import { CanvasNode, CanvasNodeData } from '@refly/canvas-common';
 import { CSSProperties } from 'react';
 import { useReactFlow } from '@xyflow/react';
 

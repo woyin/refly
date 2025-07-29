@@ -1,13 +1,15 @@
-import { useState, useCallback, memo } from 'react';
-import { Button, Tooltip, Popover } from 'antd';
+import { useState, useCallback, memo, useMemo } from 'react';
+import { Button, Tooltip, Popover, Dropdown, Space, Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { MdOutlineImage } from 'react-icons/md';
+import { TFunction } from 'i18next';
 import {
   IconAskAI,
-  IconDownloadFile,
-  IconSearch,
   IconSlideshow,
+  IconDown,
+  IconMouse,
+  IconTouchpad,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { Download, Search } from 'refly-icons';
 import { NodeSelector } from '../common/node-selector';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { IContextItem } from '@refly/common-types';
@@ -17,22 +19,82 @@ import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hove
 import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { Help } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/help';
+export type Mode = 'mouse' | 'touchpad';
+
+// Add interface for TooltipButton props
+interface TooltipButtonProps {
+  tooltip: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+// Add interfaces for component props
+interface ModeSelectorProps {
+  mode: 'mouse' | 'touchpad';
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  items: any[]; // Type this according to your items structure
+  onModeChange: (mode: 'mouse' | 'touchpad') => void;
+  t: TFunction;
+}
+
+const iconClass = 'flex items-center justify-center text-base';
+
+// Update component definition
+export const TooltipButton = memo(({ tooltip, children, ...buttonProps }: TooltipButtonProps) => (
+  <Tooltip title={tooltip} arrow={false}>
+    <Button type="text" {...buttonProps}>
+      {children}
+    </Button>
+  </Tooltip>
+));
+
+const ModeSelector = memo(({ mode, open, setOpen, items, onModeChange, t }: ModeSelectorProps) => (
+  <Dropdown
+    menu={{
+      items,
+      onClick: ({ key }) => onModeChange(key as 'mouse' | 'touchpad'),
+      selectedKeys: [mode],
+      className: 'dark:bg-gray-800 dark:[&_.ant-dropdown-menu-item-selected]:bg-gray-700',
+    }}
+    trigger={['click']}
+    open={open}
+    onOpenChange={setOpen}
+  >
+    <Tooltip title={t('canvas.toolbar.tooltip.mode')} arrow={false}>
+      <Button
+        type="text"
+        className="!p-0 h-[30px] w-[48px] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 group"
+      >
+        {mode === 'mouse' ? (
+          <IconMouse className={iconClass} />
+        ) : (
+          <IconTouchpad className={iconClass} />
+        )}
+        <IconDown className={`ml-[-6px] ${iconClass} ${open ? 'rotate-180' : ''}`} />
+      </Button>
+    </Tooltip>
+  </Dropdown>
+));
+ModeSelector.displayName = 'ModeSelector';
 
 export const ToolbarButtons = memo(
   ({
     canvasTitle,
-    showPreview,
-    setShowPreview,
+    mode,
+    changeMode,
   }: {
     canvasTitle: string;
-    showPreview: boolean;
-    showMaxRatio: boolean;
-    setShowPreview: (show: boolean) => void;
-    setShowMaxRatio: (show: boolean) => void;
+    mode: 'mouse' | 'touchpad';
+    changeMode: (mode: 'mouse' | 'touchpad') => void;
   }) => {
     const { t } = useTranslation();
     const { exportCanvasAsImage, isLoading } = useExportCanvasAsImage();
     const [searchOpen, setSearchOpen] = useState(false);
+    const [modeOpen, setModeOpen] = useState(false);
     const { setNodeCenter } = useNodePosition();
     const { getNodes } = useReactFlow();
     const { hoverCardEnabled } = useHoverCard();
@@ -52,18 +114,35 @@ export const ToolbarButtons = memo(
         const node = nodes.find((n) => n.data?.entityId === item.entityId);
         if (node) {
           setNodeCenter(node.id, true);
-          // setSearchOpen(false);
         }
       },
       [getNodes, setNodeCenter],
     );
 
-    const previewButtonConfig = {
-      title: t(`canvas.toolbar.${showPreview ? 'hidePreview' : 'showPreview'}`),
-      description: t('canvas.toolbar.togglePreviewDescription'),
-      videoUrl: 'https://static.refly.ai/onboarding/top-toolbar/topToolbar-togglePreview.webm',
-      placement: 'bottom' as const,
-    };
+    // Memoize static configurations for mode selector
+    const modeItems = useMemo(
+      () => [
+        {
+          key: 'mouse',
+          label: (
+            <Space>
+              <IconMouse className={iconClass} />
+              {t('canvas.toolbar.mouse')}
+            </Space>
+          ),
+        },
+        {
+          key: 'touchpad',
+          label: (
+            <Space>
+              <IconTouchpad className={iconClass} />
+              {t('canvas.toolbar.touchpad')}
+            </Space>
+          ),
+        },
+      ],
+      [t],
+    );
 
     const linearThreadButtonConfig = {
       title: t(`canvas.toolbar.${showLinearThread ? 'hideLaunchpad' : 'showLaunchpad'}`, {
@@ -74,22 +153,6 @@ export const ToolbarButtons = memo(
       }),
       placement: 'bottom' as const,
     };
-
-    const previewButton = (
-      <Button
-        type="text"
-        icon={
-          <MdOutlineImage
-            size={16}
-            className={`flex items-center justify-center ${
-              showPreview ? 'text-gray-900 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'
-            }`}
-          />
-        }
-        onClick={() => setShowPreview(!showPreview)}
-        className="w-8 h-6 flex items-center justify-center mr-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-      />
-    );
 
     const linearThreadButton = (
       <Button
@@ -113,29 +176,22 @@ export const ToolbarButtons = memo(
       <Button
         type="text"
         loading={isLoading}
-        icon={<IconDownloadFile size={16} className="#000 flex items-center justify-center " />}
+        icon={<Download size={18} />}
         onClick={() => exportCanvasAsImage(canvasTitle)}
-        className="w-8 h-6 flex items-center justify-center"
       />
     );
 
     const slideshowButton = (
       <Button
         type="text"
-        icon={
-          <IconSlideshow
-            size={16}
-            className={`flex items-center justify-center ${showSlideshow ? 'text-green-600' : '#000'}`}
-          />
-        }
-        className="w-8 h-6 flex items-center justify-center"
+        icon={<IconSlideshow size={18} />}
         onClick={() => setShowSlideshow(!showSlideshow)}
       />
     );
 
     return (
       <>
-        {!readonly && (
+        {false && (
           <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
             {hoverCardEnabled ? (
               <HoverCard {...linearThreadButtonConfig}>{linearThreadButton}</HoverCard>
@@ -145,7 +201,7 @@ export const ToolbarButtons = memo(
           </div>
         )}
 
-        <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
+        <div className="flex items-center">
           {!readonly && <Tooltip title={t('canvas.toolbar.slideshow')}>{slideshowButton}</Tooltip>}
 
           <Popover
@@ -164,26 +220,24 @@ export const ToolbarButtons = memo(
             overlayClassName="node-search-popover"
           >
             <Tooltip title={t('canvas.toolbar.searchNode')}>
-              <Button
-                type="text"
-                icon={
-                  <IconSearch
-                    size={16}
-                    className="flex items-center justify-center text-gray-900 dark:text-gray-300"
-                  />
-                }
-                className="w-8 h-6 flex items-center justify-center mr-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-              />
+              <Button type="text" icon={<Search size={18} />} />
             </Tooltip>
           </Popover>
 
-          {hoverCardEnabled ? (
-            <HoverCard {...previewButtonConfig}>{previewButton}</HoverCard>
-          ) : (
-            <Tooltip title={previewButtonConfig.title}>{previewButton}</Tooltip>
-          )}
-
           <Tooltip title={t('canvas.toolbar.exportImage')}>{exportImageButton}</Tooltip>
+
+          <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
+
+          <ModeSelector
+            mode={mode}
+            open={modeOpen}
+            setOpen={setModeOpen}
+            items={modeItems}
+            onModeChange={changeMode}
+            t={t}
+          />
+
+          <Help />
         </div>
       </>
     );

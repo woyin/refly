@@ -1,5 +1,5 @@
 import { Button } from 'antd';
-import { AiOutlineMenuFold, AiOutlineMenuUnfold } from 'react-icons/ai';
+import { AiOutlineMenuFold } from 'react-icons/ai';
 import { useSiderStoreShallow } from '@refly/stores';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 
@@ -13,15 +13,7 @@ const PageTitle = (props: { title: string }) => {
   return (
     <div className="border-b-1 flex h-16 w-full items-center gap-2 border-x-0 border-t-0 border-solid border-b-gray-200 bg-[#eef4f7]">
       {collapse ? (
-        <SiderPopover>
-          <Button
-            type="text"
-            icon={<AiOutlineMenuUnfold size={20} />}
-            onClick={() => {
-              setCollapse(!collapse);
-            }}
-          />
-        </SiderPopover>
+        <SiderPopover />
       ) : (
         <Button
           type="text"

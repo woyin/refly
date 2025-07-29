@@ -1,7 +1,7 @@
 import { Position, useReactFlow } from '@xyflow/react';
 import { DocumentNodeProps } from './shared/types';
 import { CustomHandle } from './shared/custom-handle';
-import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
+import { useState, useCallback, useEffect, memo, useMemo } from 'react';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { getNodeCommonStyles } from './index';
 import { useTranslation } from 'react-i18next';
@@ -20,23 +20,21 @@ import {
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { genSkillID } from '@refly/utils/id';
-import {
-  useNodeSize,
-  MAX_HEIGHT_CLASS,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
 import { NodeHeader } from './shared/node-header';
 import { ContentPreview } from './shared/content-preview';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { useDeleteDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-document';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import cn from 'classnames';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { message } from 'antd';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+
+const NODE_WIDTH = 320;
+const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
 
 export const DocumentNode = memo(
   ({
@@ -53,9 +51,9 @@ export const DocumentNode = memo(
     const { i18n, t } = useTranslation();
     const language = i18n.languages?.[0];
     const updateNodeTitle = useUpdateNodeTitle();
+    const { setNodeStyle } = useNodeData();
 
-    const targetRef = useRef<HTMLDivElement>(null);
-    const { getNode, screenToFlowPosition } = useReactFlow();
+    const { getNode } = useReactFlow();
     useSelectedNodeZIndex(id, selected);
 
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
@@ -63,21 +61,7 @@ export const DocumentNode = memo(
     }));
 
     const isOperating = operatingNodeId === id;
-    const sizeMode = data?.metadata?.sizeMode || 'adaptive';
     const node = useMemo(() => getNode(id), [id, getNode]);
-
-    const { containerStyle, handleResize } = useNodeSize({
-      id,
-      node,
-      sizeMode,
-      readonly,
-      isOperating,
-      minWidth: 100,
-      maxWidth: 800,
-      minHeight: 80,
-      defaultWidth: 288,
-      defaultHeight: 384,
-    });
 
     // Check if node has any connections
     const isTargetConnected = edges?.some((edge) => edge.target === id);
@@ -161,7 +145,7 @@ export const DocumentNode = memo(
           true,
         );
       },
-      [data, addNode, screenToFlowPosition],
+      [data, addNode, getConnectionInfo],
     );
 
     const { duplicateDocument } = useCreateDocument();
@@ -189,7 +173,7 @@ export const DocumentNode = memo(
           onDuplicationSuccess,
         );
       },
-      [data, duplicateDocument, id, t],
+      [data, duplicateDocument, t, getConnectionInfo],
     );
 
     const updateTitle = (newTitle: string) => {
@@ -198,6 +182,10 @@ export const DocumentNode = memo(
       }
       updateNodeTitle(newTitle, data.entityId, id, 'document');
     };
+
+    useEffect(() => {
+      setNodeStyle(id, NODE_SIDE_CONFIG);
+    }, [id, setNodeStyle]);
 
     // Add event handling
     useEffect(() => {
@@ -247,93 +235,79 @@ export const DocumentNode = memo(
     ]);
 
     return (
-      <div className={classNames({ nowheel: isOperating && isHovered })}>
-        <div
-          ref={targetRef}
-          onMouseEnter={!isPreview ? handleMouseEnter : undefined}
-          onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-          className={classNames({
-            'relative nodrag nopan select-text': isOperating,
-          })}
-          onClick={onNodeClick}
-          style={isPreview ? { width: 288, height: 200 } : containerStyle}
-        >
-          <div
-            className={`
-            h-full
-            ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
-          `}
-          >
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={isTargetConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="document"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={isSourceConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="document"
-                />
-              </>
-            )}
+      <div
+        onMouseEnter={!isPreview ? handleMouseEnter : undefined}
+        onMouseLeave={!isPreview ? handleMouseLeave : undefined}
+        className={classNames({
+          nowheel: isOperating && isHovered,
+          'relative nodrag nopan select-text': isOperating,
+        })}
+        onClick={onNodeClick}
+      >
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={isTargetConnected}
+              isNodeHovered={isHovered}
+              nodeType="document"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={isSourceConnected}
+              isNodeHovered={isHovered}
+              nodeType="document"
+            />
+          </>
+        )}
 
-            {!isPreview && !readonly && (
-              <NodeActionButtons
-                nodeId={id}
-                nodeType="document"
-                isNodeHovered={isHovered}
-                isSelected={selected}
-              />
-            )}
-
-            <div className={cn('flex flex-col h-full p-3 box-border', MAX_HEIGHT_CLASS)}>
-              <NodeHeader
-                title={data.title || t('common.untitled')}
-                fixedTitle={t('canvas.nodeTypes.document')}
-                Icon={HiOutlineDocumentText}
-                iconBgColor="#00968F"
-                canEdit={!readonly}
-                updateTitle={updateTitle}
-              />
-
-              <div className="flex-grow overflow-y-auto pr-2 -mr-2">
-                <ContentPreview
-                  content={data.contentPreview || t('canvas.nodePreview.document.noContentPreview')}
-                  sizeMode={isPreview ? 'adaptive' : sizeMode}
-                  isOperating={isOperating}
-                  className="min-h-8"
-                />
-              </div>
-
-              <div className="flex justify-end items-center flex-shrink-0 mt-2 text-[10px] text-gray-400 z-20">
-                {time(data.createdAt, language as LOCALE)
-                  ?.utc()
-                  ?.fromNow()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {!readonly && (
-          <NodeResizerComponent
-            targetRef={targetRef}
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="document"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={isPreview}
-            sizeMode={sizeMode}
-            onResize={handleResize}
           />
         )}
+
+        <div
+          style={NODE_SIDE_CONFIG}
+          className={`
+            h-full
+            flex flex-col
+            relative p-4 box-border
+            ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
+          `}
+        >
+          <NodeHeader
+            title={data.title || t('common.untitled')}
+            fixedTitle={t('canvas.nodeTypes.document')}
+            Icon={HiOutlineDocumentText}
+            iconBgColor="#00968F"
+            canEdit={!readonly}
+            updateTitle={updateTitle}
+          />
+
+          <div className="flex-grow overflow-y-auto pr-2 -mr-2">
+            <ContentPreview
+              content={data.contentPreview || t('canvas.nodePreview.document.noContentPreview')}
+              isOperating={isOperating}
+              className="min-h-8"
+            />
+          </div>
+
+          <div className="flex justify-end items-center flex-shrink-0 mt-1 text-[10px] text-gray-400 z-20">
+            {time(data.createdAt, language as LOCALE)
+              ?.utc()
+              ?.fromNow()}
+          </div>
+        </div>
       </div>
     );
   },
@@ -341,10 +315,6 @@ export const DocumentNode = memo(
     const prevStyle = prevProps.data?.metadata?.style;
     const nextStyle = nextProps.data?.metadata?.style;
     const styleEqual = JSON.stringify(prevStyle) === JSON.stringify(nextStyle);
-
-    const prevSizeMode = prevProps.data?.metadata?.sizeMode;
-    const nextSizeMode = nextProps.data?.metadata?.sizeMode;
-    const sizeModeEqual = prevSizeMode === nextSizeMode;
 
     return (
       prevProps.id === nextProps.id &&
@@ -356,8 +326,7 @@ export const DocumentNode = memo(
       prevProps.data?.contentPreview === nextProps.data?.contentPreview &&
       prevProps.data?.createdAt === nextProps.data?.createdAt &&
       JSON.stringify(prevProps.data?.metadata) === JSON.stringify(nextProps.data?.metadata) &&
-      styleEqual &&
-      sizeModeEqual
+      styleEqual
     );
   },
 );

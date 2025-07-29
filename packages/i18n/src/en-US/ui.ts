@@ -146,10 +146,10 @@ const translations = {
   mode: {
     ask: 'Ask',
     agent: 'Agent',
-    askDescription: 'Answer your question in a single step',
-    agentDescription: 'Solve complex problems with multiple steps',
+    askDescription: 'Ask mode: answer your question in a single step',
+    agentDescription: 'Agent mode: automatically plan and execute tasks',
     media: 'Media',
-    mediaDescription: 'Generate images/videos/audios',
+    mediaDescription: 'Media mode: generate images, videos, audios',
   },
   pages: {
     share: {
@@ -432,7 +432,7 @@ const translations = {
     tryForFree: 'Get Started',
     tryItNow: 'Try It Now',
     creationEngine: 'Creation Engine',
-    addToChrome: 'Add to Chrome',
+    addToChrome: 'Install Browser Extension',
     contactUs: 'Contact Us',
     watchVideo: 'Watch Video',
     joinBtn: 'Join for free',
@@ -694,6 +694,12 @@ const translations = {
       continue: 'Continue',
       signin: 'Sign in',
       signup: 'Sign up',
+      greeting: {
+        signin: 'Welcome back!',
+        signup: 'Welcome!',
+        signinSubtitle: 'Welcome back! Sign in to continue.',
+        signupSubtitle: 'Welcome! Please fill in the details to get started.',
+      },
       signinTitle: 'Sign in to Refly',
       signinSubtitle: 'Welcome back! Sign in to continue.',
       signupTitle: 'Create your account',
@@ -714,6 +720,7 @@ const translations = {
       utilText: 'By registering, you agree to our',
       privacyPolicy: 'Privacy Policy',
       terms: 'Terms of Service',
+      or: 'or use email to login',
     },
     resetPasswordModal: {
       title: 'Reset Password',
@@ -851,11 +858,13 @@ const translations = {
     title: 'Share',
     login: 'Start Writing with Refly',
     updateShare: 'Sync',
-    updateShareTooltip: 'Sync shared content',
+    updateShareTooltip: 'Sync latest shared content',
     updateShareSuccess: '​​Latest canvas content synced and shared successfully!',
-    copyLink: 'Copy',
+    copyLink: 'Copy Link',
+    linkCopied: 'Link copied',
     copyLinkTooltip: 'Copy shared link',
-    publishTemplate: 'Publish',
+    publishTemplate: 'Publish to Community',
+    publish: 'Publish',
     publishTemplateTooltip: 'Publish canvas to template',
     linkShare: 'Link Share',
     updateCanvasPermissionSuccess: 'Update canvas permission successfully',
@@ -863,8 +872,8 @@ const translations = {
     accessOptions: {
       anyone: 'Anyone with the link',
       anyoneDescription: 'Anyone with the link can access',
-      off: 'Disabled',
-      offDescription: 'Only you can access',
+      off: 'Only You',
+      offDescription: 'Only you can access through the link',
     },
   },
   workspace: {
@@ -1225,7 +1234,7 @@ const translations = {
       toggleLaunchpadTitle: 'Toggle Ask AI Display State',
       editTitle: 'Edit Canvas Title',
       editTitlePlaceholder: 'Please enter the title of the canvas',
-      rename: 'Rename',
+      rename: 'Edit Canvas Name',
       duplicate: 'Duplicate Canvas',
       syncingChanges: 'Syncing Changes',
       synced: 'Last synced at {{time}}',
@@ -1749,7 +1758,7 @@ const translations = {
     },
     siderMenu: {
       contactUs: 'Contact Us',
-      addToChrome: 'Add to Chrome',
+      addToChrome: 'Install Browser Extension',
       canvasTitle: 'Canvas',
       canvasDescription:
         'Create, edit, and view canvas, unlike traditional Chatbot applications, Refly completes the entire process of dialogue thinking, content consumption, and creation through an infinite two-dimensional canvas.',
@@ -1781,6 +1790,7 @@ const translations = {
       tour: 'View Tutorial',
       template: 'Template',
       home: 'Home',
+      systemTheme: 'System Theme',
     },
   },
   knowledgeLibrary: {
@@ -1962,7 +1972,7 @@ const translations = {
       description: "👋 Welcome to Refly! Let's proceed with some necessary configurations.",
     },
     tabs: {
-      providers: 'Providers',
+      providers: 'Provider Config',
       modelConfig: 'Model Config',
       parserConfig: 'Parser Config',
       resourceParser: 'Resource Parser',
@@ -1979,6 +1989,7 @@ const translations = {
       noToolsAvailable: 'No tools available',
       availableToolsPrefix: 'Available Tools: ',
       collapse: 'Collapse',
+      viewMore: 'View More',
       viewToolsWithCount: 'View Tools ({{count}})',
       title: 'MCP Server Management',
       name: 'Name',
@@ -1991,9 +2002,10 @@ const translations = {
       reconnect: 'Reconnection Settings',
       enabled: 'Enabled',
       status: 'Status',
-      addServer: 'Add Server',
-      editServer: 'Edit Server',
-      deleteServer: 'Delete Server',
+      noServers: 'No MCP servers',
+      addServer: 'Add MCP',
+      editServer: 'Edit MCP',
+      deleteServer: 'Delete MCP',
       deleteConfirmTitle: 'Delete MCP Server',
       deleteConfirmMessage: 'Are you sure you want to delete the MCP server "{{name}}"?',
       deleteSuccess: 'MCP server deleted successfully',
@@ -2114,6 +2126,7 @@ const translations = {
       updateError: 'Failed to update user information. Please try again!',
       updateSuccess: 'User information updated successfully!',
       nameInvalid: 'The username is taken',
+      editAccount: 'Edit Account Information',
 
       logout: 'Log Out',
       logoutConfirmation: {
@@ -2347,11 +2360,6 @@ const translations = {
       },
     },
     copilot: {
-      mcpSelector: {
-        title: 'MCP Selector',
-        empty: 'No MCP servers available',
-        browseMcpStore: 'Go to Store',
-      },
       recommendQuestions: {
         refresh: 'Refresh',
       },
@@ -2447,7 +2455,7 @@ const translations = {
       settingPlaceholder: 'Not configured',
     },
     defaultModel: {
-      title: 'Default Model',
+      title: 'Default Model Config',
       chat: 'Default Q&A Model',
       agent: 'Default Agent Model',
       queryAnalysis: 'Question Analysis & Context Processing',
@@ -2814,6 +2822,9 @@ const translations = {
       title: 'Choose MCP Servers',
       empty: 'No MCP servers available',
       selected: 'Selected',
+      browseMcpStore: 'Go to Install',
+      manageMcpServers: 'Manage MCP',
+      useMcpServers: 'Use MCP',
     },
     contextItem: {
       current: 'Current ',

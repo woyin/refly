@@ -93,13 +93,13 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
   }
 
   return (
-    <div className="h-full overflow-hidden flex flex-col">
+    <div className="h-full flex flex-col px-5 py-3">
       {/* Search and filters */}
-      <div className="mb-8 space-y-5">
+      <div className="w-full flex-shrink-0 mb-3 space-y-3">
         {/* Search bar */}
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative flex-1">
           <Input
-            prefix={<LuSearch className="h-4 w-4 text-gray-400" />}
+            prefix={<LuSearch className="h-4 w-4 text-refly-text-1" />}
             placeholder={t('settings.modelProviders.searchPlaceholder')}
             value={filters.searchText}
             onChange={(e) => handleFiltersChange({ searchText: e.target.value })}
@@ -149,7 +149,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {filteredProviders.length === 0 ? (
           <Empty
             description={
@@ -163,13 +163,13 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
           />
         ) : (
           <>
-            {/* Provider cards grid - maximum 2 per row */}
-            <Row gutter={[24, 24]}>
+            {/* Provider cards grid - maximum 4 per row */}
+            <Row gutter={[24, 24]} className="pb-24">
               {filteredProviders.map((provider) => {
                 const isInstalled = isProviderInstalled(provider, installedProviders);
 
                 return (
-                  <Col key={provider.providerId} xs={24} sm={24} md={12}>
+                  <Col key={provider.providerId} xs={24} sm={12} md={8} lg={6}>
                     <CommunityProviderCard
                       config={provider}
                       isInstalled={isInstalled}

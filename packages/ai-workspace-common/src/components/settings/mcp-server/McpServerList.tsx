@@ -1,30 +1,20 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  Table,
   Button,
   Tag,
-  Space,
   Tooltip,
   Modal,
   message,
   Switch,
-  Typography,
-  Card,
-  List,
-  Badge,
   Empty,
-  theme,
+  Dropdown,
+  DropdownProps,
+  Popconfirm,
+  MenuProps,
 } from 'antd';
-import {
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  ToolOutlined,
-  RightOutlined,
-} from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 
-import { McpServerDTO, McpServerType } from '@refly/openapi-schema';
+import { McpServerDTO } from '@refly/openapi-schema';
 
 import {
   useDeleteMcpServer,
@@ -33,22 +23,213 @@ import {
 } from '@refly-packages/ai-workspace-common/queries';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { McpServerForm } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerForm';
-import { McpServerBatchImport } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerBatchImport';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
 import { useUserStoreShallow } from '@refly/stores';
+import { Edit, Delete, More, Mcp } from 'refly-icons';
+import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 
 interface McpServerListProps {
   visible: boolean;
+  isFormVisible: boolean;
+  setIsFormVisible: (visible: boolean) => void;
+  editingServer: McpServerDTO | null;
+  setEditingServer: (server: McpServerDTO | null) => void;
 }
 
-export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
-  const isLogin = useUserStoreShallow((state) => state.isLogin);
-  const { token } = theme.useToken();
+// Action dropdown component
+const ActionDropdown = ({
+  server,
+  handleEdit,
+  handleDelete,
+}: {
+  server: McpServerDTO;
+  handleEdit: (server: McpServerDTO) => void;
+  handleDelete: (server: McpServerDTO) => void;
+}) => {
   const { t } = useTranslation();
-  const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
-  const [isFormVisible, setIsFormVisible] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [serverToDelete, setServerToDelete] = useState<McpServerDTO | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  const items: MenuProps['items'] = [
+    {
+      label: (
+        <div className="flex items-center flex-grow">
+          <Edit size={18} className="mr-2" />
+          {t('common.edit')}
+        </div>
+      ),
+      key: 'edit',
+      onClick: () => handleEdit(server),
+    },
+    {
+      label: (
+        <Popconfirm
+          placement="bottomLeft"
+          title={t('settings.mcpServer.deleteConfirmTitle')}
+          description={t('settings.mcpServer.deleteConfirmMessage', { name: server.name })}
+          onConfirm={() => handleDelete(server)}
+          onCancel={() => setVisible(false)}
+          okText={t('common.delete')}
+          cancelText={t('common.cancel')}
+          overlayStyle={{ maxWidth: '300px' }}
+        >
+          <div
+            className="flex items-center text-red-600 flex-grow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Delete size={18} className="mr-2" />
+            {t('common.delete')}
+          </div>
+        </Popconfirm>
+      ),
+      key: 'delete',
+    },
+  ];
+
+  const handleOpenChange: DropdownProps['onOpenChange'] = (open: boolean, info: any) => {
+    if (info.source === 'trigger') {
+      setVisible(open);
+    }
+  };
+
+  return (
+    <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
+      <Button type="text" icon={<More size={18} />} />
+    </Dropdown>
+  );
+};
+
+// Server item component
+const ServerItem = React.memo(
+  ({
+    server,
+    serverTools,
+    onEdit,
+    onDelete,
+    onToggleEnabled,
+    isSubmitting,
+  }: {
+    server: McpServerDTO;
+    serverTools: any[];
+    onEdit: (server: McpServerDTO) => void;
+    onDelete: (server: McpServerDTO) => void;
+    onToggleEnabled: (server: McpServerDTO, enabled: boolean) => void;
+    isSubmitting: boolean;
+  }) => {
+    const { t } = useTranslation();
+    const [expanded, setExpanded] = useState(false);
+
+    const handleToggleChange = useCallback(
+      (checked: boolean) => {
+        onToggleEnabled(server, checked);
+      },
+      [server, onToggleEnabled],
+    );
+
+    const handleSwitchWrapperClick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+    }, []);
+
+    return (
+      <div className="mb-5 p-2 rounded-lg cursor-pointer hover:bg-refly-tertiary-hover">
+        <div className="flex items-start justify-between flex-wrap gap-3">
+          <div className="flex-1 flex">
+            <div className="flex-shrink-0 h-10 w-10 rounded-md bg-refly-tertiary-default flex items-center justify-center mr-3">
+              <Mcp size={24} />
+            </div>
+
+            <div className="min-h-10 flex flex-col justify-center gap-1">
+              <div className="flex items-center gap-2">
+                <div className="font-semibold">{server.name}</div>
+                <Tag className="bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px]">
+                  {server.isGlobal ? 'Global' : server.type.toUpperCase()}
+                </Tag>
+              </div>
+              {serverTools.length > 0 && (
+                <span className="text-xs text-refly-text-2">
+                  {t('settings.mcpServer.availableToolsPrefix')} ({serverTools.length})
+                </span>
+              )}
+              {/* Expandable tools section */}
+              {serverTools.length > 0 && (
+                <div className="mt-2">
+                  <div className="bg-refly-bg-control-z0 rounded-md p-2">
+                    <div className="flex flex-wrap gap-2">
+                      {serverTools.map((tool, index) => {
+                        const toolName = tool?.name?.split('__')?.[2] || '';
+                        const isVisible = expanded || index < 6; // Show first 6 tags by default
+
+                        return (
+                          <Tag
+                            key={index}
+                            className={`bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px] ${
+                              isVisible ? 'block' : 'hidden'
+                            }`}
+                          >
+                            {toolName}
+                          </Tag>
+                        );
+                      })}
+                    </div>
+
+                    {serverTools.length > 6 && (
+                      <div className="mt-2">
+                        <Button
+                          type="text"
+                          size="small"
+                          onClick={() => setExpanded(!expanded)}
+                          className="text-xs text-refly-text-2 hover:text-refly-text-0 p-0 h-auto"
+                        >
+                          {expanded
+                            ? t('settings.mcpServer.collapse')
+                            : t('settings.mcpServer.viewMore')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 h-10">
+            <Tooltip
+              title={
+                server.isGlobal ? '' : server.enabled ? t('common.enabled') : t('common.disabled')
+              }
+            >
+              <div onClick={handleSwitchWrapperClick} className="flex items-center">
+                <Switch
+                  size="small"
+                  checked={server.enabled ?? false}
+                  onChange={handleToggleChange}
+                  loading={isSubmitting}
+                  disabled={server.isGlobal}
+                />
+              </div>
+            </Tooltip>
+
+            {!server.isGlobal && (
+              <ActionDropdown server={server} handleEdit={onEdit} handleDelete={onDelete} />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  },
+);
+
+ServerItem.displayName = 'ServerItem';
+
+export const McpServerList: React.FC<McpServerListProps> = ({
+  visible,
+  isFormVisible,
+  setIsFormVisible,
+  editingServer,
+  setEditingServer,
+}) => {
+  const isLogin = useUserStoreShallow((state) => state.isLogin);
+  const { t } = useTranslation();
+
   const [serverTools, setServerTools] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
@@ -87,7 +268,6 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   const deleteMutation = useDeleteMcpServer([], {
     onSuccess: () => {
       message.success(t('settings.mcpServer.deleteSuccess'));
-      setDeleteModalVisible(false);
       // Refresh list data
       refetch();
     },
@@ -148,23 +328,48 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   };
 
   // Handle edit button click
-  const handleEdit = (server: McpServerDTO) => {
-    setEditingServer(server);
-    setIsFormVisible(true);
-  };
+  const handleEdit = useCallback(
+    (server: McpServerDTO) => {
+      setEditingServer(server);
+      setIsFormVisible(true);
+    },
+    [setEditingServer, setIsFormVisible],
+  );
 
   // Handle delete button click
-  const handleDelete = (server: McpServerDTO) => {
-    setServerToDelete(server);
-    setDeleteModalVisible(true);
-  };
+  const handleDelete = useCallback(
+    (server: McpServerDTO) => {
+      deleteMutation.mutate({
+        body: { name: server.name },
+      });
+    },
+    [deleteMutation],
+  );
 
   // Handle enable/disable switch
-  const handleEnableSwitch = async (checked: boolean, server: McpServerDTO) => {
-    try {
-      // If enabling, validate first
-      if (checked) {
-        await validateMutation.mutateAsync({
+  const handleEnableSwitch = useCallback(
+    async (checked: boolean, server: McpServerDTO) => {
+      try {
+        // If enabling, validate first
+        if (checked) {
+          await validateMutation.mutateAsync({
+            body: {
+              name: server.name,
+              type: server.type,
+              url: server.url,
+              command: server.command,
+              args: server.args,
+              env: server.env,
+              headers: server.headers,
+              reconnect: server.reconnect,
+              config: server.config,
+              enabled: true,
+            },
+          });
+        }
+
+        // If validation passes or it's a disable operation, update server status
+        updateMutation.mutate({
           body: {
             name: server.name,
             type: server.type,
@@ -175,391 +380,65 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
             headers: server.headers,
             reconnect: server.reconnect,
             config: server.config,
-            enabled: true,
+            enabled: checked,
           },
         });
+      } catch (error) {
+        // Validation failed, do nothing
+        console.error('Server validation failed:', error);
       }
-
-      // If validation passes or it's a disable operation, update server status
-      updateMutation.mutate({
-        body: {
-          name: server.name,
-          type: server.type,
-          url: server.url,
-          command: server.command,
-          args: server.args,
-          env: server.env,
-          headers: server.headers,
-          reconnect: server.reconnect,
-          config: server.config,
-          enabled: checked,
-        },
-      });
-    } catch (error) {
-      // Validation failed, do nothing
-      console.error('Server validation failed:', error);
-    }
-  };
-
-  // Confirm delete
-  const confirmDelete = () => {
-    if (serverToDelete) {
-      deleteMutation.mutate({
-        body: { name: serverToDelete.name },
-      });
-    }
-  };
-
-  // Get type tag color
-  const getTypeColor = (type: McpServerType) => {
-    switch (type) {
-      case 'sse':
-        return 'blue';
-      case 'streamable':
-        return 'green';
-      case 'stdio':
-        return 'purple';
-      default:
-        return 'default';
-    }
-  };
-
-  // Custom styles
-  const tableStyles = {
-    header: {
-      fontSize: '14px',
-      fontWeight: 500,
-      padding: '12px 16px',
     },
-    cell: {
-      padding: '12px 16px',
-    },
-    row: {
-      cursor: 'default',
-      transition: 'background-color 0.3s',
-      ':hover': {
-        background: '#2A2A2A',
-      },
-    },
-    toolCard: {
-      borderRadius: '6px',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-      border: '1px solid #424242',
-      transition: 'all 0.3s',
-      ':hover': {
-        boxShadow: '0 3px 6px rgba(0,0,0,0.05)',
-        borderColor: '#5E5E5E',
-      },
-    },
-  };
-
-  // Table columns
-  const columns = [
-    {
-      title: t('settings.mcpServer.name'),
-      dataIndex: 'name',
-      key: 'name',
-      ellipsis: true,
-      width: '20%',
-      onHeaderCell: () => ({
-        style: tableStyles.header,
-        className:
-          'bg-neutral-50 dark:bg-zinc-800 border-b border-neutral-300 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 border-t-0 border-x-0',
-      }),
-      onCell: () => ({
-        style: tableStyles.cell,
-      }),
-    },
-    {
-      title: t('settings.mcpServer.type'),
-      dataIndex: 'type',
-      key: 'type',
-      width: '15%',
-      onHeaderCell: () => ({
-        style: tableStyles.header,
-        className:
-          'bg-neutral-50 dark:bg-zinc-800 border-b border-neutral-300 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 border-t-0 border-x-0',
-      }),
-      onCell: () => ({
-        style: tableStyles.cell,
-      }),
-      render: (type: McpServerType) => <Tag color={getTypeColor(type)}>{type.toUpperCase()}</Tag>,
-    },
-    {
-      title: t('settings.mcpServer.url'),
-      dataIndex: 'url',
-      key: 'url',
-      ellipsis: true,
-      width: '40%',
-      onHeaderCell: () => ({
-        style: tableStyles.header,
-        className:
-          'bg-neutral-50 dark:bg-zinc-800 border-b border-neutral-300 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 border-t-0 border-x-0',
-      }),
-      onCell: () => ({
-        style: tableStyles.cell,
-      }),
-      render: (url: string, record: McpServerDTO) => {
-        if (record.type === 'stdio') {
-          const command = record.command || '';
-          const args = record.args
-            ? Array.isArray(record.args)
-              ? record.args.join(' ')
-              : record.args
-            : '';
-          return command ? `${command} ${args}`.trim() : '-';
-        }
-        return url || '-';
-      },
-    },
-    {
-      title: t('settings.mcpServer.status'),
-      dataIndex: 'enabled',
-      key: 'enabled',
-      width: '10%',
-      align: 'center' as const,
-      onHeaderCell: () => ({
-        style: tableStyles.header,
-        className:
-          'bg-neutral-50 dark:bg-zinc-800 border-b border-neutral-300 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 border-t-0 border-x-0',
-      }),
-      onCell: () => ({
-        style: tableStyles.cell,
-      }),
-      render: (enabled: boolean, record: McpServerDTO) => (
-        <Switch
-          checked={enabled}
-          onChange={(checked) => handleEnableSwitch(checked, record)}
-          loading={
-            (updateMutation.isPending &&
-              (updateMutation.variables as { body: { name?: string } })?.body?.name ===
-                record.name) ||
-            (validateMutation.isPending &&
-              (validateMutation.variables as { body: { name?: string } })?.body?.name ===
-                record.name)
-          }
-          disabled={record.isGlobal}
-        />
-      ),
-    },
-    {
-      title: t('common.actions'),
-      key: 'actions',
-      width: '15%',
-      align: 'center' as const,
-      onHeaderCell: () => ({
-        style: tableStyles.header,
-        className:
-          'bg-neutral-50 dark:bg-zinc-800 border-b border-neutral-300 dark:border-zinc-700 text-neutral-600 dark:text-zinc-300 border-t-0 border-x-0',
-      }),
-      onCell: () => ({
-        style: tableStyles.cell,
-      }),
-      render: (_: any, record: McpServerDTO) => (
-        <Space size="middle">
-          <Tooltip title={t('common.edit')}>
-            <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          </Tooltip>
-          <Tooltip title={t('common.delete')}>
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record)}
-              disabled={record.isGlobal}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
+    [validateMutation, updateMutation],
+  );
 
   if (!visible) return null;
 
   return (
-    <div
-      className="mcp-server-list"
-      style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '0 1px' }}
-    >
-      <div className="flex justify-between items-center mb-5" style={{ padding: '0 4px' }}>
-        <div />
-        <Space>
-          {/* Batch import button */}
-          <McpServerBatchImport onSuccess={refetch} />
-          {/* Add single server button */}
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingServer(null);
-              setIsFormVisible(true);
-            }}
-          >
-            {t('settings.mcpServer.addServer')}
-          </Button>
-        </Space>
-      </div>
+    <div className="h-full overflow-hidden flex flex-col">
+      {/* Servers List */}
       <div
-        className="table-container"
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          borderRadius: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        }}
+        className={cn(
+          'flex-1 overflow-auto p-5',
+          isLoading || mcpServers.length === 0 ? 'flex items-center justify-center' : '',
+          mcpServers.length === 0 ? 'border-dashed border-refly-Card-Border rounded-md' : '',
+        )}
       >
-        <Table
-          rowKey="name"
-          columns={columns}
-          dataSource={mcpServers}
-          pagination={false}
-          loading={isLoading || isRefetching}
-          className="mcp-server-table"
-          style={{ borderRadius: '8px' }}
-          scroll={{ y: 'calc(100vh - 300px)' }}
-          rowClassName={() => 'mcp-server-row'}
-          onRow={() => ({
-            style: tableStyles.row,
-          })}
-          expandable={{
-            expandedRowRender: (record) => {
-              const tools = serverTools[record.name] || [];
-
-              if (tools.length === 0) {
-                return (
-                  <div className="py-6 px-6 text-center">
-                    <Empty
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description={
-                        <Typography.Text type="secondary">
-                          {t('settings.mcpServer.noToolsAvailable')}
-                        </Typography.Text>
-                      }
-                    />
-                  </div>
-                );
-              }
-
-              return (
-                <div className="mcp-server-tools py-4 px-5">
-                  <div className="mb-3">
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <ToolOutlined
-                        style={{ marginRight: '8px', color: '#1677ff', fontSize: '16px' }}
-                      />
-                      <Typography.Text
-                        strong
-                        style={{ fontSize: '14px' }}
-                        className="text-gray-800 dark:text-gray-200"
-                      >
-                        {tools.length > 0
-                          ? t('settings.mcpServer.availableToolsPrefix')
-                          : t('settings.mcpServer.noToolsAvailable')}
-                      </Typography.Text>
-                      <Badge
-                        count={tools.length}
-                        style={{
-                          backgroundColor: '#1677ff',
-                          marginLeft: '8px',
-                          fontSize: '12px',
-                          boxShadow: 'none',
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <List
-                    grid={{ gutter: 12, column: 3 }}
-                    dataSource={tools}
-                    renderItem={(tool, index) => (
-                      <List.Item key={index}>
-                        <Card
-                          hoverable
-                          size="small"
-                          className="mcp-server-tool-card"
-                          style={{
-                            background: token.colorBgContainer,
-                            border: `1px solid ${token.colorBorderSecondary}`,
-                            boxShadow: 'none',
-                          }}
-                        >
-                          <Typography.Title
-                            level={5}
-                            style={{
-                              margin: '0 0 6px 0',
-                              fontSize: '14px',
-                              color: '#1677ff',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                            title={tool?.name?.split('__')?.[2] || ''}
-                          >
-                            {tool?.name?.split('__')?.[2] || ''}
-                          </Typography.Title>
-                          <Typography.Paragraph
-                            type="secondary"
-                            style={{
-                              margin: 0,
-                              fontSize: '12px',
-                              lineHeight: '1.4',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              height: '34px',
-                            }}
-                            title={tool.description}
-                          >
-                            {tool.description}
-                          </Typography.Paragraph>
-                        </Card>
-                      </List.Item>
-                    )}
-                  />
-                </div>
-              );
-            },
-            expandRowByClick: false,
-            expandIcon: ({ expanded, onExpand, record }) => {
-              const tools = serverTools[record.name] || [];
-              const hasTools = tools.length > 0;
-              return (
-                <Tooltip
-                  title={
-                    expanded
-                      ? t('settings.mcpServer.collapse')
-                      : hasTools
-                        ? t('settings.mcpServer.viewToolsWithCount', { count: tools.length })
-                        : t('settings.mcpServer.noToolsAvailable')
-                  }
-                >
-                  <Button
-                    type="text"
-                    onClick={(e) => onExpand(record, e)}
-                    style={{
-                      color: expanded ? '#1677ff' : hasTools ? '#1677ff' : '#bfbfbf',
-                      opacity: hasTools ? 1 : 0.6,
-                      transition: 'all 0.3s ease-in-out',
-                      padding: '4px 8px',
-                    }}
-                    disabled={!hasTools}
-                    icon={
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.3s ease-in-out',
-                        }}
-                      >
-                        <RightOutlined />
-                      </span>
-                    }
-                  />
-                </Tooltip>
-              );
-            },
-          }}
-        />
+        {isLoading || isRefetching ? (
+          <div className="flex items-center justify-center h-[300px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4" />
+              <p className="text-gray-500">{t('common.loading')}</p>
+            </div>
+          </div>
+        ) : mcpServers.length === 0 ? (
+          <Empty description={<p>{t('settings.mcpServer.noServers')}</p>}>
+            <Button type="primary" onClick={() => setIsFormVisible(true)}>
+              {t('settings.mcpServer.addServer')}
+            </Button>
+          </Empty>
+        ) : (
+          <div>
+            {mcpServers?.map((server) => (
+              <ServerItem
+                key={server.name}
+                server={server}
+                serverTools={serverTools[server.name] || []}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onToggleEnabled={(server, enabled) => handleEnableSwitch(enabled, server)}
+                isSubmitting={
+                  (updateMutation.isPending &&
+                    (updateMutation.variables as { body: { name?: string } })?.body?.name ===
+                      server.name) ||
+                  (validateMutation.isPending &&
+                    (validateMutation.variables as { body: { name?: string } })?.body?.name ===
+                      server.name)
+                }
+              />
+            ))}
+            <div className="text-center text-gray-400 text-sm mt-4 pb-10">{t('common.noMore')}</div>
+          </div>
+        )}
       </div>
 
       {/* Form Modal */}
@@ -578,26 +457,6 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
           onSubmit={handleFormSubmit}
           onCancel={() => setIsFormVisible(false)}
         />
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        title={t('settings.mcpServer.deleteConfirmTitle')}
-        open={deleteModalVisible}
-        onCancel={() => setDeleteModalVisible(false)}
-        onOk={confirmDelete}
-        okText={t('common.delete')}
-        okButtonProps={{
-          danger: true,
-          loading: deleteMutation.isPending,
-        }}
-        cancelText={t('common.cancel')}
-      >
-        <p>
-          {t('settings.mcpServer.deleteConfirmMessage', {
-            name: serverToDelete?.name,
-          })}
-        </p>
       </Modal>
     </div>
   );

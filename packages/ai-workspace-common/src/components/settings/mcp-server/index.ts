@@ -5,3 +5,4 @@ export * from './CommunityMcpCard';
 export * from './CommunityMcpCardSkeleton';
 export * from './CommunityMcpList';
 export * from './types';
+export * from './mcpServerTab';

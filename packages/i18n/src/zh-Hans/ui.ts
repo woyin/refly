@@ -274,10 +274,10 @@ const translations = {
   mode: {
     ask: '提问',
     agent: 'Agent',
-    askDescription: '单次回答问题',
-    agentDescription: '多步解决复杂问题',
+    askDescription: '问答模式：回答日常问题',
+    agentDescription: 'Agent模式：自动规划并执行任务',
     media: '媒体',
-    mediaDescription: '生成图片/视频/音频',
+    mediaDescription: '媒体模式：生成图片/视频/音频',
   },
   verifyRules: {
     emailRequired: '邮箱地址不能为空',
@@ -392,7 +392,7 @@ const translations = {
     tryForFree: '开始使用',
     tryItNow: '立即体验',
     creationEngine: '创作引擎',
-    addToChrome: '添加到 Chrome',
+    addToChrome: '安装浏览器插件',
     contactUs: '联系我们',
     watchVideo: '观看视频',
     joinBtn: '免费使用',
@@ -590,6 +590,12 @@ const translations = {
       continue: '继续',
       signin: '登录',
       signup: '注册',
+      greeting: {
+        signin: '欢迎回来！',
+        signup: '欢迎！',
+        signinSubtitle: '欢迎回来！请登录以继续使用',
+        signupSubtitle: '欢迎！请填写详细信息以开始使用',
+      },
       signinTitle: '登录 Refly',
       signinSubtitle: '欢迎回来！请登录以继续使用',
       signupTitle: '创建您的账户',
@@ -610,6 +616,7 @@ const translations = {
       utilText: '注册即表明您同意 ',
       privacyPolicy: '隐私政策',
       terms: '服务条款',
+      or: '或使用邮箱登录',
     },
     resetPasswordModal: {
       title: '重置密码',
@@ -795,20 +802,22 @@ const translations = {
     title: '分享',
     login: '开始用 Refly 写作',
     updateShare: '同步',
-    updateShareTooltip: '同步分享内容',
+    updateShareTooltip: '同步最新分享内容',
     updateShareSuccess: '最新画布内容已同步分享',
-    copyLink: '复制',
+    copyLink: '复制链接',
+    linkCopied: '链接已复制',
     copyLinkTooltip: '复制分享链接',
-    publishTemplate: '发布',
+    publishTemplate: '发布到社区',
+    publish: '发布',
     publishTemplateTooltip: '将画布发布为模板',
     linkShare: '链接分享',
     updateCanvasPermissionSuccess: '更新画布权限成功',
     copyLinkSuccess: '分享链接已复制到剪贴板！',
     accessOptions: {
-      anyone: '互联网获得链接的人',
-      anyoneDescription: '获得此链接的人均可查看',
-      off: '未开启',
-      offDescription: '仅你可访问',
+      anyone: '公开访问',
+      anyoneDescription: '获取访问链接的用户可访问',
+      off: '仅限自己',
+      offDescription: '通过链接访问仅自己可见',
     },
   },
   workspace: {
@@ -1162,7 +1171,7 @@ const translations = {
       toggleLaunchpadTitle: '切换 AI 提问框展示状态',
       editTitle: '编辑画布标题',
       editTitlePlaceholder: '请输入画布标题',
-      rename: '重命名',
+      rename: '编辑画布标题',
       duplicate: '复制画布',
       syncingChanges: '同步中',
       synced: '上次同步于{{time}}',
@@ -1677,14 +1686,14 @@ const translations = {
     },
     siderMenu: {
       contactUs: '联系我们',
-      addToChrome: '添加到 Chrome',
+      addToChrome: '安装浏览器插件',
       canvasTitle: '画布',
       canvasDescription:
         '创建、编辑和查看画布, 不同于传统的 Chatbot 应用，Refly 通过无限延伸的二维画布来完成对话思考、内容消费和创作的全流程。',
       libraryTitle: '知识库',
       libraryDescription:
         '创建、编辑和查看知识库，包含所有导入的资源以及创建的文档，支持 AI 语义搜索和回答。',
-      subscription: '订阅',
+      subscription: '订阅管理',
       canvas: '画布',
       newCanvas: '新建画布',
       news: '新特性',
@@ -1708,6 +1717,7 @@ const translations = {
       tour: '查看教程',
       template: '模板',
       home: '首页',
+      systemTheme: '系统主题',
     },
   },
   knowledgeLibrary: {
@@ -1871,7 +1881,7 @@ const translations = {
   settings: {
     title: '设置',
     tabs: {
-      providers: '供应商',
+      providers: '供应商配置',
       modelConfig: '模型配置',
       parserConfig: '解析配置',
       resourceParser: '资源解析',
@@ -1884,7 +1894,7 @@ const translations = {
     },
     mcpServer: {
       myServers: '我的服务器',
-      mcpStore: 'MCP 商店',
+      mcpStore: 'MCP 市场',
       title: 'MCP 服务器管理',
       name: '名称',
       type: '类型',
@@ -1896,9 +1906,10 @@ const translations = {
       reconnect: '重连设置',
       enabled: '启用状态',
       status: '状态',
-      addServer: '添加服务器',
-      editServer: '编辑服务器',
-      deleteServer: '删除服务器',
+      noServers: '暂无 MCP 服务器',
+      addServer: '添加 MCP',
+      editServer: '编辑 MCP',
+      deleteServer: '删除 MCP',
       deleteConfirmTitle: '删除 MCP 服务器',
       deleteConfirmMessage: '确定要删除 MCP 服务器 "{{name}}" 吗？',
       deleteSuccess: 'MCP 服务器删除成功',
@@ -1957,6 +1968,7 @@ const translations = {
       noToolsAvailable: '暂无可用工具',
       availableToolsPrefix: '可用工具: ',
       collapse: '收起',
+      viewMore: '查看更多',
       viewToolsWithCount: '查看工具 ({{count}})',
       // 社区 MCP
       community: {
@@ -2004,7 +2016,7 @@ const translations = {
       },
     },
     appearance: {
-      title: '外观设置',
+      title: '外观',
       themeMode: '主题模式',
       lightMode: '浅色模式',
       darkMode: '深色模式',
@@ -2028,6 +2040,7 @@ const translations = {
       updateError: '更新用户信息失败，请重试',
       updateSuccess: '更新用户信息成功',
       nameInvalid: '该用户名已被占用',
+      editAccount: '编辑账号资料',
 
       logout: '退出登录',
       logoutConfirmation: {
@@ -2342,7 +2355,7 @@ const translations = {
       settingPlaceholder: ' 未配置',
     },
     defaultModel: {
-      title: '默认模型',
+      title: '默认模型设置',
       chat: '默认问答模型',
       agent: '默认 Agent 模型',
       queryAnalysis: '问题分析与上下文处理',
@@ -2758,9 +2771,11 @@ const translations = {
     },
     mcpSelector: {
       title: '选择 MCP 服务器',
-      empty: '没有可用的 MCP 服务器',
+      empty: '暂无 MCP 服务器',
       selected: '已选择',
-      browseMcpStore: '去商店添加',
+      browseMcpStore: '去安装',
+      manageMcpServers: '管理 MCP',
+      useMcpServers: '使用 MCP',
     },
     contextItem: {
       current: '当前',

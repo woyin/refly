@@ -1,36 +1,30 @@
 import { useParams } from 'react-router-dom';
 import { Canvas } from '@refly-packages/ai-workspace-common/components/canvas';
-import { Button } from 'antd';
 import { useSiderStoreShallow } from '@refly/stores';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
-import { AiOutlineMenuUnfold } from 'react-icons/ai';
 import { FrontPage } from '@refly-packages/ai-workspace-common/components/canvas/front-page';
 
 const CanvasPage = () => {
   const { canvasId = '' } = useParams();
-  const { collapse, setCollapse } = useSiderStoreShallow((state) => ({
+  const { collapse } = useSiderStoreShallow((state) => ({
     collapse: state.collapse,
-    setCollapse: state.setCollapse,
   }));
 
-  return canvasId && canvasId !== 'empty' ? (
-    <Canvas canvasId={canvasId} />
-  ) : (
-    <div className="flex h-full w-full flex-col">
-      <div className="absolute top-0 left-0 h-16 items-center justify-between px-4 py-2 z-10">
-        {collapse && (
-          <SiderPopover>
-            <Button
-              type="text"
-              icon={<AiOutlineMenuUnfold size={16} className="text-gray-500 dark:text-gray-400" />}
-              onClick={() => {
-                setCollapse(!collapse);
-              }}
+  return (
+    <div className="w-full h-full p-2 rounded-lg">
+      {canvasId && canvasId !== 'empty' ? (
+        <Canvas canvasId={canvasId} />
+      ) : (
+        <div className="flex h-full w-full flex-col">
+          {collapse && (
+            <SiderPopover
+              align={{ offset: [8, -48] }}
+              childrenClassName="absolute top-6 left-6 z-10"
             />
-          </SiderPopover>
-        )}
-      </div>
-      <FrontPage projectId={null} />
+          )}
+          <FrontPage projectId={null} />
+        </div>
+      )}
     </div>
   );
 };

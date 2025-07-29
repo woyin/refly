@@ -7,9 +7,7 @@ import {
   ProviderItem,
   MediaGenerationModelConfig,
 } from '@refly-packages/ai-workspace-common/requests/types.gen';
-import { Select, Typography, message, Skeleton } from 'antd';
-
-const { Text, Title } = Typography;
+import { Select, message, Skeleton } from 'antd';
 
 type ModelSelectProps = {
   value?: ProviderItem;
@@ -34,12 +32,10 @@ const ModelSelect = React.memo(
     );
 
     return (
-      <div className="mb-6">
-        <Title level={5} className="mb-4">
-          {title}
-        </Title>
+      <div className="mb-6 flex flex-col gap-2">
+        <div className="text-sm font-semibold text-refly-text-0 leading-5">{title}</div>
         <Select
-          className="w-full mb-2"
+          className="w-full"
           placeholder={placeholder}
           value={value?.itemId}
           loading={isUpdating}
@@ -49,9 +45,7 @@ const ModelSelect = React.memo(
             value: model?.itemId ?? '',
           }))}
         />
-        <Text type="secondary" className="text-sm">
-          {description}
-        </Text>
+        <div className="text-xs text-refly-text-2 leading-4">{description}</div>
       </div>
     );
   },
@@ -273,7 +267,7 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
   }
 
   return (
-    <div className="p-4 overflow-y-auto h-full mb-200px">
+    <div className="p-6 overflow-y-auto h-full mb-200px">
       <ModelSelect
         value={chatModel}
         onChange={handleChatModelChange}

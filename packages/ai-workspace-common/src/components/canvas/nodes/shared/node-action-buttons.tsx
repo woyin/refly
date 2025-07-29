@@ -6,16 +6,11 @@ import { createNodeEventName } from '@refly-packages/ai-workspace-common/events/
 import { useTranslation } from 'react-i18next';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import {
-  IconDelete,
-  IconAskAI,
-  IconMoreHorizontal,
-  IconCopy,
   IconDeleteFile,
   IconRun,
   IconPreview,
-  IconRefresh,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { GrClone } from 'react-icons/gr';
+import { AiChat, Reload, Copy, Clone, More, Delete } from 'refly-icons';
 import cn from 'classnames';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
@@ -31,6 +26,7 @@ type ActionButtonType = {
   onClick: () => void;
   danger?: boolean;
   loading?: boolean;
+  color?: string;
 };
 
 type NodeActionButtonsProps = {
@@ -41,7 +37,7 @@ type NodeActionButtonsProps = {
 };
 
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
-  ({ nodeId, nodeType, isNodeHovered, isSelected }) => {
+  ({ nodeId, nodeType, isNodeHovered, isSelected: _isSelected }) => {
     const { t } = useTranslation();
     const { readonly } = useCanvasContext();
     const { getNode } = useReactFlow();
@@ -49,6 +45,10 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const { fetchNodeContent } = useGetNodeContent(node);
     const nodeData = useMemo(() => node?.data, [node]);
     const buttonContainerRef = useRef<HTMLDivElement>(null);
+
+    const showMoreButton = useMemo(() => {
+      return !['skill', 'mediaSkill', 'video', 'audio', 'image'].includes(nodeType);
+    }, [nodeType]);
 
     const { nodes } = useStore(
       useShallow((state) => ({
@@ -68,9 +68,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const [copyRunning, setCopyRunning] = useState(false);
 
     const shouldShowButtons =
-      !readonly &&
-      !isMultiSelected &&
-      (isNodeHovered || isSelected || contextMenuOpenedCanvasId === nodeId);
+      !readonly && !isMultiSelected && (isNodeHovered || contextMenuOpenedCanvasId === nodeId);
 
     const handleCloneAskAI = useCallback(() => {
       setCloneAskAIRunning(true);
@@ -153,7 +151,8 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       if (!['skill', 'mediaSkill', 'audio', 'video'].includes(nodeType)) {
         buttons.push({
           key: 'askAI',
-          icon: IconAskAI,
+          icon: AiChat,
+          color: 'var(--refly-primary-default)',
           tooltip: t('canvas.nodeActions.askAI'),
           onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'askAI')),
         });
@@ -164,14 +163,14 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
         case 'skillResponse':
           buttons.push({
             key: 'rerun',
-            icon: IconRefresh,
+            icon: Reload,
             tooltip: t('canvas.nodeActions.rerun'),
             onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'rerun')),
           });
 
           buttons.push({
             key: 'cloneAskAI',
-            icon: GrClone,
+            icon: Clone,
             tooltip: t('canvas.nodeActions.cloneAskAI'),
             onClick: handleCloneAskAI,
             loading: cloneAskAIRunning,
@@ -201,7 +200,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       if (['skillResponse', 'document', 'resource', 'codeArtifact', 'memo'].includes(nodeType)) {
         buttons.push({
           key: 'copy',
-          icon: IconCopy,
+          icon: Copy,
           tooltip: t('canvas.nodeActions.copy'),
           onClick: handleCopy,
           loading: copyRunning,
@@ -211,7 +210,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       // Add delete button for all node types
       buttons.push({
         key: 'delete',
-        icon: IconDelete,
+        icon: Delete,
         tooltip: t('canvas.nodeActions.delete'),
         onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'delete')),
         danger: true,
@@ -238,65 +237,61 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     return (
       <div
         className={cn(
-          'right-0 -top-8 p-1 flex z-50',
+          '',
           {
             'opacity-100': shouldShowButtons,
             'opacity-0 pointer-events-none': !shouldShowButtons,
           },
-          ['memo', 'image', 'video'].includes(nodeType) ? 'block' : 'absolute',
           nodeType === 'memo'
-            ? '!py-0 gap-0'
-            : 'gap-1 bg-white dark:bg-gray-800 rounded-md shadow-md dark:shadow-gray-900 transition-opacity duration-200',
+            ? 'block !py-0 gap-0 h-8'
+            : '-right-1 -top-11 -left-1 -right-1 -bottom-1 -z-1 rounded-[20px] bg-refly-bg-control-z0 border-[1px] border-solid border-refly-Card-Border absolute gap-1 shadow-md transition-opacity duration-200',
         )}
         ref={buttonContainerRef}
       >
-        {actionButtons.map((button) => (
-          <Tooltip key={button.key} title={button.tooltip} placement="top">
-            <Button
-              type="text"
-              danger={button.danger}
-              icon={
-                <button.icon
-                  className={cn('w-4 h-4 flex items-center justify-center', {
-                    '!w-3.5 !h-3.5': nodeType === 'memo',
+        <div
+          className={cn('flex items-center justify-between', {
+            '!justify-end': !showMoreButton,
+            'pt-3 pb-2 px-3': nodeType !== 'memo',
+          })}
+        >
+          <div className={`flex items-center ${nodeType === 'memo' ? 'gap-2' : 'gap-3'}`}>
+            {actionButtons.map((button) => (
+              <Tooltip key={button.key} title={button.tooltip} placement="top">
+                <Button
+                  type="text"
+                  danger={button.danger}
+                  icon={<button.icon color={button.color} size={18} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    button.onClick();
+                  }}
+                  size="small"
+                  loading={button.loading}
+                  className={cn('h-6 p-0 flex items-center justify-center', {
+                    'text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100':
+                      !button.danger,
+                    '!h-8 rounded-none': nodeType === 'memo',
                   })}
                 />
-              }
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                button.onClick();
-              }}
-              size="small"
-              loading={button.loading}
-              className={cn('h-6 p-0 flex items-center justify-center', {
-                'text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100':
-                  !button.danger,
-                '!h-8 rounded-none': nodeType === 'memo',
-              })}
-            />
-          </Tooltip>
-        ))}
+              </Tooltip>
+            ))}
+          </div>
 
-        {!['skill', 'mediaSkill', 'video', 'audio', 'image'].includes(nodeType) && (
-          <Tooltip title={t('canvas.nodeActions.more')} placement="top">
-            <Button
-              type="text"
-              size="small"
-              icon={
-                <IconMoreHorizontal
-                  className={cn('w-4 h-4 flex items-center justify-center', {
-                    '!w-3.5 !h-3.5': nodeType === 'memo',
-                  })}
-                />
-              }
-              onClick={handleOpenContextMenu}
-              className={cn('h-6 p-0 flex items-center justify-center', {
-                '!h-8 rounded-none': nodeType === 'memo',
-              })}
-            />
-          </Tooltip>
-        )}
+          {showMoreButton && (
+            <Tooltip title={t('canvas.nodeActions.more')} placement="top">
+              <Button
+                type="text"
+                size="small"
+                icon={<More size={18} />}
+                onClick={handleOpenContextMenu}
+                className={cn('h-6 p-0 flex items-center justify-center', {
+                  '!h-8 rounded-none': nodeType === 'memo',
+                })}
+              />
+            </Tooltip>
+          )}
+        </div>
       </div>
     );
   },
