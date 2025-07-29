@@ -334,7 +334,7 @@ export const Subscription = () => {
                 </div>
                 <div className="usage-value">
                   {storageUsage?.fileCountUsed || 0}{' '}
-                  <span style={{ color: 'rgba(28, 31, 35, 0.5)' }}>
+                  <span className="quota-text">
                     /{' '}
                     {storageUsage?.fileCountQuota < 0
                       ? filesPlanMap[planType]
