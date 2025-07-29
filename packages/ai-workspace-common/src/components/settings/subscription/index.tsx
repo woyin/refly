@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { Button, Typography, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -17,6 +17,7 @@ import {
   useGetCreditRecharge,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { logEvent } from '@refly/telemetry-web';
 
 // styles
 import './index.scss';
@@ -214,6 +215,12 @@ export const Subscription = () => {
     },
   ];
 
+  const handleClickSubscription = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'settings');
+    setShowSettingModal(false);
+    setSubscribeModalVisible(true);
+  }, [setSubscribeModalVisible, setShowSettingModal]);
+
   const PaidPlanCard = () => {
     return (
       <div className={`subscription-plan-card plan-${planType} w-full`}>
@@ -237,14 +244,7 @@ export const Subscription = () => {
                   ? t('common.loading')
                   : t('subscription.subscriptionManagement.viewBilling')}
               </div>
-              <Button
-                type="primary"
-                className="ant-btn-primary"
-                onClick={() => {
-                  setShowSettingModal(false);
-                  setSubscribeModalVisible(true);
-                }}
-              >
+              <Button type="primary" className="ant-btn-primary" onClick={handleClickSubscription}>
                 {t('subscription.subscriptionManagement.changePlan')}
               </Button>
             </div>

@@ -4,6 +4,7 @@ import { LightLoading, ReflyConfigProvider, useConfigProviderStore } from '@refl
 import { ConfigProvider, theme } from 'antd';
 import { useThemeStoreShallow } from '@refly/stores';
 import { setRuntime } from '@refly/utils/env';
+import { setupStatsig } from '@refly/telemetry-web';
 
 export interface InitializationSuspenseProps {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
     initTheme();
 
     // support multiple initialization
-    await Promise.all([setupI18n(), setupSentry()]);
+    await Promise.all([setupI18n(), setupSentry(), setupStatsig()]);
     setIsInitialized(true);
   };
 

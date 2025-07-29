@@ -88,8 +88,8 @@ export const AISelector = memo(({ onOpenChange, inPlaceEditType }: AISelectorPro
   const [resultContent, setResultContent] = useState('');
   const [resultStatus, setResultStatus] = useState<ActionStatus>('waiting');
   const { docId } = useDocumentContext();
-  const { invokeAction } = useInvokeAction();
-  const { abortAction } = useAbortAction();
+  const { invokeAction } = useInvokeAction({ source: 'ai-selector' });
+  const { abortAction } = useAbortAction({ source: 'ai-selector' });
 
   const { selectedModel, setSelectedModel } = useChatStoreShallow((state) => ({
     selectedModel: state.selectedModel,

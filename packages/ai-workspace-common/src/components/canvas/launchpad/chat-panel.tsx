@@ -34,6 +34,7 @@ import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/comp
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { McpSelectorPanel } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
 import { ToolOutlined } from '@ant-design/icons';
+import { logEvent } from '@refly/telemetry-web';
 
 const PremiumBanner = () => {
   const { t } = useTranslation();
@@ -47,9 +48,15 @@ const PremiumBanner = () => {
 
   if (!showPremiumBanner) return null;
 
-  const handleUpgrade = () => {
+  const handleUpgrade = useCallback(() => {
+    logEvent('subscription::upgrade_click', 'input_banner');
     setSubscribeModalVisible(true);
-  };
+  }, [setSubscribeModalVisible]);
+
+  const handleClose = useCallback(() => {
+    logEvent('subscription::input_banner_close');
+    setShowPremiumBanner(false);
+  }, [setShowPremiumBanner]);
 
   return (
     <div className="flex items-center justify-between px-3 py-0.5 bg-gray-100 border-b dark:bg-gray-800 dark:border-gray-700">
@@ -70,7 +77,7 @@ const PremiumBanner = () => {
             type="text"
             size="small"
             icon={<IoClose size={14} className="flex items-center justify-center" />}
-            onClick={() => setShowPremiumBanner(false)}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-500 flex items-center justify-center w-5 h-5 min-w-0 p-0"
           />
         </div>
@@ -145,7 +152,7 @@ export const ChatPanel = ({
   const { canvasId, readonly } = useCanvasContext();
   const { handleFilterErrorTip } = useContextFilterErrorTip();
   const { addNode } = useAddNode();
-  const { invokeAction, abortAction } = useInvokeAction();
+  const { invokeAction, abortAction } = useInvokeAction({ source: 'chat-panel' });
   const { handleUploadImage, handleUploadMultipleImages } = useUploadImage();
 
   // Handle input focus

@@ -25,7 +25,7 @@ import {
   Provider as ProviderModel,
   ProviderItem as ProviderItemModel,
 } from '../../generated/client';
-import { genProviderItemID, genProviderID, providerInfoList, pick } from '@refly/utils';
+import { genProviderItemID, genProviderID, providerInfoList } from '@refly/utils';
 import {
   ProviderNotFoundError,
   ProviderItemNotFoundError,
@@ -160,13 +160,13 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findProvider(user: User, param: ListProvidersData['query']) {
-    const { enabled, providerKey, category } = param;
+    const { enabled, providerKey, category, isGlobal } = param;
     const provider = await this.prisma.provider.findFirst({
       where: {
-        uid: user.uid,
         enabled,
         providerKey,
         deletedAt: null,
+        ...(isGlobal ? { isGlobal: true } : { uid: user.uid }),
         ...(category ? { categories: { contains: category } } : {}),
       },
     });
@@ -484,12 +484,22 @@ export class ProviderService implements OnModuleInit {
   }
 
   async listProviderItems(user: User, param: ListProviderItemsData['query']) {
-    const { providerId, category, enabled } = param;
+    const { providerId, category, enabled, isGlobal } = param;
+
+    if (isGlobal) {
+      const { items: globalItems } = await this.globalProviderCache.get();
+      return globalItems.filter(
+        (item) =>
+          (!providerId || item.providerId === providerId) &&
+          (!category || item.category === category) &&
+          (enabled === undefined || item.enabled === enabled),
+      );
+    }
 
     // Fetch user's provider items
     return this.prisma.providerItem.findMany({
       where: {
-        uid: user.uid,
+        ...(isGlobal ? { isGlobal: true } : { uid: user.uid }),
         providerId,
         category,
         enabled,
@@ -527,19 +537,6 @@ export class ProviderService implements OnModuleInit {
   }
 
   async prepareGlobalProviderItemsForUser(user: User) {
-    const { items } = await this.globalProviderCache.get();
-
-    const providerItems = await this.prisma.providerItem.createManyAndReturn({
-      data: items
-        .filter((item) => item.enabled)
-        .map((item) => ({
-          itemId: genProviderItemID(),
-          uid: user.uid,
-          ...pick(item, ['providerId', 'category', 'name', 'enabled', 'config', 'tier']),
-          ...(item.tier ? { groupName: item.tier.toUpperCase() } : {}),
-        })),
-    });
-
     const { preferences } = await this.prisma.user.findUnique({
       where: { uid: user.uid },
       select: {
@@ -549,10 +546,14 @@ export class ProviderService implements OnModuleInit {
 
     const defaultModel = this.configService.get('defaultModel');
     const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+    userPreferences.providerMode ||= this.configService.get('provider.defaultMode');
+
     const defaultModelConfig: DefaultModelConfig = { ...userPreferences.defaultModel };
 
+    const { items } = await this.globalProviderCache.get();
+
     if (defaultModel.chat && !userPreferences.defaultModel?.chat) {
-      const chatItem = providerItems.find((item) => {
+      const chatItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.chat;
       });
@@ -562,7 +563,7 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.agent && !userPreferences.defaultModel?.agent) {
-      const agentItem = providerItems.find((item) => {
+      const agentItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.agent;
       });
@@ -572,7 +573,7 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.queryAnalysis && !userPreferences.defaultModel?.queryAnalysis) {
-      const queryAnalysisItem = providerItems.find((item) => {
+      const queryAnalysisItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.queryAnalysis;
       });
@@ -582,12 +583,42 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.titleGeneration && !userPreferences.defaultModel?.titleGeneration) {
-      const titleGenerationItem = providerItems.find((item) => {
+      const titleGenerationItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.titleGeneration;
       });
       if (titleGenerationItem) {
         defaultModelConfig.titleGeneration = providerItemPO2DTO(titleGenerationItem);
+      }
+    }
+
+    if (defaultModel.image && !userPreferences.defaultModel?.image) {
+      const imageItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.image;
+      });
+      if (imageItem) {
+        defaultModelConfig.image = providerItemPO2DTO(imageItem);
+      }
+    }
+
+    if (defaultModel.video && !userPreferences.defaultModel?.video) {
+      const videoItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.video;
+      });
+      if (videoItem) {
+        defaultModelConfig.video = providerItemPO2DTO(videoItem);
+      }
+    }
+
+    if (defaultModel.audio && !userPreferences.defaultModel?.audio) {
+      const audioItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.audio;
+      });
+      if (audioItem) {
+        defaultModelConfig.audio = providerItemPO2DTO(audioItem);
       }
     }
 

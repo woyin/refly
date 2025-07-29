@@ -847,7 +847,6 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                         entityId: artifact.entityId,
                         type: artifact.type,
                         title: artifact.title,
-                        status: 'generating',
                       },
                     });
                   }

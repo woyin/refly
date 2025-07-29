@@ -2684,6 +2684,11 @@ paths:
           description: Provider category
           schema:
             $ref: '#/components/schemas/ProviderCategory'
+        - name: isGlobal
+          in: query
+          description: Whether the provider is global
+          schema:
+            type: boolean
       responses:
         '200':
           description: successful operation
@@ -2794,6 +2799,11 @@ paths:
           description: Provider category
           schema:
             $ref: '#/components/schemas/ProviderCategory'
+        - name: isGlobal
+          in: query
+          description: Whether the provider item is global
+          schema:
+            type: boolean
       responses:
         '200':
           description: successful operation
@@ -4945,6 +4955,12 @@ components:
         audio:
           description: Default audio generation model
           $ref: '#/components/schemas/ProviderItem'
+    ProviderMode:
+      type: string
+      description: Provider mode
+      enum:
+        - global
+        - custom
     UserPreferences:
       type: object
       description: User preferences
@@ -4952,6 +4968,9 @@ components:
         operationMode:
           description: Operation mode
           $ref: '#/components/schemas/OperationMode'
+        providerMode:
+          description: Provider mode
+          $ref: '#/components/schemas/ProviderMode'
         disableHoverCard:
           type: boolean
           description: Whether to disable hover tutorial

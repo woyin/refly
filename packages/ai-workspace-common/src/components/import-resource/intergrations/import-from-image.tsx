@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, message, Upload, UploadProps } from 'antd';
 import { TbPhoto } from 'react-icons/tb';
 import { RiInboxArchiveLine } from 'react-icons/ri';
@@ -10,7 +10,6 @@ import type { RcFile } from 'antd/es/upload/interface';
 import { genResourceID, genImageID } from '@refly/utils/id';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { cn } from '@refly/utils/cn';
 import { ImageItem } from '@refly/stores';
 
 const { Dragger } = Upload;
@@ -37,7 +36,6 @@ export const ImportFromImage = () => {
 
   const [saveLoading, setSaveLoading] = useState(false);
   const [imageList, setImageList] = useState<ImageItem[]>(storageImageList);
-  const [isDragging, setIsDragging] = useState(false);
 
   const uploadLimit = fileParsingUsage?.fileUploadLimit ?? -1;
   const maxFileSize = `${uploadLimit}MB`;
@@ -171,31 +169,6 @@ export const ImportFromImage = () => {
     }
   };
 
-  const handleDrop = useCallback(
-    async (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragging(false);
-
-      const files = Array.from(e.dataTransfer.files);
-      const imageFiles = files.filter((file) =>
-        ALLOWED_IMAGE_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext)),
-      );
-
-      if (imageFiles.length > 0) {
-        for (const file of imageFiles) {
-          props.beforeUpload?.(
-            file as RcFile,
-            [
-              ...imageList.map((item) => ({ ...item, originFileObj: new File([], item.title) })),
-            ] as any,
-          );
-        }
-      }
-    },
-    [imageList, props],
-  );
-
   const disableSave = imageList.length === 0;
 
   const genUploadHint = () => {
@@ -213,20 +186,7 @@ export const ImportFromImage = () => {
   }, [imageList, setStorageImageList]);
 
   return (
-    <div
-      className="h-full flex flex-col min-w-[500px] box-border intergation-import-from-image"
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(true);
-      }}
-      onDragLeave={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragging(false);
-      }}
-      onDrop={handleDrop}
-    >
+    <div className="h-full flex flex-col min-w-[500px] box-border intergation-import-from-image">
       {/* header */}
       <div className="flex items-center gap-x-[8px] pt-6 px-6">
         <span className="flex items-center justify-center">
@@ -237,12 +197,7 @@ export const ImportFromImage = () => {
 
       {/* content */}
       <div className="flex-grow overflow-y-auto px-10 py-6 box-border flex flex-col justify-center">
-        <div
-          className={cn(
-            'w-full image-upload-container',
-            isDragging && 'border-2 border-green-500 border-dashed rounded-lg',
-          )}
-        >
+        <div className="w-full image-upload-container">
           <Dragger {...props}>
             <RiInboxArchiveLine className="text-3xl text-[#00968f]" />
             <p className="ant-upload-text mt-4 text-gray-600 dark:text-gray-300">

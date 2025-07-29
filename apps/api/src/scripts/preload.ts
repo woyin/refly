@@ -1,34 +1,54 @@
-#!/usr/bin/env node
-
 /**
  * Node.js preload script to resolve workspace dependencies to compiled distribution files
  * This script intercepts module resolution and redirects @refly/foo from
  * packages/foo/src/index.ts to packages/foo/dist/index.js
  */
 
-const Module = require('node:module');
-const path = require('node:path');
-const fs = require('node:fs');
+import * as Module from 'node:module';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
+import { findTargetFile } from '../utils/runtime';
 
 // Store the original require function
 const originalRequire = Module.prototype.require;
 
-// Get the workspace root directory (assuming this script is in apps/api/scripts/)
-const workspaceRoot = path.resolve(__dirname, '../../..');
-
 // Dynamically generate PACKAGE_MAPPING from package.json @refly/* workspace dependencies
-const apiPackageJsonPath = path.resolve(__dirname, '../package.json');
-const apiPackageJson = JSON.parse(fs.readFileSync(apiPackageJsonPath, 'utf-8'));
+const apiPackageJsonPath = findTargetFile(__dirname, 'package.json');
+const apiPackageJson: PackageJson = JSON.parse(fs.readFileSync(apiPackageJsonPath, 'utf-8'));
+
+if (!apiPackageJsonPath) {
+  throw new Error('package.json for @refly/api not found');
+}
+
+// Get the workspace root directory
+const workspaceRoot = path.resolve(apiPackageJsonPath, '../../..');
+
+// Type definitions
+interface PackageJson {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}
+
+interface PackageMapping {
+  source: string;
+  target: string;
+  resolvedPath: string | null;
+}
+
+interface PackageMappings {
+  [packageName: string]: PackageMapping;
+}
 
 /**
  * Find all @refly/* workspace dependencies in package.json
- * @param {object} pkg - package.json object
- * @returns {object} mapping of package name to {source, target, resolvedPath}
+ * @param pkg - package.json object
+ * @returns mapping of package name to {source, target, resolvedPath}
  */
-function getWorkspaceMappings(pkg) {
-  const mapping = {};
+function getWorkspaceMappings(pkg: PackageJson): PackageMappings {
+  const mapping: PackageMappings = {};
   const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-  for (const dep of Object.keys(deps)) {
+
+  for (const dep of Object.keys(deps ?? {})) {
     if (dep.startsWith('@refly/')) {
       // e.g. @refly/utils -> utils
       const short = dep.replace('@refly/', '');
@@ -39,7 +59,7 @@ function getWorkspaceMappings(pkg) {
       const sourcePath = path.resolve(workspaceRoot, source);
 
       // Pre-validate file existence during mapping generation
-      let resolvedPath = null;
+      let resolvedPath: string | null = null;
       if (fileExists(targetPath)) {
         resolvedPath = targetPath;
       } else if (fileExists(sourcePath)) {
@@ -63,10 +83,10 @@ const PACKAGE_MAPPING = getWorkspaceMappings(apiPackageJson);
 
 /**
  * Check if a file exists
- * @param {string} filePath - Path to check
- * @returns {boolean} - True if file exists
+ * @param filePath - Path to check
+ * @returns True if file exists
  */
-function fileExists(filePath) {
+function fileExists(filePath: string): boolean {
   try {
     return fs.existsSync(filePath);
   } catch {
@@ -76,10 +96,10 @@ function fileExists(filePath) {
 
 /**
  * Resolve the actual file path for a module
- * @param {string} modulePath - Module path to resolve
- * @returns {string|null} - Resolved path or null if not found
+ * @param modulePath - Module path to resolve
+ * @returns Resolved path or null if not found
  */
-function resolveModulePath(modulePath) {
+function resolveModulePath(modulePath: string): string | null {
   // Check if this is a package we want to redirect
   const packageMapping = PACKAGE_MAPPING[modulePath];
   if (!packageMapping) {
@@ -93,7 +113,7 @@ function resolveModulePath(modulePath) {
 /**
  * Override the require function to intercept module resolution
  */
-Module.prototype.require = function (id) {
+Module.prototype.require = function (id: string): any {
   // Try to resolve the module path
   const resolvedPath = resolveModulePath(id);
 

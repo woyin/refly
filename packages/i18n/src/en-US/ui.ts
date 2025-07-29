@@ -2417,6 +2417,13 @@ const translations = {
       default: 'Default Group',
       group: 'Group Name',
       groupPlaceholder: 'Please set up group name to categorize and manage the models',
+      providerMode: 'Configuration Mode',
+      providerModeDescription:
+        'Global mode will use server-configured models, and custom mode supports configuring your own provider models',
+      custom: 'Custom',
+      global: 'Global',
+      syncSuccessfully: 'Configuration mode updated successfully!',
+      syncFailed: 'Failed to update providerMode configuration, please try again!',
       description: 'Description',
       descriptionPlaceholder: 'Please enter a description for this model',
     },
@@ -2590,6 +2597,9 @@ const translations = {
       viewPreview: 'View preview',
       createCodeArtifact: 'Create code artifact',
       copySourceCode: 'Copy source code',
+      collapse: 'Collapse',
+      expand: 'Expand',
+      collapsed: 'Collapsed',
       mermaidError: 'Error rendering Mermaid diagram',
       mermaid: {
         copySourceSuccess: 'Source code copied to clipboard',

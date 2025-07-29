@@ -176,6 +176,9 @@ importers:
       '@refly/skill-template':
         specifier: workspace:*
         version: link:../../packages/skill-template
+      '@refly/telemetry-node':
+        specifier: workspace:*
+        version: link:../../packages/telemetry-node
       '@refly/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -1041,6 +1044,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../../packages/stores
+      '@refly/telemetry-web':
+        specifier: workspace:*
+        version: link:../../packages/telemetry-web
       '@refly/ui-kit':
         specifier: workspace:*
         version: link:../../packages/ui-kit
@@ -1222,6 +1228,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../stores
+      '@refly/telemetry-web':
+        specifier: workspace:*
+        version: link:../telemetry-web
       '@refly/ui-kit':
         specifier: workspace:*
         version: link:../ui-kit
@@ -1993,6 +2002,41 @@ importers:
         specifier: ^5.4.5
         version: 5.8.3
 
+  packages/telemetry-node:
+    dependencies:
+      '@statsig/statsig-node-core':
+        specifier: ^0.6.1
+        version: 0.6.1(encoding@0.1.13)
+    devDependencies:
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+
+  packages/telemetry-web:
+    dependencies:
+      '@refly/utils':
+        specifier: workspace:*
+        version: link:../utils
+      '@statsig/js-client':
+        specifier: ^3.19.0
+        version: 3.19.0
+      '@statsig/session-replay':
+        specifier: ^3.19.0
+        version: 3.19.0
+      '@statsig/web-analytics':
+        specifier: ^3.19.0
+        version: 3.19.0
+      js-cookie:
+        specifier: ^3.0.5
+        version: 3.0.5
+    devDependencies:
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/js-cookie':
+        specifier: ^3.0.6
+        version: 3.0.6
+
   packages/tsconfig:
     devDependencies:
       '@types/react':
@@ -2222,6 +2266,9 @@ importers:
       '@refly/stores':
         specifier: workspace:*
         version: link:../stores
+      '@refly/telemetry-web':
+        specifier: workspace:*
+        version: link:../telemetry-web
       '@refly/ui-kit':
         specifier: workspace:*
         version: link:../ui-kit
@@ -6278,6 +6325,15 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@rrweb/record@2.0.0-alpha.18':
+    resolution: {integrity: sha512-WbzcybTEqT+cKkOnzYiyaAYvNzAIxTK9f8qNLNOG9lOqWsmi+qu/W7CEdxHmfjlfgXGw/f7bxGZggAWVaizKqg==}
+
+  '@rrweb/types@2.0.0-alpha.18':
+    resolution: {integrity: sha512-iMH3amHthJZ9x3gGmBPmdfim7wLGygC2GciIkw2A6SO8giSn8PHYtRT8OKNH4V+k3SZ6RSnYHcTQxBA7pSWZ3Q==}
+
+  '@rrweb/utils@2.0.0-alpha.18':
+    resolution: {integrity: sha512-qV8azQYo9RuwW4NGRtOiQfTBdHNL1B0Q//uRLMbCSjbaKqJYd88Js17Bdskj65a0Vgp2dwTLPIZ0gK47dfjfaA==}
+
   '@rsbuild/core@1.4.6':
     resolution: {integrity: sha512-Z5e7ExKGmLv/wvBQEgSE2bPpR9movvq0jnfXjtYzrLzJFGsKFwL/5KShgdr6hUtVGGLoCCCHHHaTBL6BPcNvZA==}
     engines: {node: '>=16.10.0'}
@@ -6665,6 +6721,74 @@ packages:
 
   '@splinetool/runtime@0.9.526':
     resolution: {integrity: sha512-qznHbXA5aKwDbCgESAothCNm1IeEZcmNWG145p5aXj4w5uoqR1TZ9qkTHTKLTsUbHeitCwdhzmRqan1kxboLgQ==}
+
+  '@statsig/client-core@3.19.0':
+    resolution: {integrity: sha512-i4XyzV2klOBFK8lmpEj1gJLOjKJE43Rh1c9XICEA0z62q4/gZ2Czr39y7+GykI/mH7jLaR/1mPtMSxqpLkEQDw==}
+
+  '@statsig/js-client@3.19.0':
+    resolution: {integrity: sha512-NyN3qQol4aKHzqF3MtTpW1WepcsSu+PRLUvYIHEAoHmgaSzHlDHLQ5ATkuWkR/IC4rmKjxzOsD2Z85ChYmxNtw==}
+
+  '@statsig/session-replay@3.19.0':
+    resolution: {integrity: sha512-9q8cvg9jg0TiTCnXxVXYZ3QhTUkQBg2sxrqs+Zh34YPLo0QEVETUnSCWfKmlW+Mh6Y8HFsXLU9aciRXjwrda2Q==}
+
+  '@statsig/statsig-node-core-darwin-arm64@0.6.1':
+    resolution: {integrity: sha512-bvwlV1wFAYa9n+ptDbOkARPhhvdrYnGQbapW/eYTZhuhu71ZkaIVdg2fjjhkv/gf61BGReMwLWuj7dqCvVEbnA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@statsig/statsig-node-core-darwin-x64@0.6.1':
+    resolution: {integrity: sha512-PycAd1GLVMA/LlkXaWm2tw4bzSTh+2RESizyR1EcfopvcenGxbizmgkMpVkEsee1MvOAFyl4X8p3QP1EhVZAnw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@statsig/statsig-node-core-linux-arm64-gnu@0.6.1':
+    resolution: {integrity: sha512-fM9DT9L9f/NsNxzhqfvfn/n+qm89AL2xQyzW3Rb/F4n4fMljGAK9L8gvFtoElViJ4BZyvuqqlC3TSsQNLdmk2g==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@statsig/statsig-node-core-linux-arm64-musl@0.6.1':
+    resolution: {integrity: sha512-EXXepNEf7QHoQazygFsA+a4n4PpYeLgubLq95QU2IzxPId3jMhk9/YtnvEo+3VbDybk6ikqb68q7dyYyE98FqQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@statsig/statsig-node-core-linux-x64-gnu@0.6.1':
+    resolution: {integrity: sha512-zAjtMfuXHKKgq/i2aD+gmZKFCiPbWhiDn30e3SYMyubKpIBElkRQhlCh31oOMZk+HqkAe1Fg8bAiPldqh0SsQg==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@statsig/statsig-node-core-linux-x64-musl@0.6.1':
+    resolution: {integrity: sha512-VryRviHu7GatDjWYAt5n3ro8SnRQDboCH2urSrLCtf0ztQ2cYXTQI75vRI+X0seYbfFBskG0oD62I8nomZy/Fg==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@statsig/statsig-node-core-win32-ia32-msvc@0.6.1':
+    resolution: {integrity: sha512-ps7bEyaTmM1n576YNYny6vTvAdq7jLbC3Fnn15jPyJc9/q/QwEq/IWviJtJVXwUPA41jv0P4kkfgVwDsnr7JtA==}
+    engines: {node: '>= 10'}
+    cpu: [ia32]
+    os: [win32]
+
+  '@statsig/statsig-node-core-win32-x64-msvc@0.6.1':
+    resolution: {integrity: sha512-oaeTcpMn/X5EPqCMJxy4r7H3oJ3sY9GTkGy5ax9Ye8yZUh/2jpuZkomRw84PhCaVqQPjk2JU54cOqklK9FSleQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@statsig/statsig-node-core@0.6.1':
+    resolution: {integrity: sha512-36yLACyTK1xhbydSaKv9OmNuwDeHiMb7kHfA6T7KZ8ALGBBXnD04s/+rcAuNiqGxjM2tL+VqGVgydfOTXUmQtA==}
+    engines: {node: '>= 6.14.2 < 7 || >= 8.11.2 < 9 || >= 9.11.0 < 10 || >= 10.0.0'}
+
+  '@statsig/web-analytics@3.19.0':
+    resolution: {integrity: sha512-m/ErZ8N0C0LXnQRQ3r7l1kqnGhznly9mT+1ab0MtiaREl3ZwqwGlalQbSIkNtECgQ+Hdw3tcWBfPoYWhYHqXnw==}
 
   '@stitches/core@1.2.8':
     resolution: {integrity: sha512-Gfkvwk9o9kE9r9XNBmJRfV8zONvXThnm1tcuojL04Uy5uRyqg93DC83lDebl0rocZCfKSjUv+fWYtMQmEDJldg==}
@@ -7198,6 +7322,9 @@ packages:
   '@types/cookies@0.9.1':
     resolution: {integrity: sha512-E/DPgzifH4sM1UMadJMWd6mO2jOd4g1Ejwzx8/uRCDpJis1IrlyQEcGAYEomtAqRYmD5ORbNXMeI9U0RiVGZbg==}
 
+  '@types/css-font-loading-module@0.0.7':
+    resolution: {integrity: sha512-nl09VhutdjINdWyXxHWN/w9zlNCfr60JUqJbd24YXUuCwgeL0TpFSdElCwb6cxfB6ybE19Gjj4g0jsgkXxKv1Q==}
+
   '@types/d3-array@3.2.1':
     resolution: {integrity: sha512-Y2Jn2idRrLzUfAKV2LyRImR+y4oa2AntrgID95SHJxuMUrkNXmanDSed71sRNZysveJVt1hLLemQZIady0FpEg==}
 
@@ -7392,6 +7519,9 @@ packages:
 
   '@types/js-cookie@2.2.7':
     resolution: {integrity: sha512-aLkWa0C0vO5b4Sr798E26QgOkss68Un0bLjs7u9qxzPT5CG+8DuNTffWES58YzJs3hrVAOs1wonycqEBqNJubA==}
+
+  '@types/js-cookie@3.0.6':
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -7829,6 +7959,9 @@ packages:
 
   '@xobotyi/scrollbar-width@1.9.5':
     resolution: {integrity: sha512-N8tkAACJx2ww8vFMneJmaAgmjAG1tnVBZJRLRcx061tmsLRZHSEZSLuGWnwPtunsSLvSqXQ2wfp7Mgqg1I+2dQ==}
+
+  '@xstate/fsm@1.6.5':
+    resolution: {integrity: sha512-b5o1I6aLNeYlU/3CPlj/Z91ybk1gUsKT+5NAJI+2W4UjvS5KLG28K9v5UvNoFVjHV8PajVZ00RH3vnjyQO7ZAw==}
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -14833,11 +14966,20 @@ packages:
     resolution: {integrity: sha512-nLTrUKm2UyiL7rlhapu/Zl45FwNgkZGaCpZbIHajDYgwlJCOzLSk+cIPAnsEqV955GjILJnKbdQC1nVPz+gAYQ==}
     engines: {node: '>= 18'}
 
+  rrdom@2.0.0-alpha.18:
+    resolution: {integrity: sha512-fSFzFFxbqAViITyYVA4Z0o5G6p1nEqEr/N8vdgSKie9Rn0FJxDSNJgjV0yiCIzcDs0QR+hpvgFhpbdZ6JIr5Nw==}
+
   rrweb-cssom@0.7.1:
     resolution: {integrity: sha512-TrEMa7JGdVm0UThDJSx7ddw5nVm3UJS9o9CCIZ72B1vSyEZoziDqBYP3XIoi/12lKrJR8rE3jeFHMok2F/Mnsg==}
 
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
+
+  rrweb-snapshot@2.0.0-alpha.18:
+    resolution: {integrity: sha512-hBHZL/NfgQX6wO1D9mpwqFu1NJPpim+moIcKhFEjVTZVRUfCln+LOugRc4teVTCISYHN8Cw5e2iNTWCSm+SkoA==}
+
+  rrweb@2.0.0-alpha.18:
+    resolution: {integrity: sha512-1mjZcB+LVoGSx1+i9E2ZdAP90fS3MghYVix2wvGlZvrgRuLCbTCCOZMztFCkKpgp7/EeCdYM4nIHJkKX5J1Nmg==}
 
   rtl-css-js@1.16.1:
     resolution: {integrity: sha512-lRQgou1mu19e+Ya0LsTvKrVJ5TYUbqCVPAiImX3UfLTenarvPUl1QFdvu5Z3PYmHT9RCcwIfbjRQBntExyj3Zg==}
@@ -16627,6 +16769,9 @@ packages:
   web-streams-polyfill@4.0.0-beta.3:
     resolution: {integrity: sha512-QW95TCTaHmsYfHDybGMwO5IJIM93I/6vTRk+daHTWFPhwh+C8Cg7j7XyKrwrj8Ib6vYXe0ocYNrmzY4xAAN6ug==}
     engines: {node: '>= 14'}
+
+  web-vitals@5.0.3:
+    resolution: {integrity: sha512-4KmOFYxj7qT6RAdCH0SWwq8eKeXNhAFXR4PmgF6nrWFmrJ41n7lq3UCA6UK0GebQ4uu+XP8e8zGjaDO3wZlqTg==}
 
   webextension-polyfill@0.10.0:
     resolution: {integrity: sha512-c5s35LgVa5tFaHhrZDnr3FpQpjj1BB+RXhLTYUxGqBVN460HkbM8TBtEqdXWbpTKfzwCcjAZVF7zXCYSKtcp9g==}
@@ -21244,6 +21389,15 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.45.1':
     optional: true
 
+  '@rrweb/record@2.0.0-alpha.18':
+    dependencies:
+      '@rrweb/types': 2.0.0-alpha.18
+      rrweb: 2.0.0-alpha.18
+
+  '@rrweb/types@2.0.0-alpha.18': {}
+
+  '@rrweb/utils@2.0.0-alpha.18': {}
+
   '@rsbuild/core@1.4.6':
     dependencies:
       '@rspack/core': 1.4.6(@swc/helpers@0.5.17)
@@ -21707,6 +21861,65 @@ snapshots:
     dependencies:
       on-change: 4.0.2
       semver-compare: 1.0.0
+
+  '@statsig/client-core@3.19.0': {}
+
+  '@statsig/js-client@3.19.0':
+    dependencies:
+      '@statsig/client-core': 3.19.0
+
+  '@statsig/session-replay@3.19.0':
+    dependencies:
+      '@rrweb/record': 2.0.0-alpha.18
+      '@statsig/client-core': 3.19.0
+      rrweb: 2.0.0-alpha.18
+
+  '@statsig/statsig-node-core-darwin-arm64@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core-darwin-x64@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core-linux-arm64-gnu@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core-linux-arm64-musl@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core-linux-x64-gnu@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core-linux-x64-musl@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core-win32-ia32-msvc@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core-win32-x64-msvc@0.6.1':
+    optional: true
+
+  '@statsig/statsig-node-core@0.6.1(encoding@0.1.13)':
+    dependencies:
+      https-proxy-agent: 7.0.6
+      node-fetch: 2.7.0(encoding@0.1.13)
+    optionalDependencies:
+      '@statsig/statsig-node-core-darwin-arm64': 0.6.1
+      '@statsig/statsig-node-core-darwin-x64': 0.6.1
+      '@statsig/statsig-node-core-linux-arm64-gnu': 0.6.1
+      '@statsig/statsig-node-core-linux-arm64-musl': 0.6.1
+      '@statsig/statsig-node-core-linux-x64-gnu': 0.6.1
+      '@statsig/statsig-node-core-linux-x64-musl': 0.6.1
+      '@statsig/statsig-node-core-win32-ia32-msvc': 0.6.1
+      '@statsig/statsig-node-core-win32-x64-msvc': 0.6.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
+  '@statsig/web-analytics@3.19.0':
+    dependencies:
+      '@statsig/client-core': 3.19.0
+      '@statsig/js-client': 3.19.0
+      web-vitals: 5.0.3
 
   '@stitches/core@1.2.8': {}
 
@@ -22248,6 +22461,8 @@ snapshots:
       '@types/keygrip': 1.0.6
       '@types/node': 20.19.0
 
+  '@types/css-font-loading-module@0.0.7': {}
+
   '@types/d3-array@3.2.1': {}
 
   '@types/d3-axis@3.0.6':
@@ -22492,6 +22707,8 @@ snapshots:
       pretty-format: 29.7.0
 
   '@types/js-cookie@2.2.7': {}
+
+  '@types/js-cookie@3.0.6': {}
 
   '@types/json-schema@7.0.15': {}
 
@@ -23076,6 +23293,8 @@ snapshots:
   '@xmldom/xmldom@0.8.10': {}
 
   '@xobotyi/scrollbar-width@1.9.5': {}
+
+  '@xstate/fsm@1.6.5': {}
 
   '@xtuc/ieee754@1.2.0': {}
 
@@ -32279,9 +32498,28 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  rrdom@2.0.0-alpha.18:
+    dependencies:
+      rrweb-snapshot: 2.0.0-alpha.18
+
   rrweb-cssom@0.7.1: {}
 
   rrweb-cssom@0.8.0: {}
+
+  rrweb-snapshot@2.0.0-alpha.18:
+    dependencies:
+      postcss: 8.5.6
+
+  rrweb@2.0.0-alpha.18:
+    dependencies:
+      '@rrweb/types': 2.0.0-alpha.18
+      '@rrweb/utils': 2.0.0-alpha.18
+      '@types/css-font-loading-module': 0.0.7
+      '@xstate/fsm': 1.6.5
+      base64-arraybuffer: 1.0.2
+      mitt: 3.0.1
+      rrdom: 2.0.0-alpha.18
+      rrweb-snapshot: 2.0.0-alpha.18
 
   rtl-css-js@1.16.1:
     dependencies:
@@ -34350,6 +34588,8 @@ snapshots:
   web-namespaces@2.0.1: {}
 
   web-streams-polyfill@4.0.0-beta.3: {}
+
+  web-vitals@5.0.3: {}
 
   webextension-polyfill@0.10.0: {}
 
