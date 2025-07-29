@@ -512,35 +512,38 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   }, [visible, getProviderItems, providerMode]);
 
   // Segmented options for model categories
-  const segmentedOptions = [
-    {
-      label: (
-        <div className="flex items-center justify-center gap-1.5 w-full">
-          <LuMessageCircle className="h-4 w-4" />
-          <span>{t('settings.modelConfig.conversationModels')}</span>
-        </div>
-      ),
-      value: 'conversation',
-    },
-    {
-      label: (
-        <div className="flex items-center justify-center gap-1.5 w-full">
-          <LuImage className="h-4 w-4" />
-          <span>{t('settings.modelConfig.mediaGeneration')}</span>
-        </div>
-      ),
-      value: 'media',
-    },
-    {
-      label: (
-        <div className="flex items-center justify-center gap-1.5 w-full">
-          <LuSettings className="h-4 w-4" />
-          <span>{t('settings.modelConfig.otherModels')}</span>
-        </div>
-      ),
-      value: 'other',
-    },
-  ];
+  const segmentedOptions = useMemo(
+    () => [
+      {
+        label: (
+          <div className="flex items-center justify-center gap-1.5 w-full">
+            <LuMessageCircle className="h-4 w-4" />
+            <span>{t('settings.modelConfig.conversationModels')}</span>
+          </div>
+        ),
+        value: 'conversation',
+      },
+      {
+        label: (
+          <div className="flex items-center justify-center gap-1.5 w-full">
+            <LuImage className="h-4 w-4" />
+            <span>{t('settings.modelConfig.mediaGeneration')}</span>
+          </div>
+        ),
+        value: 'media',
+      },
+      {
+        label: (
+          <div className="flex items-center justify-center gap-1.5 w-full">
+            <LuSettings className="h-4 w-4" />
+            <span>{t('settings.modelConfig.otherModels')}</span>
+          </div>
+        ),
+        value: 'other',
+      },
+    ],
+    [t],
+  );
 
   const renderConversationModels = () => (
     <div

@@ -177,7 +177,7 @@ export const MediaModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border border-1 border-solid border-refly-Card-Border">
+        <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border border-[1px] border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {groupedModels.map((group) => (
               <div key={group.mediaType}>

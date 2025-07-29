@@ -19,6 +19,7 @@ import {
 } from 'refly-icons';
 import './index.scss';
 import React from 'react';
+import { TFunction } from 'i18next';
 
 // Reusable dropdown item component
 const DropdownItem = React.memo(
@@ -47,7 +48,7 @@ const UserInfo = React.memo(({ nickname, email }: { nickname?: string; email?: s
 ));
 
 // Theme appearance item component
-const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t: any }) => (
+const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t: TFunction }) => (
   <div className="flex items-center gap-2">
     {themeMode === 'dark' ? <InterfaceDark size={18} /> : <InterfaceLight size={18} />}
     <div className="flex flex-1 items-center justify-between gap-1">
