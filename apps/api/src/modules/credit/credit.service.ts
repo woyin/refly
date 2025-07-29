@@ -73,6 +73,7 @@ export class CreditService {
     usageData: {
       usageId: string;
       actionResultId: string;
+      providerItemId?: string;
       modelName?: string;
       usageType?: string;
       createdAt: Date;
@@ -94,11 +95,6 @@ export class CreditService {
         expiresAt: 'asc', // Deduct from earliest records first
       },
     });
-
-    // Calculate total available credits
-    const _totalAvailableCredits = creditRecharges.reduce((sum, record) => {
-      return sum + record.balance;
-    }, 0);
 
     // Prepare deduction operations
     const deductionOperations = [];
@@ -128,6 +124,7 @@ export class CreditService {
         data: {
           uid,
           usageId: usageData.usageId,
+          providerItemId: usageData.providerItemId,
           actionResultId: usageData.actionResultId,
           modelName: usageData.modelName,
           usageType: usageData.usageType,
@@ -163,7 +160,7 @@ export class CreditService {
   }
 
   async syncTokenCreditUsage(data: SyncTokenCreditUsageJobData) {
-    const { uid, usage, creditBilling, timestamp, resultId } = data;
+    const { uid, usage, providerItemId, creditBilling, timestamp, resultId } = data;
 
     // Find user
     const user = await this.prisma.user.findUnique({ where: { uid } });
@@ -188,6 +185,7 @@ export class CreditService {
         data: {
           uid,
           usageId: genCreditUsageId(),
+          providerItemId,
           actionResultId: resultId,
           modelName: usage.modelName,
           amount: 0,
@@ -200,6 +198,7 @@ export class CreditService {
     // Use the extracted method to handle credit deduction
     await this.deductCreditsAndCreateUsage(uid, creditCost, {
       usageId: genCreditUsageId(),
+      providerItemId,
       actionResultId: resultId,
       modelName: usage.modelName,
       createdAt: timestamp,

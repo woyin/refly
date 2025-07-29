@@ -932,6 +932,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 
               const tokenCreditUsage: SyncTokenCreditUsageJobData = {
                 ...basicUsageData,
+                providerItemId: providerItem?.itemId,
                 usage,
                 creditBilling,
                 timestamp: new Date(),
