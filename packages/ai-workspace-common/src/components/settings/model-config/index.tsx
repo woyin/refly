@@ -739,9 +739,9 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
           type="text"
           className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
           icon={<Settings size={18} />}
-          onClick={() => setIsConfigDefaultModel(true)}
+          onClick={() => setIsConfigDefaultModel(!isConfigDefaultModel)}
         >
-          {t('settings.defaultModel.title')}
+          {t(`settings.${isConfigDefaultModel ? 'modelConfig' : 'defaultModel'}.title`)}
         </Button>
         {['conversation', 'media'].includes(activeTab) && editable && (
           <Button
@@ -759,7 +759,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         )}
       </div>
     );
-  }, [handleAddModel, t, activeTab, setIsConfigDefaultModel, editable]);
+  }, [handleAddModel, t, activeTab, setIsConfigDefaultModel, editable, isConfigDefaultModel]);
 
   return (
     <div className="h-full overflow-hidden flex flex-col">
