@@ -150,6 +150,7 @@ export const ModelSelector = memo(
     const { userProfile } = useUserStoreShallow((state) => ({
       userProfile: state.userProfile,
     }));
+    const providerMode = userProfile?.preferences?.providerMode;
 
     const {
       data: providerItemList,
@@ -184,6 +185,11 @@ export const ModelSelector = memo(
       };
     }, [refetchModelList]);
 
+    // Refetch model list when provider mode changes
+    useEffect(() => {
+      refetchModelList();
+    }, [providerMode, refetchModelList]);
+
     const { tokenUsage, isUsageLoading } = useSubscriptionUsage();
 
     const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
@@ -215,7 +221,7 @@ export const ModelSelector = memo(
     }, [providerItemList?.data]);
 
     const { handleGroupModelList } = useGroupModels();
-    const sortedGroups = useMemo(() => handleGroupModelList(modelList), [modelList]);
+
     const isContextIncludeImage = useMemo(() => {
       return contextItems?.some((item) => item.type === 'image');
     }, [contextItems]);
@@ -232,6 +238,18 @@ export const ModelSelector = memo(
     );
 
     const droplist: MenuProps['items'] = useMemo(() => {
+      if (providerMode === 'global') {
+        return modelList
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((model) => ({
+            key: model.name,
+            label: <ModelLabel model={model} isContextIncludeImage={isContextIncludeImage} />,
+            icon: <ModelIcon model={model.name} size={16} type={'color'} />,
+          }));
+      }
+
+      const sortedGroups = handleGroupModelList(modelList);
+
       let list = [];
       for (const group of sortedGroups) {
         if (group?.models?.length > 0) {
@@ -254,7 +272,7 @@ export const ModelSelector = memo(
       }
 
       return list;
-    }, [sortedGroups, isContextIncludeImage]);
+    }, [modelList, isContextIncludeImage]);
 
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
