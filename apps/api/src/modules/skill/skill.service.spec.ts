@@ -12,12 +12,7 @@ import { RAGService } from '../rag/rag.service';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { SearchService } from '../search/search.service';
-import {
-  QUEUE_SKILL,
-  QUEUE_SKILL_TIMEOUT_CHECK,
-  QUEUE_SYNC_REQUEST_USAGE,
-  QUEUE_SYNC_TOKEN_USAGE,
-} from '../../utils';
+import { QUEUE_SKILL, QUEUE_SYNC_REQUEST_USAGE, QUEUE_SYNC_TOKEN_USAGE } from '../../utils';
 
 describe('SkillService', () => {
   let service: SkillService;
@@ -78,10 +73,6 @@ describe('SkillService', () => {
         },
         {
           provide: getQueueToken(QUEUE_SKILL),
-          useValue: mockQueue,
-        },
-        {
-          provide: getQueueToken(QUEUE_SKILL_TIMEOUT_CHECK),
           useValue: mockQueue,
         },
         {
