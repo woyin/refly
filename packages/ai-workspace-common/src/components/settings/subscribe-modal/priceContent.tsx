@@ -272,8 +272,8 @@ export const PriceContent = (props: { source: PriceSource }) => {
   };
 
   const handleContactSales = () => {
-    // Replace with actual contact logic, e.g., open a contact form/modal or mailto link
-    window.location.href = 'mailto:sales@refly.ai';
+    // Redirect to enterprise version contact form
+    window.location.href = 'https://tally.so/r/nWaaav';
   };
 
   const handleFreeClick = () => {

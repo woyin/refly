@@ -15,7 +15,6 @@ import {
 } from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
-// import { Subscription } from 'refly-icons'; // 不再需要此图标
 import { useUserStoreShallow } from '@refly/stores';
 // components
 import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
@@ -27,7 +26,7 @@ import { SettingsGuideModal } from '@refly-packages/ai-workspace-common/componen
 import { StorageExceededModal } from '@refly-packages/ai-workspace-common/components/subscription/storage-exceeded-modal';
 // hooks
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
-import { SiderData, useSiderStoreShallow, type SettingsModalActiveTab } from '@refly/stores';
+import { SettingsModalActiveTab, SiderData, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import { AiOutlineUser } from 'react-icons/ai';
@@ -138,11 +137,28 @@ const SettingItem = () => {
   const { data: balanceData, isSuccess } = useGetCreditBalance();
   const creditBalance = balanceData?.data?.creditBalance ?? 0;
 
+  const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
+    setShowSettingModal: state.setShowSettingModal,
+    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+  }));
+
+  const handleSubscriptionClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
+      setShowSettingModal(true);
+    },
+    [setSettingsModalActiveTab, setShowSettingModal],
+  );
+
   return (
     <div className="group w-full">
       <SiderMenuSettingList>
         <div className="flex flex-1 items-center justify-between">
-          <div className="flex items-center gap-2 mr-2 flex-shrink min-w-0">
+          <div
+            className="flex items-center gap-2 mr-2 flex-shrink min-w-0"
+            title={userProfile?.nickname}
+          >
             <Avatar
               size={32}
               src={userProfile?.avatar}
@@ -156,6 +172,7 @@ const SettingItem = () => {
 
           {subscriptionEnabled && isSuccess && (
             <div
+              onClick={handleSubscriptionClick}
               className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer
             rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
             "

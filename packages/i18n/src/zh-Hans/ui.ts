@@ -28,7 +28,7 @@ const translations = {
       expiryDate: '有效期至',
       remaining: '剩余',
       status: '状态',
-      disabled: '已禁用',
+      disabled: '已过期',
       usageType: {
         model_call: '模型调用',
         media_generation: '媒体生成',
@@ -71,6 +71,15 @@ const translations = {
           '文件上传限制\n最大 5MB',
           '服务支持\n社区支持 (微信群, 飞书群, Discord)',
         ],
+      },
+      pro: {
+        title: 'PRO',
+      },
+      plus: {
+        title: 'PLUS',
+      },
+      max: {
+        title: 'MAX',
       },
       starter: {
         title: 'Starter 启程版',
