@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
-import { Button, Typography, Table, Segmented } from 'antd';
+import { Button, Table, Segmented } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
@@ -21,8 +21,7 @@ import { logEvent } from '@refly/telemetry-web';
 
 // styles
 import './index.scss';
-
-const { Title } = Typography;
+import { ContentHeader } from '@refly-packages/ai-workspace-common/components/settings/contentHeader';
 
 // Define interfaces for the table data
 interface CreditUsageRecord {
@@ -236,13 +235,13 @@ export const Subscription = () => {
           <div className="current-plan-name flex items-center w-full justify-between">
             {t(`subscription.plans.${planType}.title`)}{' '}
             <div className="flex items-center gap-3 plan-actions">
-              <div className="plan-renewal-info text-[color:var(--text-icon-refly-text-0,#1C1F23)] text-xs font-normal leading-4">
+              <div className="plan-renewal-info">
                 {cancelAt
                   ? `${dayjs(cancelAt).format('YYYY.MM.DD')} ${t('subscription.subscriptionManagement.willExpire')}`
                   : t('subscription.subscriptionManagement.willAutoRenew')}
               </div>
               <div
-                className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] rounded-lg border-0 border-solid"
+                className="cursor-pointer text-sm font-semibold leading-5 flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center border-[color:var(--border---refly-Card-Border,rgba(0,0,0,0.10))] [background:var(--tertiary---refly-tertiary-default,rgba(0,0,0,0.04))] hover:[background:var(--refly-tertiary-hover,#00000014)] rounded-lg border-0 border-solid transition-colors duration-200"
                 onClick={handleManageBilling}
               >
                 {portalLoading
@@ -297,85 +296,82 @@ export const Subscription = () => {
   };
 
   return (
-    <div className="subscription-management-page">
-      <div className="subscription-header">
-        <Title level={4} className="title">
-          {t('subscription.subscriptionManagement.title')}
-        </Title>
-        <div className="subtitle">{t('subscription.subscriptionManagement.subtitle')}</div>
-      </div>
+    <div className="h-full overflow-hidden flex flex-col">
+      <ContentHeader title={t('subscription.subscriptionManagement.title')} />
 
-      <div className="subscription-content">
-        {isLoading ? (
-          <Spin
-            spinning={isLoading}
-            style={{
-              height: '100%',
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          />
-        ) : (
-          <>
-            {renderPlanCard()}
+      <div className="subscription-management-page">
+        <div className="subscription-content">
+          {isLoading ? (
+            <Spin
+              spinning={isLoading}
+              style={{
+                height: '100%',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            />
+          ) : (
+            <>
+              {renderPlanCard()}
 
-            <div className="usage-cards">
-              <div className="usage-card points-card">
-                <div className="usage-label">
-                  {t('subscription.subscriptionManagement.availableCredits')}
+              <div className="usage-cards">
+                <div className="usage-card points-card">
+                  <div className="usage-label">
+                    {t('subscription.subscriptionManagement.availableCredits')}
+                  </div>
+                  <div className="usage-value">{creditBalance.toLocaleString()}</div>
                 </div>
-                <div className="usage-value">{creditBalance.toLocaleString()}</div>
-              </div>
-              <div className="usage-card files-card">
-                <div className="usage-label">
-                  {t('subscription.subscriptionManagement.knowledgeBaseFiles')}
-                </div>
-                <div className="usage-value">
-                  {storageUsage?.fileCountUsed || 0}{' '}
-                  <span className="quota-text">
-                    /{' '}
-                    {storageUsage?.fileCountQuota < 0
-                      ? filesPlanMap[planType]
-                      : storageUsage?.fileCountQuota}
-                  </span>
+                <div className="usage-card files-card">
+                  <div className="usage-label">
+                    {t('subscription.subscriptionManagement.knowledgeBaseFiles')}
+                  </div>
+                  <div className="usage-value">
+                    {storageUsage?.fileCountUsed || 0}{' '}
+                    <span className="quota-text">
+                      /{' '}
+                      {storageUsage?.fileCountQuota < 0
+                        ? filesPlanMap[planType]
+                        : storageUsage?.fileCountQuota}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="points-history">
-              <Segmented
-                options={[
-                  {
-                    label: t('subscription.subscriptionManagement.creditUsageDetails'),
-                    value: 'usage',
-                  },
-                  {
-                    label: t('subscription.subscriptionManagement.creditRechargeDetails'),
-                    value: 'recharge',
-                  },
-                ]}
-                value={activeTab}
-                onChange={(value) => setActiveTab(value as 'usage' | 'recharge')}
-                className="history-tabs"
-                size="large"
-              />
-              <Spin spinning={isHistoryLoading}>
-                <Table<any>
-                  columns={activeTab === 'usage' ? usageColumns : rechargeColumns}
-                  dataSource={
-                    activeTab === 'usage' ? usageData?.data || [] : rechargeData?.data || []
-                  }
-                  rowKey={activeTab === 'usage' ? 'usageId' : 'rechargeId'}
-                  pagination={{ showSizeChanger: false }}
-                  className="history-table"
-                  bordered={false}
+              <div className="points-history">
+                <Segmented
+                  options={[
+                    {
+                      label: t('subscription.subscriptionManagement.creditUsageDetails'),
+                      value: 'usage',
+                    },
+                    {
+                      label: t('subscription.subscriptionManagement.creditRechargeDetails'),
+                      value: 'recharge',
+                    },
+                  ]}
+                  value={activeTab}
+                  onChange={(value) => setActiveTab(value as 'usage' | 'recharge')}
+                  className="history-tabs"
+                  size="large"
                 />
-              </Spin>
-            </div>
-          </>
-        )}
+                <Spin spinning={isHistoryLoading}>
+                  <Table<any>
+                    columns={activeTab === 'usage' ? usageColumns : rechargeColumns}
+                    dataSource={
+                      activeTab === 'usage' ? usageData?.data || [] : rechargeData?.data || []
+                    }
+                    rowKey={activeTab === 'usage' ? 'usageId' : 'rechargeId'}
+                    pagination={{ showSizeChanger: false }}
+                    className="history-table"
+                    bordered={false}
+                  />
+                </Spin>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
