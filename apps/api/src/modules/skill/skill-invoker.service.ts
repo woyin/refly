@@ -14,7 +14,7 @@ import {
   TokenUsageItem,
   CreditBilling,
 } from '@refly/openapi-schema';
-import { InvokeSkillJobData, SkillTimeoutCheckJobData } from './skill.dto';
+import { InvokeSkillJobData } from './skill.dto';
 import { PrismaService } from '../common/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -43,7 +43,6 @@ import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/
 import { SyncTokenCreditUsageJobData } from '../credit/credit.dto';
 import {
   QUEUE_AUTO_NAME_CANVAS,
-  QUEUE_SKILL_TIMEOUT_CHECK,
   QUEUE_SYNC_PILOT_STEP,
   QUEUE_SYNC_REQUEST_USAGE,
   QUEUE_SYNC_TOKEN_USAGE,
@@ -94,9 +93,6 @@ export class SkillInvokerService {
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
     @Optional()
-    @InjectQueue(QUEUE_SKILL_TIMEOUT_CHECK)
-    private timeoutCheckQueue?: Queue<SkillTimeoutCheckJobData>,
-    @Optional()
     @InjectQueue(QUEUE_SYNC_TOKEN_USAGE)
     private usageReportQueue?: Queue<SyncTokenUsageJobData>,
     @Optional()
@@ -112,34 +108,6 @@ export class SkillInvokerService {
     this.skillEngine = this.skillEngineService.getEngine();
     this.skillInventory = createSkillInventory(this.skillEngine);
     this.logger.log(`Skill inventory initialized: ${this.skillInventory.length}`);
-  }
-
-  async checkSkillTimeout(param: SkillTimeoutCheckJobData) {
-    const { uid, resultId, type, version } = param;
-
-    const timeout: number =
-      type === 'idle'
-        ? this.config.get('skill.idleTimeout')
-        : this.config.get('skill.executionTimeout');
-
-    const result = await this.prisma.actionResult.findFirst({
-      where: { uid, resultId, version },
-      orderBy: { version: 'desc' },
-    });
-    if (!result) {
-      this.logger.warn(`result not found for resultId: ${resultId}`);
-      return;
-    }
-
-    if (result.status === 'executing' && result.updatedAt < new Date(Date.now() - timeout)) {
-      this.logger.warn(`skill invocation ${type} timeout for resultId: ${resultId}`);
-      await this.prisma.actionResult.update({
-        where: { pk: result.pk, status: 'executing' },
-        data: { status: 'failed', errors: JSON.stringify(['Execution timeout']) },
-      });
-    } else {
-      this.logger.log(`skill invocation settled for resultId: ${resultId}`);
-    }
   }
 
   private async buildLangchainMessages(
@@ -397,10 +365,11 @@ export class SkillInvokerService {
 
             // Use ActionService.abortAction to handle timeout consistently
             try {
-              await this.actionService.abortAction(user, {
-                resultId,
-                reason: timeoutReason,
-              });
+              await this.actionService.abortActionFromReq(
+                user,
+                { resultId, version },
+                timeoutReason,
+              );
               this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
             } catch (error) {
               this.logger.error(
@@ -686,8 +655,6 @@ export class SkillInvokerService {
     startTimeoutCheck();
 
     try {
-      // Real network request to AI model with enhanced error handling
-      const networkTimeout = this.config.get('skill.executionTimeout'); // 3 minutes
       // AI model provider network timeout (30 seconds)
       const aiModelNetworkTimeout = this.config.get<number>('skill.aiModelNetworkTimeout', 30000);
 
@@ -700,7 +667,7 @@ export class SkillInvokerService {
       }
 
       this.logger.log(
-        `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms, total timeout: ${networkTimeout}ms) for action: ${resultId}`,
+        `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms) for action: ${resultId}`,
       );
 
       let eventCount = 0;
@@ -1057,17 +1024,6 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
     this.skillEngine.setOptions({ defaultModel: defaultModel?.name });
 
     try {
-      // await this.timeoutCheckQueue.add(
-      //   `execution_timeout_check:${resultId}`,
-      //   {
-      //     uid: user.uid,
-      //     resultId,
-      //     version,
-      //     type: 'execution',
-      //   },
-      //   { delay: this.config.get('skill.executionTimeout') },
-      // );
-
       await this._invokeSkill(user, data, res);
     } catch (err) {
       if (res) {

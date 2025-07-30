@@ -1,10 +1,11 @@
 import { Button, Popover } from 'antd';
 import { SiderLayout } from './layout';
 import { SideRight } from 'refly-icons';
-import { useSiderStoreShallow } from '@refly/stores';
+
 import { Logo } from '../common/logo';
 import { GithubStar } from '../common/github-star';
 import cn from 'classnames';
+import { useState } from 'react';
 
 interface SiderPopoverProps {
   children?: React.ReactNode;
@@ -17,33 +18,43 @@ interface SiderPopoverProps {
 
 export const SiderPopover = (props: SiderPopoverProps) => {
   const { children, childrenClassName, align = { offset: [0, -40] }, showBrand = true } = props;
-  const { collapse, setCollapse } = useSiderStoreShallow((state) => ({
-    collapse: state.collapse,
-    setCollapse: state.setCollapse,
-  }));
+
+  const [isVisible, setIsVisible] = useState(false);
+
+  const handleMouseEnter = () => {
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsVisible(false);
+  };
 
   return (
     <div className={cn('flex items-center gap-2', childrenClassName)}>
-      <Popover
-        zIndex={11}
-        overlayInnerStyle={{ padding: 0, boxShadow: 'none', border: 'none' }}
-        className="shadow-none"
-        arrow={false}
-        placement="bottom"
-        align={align}
-        mouseEnterDelay={0.5}
-        content={<SiderLayout source="popover" />}
-      >
-        {children || (
-          <Button
-            type="text"
-            icon={<SideRight size={20} />}
-            onClick={() => {
-              setCollapse(!collapse);
-            }}
-          />
-        )}
-      </Popover>
+      <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="relative">
+        <Popover
+          zIndex={11}
+          overlayInnerStyle={{ padding: 0, boxShadow: 'none', border: 'none' }}
+          className="shadow-none"
+          arrow={false}
+          placement="bottom"
+          align={align}
+          open={isVisible}
+          content={
+            <div className="animate-slide-in-left">
+              <SiderLayout source="popover" />
+            </div>
+          }
+        >
+          {children || (
+            <Button
+              type="text"
+              icon={<SideRight size={20} />}
+              className="hover:bg-refly-tertiary-hover transition-colors duration-200"
+            />
+          )}
+        </Popover>
+      </div>
       {showBrand && (
         <>
           <Logo />

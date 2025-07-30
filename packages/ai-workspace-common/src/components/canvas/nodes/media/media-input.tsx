@@ -218,6 +218,7 @@ const MediaChatInput = memo(
 
               {/* Media Model Selector */}
               <MediaModelSelector
+                maxWidth={120}
                 model={selectedModel}
                 setModel={handleModelChange}
                 readonly={readonly}

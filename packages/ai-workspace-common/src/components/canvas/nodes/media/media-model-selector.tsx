@@ -13,6 +13,7 @@ import cn from 'classnames';
 import './index.scss';
 
 interface MediaModelSelectorProps {
+  maxWidth?: number;
   model: ProviderItem | null;
   setModel: (model: ProviderItem | null) => void;
   readonly?: boolean;
@@ -26,10 +27,12 @@ interface MediaModelSelectorProps {
 // Memoize the selected model display
 const SelectedMediaModelDisplay = memo(
   ({
+    maxWidth,
     open,
     model,
     handleOpenSettingModal,
   }: {
+    maxWidth?: number;
     open: boolean;
     model: ProviderItem | null;
     handleOpenSettingModal: () => void;
@@ -42,14 +45,16 @@ const SelectedMediaModelDisplay = memo(
           type="text"
           size="small"
           className={cn(
-            'text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
+            'text-sm gap-1.5 p-1 hover:border-refly-Card-Border',
             open && 'border-refly-Card-Border',
           )}
           style={{ color: '#f59e0b' }}
           icon={<LuInfo className="flex items-center" />}
           onClick={handleOpenSettingModal}
         >
-          {t('copilot.modelSelector.configureModel')}
+          <div className={`${maxWidth ? `max-w-[${maxWidth}px]` : ''} truncate`}>
+            {t('copilot.modelSelector.configureModel')}
+          </div>
         </Button>
       );
     }
@@ -59,12 +64,12 @@ const SelectedMediaModelDisplay = memo(
         type="text"
         size="small"
         className={cn(
-          'text-xs gap-0.5 p-1 hover:border-refly-Card-Border min-w-0',
+          'h-7 text-sm gap-1.5 p-1 hover:border-refly-Card-Border min-w-0',
           open && 'border-refly-Card-Border',
         )}
-        icon={<ModelIcon model={model.name} type={'color'} />}
       >
-        <span className="truncate">{model.name}</span>
+        <ModelIcon className="flex items-center" model={model.name} size={16} type={'color'} />
+        <div className={`${maxWidth ? `max-w-[${maxWidth}px]` : ''} truncate`}>{model.name}</div>
         <ArrowDown size={12} color="var(--refly-text-0)" className="flex-shrink-0" />
       </Button>
     );
@@ -111,6 +116,7 @@ const getMediaTypeLabel = (mediaType: string, t: any): string => {
 
 export const MediaModelSelector = memo(
   ({
+    maxWidth,
     placement = 'bottomLeft',
     trigger = ['click'],
     setModel,
@@ -177,7 +183,7 @@ export const MediaModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border border-[1px] border-solid border-refly-Card-Border">
+        <div className="w-[240px] bg-refly-bg-content-z2 rounded-xl border border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {groupedModels.map((group) => (
               <div key={group.mediaType}>
@@ -186,20 +192,22 @@ export const MediaModelSelector = memo(
                   {group.label}
                 </div>
                 {/* Group models */}
-                {group.models.map((model) => (
-                  <div
-                    key={model.itemId}
-                    className="flex items-center gap-1 rounded-[6px] p-1.5 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
-                    onClick={() => handleMenuClick({ key: model.itemId })}
-                  >
-                    <div className="flex-shrink-0">
-                      <ModelIcon model={model.name} size={16} type={'color'} />
+                {group.models
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((model) => (
+                    <div
+                      key={model.itemId}
+                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                      onClick={() => handleMenuClick({ key: model.itemId })}
+                    >
+                      <div className="flex-shrink-0 flex items-center">
+                        <ModelIcon model={model.name} size={16} type={'color'} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <MediaModelLabel model={model} />
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <MediaModelLabel model={model} />
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             ))}
           </div>
@@ -231,7 +239,7 @@ export const MediaModelSelector = memo(
 
     return (
       <Dropdown
-        dropdownRender={() => dropdownOverlay}
+        popupRender={() => dropdownOverlay}
         placement={placement}
         trigger={trigger}
         open={dropdownOpen}
@@ -243,6 +251,7 @@ export const MediaModelSelector = memo(
       >
         <span className="text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-300">
           <SelectedMediaModelDisplay
+            maxWidth={maxWidth}
             open={dropdownOpen}
             model={model}
             handleOpenSettingModal={handleOpenSettingModal}

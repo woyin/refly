@@ -52,6 +52,21 @@ export function defineConfig(): Config {
           xl: ['20px', '30px'],
           '2xl': ['24px', '36px'],
         },
+        animation: {
+          'slide-in-left': 'slideInLeft 0.3s ease-out',
+        },
+        keyframes: {
+          slideInLeft: {
+            '0%': {
+              transform: 'translateX(-100%)',
+              opacity: '0',
+            },
+            '100%': {
+              transform: 'translateX(0)',
+              opacity: '1',
+            },
+          },
+        },
         colors: {
           ...reflyColors,
           // TODO: remove below hardcoded colors after reflyColors is correctly configured

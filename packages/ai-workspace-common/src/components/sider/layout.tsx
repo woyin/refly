@@ -32,7 +32,6 @@ import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/compon
 import { AiOutlineUser } from 'react-icons/ai';
 import { SideLeft, SideRight } from 'refly-icons';
 
-import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
@@ -83,20 +82,16 @@ const SiderSectionHeader = ({
 };
 
 export const SiderLogo = (props: {
-  navigate: (path: string) => void;
+  source: 'sider' | 'popover';
+  navigate?: (path: string) => void;
   collapse: boolean;
   setCollapse: (collapse: boolean) => void;
 }) => {
-  const { navigate, collapse, setCollapse } = props;
+  const { source, navigate, collapse, setCollapse } = props;
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-2">
-        <Logo onClick={() => navigate('/')} />
-        <GithubStar />
-      </div>
-
-      <div>
+    <div className={cn('flex items-center mb-6 gap-2', source === 'sider' && 'justify-between')}>
+      {source === 'popover' && (
         <Button
           type="text"
           icon={
@@ -108,7 +103,26 @@ export const SiderLogo = (props: {
           }
           onClick={() => setCollapse(!collapse)}
         />
+      )}
+
+      <div className="flex items-center gap-2">
+        <Logo onClick={() => navigate?.('/')} />
+        <GithubStar />
       </div>
+
+      {source === 'sider' && (
+        <Button
+          type="text"
+          icon={
+            collapse ? (
+              <SideRight size={20} className="text-refly-text-0" />
+            ) : (
+              <SideLeft size={20} className="text-refly-text-0" />
+            )
+          }
+          onClick={() => setCollapse(!collapse)}
+        />
+      )}
     </div>
   );
 };
@@ -159,8 +173,8 @@ const SettingItem = () => {
           {subscriptionEnabled && isSuccess && (
             <div
               onClick={handleSubscriptionClick}
-              className="flex items-center gap-1.5 text-[#1C1F23] dark:text-white text-xs cursor-pointer
-            p-[8px] rounded-[80px] border-[1px] bg-[var(--bg---refly-bg-content-z2,_#FFF)] dark:bg-[var(--bg---refly-bg-content-z2-dark,_#2C2C2C)] whitespace-nowrap flex-shrink-0
+              className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer
+            rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
             "
             >
               <div className="flex items-center gap-1">
@@ -270,7 +284,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-  const planType = userProfile?.subscription?.planType || 'free';
 
   const {
     collapse,
@@ -364,7 +377,8 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
       <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pt-6">
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
           <SiderLogo
-            navigate={(path) => navigate(path)}
+            source={source}
+            navigate={source === 'sider' ? (path) => navigate(path) : undefined}
             collapse={collapse}
             setCollapse={setCollapse}
           />
@@ -379,6 +393,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             title={t('loggedHomePage.siderMenu.library')}
             onActionClick={() => setShowLibraryModal(true)}
           />
+          <Divider className="m-0 border-refly-Card-Border" />
 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Canvas section with flexible height */}
@@ -415,8 +430,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             </div>
           </div>
         </div>
-
-        {subscriptionEnabled && planType === 'free' && <SubscriptionHint />}
 
         {!!userProfile?.uid && (
           <div

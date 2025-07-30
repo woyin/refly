@@ -14,9 +14,8 @@ import {
   Tag,
   Modal,
   Segmented,
+  Skeleton,
 } from 'antd';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-import { LuPlus, LuMessageCircle, LuImage, LuSettings } from 'react-icons/lu';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { IconDelete, IconEdit } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {
@@ -30,7 +29,7 @@ import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-em
 import { useGroupModels } from '@refly-packages/ai-workspace-common/hooks/use-group-models';
 import { ModelFormModal } from './model-form';
 import { useUserStoreShallow, useChatStoreShallow } from '@refly/stores';
-import { More, Settings, Back } from 'refly-icons';
+import { More, Settings, Back, Chat, Media, AIModel } from 'refly-icons';
 import { ContentHeader } from '../contentHeader';
 import { DefaultModel } from '../default-model';
 
@@ -235,8 +234,11 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     defaultPreferences.providerMode || 'global',
   );
 
+  const [isProviderModeChanging, setIsProviderModeChanging] = useState(false);
+
   const handleProviderModeChange = useCallback(
     async (checked: boolean) => {
+      setIsProviderModeChanging(true);
       const newMode: ProviderMode = checked ? 'custom' : 'global';
 
       const updatedPreferences = {
@@ -261,6 +263,8 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         }
       } catch {
         message.error(t('settings.modelConfig.syncFailed'));
+      } finally {
+        setIsProviderModeChanging(false);
       }
     },
     [defaultPreferences, setUserProfile, userProfile, t],
@@ -517,7 +521,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {
         label: (
           <div className="flex items-center justify-center gap-1.5 w-full">
-            <LuMessageCircle className="h-4 w-4" />
+            <Chat size={16} />
             <span>{t('settings.modelConfig.conversationModels')}</span>
           </div>
         ),
@@ -526,7 +530,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {
         label: (
           <div className="flex items-center justify-center gap-1.5 w-full">
-            <LuImage className="h-4 w-4" />
+            <Media size={16} />
             <span>{t('settings.modelConfig.mediaGeneration')}</span>
           </div>
         ),
@@ -535,7 +539,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {
         label: (
           <div className="flex items-center justify-center gap-1.5 w-full">
-            <LuSettings className="h-4 w-4" />
+            <AIModel size={16} />
             <span>{t('settings.modelConfig.otherModels')}</span>
           </div>
         ),
@@ -548,17 +552,12 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const renderConversationModels = () => (
     <div
       className={cn(
-        isLoading || filteredModels.length === 0 ? 'flex items-center justify-center' : '',
-        filteredModels.length === 0
-          ? 'p-4 border-dashed border-gray-200 dark:border-gray-600 rounded-md'
-          : '',
+        !isLoading && filteredModels.length === 0 ? 'flex items-center justify-center' : '',
         'min-h-[50px] overflow-y-auto',
       )}
     >
       {isLoading ? (
-        <div className="flex items-center justify-center h-[300px]">
-          <Spin />
-        </div>
+        <Skeleton active title={false} paragraph={{ rows: 10 }} />
       ) : filteredModels.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -576,10 +575,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
           }
         >
           {!searchQuery && editable && (
-            <Button
-              onClick={() => handleAddModel('llm')}
-              icon={<LuPlus className="flex items-center" />}
-            >
+            <Button onClick={() => handleAddModel('llm')}>
               {t('settings.modelConfig.addFirstModel')}
             </Button>
           )}
@@ -616,40 +612,37 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
 
   const renderMediaGenerationModels = () => (
     <div className="flex-1 overflow-auto">
-      <Spin spinning={isLoading}>
-        {mediaGenerationModels.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={t('settings.modelConfig.noMediaModels')}
-          >
-            {editable && (
-              <Button
-                onClick={() => handleAddModel('mediaGeneration')}
-                icon={<LuPlus className="flex items-center" />}
-              >
-                {t('settings.modelConfig.addFirstModel')}
-              </Button>
-            )}
-          </Empty>
-        ) : (
-          <div className="space-y-2">
-            {mediaGenerationModels.map((model) => (
-              <ModelItem
-                key={model.itemId}
-                model={model}
-                onEdit={handleEditModel}
-                onDelete={handleDeleteModel}
-                onToggleEnabled={handleToggleEnabled}
-                isSubmitting={isUpdating}
-              />
-            ))}
+      {isLoading ? (
+        <Skeleton className="p-4" active title={false} paragraph={{ rows: 7 }} />
+      ) : mediaGenerationModels.length === 0 ? (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={t('settings.modelConfig.noMediaModels')}
+        >
+          {editable && (
+            <Button onClick={() => handleAddModel('mediaGeneration')}>
+              {t('settings.modelConfig.addFirstModel')}
+            </Button>
+          )}
+        </Empty>
+      ) : (
+        <div className="space-y-2">
+          {mediaGenerationModels.map((model) => (
+            <ModelItem
+              key={model.itemId}
+              model={model}
+              onEdit={handleEditModel}
+              onDelete={handleDeleteModel}
+              onToggleEnabled={handleToggleEnabled}
+              isSubmitting={isUpdating}
+            />
+          ))}
 
-            <div className="text-center text-refly-text-2 text-sm mt-4 pb-10">
-              {t('common.noMore')}
-            </div>
+          <div className="text-center text-refly-text-2 text-sm mt-4 pb-10">
+            {t('common.noMore')}
           </div>
-        )}
-      </Spin>
+        </div>
+      )}
     </div>
   );
 
@@ -728,6 +721,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
             </div>
 
             <Switch
+              loading={isProviderModeChanging}
               checkedChildren={t('settings.modelConfig.custom')}
               unCheckedChildren={t('settings.modelConfig.global')}
               checked={providerMode === 'custom'}

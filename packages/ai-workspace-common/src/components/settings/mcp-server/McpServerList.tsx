@@ -11,6 +11,7 @@ import {
   DropdownProps,
   Popconfirm,
   MenuProps,
+  Skeleton,
 } from 'antd';
 import { useTranslation } from 'react-i18next';
 
@@ -405,17 +406,11 @@ export const McpServerList: React.FC<McpServerListProps> = ({
       <div
         className={cn(
           'flex-1 overflow-auto p-5',
-          isLoading || mcpServers.length === 0 ? 'flex items-center justify-center' : '',
-          mcpServers.length === 0 ? 'border-dashed border-refly-Card-Border rounded-md' : '',
+          !isLoading && mcpServers.length === 0 ? 'flex items-center justify-center' : '',
         )}
       >
         {isLoading || isRefetching ? (
-          <div className="flex items-center justify-center h-[300px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4" />
-              <p className="text-gray-500">{t('common.loading')}</p>
-            </div>
-          </div>
+          <Skeleton active title={false} paragraph={{ rows: 10 }} />
         ) : mcpServers.length === 0 ? (
           <Empty description={<p>{t('settings.mcpServer.noServers')}</p>}>
             <Button type="primary" onClick={() => setIsFormVisible(true)}>
