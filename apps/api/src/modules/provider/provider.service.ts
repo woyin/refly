@@ -25,7 +25,7 @@ import {
   Provider as ProviderModel,
   ProviderItem as ProviderItemModel,
 } from '../../generated/client';
-import { genProviderItemID, genProviderID, providerInfoList } from '@refly/utils';
+import { genProviderItemID, genProviderID, providerInfoList, safeParseJSON } from '@refly/utils';
 import {
   ProviderNotFoundError,
   ProviderItemNotFoundError,
@@ -395,7 +395,7 @@ export class ProviderService implements OnModuleInit {
         return {};
       }
 
-      return JSON.parse(userPo.preferences);
+      return safeParseJSON(userPo.preferences) ?? {};
     } catch (error) {
       this.logger.warn(`Failed to get user preferences for ${uid}: ${error?.message || error}`);
       return {};
@@ -534,7 +534,7 @@ export class ProviderService implements OnModuleInit {
 
     for (const globalItem of globalItems) {
       try {
-        const config = JSON.parse(globalItem.config);
+        const config = JSON.parse(globalItem.config || '{}');
         const key = `${globalItem.providerId}:${config.modelId}`;
         globalItemsMap.set(key, globalItem);
       } catch (error) {
@@ -549,7 +549,7 @@ export class ProviderService implements OnModuleInit {
     // Process all items in a single pass
     for (const item of items) {
       try {
-        const config = JSON.parse(item.config);
+        const config = JSON.parse(item.config || '{}');
         const key = `${item.providerId}:${config.modelId}`;
         const sourceGlobalProviderItem = globalItemsMap.get(key);
 

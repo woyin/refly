@@ -6,7 +6,7 @@ import {
   SyncTokenCreditUsageJobData,
   SyncMediaCreditUsageJobData,
 } from './credit.dto';
-import { genCreditUsageId, genCreditDebtId } from '@refly/utils';
+import { genCreditUsageId, genCreditDebtId, safeParseJSON } from '@refly/utils';
 import { CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import { CreditBalance } from './credit.dto';
 
@@ -175,8 +175,8 @@ export class CreditService {
     });
 
     if (userSubscription?.overridePlan) {
-      const overridePlan = JSON.parse(userSubscription.overridePlan);
-      return overridePlan.isEarlyBird === true;
+      const overridePlan = safeParseJSON(userSubscription.overridePlan);
+      return Boolean(overridePlan?.isEarlyBird);
     }
     return false;
   }
