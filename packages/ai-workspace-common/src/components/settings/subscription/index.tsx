@@ -131,6 +131,7 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.usageDetails'),
       dataIndex: 'usageType',
       key: 'usageType',
+      align: 'center',
       render: (value: string) => {
         const key = `subscription.subscriptionManagement.usageType.${value}`;
         return t(key);
@@ -140,13 +141,14 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.usageTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
+      align: 'center',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
       title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
-      align: 'right',
+      align: 'center',
       render: (amount) => `${amount > 0 ? '-' : ''}${amount.toLocaleString()}`,
     },
   ];
@@ -157,6 +159,7 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.rechargeSource'),
       dataIndex: 'source',
       key: 'source',
+      align: 'center',
       render: (source) => {
         const sourceMap: Record<string, string> = {
           purchase: t('credit.recharge.source.purchase'),
@@ -172,32 +175,34 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.rechargeTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
+      align: 'center',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
       title: t('subscription.subscriptionManagement.expiryDate'),
       dataIndex: 'expiresAt',
       key: 'expiresAt',
+      align: 'center',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD') : '-'),
     },
     {
       title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
-      align: 'right',
+      align: 'center',
       render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
     },
     {
       title: t('subscription.subscriptionManagement.remaining'),
       dataIndex: 'balance',
       key: 'balance',
-      align: 'right',
+      align: 'center',
       render: (balance) => balance.toLocaleString(),
     },
     {
       title: t('subscription.subscriptionManagement.status'),
       key: 'status',
-      align: 'right',
+      align: 'center',
       render: (_, record) => {
         if (!record.enabled) {
           return t('subscription.subscriptionManagement.disabled');
@@ -244,9 +249,15 @@ export const Subscription = () => {
                   ? t('common.loading')
                   : t('subscription.subscriptionManagement.viewBilling')}
               </div>
-              <Button type="primary" className="ant-btn-primary" onClick={handleClickSubscription}>
-                {t('subscription.subscriptionManagement.changePlan')}
-              </Button>
+              {subscriptionPlanType === 'free' && (
+                <Button
+                  type="primary"
+                  className="ant-btn-primary"
+                  onClick={handleClickSubscription}
+                >
+                  {t('subscription.subscriptionManagement.changePlan')}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -260,6 +271,7 @@ export const Subscription = () => {
         <div className="current-plan-label">
           {t('subscription.subscriptionManagement.currentPlan')}
         </div>
+
         <div className="current-plan-name flex items-center w-full justify-between">
           {t('subscription.subscriptionManagement.planNames.freePlan')}
           <Button
@@ -322,7 +334,7 @@ export const Subscription = () => {
                 </div>
                 <div className="usage-value">
                   {storageUsage?.fileCountUsed || 0}{' '}
-                  <span style={{ color: 'rgba(28, 31, 35, 0.5)' }}>
+                  <span className="quota-text">
                     /{' '}
                     {storageUsage?.fileCountQuota < 0
                       ? filesPlanMap[planType]
