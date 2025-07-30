@@ -27,7 +27,7 @@ import { SettingsGuideModal } from '@refly-packages/ai-workspace-common/componen
 import { StorageExceededModal } from '@refly-packages/ai-workspace-common/components/subscription/storage-exceeded-modal';
 // hooks
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
-import { SiderData, useSiderStoreShallow, type SettingsModalActiveTab } from '@refly/stores';
+import { SettingsModalActiveTab, SiderData, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
 import { AiOutlineUser } from 'react-icons/ai';
@@ -124,6 +124,20 @@ const SettingItem = () => {
   const { data: balanceData, isSuccess } = useGetCreditBalance();
   const creditBalance = balanceData?.data?.creditBalance ?? 0;
 
+  const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
+    setShowSettingModal: state.setShowSettingModal,
+    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+  }));
+
+  const handleSubscriptionClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
+      setShowSettingModal(true);
+    },
+    [setSettingsModalActiveTab, setShowSettingModal],
+  );
+
   return (
     <div className="group w-full">
       <SiderMenuSettingList>
@@ -145,6 +159,7 @@ const SettingItem = () => {
 
           {subscriptionEnabled && isSuccess && (
             <div
+              onClick={handleSubscriptionClick}
               className="flex items-center gap-1.5 text-[#1C1F23] dark:text-white text-xs cursor-pointer
             p-[8px] rounded-[80px] border-[1px] bg-[var(--bg---refly-bg-content-z2,_#FFF)] dark:bg-[var(--bg---refly-bg-content-z2-dark,_#2C2C2C)] whitespace-nowrap flex-shrink-0
             "
