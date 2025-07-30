@@ -207,7 +207,6 @@ const MyProviders: React.FC<{
   setIsAddDialogOpen: (open: boolean) => void;
 }> = ({ onRefetch, isAddDialogOpen, setIsAddDialogOpen }) => {
   const { t } = useTranslation();
-  const [searchQuery, _setSearchQuery] = useState('');
   const [editProvider, setEditProvider] = useState<Provider | null>(null);
 
   const { data, isLoading, refetch } = useListProviders();
@@ -242,17 +241,8 @@ const MyProviders: React.FC<{
   );
 
   const filteredProviders = useMemo(() => {
-    if (!data?.data) return [];
-
-    if (!searchQuery.trim()) return data.data;
-
-    const lowerQuery = searchQuery.toLowerCase();
-    return data.data.filter(
-      (provider) =>
-        provider.name?.toLowerCase().includes(lowerQuery) ||
-        provider.providerKey?.toLowerCase().includes(lowerQuery),
-    );
-  }, [data?.data, searchQuery]);
+    return data?.data || [];
+  }, [data?.data]);
 
   return (
     <div className="h-full overflow-hidden flex flex-col">
@@ -269,28 +259,13 @@ const MyProviders: React.FC<{
             <Spin />
           </div>
         ) : filteredProviders.length === 0 ? (
-          <Empty
-            description={
-              searchQuery ? (
-                <>
-                  <p>{t('settings.modelProviders.noSearchResults')}</p>
-                  <p className="text-sm text-gray-400">
-                    {t('settings.modelProviders.tryDifferentSearch')}
-                  </p>
-                </>
-              ) : (
-                <p>{t('settings.modelProviders.noProviders')}</p>
-              )
-            }
-          >
-            {!searchQuery && (
-              <Button
-                onClick={() => setIsAddDialogOpen(true)}
-                icon={<LuPlus className="flex items-center" />}
-              >
-                {t('settings.modelProviders.addFirstProvider')}
-              </Button>
-            )}
+          <Empty description={<p>{t('settings.modelProviders.noProviders')}</p>}>
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              icon={<LuPlus className="flex items-center" />}
+            >
+              {t('settings.modelProviders.addFirstProvider')}
+            </Button>
           </Empty>
         ) : (
           <div>

@@ -1,7 +1,8 @@
 import { Github } from 'refly-icons';
 import { useEffect, useState } from 'react';
+import React from 'react';
 
-export const GithubStar = () => {
+const GithubStarComponent = () => {
   const [starCount, setStarCount] = useState('4.3k');
 
   const handleClick = () => {
@@ -28,3 +29,7 @@ export const GithubStar = () => {
     </div>
   );
 };
+
+export const GithubStar = React.memo(GithubStarComponent);
+
+GithubStar.displayName = 'GithubStar';

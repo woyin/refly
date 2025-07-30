@@ -231,7 +231,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
               <Button
                 type="text"
                 size="small"
-                className="text-xs text-gray-500 gap-1 !hover:text-green-500 transition-colors"
+                className="text-xs text-gray-500 gap-1 hover:!text-green-500 transition-colors"
                 onClick={handleViewAllTemplates}
               >
                 {t('common.viewAll')} <IconRight className="w-3 h-3" />

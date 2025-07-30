@@ -33,11 +33,11 @@ type NodeActionButtonsProps = {
   nodeId: string;
   nodeType: CanvasNodeType;
   isNodeHovered: boolean;
-  isSelected: boolean;
+  isSelected?: boolean;
 };
 
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
-  ({ nodeId, nodeType, isNodeHovered, isSelected: _isSelected }) => {
+  ({ nodeId, nodeType, isNodeHovered }) => {
     const { t } = useTranslation();
     const { readonly } = useCanvasContext();
     const { getNode } = useReactFlow();

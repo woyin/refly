@@ -37,66 +37,72 @@ interface McpServerListProps {
 }
 
 // Action dropdown component
-const ActionDropdown = ({
-  server,
-  handleEdit,
-  handleDelete,
-}: {
-  server: McpServerDTO;
-  handleEdit: (server: McpServerDTO) => void;
-  handleDelete: (server: McpServerDTO) => void;
-}) => {
-  const { t } = useTranslation();
-  const [visible, setVisible] = useState(false);
+const ActionDropdown = React.memo(
+  ({
+    server,
+    handleEdit,
+    handleDelete,
+  }: {
+    server: McpServerDTO;
+    handleEdit: (server: McpServerDTO) => void;
+    handleDelete: (server: McpServerDTO) => void;
+  }) => {
+    const { t } = useTranslation();
+    const [visible, setVisible] = useState(false);
 
-  const items: MenuProps['items'] = [
-    {
-      label: (
-        <div className="flex items-center flex-grow">
-          <Edit size={18} className="mr-2" />
-          {t('common.edit')}
-        </div>
-      ),
-      key: 'edit',
-      onClick: () => handleEdit(server),
-    },
-    {
-      label: (
-        <Popconfirm
-          placement="bottomLeft"
-          title={t('settings.mcpServer.deleteConfirmTitle')}
-          description={t('settings.mcpServer.deleteConfirmMessage', { name: server.name })}
-          onConfirm={() => handleDelete(server)}
-          onCancel={() => setVisible(false)}
-          okText={t('common.delete')}
-          cancelText={t('common.cancel')}
-          overlayStyle={{ maxWidth: '300px' }}
-        >
-          <div
-            className="flex items-center text-red-600 flex-grow"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Delete size={18} className="mr-2" />
-            {t('common.delete')}
+    const items: MenuProps['items'] = [
+      {
+        label: (
+          <div className="flex items-center flex-grow">
+            <Edit size={18} className="mr-2" />
+            {t('common.edit')}
           </div>
-        </Popconfirm>
-      ),
-      key: 'delete',
-    },
-  ];
+        ),
+        key: 'edit',
+        onClick: () => handleEdit(server),
+      },
+      {
+        label: (
+          <Popconfirm
+            placement="bottomLeft"
+            title={t('settings.mcpServer.deleteConfirmTitle')}
+            description={t('settings.mcpServer.deleteConfirmMessage', { name: server.name })}
+            onConfirm={() => handleDelete(server)}
+            onCancel={() => setVisible(false)}
+            okText={t('common.delete')}
+            cancelText={t('common.cancel')}
+            overlayStyle={{ maxWidth: '300px' }}
+          >
+            <div
+              className="flex items-center text-red-600 flex-grow"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Delete size={18} className="mr-2" />
+              {t('common.delete')}
+            </div>
+          </Popconfirm>
+        ),
+        key: 'delete',
+      },
+    ];
 
-  const handleOpenChange: DropdownProps['onOpenChange'] = (open: boolean, info: any) => {
-    if (info.source === 'trigger') {
-      setVisible(open);
-    }
-  };
+    const handleOpenChange: DropdownProps['onOpenChange'] = useCallback(
+      (open: boolean, info: any) => {
+        if (info.source === 'trigger') {
+          setVisible(open);
+        }
+      },
+      [],
+    );
 
-  return (
-    <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
-      <Button type="text" icon={<More size={18} />} />
-    </Dropdown>
-  );
-};
+    return (
+      <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
+        <Button type="text" icon={<More size={18} />} />
+      </Dropdown>
+    );
+  },
+);
+ActionDropdown.displayName = 'ActionDropdown';
 
 // Server item component
 const ServerItem = React.memo(
