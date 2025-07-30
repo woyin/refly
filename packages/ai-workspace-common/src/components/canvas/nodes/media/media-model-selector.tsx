@@ -64,7 +64,7 @@ const SelectedMediaModelDisplay = memo(
         type="text"
         size="small"
         className={cn(
-          'text-sm gap-1 p-1 hover:border-refly-Card-Border min-w-0',
+          'h-7 text-sm gap-1.5 p-1 hover:border-refly-Card-Border min-w-0',
           open && 'border-refly-Card-Border',
         )}
       >
@@ -183,7 +183,7 @@ export const MediaModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-xl border border-[1px] border-solid border-refly-Card-Border">
+        <div className="w-[240px] bg-refly-bg-content-z2 rounded-xl border border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {groupedModels.map((group) => (
               <div key={group.mediaType}>
@@ -192,20 +192,22 @@ export const MediaModelSelector = memo(
                   {group.label}
                 </div>
                 {/* Group models */}
-                {group.models.map((model) => (
-                  <div
-                    key={model.itemId}
-                    className="flex items-center gap-2 rounded-[6px] p-1.5 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
-                    onClick={() => handleMenuClick({ key: model.itemId })}
-                  >
-                    <div className="flex-shrink-0 flex items-center">
-                      <ModelIcon model={model.name} size={16} type={'color'} />
+                {group.models
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((model) => (
+                    <div
+                      key={model.itemId}
+                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                      onClick={() => handleMenuClick({ key: model.itemId })}
+                    >
+                      <div className="flex-shrink-0 flex items-center">
+                        <ModelIcon model={model.name} size={16} type={'color'} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <MediaModelLabel model={model} />
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <MediaModelLabel model={model} />
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             ))}
           </div>
@@ -237,7 +239,7 @@ export const MediaModelSelector = memo(
 
     return (
       <Dropdown
-        dropdownRender={() => dropdownOverlay}
+        popupRender={() => dropdownOverlay}
         placement={placement}
         trigger={trigger}
         open={dropdownOpen}
