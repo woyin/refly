@@ -397,10 +397,11 @@ export class SkillInvokerService {
 
             // Use ActionService.abortAction to handle timeout consistently
             try {
-              await this.actionService.abortAction(user, {
-                resultId,
-                reason: timeoutReason,
-              });
+              await this.actionService.abortActionFromReq(
+                user,
+                { resultId, version },
+                timeoutReason,
+              );
               this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
             } catch (error) {
               this.logger.error(

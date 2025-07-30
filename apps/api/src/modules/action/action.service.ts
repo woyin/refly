@@ -3,7 +3,7 @@ import { PrismaService } from '../common/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { ActionResultNotFoundError } from '@refly/errors';
 import { ActionResult } from '../../generated/client';
-import { EntityType, GetActionResultData, User } from '@refly/openapi-schema';
+import { AbortActionRequest, EntityType, GetActionResultData, User } from '@refly/openapi-schema';
 import { batchReplaceRegex, genActionResultID, pick } from '@refly/utils';
 import pLimit from 'p-limit';
 import { ProviderService } from '../provider/provider.service';
@@ -223,20 +223,10 @@ export class ActionService {
   /**
    * Abort a running action
    */
-  async abortAction(user: User, { resultId, reason }: { resultId: string; reason?: string }) {
+  async abortAction(user: User, result: ActionResult, reason?: string) {
+    const { resultId } = result;
+
     this.logger.debug(`Attempting to abort action: ${resultId} for user: ${user.uid}`);
-
-    // Verify that the action belongs to the user
-    const result = await this.prisma.actionResult.findFirst({
-      where: {
-        resultId,
-        uid: user.uid,
-      },
-    });
-
-    if (!result) {
-      throw new ActionResultNotFoundError();
-    }
 
     // Get the abort controller for this action
     const entry = this.activeAbortControllers.get(resultId);
@@ -254,13 +244,13 @@ export class ActionService {
       // Clean up the entry
       this.unregisterAbortController(resultId);
     } else {
-      this.logger.warn(`No active abort controller found for action: ${resultId}`);
+      this.logger.log(`No active abort controller found for action: ${resultId}`);
     }
 
     // Always update the action status to failed, regardless of whether we found an active controller
     // This handles cases where the action might be stuck without an active controller
     try {
-      await this.prisma.actionResult.update({
+      await this.prisma.actionResult.updateMany({
         where: {
           pk: result.pk,
           status: 'executing', // Only update if still executing to avoid race conditions
@@ -276,5 +266,24 @@ export class ActionService {
       // log the error but don't throw it
       this.logger.warn(`Failed to update action ${resultId} status: ${updateError?.message}`);
     }
+  }
+
+  async abortActionFromReq(user: User, req: AbortActionRequest, reason?: string) {
+    const { resultId, version } = req;
+
+    // Verify that the action belongs to the user
+    const result = await this.prisma.actionResult.findFirst({
+      where: {
+        resultId,
+        version,
+        uid: user.uid,
+      },
+    });
+
+    if (!result) {
+      throw new ActionResultNotFoundError();
+    }
+
+    await this.abortAction(user, result, reason);
   }
 }

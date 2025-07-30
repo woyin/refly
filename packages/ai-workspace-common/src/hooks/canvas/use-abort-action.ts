@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { serverOrigin } from '@refly/ui-kit';
 import { logEvent } from '@refly/telemetry-web';
 import { useActionResultStore } from '@refly/stores';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 // Global variables shared across all hook instances
 export const globalAbortControllerRef = {
@@ -13,7 +13,7 @@ export const globalCurrentResultIdRef = { current: '' as string };
 export const useAbortAction = (params?: { source?: string }) => {
   const { source } = params || {};
 
-  const abortAction = useCallback(async (resultId?: string, _msg?: string) => {
+  const abortAction = useCallback(async (resultId?: string) => {
     // Use current active resultId if none provided
     const activeResultId = resultId || globalCurrentResultIdRef.current;
 
@@ -43,11 +43,11 @@ export const useAbortAction = (params?: { source?: string }) => {
       // If resultId is provided and is a valid string, call the backend to clean up server-side resources
       if (activeResultId?.trim()) {
         try {
-          await fetch(`${serverOrigin}/v1/action/abort`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ resultId: activeResultId }),
+          await getClient().abortAction({
+            body: {
+              resultId: result.resultId,
+              version: result.version,
+            },
           });
         } catch (_error) {
           // Silent fail or minimal logging

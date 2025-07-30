@@ -3906,6 +3906,21 @@ export const GetActionResultResponseSchema = {
   ],
 } as const;
 
+export const AbortActionRequestSchema = {
+  type: 'object',
+  required: ['resultId'],
+  properties: {
+    resultId: {
+      type: 'string',
+      description: 'Action result ID',
+    },
+    version: {
+      type: 'integer',
+      description: 'Action result version',
+    },
+  },
+} as const;
+
 export const QueryReferencesRequestSchema = {
   type: 'object',
   properties: {

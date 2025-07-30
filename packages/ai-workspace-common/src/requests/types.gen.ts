@@ -2795,6 +2795,17 @@ export type GetActionResultResponse = BaseResponse & {
   data?: ActionResult;
 };
 
+export type AbortActionRequest = {
+  /**
+   * Action result ID
+   */
+  resultId: string;
+  /**
+   * Action result version
+   */
+  version?: number;
+};
+
 export type QueryReferencesRequest = {
   /**
    * Source entity type
@@ -6178,6 +6189,17 @@ export type GetActionResultData = {
 export type GetActionResultResponse2 = GetActionResultResponse;
 
 export type GetActionResultError = unknown;
+
+export type AbortActionData = {
+  /**
+   * Abort action request
+   */
+  body: AbortActionRequest;
+};
+
+export type AbortActionResponse = BaseResponse;
+
+export type AbortActionError = unknown;
 
 export type ListSkillsResponse = ListSkillResponse;
 

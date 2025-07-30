@@ -3,6 +3,7 @@
 import { type Options } from '@hey-api/client-fetch';
 import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from '@tanstack/react-query';
 import {
+  abortAction,
   addNodesToCanvasPage,
   addReferences,
   autoNameCanvas,
@@ -136,6 +137,8 @@ import {
   validateMcpServer,
 } from '../requests/services.gen';
 import {
+  AbortActionData,
+  AbortActionError,
   AddNodesToCanvasPageData,
   AddNodesToCanvasPageError,
   AddReferencesData,
@@ -1973,6 +1976,23 @@ export const useDeleteLabelInstance = <
   useMutation<TData, TError, Options<DeleteLabelInstanceData, true>, TContext>({
     mutationKey: Common.UseDeleteLabelInstanceKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteLabelInstance(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useAbortAction = <
+  TData = Common.AbortActionMutationResult,
+  TError = AbortActionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<AbortActionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<AbortActionData, true>, TContext>({
+    mutationKey: Common.UseAbortActionKeyFn(mutationKey),
+    mutationFn: (clientOptions) => abortAction(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useInvokeSkill = <
