@@ -3083,6 +3083,16 @@ const translations = {
         maker: 'Maker Plan',
         freePlan: 'Free Plan',
       },
+      creditsWelcome: {
+        title: 'Dear Creator',
+        subtitle: 'Refly.ai has officially launched the credits system!',
+        description1:
+          'Your existing membership benefits have been fully preserved, and you will automatically receive corresponding credits for content generation each month.',
+        description2:
+          'If you want to experience flexible billing and exclusive activities, feel free to upgrade to the new plan at any time (with exclusive limited-time double credits)!',
+        continueButton: 'Continue with current version',
+        learnMoreButton: 'Learn about new plans',
+      },
     },
     yearly: 'Yearly',
     monthly: 'Monthly',

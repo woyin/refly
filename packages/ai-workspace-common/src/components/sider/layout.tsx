@@ -24,6 +24,7 @@ import { SettingModal } from '@refly-packages/ai-workspace-common/components/set
 import { TourModal } from '@refly-packages/ai-workspace-common/components/tour-modal';
 import { SettingsGuideModal } from '@refly-packages/ai-workspace-common/components/settings-guide';
 import { StorageExceededModal } from '@refly-packages/ai-workspace-common/components/subscription/storage-exceeded-modal';
+import { PointsWelcomeModal } from '@refly-packages/ai-workspace-common/components/points-welcome-modal';
 // hooks
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { SettingsModalActiveTab, SiderData, useSiderStoreShallow } from '@refly/stores';
@@ -463,6 +464,7 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
       <TourModal />
       <StorageExceededModal />
       <CanvasTemplateModal />
+      <PointsWelcomeModal />
 
       {isLogin ? (
         isProject ? (
