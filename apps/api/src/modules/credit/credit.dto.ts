@@ -23,3 +23,18 @@ export interface CreditBalance {
   creditAmount: number;
   creditBalance: number;
 }
+
+// New interfaces for batch processing
+export interface ModelUsageDetail {
+  modelName: string;
+  totalTokens: number;
+  creditCost: number;
+}
+
+export interface SyncBatchTokenCreditUsageJobData {
+  uid: string;
+  resultId?: string;
+  usages: TokenUsageItem[];
+  creditBillings: (CreditBilling | undefined)[];
+  timestamp: Date;
+}

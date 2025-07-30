@@ -1180,3 +1180,38 @@ model McpServer {
   @@index([isGlobal])
   @@map("mcp_servers")
 }
+
+model CreditUsage {
+  /// Primary key
+  pk                Int      @id @default(autoincrement())
+  /// Usage record ID
+  usageId           String   @unique @map("usage_id")
+  /// User UID
+  uid               String   @map("uid")
+  /// Used credits amount
+  amount            Int      @map("amount")
+  /// Provider item ID that consumed the credits
+  providerItemId    String?  @map("provider_item_id")
+  /// Model name used
+  modelName         String?  @map("model_name")
+  /// Usage type (model_call, media_generation, etc.)
+  usageType         String   @default("model_call") @map("usage_type")
+  /// Related action result ID (if applicable)
+  actionResultId    String?  @map("action_result_id")
+  /// Related pilot session ID (if applicable)
+  pilotSessionId    String?  @map("pilot_session_id")
+  /// Usage description
+  description       String?  @map("description")
+  /// Model usage details for skill execution (JSON array of model usage)
+  modelUsageDetails String?  @map("model_usage_details")
+  /// Create timestamp
+  createdAt         DateTime @default(now()) @map("created_at")
+  /// Update timestamp
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([uid, createdAt])
+  @@index([providerItemId, createdAt])
+  @@index([actionResultId])
+  @@index([pilotSessionId])
+  @@map("credit_usages")
+}

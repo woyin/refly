@@ -6964,6 +6964,10 @@ export const CreditUsageSchema = {
       type: 'string',
       description: 'Optional description for this usage',
     },
+    modelUsageDetails: {
+      type: 'string',
+      description: 'Model usage details for skill execution (JSON array of model usage)',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',

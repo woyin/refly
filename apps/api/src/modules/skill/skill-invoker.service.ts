@@ -40,7 +40,10 @@ import { getWholeParsedContent } from '@refly/utils';
 import { ProjectNotFoundError } from '@refly/errors';
 import { projectPO2DTO } from '../project/project.dto';
 import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
-import { SyncTokenCreditUsageJobData } from '../credit/credit.dto';
+import {
+  SyncTokenCreditUsageJobData,
+  SyncBatchTokenCreditUsageJobData,
+} from '../credit/credit.dto';
 import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SKILL_TIMEOUT_CHECK,
@@ -101,7 +104,9 @@ export class SkillInvokerService {
     private usageReportQueue?: Queue<SyncTokenUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOKEN_CREDIT_USAGE)
-    private creditUsageReportQueue?: Queue<SyncTokenCreditUsageJobData>,
+    private creditUsageReportQueue?: Queue<
+      SyncTokenCreditUsageJobData | SyncBatchTokenCreditUsageJobData
+    >,
     @Optional()
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
     private autoNameCanvasQueue?: Queue<AutoNameCanvasJobData>,
@@ -869,6 +874,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           }
           case 'on_chat_model_end':
             if (runMeta && chunk) {
+              this.logger.log(`is_model_name: ${String(runMeta.ls_model_name)}`);
               const providerItem = await this.providerService.findLLMProviderItemByModelID(
                 user,
                 String(runMeta.ls_model_name),
@@ -1024,31 +1030,33 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       if (this.creditUsageReportQueue && !result.errors.length) {
         const steps = resultAggregator.getSteps({ resultId, version });
 
-        // Group usage by provider to avoid duplicate credit billing
-        const usageByProvider = new Map<
-          string,
-          {
-            totalInputTokens: number;
-            totalOutputTokens: number;
-            providerItem: any;
-            creditBilling: CreditBilling;
-          }
-        >();
+        // Collect all usages and their corresponding credit billings
+        const usages: TokenUsageItem[] = [];
+        const creditBillings: (CreditBilling | undefined)[] = [];
 
         for (const step of steps) {
           if (step.tokenUsage) {
-            const tokenUsage = JSON.parse(step.tokenUsage);
-            const providerKey = `${tokenUsage.modelProvider}:${tokenUsage.modelName}`;
+            const tokenUsageArray = JSON.parse(step.tokenUsage);
+            this.logger.log(`tokenUsage: ${JSON.stringify(tokenUsageArray)}`);
 
-            if (!usageByProvider.has(providerKey)) {
+            // Handle both array and single object cases
+            const tokenUsages = Array.isArray(tokenUsageArray)
+              ? tokenUsageArray
+              : [tokenUsageArray];
+
+            for (const tokenUsage of tokenUsages) {
+              this.logger.log(`Processing tokenUsage: ${JSON.stringify(tokenUsage)}`);
+              this.logger.log(`tokenUsage.modelName: ${String(tokenUsage.modelName)}`);
+
               const providerItem = await this.providerService.findLLMProviderItemByModelID(
                 user,
-                tokenUsage.modelName,
+                String(tokenUsage.modelName),
               );
+              this.logger.log(`providerItem: ${JSON.stringify(providerItem)}`);
 
               if (providerItem?.creditBilling) {
                 const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
-
+                this.logger.log(`creditBilling: ${JSON.stringify(creditBilling)}`);
                 // Check if user is early bird and credit billing is free for early bird users
                 let shouldSkipCreditBilling = false;
                 if (creditBilling?.isEarlyBirdFree) {
@@ -1075,48 +1083,39 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 }
 
                 if (!shouldSkipCreditBilling) {
-                  usageByProvider.set(providerKey, {
-                    totalInputTokens: 0,
-                    totalOutputTokens: 0,
-                    providerItem,
-                    creditBilling,
-                  });
+                  const usage: TokenUsageItem = {
+                    tier: providerItem?.tier,
+                    modelProvider: providerItem?.provider?.name,
+                    modelName: providerItem?.name,
+                    inputTokens: tokenUsage.inputTokens || 0,
+                    outputTokens: tokenUsage.outputTokens || 0,
+                  };
+                  this.logger.log(`usage: ${JSON.stringify(usage)}`);
+                  usages.push(usage);
+                  creditBillings.push(creditBilling);
                 }
               }
-            }
-
-            const providerData = usageByProvider.get(providerKey);
-            if (providerData) {
-              providerData.totalInputTokens += tokenUsage.inputTokens || 0;
-              providerData.totalOutputTokens += tokenUsage.outputTokens || 0;
             }
           }
         }
 
-        // Process credit billing for each provider
-        for (const [providerKey, providerData] of usageByProvider) {
-          const aggregatedUsage: TokenUsageItem = {
-            tier: providerData.providerItem?.tier,
-            modelProvider: providerData.providerItem?.provider?.name,
-            modelName: providerData.providerItem?.name,
-            inputTokens: providerData.totalInputTokens,
-            outputTokens: providerData.totalOutputTokens,
-          };
-
-          const tokenCreditUsage: SyncTokenCreditUsageJobData = {
+        // Process credit billing for all usages in one batch
+        if (usages.length > 0) {
+          this.logger.log(`creditBillings: ${JSON.stringify(creditBillings)}`);
+          const batchTokenCreditUsage: SyncBatchTokenCreditUsageJobData = {
             ...basicUsageData,
-            usage: aggregatedUsage,
-            creditBilling: providerData.creditBilling,
+            usages,
+            creditBillings,
             timestamp: new Date(),
           };
 
           await this.creditUsageReportQueue.add(
-            `credit_usage_report:${resultId}:${providerKey}`,
-            tokenCreditUsage,
+            `credit_usage_report:${resultId}:batch`,
+            batchTokenCreditUsage,
           );
 
           this.logger.log(
-            `Credit billing processed for ${providerKey}: ${aggregatedUsage.inputTokens} input + ${aggregatedUsage.outputTokens} output tokens`,
+            `Batch credit billing processed for ${resultId}: ${usages.length} usage items`,
           );
         }
       }
