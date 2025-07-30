@@ -12,7 +12,7 @@ The following are the detailed configurations for the API server. You can inject
 | PORT | HTTP API service port, used for regular API requests | `5800` |
 | WS_PORT | WebSocket server port, used for real-time synchronization for canvases and documents | `5801` |
 | ORIGIN | Client origin (where you are accessing the Refly application from), used for CORS check | `http://localhost:5700` |
-| STATIC_PUBLIC_ENDPOINT | Public static file endpoint (which can be accessed without authentication) | `http://localhost:5800/v1/misc` |
+| STATIC_PUBLIC_ENDPOINT | Public static file endpoint (which can be accessed without authentication) | `http://localhost:5800/v1/misc/public` |
 | STATIC_PRIVATE_ENDPOINT | Private static file endpoint (which must be accessed with authentication) | `http://localhost:5800/v1/misc` |
 
 ### Middlewares
@@ -45,9 +45,16 @@ Refer to [Prisma doc](https://www.prisma.io/docs/orm/overview/databases/postgres
 | --- | --- | --- |
 | REDIS_HOST | Redis host | `localhost` |
 | REDIS_PORT | Redis port | `6379` |
-| REDIS_PASSWORD | Redis password | `test` |
+| REDIS_USERNAME | Redis username | (not set) |
+| REDIS_PASSWORD | Redis password | (not set) |
 
-#### Qdrant (Vector Store)
+#### Vector Store
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| VECTOR_STORE_BACKEND | Vector store backend (`qdrant` or `lancedb`) | `qdrant` |
+
+##### Qdrant (Vector Store)
 
 | Env | Description | Default Value |
 | --- | --- | --- |
@@ -55,22 +62,26 @@ Refer to [Prisma doc](https://www.prisma.io/docs/orm/overview/databases/postgres
 | QDRANT_PORT | Qdrant port | `6333` |
 | QDRANT_API_KEY | Qdrant API key | (not set) |
 
-#### SearXNG
+##### LanceDB (Vector Store)
 
 | Env | Description | Default Value |
 | --- | --- | --- |
-| SEARXNG_BASE_URL | SearXNG base URL | `http://localhost:8080/` |
+| LANCEDB_URI | LanceDB database URI | `./data/lancedb` |
 
-#### Full-Text Search
+#### Object Storage
 
 | Env | Description | Default Value |
 | --- | --- | --- |
-| FULLTEXT_SEARCH_BACKEND | Full-text search backend (`prisma` or `elasticsearch`) | `prisma` |
-| ELASTICSEARCH_URL | Elasticsearch URL (required if `FULLTEXT_SEARCH_BACKEND` is `elasticsearch`) | `http://localhost:9200` |
-| ELASTICSEARCH_USERNAME | Elasticsearch username (required if `FULLTEXT_SEARCH_BACKEND` is `elasticsearch`) | (not set) |
-| ELASTICSEARCH_PASSWORD | Elasticsearch password (required if `FULLTEXT_SEARCH_BACKEND` is `elasticsearch`) | (not set) |
+| OBJECT_STORAGE_RECLAIM_POLICY | Object storage reclaim policy (`retain` or `delete`) | `retain` |
+| OBJECT_STORAGE_BACKEND | Object storage backend (`minio` or `fs`) | `minio` |
 
-#### MinIO
+##### File System Storage
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| OBJECT_STORAGE_FS_ROOT | File system storage root path | `./storage` |
+
+##### MinIO
 
 Refly requires two MinIO instances:
 
@@ -85,24 +96,40 @@ Refly requires two MinIO instances:
 | MINIO_INTERNAL_ACCESS_KEY | Access key for internal MinIO | `minioadmin` |
 | MINIO_INTERNAL_SECRET_KEY | Secret key for MinIO | `minioadmin` |
 | MINIO_INTERNAL_BUCKET | Bucket name for internal | `refly-weblink` |
-| MINIO_EXTERNAL_ENDPOINT | MinIO host used for internal data | `localhost` |
-| MINIO_EXTERNAL_PORT | MinIO port used for internal data | `9000` |
+| MINIO_EXTERNAL_ENDPOINT | MinIO host used for external data | `localhost` |
+| MINIO_EXTERNAL_PORT | MinIO port used for external data | `9000` |
 | MINIO_EXTERNAL_USE_SSL | Whether to use HTTPS for transport | `false` |
-| MINIO_EXTERNAL_ACCESS_KEY | Access key for internal MinIO | `minioadmin` |
+| MINIO_EXTERNAL_ACCESS_KEY | Access key for external MinIO | `minioadmin` |
 | MINIO_EXTERNAL_SECRET_KEY | Secret key for MinIO | `minioadmin` |
-| MINIO_EXTERNAL_BUCKET | Bucket name for internal | `refly-weblink` |
+| MINIO_EXTERNAL_BUCKET | Bucket name for external | `refly-weblink` |
+
+#### Full-Text Search
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| FULLTEXT_SEARCH_BACKEND | Full-text search backend (`prisma` or `elasticsearch`) | `prisma` |
+| ELASTICSEARCH_URL | Elasticsearch URL (required if `FULLTEXT_SEARCH_BACKEND` is `elasticsearch`) | `http://localhost:9200` |
+| ELASTICSEARCH_USERNAME | Elasticsearch username (required if `FULLTEXT_SEARCH_BACKEND` is `elasticsearch`) | (not set) |
+| ELASTICSEARCH_PASSWORD | Elasticsearch password (required if `FULLTEXT_SEARCH_BACKEND` is `elasticsearch`) | (not set) |
 
 ### Authentication Configuration
 
 | Env | Description | Default Value |
 | --- | --- | --- |
 | AUTH_SKIP_VERIFICATION | Whether to skip email verification | `false` |
-| REFLY_COOKIE_DOMAIN | Cookie domain used for signing authentication tokens | `localhost` |
 | LOGIN_REDIRECT_URL | URL to redirect after OAuth login | (not set) |
 | JWT_SECRET | JWT signing secret | `test` |
 | JWT_EXPIRATION_TIME | JWT access token expiration time | `1h` |
 | JWT_REFRESH_EXPIRATION_TIME | JWT refresh token expiration time | `7d` |
 | COLLAB_TOKEN_EXPIRY | Collaboration token expiration time | `1h` |
+
+#### Cookie Configuration
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| REFLY_COOKIE_DOMAIN | Cookie domain used for signing authentication tokens | (not set) |
+| REFLY_COOKIE_SECURE | Whether to use secure cookies | (not set) |
+| REFLY_COOKIE_SAME_SITE | SameSite cookie attribute | (not set) |
 
 ::: info
 The time format is compatible with [Vercel MS](https://github.com/vercel/ms).
@@ -158,9 +185,9 @@ You can learn more about Google OAuth at [Google Developer](https://developers.g
 
 | Env | Description | Default Value |
 | --- | --- | --- |
-| IMAGE_MAX_AREA | Maximum area of images passed to LLM | `600 * 600` |
+| IMAGE_MAX_AREA | Maximum area of images passed to LLM | `360000` |
 | IMAGE_PAYLOAD_MODE | Image payload mode (`base64` or `url`) | `base64` |
-| IMAGE_PRESIGN_EXPIRY | Expiry time (in seconds) for presigned image URLs | `15 * 60` |
+| IMAGE_PRESIGN_EXPIRY | Expiry time (in seconds) for presigned image URLs | `900` |
 
 ### Encryption
 
@@ -172,8 +199,29 @@ You can learn more about Google OAuth at [Google Developer](https://developers.g
 
 | Env | Description | Default Value |
 | --- | --- | --- |
-| SKILL_IDLE_TIMEOUT | Skill idle timeout in milliseconds | `60000` |
-| SKILL_EXECUTION_TIMEOUT | Skill execution timeout in milliseconds | `180000` |
+| SKILL_STREAM_IDLE_TIMEOUT | Skill stream idle timeout in milliseconds | `30000` |
+| SKILL_STREAM_IDLE_CHECK_INTERVAL | Skill stream idle check interval in milliseconds | `10000` |
+| SKILL_STUCK_CHECK_INTERVAL | Skill stuck check interval in milliseconds | `60000` |
+| SKILL_STUCK_TIMEOUT_THRESHOLD | Skill stuck timeout threshold in milliseconds | `300000` |
+| SKILL_AI_MODEL_NETWORK_TIMEOUT | AI model network timeout in milliseconds | `30000` |
+
+### Provider Configuration
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| PROVIDER_DEFAULT_MODE | Default provider mode (`global` or `custom`) | `custom` |
+
+### Default Models
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| DEFAULT_MODEL_CHAT | Default chat model | (not set) |
+| DEFAULT_MODEL_AGENT | Default agent model | (not set) |
+| DEFAULT_MODEL_QUERY_ANALYSIS | Default query analysis model | (not set) |
+| DEFAULT_MODEL_TITLE_GENERATION | Default title generation model | (not set) |
+| DEFAULT_MODEL_IMAGE | Default image model | (not set) |
+| DEFAULT_MODEL_VIDEO | Default video model | (not set) |
+| DEFAULT_MODEL_AUDIO | Default audio model | (not set) |
 
 ### Stripe
 
@@ -187,6 +235,13 @@ You can learn more about Google OAuth at [Google Developer](https://developers.g
 | STRIPE_PORTAL_RETURN_URL | Stripe customer portal return URL | (not set) |
 
 ### Quota
+
+#### Token Quota
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| QUOTA_T1_TOKEN | Tier 1 token quota | `-1` |
+| QUOTA_T2_TOKEN | Tier 2 token quota | `-1` |
 
 #### Request Quota
 
@@ -202,6 +257,20 @@ You can learn more about Google OAuth at [Google Developer](https://developers.g
 | QUOTA_STORAGE_FILE | File storage quota | `-1` |
 | QUOTA_STORAGE_OBJECT | Object storage quota | `-1` |
 | QUOTA_STORAGE_VECTOR | Vector storage quota | `-1` |
+
+#### File Parse Quota
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| QUOTA_FILE_PARSE_PAGE | File parse page quota | `-1` |
+
+### Langfuse
+
+| Env | Description | Default Value |
+| --- | --- | --- |
+| LANGFUSE_PUBLIC_KEY | Langfuse public key | (not set) |
+| LANGFUSE_SECRET_KEY | Langfuse secret key | (not set) |
+| LANGFUSE_HOST | Langfuse host URL | (not set) |
 
 ## Web Frontend {#web-frontend}
 
