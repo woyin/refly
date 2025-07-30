@@ -667,18 +667,32 @@ export class SkillService implements OnModuleInit {
     param: InvokeSkillRequest,
   ): Promise<void> {
     try {
-      // Check if a failed record already exists to avoid duplicates
-      const existingResult = await this.prisma.actionResult.findFirst({
+      // Find the latest version for this resultId
+      const latestResult = await this.prisma.actionResult.findFirst({
         where: {
           resultId,
           uid,
+        },
+        orderBy: {
+          version: 'desc',
+        },
+      });
+
+      const nextVersion = latestResult ? latestResult.version + 1 : 0;
+
+      // Check if a failed record with the same version already exists
+      const existingFailedResult = await this.prisma.actionResult.findFirst({
+        where: {
+          resultId,
+          uid,
+          version: nextVersion,
           status: 'failed',
         },
       });
 
-      if (existingResult) {
+      if (existingFailedResult) {
         this.logger.warn(
-          `Failed action result already exists for resultId: ${resultId}, skipping creation`,
+          `Failed action result already exists for resultId: ${resultId}, version: ${nextVersion}, skipping creation`,
         );
         return;
       }
@@ -688,7 +702,7 @@ export class SkillService implements OnModuleInit {
         data: {
           resultId,
           uid,
-          version: 0,
+          version: nextVersion,
           type: 'skill',
           status: 'failed',
           title: param.input?.query ?? 'Skill execution failed',
@@ -712,7 +726,7 @@ export class SkillService implements OnModuleInit {
       });
 
       this.logger.log(
-        `Successfully created failed action result for resultId: ${resultId} with error: ${errorMessage}`,
+        `Successfully created failed action result for resultId: ${resultId}, version: ${nextVersion} with error: ${errorMessage}`,
       );
     } catch (error) {
       this.logger.error(
