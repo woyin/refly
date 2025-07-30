@@ -2997,6 +2997,15 @@ const translations = {
           'Service support\nCommunity support (WeChat, Lark, Discord)',
         ],
       },
+      pro: {
+        title: 'PRO',
+      },
+      plus: {
+        title: 'PLUS',
+      },
+      max: {
+        title: 'MAX',
+      },
       starter: {
         title: 'Starter Plan',
         description: 'The perfect choice for curious minds beginning their AI journey',

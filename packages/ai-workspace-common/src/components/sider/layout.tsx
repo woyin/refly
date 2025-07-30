@@ -128,7 +128,10 @@ const SettingItem = () => {
     <div className="group w-full">
       <SiderMenuSettingList>
         <div className="flex flex-1 items-center justify-between">
-          <div className="flex items-center gap-2 mr-2 flex-shrink min-w-0">
+          <div
+            className="flex items-center gap-2 mr-2 flex-shrink min-w-0"
+            title={userProfile?.nickname}
+          >
             <Avatar
               size={32}
               src={userProfile?.avatar}

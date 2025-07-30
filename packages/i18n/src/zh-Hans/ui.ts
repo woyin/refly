@@ -72,6 +72,15 @@ const translations = {
           '服务支持\n社区支持 (微信群, 飞书群, Discord)',
         ],
       },
+      pro: {
+        title: 'PRO',
+      },
+      plus: {
+        title: 'PLUS',
+      },
+      max: {
+        title: 'MAX',
+      },
       starter: {
         title: 'Starter 启程版',
         titleCn: '启程版',
