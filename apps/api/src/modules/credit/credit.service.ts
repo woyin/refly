@@ -4,7 +4,6 @@ import { User } from '@refly/openapi-schema';
 import { CreditBilling, CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
-  SyncTokenCreditUsageJobData,
   SyncMediaCreditUsageJobData,
   SyncBatchTokenCreditUsageJobData,
   ModelUsageDetail,
@@ -185,61 +184,6 @@ export class CreditService {
     return false;
   }
 
-  async syncTokenCreditUsage(data: SyncTokenCreditUsageJobData) {
-    const { uid, usage, providerItemId, creditBilling, timestamp, resultId } = data;
-
-    // Find user
-    const user = await this.prisma.user.findUnique({ where: { uid } });
-    if (!user) {
-      throw new Error(`No user found for uid ${uid}`);
-    }
-
-    // Calculate total tokens used
-    const totalTokens = usage.inputTokens + usage.outputTokens;
-
-    // Calculate credit cost based on unit (5k_tokens)
-    let creditCost = 0;
-    if (creditBilling && creditBilling.unit === '5k_tokens') {
-      // Round up to nearest 5k tokens (not enough 5K counts as 5K)
-      const tokenUnits = Math.ceil(totalTokens / 5000);
-      creditCost = tokenUnits * (creditBilling.unitCost || 0);
-    }
-
-    // Check if user is early bird user
-    const isEarlyBirdUser = await this.isEarlyBirdUser(user);
-    if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
-      this.logger.log(
-        `Early bird user ${uid} skipping credit billing for provider item ${providerItemId}`,
-      );
-      creditCost = 0;
-    }
-
-    // If no credit cost, just create usage record
-    if (creditCost <= 0) {
-      await this.prisma.creditUsage.create({
-        data: {
-          uid,
-          usageId: genCreditUsageId(),
-          providerItemId,
-          actionResultId: resultId,
-          modelName: usage.modelName,
-          amount: 0,
-          createdAt: timestamp,
-        },
-      });
-      return;
-    }
-
-    // Use the extracted method to handle credit deduction
-    await this.deductCreditsAndCreateUsage(uid, creditCost, {
-      usageId: genCreditUsageId(),
-      providerItemId,
-      actionResultId: resultId,
-      modelName: usage.modelName,
-      createdAt: timestamp,
-    });
-  }
-
   async syncMediaCreditUsage(data: SyncMediaCreditUsageJobData) {
     const { uid, creditBilling, timestamp, resultId } = data;
 
@@ -277,7 +221,7 @@ export class CreditService {
   }
 
   async syncBatchTokenCreditUsage(data: SyncBatchTokenCreditUsageJobData) {
-    const { uid, usages, creditBillings, timestamp, resultId } = data;
+    const { uid, creditUsageSteps, timestamp, resultId } = data;
 
     // Find user
     const user = await this.prisma.user.findUnique({ where: { uid } });
@@ -285,13 +229,15 @@ export class CreditService {
       throw new Error(`No user found for uid ${uid}`);
     }
 
+    // Check if user is early bird user
+    const isEarlyBirdUser = await this.isEarlyBirdUser(user);
+
     // Calculate total credit cost for all usages
     let totalCreditCost = 0;
     const modelUsageDetails: ModelUsageDetail[] = [];
 
-    for (let i = 0; i < usages.length; i++) {
-      const usage = usages[i];
-      const creditBilling = creditBillings[i];
+    for (const step of creditUsageSteps) {
+      const { usage, creditBilling } = step;
 
       // Calculate tokens for this usage
       const totalTokens = usage.inputTokens + usage.outputTokens;
@@ -302,6 +248,14 @@ export class CreditService {
         // Round up to nearest 5k tokens (not enough 5K counts as 5K)
         const tokenUnits = Math.ceil(totalTokens / 5000);
         creditCost = tokenUnits * (creditBilling.unitCost || 0);
+      }
+
+      // Check if user is early bird and credit billing is free for early bird users
+      if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
+        this.logger.log(
+          `Early bird user ${uid} skipping credit billing for model ${usage.modelName}`,
+        );
+        creditCost = 0;
       }
 
       totalCreditCost += creditCost;

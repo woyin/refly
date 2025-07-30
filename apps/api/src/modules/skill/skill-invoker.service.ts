@@ -40,10 +40,7 @@ import { getWholeParsedContent } from '@refly/utils';
 import { ProjectNotFoundError } from '@refly/errors';
 import { projectPO2DTO } from '../project/project.dto';
 import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
-import {
-  SyncTokenCreditUsageJobData,
-  SyncBatchTokenCreditUsageJobData,
-} from '../credit/credit.dto';
+import { SyncBatchTokenCreditUsageJobData, CreditUsageStep } from '../credit/credit.dto';
 import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SYNC_PILOT_STEP,
@@ -100,9 +97,7 @@ export class SkillInvokerService {
     private usageReportQueue?: Queue<SyncTokenUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOKEN_CREDIT_USAGE)
-    private creditUsageReportQueue?: Queue<
-      SyncTokenCreditUsageJobData | SyncBatchTokenCreditUsageJobData
-    >,
+    private creditUsageReportQueue?: Queue<SyncBatchTokenCreditUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
     private autoNameCanvasQueue?: Queue<AutoNameCanvasJobData>,
@@ -994,102 +989,114 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 
       // Process credit billing for all steps after skill completion
       if (this.creditUsageReportQueue && !result.errors.length) {
-        const steps = resultAggregator.getSteps({ resultId, version });
-
-        // Collect all usages and their corresponding credit billings
-        const usages: TokenUsageItem[] = [];
-        const creditBillings: (CreditBilling | undefined)[] = [];
-
-        for (const step of steps) {
-          if (step.tokenUsage) {
-            const tokenUsageArray = JSON.parse(step.tokenUsage);
-            this.logger.log(`tokenUsage: ${JSON.stringify(tokenUsageArray)}`);
-
-            // Handle both array and single object cases
-            const tokenUsages = Array.isArray(tokenUsageArray)
-              ? tokenUsageArray
-              : [tokenUsageArray];
-
-            for (const tokenUsage of tokenUsages) {
-              this.logger.log(`Processing tokenUsage: ${JSON.stringify(tokenUsage)}`);
-              this.logger.log(`tokenUsage.modelName: ${String(tokenUsage.modelName)}`);
-
-              const providerItem = await this.providerService.findLLMProviderItemByModelID(
-                user,
-                String(tokenUsage.modelName),
-              );
-              this.logger.log(`providerItem: ${JSON.stringify(providerItem)}`);
-
-              if (providerItem?.creditBilling) {
-                const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
-                this.logger.log(`creditBilling: ${JSON.stringify(creditBilling)}`);
-                // Check if user is early bird and credit billing is free for early bird users
-                let shouldSkipCreditBilling = false;
-                if (creditBilling?.isEarlyBirdFree) {
-                  const userSubscription = await this.prisma.subscription.findFirst({
-                    where: {
-                      uid: user.uid,
-                      status: 'active',
-                      OR: [{ cancelAt: null }, { cancelAt: { gt: new Date() } }],
-                    },
-                    orderBy: {
-                      createdAt: 'desc',
-                    },
-                  });
-
-                  if (userSubscription?.overridePlan) {
-                    const overridePlan = JSON.parse(userSubscription.overridePlan);
-                    if (overridePlan.isEarlyBird === true) {
-                      shouldSkipCreditBilling = true;
-                      this.logger.log(
-                        `Early bird user ${user.uid} skipping credit billing for action ${resultId}`,
-                      );
-                    }
-                  }
-                }
-
-                if (!shouldSkipCreditBilling) {
-                  const usage: TokenUsageItem = {
-                    tier: providerItem?.tier,
-                    modelProvider: providerItem?.provider?.name,
-                    modelName: providerItem?.name,
-                    inputTokens: tokenUsage.inputTokens || 0,
-                    outputTokens: tokenUsage.outputTokens || 0,
-                  };
-                  this.logger.log(`usage: ${JSON.stringify(usage)}`);
-                  usages.push(usage);
-                  creditBillings.push(creditBilling);
-                }
-              }
-            }
-          }
-        }
-
-        // Process credit billing for all usages in one batch
-        if (usages.length > 0) {
-          this.logger.log(`creditBillings: ${JSON.stringify(creditBillings)}`);
-          const batchTokenCreditUsage: SyncBatchTokenCreditUsageJobData = {
-            ...basicUsageData,
-            usages,
-            creditBillings,
-            timestamp: new Date(),
-          };
-
-          await this.creditUsageReportQueue.add(
-            `credit_usage_report:${resultId}:batch`,
-            batchTokenCreditUsage,
-          );
-
-          this.logger.log(
-            `Batch credit billing processed for ${resultId}: ${usages.length} usage items`,
-          );
-        }
+        await this.processCreditUsageReport(user, resultId, version, resultAggregator);
       }
     }
   }
 
   getSkillInventory() {
     return this.skillInventory;
+  }
+
+  /**
+   * Process credit usage report for all steps after skill completion
+   * This method extracts token usage from steps and prepares batch credit billing data
+   */
+  private async processCreditUsageReport(
+    user: User,
+    resultId: string,
+    version: number,
+    resultAggregator: ResultAggregator,
+  ): Promise<void> {
+    const steps = resultAggregator.getSteps({ resultId, version });
+
+    // Collect all model names used in token usage
+    const modelNames = new Set<string>();
+    for (const step of steps) {
+      if (step.tokenUsage) {
+        const tokenUsageArray = JSON.parse(step.tokenUsage);
+        const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
+
+        for (const tokenUsage of tokenUsages) {
+          if (tokenUsage.modelName) {
+            modelNames.add(String(tokenUsage.modelName));
+          }
+        }
+      }
+    }
+
+    // Batch fetch all provider items for the models used
+    const providerItemsMap = new Map<string, any>();
+    if (modelNames.size > 0) {
+      const providerItems = await this.providerService.listProviderItems(user, {
+        category: 'llm',
+        enabled: true,
+      });
+      for (const item of providerItems) {
+        try {
+          const config = JSON.parse(item.config || '{}');
+          if (config.modelId && modelNames.has(config.modelId)) {
+            providerItemsMap.set(config.modelId, item);
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to parse config for provider item ${item.itemId}: ${error?.message}`,
+          );
+        }
+      }
+    }
+
+    // Collect all credit usage steps
+    const creditUsageSteps: CreditUsageStep[] = [];
+
+    for (const step of steps) {
+      if (step.tokenUsage) {
+        const tokenUsageArray = JSON.parse(step.tokenUsage);
+
+        // Handle both array and single object cases
+        const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
+
+        for (const tokenUsage of tokenUsages) {
+          const providerItem = providerItemsMap.get(String(tokenUsage.modelName));
+
+          if (providerItem?.creditBilling) {
+            const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
+
+            const usage: TokenUsageItem = {
+              tier: providerItem?.tier,
+              modelProvider: providerItem?.provider?.name,
+              modelName: providerItem?.name,
+              inputTokens: tokenUsage.inputTokens || 0,
+              outputTokens: tokenUsage.outputTokens || 0,
+            };
+
+            creditUsageSteps.push({
+              usage,
+              creditBilling,
+            });
+          }
+        }
+      }
+    }
+
+    // Process credit billing for all usages in one batch
+    if (creditUsageSteps.length > 0) {
+      const batchTokenCreditUsage: SyncBatchTokenCreditUsageJobData = {
+        uid: user.uid,
+        resultId,
+        creditUsageSteps,
+        timestamp: new Date(),
+      };
+
+      await this.creditUsageReportQueue.add(
+        `credit_usage_report:${resultId}:batch`,
+        batchTokenCreditUsage,
+      );
+
+      this.logger.log(
+        `Batch credit billing processed for ${resultId}: ${creditUsageSteps.length} usage items`,
+      );
+    }
   }
 
   async streamInvokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {

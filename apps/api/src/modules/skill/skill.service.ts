@@ -451,8 +451,13 @@ export class SkillService implements OnModuleInit {
     const providerItem = await this.providerService.findProviderItemById(user, modelItemId);
 
     if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
-      // Clean up any existing executing records before throwing error
-      await this.cleanupFailedPreCheck(resultId, uid, 'Provider item not valid or disabled');
+      // Create failed action result record before throwing error
+      await this.createFailedActionResult(
+        resultId,
+        uid,
+        'Provider item not valid or disabled',
+        param,
+      );
       throw new ProviderItemNotFoundError(`provider item ${modelItemId} not valid`);
     }
 
@@ -475,11 +480,12 @@ export class SkillService implements OnModuleInit {
       this.logger.log(`checkRequestCreditUsage result: ${JSON.stringify(creditUsageResult)}`);
 
       if (!creditUsageResult.canUse) {
-        // Clean up any existing executing records before throwing error
-        await this.cleanupFailedPreCheck(
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
           resultId,
           uid,
           `Credit not available: ${creditUsageResult.message}`,
+          param,
         );
         throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
       }
@@ -516,8 +522,13 @@ export class SkillService implements OnModuleInit {
         },
       });
       if (!project) {
-        // Clean up any existing executing records before throwing error
-        await this.cleanupFailedPreCheck(resultId, uid, `Project ${param.projectId} not found`);
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Project ${param.projectId} not found`,
+          param,
+        );
         throw new ProjectNotFoundError(`project ${param.projectId} not found`);
       }
     }
@@ -647,66 +658,65 @@ export class SkillService implements OnModuleInit {
   }
 
   /**
-   * Clean up failed pre-check records to prevent stuck actions
+   * Create a failed action result record for pre-check failures
    */
-  private async cleanupFailedPreCheck(
+  private async createFailedActionResult(
     resultId: string,
     uid: string,
     errorMessage: string,
+    param: InvokeSkillRequest,
   ): Promise<void> {
     try {
-      // Find any existing executing records for this resultId and user
-      const existingResults = await this.prisma.actionResult.findMany({
+      // Check if a failed record already exists to avoid duplicates
+      const existingResult = await this.prisma.actionResult.findFirst({
         where: {
           resultId,
           uid,
-          status: 'executing',
+          status: 'failed',
         },
       });
 
-      if (existingResults.length > 0) {
+      if (existingResult) {
         this.logger.warn(
-          `Cleaning up ${existingResults.length} stuck executing records for resultId: ${resultId}`,
+          `Failed action result already exists for resultId: ${resultId}, skipping creation`,
         );
-
-        // Update all executing records to failed status with error message
-        await this.prisma.actionResult.updateMany({
-          where: {
-            resultId,
-            uid,
-            status: 'executing',
-          },
-          data: {
-            status: 'failed',
-            errors: JSON.stringify([errorMessage]),
-            updatedAt: new Date(),
-          },
-        });
-
-        // Also clean up related pilot steps if they exist
-        const pilotStepIds = existingResults
-          .map((result) => result.pilotStepId)
-          .filter(Boolean) as string[];
-
-        if (pilotStepIds.length > 0) {
-          await this.prisma.pilotStep.updateMany({
-            where: {
-              stepId: { in: pilotStepIds },
-              status: 'executing',
-            },
-            data: {
-              status: 'failed',
-            },
-          });
-        }
-
-        this.logger.log(
-          `Successfully cleaned up failed pre-check records for resultId: ${resultId}`,
-        );
+        return;
       }
+
+      // Create a failed action result record
+      await this.prisma.actionResult.create({
+        data: {
+          resultId,
+          uid,
+          version: 0,
+          type: 'skill',
+          status: 'failed',
+          title: param.input?.query ?? 'Skill execution failed',
+          targetId: param.target?.entityId,
+          targetType: param.target?.entityType,
+          modelName: param.modelName ?? 'unknown',
+          projectId: param.projectId,
+          actionMeta: JSON.stringify({
+            type: 'skill',
+            name: param.skillName ?? 'unknown',
+            icon: 'error',
+          }),
+          errors: JSON.stringify([errorMessage]),
+          input: JSON.stringify(param.input ?? {}),
+          context: JSON.stringify(param.context ?? {}),
+          tplConfig: JSON.stringify(param.tplConfig ?? {}),
+          runtimeConfig: JSON.stringify(param.runtimeConfig ?? {}),
+          history: JSON.stringify(param.resultHistory ?? []),
+          providerItemId: param.modelItemId,
+        },
+      });
+
+      this.logger.log(
+        `Successfully created failed action result for resultId: ${resultId} with error: ${errorMessage}`,
+      );
     } catch (error) {
       this.logger.error(
-        `Failed to cleanup failed pre-check records for resultId ${resultId}: ${error?.message}`,
+        `Failed to create failed action result for resultId ${resultId}: ${error?.message}`,
       );
       // Don't throw error here to avoid masking the original error
     }

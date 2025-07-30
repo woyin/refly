@@ -4,15 +4,6 @@ export type CheckRequestCreditUsageResult = {
   message: string;
 };
 
-export interface SyncTokenCreditUsageJobData {
-  uid: string;
-  resultId?: string;
-  providerItemId?: string;
-  usage: TokenUsageItem;
-  creditBilling?: CreditBilling;
-  timestamp: Date;
-}
-
 export interface SyncMediaCreditUsageJobData {
   uid: string;
   resultId?: string;
@@ -32,10 +23,15 @@ export interface ModelUsageDetail {
   creditCost: number;
 }
 
+// New interface for credit usage step
+export interface CreditUsageStep {
+  usage: TokenUsageItem;
+  creditBilling: CreditBilling;
+}
+
 export interface SyncBatchTokenCreditUsageJobData {
   uid: string;
   resultId?: string;
-  usages: TokenUsageItem[];
-  creditBillings: (CreditBilling | undefined)[];
+  creditUsageSteps: CreditUsageStep[];
   timestamp: Date;
 }
