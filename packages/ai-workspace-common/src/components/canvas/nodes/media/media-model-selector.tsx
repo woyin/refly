@@ -64,7 +64,7 @@ const SelectedMediaModelDisplay = memo(
         type="text"
         size="small"
         className={cn(
-          'text-sm gap-1 p-1 hover:border-refly-Card-Border min-w-0',
+          'h-7 text-sm gap-1.5 p-1 hover:border-refly-Card-Border min-w-0',
           open && 'border-refly-Card-Border',
         )}
       >
@@ -197,7 +197,7 @@ export const MediaModelSelector = memo(
                   .map((model) => (
                     <div
                       key={model.itemId}
-                      className="flex items-center gap-2 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
                       onClick={() => handleMenuClick({ key: model.itemId })}
                     >
                       <div className="flex-shrink-0 flex items-center">
@@ -239,7 +239,7 @@ export const MediaModelSelector = memo(
 
     return (
       <Dropdown
-        dropdownRender={() => dropdownOverlay}
+        popupRender={() => dropdownOverlay}
         placement={placement}
         trigger={trigger}
         open={dropdownOpen}
@@ -249,7 +249,7 @@ export const MediaModelSelector = memo(
         autoAdjustOverflow={true}
         disabled={readonly}
       >
-        <span className="text-sm flex items-center gap-1.5 cursor-pointer transition-all duration-300">
+        <span className="text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-300">
           <SelectedMediaModelDisplay
             maxWidth={maxWidth}
             open={dropdownOpen}

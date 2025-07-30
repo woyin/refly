@@ -58,11 +58,11 @@ const SelectedModelDisplay = memo(
         type="text"
         size="small"
         className={cn(
-          'h-7 text-sm gap-1.5 p-1 hover:border-refly-Card-Border min-w-0',
+          'h-7 text-sm gap-1.5 p-1 hover:border-refly-Card-Border min-w-0 flex items-center',
           open && 'border-refly-Card-Border',
         )}
-        icon={<ModelIcon model={model.name} type={'color'} size={16} />}
       >
+        <ModelIcon model={model.name} type={'color'} size={16} />
         <span className="truncate leading-5">{model.label}</span>
         <ArrowDown size={12} color="var(--refly-text-0)" className="flex-shrink-0" />
       </Button>
@@ -267,7 +267,7 @@ export const ModelSelector = memo(
                   item.label
                 ) : item.type !== 'divider' ? (
                   <div
-                    className="flex items-center gap-1 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                    className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
                     onClick={() => handleMenuClick({ key: item.key as string })}
                   >
                     <div className="flex-shrink-0 flex items-center">{item.icon}</div>
@@ -317,7 +317,7 @@ export const ModelSelector = memo(
 
     return (
       <Dropdown
-        dropdownRender={() => dropdownOverlay}
+        popupRender={() => dropdownOverlay}
         placement={placement}
         trigger={trigger}
         open={dropdownOpen}
