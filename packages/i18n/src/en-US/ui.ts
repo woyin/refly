@@ -3067,7 +3067,7 @@ const translations = {
       expiryDate: 'Expiry Date',
       remaining: 'Remaining',
       status: 'Status',
-      disabled: 'Disabled',
+      disabled: 'Expired',
       usageType: {
         model_call: 'Model Call',
         media_generation: 'Media Generation',

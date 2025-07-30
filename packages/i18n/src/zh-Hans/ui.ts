@@ -28,7 +28,7 @@ const translations = {
       expiryDate: '有效期至',
       remaining: '剩余',
       status: '状态',
-      disabled: '已禁用',
+      disabled: '已过期',
       usageType: {
         model_call: '模型调用',
         media_generation: '媒体生成',
