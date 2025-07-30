@@ -1,15 +1,12 @@
 import { useState, useCallback, memo, useMemo } from 'react';
-import { Button, Tooltip, Popover, Dropdown, Space, Divider } from 'antd';
+import { Button, Tooltip, Popover, Dropdown, Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next';
 import {
   IconAskAI,
   IconSlideshow,
-  IconDown,
-  IconMouse,
-  IconTouchpad,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Download, Search } from 'refly-icons';
+import { Download, Search, Touchpad, Mouse, ArrowDown } from 'refly-icons';
 import { NodeSelector } from '../common/node-selector';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { IContextItem } from '@refly/common-types';
@@ -41,8 +38,6 @@ interface ModeSelectorProps {
   t: TFunction;
 }
 
-const iconClass = 'flex items-center justify-center text-base';
-
 // Update component definition
 export const TooltipButton = memo(({ tooltip, children, ...buttonProps }: TooltipButtonProps) => (
   <Tooltip title={tooltip} arrow={false}>
@@ -69,12 +64,8 @@ const ModeSelector = memo(({ mode, open, setOpen, items, onModeChange, t }: Mode
         type="text"
         className="!p-0 h-[30px] w-[48px] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 group"
       >
-        {mode === 'mouse' ? (
-          <IconMouse className={iconClass} />
-        ) : (
-          <IconTouchpad className={iconClass} />
-        )}
-        <IconDown className={`ml-[-6px] ${iconClass} ${open ? 'rotate-180' : ''}`} />
+        {mode === 'mouse' ? <Mouse size={18} /> : <Touchpad size={18} />}
+        <ArrowDown className={`ml-[-6px] ${open ? 'rotate-180' : ''}`} size={16} />
       </Button>
     </Tooltip>
   </Dropdown>
@@ -125,19 +116,19 @@ export const ToolbarButtons = memo(
         {
           key: 'mouse',
           label: (
-            <Space>
-              <IconMouse className={iconClass} />
+            <div className="flex items-center gap-2">
+              <Mouse size={18} />
               {t('canvas.toolbar.mouse')}
-            </Space>
+            </div>
           ),
         },
         {
           key: 'touchpad',
           label: (
-            <Space>
-              <IconTouchpad className={iconClass} />
+            <div className="flex items-center gap-2">
+              <Touchpad size={18} />
               {t('canvas.toolbar.touchpad')}
-            </Space>
+            </div>
           ),
         },
       ],

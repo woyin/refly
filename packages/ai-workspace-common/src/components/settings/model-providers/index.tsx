@@ -17,7 +17,6 @@ import {
   Tag,
   Modal,
 } from 'antd';
-import { HiMiniBuildingStorefront } from 'react-icons/hi2';
 
 import { LuGlobe, LuPlus } from 'react-icons/lu';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
@@ -25,7 +24,7 @@ import { Provider } from '@refly-packages/ai-workspace-common/requests/types.gen
 import { ProviderModal } from './provider-modal';
 import { ProviderStore } from './ProviderStore';
 import { ContentHeader } from '@refly-packages/ai-workspace-common/components/settings/contentHeader';
-import { Close, More, Delete, Edit } from 'refly-icons';
+import { Close, More, Delete, Edit, Market } from 'refly-icons';
 import './index.scss';
 
 const ActionDropdown = ({
@@ -338,7 +337,7 @@ export const ModelProviders = ({ visible }: ModelProvidersProps) => {
             <Button
               type="text"
               className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
-              icon={<HiMiniBuildingStorefront className="h-4 w-4 flex items-center" />}
+              icon={<Market size={16} />}
               onClick={() => setIsProviderStoreOpen(true)}
             >
               {t('settings.modelProviders.providerStore')}

@@ -16,7 +16,6 @@ import {
   Segmented,
 } from 'antd';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-import { LuPlus, LuMessageCircle, LuImage, LuSettings } from 'react-icons/lu';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { IconDelete, IconEdit } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {
@@ -30,7 +29,7 @@ import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-em
 import { useGroupModels } from '@refly-packages/ai-workspace-common/hooks/use-group-models';
 import { ModelFormModal } from './model-form';
 import { useUserStoreShallow, useChatStoreShallow } from '@refly/stores';
-import { More, Settings, Back } from 'refly-icons';
+import { More, Settings, Back, Chat, Media, AIModel } from 'refly-icons';
 import { ContentHeader } from '../contentHeader';
 import { DefaultModel } from '../default-model';
 
@@ -517,7 +516,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {
         label: (
           <div className="flex items-center justify-center gap-1.5 w-full">
-            <LuMessageCircle className="h-4 w-4" />
+            <Chat size={16} />
             <span>{t('settings.modelConfig.conversationModels')}</span>
           </div>
         ),
@@ -526,7 +525,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {
         label: (
           <div className="flex items-center justify-center gap-1.5 w-full">
-            <LuImage className="h-4 w-4" />
+            <Media size={16} />
             <span>{t('settings.modelConfig.mediaGeneration')}</span>
           </div>
         ),
@@ -535,7 +534,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {
         label: (
           <div className="flex items-center justify-center gap-1.5 w-full">
-            <LuSettings className="h-4 w-4" />
+            <AIModel size={16} />
             <span>{t('settings.modelConfig.otherModels')}</span>
           </div>
         ),
@@ -576,10 +575,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
           }
         >
           {!searchQuery && editable && (
-            <Button
-              onClick={() => handleAddModel('llm')}
-              icon={<LuPlus className="flex items-center" />}
-            >
+            <Button onClick={() => handleAddModel('llm')}>
               {t('settings.modelConfig.addFirstModel')}
             </Button>
           )}
@@ -623,10 +619,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
             description={t('settings.modelConfig.noMediaModels')}
           >
             {editable && (
-              <Button
-                onClick={() => handleAddModel('mediaGeneration')}
-                icon={<LuPlus className="flex items-center" />}
-              >
+              <Button onClick={() => handleAddModel('mediaGeneration')}>
                 {t('settings.modelConfig.addFirstModel')}
               </Button>
             )}
