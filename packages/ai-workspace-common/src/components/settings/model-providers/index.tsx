@@ -3,7 +3,6 @@ import { useListProviders } from '@refly-packages/ai-workspace-common/queries';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import { ProviderIcon } from '@lobehub/icons';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import {
   Button,
   Empty,
@@ -16,6 +15,7 @@ import {
   message,
   Tag,
   Modal,
+  Skeleton,
 } from 'antd';
 
 import { LuGlobe, LuPlus } from 'react-icons/lu';
@@ -199,6 +199,42 @@ const ProviderItem = React.memo(
 
 ProviderItem.displayName = 'ProviderItem';
 
+// ProviderItem Skeleton Component
+const ProviderItemSkeleton = React.memo(() => {
+  return (
+    <div className="mb-5 p-2 rounded-md">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex-1 flex items-center">
+          {/* Provider Icon Skeleton */}
+          <Skeleton.Avatar active size={45} shape="square" className="mr-3 flex-shrink-0" />
+
+          <div className="flex flex-col gap-1">
+            {/* Provider Name and Key Skeleton */}
+            <div className="flex items-center gap-2">
+              <Skeleton.Input active size="small" style={{ width: 120, height: 18 }} />
+              <Skeleton.Input active size="small" style={{ width: 28, height: 18, minWidth: 28 }} />
+            </div>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton.Input
+                  key={index}
+                  active
+                  size="small"
+                  style={{ width: 28, height: 16, minWidth: 28 }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <Skeleton.Button active size="small" style={{ width: 32, height: 32 }} />
+      </div>
+    </div>
+  );
+});
+
+ProviderItemSkeleton.displayName = 'ProviderItemSkeleton';
+
 // My Providers Tab Component
 const MyProviders: React.FC<{
   onRefetch: () => void;
@@ -249,13 +285,14 @@ const MyProviders: React.FC<{
       <div
         className={cn(
           'flex-1 overflow-auto px-5',
-          isLoading || filteredProviders.length === 0 ? 'flex items-center justify-center' : '',
-          filteredProviders.length === 0 ? 'border-dashed border-refly-Card-Border rounded-md' : '',
+          !isLoading && filteredProviders.length === 0 ? 'flex items-center justify-center' : '',
         )}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center h-[300px]">
-            <Spin />
+          <div>
+            {Array.from({ length: 10 }).map((_, index) => (
+              <ProviderItemSkeleton key={index} />
+            ))}
           </div>
         ) : filteredProviders.length === 0 ? (
           <Empty description={<p>{t('settings.modelProviders.noProviders')}</p>}>
