@@ -9,7 +9,7 @@ import thanks from './thanks.svg';
 // Local storage key for tracking if the modal has been shown
 const CREDITS_WELCOME_SHOWN_KEY = 'refly_credits_welcome_shown';
 
-export const PointsWelcomeModal = () => {
+export const CreditWelcomeModal = () => {
   const [visible, setVisible] = useState(false);
   const { t } = useTranslation();
   const { userProfile } = useUserStoreShallow((state) => ({
