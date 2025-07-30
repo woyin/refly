@@ -2997,6 +2997,15 @@ const translations = {
           'Service support\nCommunity support (WeChat, Lark, Discord)',
         ],
       },
+      pro: {
+        title: 'PRO',
+      },
+      plus: {
+        title: 'PLUS',
+      },
+      max: {
+        title: 'MAX',
+      },
       starter: {
         title: 'Starter Plan',
         description: 'The perfect choice for curious minds beginning their AI journey',
@@ -3058,7 +3067,7 @@ const translations = {
       expiryDate: 'Expiry Date',
       remaining: 'Remaining',
       status: 'Status',
-      disabled: 'Disabled',
+      disabled: 'Expired',
       usageType: {
         model_call: 'Model Call',
         media_generation: 'Media Generation',

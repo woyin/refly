@@ -306,6 +306,12 @@
         .current-plan-name {
           color: var(--text-color-primary);
         }
+        
+        .plan-actions {
+          .plan-renewal-info {
+            color: var(--refly-text-1);
+          }
+        }
       }
     }
 
