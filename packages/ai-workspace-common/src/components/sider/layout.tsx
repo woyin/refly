@@ -33,7 +33,6 @@ import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/compon
 import { AiOutlineUser } from 'react-icons/ai';
 import { SideLeft, SideRight } from 'refly-icons';
 
-import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
@@ -142,8 +141,8 @@ const SettingItem = () => {
 
           {subscriptionEnabled && isSuccess && (
             <div
-              className="flex items-center gap-1.5 text-[#1C1F23] dark:text-white text-xs cursor-pointer
-            p-[8px] rounded-[80px] border-[1px] bg-[var(--bg---refly-bg-content-z2,_#FFF)] dark:bg-[var(--bg---refly-bg-content-z2-dark,_#2C2C2C)] whitespace-nowrap flex-shrink-0
+              className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer
+            rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
             "
             >
               <div className="flex items-center gap-1">
@@ -253,7 +252,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-  const planType = userProfile?.subscription?.planType || 'free';
 
   const {
     collapse,
@@ -362,6 +360,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             title={t('loggedHomePage.siderMenu.library')}
             onActionClick={() => setShowLibraryModal(true)}
           />
+          <Divider className="m-0 border-refly-Card-Border" />
 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Canvas section with flexible height */}
@@ -398,8 +397,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             </div>
           </div>
         </div>
-
-        {subscriptionEnabled && planType === 'free' && <SubscriptionHint />}
 
         {!!userProfile?.uid && (
           <div

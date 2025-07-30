@@ -1,4 +1,4 @@
-import { Modal } from 'antd';
+import { Divider, Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useSiderStoreShallow, SettingsModalActiveTab } from '@refly/stores';
 
@@ -11,25 +11,22 @@ import { ModelProviders } from '@refly-packages/ai-workspace-common/components/s
 import { ModelConfig } from '@refly-packages/ai-workspace-common/components/settings/model-config';
 import { ParserConfig } from '@refly-packages/ai-workspace-common/components/settings/parser-config';
 
-import { RiAccountBoxLine } from 'react-icons/ri';
-import { HiOutlineLanguage } from 'react-icons/hi2';
-import { LuPalette } from 'react-icons/lu';
-
 import './index.scss';
 import {
-  IconSubscription,
-  IconModel,
-  IconWorldConfig,
-  IconCloud,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
+  AIModel,
+  Provider,
+  Parse,
+  Mcp,
+  Subscription as SubscriptionIcon,
+  Account,
+  Language,
+  InterfaceLight,
+} from 'refly-icons';
 
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { useEffect, useState } from 'react';
-import { ToolOutlined } from '@ant-design/icons';
 import { McpServerTab } from '@refly-packages/ai-workspace-common/components/settings/mcp-server';
 import React from 'react';
-
-const iconStyle = { fontSize: 16 };
 
 interface SettingModalProps {
   visible: boolean;
@@ -42,17 +39,21 @@ const CustomTabItem = React.memo<{
   label: string;
   isActive: boolean;
   onClick: () => void;
-}>(({ icon, label, isActive, onClick }) => (
-  <div
-    onClick={onClick}
-    className={`
+  divider?: boolean;
+}>(({ icon, label, isActive, onClick, divider }) => (
+  <>
+    <div
+      onClick={onClick}
+      className={`
       relative transition-all duration-200 ease-in-out cursor-pointer font-normal h-[42px] p-2 border-box flex items-center gap-1 rounded-lg hover:bg-refly-tertiary-hover
       ${isActive ? 'bg-refly-tertiary-hover font-semibold' : ''}
     `}
-  >
-    <div className="tab-icon">{icon}</div>
-    <span className="text-sm font-medium">{label}</span>
-  </div>
+    >
+      <div className="tab-icon">{icon}</div>
+      <span className="text-sm font-medium">{label}</span>
+    </div>
+    {divider && <Divider className="m-0 border-refly-Card-Border" />}
+  </>
 ));
 
 // Custom Tabbar Component
@@ -62,6 +63,7 @@ const CustomTabbar = React.memo<{
     key: string;
     label: string;
     icon: React.ReactNode;
+    divider?: boolean;
   }>;
   activeTab: string;
   onTabChange: (key: string) => void;
@@ -74,6 +76,7 @@ const CustomTabbar = React.memo<{
     <div className="flex-grow flex flex-col gap-2 overflow-y-auto">
       {tabs.map((tab) => (
         <CustomTabItem
+          divider={tab.divider}
           key={tab.key}
           icon={tab.icon}
           label={tab.label}
@@ -112,13 +115,13 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
     {
       key: 'modelConfig',
       label: t('settings.tabs.modelConfig'),
-      icon: <IconModel style={iconStyle} />,
+      icon: <AIModel size={18} color="var(--refly-text-0)" />,
       children: <ModelConfig visible={localActiveTab === SettingsModalActiveTab.ModelConfig} />,
     },
     {
       key: 'modelProviders',
       label: t('settings.tabs.providers'),
-      icon: <IconCloud style={iconStyle} />,
+      icon: <Provider size={18} color="var(--refly-text-0)" />,
       children: (
         <ModelProviders visible={localActiveTab === SettingsModalActiveTab.ModelProviders} />
       ),
@@ -126,21 +129,22 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
     {
       key: 'parserConfig',
       label: t('settings.tabs.parserConfig'),
-      icon: <IconWorldConfig style={iconStyle} />,
+      icon: <Parse size={18} color="var(--refly-text-0)" />,
       children: <ParserConfig visible={localActiveTab === SettingsModalActiveTab.ParserConfig} />,
     },
     {
       key: 'mcpServer',
       label: t('settings.tabs.mcpServer'),
-      icon: <ToolOutlined style={iconStyle} />,
+      icon: <Mcp size={18} color="var(--refly-text-0)" />,
       children: <McpServerTab visible={localActiveTab === SettingsModalActiveTab.McpServer} />,
+      divider: true,
     },
     ...(subscriptionEnabled
       ? [
           {
             key: 'subscription',
             label: t('settings.tabs.subscription'),
-            icon: <IconSubscription style={iconStyle} />,
+            icon: <SubscriptionIcon size={18} color="var(--refly-text-0)" />,
             children: <Subscription />,
           },
         ]
@@ -148,19 +152,19 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
     {
       key: 'account',
       label: t('settings.tabs.account'),
-      icon: <RiAccountBoxLine style={iconStyle} />,
+      icon: <Account size={18} color="var(--refly-text-0)" />,
       children: <AccountSetting />,
     },
     {
       key: 'language',
       label: t('settings.tabs.language'),
-      icon: <HiOutlineLanguage style={iconStyle} />,
+      icon: <Language size={18} color="var(--refly-text-0)" />,
       children: <LanguageSetting />,
     },
     {
       key: 'appearance',
       label: t('settings.tabs.appearance'),
-      icon: <LuPalette style={iconStyle} />,
+      icon: <InterfaceLight size={18} color="var(--refly-text-0)" />,
       children: <AppearanceSetting />,
     },
   ];

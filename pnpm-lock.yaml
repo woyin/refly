@@ -1126,8 +1126,8 @@ importers:
         specifier: ^17.5.0
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       refly-icons:
-        specifier: ^1.0.3
-        version: 1.0.3(react@18.3.1)
+        specifier: ^1.0.4
+        version: 1.0.4(react@18.3.1)
     devDependencies:
       '@rsbuild/core':
         specifier: ^1.4.6
@@ -1523,8 +1523,8 @@ importers:
         specifier: ^17.5.0
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       refly-icons:
-        specifier: ^1.0.3
-        version: 1.0.3(react@18.3.1)
+        specifier: ^1.0.4
+        version: 1.0.4(react@18.3.1)
       rehype-highlight:
         specifier: ^6.0.0
         version: 6.0.0
@@ -2324,8 +2324,8 @@ importers:
         specifier: ^17.5.0
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       refly-icons:
-        specifier: ^1.0.3
-        version: 1.0.3(react@18.3.1)
+        specifier: ^1.0.4
+        version: 1.0.4(react@18.3.1)
     devDependencies:
       '@refly/tsconfig':
         specifier: workspace:*
@@ -4135,7 +4135,6 @@ packages:
   '@lancedb/lancedb@0.19.1':
     resolution: {integrity: sha512-EsEP5eGpVzmpryNS/V9IPZvtBmImsE8rAWjhLQuhD9bbF3upcICTovQBK7A3lhy81D2g1RWaJaSSAmLtGPPOyA==}
     engines: {node: '>= 18'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
     peerDependencies:
       apache-arrow: '>=15.0.0 <=18.1.0'
@@ -6704,28 +6703,24 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@statsig/statsig-node-core-linux-arm64-musl@0.6.1':
     resolution: {integrity: sha512-EXXepNEf7QHoQazygFsA+a4n4PpYeLgubLq95QU2IzxPId3jMhk9/YtnvEo+3VbDybk6ikqb68q7dyYyE98FqQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@statsig/statsig-node-core-linux-x64-gnu@0.6.1':
     resolution: {integrity: sha512-zAjtMfuXHKKgq/i2aD+gmZKFCiPbWhiDn30e3SYMyubKpIBElkRQhlCh31oOMZk+HqkAe1Fg8bAiPldqh0SsQg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@statsig/statsig-node-core-linux-x64-musl@0.6.1':
     resolution: {integrity: sha512-VryRviHu7GatDjWYAt5n3ro8SnRQDboCH2urSrLCtf0ztQ2cYXTQI75vRI+X0seYbfFBskG0oD62I8nomZy/Fg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@statsig/statsig-node-core-win32-ia32-msvc@0.6.1':
     resolution: {integrity: sha512-ps7bEyaTmM1n576YNYny6vTvAdq7jLbC3Fnn15jPyJc9/q/QwEq/IWviJtJVXwUPA41jv0P4kkfgVwDsnr7JtA==}
@@ -14679,8 +14674,8 @@ packages:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
     engines: {node: '>= 0.4'}
 
-  refly-icons@1.0.3:
-    resolution: {integrity: sha512-V1KiODBEmkhwl8QeLarwEVgocC5aIa47bL2w1ZTUtVCJ+WbuBRehmNSIcenGhxhQNazr6K6ezl+S7JAdC8kGig==}
+  refly-icons@1.0.4:
+    resolution: {integrity: sha512-pvVAdQKxHDf0HzpV8pI63onA1zLGsKNcBRjXr4wTiFyM61cpBFv0UO4PlNvV00Ta8c059vFguYVHcyB7/ILpPQ==}
     peerDependencies:
       react: '>=17.0.0'
 
@@ -32071,7 +32066,7 @@ snapshots:
       get-proto: 1.0.1
       which-builtin-type: 1.2.1
 
-  refly-icons@1.0.3(react@18.3.1):
+  refly-icons@1.0.4(react@18.3.1):
     dependencies:
       react: 18.3.1
 

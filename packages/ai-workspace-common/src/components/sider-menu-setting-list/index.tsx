@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'antd';
-import { LuLogOut, LuMonitor } from 'react-icons/lu';
+import { LuMonitor } from 'react-icons/lu';
 import { useUserStore } from '@refly/stores';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
-import { GrGroup } from 'react-icons/gr';
 import { EXTENSION_DOWNLOAD_LINK } from '@refly/utils/url';
 import { useThemeStoreShallow } from '@refly/stores';
 import { useCallback, useMemo } from 'react';
@@ -16,6 +15,8 @@ import {
   InterfaceLight,
   ArrowRight,
   Cuttools,
+  Contact,
+  Exit,
 } from 'refly-icons';
 import './index.scss';
 import React from 'react';
@@ -196,7 +197,7 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
       {
         key: 'contact-us',
         label: (
-          <DropdownItem icon={<GrGroup size={18} />}>
+          <DropdownItem icon={<Contact size={18} />}>
             {t('loggedHomePage.siderMenu.contactUs')}
           </DropdownItem>
         ),
@@ -214,7 +215,7 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
       {
         key: 'logout',
         label: (
-          <DropdownItem icon={<LuLogOut size={18} />}>
+          <DropdownItem icon={<Exit size={18} />}>
             {t('loggedHomePage.siderMenu.logout')}
           </DropdownItem>
         ),
