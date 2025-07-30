@@ -14,7 +14,7 @@ import {
   TokenUsageItem,
   CreditBilling,
 } from '@refly/openapi-schema';
-import { InvokeSkillJobData, SkillTimeoutCheckJobData } from './skill.dto';
+import { InvokeSkillJobData } from './skill.dto';
 import { PrismaService } from '../common/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -40,10 +40,12 @@ import { getWholeParsedContent } from '@refly/utils';
 import { ProjectNotFoundError } from '@refly/errors';
 import { projectPO2DTO } from '../project/project.dto';
 import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
-import { SyncTokenCreditUsageJobData } from '../credit/credit.dto';
+import {
+  SyncTokenCreditUsageJobData,
+  SyncBatchTokenCreditUsageJobData,
+} from '../credit/credit.dto';
 import {
   QUEUE_AUTO_NAME_CANVAS,
-  QUEUE_SKILL_TIMEOUT_CHECK,
   QUEUE_SYNC_PILOT_STEP,
   QUEUE_SYNC_REQUEST_USAGE,
   QUEUE_SYNC_TOKEN_USAGE,
@@ -94,14 +96,13 @@ export class SkillInvokerService {
     @InjectQueue(QUEUE_SYNC_REQUEST_USAGE)
     private requestUsageQueue?: Queue<SyncRequestUsageJobData>,
     @Optional()
-    @InjectQueue(QUEUE_SKILL_TIMEOUT_CHECK)
-    private timeoutCheckQueue?: Queue<SkillTimeoutCheckJobData>,
-    @Optional()
     @InjectQueue(QUEUE_SYNC_TOKEN_USAGE)
     private usageReportQueue?: Queue<SyncTokenUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOKEN_CREDIT_USAGE)
-    private creditUsageReportQueue?: Queue<SyncTokenCreditUsageJobData>,
+    private creditUsageReportQueue?: Queue<
+      SyncTokenCreditUsageJobData | SyncBatchTokenCreditUsageJobData
+    >,
     @Optional()
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
     private autoNameCanvasQueue?: Queue<AutoNameCanvasJobData>,
@@ -112,34 +113,6 @@ export class SkillInvokerService {
     this.skillEngine = this.skillEngineService.getEngine();
     this.skillInventory = createSkillInventory(this.skillEngine);
     this.logger.log(`Skill inventory initialized: ${this.skillInventory.length}`);
-  }
-
-  async checkSkillTimeout(param: SkillTimeoutCheckJobData) {
-    const { uid, resultId, type, version } = param;
-
-    const timeout: number =
-      type === 'idle'
-        ? this.config.get('skill.idleTimeout')
-        : this.config.get('skill.executionTimeout');
-
-    const result = await this.prisma.actionResult.findFirst({
-      where: { uid, resultId, version },
-      orderBy: { version: 'desc' },
-    });
-    if (!result) {
-      this.logger.warn(`result not found for resultId: ${resultId}`);
-      return;
-    }
-
-    if (result.status === 'executing' && result.updatedAt < new Date(Date.now() - timeout)) {
-      this.logger.warn(`skill invocation ${type} timeout for resultId: ${resultId}`);
-      await this.prisma.actionResult.update({
-        where: { pk: result.pk, status: 'executing' },
-        data: { status: 'failed', errors: JSON.stringify(['Execution timeout']) },
-      });
-    } else {
-      this.logger.log(`skill invocation settled for resultId: ${resultId}`);
-    }
   }
 
   private async buildLangchainMessages(
@@ -397,10 +370,11 @@ export class SkillInvokerService {
 
             // Use ActionService.abortAction to handle timeout consistently
             try {
-              await this.actionService.abortAction(user, {
-                resultId,
-                reason: timeoutReason,
-              });
+              await this.actionService.abortActionFromReq(
+                user,
+                { resultId, version },
+                timeoutReason,
+              );
               this.logger.log(`Successfully aborted action ${resultId} due to stream idle timeout`);
             } catch (error) {
               this.logger.error(
@@ -686,8 +660,6 @@ export class SkillInvokerService {
     startTimeoutCheck();
 
     try {
-      // Real network request to AI model with enhanced error handling
-      const networkTimeout = this.config.get('skill.executionTimeout'); // 3 minutes
       // AI model provider network timeout (30 seconds)
       const aiModelNetworkTimeout = this.config.get<number>('skill.aiModelNetworkTimeout', 30000);
 
@@ -700,7 +672,7 @@ export class SkillInvokerService {
       }
 
       this.logger.log(
-        `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms, total timeout: ${networkTimeout}ms) for action: ${resultId}`,
+        `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms) for action: ${resultId}`,
       );
 
       let eventCount = 0;
@@ -869,6 +841,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           }
           case 'on_chat_model_end':
             if (runMeta && chunk) {
+              this.logger.log(`is_model_name: ${String(runMeta.ls_model_name)}`);
               const providerItem = await this.providerService.findLLMProviderItemByModelID(
                 user,
                 String(runMeta.ls_model_name),
@@ -903,25 +876,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
               }
 
-              const creditBilling: CreditBilling = providerItem?.creditBilling
-                ? JSON.parse(providerItem?.creditBilling)
-                : undefined;
-
-              // Only add to credit usage queue if not skipping for early bird users
-              if (this.creditUsageReportQueue && creditBilling) {
-                const tokenCreditUsage: SyncTokenCreditUsageJobData = {
-                  ...basicUsageData,
-                  providerItemId: providerItem?.itemId,
-                  usage,
-                  creditBilling,
-                  timestamp: new Date(),
-                };
-
-                await this.creditUsageReportQueue.add(
-                  `credit_usage_report:${resultId}`,
-                  tokenCreditUsage,
-                );
-              }
+              // Remove credit billing processing from here - will be handled after skill completion
             }
             break;
         }
@@ -1041,31 +996,33 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       if (this.creditUsageReportQueue && !result.errors.length) {
         const steps = resultAggregator.getSteps({ resultId, version });
 
-        // Group usage by provider to avoid duplicate credit billing
-        const usageByProvider = new Map<
-          string,
-          {
-            totalInputTokens: number;
-            totalOutputTokens: number;
-            providerItem: any;
-            creditBilling: CreditBilling;
-          }
-        >();
+        // Collect all usages and their corresponding credit billings
+        const usages: TokenUsageItem[] = [];
+        const creditBillings: (CreditBilling | undefined)[] = [];
 
         for (const step of steps) {
           if (step.tokenUsage) {
-            const tokenUsage = JSON.parse(step.tokenUsage);
-            const providerKey = `${tokenUsage.modelProvider}:${tokenUsage.modelName}`;
+            const tokenUsageArray = JSON.parse(step.tokenUsage);
+            this.logger.log(`tokenUsage: ${JSON.stringify(tokenUsageArray)}`);
 
-            if (!usageByProvider.has(providerKey)) {
+            // Handle both array and single object cases
+            const tokenUsages = Array.isArray(tokenUsageArray)
+              ? tokenUsageArray
+              : [tokenUsageArray];
+
+            for (const tokenUsage of tokenUsages) {
+              this.logger.log(`Processing tokenUsage: ${JSON.stringify(tokenUsage)}`);
+              this.logger.log(`tokenUsage.modelName: ${String(tokenUsage.modelName)}`);
+
               const providerItem = await this.providerService.findLLMProviderItemByModelID(
                 user,
-                tokenUsage.modelName,
+                String(tokenUsage.modelName),
               );
+              this.logger.log(`providerItem: ${JSON.stringify(providerItem)}`);
 
               if (providerItem?.creditBilling) {
                 const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
-
+                this.logger.log(`creditBilling: ${JSON.stringify(creditBilling)}`);
                 // Check if user is early bird and credit billing is free for early bird users
                 let shouldSkipCreditBilling = false;
                 if (creditBilling?.isEarlyBirdFree) {
@@ -1092,48 +1049,39 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 }
 
                 if (!shouldSkipCreditBilling) {
-                  usageByProvider.set(providerKey, {
-                    totalInputTokens: 0,
-                    totalOutputTokens: 0,
-                    providerItem,
-                    creditBilling,
-                  });
+                  const usage: TokenUsageItem = {
+                    tier: providerItem?.tier,
+                    modelProvider: providerItem?.provider?.name,
+                    modelName: providerItem?.name,
+                    inputTokens: tokenUsage.inputTokens || 0,
+                    outputTokens: tokenUsage.outputTokens || 0,
+                  };
+                  this.logger.log(`usage: ${JSON.stringify(usage)}`);
+                  usages.push(usage);
+                  creditBillings.push(creditBilling);
                 }
               }
-            }
-
-            const providerData = usageByProvider.get(providerKey);
-            if (providerData) {
-              providerData.totalInputTokens += tokenUsage.inputTokens || 0;
-              providerData.totalOutputTokens += tokenUsage.outputTokens || 0;
             }
           }
         }
 
-        // Process credit billing for each provider
-        for (const [providerKey, providerData] of usageByProvider) {
-          const aggregatedUsage: TokenUsageItem = {
-            tier: providerData.providerItem?.tier,
-            modelProvider: providerData.providerItem?.provider?.name,
-            modelName: providerData.providerItem?.name,
-            inputTokens: providerData.totalInputTokens,
-            outputTokens: providerData.totalOutputTokens,
-          };
-
-          const tokenCreditUsage: SyncTokenCreditUsageJobData = {
+        // Process credit billing for all usages in one batch
+        if (usages.length > 0) {
+          this.logger.log(`creditBillings: ${JSON.stringify(creditBillings)}`);
+          const batchTokenCreditUsage: SyncBatchTokenCreditUsageJobData = {
             ...basicUsageData,
-            usage: aggregatedUsage,
-            creditBilling: providerData.creditBilling,
+            usages,
+            creditBillings,
             timestamp: new Date(),
           };
 
           await this.creditUsageReportQueue.add(
-            `credit_usage_report:${resultId}:${providerKey}`,
-            tokenCreditUsage,
+            `credit_usage_report:${resultId}:batch`,
+            batchTokenCreditUsage,
           );
 
           this.logger.log(
-            `Credit billing processed for ${providerKey}: ${aggregatedUsage.inputTokens} input + ${aggregatedUsage.outputTokens} output tokens`,
+            `Batch credit billing processed for ${resultId}: ${usages.length} usage items`,
           );
         }
       }
@@ -1158,17 +1106,6 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
     this.skillEngine.setOptions({ defaultModel: defaultModel?.name });
 
     try {
-      // await this.timeoutCheckQueue.add(
-      //   `execution_timeout_check:${resultId}`,
-      //   {
-      //     uid: user.uid,
-      //     resultId,
-      //     version,
-      //     type: 'execution',
-      //   },
-      //   { delay: this.config.get('skill.executionTimeout') },
-      // );
-
       await this._invokeSkill(user, data, res);
     } catch (err) {
       if (res) {

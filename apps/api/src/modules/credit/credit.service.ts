@@ -1,13 +1,15 @@
-import { PrismaService } from '../common/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { User, CreditBilling } from '@refly/openapi-schema';
+import { PrismaService } from '../common/prisma.service';
+import { User } from '@refly/openapi-schema';
+import { CreditBilling, CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
   SyncTokenCreditUsageJobData,
   SyncMediaCreditUsageJobData,
+  SyncBatchTokenCreditUsageJobData,
+  ModelUsageDetail,
 } from './credit.dto';
 import { genCreditUsageId, genCreditDebtId, safeParseJSON } from '@refly/utils';
-import { CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import { CreditBalance } from './credit.dto';
 
 @Injectable()
@@ -78,6 +80,7 @@ export class CreditService {
       providerItemId?: string;
       modelName?: string;
       usageType?: string;
+      modelUsageDetails?: string;
       createdAt: Date;
     },
   ): Promise<void> {
@@ -130,6 +133,7 @@ export class CreditService {
           actionResultId: usageData.actionResultId,
           modelName: usageData.modelName,
           usageType: usageData.usageType,
+          modelUsageDetails: usageData.modelUsageDetails,
           amount: creditCost,
           createdAt: usageData.createdAt,
         },
@@ -272,6 +276,68 @@ export class CreditService {
     });
   }
 
+  async syncBatchTokenCreditUsage(data: SyncBatchTokenCreditUsageJobData) {
+    const { uid, usages, creditBillings, timestamp, resultId } = data;
+
+    // Find user
+    const user = await this.prisma.user.findUnique({ where: { uid } });
+    if (!user) {
+      throw new Error(`No user found for uid ${uid}`);
+    }
+
+    // Calculate total credit cost for all usages
+    let totalCreditCost = 0;
+    const modelUsageDetails: ModelUsageDetail[] = [];
+
+    for (let i = 0; i < usages.length; i++) {
+      const usage = usages[i];
+      const creditBilling = creditBillings[i];
+
+      // Calculate tokens for this usage
+      const totalTokens = usage.inputTokens + usage.outputTokens;
+
+      // Calculate credit cost for this usage
+      let creditCost = 0;
+      if (creditBilling && creditBilling.unit === '5k_tokens') {
+        // Round up to nearest 5k tokens (not enough 5K counts as 5K)
+        const tokenUnits = Math.ceil(totalTokens / 5000);
+        creditCost = tokenUnits * (creditBilling.unitCost || 0);
+      }
+
+      totalCreditCost += creditCost;
+
+      // Add to model usage details - model name, total tokens, and credit cost
+      modelUsageDetails.push({
+        modelName: usage.modelName,
+        totalTokens: usage.inputTokens + usage.outputTokens,
+        creditCost: creditCost,
+      });
+    }
+
+    // If no credit cost, just create usage record with details
+    if (totalCreditCost <= 0) {
+      await this.prisma.creditUsage.create({
+        data: {
+          uid,
+          usageId: genCreditUsageId(),
+          actionResultId: resultId,
+          amount: 0,
+          modelUsageDetails: JSON.stringify(modelUsageDetails),
+          createdAt: timestamp,
+        },
+      });
+      return;
+    }
+
+    // Use the extracted method to handle credit deduction with model usage details
+    await this.deductCreditsAndCreateUsage(uid, totalCreditCost, {
+      usageId: genCreditUsageId(),
+      actionResultId: resultId,
+      modelUsageDetails: JSON.stringify(modelUsageDetails),
+      createdAt: timestamp,
+    });
+  }
+
   async getCreditRecharge(user: User): Promise<CreditRecharge[]> {
     const records = await this.prisma.creditRecharge.findMany({
       where: {
@@ -322,7 +388,7 @@ export class CreditService {
         createdAt: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'desc', // Order by creation time, newest first
       },
     });
     return records.map((record) => ({

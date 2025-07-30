@@ -3,6 +3,7 @@
 import { type Options } from '@hey-api/client-fetch';
 import { UseQueryResult } from '@tanstack/react-query';
 import {
+  abortAction,
   addNodesToCanvasPage,
   addReferences,
   autoNameCanvas,
@@ -941,6 +942,12 @@ export type DeleteLabelInstanceMutationResult = Awaited<ReturnType<typeof delete
 export const useDeleteLabelInstanceKey = 'DeleteLabelInstance';
 export const UseDeleteLabelInstanceKeyFn = (mutationKey?: Array<unknown>) => [
   useDeleteLabelInstanceKey,
+  ...(mutationKey ?? []),
+];
+export type AbortActionMutationResult = Awaited<ReturnType<typeof abortAction>>;
+export const useAbortActionKey = 'AbortAction';
+export const UseAbortActionKeyFn = (mutationKey?: Array<unknown>) => [
+  useAbortActionKey,
   ...(mutationKey ?? []),
 ];
 export type InvokeSkillMutationResult = Awaited<ReturnType<typeof invokeSkill>>;

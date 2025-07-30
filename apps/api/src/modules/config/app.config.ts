@@ -108,8 +108,6 @@ export default () => ({
     key: process.env.ENCRYPTION_KEY,
   },
   skill: {
-    idleTimeout: Number.parseInt(process.env.SKILL_IDLE_TIMEOUT) || 1000 * 60, // 1 minute
-    executionTimeout: Number.parseInt(process.env.SKILL_EXECUTION_TIMEOUT) || 1000 * 60 * 3, // 3 minutes
     streamIdleTimeout: Number.parseInt(process.env.SKILL_STREAM_IDLE_TIMEOUT) || 1000 * 30, // 30 seconds
     streamIdleCheckInterval:
       Number.parseInt(process.env.SKILL_STREAM_IDLE_CHECK_INTERVAL) || 1000 * 10, // 10 seconds

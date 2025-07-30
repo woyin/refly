@@ -1,6 +1,6 @@
 # 配置说明
 
-## API 服务器
+## API 服务器 {#api-server}
 
 以下是 API 服务器的详细配置说明。你可以将这些环境变量注入到 `refly_api` 容器中。
 
@@ -12,7 +12,7 @@
 | PORT | HTTP API 服务端口，用于常规 API 请求 | `5800` |
 | WS_PORT | WebSocket 服务器端口，用于画布和文档的实时同步 | `5801` |
 | ORIGIN | 客户端来源（即访问 Refly 应用的地址），用于 CORS 检查 | `http://localhost:5700` |
-| STATIC_PUBLIC_ENDPOINT | 公开可访问的静态文件端点 (无需身份验证即可访问) | `http://localhost:5800/v1/misc` |
+| STATIC_PUBLIC_ENDPOINT | 公开可访问的静态文件端点 (无需身份验证即可访问) | `http://localhost:5800/v1/misc/public` |
 | STATIC_PRIVATE_ENDPOINT | 私有静态文件端点 (需要身份验证才能访问) | `http://localhost:5800/v1/misc` |
 
 ### 中间件
@@ -45,9 +45,16 @@ Refly 依赖以下中间件来正常运行：
 | --- | --- | --- |
 | REDIS_HOST | Redis 主机地址 | `localhost` |
 | REDIS_PORT | Redis 端口 | `6379` |
-| REDIS_PASSWORD | Redis 密码 | `test` |
+| REDIS_USERNAME | Redis 用户名 | (未设置) |
+| REDIS_PASSWORD | Redis 密码 | (未设置) |
 
-#### Qdrant (向量存储)
+#### 向量存储
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| VECTOR_STORE_BACKEND | 向量存储后端 (`qdrant` 或 `lancedb`) | `qdrant` |
+
+##### Qdrant (向量存储)
 
 | 环境变量 | 说明 | 默认值 |
 | --- | --- | --- |
@@ -55,22 +62,26 @@ Refly 依赖以下中间件来正常运行：
 | QDRANT_PORT | Qdrant 端口 | `6333` |
 | QDRANT_API_KEY | Qdrant API 密钥 | (未设置) |
 
-#### SearXNG
+##### LanceDB (向量存储)
 
 | 环境变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| SEARXNG_BASE_URL | SearXNG 基础 URL | `http://localhost:8080/` |
+| LANCEDB_URI | LanceDB 数据库 URI | `./data/lancedb` |
 
-#### 全文搜索
+#### 对象存储
 
 | 环境变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| FULLTEXT_SEARCH_BACKEND | 全文搜索后端 (`prisma` 或 `elasticsearch`) | `prisma` |
-| ELASTICSEARCH_URL | Elasticsearch URL (当 `FULLTEXT_SEARCH_BACKEND` 为 `elasticsearch` 时必填) | `http://localhost:9200` |
-| ELASTICSEARCH_USERNAME | Elasticsearch 用户名 (当 `FULLTEXT_SEARCH_BACKEND` 为 `elasticsearch` 时必填) | (未设置) |
-| ELASTICSEARCH_PASSWORD | Elasticsearch 密码 (当 `FULLTEXT_SEARCH_BACKEND` 为 `elasticsearch` 时必填) | (未设置) |
+| OBJECT_STORAGE_RECLAIM_POLICY | 对象存储回收策略 (`retain` 或 `delete`) | `retain` |
+| OBJECT_STORAGE_BACKEND | 对象存储后端 (`minio` 或 `fs`) | `minio` |
 
-#### MinIO
+##### 文件系统存储
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| OBJECT_STORAGE_FS_ROOT | 文件系统存储根路径 | `./storage` |
+
+##### MinIO
 
 Refly 需要两个 MinIO 实例：
 
@@ -92,17 +103,33 @@ Refly 需要两个 MinIO 实例：
 | MINIO_EXTERNAL_SECRET_KEY | 外部 MinIO 密钥 | `minioadmin` |
 | MINIO_EXTERNAL_BUCKET | 外部存储桶名称 | `refly-weblink` |
 
+#### 全文搜索
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| FULLTEXT_SEARCH_BACKEND | 全文搜索后端 (`prisma` 或 `elasticsearch`) | `prisma` |
+| ELASTICSEARCH_URL | Elasticsearch URL (当 `FULLTEXT_SEARCH_BACKEND` 为 `elasticsearch` 时必填) | `http://localhost:9200` |
+| ELASTICSEARCH_USERNAME | Elasticsearch 用户名 (当 `FULLTEXT_SEARCH_BACKEND` 为 `elasticsearch` 时必填) | (未设置) |
+| ELASTICSEARCH_PASSWORD | Elasticsearch 密码 (当 `FULLTEXT_SEARCH_BACKEND` 为 `elasticsearch` 时必填) | (未设置) |
+
 ### 认证配置
 
 | 环境变量 | 说明 | 默认值 |
 | --- | --- | --- |
 | AUTH_SKIP_VERIFICATION | 是否跳过邮箱验证 | `false` |
-| REFLY_COOKIE_DOMAIN | 用于签署认证令牌的 Cookie 域名 | `localhost` |
 | LOGIN_REDIRECT_URL | OAuth 登录后的重定向 URL | (未设置) |
 | JWT_SECRET | JWT 签名密钥 | `test` |
 | JWT_EXPIRATION_TIME | JWT 访问令牌过期时间 | `1h` |
 | JWT_REFRESH_EXPIRATION_TIME | JWT 刷新令牌过期时间 | `7d` |
 | COLLAB_TOKEN_EXPIRY | 协作令牌过期时间 | `1h` |
+
+#### Cookie 配置
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| REFLY_COOKIE_DOMAIN | 用于签署认证令牌的 Cookie 域名 | (未设置) |
+| REFLY_COOKIE_SECURE | 是否使用安全 Cookie | (未设置) |
+| REFLY_COOKIE_SAME_SITE | SameSite Cookie 属性 | (未设置) |
 
 ::: info
 时间格式与 [Vercel MS](https://github.com/vercel/ms) 兼容。
@@ -158,9 +185,9 @@ Refly 需要两个 MinIO 实例：
 
 | 环境变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| IMAGE_MAX_AREA | 传递给 LLM 的图像最大面积 | `600 * 600` |
+| IMAGE_MAX_AREA | 传递给 LLM 的图像最大面积 | `360000` |
 | IMAGE_PAYLOAD_MODE | 图像负载模式 (`base64` 或 `url`) | `base64` |
-| IMAGE_PRESIGN_EXPIRY | 预签名图像 URL 的过期时间（秒） | `15 * 60` |
+| IMAGE_PRESIGN_EXPIRY | 预签名图像 URL 的过期时间（秒） | `900` |
 
 ### 加密
 
@@ -172,8 +199,29 @@ Refly 需要两个 MinIO 实例：
 
 | 环境变量 | 说明 | 默认值 |
 | --- | --- | --- |
-| SKILL_IDLE_TIMEOUT | 技能空闲超时时间（毫秒） | `60000` |
-| SKILL_EXECUTION_TIMEOUT | 技能执行超时时间（毫秒） | `180000` |
+| SKILL_STREAM_IDLE_TIMEOUT | 技能流空闲超时时间（毫秒） | `30000` |
+| SKILL_STREAM_IDLE_CHECK_INTERVAL | 技能流空闲检查间隔（毫秒） | `10000` |
+| SKILL_STUCK_CHECK_INTERVAL | 技能卡住检查间隔（毫秒） | `60000` |
+| SKILL_STUCK_TIMEOUT_THRESHOLD | 技能卡住超时阈值（毫秒） | `300000` |
+| SKILL_AI_MODEL_NETWORK_TIMEOUT | AI 模型网络超时时间（毫秒） | `30000` |
+
+### 提供商配置
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| PROVIDER_DEFAULT_MODE | 默认提供商模式 (`global` 或 `custom`) | `custom` |
+
+### 默认模型
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| DEFAULT_MODEL_CHAT | 默认聊天模型 | (未设置) |
+| DEFAULT_MODEL_AGENT | 默认代理模型 | (未设置) |
+| DEFAULT_MODEL_QUERY_ANALYSIS | 默认查询分析模型 | (未设置) |
+| DEFAULT_MODEL_TITLE_GENERATION | 默认标题生成模型 | (未设置) |
+| DEFAULT_MODEL_IMAGE | 默认图像模型 | (未设置) |
+| DEFAULT_MODEL_VIDEO | 默认视频模型 | (未设置) |
+| DEFAULT_MODEL_AUDIO | 默认音频模型 | (未设置) |
 
 ### Stripe
 
@@ -187,6 +235,13 @@ Refly 需要两个 MinIO 实例：
 | STRIPE_PORTAL_RETURN_URL | Stripe 客户门户返回 URL | (未设置) |
 
 ### 配额
+
+#### Token 配额
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| QUOTA_T1_TOKEN | 一级 Token 配额 | `-1` |
+| QUOTA_T2_TOKEN | 二级 Token 配额 | `-1` |
 
 #### 请求配额
 
@@ -203,7 +258,21 @@ Refly 需要两个 MinIO 实例：
 | QUOTA_STORAGE_OBJECT | 对象存储配额 | `-1` |
 | QUOTA_STORAGE_VECTOR | 向量存储配额 | `-1` |
 
-## Web 前端
+#### 文件解析配额
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| QUOTA_FILE_PARSE_PAGE | 文件解析页面配额 | `-1` |
+
+### Langfuse
+
+| 环境变量 | 说明 | 默认值 |
+| --- | --- | --- |
+| LANGFUSE_PUBLIC_KEY | Langfuse 公钥 | (未设置) |
+| LANGFUSE_SECRET_KEY | Langfuse 密钥 | (未设置) |
+| LANGFUSE_HOST | Langfuse 主机 URL | (未设置) |
+
+## Web 前端 {#web-frontend}
 
 以下是 Web 前端的详细配置说明。你可以将这些环境变量注入到 `refly_web` 容器中。
 

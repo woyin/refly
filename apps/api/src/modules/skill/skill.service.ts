@@ -189,7 +189,7 @@ export class SkillService implements OnModuleInit {
         return;
       }
 
-      this.logger.warn(
+      this.logger.log(
         `Found stuck actions ${stuckResults.map((r) => r.resultId).join(', ')}, marking them as failed`,
       );
 
@@ -203,10 +203,7 @@ export class SkillService implements OnModuleInit {
           const user = { uid: result.uid } as User;
 
           try {
-            await this.actionService.abortAction(user, {
-              resultId: result.resultId,
-              reason: timeoutError,
-            });
+            await this.actionService.abortAction(user, result, timeoutError);
             return { success: true, resultId: result.resultId };
           } catch (error) {
             this.logger.error(`Failed to abort stuck action ${result.resultId}: ${error?.message}`);

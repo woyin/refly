@@ -3906,6 +3906,21 @@ export const GetActionResultResponseSchema = {
   ],
 } as const;
 
+export const AbortActionRequestSchema = {
+  type: 'object',
+  required: ['resultId'],
+  properties: {
+    resultId: {
+      type: 'string',
+      description: 'Action result ID',
+    },
+    version: {
+      type: 'integer',
+      description: 'Action result version',
+    },
+  },
+} as const;
+
 export const QueryReferencesRequestSchema = {
   type: 'object',
   properties: {
@@ -6963,6 +6978,10 @@ export const CreditUsageSchema = {
     description: {
       type: 'string',
       description: 'Optional description for this usage',
+    },
+    modelUsageDetails: {
+      type: 'string',
+      description: 'Model usage details for skill execution (JSON array of model usage)',
     },
     createdAt: {
       type: 'string',

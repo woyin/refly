@@ -253,6 +253,9 @@ import type {
   GetActionResultData,
   GetActionResultError,
   GetActionResultResponse2,
+  AbortActionData,
+  AbortActionError,
+  AbortActionResponse,
   ListSkillsError,
   ListSkillsResponse,
   InvokeSkillData,
@@ -1706,6 +1709,19 @@ export const getActionResult = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/action/result',
+  });
+};
+
+/**
+ * Abort action
+ * Abort an action
+ */
+export const abortAction = <ThrowOnError extends boolean = false>(
+  options: Options<AbortActionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<AbortActionResponse, AbortActionError, ThrowOnError>({
+    ...options,
+    url: '/action/abort',
   });
 };
 

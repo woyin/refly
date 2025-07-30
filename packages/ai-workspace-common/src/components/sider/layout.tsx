@@ -83,20 +83,16 @@ const SiderSectionHeader = ({
 };
 
 export const SiderLogo = (props: {
-  navigate: (path: string) => void;
+  source: 'sider' | 'popover';
+  navigate?: (path: string) => void;
   collapse: boolean;
   setCollapse: (collapse: boolean) => void;
 }) => {
-  const { navigate, collapse, setCollapse } = props;
+  const { source, navigate, collapse, setCollapse } = props;
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-2">
-        <Logo onClick={() => navigate('/')} />
-        <GithubStar />
-      </div>
-
-      <div>
+    <div className={cn('flex items-center mb-6 gap-2', source === 'sider' && 'justify-between')}>
+      {source === 'popover' && (
         <Button
           type="text"
           icon={
@@ -108,7 +104,26 @@ export const SiderLogo = (props: {
           }
           onClick={() => setCollapse(!collapse)}
         />
+      )}
+
+      <div className="flex items-center gap-2">
+        <Logo onClick={() => navigate?.('/')} />
+        <GithubStar />
       </div>
+
+      {source === 'sider' && (
+        <Button
+          type="text"
+          icon={
+            collapse ? (
+              <SideRight size={20} className="text-refly-text-0" />
+            ) : (
+              <SideLeft size={20} className="text-refly-text-0" />
+            )
+          }
+          onClick={() => setCollapse(!collapse)}
+        />
+      )}
     </div>
   );
 };
@@ -345,7 +360,8 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
       <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pt-6">
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
           <SiderLogo
-            navigate={(path) => navigate(path)}
+            source={source}
+            navigate={source === 'sider' ? (path) => navigate(path) : undefined}
             collapse={collapse}
             setCollapse={setCollapse}
           />
