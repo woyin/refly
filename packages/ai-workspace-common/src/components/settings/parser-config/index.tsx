@@ -347,3 +347,5 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
     </div>
   );
 });
+
+ConfigCard.displayName = 'ConfigCard';

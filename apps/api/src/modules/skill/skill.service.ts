@@ -189,7 +189,7 @@ export class SkillService implements OnModuleInit {
         return;
       }
 
-      this.logger.warn(
+      this.logger.log(
         `Found stuck actions ${stuckResults.map((r) => r.resultId).join(', ')}, marking them as failed`,
       );
 
@@ -203,10 +203,7 @@ export class SkillService implements OnModuleInit {
           const user = { uid: result.uid } as User;
 
           try {
-            await this.actionService.abortAction(user, {
-              resultId: result.resultId,
-              reason: timeoutError,
-            });
+            await this.actionService.abortAction(user, result, timeoutError);
             return { success: true, resultId: result.resultId };
           } catch (error) {
             this.logger.error(`Failed to abort stuck action ${result.resultId}: ${error?.message}`);
@@ -472,11 +469,11 @@ export class SkillService implements OnModuleInit {
     const creditBilling: CreditBilling = providerItem?.creditBilling
       ? JSON.parse(providerItem?.creditBilling)
       : undefined;
-    this.logger.log('creditBilling', creditBilling);
 
     if (creditBilling) {
       const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
-      this.logger.log('creditUsageResult', creditUsageResult);
+      this.logger.log(`checkRequestCreditUsage result: ${JSON.stringify(creditUsageResult)}`);
+
       if (!creditUsageResult.canUse) {
         // Clean up any existing executing records before throwing error
         await this.cleanupFailedPreCheck(

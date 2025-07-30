@@ -7,6 +7,7 @@ export type CheckRequestCreditUsageResult = {
 export interface SyncTokenCreditUsageJobData {
   uid: string;
   resultId?: string;
+  providerItemId?: string;
   usage: TokenUsageItem;
   creditBilling?: CreditBilling;
   timestamp: Date;

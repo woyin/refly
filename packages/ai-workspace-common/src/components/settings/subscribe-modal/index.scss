@@ -144,6 +144,16 @@
         color: #6b7280;
         height: auto;
         min-height: 20px; // Ensure consistent height
+
+        &.description-en {
+          height: 60px;
+          line-height: 20px;
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          line-clamp: 3;
+          -webkit-box-orient: vertical;
+        }
       }
 
       .price-section {

@@ -2025,6 +2025,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetActionResultResponse'
+  /action/abort:
+    post:
+      tags:
+        - action
+      summary: Abort action
+      description: Abort an action
+      operationId: abortAction
+      requestBody:
+        description: Abort action request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbortActionRequest'
+        required: true
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /skill/list:
     get:
       tags:
@@ -5880,6 +5901,17 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/ActionResult'
+    AbortActionRequest:
+      type: object
+      required:
+        - resultId
+      properties:
+        resultId:
+          type: string
+          description: Action result ID
+        version:
+          type: integer
+          description: Action result version
     QueryReferencesRequest:
       type: object
       properties:

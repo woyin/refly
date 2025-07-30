@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Input, Empty, Row, Col, Typography, Tag, message } from 'antd';
-import { LuSearch } from 'react-icons/lu';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
 
 import { useListCommunityProviders } from '@refly-packages/ai-workspace-common/queries/provider-community';
@@ -13,6 +11,8 @@ import {
 } from './provider-store-types';
 import { CommunityProviderCard } from './CommunityProviderCard';
 import { filterProviders, isProviderInstalled } from './provider-store-utils';
+import { CommunityMcpCardSkeleton } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/CommunityMcpCardSkeleton';
+import { Search } from 'refly-icons';
 
 const { Text } = Typography;
 
@@ -70,8 +70,26 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Spin />
+      <div className="community-mcp-list h-full flex flex-col px-5 py-3">
+        <div className="mb-4 flex items-center gap-10">
+          <Input
+            className="flex-1"
+            placeholder={t('settings.mcpServer.community.searchPlaceholder')}
+            prefix={<Search size={16} />}
+            disabled
+          />
+        </div>
+
+        {/* Loading skeleton */}
+        <div className="flex-1 overflow-auto">
+          <Row gutter={[16, 12]}>
+            {Array.from({ length: 16 }).map((_, index) => (
+              <Col key={index} xs={24} sm={12} md={6} lg={6} xl={6}>
+                <CommunityMcpCardSkeleton />
+              </Col>
+            ))}
+          </Row>
+        </div>
       </div>
     );
   }
@@ -99,7 +117,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
         {/* Search bar */}
         <div className="relative flex-1">
           <Input
-            prefix={<LuSearch className="h-4 w-4 text-refly-text-1" />}
+            prefix={<Search size={16} />}
             placeholder={t('settings.modelProviders.searchPlaceholder')}
             value={filters.searchText}
             onChange={(e) => handleFiltersChange({ searchText: e.target.value })}

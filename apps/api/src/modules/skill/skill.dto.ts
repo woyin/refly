@@ -31,13 +31,6 @@ export interface InvokeSkillJobData extends InvokeSkillRequest {
   };
 }
 
-export interface SkillTimeoutCheckJobData {
-  uid: string;
-  type: 'idle' | 'execution';
-  resultId: string;
-  version?: number;
-}
-
 export type CheckStuckActionsJobData = Record<string, never>;
 
 export function skillInstancePO2DTO(skill: SkillInstanceModel): SkillInstance {

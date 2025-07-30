@@ -30,7 +30,7 @@ export const useGroupModels = () => {
       const entries = Object.entries(groups).map(([key, groupModels]) => ({
         key,
         name: key === 'default' ? t('settings.modelConfig.default') : key,
-        models: groupModels,
+        models: groupModels.sort((a, b) => a.name.localeCompare(b.name)),
         isDefault: key === 'default',
       }));
 

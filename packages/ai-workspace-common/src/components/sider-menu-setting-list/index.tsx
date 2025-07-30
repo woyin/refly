@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'antd';
-import { LuLogOut, LuMonitor } from 'react-icons/lu';
+import { LuMonitor } from 'react-icons/lu';
 import { useUserStore } from '@refly/stores';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
-import { GrGroup } from 'react-icons/gr';
 import { EXTENSION_DOWNLOAD_LINK } from '@refly/utils/url';
 import { useThemeStoreShallow } from '@refly/stores';
 import { useCallback, useMemo } from 'react';
@@ -16,9 +15,12 @@ import {
   InterfaceLight,
   ArrowRight,
   Cuttools,
+  Contact,
+  Exit,
 } from 'refly-icons';
 import './index.scss';
 import React from 'react';
+import { TFunction } from 'i18next';
 
 // Reusable dropdown item component
 const DropdownItem = React.memo(
@@ -47,7 +49,7 @@ const UserInfo = React.memo(({ nickname, email }: { nickname?: string; email?: s
 ));
 
 // Theme appearance item component
-const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t: any }) => (
+const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t: TFunction }) => (
   <div className="flex items-center gap-2">
     {themeMode === 'dark' ? <InterfaceDark size={18} /> : <InterfaceLight size={18} />}
     <div className="flex flex-1 items-center justify-between gap-1">
@@ -195,7 +197,7 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
       {
         key: 'contact-us',
         label: (
-          <DropdownItem icon={<GrGroup size={18} />}>
+          <DropdownItem icon={<Contact size={18} />}>
             {t('loggedHomePage.siderMenu.contactUs')}
           </DropdownItem>
         ),
@@ -213,7 +215,7 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
       {
         key: 'logout',
         label: (
-          <DropdownItem icon={<LuLogOut size={18} />}>
+          <DropdownItem icon={<Exit size={18} />}>
             {t('loggedHomePage.siderMenu.logout')}
           </DropdownItem>
         ),
