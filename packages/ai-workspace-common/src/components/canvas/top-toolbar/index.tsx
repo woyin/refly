@@ -83,7 +83,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
         <ToolContainer>
           {collapse && (
             <>
-              <SiderPopover align={{ offset: [0, -8] }} showBrand={false} />
+              <SiderPopover align={{ offset: [8, -8] }} showBrand={false} />
               <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
             </>
           )}

@@ -192,20 +192,22 @@ export const MediaModelSelector = memo(
                   {group.label}
                 </div>
                 {/* Group models */}
-                {group.models.map((model) => (
-                  <div
-                    key={model.itemId}
-                    className="flex items-center gap-2 rounded-[6px] p-1.5 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
-                    onClick={() => handleMenuClick({ key: model.itemId })}
-                  >
-                    <div className="flex-shrink-0 flex items-center">
-                      <ModelIcon model={model.name} size={16} type={'color'} />
+                {group.models
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((model) => (
+                    <div
+                      key={model.itemId}
+                      className="flex items-center gap-2 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                      onClick={() => handleMenuClick({ key: model.itemId })}
+                    >
+                      <div className="flex-shrink-0 flex items-center">
+                        <ModelIcon model={model.name} size={16} type={'color'} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <MediaModelLabel model={model} />
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <MediaModelLabel model={model} />
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             ))}
           </div>
@@ -247,7 +249,7 @@ export const MediaModelSelector = memo(
         autoAdjustOverflow={true}
         disabled={readonly}
       >
-        <span className="text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-300">
+        <span className="text-sm flex items-center gap-1.5 cursor-pointer transition-all duration-300">
           <SelectedMediaModelDisplay
             maxWidth={maxWidth}
             open={dropdownOpen}
