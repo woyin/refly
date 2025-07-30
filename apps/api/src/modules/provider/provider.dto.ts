@@ -31,6 +31,7 @@ export const providerItemPO2DTO = (
     group: providerItem.groupName,
     category: providerItem.category as ProviderCategory,
     tier: providerItem.tier as ModelTier,
+    creditBilling: providerItem.creditBilling ? JSON.parse(providerItem.creditBilling) : undefined,
     provider: providerPO2DTO(providerItem.provider),
     config: JSON.parse(providerItem.config || '{}'),
   };

@@ -1,5 +1,5 @@
 import { PrismaService } from '../common/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { User, CreditBilling } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
@@ -12,6 +12,8 @@ import { CreditBalance } from './credit.dto';
 
 @Injectable()
 export class CreditService {
+  private readonly logger = new Logger(CreditService.name);
+
   constructor(protected readonly prisma: PrismaService) {}
 
   async checkRequestCreditUsage(
@@ -287,6 +289,9 @@ export class CreditService {
         pilotSessionId: true,
         description: true,
         createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc', // Order by creation time, newest first
       },
     });
     return records.map((record) => ({

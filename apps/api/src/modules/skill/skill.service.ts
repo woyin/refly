@@ -454,6 +454,8 @@ export class SkillService implements OnModuleInit {
     const providerItem = await this.providerService.findProviderItemById(user, modelItemId);
 
     if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
+      // Clean up any existing executing records before throwing error
+      await this.cleanupFailedPreCheck(resultId, uid, 'Provider item not valid or disabled');
       throw new ProviderItemNotFoundError(`provider item ${modelItemId} not valid`);
     }
 
@@ -476,6 +478,12 @@ export class SkillService implements OnModuleInit {
       const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
       this.logger.log('creditUsageResult', creditUsageResult);
       if (!creditUsageResult.canUse) {
+        // Clean up any existing executing records before throwing error
+        await this.cleanupFailedPreCheck(
+          resultId,
+          uid,
+          `Credit not available: ${creditUsageResult.message}`,
+        );
         throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
       }
     }
@@ -511,6 +519,8 @@ export class SkillService implements OnModuleInit {
         },
       });
       if (!project) {
+        // Clean up any existing executing records before throwing error
+        await this.cleanupFailedPreCheck(resultId, uid, `Project ${param.projectId} not found`);
         throw new ProjectNotFoundError(`project ${param.projectId} not found`);
       }
     }
@@ -637,6 +647,72 @@ export class SkillService implements OnModuleInit {
     }
 
     return data;
+  }
+
+  /**
+   * Clean up failed pre-check records to prevent stuck actions
+   */
+  private async cleanupFailedPreCheck(
+    resultId: string,
+    uid: string,
+    errorMessage: string,
+  ): Promise<void> {
+    try {
+      // Find any existing executing records for this resultId and user
+      const existingResults = await this.prisma.actionResult.findMany({
+        where: {
+          resultId,
+          uid,
+          status: 'executing',
+        },
+      });
+
+      if (existingResults.length > 0) {
+        this.logger.warn(
+          `Cleaning up ${existingResults.length} stuck executing records for resultId: ${resultId}`,
+        );
+
+        // Update all executing records to failed status with error message
+        await this.prisma.actionResult.updateMany({
+          where: {
+            resultId,
+            uid,
+            status: 'executing',
+          },
+          data: {
+            status: 'failed',
+            errors: JSON.stringify([errorMessage]),
+            updatedAt: new Date(),
+          },
+        });
+
+        // Also clean up related pilot steps if they exist
+        const pilotStepIds = existingResults
+          .map((result) => result.pilotStepId)
+          .filter(Boolean) as string[];
+
+        if (pilotStepIds.length > 0) {
+          await this.prisma.pilotStep.updateMany({
+            where: {
+              stepId: { in: pilotStepIds },
+              status: 'executing',
+            },
+            data: {
+              status: 'failed',
+            },
+          });
+        }
+
+        this.logger.log(
+          `Successfully cleaned up failed pre-check records for resultId: ${resultId}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to cleanup failed pre-check records for resultId ${resultId}: ${error?.message}`,
+      );
+      // Don't throw error here to avoid masking the original error
+    }
   }
 
   /**

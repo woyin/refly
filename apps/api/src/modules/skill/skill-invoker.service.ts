@@ -900,54 +900,11 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 timestamp: new Date(),
               };
 
-              const creditBilling: CreditBilling = providerItem?.creditBilling
-                ? JSON.parse(providerItem?.creditBilling)
-                : undefined;
-
-              // Check if user is early bird and credit billing is free for early bird users
-              let shouldSkipCreditBilling = false;
-              if (creditBilling?.isEarlyBirdFree) {
-                // Get user's subscription to check if they are early bird user
-                const userSubscription = await this.prisma.subscription.findFirst({
-                  where: {
-                    uid: user.uid,
-                    status: 'active',
-                    OR: [{ cancelAt: null }, { cancelAt: { gt: new Date() } }],
-                  },
-                  orderBy: {
-                    createdAt: 'desc',
-                  },
-                });
-
-                if (userSubscription?.overridePlan) {
-                  const overridePlan = JSON.parse(userSubscription.overridePlan);
-                  if (overridePlan.isEarlyBird === true) {
-                    shouldSkipCreditBilling = true;
-                    this.logger.log(
-                      `Early bird user ${user.uid} skipping credit billing for action ${resultId}`,
-                    );
-                  }
-                }
-              }
-
-              const tokenCreditUsage: SyncTokenCreditUsageJobData = {
-                ...basicUsageData,
-                usage,
-                creditBilling,
-                timestamp: new Date(),
-              };
-
               if (this.usageReportQueue) {
                 await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
               }
 
-              // Only add to credit usage queue if not skipping for early bird users
-              if (this.creditUsageReportQueue && !shouldSkipCreditBilling) {
-                await this.creditUsageReportQueue.add(
-                  `credit_usage_report:${resultId}`,
-                  tokenCreditUsage,
-                );
-              }
+              // Remove credit billing processing from here - will be handled after skill completion
             }
             break;
         }
@@ -1061,6 +1018,107 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           user: { uid: user.uid },
           stepId: result.pilotStepId,
         });
+      }
+
+      // Process credit billing for all steps after skill completion
+      if (this.creditUsageReportQueue && !result.errors.length) {
+        const steps = resultAggregator.getSteps({ resultId, version });
+
+        // Group usage by provider to avoid duplicate credit billing
+        const usageByProvider = new Map<
+          string,
+          {
+            totalInputTokens: number;
+            totalOutputTokens: number;
+            providerItem: any;
+            creditBilling: CreditBilling;
+          }
+        >();
+
+        for (const step of steps) {
+          if (step.tokenUsage) {
+            const tokenUsage = JSON.parse(step.tokenUsage);
+            const providerKey = `${tokenUsage.modelProvider}:${tokenUsage.modelName}`;
+
+            if (!usageByProvider.has(providerKey)) {
+              const providerItem = await this.providerService.findLLMProviderItemByModelID(
+                user,
+                tokenUsage.modelName,
+              );
+
+              if (providerItem?.creditBilling) {
+                const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
+
+                // Check if user is early bird and credit billing is free for early bird users
+                let shouldSkipCreditBilling = false;
+                if (creditBilling?.isEarlyBirdFree) {
+                  const userSubscription = await this.prisma.subscription.findFirst({
+                    where: {
+                      uid: user.uid,
+                      status: 'active',
+                      OR: [{ cancelAt: null }, { cancelAt: { gt: new Date() } }],
+                    },
+                    orderBy: {
+                      createdAt: 'desc',
+                    },
+                  });
+
+                  if (userSubscription?.overridePlan) {
+                    const overridePlan = JSON.parse(userSubscription.overridePlan);
+                    if (overridePlan.isEarlyBird === true) {
+                      shouldSkipCreditBilling = true;
+                      this.logger.log(
+                        `Early bird user ${user.uid} skipping credit billing for action ${resultId}`,
+                      );
+                    }
+                  }
+                }
+
+                if (!shouldSkipCreditBilling) {
+                  usageByProvider.set(providerKey, {
+                    totalInputTokens: 0,
+                    totalOutputTokens: 0,
+                    providerItem,
+                    creditBilling,
+                  });
+                }
+              }
+            }
+
+            const providerData = usageByProvider.get(providerKey);
+            if (providerData) {
+              providerData.totalInputTokens += tokenUsage.inputTokens || 0;
+              providerData.totalOutputTokens += tokenUsage.outputTokens || 0;
+            }
+          }
+        }
+
+        // Process credit billing for each provider
+        for (const [providerKey, providerData] of usageByProvider) {
+          const aggregatedUsage: TokenUsageItem = {
+            tier: providerData.providerItem?.tier,
+            modelProvider: providerData.providerItem?.provider?.name,
+            modelName: providerData.providerItem?.name,
+            inputTokens: providerData.totalInputTokens,
+            outputTokens: providerData.totalOutputTokens,
+          };
+
+          const tokenCreditUsage: SyncTokenCreditUsageJobData = {
+            ...basicUsageData,
+            usage: aggregatedUsage,
+            creditBilling: providerData.creditBilling,
+            timestamp: new Date(),
+          };
+
+          await this.creditUsageReportQueue.add(
+            `credit_usage_report:${resultId}:${providerKey}`,
+            tokenCreditUsage,
+          );
+
+          this.logger.log(
+            `Credit billing processed for ${providerKey}: ${aggregatedUsage.inputTokens} input + ${aggregatedUsage.outputTokens} output tokens`,
+          );
+        }
       }
     }
   }
