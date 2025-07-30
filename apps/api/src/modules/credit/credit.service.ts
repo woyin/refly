@@ -1,17 +1,19 @@
 import { PrismaService } from '../common/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { User, CreditBilling } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
   SyncTokenCreditUsageJobData,
   SyncMediaCreditUsageJobData,
 } from './credit.dto';
-import { genCreditUsageId, genCreditDebtId } from '@refly/utils';
+import { genCreditUsageId, genCreditDebtId, safeParseJSON } from '@refly/utils';
 import { CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import { CreditBalance } from './credit.dto';
 
 @Injectable()
 export class CreditService {
+  private readonly logger = new Logger(CreditService.name);
+
   constructor(protected readonly prisma: PrismaService) {}
 
   async checkRequestCreditUsage(
@@ -73,6 +75,7 @@ export class CreditService {
     usageData: {
       usageId: string;
       actionResultId: string;
+      providerItemId?: string;
       modelName?: string;
       usageType?: string;
       createdAt: Date;
@@ -94,11 +97,6 @@ export class CreditService {
         expiresAt: 'asc', // Deduct from earliest records first
       },
     });
-
-    // Calculate total available credits
-    const _totalAvailableCredits = creditRecharges.reduce((sum, record) => {
-      return sum + record.balance;
-    }, 0);
 
     // Prepare deduction operations
     const deductionOperations = [];
@@ -128,6 +126,7 @@ export class CreditService {
         data: {
           uid,
           usageId: usageData.usageId,
+          providerItemId: usageData.providerItemId,
           actionResultId: usageData.actionResultId,
           modelName: usageData.modelName,
           usageType: usageData.usageType,
@@ -162,8 +161,28 @@ export class CreditService {
     await this.prisma.$transaction(transactionOperations);
   }
 
+  private async isEarlyBirdUser(user: User) {
+    // Get user's subscription to check if they are early bird user
+    const userSubscription = await this.prisma.subscription.findFirst({
+      where: {
+        uid: user.uid,
+        status: 'active',
+        OR: [{ cancelAt: null }, { cancelAt: { gt: new Date() } }],
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (userSubscription?.overridePlan) {
+      const overridePlan = safeParseJSON(userSubscription.overridePlan);
+      return Boolean(overridePlan?.isEarlyBird);
+    }
+    return false;
+  }
+
   async syncTokenCreditUsage(data: SyncTokenCreditUsageJobData) {
-    const { uid, usage, creditBilling, timestamp, resultId } = data;
+    const { uid, usage, providerItemId, creditBilling, timestamp, resultId } = data;
 
     // Find user
     const user = await this.prisma.user.findUnique({ where: { uid } });
@@ -182,12 +201,22 @@ export class CreditService {
       creditCost = tokenUnits * (creditBilling.unitCost || 0);
     }
 
+    // Check if user is early bird user
+    const isEarlyBirdUser = await this.isEarlyBirdUser(user);
+    if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
+      this.logger.log(
+        `Early bird user ${uid} skipping credit billing for provider item ${providerItemId}`,
+      );
+      creditCost = 0;
+    }
+
     // If no credit cost, just create usage record
     if (creditCost <= 0) {
       await this.prisma.creditUsage.create({
         data: {
           uid,
           usageId: genCreditUsageId(),
+          providerItemId,
           actionResultId: resultId,
           modelName: usage.modelName,
           amount: 0,
@@ -200,6 +229,7 @@ export class CreditService {
     // Use the extracted method to handle credit deduction
     await this.deductCreditsAndCreateUsage(uid, creditCost, {
       usageId: genCreditUsageId(),
+      providerItemId,
       actionResultId: resultId,
       modelName: usage.modelName,
       createdAt: timestamp,
@@ -259,6 +289,9 @@ export class CreditService {
         createdAt: true,
         updatedAt: true,
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
     return records.map((record) => ({
       ...record,
@@ -287,6 +320,9 @@ export class CreditService {
         pilotSessionId: true,
         description: true,
         createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
     return records.map((record) => ({

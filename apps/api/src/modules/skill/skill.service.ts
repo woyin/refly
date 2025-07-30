@@ -470,11 +470,11 @@ export class SkillService implements OnModuleInit {
     const creditBilling: CreditBilling = providerItem?.creditBilling
       ? JSON.parse(providerItem?.creditBilling)
       : undefined;
-    this.logger.log('creditBilling', creditBilling);
 
     if (creditBilling) {
       const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
-      this.logger.log('creditUsageResult', creditUsageResult);
+      this.logger.log(`checkRequestCreditUsage result: ${JSON.stringify(creditUsageResult)}`);
+
       if (!creditUsageResult.canUse) {
         throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
       }
