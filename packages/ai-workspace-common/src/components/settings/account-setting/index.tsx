@@ -230,7 +230,7 @@ export const AccountSetting = () => {
               color="danger"
               variant="filled"
               onClick={handleLogout}
-              className="text-refly-func-danger-default font-semibold bg-"
+              className="text-refly-func-danger-default font-semibold"
             >
               {t('settings.account.logout')}
             </Button>

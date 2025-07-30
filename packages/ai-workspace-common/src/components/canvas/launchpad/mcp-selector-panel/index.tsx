@@ -308,7 +308,7 @@ export const McpSelectorPopover: React.FC<McpSelectorPopoverProps> = ({
         </Button>
       </div>
     );
-  }, [mcpServers]);
+  }, [handleOpenMcpStore, t]);
 
   const renderContent = useCallback(() => {
     if (loading) {

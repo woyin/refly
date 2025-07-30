@@ -11,6 +11,7 @@ import {
   DropdownProps,
   Popconfirm,
   MenuProps,
+  Skeleton,
 } from 'antd';
 import { useTranslation } from 'react-i18next';
 
@@ -37,66 +38,72 @@ interface McpServerListProps {
 }
 
 // Action dropdown component
-const ActionDropdown = ({
-  server,
-  handleEdit,
-  handleDelete,
-}: {
-  server: McpServerDTO;
-  handleEdit: (server: McpServerDTO) => void;
-  handleDelete: (server: McpServerDTO) => void;
-}) => {
-  const { t } = useTranslation();
-  const [visible, setVisible] = useState(false);
+const ActionDropdown = React.memo(
+  ({
+    server,
+    handleEdit,
+    handleDelete,
+  }: {
+    server: McpServerDTO;
+    handleEdit: (server: McpServerDTO) => void;
+    handleDelete: (server: McpServerDTO) => void;
+  }) => {
+    const { t } = useTranslation();
+    const [visible, setVisible] = useState(false);
 
-  const items: MenuProps['items'] = [
-    {
-      label: (
-        <div className="flex items-center flex-grow">
-          <Edit size={18} className="mr-2" />
-          {t('common.edit')}
-        </div>
-      ),
-      key: 'edit',
-      onClick: () => handleEdit(server),
-    },
-    {
-      label: (
-        <Popconfirm
-          placement="bottomLeft"
-          title={t('settings.mcpServer.deleteConfirmTitle')}
-          description={t('settings.mcpServer.deleteConfirmMessage', { name: server.name })}
-          onConfirm={() => handleDelete(server)}
-          onCancel={() => setVisible(false)}
-          okText={t('common.delete')}
-          cancelText={t('common.cancel')}
-          overlayStyle={{ maxWidth: '300px' }}
-        >
-          <div
-            className="flex items-center text-red-600 flex-grow"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Delete size={18} className="mr-2" />
-            {t('common.delete')}
+    const items: MenuProps['items'] = [
+      {
+        label: (
+          <div className="flex items-center flex-grow">
+            <Edit size={18} className="mr-2" />
+            {t('common.edit')}
           </div>
-        </Popconfirm>
-      ),
-      key: 'delete',
-    },
-  ];
+        ),
+        key: 'edit',
+        onClick: () => handleEdit(server),
+      },
+      {
+        label: (
+          <Popconfirm
+            placement="bottomLeft"
+            title={t('settings.mcpServer.deleteConfirmTitle')}
+            description={t('settings.mcpServer.deleteConfirmMessage', { name: server.name })}
+            onConfirm={() => handleDelete(server)}
+            onCancel={() => setVisible(false)}
+            okText={t('common.delete')}
+            cancelText={t('common.cancel')}
+            overlayStyle={{ maxWidth: '300px' }}
+          >
+            <div
+              className="flex items-center text-red-600 flex-grow"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Delete size={18} className="mr-2" />
+              {t('common.delete')}
+            </div>
+          </Popconfirm>
+        ),
+        key: 'delete',
+      },
+    ];
 
-  const handleOpenChange: DropdownProps['onOpenChange'] = (open: boolean, info: any) => {
-    if (info.source === 'trigger') {
-      setVisible(open);
-    }
-  };
+    const handleOpenChange: DropdownProps['onOpenChange'] = useCallback(
+      (open: boolean, info: any) => {
+        if (info.source === 'trigger') {
+          setVisible(open);
+        }
+      },
+      [],
+    );
 
-  return (
-    <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
-      <Button type="text" icon={<More size={18} />} />
-    </Dropdown>
-  );
-};
+    return (
+      <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
+        <Button type="text" icon={<More size={18} />} />
+      </Dropdown>
+    );
+  },
+);
+ActionDropdown.displayName = 'ActionDropdown';
 
 // Server item component
 const ServerItem = React.memo(
@@ -399,17 +406,11 @@ export const McpServerList: React.FC<McpServerListProps> = ({
       <div
         className={cn(
           'flex-1 overflow-auto p-5',
-          isLoading || mcpServers.length === 0 ? 'flex items-center justify-center' : '',
-          mcpServers.length === 0 ? 'border-dashed border-refly-Card-Border rounded-md' : '',
+          !isLoading && mcpServers.length === 0 ? 'flex items-center justify-center' : '',
         )}
       >
         {isLoading || isRefetching ? (
-          <div className="flex items-center justify-center h-[300px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4" />
-              <p className="text-gray-500">{t('common.loading')}</p>
-            </div>
-          </div>
+          <Skeleton active title={false} paragraph={{ rows: 10 }} />
         ) : mcpServers.length === 0 ? (
           <Empty description={<p>{t('settings.mcpServer.noServers')}</p>}>
             <Button type="primary" onClick={() => setIsFormVisible(true)}>

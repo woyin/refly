@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Avatar, Button, Layout, Skeleton } from 'antd';
+import { Avatar, Button, Divider, Layout, Skeleton } from 'antd';
 import {
   useLocation,
   useMatch,
@@ -8,10 +8,14 @@ import {
 } from '@refly-packages/ai-workspace-common/utils/router';
 
 import { IconCanvas } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Project as IconProject, KnowledgeBase as IconKnowledgeBase } from 'refly-icons';
+import {
+  Project as IconProject,
+  KnowledgeBase as IconKnowledgeBase,
+  Subscription,
+} from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
-
+// import { Subscription } from 'refly-icons'; // 不再需要此图标
 import { useUserStoreShallow } from '@refly/stores';
 // components
 import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
@@ -29,7 +33,6 @@ import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/compon
 import { AiOutlineUser } from 'react-icons/ai';
 import { SideLeft, SideRight } from 'refly-icons';
 
-import { SubscriptionHint } from '@refly-packages/ai-workspace-common/components/subscription/hint';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { CanvasTemplateModal } from '@refly-packages/ai-workspace-common/components/canvas-template';
@@ -38,6 +41,7 @@ import { SiderLoggedOut } from './sider-logged-out';
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
+import { useGetCreditBalance } from '@refly-packages/ai-workspace-common/queries';
 
 const Sider = Layout.Sider;
 
@@ -114,27 +118,42 @@ const SettingItem = () => {
     userProfile: state.userProfile,
   }));
 
-  const planType = userProfile?.subscription?.planType || 'free';
   const { t } = useTranslation();
+
+  const { data: balanceData, isSuccess } = useGetCreditBalance();
+  const creditBalance = balanceData?.data?.creditBalance ?? 0;
 
   return (
     <div className="group w-full">
       <SiderMenuSettingList>
         <div className="flex flex-1 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Avatar size={32} src={userProfile?.avatar} icon={<AiOutlineUser />} />
-            <span
-              className={cn('max-w-[180px] truncate font-semibold text-refly-text-0', {
-                'max-w-[80px]': subscriptionEnabled,
-              })}
-            >
+          <div className="flex items-center gap-2 mr-2 flex-shrink min-w-0">
+            <Avatar
+              size={32}
+              src={userProfile?.avatar}
+              icon={<AiOutlineUser />}
+              className="flex-shrink-0"
+            />
+            <span className={cn('inline-block truncate font-semibold text-refly-text-0')}>
               {userProfile?.nickname}
             </span>
           </div>
 
-          {subscriptionEnabled && (
-            <div className="flex h-6 items-center justify-center text-refly-text-0 rounded-full py-2 px-3 text-xs font-medium bg-refly-bg-content-z2 border-[1px] border-solid border-refly-Card-Border">
-              {t(`settings.subscription.subscriptionStatus.${planType}`)}
+          {subscriptionEnabled && isSuccess && (
+            <div
+              className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer
+            rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
+            "
+            >
+              <div className="flex items-center gap-1">
+                <Subscription size={14} className="text-[#1C1F23] dark:text-white" />
+                <span className="font-medium">{creditBalance}</span>
+              </div>
+              <Divider type="vertical" className="m-0" />
+
+              <div className="text-[color:var(--primary---refly-primary-default,#0E9F77)] text-xs font-semibold leading-4 whitespace-nowrap">
+                {t('common.upgrade')}
+              </div>
             </div>
           )}
         </div>
@@ -233,7 +252,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
-  const planType = userProfile?.subscription?.planType || 'free';
 
   const {
     collapse,
@@ -342,6 +360,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             title={t('loggedHomePage.siderMenu.library')}
             onActionClick={() => setShowLibraryModal(true)}
           />
+          <Divider className="m-0 border-refly-Card-Border" />
 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Canvas section with flexible height */}
@@ -378,8 +397,6 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
             </div>
           </div>
         </div>
-
-        {subscriptionEnabled && planType === 'free' && <SubscriptionHint />}
 
         {!!userProfile?.uid && (
           <div

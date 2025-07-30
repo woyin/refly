@@ -31,7 +31,6 @@ export const SiderPopover = (props: SiderPopoverProps) => {
         arrow={false}
         placement="bottom"
         align={align}
-        mouseEnterDelay={0.5}
         content={<SiderLayout source="popover" />}
       >
         {children || (

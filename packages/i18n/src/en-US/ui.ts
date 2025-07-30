@@ -2985,7 +2985,7 @@ const translations = {
       currentPlan: 'Current Plan',
       free: {
         title: 'Free Plan',
-        description: 'The perfect starting point for your creative journey',
+        description: 'A welcoming gateway to explore the power of AI—completely free',
         price: 'Free forever',
         buttonText: 'Continue for free',
         buttonTextDowngrade: 'Downgrade to Free',
@@ -2999,7 +2999,7 @@ const translations = {
       },
       starter: {
         title: 'Starter Plan',
-        description: 'For individuals who need more credits and features',
+        description: 'The perfect choice for curious minds beginning their AI journey',
         buttonText: 'Get Starter',
         features: [
           'Daily new credits\n300 points',
@@ -3012,7 +3012,7 @@ const translations = {
       },
       maker: {
         title: 'Maker Plan',
-        description: 'For power users who need maximum productivity',
+        description: 'A high-performance toolkit for ambitious creators ready to go further',
         buttonText: 'Get Maker',
         features: [
           'Daily new credits\n300 points',
@@ -3025,7 +3025,7 @@ const translations = {
       },
       enterprise: {
         title: 'Enterprise Plan',
-        description: 'Custom solutions for teams and organizations',
+        description: 'A scalable AI workspace built for professional teams and serious innovation',
         buttonText: 'Contact Sales',
         features: [
           'Monthly customized credits',
@@ -3089,7 +3089,7 @@ const translations = {
       free: {
         title: 'Free Plan',
         titleCn: 'Current Plan',
-        description: 'The perfect starting point for your creative journey',
+        description: 'A welcoming gateway to explore the power of AI—completely free',
         price: 'Free forever',
         buttonText: 'Continue for free',
         buttonTextDowngrade: 'Downgrade to Free',

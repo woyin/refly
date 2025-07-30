@@ -894,17 +894,34 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 });
               }
 
-              const tokenUsage: SyncTokenUsageJobData = {
-                ...basicUsageData,
-                usage,
-                timestamp: new Date(),
-              };
-
               if (this.usageReportQueue) {
+                const tokenUsage: SyncTokenUsageJobData = {
+                  ...basicUsageData,
+                  usage,
+                  timestamp: new Date(),
+                };
                 await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
               }
 
-              // Remove credit billing processing from here - will be handled after skill completion
+              const creditBilling: CreditBilling = providerItem?.creditBilling
+                ? JSON.parse(providerItem?.creditBilling)
+                : undefined;
+
+              // Only add to credit usage queue if not skipping for early bird users
+              if (this.creditUsageReportQueue && creditBilling) {
+                const tokenCreditUsage: SyncTokenCreditUsageJobData = {
+                  ...basicUsageData,
+                  providerItemId: providerItem?.itemId,
+                  usage,
+                  creditBilling,
+                  timestamp: new Date(),
+                };
+
+                await this.creditUsageReportQueue.add(
+                  `credit_usage_report:${resultId}`,
+                  tokenCreditUsage,
+                );
+              }
             }
             break;
         }

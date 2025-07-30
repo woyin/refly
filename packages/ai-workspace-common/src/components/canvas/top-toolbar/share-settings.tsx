@@ -161,7 +161,6 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         });
         const shareRecords = latestSharesData?.data?.data;
         const latestShareRecord = shareRecords?.filter((shareRecord) => !shareRecord.templateId)[0];
-        console.log('latestShareRecord', value, latestShareRecord);
         if (value === 'off') {
           if (latestShareRecord?.shareId) {
             const { data, error } = await getClient().deleteShare({
