@@ -97,7 +97,12 @@ export const Subscription = () => {
   const [activeTab, setActiveTab] = useState<'usage' | 'recharge'>('usage');
 
   // Fetch credit history data with pagination
-  const { data: usageData, isLoading: isUsageHistoryLoading } = useGetCreditUsage(
+  const {
+    data: usageData,
+    isLoading: isUsageHistoryLoading,
+    error: usageError,
+    refetch: refetchUsage,
+  } = useGetCreditUsage(
     {
       query: {
         page: usagePagination.page,
@@ -108,7 +113,12 @@ export const Subscription = () => {
     // @ts-ignore
     { enabled: true },
   );
-  const { data: rechargeData, isLoading: isRechargeHistoryLoading } = useGetCreditRecharge(
+  const {
+    data: rechargeData,
+    isLoading: isRechargeHistoryLoading,
+    error: rechargeError,
+    refetch: refetchRecharge,
+  } = useGetCreditRecharge(
     {
       query: {
         page: rechargePagination.page,
@@ -120,11 +130,16 @@ export const Subscription = () => {
     { enabled: true },
   );
 
-  // Only show loading state during initial data loading, not when switching tabs
-  const isHistoryLoading =
+  // Separate initial loading from pagination loading
+  const isInitialLoading = isBalanceLoading || isUsageLoading;
+  const isPaginationLoading =
     (activeTab === 'usage' && isUsageHistoryLoading) ||
     (activeTab === 'recharge' && isRechargeHistoryLoading);
-  const isLoading = isBalanceLoading || isHistoryLoading || isUsageLoading;
+  const isLoading = isInitialLoading || isPaginationLoading;
+
+  // Error handling
+  const currentError = activeTab === 'usage' ? usageError : rechargeError;
+  const currentRefetch = activeTab === 'usage' ? refetchUsage : refetchRecharge;
 
   // Reset pagination when switching tabs
   useEffect(() => {
@@ -160,19 +175,28 @@ export const Subscription = () => {
   };
 
   // Handle pagination change for usage table
-  const handleUsagePaginationChange = useCallback((page: number, pageSize: number) => {
-    setUsagePagination({ page, pageSize });
-  }, []);
+  const handleUsagePaginationChange = useCallback(
+    (page: number, pageSize: number) => {
+      if (isUsageHistoryLoading) return; // Prevent multiple clicks during loading
+      setUsagePagination({ page, pageSize });
+    },
+    [isUsageHistoryLoading],
+  );
 
   // Handle pagination change for recharge table
-  const handleRechargePaginationChange = useCallback((page: number, pageSize: number) => {
-    setRechargePagination({ page, pageSize });
-  }, []);
+  const handleRechargePaginationChange = useCallback(
+    (page: number, pageSize: number) => {
+      if (isRechargeHistoryLoading) return; // Prevent multiple clicks during loading
+      setRechargePagination({ page, pageSize });
+    },
+    [isRechargeHistoryLoading],
+  );
 
   // Get current data and pagination info
   const currentData = activeTab === 'usage' ? usageData?.data : rechargeData?.data;
   const currentPagination = activeTab === 'usage' ? usagePagination : rechargePagination;
   const currentTotal = currentData?.total ?? 0;
+  // Keep current records during pagination loading to avoid flickering
   const currentRecords = currentData?.data ?? [];
 
   // Columns for Usage History Table
@@ -407,7 +431,21 @@ export const Subscription = () => {
                   className="history-tabs"
                   size="large"
                 />
-                <Spin spinning={isHistoryLoading}>
+                {currentError ? (
+                  <div className="error-container p-4 text-center">
+                    <div className="text-red-500 mb-2">
+                      {t('common.error')}:{' '}
+                      {(currentError as any)?.message || t('common.unknownError')}
+                    </div>
+                    <Button
+                      type="primary"
+                      onClick={() => currentRefetch()}
+                      className="retry-button"
+                    >
+                      {t('common.retry')}
+                    </Button>
+                  </div>
+                ) : (
                   <Table<any>
                     columns={activeTab === 'usage' ? usageColumns : rechargeColumns}
                     dataSource={currentRecords}
@@ -436,7 +474,7 @@ export const Subscription = () => {
                     className="history-table"
                     bordered={false}
                   />
-                </Spin>
+                )}
               </div>
             </>
           )}
