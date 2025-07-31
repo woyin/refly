@@ -590,6 +590,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         case 'mediaSkill':
           menuNodeType = 'mediaSkill';
           break;
+        case 'mediaSkillResponse':
+          menuNodeType = 'mediaSkillResponse';
+          break;
         case 'audio':
           menuNodeType = 'audio';
           break;
