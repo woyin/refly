@@ -217,6 +217,7 @@ export const useListenNodeOperationEvents = () => {
                 prompt: query,
                 model,
                 resultId,
+                providerItemId,
               },
             },
           };
