@@ -102,6 +102,7 @@ const SubscriptionCard = React.memo(
 interface UserInfoProps {
   nickname?: string;
   email?: string;
+  planType: string;
   t: TFunction;
   handleSubscriptionClick: () => void;
   setOpen: (open: boolean) => void;
@@ -110,11 +111,15 @@ interface UserInfoProps {
 
 // User info component
 const UserInfo = React.memo(
-  ({ nickname, email, t, handleSubscriptionClick, setOpen, creditBalance }: UserInfoProps) => {
-    const { planType } = useSubscriptionStoreShallow((state) => ({
-      planType: state.planType,
-    }));
-
+  ({
+    nickname,
+    email,
+    t,
+    handleSubscriptionClick,
+    setOpen,
+    creditBalance,
+    planType,
+  }: UserInfoProps) => {
     return (
       <div className="py-2 flex flex-col gap-3">
         <div>
@@ -265,6 +270,7 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
               <UserInfo
                 nickname={userStore?.userProfile?.nickname}
                 email={userStore?.userProfile?.email}
+                planType={userStore?.userProfile?.subscription?.planType || 'free'}
                 t={t}
                 handleSubscriptionClick={handleSubscriptionClick}
                 setOpen={setOpen}
