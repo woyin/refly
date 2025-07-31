@@ -105,7 +105,7 @@ export class MediaGeneratorService {
 
       // Perform media generation asynchronously
       this.executeMediaGeneration(user, resultId, request).catch((error) => {
-        console.error(`Media generation failed for ${resultId}:`, error);
+        this.logger.error(`Media generation failed for ${resultId}:`, error);
       });
 
       return {
@@ -113,7 +113,7 @@ export class MediaGeneratorService {
         resultId,
       };
     } catch (error) {
-      console.error('Media generation initialization failed:', error);
+      this.logger.error('Media generation initialization failed:', error);
       return {
         success: false,
       };
