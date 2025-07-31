@@ -15,6 +15,7 @@ import { OperationTooFrequent, ParamsError } from '@refly/errors';
 import { MiscService } from '../misc/misc.service';
 import { ConfigService } from '@nestjs/config';
 import { isDesktop } from '../../utils/runtime';
+import { ProviderService } from '../provider/provider.service';
 
 @Injectable()
 export class UserService implements OnModuleInit {
@@ -26,6 +27,7 @@ export class UserService implements OnModuleInit {
     private redis: RedisService,
     private miscService: MiscService,
     private subscriptionService: SubscriptionService,
+    private providerService: ProviderService,
   ) {}
 
   async onModuleInit() {
@@ -60,6 +62,12 @@ export class UserService implements OnModuleInit {
     if (userPo.subscriptionId) {
       subscription = await this.subscriptionService.getSubscription(userPo.subscriptionId);
     }
+
+    const userPreferences = await this.providerService.getUserPreferences(
+      user,
+      userPo?.preferences,
+    );
+    userPo.preferences = JSON.stringify(userPreferences);
 
     return {
       ...userPo,
