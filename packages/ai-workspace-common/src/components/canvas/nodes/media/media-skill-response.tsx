@@ -43,6 +43,7 @@ interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   prompt?: string;
   model?: string;
   resultId?: string;
+  providerItemId?: string;
 }
 
 interface MediaSkillResponseNodeProps extends NodeProps {
@@ -56,7 +57,14 @@ const MediaSkillResponseNode = memo(
   ({ id, data, isPreview, selected, hideHandles, onNodeClick }: MediaSkillResponseNodeProps) => {
     const { t } = useTranslation();
     const { metadata } = data ?? {};
-    const { mediaType = 'image', prompt = '', model = '', resultId = '', status } = metadata ?? {};
+    const {
+      mediaType = 'image',
+      prompt = '',
+      model = '',
+      resultId = '',
+      status,
+      providerItemId,
+    } = metadata ?? {};
 
     const [isHovered, setIsHovered] = useState(false);
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
@@ -68,7 +76,7 @@ const MediaSkillResponseNode = memo(
 
     const { addNode } = useAddNode();
     const { deleteNode } = useDeleteNode();
-    const { readonly } = useCanvasContext();
+    const { canvasId, readonly } = useCanvasContext();
 
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
@@ -179,8 +187,6 @@ const MediaSkillResponseNode = memo(
             });
           }
 
-          console.log('connectedTo', mediaSkillNode, connectedTo);
-
           // Delete this MediaSkillResponse node
           deleteNode(
             {
@@ -231,6 +237,9 @@ const MediaSkillResponseNode = memo(
             mediaType,
             model,
             provider: 'replicate',
+            providerItemId,
+            targetType: 'canvas',
+            targetId: canvasId,
           },
         });
 

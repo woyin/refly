@@ -6,7 +6,7 @@ import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
 import { EXTENSION_DOWNLOAD_LINK } from '@refly/utils/url';
 import { useThemeStoreShallow } from '@refly/stores';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { SettingsModalActiveTab } from '@refly/stores';
 import {
   Settings,
@@ -62,15 +62,26 @@ const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t
 export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
   const { t } = useTranslation();
   const userStore = useUserStore();
+  // Check if user is logged in by checking if userProfile exists and has email
+  const isLoggedIn = !!userStore?.userProfile?.email;
+
   const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
     setSettingsModalActiveTab: state.setSettingsModalActiveTab,
   }));
   const { handleLogout, contextHolder } = useLogout();
-  const { themeMode, setThemeMode } = useThemeStoreShallow((state) => ({
+  const { themeMode, setThemeMode, setLoggedIn, initTheme } = useThemeStoreShallow((state) => ({
     themeMode: state.themeMode,
     setThemeMode: state.setThemeMode,
+    setLoggedIn: state.setLoggedIn,
+    initTheme: state.initTheme,
   }));
+
+  // Initialize theme based on login status
+  useEffect(() => {
+    setLoggedIn(isLoggedIn);
+    initTheme();
+  }, [isLoggedIn, setLoggedIn, initTheme]);
 
   // Handle menu item clicks
   const handleSettingsClick = useCallback(() => {

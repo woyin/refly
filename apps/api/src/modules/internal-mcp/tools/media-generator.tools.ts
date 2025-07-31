@@ -2,18 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Tool, Context } from '@rekog/mcp-nest';
 import { z } from 'zod';
 import { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
 import { InternalMcpService } from '../internal-mcp.service';
 import { User as UserModel } from '../../../generated/client';
 import { MediaGeneratorService } from '../../media-generator/media-generator.service';
 import { ActionService } from '../../action/action.service';
 import { ProviderService } from '../../provider/provider.service';
-import { PrismaService } from '../../common/prisma.service';
-import {
-  MediaGenerateRequest,
-  MediaGenerationModelConfig,
-  UserPreferences,
-} from '@refly/openapi-schema';
+import { MediaGenerateRequest } from '@refly/openapi-schema';
 
 @Injectable()
 export class MediaGeneratorTools {
@@ -34,117 +28,7 @@ export class MediaGeneratorTools {
     private readonly actionService: ActionService,
     private readonly internalMcpService: InternalMcpService,
     private readonly providerService: ProviderService,
-    private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
   ) {}
-
-  /**
-   * Get user preferences from database
-   */
-  private async getUserPreferences(uid: string): Promise<UserPreferences> {
-    try {
-      const userPo = await this.prisma.user.findUnique({
-        where: { uid },
-        select: {
-          preferences: true,
-        },
-      });
-
-      if (!userPo?.preferences) {
-        return {};
-      }
-
-      return JSON.parse(userPo.preferences);
-    } catch (error) {
-      this.logger.warn(`Failed to get user preferences for ${uid}: ${error?.message || error}`);
-      return {};
-    }
-  }
-
-  /**
-   * Get user's configured media generation provider and model from default model settings
-   */
-  private async getUserMediaConfig(
-    user: UserModel,
-    mediaType: 'image' | 'audio' | 'video',
-    model?: string,
-    provider?: string,
-  ): Promise<{
-    provider: string;
-    model: string;
-  } | null> {
-    if (!mediaType) {
-      return null;
-    }
-
-    if (model && provider) {
-      return {
-        provider,
-        model,
-      };
-    }
-
-    try {
-      // Get user's default model configuration from preferences
-      const userPreferences = await this.getUserPreferences(user.uid);
-      const userDefaultModel = userPreferences?.defaultModel;
-
-      if (!userDefaultModel) {
-        this.logger.log(
-          `No default model configuration found for user ${user.uid} for ${mediaType}`,
-        );
-        return null;
-      }
-
-      // Get the specific media model configuration based on mediaType
-      const mediaModelConfig = userDefaultModel[mediaType];
-
-      if (!mediaModelConfig?.itemId) {
-        this.logger.log(`No ${mediaType} model configured for user ${user.uid}`);
-        return null;
-      }
-
-      // Find the provider item for this configured model
-      const providerItems = await this.providerService.listProviderItems(user, {
-        category: 'mediaGeneration',
-        enabled: true,
-      });
-
-      const configuredProviderItem = providerItems.find(
-        (item) => item.itemId === mediaModelConfig.itemId,
-      );
-
-      if (!configuredProviderItem) {
-        this.logger.warn(
-          `Configured ${mediaType} model ${mediaModelConfig.itemId} not found in user's provider items`,
-        );
-        return null;
-      }
-
-      // Parse the model configuration
-      const config: MediaGenerationModelConfig = JSON.parse(configuredProviderItem.config || '{}');
-
-      // Verify that this model actually supports the requested media type
-      if (!config.capabilities?.[mediaType]) {
-        this.logger.warn(
-          `Configured ${mediaType} model ${config.modelId} does not support ${mediaType} generation`,
-        );
-        return null;
-      }
-
-      this.logger.log(
-        `Using user configured ${mediaType} model: ${config.modelId} from provider: ${configuredProviderItem.provider?.providerKey}`,
-      );
-
-      return {
-        provider: configuredProviderItem.provider?.providerKey || 'replicate',
-        model: config.modelId,
-      };
-    } catch (error) {
-      this.logger.warn(`Failed to get user media config: ${error?.message || error}`);
-      return null;
-    }
-  }
 
   /**
    * Generate media with internal polling mechanism
@@ -199,12 +83,7 @@ export class MediaGeneratorTools {
       );
 
       // Get user's configured media generation settings
-      const userMediaConfig = await this.getUserMediaConfig(
-        user,
-        params.mediaType,
-        params.model,
-        params.provider,
-      );
+      const userMediaConfig = await this.providerService.getUserMediaConfig(user, params.mediaType);
 
       if (!userMediaConfig) {
         return this.internalMcpService.formatErrorResponse(
@@ -219,7 +98,7 @@ export class MediaGeneratorTools {
         mediaType: params.mediaType,
         prompt: params.prompt,
         model: userMediaConfig.model,
-        provider: userMediaConfig.provider,
+        providerItemId: userMediaConfig.providerItemId,
       };
 
       // Start media generation

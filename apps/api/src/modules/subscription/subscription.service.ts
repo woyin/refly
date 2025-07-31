@@ -587,10 +587,8 @@ export class SubscriptionService implements OnModuleInit {
           this.logger.log(`Disabled ${activeRecharges.length} credit recharge records`);
         }
 
-        // Step 3: Process subscription-based and gift recharges
-        const subscriptionRecharges = activeRecharges.filter(
-          (r) => r.source === 'subscription' || r.source === 'gift',
-        );
+        // Step 3: Process subscription-based recharges only (gift recharges are now handled by lazy loading)
+        const subscriptionRecharges = activeRecharges.filter((r) => r.source === 'subscription');
 
         for (const recharge of subscriptionRecharges) {
           try {
@@ -605,7 +603,6 @@ export class SubscriptionService implements OnModuleInit {
                 createdAt: 'desc',
               },
             });
-
             if (!subscription) {
               this.logger.log(
                 `No active subscription found for user ${recharge.uid}, skipping credit recharge`,
@@ -616,7 +613,20 @@ export class SubscriptionService implements OnModuleInit {
             // Find plan quota for credit amount
             let plan: PlanQuota | null = null;
             if (subscription.overridePlan) {
-              plan = safeParseJSON(subscription.overridePlan) as PlanQuota;
+              const overridePlan = safeParseJSON(subscription.overridePlan) as PlanQuota;
+
+              // Check if overridePlan contains all required quota fields
+              if (
+                overridePlan &&
+                typeof overridePlan.creditQuota === 'number' &&
+                typeof overridePlan.dailyGiftCreditQuota === 'number' &&
+                typeof overridePlan.t1CountQuota === 'number' &&
+                typeof overridePlan.t2CountQuota === 'number' &&
+                typeof overridePlan.fileCountQuota === 'number'
+              ) {
+                plan = overridePlan;
+              } else {
+              }
             }
             if (!plan) {
               const subscriptionPlan = await prisma.subscriptionPlan.findFirst({
@@ -653,22 +663,6 @@ export class SubscriptionService implements OnModuleInit {
                 newExpiresAt,
                 'subscription',
                 `Monthly subscription credit recharge for plan ${subscription.planType}`,
-                now,
-              );
-            }
-
-            // Handle gift source - daily recharge with dailyGiftCreditQuota
-            if (recharge.source === 'gift' && plan.dailyGiftCreditQuota > 0) {
-              const newExpiresAt = new Date();
-              newExpiresAt.setDate(newExpiresAt.getDate() + 1);
-
-              await this.createCreditRecharge(
-                prisma,
-                recharge.uid,
-                plan.dailyGiftCreditQuota,
-                newExpiresAt,
-                'gift',
-                `Daily gift credit recharge for plan ${subscription.planType}`,
                 now,
               );
             }

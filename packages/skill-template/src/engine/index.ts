@@ -145,6 +145,7 @@ export interface ReflyService {
     provider?: string,
   ): Promise<{
     provider: string;
+    providerItemId: string;
     model: string;
   } | null>;
 }

@@ -1107,27 +1107,29 @@ model CreditDebt {
 
 model CreditUsage {
   /// Primary key
-  pk             BigInt   @id @default(autoincrement())
+  pk                BigInt   @id @default(autoincrement())
   /// Usage record ID
-  usageId        String   @unique @map("usage_id")
+  usageId           String   @unique @map("usage_id")
   /// User UID
-  uid            String   @map("uid")
+  uid               String   @map("uid")
   /// Used credits amount
-  amount         Int      @map("amount")
+  amount            Int      @map("amount")
   /// Provider item ID that consumed the credits
-  providerItemId String?  @map("provider_item_id")
+  providerItemId    String?  @map("provider_item_id")
   /// Model name used
-  modelName      String?  @map("model_name")
+  modelName         String?  @map("model_name")
   /// Usage type (model_call, media_generation, etc.)
-  usageType      String   @default("model_call") @map("usage_type")
+  usageType         String   @default("model_call") @map("usage_type")
   /// Related action result ID (if applicable)
-  actionResultId String?  @map("action_result_id")
+  actionResultId    String?  @map("action_result_id")
   /// Related pilot session ID (if applicable)
-  pilotSessionId String?  @map("pilot_session_id")
+  pilotSessionId    String?  @map("pilot_session_id")
   /// Usage description
-  description    String?  @map("description")
+  description       String?  @map("description")
+  /// Model usage details for skill execution (JSON array of model usage)
+  modelUsageDetails String?  @map("model_usage_details")
   /// Create timestamp
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   @@index([uid, createdAt])
   @@index([providerItemId, createdAt])

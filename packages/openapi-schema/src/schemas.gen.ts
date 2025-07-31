@@ -5453,15 +5453,30 @@ export const MediaGenerateRequestSchema = {
   properties: {
     mediaType: {
       $ref: '#/components/schemas/MediaType',
+      description: 'Media generation type',
     },
     model: {
       type: 'string',
       description: 'Model name for content generation',
     },
+    targetType: {
+      type: 'string',
+      description: 'Target type',
+      $ref: '#/components/schemas/EntityType',
+    },
+    targetId: {
+      type: 'string',
+      description: 'Target ID',
+    },
+    providerItemId: {
+      type: 'string',
+      description: 'Provider item ID',
+    },
     provider: {
       type: 'string',
-      description: 'Optional provider selection',
+      description: 'Optional provider selection (use providerItemId instead)',
       nullable: true,
+      deprecated: true,
     },
     prompt: {
       type: 'string',
@@ -6982,6 +6997,10 @@ export const CreditUsageSchema = {
     description: {
       type: 'string',
       description: 'Optional description for this usage',
+    },
+    modelUsageDetails: {
+      type: 'string',
+      description: 'Model usage details for skill execution (JSON array of model usage)',
     },
     createdAt: {
       type: 'string',

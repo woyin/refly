@@ -451,6 +451,13 @@ export class SkillService implements OnModuleInit {
     const providerItem = await this.providerService.findProviderItemById(user, modelItemId);
 
     if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
+      // Create failed action result record before throwing error
+      await this.createFailedActionResult(
+        resultId,
+        uid,
+        'Provider item not valid or disabled',
+        param,
+      );
       throw new ProviderItemNotFoundError(`provider item ${modelItemId} not valid`);
     }
 
@@ -473,6 +480,13 @@ export class SkillService implements OnModuleInit {
       this.logger.log(`checkRequestCreditUsage result: ${JSON.stringify(creditUsageResult)}`);
 
       if (!creditUsageResult.canUse) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Credit not available: ${creditUsageResult.message}`,
+          param,
+        );
         throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
       }
     }
@@ -508,6 +522,13 @@ export class SkillService implements OnModuleInit {
         },
       });
       if (!project) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Project ${param.projectId} not found`,
+          param,
+        );
         throw new ProjectNotFoundError(`project ${param.projectId} not found`);
       }
     }
@@ -634,6 +655,85 @@ export class SkillService implements OnModuleInit {
     }
 
     return data;
+  }
+
+  /**
+   * Create a failed action result record for pre-check failures
+   */
+  private async createFailedActionResult(
+    resultId: string,
+    uid: string,
+    errorMessage: string,
+    param: InvokeSkillRequest,
+  ): Promise<void> {
+    try {
+      // Find the latest version for this resultId
+      const latestResult = await this.prisma.actionResult.findFirst({
+        where: {
+          resultId,
+          uid,
+        },
+        orderBy: {
+          version: 'desc',
+        },
+      });
+
+      const nextVersion = latestResult ? latestResult.version + 1 : 0;
+
+      // Check if a failed record with the same version already exists
+      const existingFailedResult = await this.prisma.actionResult.findFirst({
+        where: {
+          resultId,
+          uid,
+          version: nextVersion,
+          status: 'failed',
+        },
+      });
+
+      if (existingFailedResult) {
+        this.logger.warn(
+          `Failed action result already exists for resultId: ${resultId}, version: ${nextVersion}, skipping creation`,
+        );
+        return;
+      }
+
+      // Create a failed action result record
+      await this.prisma.actionResult.create({
+        data: {
+          resultId,
+          uid,
+          version: nextVersion,
+          type: 'skill',
+          status: 'failed',
+          title: param.input?.query ?? 'Skill execution failed',
+          targetId: param.target?.entityId,
+          targetType: param.target?.entityType,
+          modelName: param.modelName ?? 'unknown',
+          projectId: param.projectId,
+          actionMeta: JSON.stringify({
+            type: 'skill',
+            name: param.skillName ?? 'unknown',
+            icon: 'error',
+          }),
+          errors: JSON.stringify([errorMessage]),
+          input: JSON.stringify(param.input ?? {}),
+          context: JSON.stringify(param.context ?? {}),
+          tplConfig: JSON.stringify(param.tplConfig ?? {}),
+          runtimeConfig: JSON.stringify(param.runtimeConfig ?? {}),
+          history: JSON.stringify(param.resultHistory ?? []),
+          providerItemId: param.modelItemId,
+        },
+      });
+
+      this.logger.log(
+        `Successfully created failed action result for resultId: ${resultId}, version: ${nextVersion} with error: ${errorMessage}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to create failed action result for resultId ${resultId}: ${error?.message}`,
+      );
+      // Don't throw error here to avoid masking the original error
+    }
   }
 
   /**
