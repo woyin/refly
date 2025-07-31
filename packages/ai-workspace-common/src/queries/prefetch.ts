@@ -59,6 +59,8 @@ import {
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
+  GetCreditRechargeData,
+  GetCreditUsageData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
   GetPageDetailData,
@@ -367,7 +369,7 @@ export const prefetchUseCheckSettingsField = (
   });
 export const prefetchUseGetCreditRecharge = (
   queryClient: QueryClient,
-  clientOptions: Options<unknown, true> = {},
+  clientOptions: Options<GetCreditRechargeData, true> = {},
 ) =>
   queryClient.prefetchQuery({
     queryKey: Common.UseGetCreditRechargeKeyFn(clientOptions),
@@ -375,7 +377,7 @@ export const prefetchUseGetCreditRecharge = (
   });
 export const prefetchUseGetCreditUsage = (
   queryClient: QueryClient,
-  clientOptions: Options<unknown, true> = {},
+  clientOptions: Options<GetCreditUsageData, true> = {},
 ) =>
   queryClient.prefetchQuery({
     queryKey: Common.UseGetCreditUsageKeyFn(clientOptions),

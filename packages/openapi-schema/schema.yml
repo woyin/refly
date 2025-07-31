@@ -2531,6 +2531,24 @@ paths:
       summary: Get credit recharge
       description: Get credit recharge
       operationId: getCreditRecharge
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         '200':
           description: successful operation
@@ -2545,6 +2563,24 @@ paths:
       summary: Get credit usage
       description: Get credit usage
       operationId: getCreditUsage
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
       responses:
         '200':
           description: successful operation
@@ -7229,20 +7265,46 @@ components:
         - type: object
           properties:
             data:
-              type: array
-              description: Credit recharge list
-              items:
-                $ref: '#/components/schemas/CreditRecharge'
+              type: object
+              description: Credit recharge data with pagination
+              properties:
+                data:
+                  type: array
+                  description: Credit recharge list
+                  items:
+                    $ref: '#/components/schemas/CreditRecharge'
+                total:
+                  type: integer
+                  description: Total number of records
+                page:
+                  type: integer
+                  description: Current page number
+                pageSize:
+                  type: integer
+                  description: Number of items per page
     GetCreditUsageResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
         - type: object
           properties:
             data:
-              type: array
-              description: Credit usage list
-              items:
-                $ref: '#/components/schemas/CreditUsage'
+              type: object
+              description: Credit usage data with pagination
+              properties:
+                data:
+                  type: array
+                  description: Credit usage list
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+                total:
+                  type: integer
+                  description: Total number of records
+                page:
+                  type: integer
+                  description: Current page number
+                pageSize:
+                  type: integer
+                  description: Number of items per page
     getCreditBalanceResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

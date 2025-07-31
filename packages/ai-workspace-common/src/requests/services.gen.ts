@@ -317,8 +317,10 @@ import type {
   CheckSettingsFieldData,
   CheckSettingsFieldError,
   CheckSettingsFieldResponse2,
+  GetCreditRechargeData,
   GetCreditRechargeError,
   GetCreditRechargeResponse2,
+  GetCreditUsageData,
   GetCreditUsageError,
   GetCreditUsageResponse2,
   GetCreditBalanceError,
@@ -2069,7 +2071,7 @@ export const checkSettingsField = <ThrowOnError extends boolean = false>(
  * Get credit recharge
  */
 export const getCreditRecharge = <ThrowOnError extends boolean = false>(
-  options?: Options<unknown, ThrowOnError>,
+  options?: Options<GetCreditRechargeData, ThrowOnError>,
 ) => {
   return (options?.client ?? client).get<
     GetCreditRechargeResponse2,
@@ -2086,7 +2088,7 @@ export const getCreditRecharge = <ThrowOnError extends boolean = false>(
  * Get credit usage
  */
 export const getCreditUsage = <ThrowOnError extends boolean = false>(
-  options?: Options<unknown, ThrowOnError>,
+  options?: Options<GetCreditUsageData, ThrowOnError>,
 ) => {
   return (options?.client ?? client).get<
     GetCreditUsageResponse2,
