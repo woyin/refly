@@ -71,7 +71,9 @@ import {
   GetCodeArtifactDetailError,
   GetCollabTokenError,
   GetCreditBalanceError,
+  GetCreditRechargeData,
   GetCreditRechargeError,
+  GetCreditUsageData,
   GetCreditUsageError,
   GetDocumentDetailData,
   GetDocumentDetailError,
@@ -667,7 +669,7 @@ export const useGetCreditRechargeSuspense = <
   TError = GetCreditRechargeError,
   TQueryKey extends Array<unknown> = unknown[],
 >(
-  clientOptions: Options<unknown, true> = {},
+  clientOptions: Options<GetCreditRechargeData, true> = {},
   queryKey?: TQueryKey,
   options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
 ) =>
@@ -682,7 +684,7 @@ export const useGetCreditUsageSuspense = <
   TError = GetCreditUsageError,
   TQueryKey extends Array<unknown> = unknown[],
 >(
-  clientOptions: Options<unknown, true> = {},
+  clientOptions: Options<GetCreditUsageData, true> = {},
   queryKey?: TQueryKey,
   options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
 ) =>

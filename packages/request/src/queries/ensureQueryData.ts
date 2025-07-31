@@ -59,6 +59,8 @@ import {
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
+  GetCreditRechargeData,
+  GetCreditUsageData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
   GetPageDetailData,
@@ -367,7 +369,7 @@ export const ensureUseCheckSettingsFieldData = (
   });
 export const ensureUseGetCreditRechargeData = (
   queryClient: QueryClient,
-  clientOptions: Options<unknown, true> = {},
+  clientOptions: Options<GetCreditRechargeData, true> = {},
 ) =>
   queryClient.ensureQueryData({
     queryKey: Common.UseGetCreditRechargeKeyFn(clientOptions),
@@ -375,7 +377,7 @@ export const ensureUseGetCreditRechargeData = (
   });
 export const ensureUseGetCreditUsageData = (
   queryClient: QueryClient,
-  clientOptions: Options<unknown, true> = {},
+  clientOptions: Options<GetCreditUsageData, true> = {},
 ) =>
   queryClient.ensureQueryData({
     queryKey: Common.UseGetCreditUsageKeyFn(clientOptions),

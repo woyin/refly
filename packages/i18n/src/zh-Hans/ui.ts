@@ -30,6 +30,9 @@ const translations = {
       knowledgeBaseFiles: '知识库文件',
       creditUsageDetails: '积分使用明细',
       creditRechargeDetails: '积分获取明细',
+      pagination: {
+        totalItems: '第 {{start}}-{{end}} 项，共 {{total}} 项',
+      },
       usageDetails: '使用详情',
       usageTime: '使用时间',
       creditChange: '积分变更',
