@@ -587,10 +587,8 @@ export class SubscriptionService implements OnModuleInit {
           this.logger.log(`Disabled ${activeRecharges.length} credit recharge records`);
         }
 
-        // Step 3: Process subscription-based and gift recharges
-        const subscriptionRecharges = activeRecharges.filter(
-          (r) => r.source === 'subscription' || r.source === 'gift',
-        );
+        // Step 3: Process subscription-based recharges only (gift recharges are now handled by lazy loading)
+        const subscriptionRecharges = activeRecharges.filter((r) => r.source === 'subscription');
 
         for (const recharge of subscriptionRecharges) {
           try {
@@ -665,22 +663,6 @@ export class SubscriptionService implements OnModuleInit {
                 newExpiresAt,
                 'subscription',
                 `Monthly subscription credit recharge for plan ${subscription.planType}`,
-                now,
-              );
-            }
-
-            // Handle gift source - daily recharge with dailyGiftCreditQuota
-            if (recharge.source === 'gift' && plan.dailyGiftCreditQuota > 0) {
-              const newExpiresAt = new Date();
-              newExpiresAt.setDate(newExpiresAt.getDate() + 1);
-
-              await this.createCreditRecharge(
-                prisma,
-                recharge.uid,
-                plan.dailyGiftCreditQuota,
-                newExpiresAt,
-                'gift',
-                `Daily gift credit recharge for plan ${subscription.planType}`,
                 now,
               );
             }
