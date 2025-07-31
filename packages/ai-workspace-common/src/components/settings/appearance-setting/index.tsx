@@ -6,6 +6,7 @@ import { ContentHeader } from '@refly-packages/ai-workspace-common/components/se
 import FlowDark from '@refly-packages/ai-workspace-common/assets/flow-dark.png';
 import FlowLight from '@refly-packages/ai-workspace-common/assets/flow-light.png';
 import Logo from '@refly-packages/ai-workspace-common/assets/logo.svg';
+import { useUserStore } from '@refly/stores';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -92,15 +93,22 @@ const SystemThemeCard = React.memo(
 
 export const AppearanceSetting = () => {
   const { t } = useTranslation();
-  const { themeMode, setThemeMode, initTheme } = useThemeStoreShallow((state) => ({
+  const userStore = useUserStore();
+  const isLoggedIn = !!userStore?.userProfile?.uid;
+
+  const { themeMode, setThemeMode, initTheme, setLoggedIn } = useThemeStoreShallow((state) => ({
     themeMode: state.themeMode,
     setThemeMode: state.setThemeMode,
     initTheme: state.initTheme,
+    setLoggedIn: state.setLoggedIn,
   }));
 
   useEffect(() => {
+    // Update login status in theme store
+    setLoggedIn(isLoggedIn);
+    // Initialize theme based on current login status
     initTheme();
-  }, [initTheme]);
+  }, [initTheme, isLoggedIn, setLoggedIn]);
 
   const handleThemeModeChange = useCallback(
     (theme: ThemeMode) => {

@@ -133,7 +133,7 @@ function Header() {
         <GithubStar />
         <div className="flex shrink-0 mr-4 ml-5 self-stretch my-auto w-[1px] h-6 bg-refly-Card-Border" />
 
-        <div className="flex flex-row items-center">
+        <div className="flex flex-row items-center gap-3">
           {tabOptions.map((item) => (
             <Button
               type="text"
