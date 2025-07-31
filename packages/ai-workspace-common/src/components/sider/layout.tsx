@@ -42,6 +42,7 @@ import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { useGetCreditBalance } from '@refly-packages/ai-workspace-common/queries';
 import { CreditWelcomeModal } from '@refly-packages/ai-workspace-common/components/credit-welcome-modal';
+import { CreditWelcomeModalEarlybirds } from '@refly-packages/ai-workspace-common/components/credit-welcome-modal-earlybirds';
 
 const Sider = Layout.Sider;
 
@@ -465,6 +466,7 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
       <StorageExceededModal />
       <CanvasTemplateModal />
       <CreditWelcomeModal />
+      <CreditWelcomeModalEarlybirds />
 
       {isLogin ? (
         isProject ? (
