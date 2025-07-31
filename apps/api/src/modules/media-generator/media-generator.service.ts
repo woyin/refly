@@ -189,17 +189,18 @@ export class MediaGeneratorService {
           storageKey: uploadResult.storageKey, // Save storage key
         },
       });
-      const basicUsageData = {
-        uid: user.uid,
-        resultId,
-      };
 
-      const mediaCreditUsage: SyncMediaCreditUsageJobData = {
-        ...basicUsageData,
-        creditBilling,
-        timestamp: new Date(),
-      };
-      if (this.mediaCreditUsageReportQueue) {
+      if (this.mediaCreditUsageReportQueue && creditBilling) {
+        const basicUsageData = {
+          uid: user.uid,
+          resultId,
+        };
+        const mediaCreditUsage: SyncMediaCreditUsageJobData = {
+          ...basicUsageData,
+          creditBilling,
+          timestamp: new Date(),
+        };
+
         await this.mediaCreditUsageReportQueue.add(
           `media_credit_usage_report:${resultId}`,
           mediaCreditUsage,
