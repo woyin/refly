@@ -40,8 +40,8 @@ import { SiderLoggedOut } from './sider-logged-out';
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
-import { useGetCreditBalance } from '@refly-packages/ai-workspace-common/queries';
 import { CreditWelcomeModal } from '@refly-packages/ai-workspace-common/components/credit-welcome-modal';
+import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 
 const Sider = Layout.Sider;
 
@@ -135,8 +135,7 @@ const SettingItem = () => {
 
   const { t } = useTranslation();
 
-  const { data: balanceData, isSuccess } = useGetCreditBalance();
-  const creditBalance = balanceData?.data?.creditBalance ?? 0;
+  const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
 
   const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
@@ -171,7 +170,7 @@ const SettingItem = () => {
             </span>
           </div>
 
-          {subscriptionEnabled && isSuccess && (
+          {subscriptionEnabled && isBalanceSuccess && (
             <div
               onClick={handleSubscriptionClick}
               className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer

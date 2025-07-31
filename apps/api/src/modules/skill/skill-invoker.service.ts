@@ -1028,10 +1028,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
     // Batch fetch all provider items for the models used
     const providerItemsMap = new Map<string, any>();
     if (modelNames.size > 0) {
-      const providerItems = await this.providerService.listProviderItems(user, {
-        category: 'llm',
-        enabled: true,
-      });
+      const providerItems = await this.providerService.findProviderItemsByCategory(user, 'llm');
       for (const item of providerItems) {
         try {
           const config = JSON.parse(item.config || '{}');
