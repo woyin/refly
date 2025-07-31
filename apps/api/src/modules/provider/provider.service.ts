@@ -698,7 +698,7 @@ export class ProviderService implements OnModuleInit {
     });
   }
 
-  private async findProviderItemsByCategory(user: User, category: ProviderCategory) {
+  async findProviderItemsByCategory(user: User, category: ProviderCategory) {
     const { items: globalItems } = await this.globalProviderCache.get();
     const globalItemsByCategory = globalItems.filter((item) => item.category === category);
 
