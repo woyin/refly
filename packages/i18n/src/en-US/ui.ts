@@ -427,8 +427,10 @@ const translations = {
         'Powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, ',
       second: 'Refly is the best way to transform ideas into quality content.',
     },
-    messageText: 'v0.8.0: Multimodal Agent Is Officially Launched 🚀',
-    simpleMessageText: 'v0.8.0: Multimodal Agent Is Officially Launched 🚀',
+    messageText:
+      '🚀 v0.9.0 Released! A milestone update focused on creative freedom, clarity, and control. 🚀',
+    simpleMessageText:
+      '🚀 v0.9.0 Released! A milestone update focused on creative freedom, clarity, and control. 🚀',
     tryForFree: 'Get Started',
     tryItNow: 'Try It Now',
     creationEngine: 'Creation Engine',
