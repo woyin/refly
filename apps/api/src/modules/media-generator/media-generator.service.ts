@@ -131,11 +131,11 @@ export class MediaGeneratorService {
     request: MediaGenerateRequest,
   ): Promise<void> {
     let result: { output: string };
-    const { providerItemId } = request;
+    const { providerItemId, prompt } = request;
 
     try {
       // ===== Language Processing: Detect and translate prompt =====
-      const promptProcessingResult = await this.promptProcessor.processPrompt(request.prompt);
+      const promptProcessingResult = await this.promptProcessor.processPrompt(prompt);
 
       // Update status to Executing with language processing info
       await this.prisma.actionResult.update({
@@ -207,7 +207,7 @@ export class MediaGeneratorService {
         );
       }
     } catch (error) {
-      console.error(`Media generation failed for ${resultId}:`, error);
+      this.logger.error(`Media generation failed for ${resultId}: ${error.stack}`);
 
       // Update status to failed
       await this.prisma.actionResult.update({
@@ -236,7 +236,9 @@ export class MediaGeneratorService {
     // Get the generator factory from configuration
     const providerConfig = this.generatorConfig[providerKey];
     if (!providerConfig) {
-      throw new Error(`Unsupported provider: ${providerKey}`);
+      throw new Error(
+        `Unsupported provider for media generation: ${providerKey}, provider item id: ${request.providerItemId}`,
+      );
     }
 
     const generatorFactory = providerConfig[mediaType];

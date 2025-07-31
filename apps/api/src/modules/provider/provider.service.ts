@@ -420,21 +420,13 @@ export class ProviderService implements OnModuleInit {
   async getUserMediaConfig(
     user: User,
     mediaType: 'image' | 'audio' | 'video',
-    model?: string,
-    provider?: string,
   ): Promise<{
     provider: string;
+    providerItemId: string;
     model: string;
   } | null> {
     if (!mediaType) {
       return null;
-    }
-
-    if (model && provider) {
-      return {
-        provider,
-        model,
-      };
     }
 
     try {
@@ -486,7 +478,8 @@ export class ProviderService implements OnModuleInit {
       );
 
       return {
-        provider: configuredProviderItem.provider?.providerKey || 'replicate',
+        provider: configuredProviderItem.provider?.providerKey,
+        providerItemId: configuredProviderItem.itemId,
         model: config.modelId,
       };
     } catch (error) {

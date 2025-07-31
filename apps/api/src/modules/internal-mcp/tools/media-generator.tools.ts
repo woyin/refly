@@ -7,7 +7,7 @@ import { User as UserModel } from '../../../generated/client';
 import { MediaGeneratorService } from '../../media-generator/media-generator.service';
 import { ActionService } from '../../action/action.service';
 import { ProviderService } from '../../provider/provider.service';
-import { MediaGenerateRequest, MediaGenerationModelConfig } from '@refly/openapi-schema';
+import { MediaGenerateRequest } from '@refly/openapi-schema';
 
 @Injectable()
 export class MediaGeneratorTools {
@@ -29,91 +29,6 @@ export class MediaGeneratorTools {
     private readonly internalMcpService: InternalMcpService,
     private readonly providerService: ProviderService,
   ) {}
-
-  /**
-   * Get user's configured media generation provider and model from default model settings
-   */
-  private async getUserMediaConfig(
-    user: UserModel,
-    mediaType: 'image' | 'audio' | 'video',
-    model?: string,
-    provider?: string,
-  ): Promise<{
-    provider: string;
-    model: string;
-  } | null> {
-    if (!mediaType) {
-      return null;
-    }
-
-    if (model && provider) {
-      return {
-        provider,
-        model,
-      };
-    }
-
-    try {
-      // Get user's default model configuration from preferences
-      const userPreferences = await this.providerService.getUserPreferences(user);
-      const userDefaultModel = userPreferences?.defaultModel;
-
-      if (!userDefaultModel) {
-        this.logger.log(
-          `No default model configuration found for user ${user.uid} for ${mediaType}`,
-        );
-        return null;
-      }
-
-      // Get the specific media model configuration based on mediaType
-      const mediaModelConfig = userDefaultModel[mediaType];
-
-      if (!mediaModelConfig?.itemId) {
-        this.logger.log(`No ${mediaType} model configured for user ${user.uid}`);
-        return null;
-      }
-
-      // Find the provider item for this configured model
-      const providerItems = await this.providerService.listProviderItems(user, {
-        category: 'mediaGeneration',
-        enabled: true,
-      });
-
-      const configuredProviderItem = providerItems.find(
-        (item) => item.itemId === mediaModelConfig.itemId,
-      );
-
-      if (!configuredProviderItem) {
-        this.logger.warn(
-          `Configured ${mediaType} model ${mediaModelConfig.itemId} not found in user's provider items`,
-        );
-        return null;
-      }
-
-      // Parse the model configuration
-      const config: MediaGenerationModelConfig = JSON.parse(configuredProviderItem.config || '{}');
-
-      // Verify that this model actually supports the requested media type
-      if (!config.capabilities?.[mediaType]) {
-        this.logger.warn(
-          `Configured ${mediaType} model ${config.modelId} does not support ${mediaType} generation`,
-        );
-        return null;
-      }
-
-      this.logger.log(
-        `Using user configured ${mediaType} model: ${config.modelId} from provider: ${configuredProviderItem.provider?.providerKey}`,
-      );
-
-      return {
-        provider: configuredProviderItem.provider?.providerKey || 'replicate',
-        model: config.modelId,
-      };
-    } catch (error) {
-      this.logger.warn(`Failed to get user media config: ${error?.message || error}`);
-      return null;
-    }
-  }
 
   /**
    * Generate media with internal polling mechanism
@@ -168,12 +83,7 @@ export class MediaGeneratorTools {
       );
 
       // Get user's configured media generation settings
-      const userMediaConfig = await this.getUserMediaConfig(
-        user,
-        params.mediaType,
-        params.model,
-        params.provider,
-      );
+      const userMediaConfig = await this.providerService.getUserMediaConfig(user, params.mediaType);
 
       if (!userMediaConfig) {
         return this.internalMcpService.formatErrorResponse(
@@ -188,7 +98,7 @@ export class MediaGeneratorTools {
         mediaType: params.mediaType,
         prompt: params.prompt,
         model: userMediaConfig.model,
-        provider: userMediaConfig.provider,
+        providerItemId: userMediaConfig.providerItemId,
       };
 
       // Start media generation
