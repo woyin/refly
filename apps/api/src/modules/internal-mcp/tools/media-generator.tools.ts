@@ -2,18 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Tool, Context } from '@rekog/mcp-nest';
 import { z } from 'zod';
 import { Request } from 'express';
-import { ConfigService } from '@nestjs/config';
 import { InternalMcpService } from '../internal-mcp.service';
 import { User as UserModel } from '../../../generated/client';
 import { MediaGeneratorService } from '../../media-generator/media-generator.service';
 import { ActionService } from '../../action/action.service';
 import { ProviderService } from '../../provider/provider.service';
-import { PrismaService } from '../../common/prisma.service';
-import {
-  MediaGenerateRequest,
-  MediaGenerationModelConfig,
-  UserPreferences,
-} from '@refly/openapi-schema';
+import { MediaGenerateRequest, MediaGenerationModelConfig } from '@refly/openapi-schema';
 
 @Injectable()
 export class MediaGeneratorTools {
@@ -34,32 +28,7 @@ export class MediaGeneratorTools {
     private readonly actionService: ActionService,
     private readonly internalMcpService: InternalMcpService,
     private readonly providerService: ProviderService,
-    private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
   ) {}
-
-  /**
-   * Get user preferences from database
-   */
-  private async getUserPreferences(uid: string): Promise<UserPreferences> {
-    try {
-      const userPo = await this.prisma.user.findUnique({
-        where: { uid },
-        select: {
-          preferences: true,
-        },
-      });
-
-      if (!userPo?.preferences) {
-        return {};
-      }
-
-      return JSON.parse(userPo.preferences);
-    } catch (error) {
-      this.logger.warn(`Failed to get user preferences for ${uid}: ${error?.message || error}`);
-      return {};
-    }
-  }
 
   /**
    * Get user's configured media generation provider and model from default model settings
@@ -86,7 +55,7 @@ export class MediaGeneratorTools {
 
     try {
       // Get user's default model configuration from preferences
-      const userPreferences = await this.getUserPreferences(user.uid);
+      const userPreferences = await this.providerService.getUserPreferences(user);
       const userDefaultModel = userPreferences?.defaultModel;
 
       if (!userDefaultModel) {

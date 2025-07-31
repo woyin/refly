@@ -380,25 +380,37 @@ export class ProviderService implements OnModuleInit {
   }
 
   /**
-   * Get user preferences from database
+   * Get user preferences from database or existing preference json config.
    */
-  private async getUserPreferences(uid: string): Promise<UserPreferences> {
-    try {
-      const userPo = await this.prisma.user.findUnique({
-        where: { uid },
-        select: {
-          preferences: true,
-        },
-      });
+  async getUserPreferences(user: User, preferenceJson?: string): Promise<UserPreferences> {
+    const { uid } = user;
+    const defaultPreferences: UserPreferences = {
+      providerMode: this.configService.get('provider.defaultMode'),
+    };
 
-      if (!userPo?.preferences) {
-        return {};
+    try {
+      let rawPreference = preferenceJson;
+      if (!rawPreference) {
+        const userPo = await this.prisma.user.findUnique({
+          where: { uid },
+          select: {
+            preferences: true,
+          },
+        });
+        rawPreference = userPo?.preferences;
       }
 
-      return safeParseJSON(userPo.preferences) ?? {};
+      if (!rawPreference) {
+        return defaultPreferences;
+      }
+
+      return {
+        ...defaultPreferences,
+        ...safeParseJSON(rawPreference),
+      };
     } catch (error) {
       this.logger.warn(`Failed to get user preferences for ${uid}: ${error?.message || error}`);
-      return {};
+      return defaultPreferences;
     }
   }
 
@@ -427,7 +439,7 @@ export class ProviderService implements OnModuleInit {
 
     try {
       // Get user's default model configuration from preferences
-      const userPreferences = await this.getUserPreferences(user.uid);
+      const userPreferences = await this.getUserPreferences(user);
       const userDefaultModel = userPreferences?.defaultModel;
 
       // Get the specific media model configuration based on mediaType
@@ -601,16 +613,8 @@ export class ProviderService implements OnModuleInit {
   }
 
   async prepareGlobalProviderItemsForUser(user: User) {
-    const { preferences } = await this.prisma.user.findUnique({
-      where: { uid: user.uid },
-      select: {
-        preferences: true,
-      },
-    });
-
+    const userPreferences = await this.getUserPreferences(user);
     const defaultModel = this.configService.get('defaultModel');
-    const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
-    userPreferences.providerMode ||= this.configService.get('provider.defaultMode');
 
     const defaultModelConfig: DefaultModelConfig = { ...userPreferences.defaultModel };
 
@@ -705,13 +709,7 @@ export class ProviderService implements OnModuleInit {
     const { items: globalItems } = await this.globalProviderCache.get();
     const globalItemsByCategory = globalItems.filter((item) => item.category === category);
 
-    const userPo = await this.prisma.user.findUnique({
-      where: { uid: user.uid },
-      select: {
-        preferences: true,
-      },
-    });
-    const userPreferences: UserPreferences = JSON.parse(userPo?.preferences || '{}');
+    const userPreferences = await this.getUserPreferences(user);
 
     // If user is using global provider mode, return global provider items
     if (userPreferences.providerMode === 'global') {
@@ -917,16 +915,7 @@ export class ProviderService implements OnModuleInit {
     scene: ModelScene,
     userPo?: { preferences: string },
   ): Promise<ProviderItemModel | null> {
-    const { preferences } =
-      userPo ||
-      (await this.prisma.user.findUnique({
-        where: { uid: user.uid },
-        select: {
-          preferences: true,
-        },
-      }));
-
-    const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+    const userPreferences = await this.getUserPreferences(user, userPo?.preferences);
     const { defaultModel: userDefaultModel } = userPreferences;
 
     let itemId: string | null = null;
@@ -1030,13 +1019,7 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findProviderByCategory(user: User, category: ProviderCategory) {
-    const { preferences } = await this.prisma.user.findUnique({
-      where: { uid: user.uid },
-      select: {
-        preferences: true,
-      },
-    });
-    const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+    const userPreferences = await this.getUserPreferences(user);
 
     let providerId: string | null = null;
     if (category === 'webSearch' && userPreferences.webSearch) {
