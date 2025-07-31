@@ -1018,6 +1018,13 @@ export class ProviderService implements OnModuleInit {
     return null;
   }
 
+  async findProviderById(user: User, providerId: string) {
+    const provider = await this.prisma.provider.findUnique({
+      where: { providerId, OR: [{ uid: user.uid }, { isGlobal: true }], deletedAt: null },
+    });
+    return provider;
+  }
+
   async findProviderByCategory(user: User, category: ProviderCategory) {
     const userPreferences = await this.getUserPreferences(user);
 

@@ -49,7 +49,7 @@ const MediaChatInput = memo(
       [onModelChange],
     );
 
-    const { projectId, isCanvasOpen } = useGetProjectCanvasId();
+    const { projectId, isCanvasOpen, canvasId } = useGetProjectCanvasId();
     const { debouncedCreateCanvas } = useCreateCanvas({
       projectId,
       afterCreateSuccess: () => {
@@ -115,6 +115,9 @@ const MediaChatInput = memo(
             debouncedCreateCanvas('front-page', { isMediaGeneration: true });
           } else {
             nodeOperationsEmitter.emit('generateMedia', {
+              providerItemId: selectedModel?.itemId,
+              targetType: 'canvas',
+              targetId: canvasId,
               providerKey: selectedModel?.provider?.providerKey,
               mediaType: currentMediaType,
               query,

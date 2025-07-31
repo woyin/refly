@@ -15,7 +15,7 @@ import {
   VolcesVideoGenerator,
   VolcesImageGenerator,
 } from '@refly/providers';
-import { ModelUsageQuotaExceeded } from '@refly/errors';
+import { ModelUsageQuotaExceeded, ProviderItemNotFoundError } from '@refly/errors';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_SYNC_MEDIA_CREDIT_USAGE } from '../../utils/const';
@@ -25,7 +25,7 @@ import { MiscService } from '../misc/misc.service';
 import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
 import { PromptProcessorService } from './prompt-processor.service';
-import { genActionResultID } from '@refly/utils';
+import { genActionResultID, pick } from '@refly/utils';
 
 // Define generator interface for type safety
 interface MediaGenerator {
@@ -84,13 +84,19 @@ export class MediaGeneratorService {
     try {
       const resultId = genActionResultID();
 
+      const { mediaType, model, prompt, targetType, targetId, providerItemId } = request;
+
       // Creating an ActionResult Record
       await this.prisma.actionResult.create({
         data: {
           resultId,
           uid: user.uid,
           type: 'media',
-          title: `${request.mediaType} generation: ${request.prompt.substring(0, 50)}...`,
+          title: `${mediaType} generation: ${prompt.substring(0, 50)}...`,
+          modelName: model,
+          targetType,
+          targetId,
+          providerItemId,
           status: 'waiting',
           input: JSON.stringify(request),
           version: 0,
@@ -125,6 +131,8 @@ export class MediaGeneratorService {
     request: MediaGenerateRequest,
   ): Promise<void> {
     let result: { output: string };
+    const { providerItemId } = request;
+
     try {
       // ===== Language Processing: Detect and translate prompt =====
       const promptProcessingResult = await this.promptProcessor.processPrompt(request.prompt);
@@ -136,7 +144,7 @@ export class MediaGeneratorService {
           status: 'executing',
           // Store language processing info while keeping original request intact
           input: JSON.stringify({
-            ...request, // Keep original request fields unchanged (prompt = original user input)
+            ...pick(request, ['mediaType', 'model', 'prompt']), // Keep original request fields unchanged (prompt = original user input)
             // Add new fields for language processing
             englishPrompt: promptProcessingResult.translatedPrompt, // English version for generation
             detectedLanguage: promptProcessingResult.detectedLanguage,
@@ -145,10 +153,11 @@ export class MediaGeneratorService {
         },
       });
 
-      const providerItem = await this.providerService.findMediaProviderItemByModelID(
-        user,
-        request.model,
-      );
+      const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
+
+      if (!providerItem) {
+        throw new ProviderItemNotFoundError(`provider item ${providerItemId} not found`);
+      }
 
       const creditBilling: CreditBilling = providerItem?.creditBilling
         ? JSON.parse(providerItem?.creditBilling)
@@ -162,29 +171,11 @@ export class MediaGeneratorService {
         }
       }
 
-      const providerKey = request.provider;
-
-      const provider = await this.providerService.findProvider(user, {
-        category: 'mediaGeneration',
-        providerKey: providerKey,
-        enabled: true,
-      });
-
-      if (!provider) {
-        throw new Error('No media generation provider found');
-      }
-
-      // Create request with translated prompt for third-party service
-      const _translatedRequest: MediaGenerateRequest = {
-        ...request,
-        prompt: promptProcessingResult.translatedPrompt, // Use English prompt for generation
-      };
-
-      result = await this.generateWithProvider(request, provider.apiKey);
+      result = await this.generateWithProvider(request, providerItem.provider);
 
       const uploadResult = await this.miscService.dumpFileFromURL(user, {
         url: result.output,
-        entityId: resultId, //ActionResult
+        entityId: resultId,
         entityType: 'mediaResult',
         visibility: 'private',
       });
@@ -236,19 +227,20 @@ export class MediaGeneratorService {
    */
   private async generateWithProvider(
     request: MediaGenerateRequest,
-    apiKey: string,
+    provider: { apiKey: string; providerKey: string },
   ): Promise<{ output: string }> {
-    const { provider, mediaType, model, prompt } = request;
+    const { mediaType, model, prompt } = request;
+    const { apiKey, providerKey } = provider;
 
     // Get the generator factory from configuration
-    const providerConfig = this.generatorConfig[provider];
+    const providerConfig = this.generatorConfig[providerKey];
     if (!providerConfig) {
-      throw new Error(`Unsupported provider: ${provider}`);
+      throw new Error(`Unsupported provider: ${providerKey}`);
     }
 
     const generatorFactory = providerConfig[mediaType];
     if (!generatorFactory) {
-      throw new Error(`Unsupported media type '${mediaType}' for provider '${provider}'`);
+      throw new Error(`Unsupported media type '${mediaType}' for provider '${providerKey}'`);
     }
 
     // Create generator instance and generate media

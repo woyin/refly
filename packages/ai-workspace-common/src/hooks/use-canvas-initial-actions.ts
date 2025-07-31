@@ -136,6 +136,9 @@ export const useCanvasInitialActions = (canvasId: string) => {
 
         const { mediaType, query, model, providerKey } = pendingMediaQueryData;
         nodeOperationsEmitter.emit('generateMedia', {
+          providerItemId: modelInfo.providerItemId,
+          targetType: 'canvas',
+          targetId: canvasId,
           providerKey,
           mediaType: mediaType,
           query: query,
