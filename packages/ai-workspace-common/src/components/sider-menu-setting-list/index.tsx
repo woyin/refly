@@ -61,7 +61,7 @@ const UserInfo = React.memo(
       setSubscribeModalVisible: state.setSubscribeModalVisible,
     }));
     return (
-      <div className="px-1.5 py-2 flex flex-col gap-3">
+      <div className="py-2 flex flex-col gap-3">
         <div>
           <div className="text-sm font-semibold text-refly-text-0 leading-5 truncate">
             {nickname}
