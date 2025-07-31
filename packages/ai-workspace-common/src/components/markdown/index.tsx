@@ -9,7 +9,7 @@ import { cn, markdownCitationParse } from '@refly/utils';
 // plugins
 import LinkElement from './plugins/link';
 import rehypeHighlight from './custom-plugins/rehype-highlight';
-
+import remarkGfm from 'remark-gfm';
 // styles
 import './styles/markdown.scss';
 import './styles/highlight.scss';
@@ -139,11 +139,21 @@ export const Markdown = memo(
               plugins.RehypeKatex &&
               plugins.RehypeHighlight && (
                 <ReactMarkdown
-                  remarkPlugins={[RemarkBreaks, plugins.RemarkMath]}
+                  remarkPlugins={[
+                    RemarkBreaks,
+                    [
+                      remarkGfm,
+                      {
+                        singleTilde: false, // 禁用单波浪线删除线以减少冲突
+                        tablePipeAlign: true, // 保持表格对齐功能
+                        tableCellPadding: true, // 保持表格单元格填充
+                      },
+                    ],
+                    plugins.RemarkMath,
+                  ]}
                   rehypePlugins={[
+                    // Ensure MCPCallElement processes before other plugins that might affect URLs
                     ...rehypePlugins,
-                    rehypeHighlight,
-                    plugins.RehypeKatex,
                     [
                       plugins.RehypeHighlight,
                       {
@@ -151,6 +161,8 @@ export const Markdown = memo(
                         ignoreMissing: true,
                       },
                     ],
+                    rehypeHighlight,
+                    plugins.RehypeKatex,
                   ]}
                   components={{
                     ...artifactComponents,
