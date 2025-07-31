@@ -4903,6 +4903,10 @@ export type CreditUsage = {
    */
   description?: string;
   /**
+   * Model usage details for skill execution (JSON array of model usage)
+   */
+  modelUsageDetails?: string;
+  /**
    * Usage record creation timestamp
    */
   createdAt: string;

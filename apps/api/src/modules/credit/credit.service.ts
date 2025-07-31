@@ -1,20 +1,161 @@
-import { PrismaService } from '../common/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { User, CreditBilling } from '@refly/openapi-schema';
+import { PrismaService } from '../common/prisma.service';
+import { RedisService } from '../common/redis.service';
+import { User } from '@refly/openapi-schema';
+import { CreditBilling, CreditRecharge, CreditUsage } from '@refly/openapi-schema';
 import {
   CheckRequestCreditUsageResult,
-  SyncTokenCreditUsageJobData,
   SyncMediaCreditUsageJobData,
+  SyncBatchTokenCreditUsageJobData,
+  ModelUsageDetail,
 } from './credit.dto';
-import { genCreditUsageId, genCreditDebtId, safeParseJSON } from '@refly/utils';
-import { CreditRecharge, CreditUsage } from '@refly/openapi-schema';
+import {
+  genCreditUsageId,
+  genCreditDebtId,
+  safeParseJSON,
+  genCreditRechargeId,
+} from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 
 @Injectable()
 export class CreditService {
   private readonly logger = new Logger(CreditService.name);
 
-  constructor(protected readonly prisma: PrismaService) {}
+  constructor(
+    protected readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
+
+  /**
+   * Lazy load daily gift credits for user if needed
+   * This method first checks if there's already a gift credit recharge for today,
+   * then checks if user has active subscription and daily gift quota,
+   * and creates a new gift credit recharge if needed
+   * Uses distributed lock to prevent concurrent creation of gift credits
+   */
+  private async lazyLoadDailyGiftCredits(uid: string): Promise<void> {
+    const lockKey = `gift_credit_lock:${uid}`;
+
+    // Try to acquire distributed lock
+    const releaseLock = await this.redis.acquireLock(lockKey);
+
+    if (!releaseLock) {
+      this.logger.debug(`Failed to acquire lock for user ${uid}, skipping gift credit creation`);
+      return; // Another process is handling this user
+    }
+
+    try {
+      const now = new Date();
+
+      // Step 1: Check if there's an active gift credit recharge for today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const existingGiftRecharge = await this.prisma.creditRecharge.findFirst({
+        where: {
+          uid,
+          source: 'gift',
+          enabled: true,
+          createdAt: {
+            gte: today,
+            lt: tomorrow,
+          },
+        },
+      });
+
+      if (existingGiftRecharge) {
+        return; // Already has gift credits for today
+      }
+
+      // Step 2: Check if user has active subscription
+      const subscription = await this.prisma.subscription.findFirst({
+        where: {
+          uid,
+          status: 'active',
+          OR: [{ cancelAt: null }, { cancelAt: { gt: now } }],
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      if (!subscription) {
+        return; // No active subscription, no gift credits
+      }
+
+      // Step 3: Find plan quota for daily gift credit amount
+      let plan: any = null;
+      if (subscription.overridePlan) {
+        const overridePlan = safeParseJSON(subscription.overridePlan);
+        if (
+          overridePlan &&
+          typeof overridePlan.dailyGiftCreditQuota === 'number' &&
+          overridePlan.dailyGiftCreditQuota > 0
+        ) {
+          plan = overridePlan;
+        }
+      }
+
+      if (!plan) {
+        const subscriptionPlan = await this.prisma.subscriptionPlan.findFirst({
+          where: {
+            planType: subscription.planType,
+            interval: subscription.interval,
+          },
+        });
+        if (subscriptionPlan && subscriptionPlan.dailyGiftCreditQuota > 0) {
+          plan = {
+            dailyGiftCreditQuota: subscriptionPlan.dailyGiftCreditQuota,
+          };
+        }
+      }
+
+      if (!plan || plan.dailyGiftCreditQuota <= 0) {
+        return; // No daily gift quota
+      }
+
+      // Create new daily gift credit recharge
+      // Set created time to start of today (00:00:00)
+      const createdAt = new Date();
+      createdAt.setHours(0, 0, 0, 0);
+
+      // Set expires time to start of tomorrow (00:00:00)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 1);
+      expiresAt.setHours(0, 0, 0, 0);
+
+      await this.prisma.creditRecharge.create({
+        data: {
+          rechargeId: genCreditRechargeId(),
+          uid,
+          amount: plan.dailyGiftCreditQuota,
+          balance: plan.dailyGiftCreditQuota,
+          enabled: true,
+          source: 'gift',
+          description: `Daily gift credit recharge for plan ${subscription.planType}`,
+          createdAt: createdAt,
+          updatedAt: now, // Use current time for updatedAt
+          expiresAt: expiresAt,
+        },
+      });
+
+      this.logger.log(
+        `Created daily gift credit recharge for user ${uid}: ${plan.dailyGiftCreditQuota} credits, expires at ${expiresAt.toISOString()}`,
+      );
+    } catch (error) {
+      this.logger.error(`Error in lazyLoadDailyGiftCredits for user ${uid}: ${error.message}`);
+      // Don't throw error to avoid breaking the main flow
+    } finally {
+      // Always release the lock
+      try {
+        await releaseLock();
+      } catch (lockError) {
+        this.logger.warn(`Error releasing lock for user ${uid}: ${lockError.message}`);
+      }
+    }
+  }
 
   async checkRequestCreditUsage(
     user: User,
@@ -26,6 +167,9 @@ export class CreditService {
     };
 
     try {
+      // Lazy load daily gift credits
+      await this.lazyLoadDailyGiftCredits(user.uid);
+
       // Query all active credit recharge records for the user
       const creditRecharges = await this.prisma.creditRecharge.findMany({
         where: {
@@ -78,9 +222,13 @@ export class CreditService {
       providerItemId?: string;
       modelName?: string;
       usageType?: string;
+      modelUsageDetails?: string;
       createdAt: Date;
     },
   ): Promise<void> {
+    // Lazy load daily gift recharge
+    await this.lazyLoadDailyGiftCredits(uid);
+
     // Get available credit recharge records ordered by expiresAt (oldest first)
     const creditRecharges = await this.prisma.creditRecharge.findMany({
       where: {
@@ -130,6 +278,7 @@ export class CreditService {
           actionResultId: usageData.actionResultId,
           modelName: usageData.modelName,
           usageType: usageData.usageType,
+          modelUsageDetails: usageData.modelUsageDetails,
           amount: creditCost,
           createdAt: usageData.createdAt,
         },
@@ -181,61 +330,6 @@ export class CreditService {
     return false;
   }
 
-  async syncTokenCreditUsage(data: SyncTokenCreditUsageJobData) {
-    const { uid, usage, providerItemId, creditBilling, timestamp, resultId } = data;
-
-    // Find user
-    const user = await this.prisma.user.findUnique({ where: { uid } });
-    if (!user) {
-      throw new Error(`No user found for uid ${uid}`);
-    }
-
-    // Calculate total tokens used
-    const totalTokens = usage.inputTokens + usage.outputTokens;
-
-    // Calculate credit cost based on unit (5k_tokens)
-    let creditCost = 0;
-    if (creditBilling && creditBilling.unit === '5k_tokens') {
-      // Round up to nearest 5k tokens (not enough 5K counts as 5K)
-      const tokenUnits = Math.ceil(totalTokens / 5000);
-      creditCost = tokenUnits * (creditBilling.unitCost || 0);
-    }
-
-    // Check if user is early bird user
-    const isEarlyBirdUser = await this.isEarlyBirdUser(user);
-    if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
-      this.logger.log(
-        `Early bird user ${uid} skipping credit billing for provider item ${providerItemId}`,
-      );
-      creditCost = 0;
-    }
-
-    // If no credit cost, just create usage record
-    if (creditCost <= 0) {
-      await this.prisma.creditUsage.create({
-        data: {
-          uid,
-          usageId: genCreditUsageId(),
-          providerItemId,
-          actionResultId: resultId,
-          modelName: usage.modelName,
-          amount: 0,
-          createdAt: timestamp,
-        },
-      });
-      return;
-    }
-
-    // Use the extracted method to handle credit deduction
-    await this.deductCreditsAndCreateUsage(uid, creditCost, {
-      usageId: genCreditUsageId(),
-      providerItemId,
-      actionResultId: resultId,
-      modelName: usage.modelName,
-      createdAt: timestamp,
-    });
-  }
-
   async syncMediaCreditUsage(data: SyncMediaCreditUsageJobData) {
     const { uid, creditBilling, timestamp, resultId } = data;
 
@@ -272,7 +366,80 @@ export class CreditService {
     });
   }
 
+  async syncBatchTokenCreditUsage(data: SyncBatchTokenCreditUsageJobData) {
+    const { uid, creditUsageSteps, timestamp, resultId } = data;
+
+    // Find user
+    const user = await this.prisma.user.findUnique({ where: { uid } });
+    if (!user) {
+      throw new Error(`No user found for uid ${uid}`);
+    }
+
+    // Check if user is early bird user
+    const isEarlyBirdUser = await this.isEarlyBirdUser(user);
+
+    // Calculate total credit cost for all usages
+    let totalCreditCost = 0;
+    const modelUsageDetails: ModelUsageDetail[] = [];
+
+    for (const step of creditUsageSteps) {
+      const { usage, creditBilling } = step;
+
+      // Calculate tokens for this usage
+      const totalTokens = usage.inputTokens + usage.outputTokens;
+
+      // Calculate credit cost for this usage
+      let creditCost = 0;
+      if (creditBilling && creditBilling.unit === '5k_tokens') {
+        // Round up to nearest 5k tokens (not enough 5K counts as 5K)
+        const tokenUnits = Math.ceil(totalTokens / 5000);
+        creditCost = tokenUnits * (creditBilling.unitCost || 0);
+      }
+
+      // Check if user is early bird and credit billing is free for early bird users
+      if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
+        this.logger.log(
+          `Early bird user ${uid} skipping credit billing for model ${usage.modelName}`,
+        );
+        creditCost = 0;
+      }
+
+      totalCreditCost += creditCost;
+
+      // Add to model usage details - model name, total tokens, and credit cost
+      modelUsageDetails.push({
+        modelName: usage.modelName,
+        totalTokens: usage.inputTokens + usage.outputTokens,
+        creditCost: creditCost,
+      });
+    }
+
+    // If no credit cost, just create usage record with details
+    if (totalCreditCost <= 0) {
+      await this.prisma.creditUsage.create({
+        data: {
+          uid,
+          usageId: genCreditUsageId(),
+          actionResultId: resultId,
+          amount: 0,
+          modelUsageDetails: JSON.stringify(modelUsageDetails),
+          createdAt: timestamp,
+        },
+      });
+      return;
+    }
+
+    // Use the extracted method to handle credit deduction with model usage details
+    await this.deductCreditsAndCreateUsage(uid, totalCreditCost, {
+      usageId: genCreditUsageId(),
+      actionResultId: resultId,
+      modelUsageDetails: JSON.stringify(modelUsageDetails),
+      createdAt: timestamp,
+    });
+  }
+
   async getCreditRecharge(user: User): Promise<CreditRecharge[]> {
+    await this.lazyLoadDailyGiftCredits(user.uid);
     const records = await this.prisma.creditRecharge.findMany({
       where: {
         uid: user.uid,
@@ -322,7 +489,7 @@ export class CreditService {
         createdAt: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'desc', // Order by creation time, newest first
       },
     });
     return records.map((record) => ({
@@ -339,6 +506,9 @@ export class CreditService {
   }
 
   async getCreditBalance(user: User): Promise<CreditBalance> {
+    // Lazy load daily gift credits
+    await this.lazyLoadDailyGiftCredits(user.uid);
+
     // Query all active (unexpired) credit recharge records
     const activeRecharges = await this.prisma.creditRecharge.findMany({
       where: {

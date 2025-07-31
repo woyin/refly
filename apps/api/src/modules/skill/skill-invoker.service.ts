@@ -40,7 +40,7 @@ import { getWholeParsedContent } from '@refly/utils';
 import { ProjectNotFoundError } from '@refly/errors';
 import { projectPO2DTO } from '../project/project.dto';
 import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
-import { SyncTokenCreditUsageJobData } from '../credit/credit.dto';
+import { SyncBatchTokenCreditUsageJobData, CreditUsageStep } from '../credit/credit.dto';
 import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SYNC_PILOT_STEP,
@@ -97,7 +97,7 @@ export class SkillInvokerService {
     private usageReportQueue?: Queue<SyncTokenUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_SYNC_TOKEN_CREDIT_USAGE)
-    private creditUsageReportQueue?: Queue<SyncTokenCreditUsageJobData>,
+    private creditUsageReportQueue?: Queue<SyncBatchTokenCreditUsageJobData>,
     @Optional()
     @InjectQueue(QUEUE_AUTO_NAME_CANVAS)
     private autoNameCanvasQueue?: Queue<AutoNameCanvasJobData>,
@@ -836,6 +836,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           }
           case 'on_chat_model_end':
             if (runMeta && chunk) {
+              this.logger.log(`is_model_name: ${String(runMeta.ls_model_name)}`);
               const providerItem = await this.providerService.findLLMProviderItemByModelID(
                 user,
                 String(runMeta.ls_model_name),
@@ -870,25 +871,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 await this.usageReportQueue.add(`usage_report:${resultId}`, tokenUsage);
               }
 
-              const creditBilling: CreditBilling = providerItem?.creditBilling
-                ? JSON.parse(providerItem?.creditBilling)
-                : undefined;
-
-              // Only add to credit usage queue if not skipping for early bird users
-              if (this.creditUsageReportQueue && creditBilling) {
-                const tokenCreditUsage: SyncTokenCreditUsageJobData = {
-                  ...basicUsageData,
-                  providerItemId: providerItem?.itemId,
-                  usage,
-                  creditBilling,
-                  timestamp: new Date(),
-                };
-
-                await this.creditUsageReportQueue.add(
-                  `credit_usage_report:${resultId}`,
-                  tokenCreditUsage,
-                );
-              }
+              // Remove credit billing processing from here - will be handled after skill completion
             }
             break;
         }
@@ -1003,11 +986,117 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           stepId: result.pilotStepId,
         });
       }
+
+      // Process credit billing for all steps after skill completion
+      if (this.creditUsageReportQueue && !result.errors.length) {
+        await this.processCreditUsageReport(user, resultId, version, resultAggregator);
+      }
     }
   }
 
   getSkillInventory() {
     return this.skillInventory;
+  }
+
+  /**
+   * Process credit usage report for all steps after skill completion
+   * This method extracts token usage from steps and prepares batch credit billing data
+   */
+  private async processCreditUsageReport(
+    user: User,
+    resultId: string,
+    version: number,
+    resultAggregator: ResultAggregator,
+  ): Promise<void> {
+    const steps = resultAggregator.getSteps({ resultId, version });
+
+    // Collect all model names used in token usage
+    const modelNames = new Set<string>();
+    for (const step of steps) {
+      if (step.tokenUsage) {
+        const tokenUsageArray = JSON.parse(step.tokenUsage);
+        const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
+
+        for (const tokenUsage of tokenUsages) {
+          if (tokenUsage.modelName) {
+            modelNames.add(String(tokenUsage.modelName));
+          }
+        }
+      }
+    }
+
+    // Batch fetch all provider items for the models used
+    const providerItemsMap = new Map<string, any>();
+    if (modelNames.size > 0) {
+      const providerItems = await this.providerService.listProviderItems(user, {
+        category: 'llm',
+        enabled: true,
+      });
+      for (const item of providerItems) {
+        try {
+          const config = JSON.parse(item.config || '{}');
+          if (config.modelId && modelNames.has(config.modelId)) {
+            providerItemsMap.set(config.modelId, item);
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to parse config for provider item ${item.itemId}: ${error?.message}`,
+          );
+        }
+      }
+    }
+
+    // Collect all credit usage steps
+    const creditUsageSteps: CreditUsageStep[] = [];
+
+    for (const step of steps) {
+      if (step.tokenUsage) {
+        const tokenUsageArray = JSON.parse(step.tokenUsage);
+
+        // Handle both array and single object cases
+        const tokenUsages = Array.isArray(tokenUsageArray) ? tokenUsageArray : [tokenUsageArray];
+
+        for (const tokenUsage of tokenUsages) {
+          const providerItem = providerItemsMap.get(String(tokenUsage.modelName));
+
+          if (providerItem?.creditBilling) {
+            const creditBilling: CreditBilling = JSON.parse(providerItem.creditBilling);
+
+            const usage: TokenUsageItem = {
+              tier: providerItem?.tier,
+              modelProvider: providerItem?.provider?.name,
+              modelName: providerItem?.name,
+              inputTokens: tokenUsage.inputTokens || 0,
+              outputTokens: tokenUsage.outputTokens || 0,
+            };
+
+            creditUsageSteps.push({
+              usage,
+              creditBilling,
+            });
+          }
+        }
+      }
+    }
+
+    // Process credit billing for all usages in one batch
+    if (creditUsageSteps.length > 0) {
+      const batchTokenCreditUsage: SyncBatchTokenCreditUsageJobData = {
+        uid: user.uid,
+        resultId,
+        creditUsageSteps,
+        timestamp: new Date(),
+      };
+
+      await this.creditUsageReportQueue.add(
+        `credit_usage_report:${resultId}:batch`,
+        batchTokenCreditUsage,
+      );
+
+      this.logger.log(
+        `Batch credit billing processed for ${resultId}: ${creditUsageSteps.length} usage items`,
+      );
+    }
   }
 
   async streamInvokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
