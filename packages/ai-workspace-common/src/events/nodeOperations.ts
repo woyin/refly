@@ -1,6 +1,6 @@
 import mitt from 'mitt';
 import { XYPosition } from '@xyflow/react';
-import { CanvasNodeType } from '@refly/openapi-schema';
+import { CanvasNodeType, EntityType } from '@refly/openapi-schema';
 import { CanvasNodeData, CanvasNodeFilter } from '@refly/canvas-common';
 
 export type NodeContextMenuSource = 'node' | 'handle';
@@ -37,8 +37,10 @@ export type Events = {
     dragCreateInfo?: NodeDragCreateInfo;
   };
   generateMedia: {
-    providerKey: string;
+    providerItemId: string;
     mediaType: MediaType;
+    targetType: EntityType;
+    targetId: string;
     query: string;
     model: string;
     nodeId: string;

@@ -6943,10 +6943,19 @@ components:
           model:
             type: string
             description: Model name for content generation
+          targetType:
+            $ref: '#/components/schemas/EntityType'
+          targetId:
+            type: string
+            description: Target ID
+          providerItemId:
+            type: string
+            description: Provider item ID
           provider:
             type: string
-            description: Optional provider selection
+            description: Optional provider selection (use providerItemId instead)
             nullable: true
+            deprecated: true
           prompt:
             type: string
             description: Text prompt for content generation

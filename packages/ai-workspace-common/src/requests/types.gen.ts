@@ -3805,13 +3805,29 @@ export type DeleteSkillTriggerRequest = {
 export type MediaType = 'image' | 'video' | 'audio';
 
 export type MediaGenerateRequest = {
+  /**
+   * Media generation type
+   */
   mediaType: MediaType;
   /**
    * Model name for content generation
    */
   model?: string;
   /**
-   * Optional provider selection
+   * Target type
+   */
+  targetType?: EntityType;
+  /**
+   * Target ID
+   */
+  targetId?: string;
+  /**
+   * Provider item ID
+   */
+  providerItemId?: string;
+  /**
+   * Optional provider selection (use providerItemId instead)
+   * @deprecated
    */
   provider?: string | null;
   /**
