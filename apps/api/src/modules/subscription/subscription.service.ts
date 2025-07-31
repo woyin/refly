@@ -605,7 +605,6 @@ export class SubscriptionService implements OnModuleInit {
                 createdAt: 'desc',
               },
             });
-
             if (!subscription) {
               this.logger.log(
                 `No active subscription found for user ${recharge.uid}, skipping credit recharge`,
@@ -616,7 +615,20 @@ export class SubscriptionService implements OnModuleInit {
             // Find plan quota for credit amount
             let plan: PlanQuota | null = null;
             if (subscription.overridePlan) {
-              plan = safeParseJSON(subscription.overridePlan) as PlanQuota;
+              const overridePlan = safeParseJSON(subscription.overridePlan) as PlanQuota;
+
+              // Check if overridePlan contains all required quota fields
+              if (
+                overridePlan &&
+                typeof overridePlan.creditQuota === 'number' &&
+                typeof overridePlan.dailyGiftCreditQuota === 'number' &&
+                typeof overridePlan.t1CountQuota === 'number' &&
+                typeof overridePlan.t2CountQuota === 'number' &&
+                typeof overridePlan.fileCountQuota === 'number'
+              ) {
+                plan = overridePlan;
+              } else {
+              }
             }
             if (!plan) {
               const subscriptionPlan = await prisma.subscriptionPlan.findFirst({
