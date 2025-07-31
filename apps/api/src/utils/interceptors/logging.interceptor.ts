@@ -9,7 +9,7 @@ export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
     const { method, url, body, params, query } = req;
-    const user = req.user ? `User ID: ${req.user.id}` : 'Unauthenticated user';
+    const user = req.user ? `User ID: ${req.user.uid}` : 'Unauthenticated user';
 
     // Request start time
     const now = Date.now();
