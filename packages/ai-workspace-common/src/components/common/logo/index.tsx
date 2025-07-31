@@ -36,7 +36,7 @@ export const Logo: React.FC<LogoProps> = ({ className = '', onClick, logoProps, 
           viewBox="0 0 49 22"
           fill="none"
           className={cn(
-            'object-contain shrink-0 self-stretch w-12 my-auto aspect-[2.23] flex-1',
+            'object-contain shrink-0 flex-1 flex items-center self-stretch w-12 aspect-[2.23] translate-y-[2px]',
             textClassName,
           )}
         >

@@ -4,6 +4,7 @@
   --refly-bg-content-z2: #ffffff;
   --refly-bg-body-z0: #f3f3f3;
   --refly-bg-main-z1: #f0f0f0;
+  --refly-bg-float-z3: #ffffff;
   --refly-bg-glass-content: #ffffffcc;
   --refly-bg-canvas: #fbfbfb;
   --refly-modal-mask: #00000026;
@@ -42,9 +43,10 @@
 
 /* Dark Theme */
 .dark {
-  --refly-bg-content-z2: #262626;
+  --refly-bg-content-z2: #252525;
   --refly-bg-body-z0: #111111;
   --refly-bg-main-z1: #2b2b2c;
+  --refly-bg-float-z3: #292929;
   --refly-bg-glass-content: #000000cc;
   --refly-bg-canvas: #1e1d1d;
   --refly-modal-mask: #00000026;

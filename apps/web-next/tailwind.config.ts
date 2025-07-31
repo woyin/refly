@@ -55,6 +55,13 @@ export function defineConfig(): Config {
         animation: {
           'slide-in-left': 'slideInLeft 0.3s ease-out',
         },
+        boxShadow: {
+          'refly-s': '0 1px 6px 0 #0000003d',
+          'refly-m': '0 2px 20px 4px #0000000a',
+          'refly-l': '0 8px 40px 0 #00000014',
+          'refly-primary': '0 8px 60px 0 #1d463d1a',
+          'refly-xl': '0 8px 32px 0 #00000014',
+        },
         keyframes: {
           slideInLeft: {
             '0%': {

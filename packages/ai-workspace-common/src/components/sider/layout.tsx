@@ -153,7 +153,7 @@ const SettingItem = () => {
 
   return (
     <div className="group w-full">
-      <SiderMenuSettingList>
+      <SiderMenuSettingList creditBalance={creditBalance}>
         <div className="flex flex-1 items-center justify-between">
           <div
             className="flex items-center gap-2 mr-2 flex-shrink min-w-0"
