@@ -19,7 +19,7 @@ import { useUserStoreShallow } from '@refly/stores';
 // components
 import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
 import { useTranslation } from 'react-i18next';
-import { SiderMenuSettingList } from '@refly-packages/ai-workspace-common/components/sider-menu-setting-list';
+import { SiderMenuSettingList } from '../sider-menu-setting-list';
 import { SettingModal } from '@refly-packages/ai-workspace-common/components/settings';
 import { TourModal } from '@refly-packages/ai-workspace-common/components/tour-modal';
 import { SettingsGuideModal } from '@refly-packages/ai-workspace-common/components/settings-guide';
@@ -41,6 +41,7 @@ import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { useGetCreditBalance } from '@refly-packages/ai-workspace-common/queries';
+import { CreditWelcomeModal } from '@refly-packages/ai-workspace-common/components/credit-welcome-modal';
 
 const Sider = Layout.Sider;
 
@@ -463,6 +464,7 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
       <TourModal />
       <StorageExceededModal />
       <CanvasTemplateModal />
+      <CreditWelcomeModal />
 
       {isLogin ? (
         isProject ? (

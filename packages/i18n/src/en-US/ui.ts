@@ -639,7 +639,7 @@ const translations = {
       title: 'Plans and Pricing',
       subtitle: 'Embark on your AI content creation journey with Refly',
       description:
-        'Sign up and enjoy a unlimited trial with 50 standard model calls per day. No credit card required.',
+        'One-click registration, instantly access top-tier AI models, no configuration required, no credit card needed, unlimited creation.',
       limitedOffer:
         'Now 50% off forever with annual subscription! Price adjustment and unlimited plan discontinuation on March 16th, 00:00 UTC',
     },
@@ -2977,6 +2977,17 @@ const translations = {
     cancelAnytime: "Cancel anytime. By subscribing, you agree to Refly's",
     privacy: 'Privacy',
     terms: 'Terms',
+    earlyBirdsWelcome: {
+      title: 'To Our Earliest Companions',
+      subtitle: 'On the first day of the credit system launch, we want to thank you the most.',
+      description1: 'Thank you for your support during the unlimited era.',
+      description2: "With the credit system online, you don't need to change any usage habits.",
+      description3: 'Kimi, GPT-4.1, Gemini and other main models can still be used without limits.',
+      slogan:
+        'Thank you for your trust, may we journey together towards broader creative horizons!',
+      gotIt: 'Got it',
+      learnMore: 'Learn about my unlimited privileges',
+    },
     plans: {
       priceMonthly: '{{price}}/month',
       priceYearly: '{{price}}/month',
@@ -3084,6 +3095,18 @@ const translations = {
         starter: 'Starter Plan',
         maker: 'Maker Plan',
         freePlan: 'Free Plan',
+      },
+      creditsWelcome: {
+        title: 'Dear Creator',
+        subtitle: 'Refly.ai has officially launched the credits system!',
+        description1:
+          'Your existing membership benefits have been fully preserved, and you will automatically receive corresponding credits for content generation each month.',
+        description2:
+          'If you want to experience flexible billing and exclusive activities, feel free to upgrade to the new plan at any time (with exclusive limited-time double credits)!',
+        slogan:
+          'Thank you for accompanying us on this journey. A new creative adventure begins with the credit era!',
+        continueButton: 'Continue with current version',
+        learnMoreButton: 'Learn about new plans',
       },
     },
     yearly: 'Yearly',

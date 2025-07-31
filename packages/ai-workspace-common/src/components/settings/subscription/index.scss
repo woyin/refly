@@ -40,14 +40,20 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px;
     border-radius: 12px;
-    background-color: #f7f7f7;
+    background-color: #fff;
     background-image: url("./banner-bg.svg");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     margin-bottom: 16px;
+
+    padding: 32px 12px 20px 12px;
+
+    border-radius: 12px;
+    border: 0.5px solid var(--border---refly-Card-Border, rgba(0, 0, 0, 0.1));
+
+    box-shadow: 0 2px 20px 4px rgba(0, 0, 0, 0.04);
 
     .plan-info {
       .current-plan-label {
@@ -197,7 +203,7 @@
         font-style: normal;
         font-weight: 600;
         line-height: 28px;
-        
+
         .quota-text {
           color: rgba(28, 31, 35, 0.5);
         }
@@ -210,7 +216,7 @@
 
     .history-tabs {
       margin-bottom: 24px;
-      background-color: #fff;
+      background-color: #f5f5f5;
       padding: 4px;
       border-radius: 20px;
       display: inline-block;
@@ -231,7 +237,7 @@
       }
 
       .ant-segmented-item-selected {
-        background-color: #f5f5f5 !important;
+        background-color: #fff !important;
 
         .ant-segmented-item-label {
           color: var(--text-icon-refly-text-0, #1c1f23);
@@ -246,15 +252,22 @@
       border-radius: 12px;
       overflow: hidden;
       background-color: #fff;
-      
+      border: 1px solid #e5e7eb;
+
+      // Remove all table separator lines
+      .ant-table-thead > tr > th::before,
+      .ant-table-tbody > tr > td::before {
+        display: none !important;
+      }
+
       .ant-table {
         background-color: #fff;
       }
-      
+
       .ant-table-container {
         border: none;
       }
-      
+
       .ant-table-thead > tr > th {
         background: #fff !important;
         border-bottom: none;
@@ -263,18 +276,28 @@
         padding: 12px 16px;
         border-right: none !important;
         font-size: 14px;
+
+        // Remove the separator line (::before pseudo-element)
+        &::before {
+          display: none !important;
+        }
       }
-      
+
       .ant-table-tbody > tr > td {
         border-bottom: none;
         padding: 12px 16px;
         font-size: 14px;
+
+        // Remove the separator line (::before pseudo-element)
+        &::before {
+          display: none !important;
+        }
       }
-      
+
       .ant-table-tbody > tr.ant-table-row:hover > td {
         background: #fafafa;
       }
-      
+
       .ant-table-pagination.ant-pagination {
         background: #fff;
         margin: 0;
@@ -306,7 +329,7 @@
         .current-plan-name {
           color: var(--text-color-primary);
         }
-        
+
         .plan-actions {
           .plan-renewal-info {
             color: var(--refly-text-1);
@@ -322,7 +345,7 @@
         .usage-label,
         .usage-value {
           color: var(--text-color-primary);
-          
+
           .quota-text {
             color: rgba(255, 255, 255, 0.5);
           }
@@ -353,11 +376,17 @@
       }
 
       .history-table {
-        border: none;
+        border: 1px solid #424242;
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 16px;
         background-color: #222222;
+
+        // Remove all table separator lines
+        .ant-table-thead > tr > th::before,
+        .ant-table-tbody > tr > td::before {
+          display: none !important;
+        }
 
         .ant-table {
           background-color: #222222;
@@ -367,15 +396,29 @@
         .ant-table-thead > tr > th {
           background: #222222 !important;
           color: rgba(255, 255, 255, 0.85);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: none;
           border-right: none !important;
           font-weight: 500;
+          padding: 12px 16px;
+          font-size: 14px;
+
+          // Remove the separator line (::before pseudo-element)
+          &::before {
+            display: none !important;
+          }
         }
 
         .ant-table-tbody > tr > td {
           background: #222222;
           color: rgba(255, 255, 255, 0.85);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: none;
+          padding: 12px 16px;
+          font-size: 14px;
+
+          // Remove the separator line (::before pseudo-element)
+          &::before {
+            display: none !important;
+          }
         }
 
         .ant-table-tbody > tr.ant-table-row:hover > td {
@@ -384,7 +427,7 @@
 
         .ant-table-pagination.ant-pagination {
           background: #222222;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          border-top: none;
           padding: 16px 8px;
 
           .ant-pagination-item a {
@@ -394,8 +437,8 @@
             color: #fff;
           }
           .ant-pagination-item-active {
-            background-color: #0E9F77;
-            border-color: #0E9F77;
+            background-color: #0e9f77;
+            border-color: #0e9f77;
           }
 
           .ant-pagination-prev .ant-pagination-item-link,

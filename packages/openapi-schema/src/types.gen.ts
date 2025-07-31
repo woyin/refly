@@ -1737,6 +1737,10 @@ export type Subscription = {
    */
   subscriptionId: string;
   /**
+   * Subscription lookup key
+   */
+  lookupKey?: string;
+  /**
    * Subscription plan type
    */
   planType: SubscriptionPlanType;
