@@ -182,11 +182,16 @@ const SettingItem = () => {
                 <Subscription size={14} className="text-[#1C1F23] dark:text-white" />
                 <span className="font-medium">{creditBalance}</span>
               </div>
-              <Divider type="vertical" className="m-0" />
 
-              <div className="text-[color:var(--primary---refly-primary-default,#0E9F77)] text-xs font-semibold leading-4 whitespace-nowrap">
-                {t('common.upgrade')}
-              </div>
+              {userProfile?.subscription?.planType === 'free' && (
+                <>
+                  <Divider type="vertical" className="m-0" />
+
+                  <div className="text-[color:var(--primary---refly-primary-default,#0E9F77)] text-xs font-semibold leading-4 whitespace-nowrap">
+                    {t('common.upgrade')}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
