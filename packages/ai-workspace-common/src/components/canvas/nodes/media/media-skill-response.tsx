@@ -38,6 +38,7 @@ import {
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { MediaType } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 
 interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   mediaType?: MediaType;
@@ -72,6 +73,7 @@ const MediaSkillResponseNode = memo(
     const targetRef = useRef<HTMLDivElement>(null);
     const { getNode, getEdges, getNodes } = useReactFlow();
     const setNodeDataByEntity = useSetNodeDataByEntity();
+    const { refetchUsage } = useSubscriptionUsage();
 
     useSelectedNodeZIndex(id, selected);
 
@@ -126,12 +128,16 @@ const MediaSkillResponseNode = memo(
         if (result.status === 'finish' && result.outputUrl) {
           // Create appropriate media node
           handleCreateMediaNode(result.outputUrl, result.storageKey);
+          // Refresh balance after successful generation
+          refetchUsage();
         } else if (result.status === 'failed') {
           // Update node to show error state
           console.error('Media generation failed:', result.errors);
+          // Refresh balance after failed generation
+          refetchUsage();
         }
       }
-    }, [result, resultId]);
+    }, [result, resultId, refetchUsage]);
 
     const handleCreateMediaNode = useCallback(
       async (outputUrl: string, storageKey: string) => {
@@ -259,6 +265,8 @@ const MediaSkillResponseNode = memo(
               },
             },
           );
+          // Refresh balance after retry request is sent
+          refetchUsage();
         }
       } catch (error) {
         console.error('Failed to retry media generation:', error);
@@ -269,14 +277,16 @@ const MediaSkillResponseNode = memo(
       prompt,
       mediaType,
       model,
+      providerItemId,
+      canvasId,
       resetFailedState,
       stopPolling,
       removeStreamResult,
       removeActionResult,
-      startPolling,
       setNodeDataByEntity,
-      id,
+      data?.entityId,
       data?.metadata,
+      refetchUsage,
       t,
     ]);
 

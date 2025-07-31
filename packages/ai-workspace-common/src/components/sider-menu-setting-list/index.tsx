@@ -329,8 +329,8 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
       },
     ],
     [
-      userStore?.userProfile?.nickname,
-      userStore?.userProfile?.email,
+      userStore?.userProfile,
+      props.creditBalance,
       t,
       handleSettingsClick,
       themeMode,
