@@ -130,7 +130,15 @@ const MediaChatInput = memo(
           setLoading(false);
         }
       },
-      [loading, selectedModel, nodeId, isCanvasOpen, debouncedCreateCanvas, currentMediaType],
+      [
+        loading,
+        selectedModel,
+        nodeId,
+        canvasId,
+        isCanvasOpen,
+        debouncedCreateCanvas,
+        currentMediaType,
+      ],
     );
 
     // Listen for media generation completion events
