@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useSubscriptionStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { Button } from 'antd';
-import thanks from './thanks.svg';
 
 // Local storage key for tracking if the modal has been shown
 const CREDITS_WELCOME_SHOWN_KEY = 'refly_credits_welcome_shown';
@@ -25,7 +24,7 @@ export const CreditWelcomeModal = () => {
   useEffect(() => {
     // Check if user is logged in and if this is the first time showing the modal
     if (userProfile?.uid) {
-      const hasShown = localStorage.getItem(CREDITS_WELCOME_SHOWN_KEY);
+      const hasShown = localStorage.getItem(CREDITS_WELCOME_SHOWN_KEY + Math.random());
       if (!hasShown) {
         setVisible(true);
       }
@@ -96,12 +95,12 @@ export const CreditWelcomeModal = () => {
         "
         />
 
-        <img
+        <div
           className="
-                  self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:sans-serif] text-4xl font-normal leading-[56px] tracking-[-2px] dark:filter dark:invert dark:brightness-[0.85] dark:hue-rotate-180"
-          src={thanks}
-          alt="thanks"
-        />
+self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal leading-[56px] tracking-[-2px]                  "
+        >
+          {t('subscription.subscriptionManagement.creditsWelcome.slogan')}
+        </div>
 
         {/* Button area */}
         <div className="flex justify-center gap-4 w-full mt-[40px]">
