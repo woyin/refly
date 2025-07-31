@@ -252,6 +252,7 @@
       border-radius: 12px;
       overflow: hidden;
       background-color: #fff;
+      border: 1px solid #e5e7eb;
 
       // Remove all table separator lines
       .ant-table-thead > tr > th::before,
@@ -375,11 +376,17 @@
       }
 
       .history-table {
-        border: none;
+        border: 1px solid #424242;
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 16px;
         background-color: #222222;
+
+        // Remove all table separator lines
+        .ant-table-thead > tr > th::before,
+        .ant-table-tbody > tr > td::before {
+          display: none !important;
+        }
 
         .ant-table {
           background-color: #222222;
@@ -389,15 +396,29 @@
         .ant-table-thead > tr > th {
           background: #222222 !important;
           color: rgba(255, 255, 255, 0.85);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: none;
           border-right: none !important;
           font-weight: 500;
+          padding: 12px 16px;
+          font-size: 14px;
+
+          // Remove the separator line (::before pseudo-element)
+          &::before {
+            display: none !important;
+          }
         }
 
         .ant-table-tbody > tr > td {
           background: #222222;
           color: rgba(255, 255, 255, 0.85);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: none;
+          padding: 12px 16px;
+          font-size: 14px;
+
+          // Remove the separator line (::before pseudo-element)
+          &::before {
+            display: none !important;
+          }
         }
 
         .ant-table-tbody > tr.ant-table-row:hover > td {
@@ -406,7 +427,7 @@
 
         .ant-table-pagination.ant-pagination {
           background: #222222;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          border-top: none;
           padding: 16px 8px;
 
           .ant-pagination-item a {
