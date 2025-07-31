@@ -171,7 +171,13 @@ export class MediaGeneratorService {
         }
       }
 
-      result = await this.generateWithProvider(request, providerItem.provider);
+      // Create request with translated prompt for third-party service
+      const translatedRequest: MediaGenerateRequest = {
+        ...request,
+        prompt: promptProcessingResult.translatedPrompt, // Use English prompt for generation
+      };
+
+      result = await this.generateWithProvider(translatedRequest, providerItem.provider);
 
       const uploadResult = await this.miscService.dumpFileFromURL(user, {
         url: result.output,
