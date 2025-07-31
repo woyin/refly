@@ -587,6 +587,15 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         case 'image':
           menuNodeType = 'image';
           break;
+        case 'mediaSkill':
+          menuNodeType = 'mediaSkill';
+          break;
+        case 'audio':
+          menuNodeType = 'audio';
+          break;
+        case 'video':
+          menuNodeType = 'video';
+          break;
         default:
           return; // Don't show context menu for unknown node types
       }
@@ -683,7 +692,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       <MemoizedMiniMap
         position="bottom-left"
         style={miniMapStyles}
-        className="bg-white/80 dark:bg-gray-900/80 w-[140px] h-[92px] !mb-[46px] !ml-[10px] rounded-lg shadow-md p-2 [&>svg]:w-full [&>svg]:h-full"
+        className="bg-white/80 dark:bg-gray-900/80 w-[140px] h-[92px] !mb-[46px] !ml-[10px] rounded-lg shadow-refly-m p-2 [&>svg]:w-full [&>svg]:h-full"
         zoomable={false}
         pannable={false}
         nodeComponent={MiniMapNode}

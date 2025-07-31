@@ -11,10 +11,11 @@ import './header.scss';
 import { FaDiscord, FaCaretDown } from 'react-icons/fa6';
 import { FaWeixin } from 'react-icons/fa';
 import { EXTENSION_DOWNLOAD_LINK } from '@refly/utils';
-import { IconDown, IconLanguage } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconDown } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-locale-list';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
+import { Language } from 'refly-icons';
 
 function Header() {
   const navigate = useNavigate();
@@ -79,8 +80,8 @@ function Header() {
 
   const tabOptions = [
     {
-      label: t('landingPage.tab.product'),
-      value: 'product',
+      label: t('landingPage.tab.home'),
+      value: 'home',
     },
     {
       label: t('landingPage.tab.price'),
@@ -138,11 +139,11 @@ function Header() {
             <Button
               type="text"
               key={item.value}
-              className={`${value === item.value ? 'font-semibold text-[#00968f]' : ''} px-2`}
+              className={`${value === item.value ? 'font-semibold text-refly-primary-default' : ''} px-2`}
               onClick={() => {
                 if (['community', 'docs', 'gallery'].includes(item.value)) return;
                 switch (item.value) {
-                  case 'product':
+                  case 'home':
                     navigate('/');
                     break;
                   case 'pricing':
@@ -164,15 +165,19 @@ function Header() {
             size="middle"
             className="px-2 text-gray-600 hover:text-green-600 dark:text-gray-300 dark:hover:text-green-300 "
           >
-            <IconLanguage className="h-4 w-4" />
+            <Language size={16} />
             {t('language')}{' '}
-            <IconDown className="ml-1 transition-transform duration-200 group-hover:rotate-180" />
+            <IconDown
+              size={16}
+              className="ml-1 transition-transform duration-200 group-hover:rotate-180"
+            />
           </Button>
         </UILocaleList>
 
         <Button
-          color="default"
+          type="text"
           variant="filled"
+          className="border-solid border-[1px] border-refly-Card-Border"
           onClick={() => {
             window.open(EXTENSION_DOWNLOAD_LINK, '_blank');
           }}

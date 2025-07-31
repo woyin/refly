@@ -238,7 +238,7 @@ const NodeRenderer = memo(
             <div
               className={`p-6 bg-white rounded-lg flex flex-col items-center justify-center text-gray-400 ${
                 !isFullscreen ? 'h-[400px]' : 'h-full'
-              } shadow-md ${isMinimap ? 'p-2 h-full' : ''}`}
+              } shadow-refly-m ${isMinimap ? 'p-2 h-full' : ''}`}
             >
               <div className={`${isMinimap ? 'text-xs' : 'text-lg'}`}>
                 {isMinimap

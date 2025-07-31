@@ -130,7 +130,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       >
         <Title />
 
-        <div className="w-full rounded-[12px] shadow-md overflow-hidden border-[1px] border border-solid border-refly-primary-default">
+        <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border-[1px] border border-solid border-refly-primary-default">
           <div className="p-4">
             {selectedSkill && (
               <div className="flex w-full justify-between">

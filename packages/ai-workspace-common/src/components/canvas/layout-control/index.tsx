@@ -315,7 +315,7 @@ export const LayoutControl: React.FC<LayoutControlProps> = memo(
 
     return (
       <>
-        <div className="absolute bottom-2 left-2.5 px-1 h-[32px] border-box flex items-center justify-center bg-white rounded-md shadow-md dark:bg-gray-900">
+        <div className="absolute bottom-2 left-2.5 px-1 h-[32px] border-box flex items-center justify-center bg-white rounded-md shadow-refly-m dark:bg-gray-900">
           <ZoomControls
             currentZoom={currentZoom}
             onZoomIn={handleZoomIn}

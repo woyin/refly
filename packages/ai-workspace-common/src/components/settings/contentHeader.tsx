@@ -27,9 +27,8 @@ export const ContentHeader = ({
     <div className="p-4 flex items-center justify-between border-solid border-[1px] border-x-0 border-t-0 border-refly-Card-Border">
       <Button
         type="text"
-        className={`flex items-center gap-2 ${onTitleClick ? 'cursor-pointer' : 'p-0'}`}
+        className={`flex items-center gap-2 ${onTitleClick ? 'cursor-pointer' : 'p-0 pointer-events-none'}`}
         onClick={onTitleClick}
-        disabled={!onTitleClick}
         icon={prefixIcon}
       >
         <div className="text-lg font-semibold text-refly-text-0 leading-7">{title}</div>

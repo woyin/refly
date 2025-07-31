@@ -121,7 +121,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
             placeholder={t('settings.modelProviders.searchPlaceholder')}
             value={filters.searchText}
             onChange={(e) => handleFiltersChange({ searchText: e.target.value })}
-            className="transition-all duration-200 focus:shadow-md"
+            className="transition-all duration-200 focus:shadow-refly-m"
           />
         </div>
 

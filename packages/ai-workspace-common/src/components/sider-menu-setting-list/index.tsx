@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { Dropdown } from 'antd';
+import { Button, Dropdown, Divider } from 'antd';
 import { LuMonitor } from 'react-icons/lu';
 import { useUserStore } from '@refly/stores';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
 import { EXTENSION_DOWNLOAD_LINK } from '@refly/utils/url';
 import { useThemeStoreShallow } from '@refly/stores';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SettingsModalActiveTab } from '@refly/stores';
 import {
   Settings,
@@ -21,6 +21,7 @@ import {
 import './index.scss';
 import React from 'react';
 import { TFunction } from 'i18next';
+import { useSubscriptionStoreShallow } from '@refly/stores';
 
 // Reusable dropdown item component
 const DropdownItem = React.memo(
@@ -38,15 +39,103 @@ const DropdownItem = React.memo(
   ),
 );
 
+// Subscription card component
+const SubscriptionCard = React.memo(
+  ({
+    planType,
+    creditBalance,
+    t,
+    setOpen,
+    handleSubscriptionClick,
+  }: {
+    planType: string;
+    creditBalance: number;
+    t: TFunction;
+    setOpen: (open: boolean) => void;
+    handleSubscriptionClick: () => void;
+  }) => {
+    const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
+      setSubscribeModalVisible: state.setSubscribeModalVisible,
+    }));
+
+    return (
+      <div className="subscription-card p-3 shadow-refly-m rounded-lg border-solid border-[1px] border-refly-Card-Border bg-refly-bg-float-z3">
+        <div className="flex items-center justify-between gap-2 text-refly-text-0 text-xs leading-4 font-semibold">
+          {planType === 'free'
+            ? t('subscription.subscriptionManagement.planNames.freePlan')
+            : t(`subscription.plans.${planType}.title`)}
+          {planType === 'free' && (
+            <Button
+              type="primary"
+              size="small"
+              className="h-5 py-0.5 px-2 text-xs leading-4"
+              onClick={() => {
+                setOpen(false);
+                setSubscribeModalVisible(true);
+              }}
+            >
+              {t('subscription.subscriptionManagement.upgradePlan')}
+            </Button>
+          )}
+        </div>
+        <Divider className="my-2" />
+        <div className="flex items-center justify-between gap-2 text-refly-text-0 text-xs leading-4">
+          <div className="flex items-center gap-1">
+            <Subscription size={14} />
+            {t('subscription.subscriptionManagement.remainingCredits')}
+          </div>
+          <Button
+            type="text"
+            size="small"
+            className="h-5 py-0.5 px-1 text-xs leading-4"
+            onClick={handleSubscriptionClick}
+          >
+            {creditBalance}
+            <ArrowRight size={12} />
+          </Button>
+        </div>
+      </div>
+    );
+  },
+);
+
+interface UserInfoProps {
+  nickname?: string;
+  email?: string;
+  t: TFunction;
+  handleSubscriptionClick: () => void;
+  setOpen: (open: boolean) => void;
+  creditBalance: number;
+}
+
 // User info component
-const UserInfo = React.memo(({ nickname, email }: { nickname?: string; email?: string }) => (
-  <div className="px-1.5 py-2">
-    <div className="text-sm font-semibold text-refly-text-0 leading-5 truncate">{nickname}</div>
-    <div className="text-xs text-refly-text-2 leading-4 truncate">
-      {email ?? 'No email provided'}
-    </div>
-  </div>
-));
+const UserInfo = React.memo(
+  ({ nickname, email, t, handleSubscriptionClick, setOpen, creditBalance }: UserInfoProps) => {
+    const { planType } = useSubscriptionStoreShallow((state) => ({
+      planType: state.planType,
+    }));
+
+    return (
+      <div className="py-2 flex flex-col gap-3">
+        <div>
+          <div className="text-sm font-semibold text-refly-text-0 leading-5 truncate">
+            {nickname}
+          </div>
+          <div className="text-xs text-refly-text-2 leading-4 truncate">
+            {email ?? 'No email provided'}
+          </div>
+        </div>
+        <SubscriptionCard
+          planType={planType}
+          creditBalance={creditBalance}
+          t={t}
+          setOpen={setOpen}
+          handleSubscriptionClick={handleSubscriptionClick}
+        />
+      </div>
+    );
+  },
+);
 
 // Theme appearance item component
 const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t: TFunction }) => (
@@ -59,12 +148,18 @@ const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t
   </div>
 ));
 
-export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
+interface SiderMenuSettingListProps {
+  creditBalance: number;
+  children: React.ReactNode;
+}
+
+export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
   const { t } = useTranslation();
   const userStore = useUserStore();
   // Check if user is logged in by checking if userProfile exists and has email
   const isLoggedIn = !!userStore?.userProfile?.email;
 
+  const [open, setOpen] = useState(false);
   const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
     setSettingsModalActiveTab: state.setSettingsModalActiveTab,
@@ -89,6 +184,7 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
   }, [setShowSettingModal]);
 
   const handleSubscriptionClick = useCallback(() => {
+    setOpen(false);
     setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
     setShowSettingModal(true);
   }, [setSettingsModalActiveTab, setShowSettingModal]);
@@ -169,15 +265,17 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
               <UserInfo
                 nickname={userStore?.userProfile?.nickname}
                 email={userStore?.userProfile?.email}
+                t={t}
+                handleSubscriptionClick={handleSubscriptionClick}
+                setOpen={setOpen}
+                creditBalance={props.creditBalance}
               />
             ),
             disabled: true,
           },
         ],
       },
-      {
-        type: 'divider' as const,
-      },
+
       {
         key: 'settings',
         label: (
@@ -186,15 +284,6 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
           </DropdownItem>
         ),
         onClick: handleSettingsClick,
-      },
-      {
-        key: 'subscription',
-        label: (
-          <DropdownItem icon={<Subscription size={18} />}>
-            {t('loggedHomePage.siderMenu.subscription')}
-          </DropdownItem>
-        ),
-        onClick: handleSubscriptionClick,
       },
       {
         key: 'appearance',
@@ -238,7 +327,6 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
       userStore?.userProfile?.email,
       t,
       handleSettingsClick,
-      handleSubscriptionClick,
       themeMode,
       themeDropdownItems,
       handleContactUsClick,
@@ -255,6 +343,8 @@ export const SiderMenuSettingList = (props: { children: React.ReactNode }) => {
         placement="bottom"
         overlayClassName="sider-menu-setting-list-dropdown"
         arrow={false}
+        open={open}
+        onOpenChange={setOpen}
         align={{
           offset: [0, 10],
         }}

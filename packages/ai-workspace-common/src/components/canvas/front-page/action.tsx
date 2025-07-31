@@ -152,7 +152,7 @@ export const Actions = memo(
             <Button
               type="primary"
               disabled={!canSendMessage}
-              className="flex items-center !h-9 !w-9 rounded-full"
+              className="flex items-center !h-9 !w-9 rounded-full border-none"
               onClick={handleSend}
               loading={loading}
               icon={<Send size={20} />}
