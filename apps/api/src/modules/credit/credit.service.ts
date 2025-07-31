@@ -81,33 +81,46 @@ export class CreditService {
         },
       });
 
-      if (!subscription) {
-        return; // No active subscription, no gift credits
-      }
-
       // Step 3: Find plan quota for daily gift credit amount
       let plan: any = null;
-      if (subscription.overridePlan) {
-        const overridePlan = safeParseJSON(subscription.overridePlan);
-        if (
-          overridePlan &&
-          typeof overridePlan.dailyGiftCreditQuota === 'number' &&
-          overridePlan.dailyGiftCreditQuota > 0
-        ) {
-          plan = overridePlan;
-        }
-      }
 
-      if (!plan) {
-        const subscriptionPlan = await this.prisma.subscriptionPlan.findFirst({
+      if (subscription) {
+        // User has active subscription, check override plan first
+        if (subscription.overridePlan) {
+          const overridePlan = safeParseJSON(subscription.overridePlan);
+          if (
+            overridePlan &&
+            typeof overridePlan.dailyGiftCreditQuota === 'number' &&
+            overridePlan.dailyGiftCreditQuota > 0
+          ) {
+            plan = overridePlan;
+          }
+        }
+
+        if (!plan) {
+          const subscriptionPlan = await this.prisma.subscriptionPlan.findFirst({
+            where: {
+              planType: subscription.planType,
+              interval: subscription.interval,
+            },
+          });
+          if (subscriptionPlan && subscriptionPlan.dailyGiftCreditQuota > 0) {
+            plan = {
+              dailyGiftCreditQuota: subscriptionPlan.dailyGiftCreditQuota,
+            };
+          }
+        }
+      } else {
+        // Free user without subscription, check for free plan
+        const freePlan = await this.prisma.subscriptionPlan.findFirst({
           where: {
-            planType: subscription.planType,
-            interval: subscription.interval,
+            planType: 'free',
+            interval: null,
           },
         });
-        if (subscriptionPlan && subscriptionPlan.dailyGiftCreditQuota > 0) {
+        if (freePlan && freePlan.dailyGiftCreditQuota > 0) {
           plan = {
-            dailyGiftCreditQuota: subscriptionPlan.dailyGiftCreditQuota,
+            dailyGiftCreditQuota: freePlan.dailyGiftCreditQuota,
           };
         }
       }
@@ -134,7 +147,7 @@ export class CreditService {
           balance: plan.dailyGiftCreditQuota,
           enabled: true,
           source: 'gift',
-          description: `Daily gift credit recharge for plan ${subscription.planType}`,
+          description: `Daily gift credit recharge for plan ${subscription?.planType ?? 'free'}`,
           createdAt: createdAt,
           updatedAt: now, // Use current time for updatedAt
           expiresAt: expiresAt,
