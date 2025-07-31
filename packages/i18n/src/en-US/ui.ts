@@ -639,7 +639,7 @@ const translations = {
       title: 'Plans and Pricing',
       subtitle: 'Embark on your AI content creation journey with Refly',
       description:
-        'Sign up and enjoy a unlimited trial with 50 standard model calls per day. No credit card required.',
+        'One-click registration, instantly access top-tier AI models, no configuration required, no credit card needed, unlimited creation.',
       limitedOffer:
         'Now 50% off forever with annual subscription! Price adjustment and unlimited plan discontinuation on March 16th, 00:00 UTC',
     },
