@@ -459,8 +459,23 @@ export class CreditService {
     });
   }
 
-  async getCreditRecharge(user: User): Promise<CreditRecharge[]> {
+  async getCreditRecharge(
+    user: User,
+    pagination?: { page: number; pageSize: number },
+  ): Promise<{ data: CreditRecharge[]; total: number; page: number; pageSize: number }> {
     await this.lazyLoadDailyGiftCredits(user.uid);
+
+    const { page = 1, pageSize = 20 } = pagination ?? {};
+    const skip = (page - 1) * pageSize;
+
+    // Get total count
+    const total = await this.prisma.creditRecharge.count({
+      where: {
+        uid: user.uid,
+      },
+    });
+
+    // Get paginated records
     const records = await this.prisma.creditRecharge.findMany({
       where: {
         uid: user.uid,
@@ -480,8 +495,11 @@ export class CreditService {
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take: pageSize,
     });
-    return records.map((record) => ({
+
+    const data = records.map((record) => ({
       ...record,
       amount: Number(record.amount), // Convert BigInt to number
       balance: Number(record.balance), // Convert BigInt to number
@@ -490,9 +508,30 @@ export class CreditService {
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     }));
+
+    return {
+      data,
+      total,
+      page,
+      pageSize,
+    };
   }
 
-  async getCreditUsage(user: User): Promise<CreditUsage[]> {
+  async getCreditUsage(
+    user: User,
+    pagination?: { page: number; pageSize: number },
+  ): Promise<{ data: CreditUsage[]; total: number; page: number; pageSize: number }> {
+    const { page = 1, pageSize = 20 } = pagination ?? {};
+    const skip = (page - 1) * pageSize;
+
+    // Get total count
+    const total = await this.prisma.creditUsage.count({
+      where: {
+        uid: user.uid,
+      },
+    });
+
+    // Get paginated records
     const records = await this.prisma.creditUsage.findMany({
       where: {
         uid: user.uid,
@@ -512,8 +551,11 @@ export class CreditService {
       orderBy: {
         createdAt: 'desc', // Order by creation time, newest first
       },
+      skip,
+      take: pageSize,
     });
-    return records.map((record) => ({
+
+    const data = records.map((record) => ({
       ...record,
       amount: Number(record.amount), // Convert BigInt to number
       usageType: record.usageType as
@@ -524,6 +566,13 @@ export class CreditService {
         | 'other',
       createdAt: record.createdAt.toISOString(),
     }));
+
+    return {
+      data,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async getCreditBalance(user: User): Promise<CreditBalance> {

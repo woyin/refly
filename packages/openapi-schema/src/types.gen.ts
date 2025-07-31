@@ -4092,16 +4092,50 @@ export type CreatePortalSessionResponse = BaseResponse & {
 
 export type GetCreditRechargeResponse = BaseResponse & {
   /**
-   * Credit recharge list
+   * Credit recharge data with pagination
    */
-  data?: Array<CreditRecharge>;
+  data?: {
+    /**
+     * Credit recharge list
+     */
+    data?: Array<CreditRecharge>;
+    /**
+     * Total number of records
+     */
+    total?: number;
+    /**
+     * Current page number
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
 };
 
 export type GetCreditUsageResponse = BaseResponse & {
   /**
-   * Credit usage list
+   * Credit usage data with pagination
    */
-  data?: Array<CreditUsage>;
+  data?: {
+    /**
+     * Credit usage list
+     */
+    data?: Array<CreditUsage>;
+    /**
+     * Total number of records
+     */
+    total?: number;
+    /**
+     * Current page number
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
 };
 
 export type getCreditBalanceResponse = BaseResponse & {
@@ -6458,9 +6492,35 @@ export type CheckSettingsFieldResponse2 = CheckSettingsFieldResponse;
 
 export type CheckSettingsFieldError = unknown;
 
+export type GetCreditRechargeData = {
+  query?: {
+    /**
+     * Page number (1-based)
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
+};
+
 export type GetCreditRechargeResponse2 = GetCreditRechargeResponse;
 
 export type GetCreditRechargeError = unknown;
+
+export type GetCreditUsageData = {
+  query?: {
+    /**
+     * Page number (1-based)
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
+};
 
 export type GetCreditUsageResponse2 = GetCreditUsageResponse;
 

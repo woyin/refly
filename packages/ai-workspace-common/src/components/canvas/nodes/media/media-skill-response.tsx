@@ -33,6 +33,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import {
   nodeActionEmitter,
   createNodeEventName,
+  cleanupNodeEvents,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
@@ -279,17 +280,25 @@ const MediaSkillResponseNode = memo(
       t,
     ]);
 
-    const handleDelete = useCallback(() => {
-      if (resultId) {
-        stopPolling(resultId);
-      }
-      deleteNode({
-        id,
-        type: 'mediaSkillResponse',
-        data,
-        position: { x: 0, y: 0 },
-      } as unknown as CanvasNode);
-    }, [id, data, resultId, stopPolling, deleteNode]);
+    const handleDelete = useCallback(
+      (e?: React.MouseEvent) => {
+        // Prevent event bubbling to avoid conflicts
+        e?.preventDefault();
+        e?.stopPropagation();
+
+        if (resultId) {
+          stopPolling(resultId);
+        }
+
+        deleteNode({
+          id,
+          type: 'mediaSkillResponse',
+          data,
+          position: { x: 0, y: 0 },
+        } as unknown as CanvasNode);
+      },
+      [id, data, resultId, stopPolling, deleteNode],
+    );
 
     const safeContainerStyle = useMemo(() => {
       const style = { ...containerStyle };
@@ -309,6 +318,8 @@ const MediaSkillResponseNode = memo(
       return () => {
         nodeActionEmitter.off(createNodeEventName(id, 'rerun'), handleNodeRerun);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
+        // Clean up all node events to prevent conflicts
+        cleanupNodeEvents(id);
       };
     }, [id, handleRetry, handleDelete]);
 
@@ -445,7 +456,7 @@ const MediaSkillResponseNode = memo(
                       >
                         {t('common.retry', 'Retry')}
                       </Button>
-                      <Button size="small" onClick={handleDelete}>
+                      <Button size="small" onClick={(e) => handleDelete(e)}>
                         {t('common.delete', 'Delete')}
                       </Button>
                     </div>

@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Button, Dropdown, Divider } from 'antd';
-import { LuMonitor } from 'react-icons/lu';
 import { useUserStore } from '@refly/stores';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
@@ -17,6 +16,7 @@ import {
   Cuttools,
   Contact,
   Exit,
+  Parse,
 } from 'refly-icons';
 import './index.scss';
 import React from 'react';
@@ -224,7 +224,7 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
       {
         key: 'system',
         label: t('settings.appearance.systemMode'),
-        icon: <LuMonitor size={14} />,
+        icon: <Parse size={18} />,
         active: themeMode === 'system',
       },
     ],

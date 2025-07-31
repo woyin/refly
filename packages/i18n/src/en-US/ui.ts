@@ -3072,6 +3072,9 @@ const translations = {
       knowledgeBaseFiles: 'Knowledge Base Files',
       creditUsageDetails: 'Credit Usage Details',
       creditRechargeDetails: 'Credit Recharge Details',
+      pagination: {
+        totalItems: '{{start}}-{{end}} of {{total}} items',
+      },
       usageDetails: 'Usage Details',
       usageTime: 'Usage Time',
       creditChange: 'Credit Change',

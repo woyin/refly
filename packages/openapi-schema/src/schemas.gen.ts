@@ -5873,10 +5873,28 @@ export const GetCreditRechargeResponseSchema = {
       type: 'object',
       properties: {
         data: {
-          type: 'array',
-          description: 'Credit recharge list',
-          items: {
-            $ref: '#/components/schemas/CreditRecharge',
+          type: 'object',
+          description: 'Credit recharge data with pagination',
+          properties: {
+            data: {
+              type: 'array',
+              description: 'Credit recharge list',
+              items: {
+                $ref: '#/components/schemas/CreditRecharge',
+              },
+            },
+            total: {
+              type: 'integer',
+              description: 'Total number of records',
+            },
+            page: {
+              type: 'integer',
+              description: 'Current page number',
+            },
+            pageSize: {
+              type: 'integer',
+              description: 'Number of items per page',
+            },
           },
         },
       },
@@ -5893,10 +5911,28 @@ export const GetCreditUsageResponseSchema = {
       type: 'object',
       properties: {
         data: {
-          type: 'array',
-          description: 'Credit usage list',
-          items: {
-            $ref: '#/components/schemas/CreditUsage',
+          type: 'object',
+          description: 'Credit usage data with pagination',
+          properties: {
+            data: {
+              type: 'array',
+              description: 'Credit usage list',
+              items: {
+                $ref: '#/components/schemas/CreditUsage',
+              },
+            },
+            total: {
+              type: 'integer',
+              description: 'Total number of records',
+            },
+            page: {
+              type: 'integer',
+              description: 'Current page number',
+            },
+            pageSize: {
+              type: 'integer',
+              description: 'Number of items per page',
+            },
           },
         },
       },

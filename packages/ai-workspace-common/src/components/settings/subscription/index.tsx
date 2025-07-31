@@ -42,6 +42,12 @@ interface CreditRechargeRecord {
   enabled: boolean;
 }
 
+// Define pagination interface
+interface PaginationState {
+  page: number;
+  pageSize: number;
+}
+
 const filesPlanMap = { free: 100, starter: 200, maker: 500 };
 
 export const Subscription = () => {
@@ -52,6 +58,16 @@ export const Subscription = () => {
 
   // State to hold the subscription data for display, defaults to real data
   const [displaySubscription, setDisplaySubscription] = useState(userProfile?.subscription);
+
+  // Pagination state
+  const [usagePagination, setUsagePagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: 10,
+  });
+  const [rechargePagination, setRechargePagination] = useState<PaginationState>({
+    page: 1,
+    pageSize: 10,
+  });
 
   // Update display subscription when real subscription data changes
   useEffect(() => {
@@ -80,25 +96,57 @@ export const Subscription = () => {
   // State for active history tab
   const [activeTab, setActiveTab] = useState<'usage' | 'recharge'>('usage');
 
-  // Fetch credit history data - preload both types of data
-  const { data: usageData, isLoading: isUsageHistoryLoading } = useGetCreditUsage(
-    {},
-    [],
-    // @ts-ignore
-    { enabled: true }, // Always load usage data regardless of active tab
+  // Fetch credit history data with pagination
+  const {
+    data: usageData,
+    isLoading: isUsageHistoryLoading,
+    error: usageError,
+    refetch: refetchUsage,
+  } = useGetCreditUsage(
+    {
+      query: {
+        page: usagePagination.page,
+        pageSize: usagePagination.pageSize,
+      },
+    },
+    [usagePagination.page, usagePagination.pageSize],
+    { enabled: true },
   );
-  const { data: rechargeData, isLoading: isRechargeHistoryLoading } = useGetCreditRecharge(
-    {},
-    [],
-    // @ts-ignore
-    { enabled: true }, // Always load recharge data regardless of active tab
+  const {
+    data: rechargeData,
+    isLoading: isRechargeHistoryLoading,
+    error: rechargeError,
+    refetch: refetchRecharge,
+  } = useGetCreditRecharge(
+    {
+      query: {
+        page: rechargePagination.page,
+        pageSize: rechargePagination.pageSize,
+      },
+    },
+    [rechargePagination.page, rechargePagination.pageSize],
+    { enabled: true },
   );
 
-  // Only show loading state during initial data loading, not when switching tabs
-  const isHistoryLoading =
+  // Separate initial loading from pagination loading
+  const isInitialLoading = isBalanceLoading || isUsageLoading;
+  const isPaginationLoading =
     (activeTab === 'usage' && isUsageHistoryLoading) ||
     (activeTab === 'recharge' && isRechargeHistoryLoading);
-  const isLoading = isBalanceLoading || isHistoryLoading || isUsageLoading;
+  const isLoading = isInitialLoading || isPaginationLoading;
+
+  // Error handling
+  const currentError = activeTab === 'usage' ? usageError : rechargeError;
+  const currentRefetch = activeTab === 'usage' ? refetchUsage : refetchRecharge;
+
+  // Reset pagination when switching tabs
+  useEffect(() => {
+    if (activeTab === 'usage') {
+      setUsagePagination({ page: 1, pageSize: 10 });
+    } else {
+      setRechargePagination({ page: 1, pageSize: 10 });
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (displaySubscription?.planType) {
@@ -123,6 +171,31 @@ export const Subscription = () => {
       setPortalLoading(false);
     }
   };
+
+  // Handle pagination change for usage table
+  const handleUsagePaginationChange = useCallback(
+    (page: number, pageSize: number) => {
+      if (isUsageHistoryLoading) return; // Prevent multiple clicks during loading
+      setUsagePagination({ page, pageSize });
+    },
+    [isUsageHistoryLoading],
+  );
+
+  // Handle pagination change for recharge table
+  const handleRechargePaginationChange = useCallback(
+    (page: number, pageSize: number) => {
+      if (isRechargeHistoryLoading) return; // Prevent multiple clicks during loading
+      setRechargePagination({ page, pageSize });
+    },
+    [isRechargeHistoryLoading],
+  );
+
+  // Get current data and pagination info
+  const currentData = activeTab === 'usage' ? usageData?.data : rechargeData?.data;
+  const currentPagination = activeTab === 'usage' ? usagePagination : rechargePagination;
+  const currentTotal = currentData?.total ?? 0;
+  // Keep current records during pagination loading to avoid flickering
+  const currentRecords = currentData?.data ?? [];
 
   // Columns for Usage History Table
   const usageColumns: ColumnsType<CreditUsageRecord> = [
@@ -356,18 +429,50 @@ export const Subscription = () => {
                   className="history-tabs"
                   size="large"
                 />
-                <Spin spinning={isHistoryLoading}>
+                {currentError ? (
+                  <div className="error-container p-4 text-center">
+                    <div className="text-red-500 mb-2">
+                      {t('common.error')}:{' '}
+                      {(currentError as any)?.message || t('common.unknownError')}
+                    </div>
+                    <Button
+                      type="primary"
+                      onClick={() => currentRefetch()}
+                      className="retry-button"
+                    >
+                      {t('common.retry')}
+                    </Button>
+                  </div>
+                ) : (
                   <Table<any>
                     columns={activeTab === 'usage' ? usageColumns : rechargeColumns}
-                    dataSource={
-                      activeTab === 'usage' ? usageData?.data || [] : rechargeData?.data || []
-                    }
+                    dataSource={currentRecords}
                     rowKey={activeTab === 'usage' ? 'usageId' : 'rechargeId'}
-                    pagination={{ showSizeChanger: false }}
+                    pagination={
+                      currentTotal > currentPagination.pageSize
+                        ? {
+                            current: currentPagination.page,
+                            pageSize: currentPagination.pageSize,
+                            total: currentTotal,
+                            showSizeChanger: false,
+                            showQuickJumper: false,
+                            showTotal: (total, range) =>
+                              t('subscription.subscriptionManagement.pagination.totalItems', {
+                                start: range[0],
+                                end: range[1],
+                                total,
+                              }),
+                            onChange:
+                              activeTab === 'usage'
+                                ? handleUsagePaginationChange
+                                : handleRechargePaginationChange,
+                          }
+                        : false
+                    }
                     className="history-table"
                     bordered={false}
                   />
-                </Spin>
+                )}
               </div>
             </>
           )}
