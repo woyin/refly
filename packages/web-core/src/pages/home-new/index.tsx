@@ -87,7 +87,7 @@ const UnsignedFrontPage = memo(() => {
           >
             <Title />
 
-            <div className="w-full backdrop-blur-sm rounded-lg shadow-sm ring-1 ring-gray-200 mx-2 dark:ring-gray-600">
+            <div className="w-full rounded-[12px] shadow-md overflow-hidden border-[1px] border border-solid border-refly-primary-default bg-refly-bg-content-z2">
               <div className="p-4">
                 {selectedSkill && (
                   <div className="flex w-full justify-between">
@@ -168,7 +168,7 @@ const UnsignedFrontPage = memo(() => {
 
             {canvasTemplateEnabled && (
               <div className="h-full flex flex-col mt-10">
-                <div className="flex justify-between items-center pt-6 mx-2">
+                <div className="flex justify-between items-center mx-2">
                   <div>
                     <h3 className="text-base font-medium dark:text-gray-100">
                       {t('frontPage.fromCommunity')}
