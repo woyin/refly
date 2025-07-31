@@ -31,7 +31,7 @@ interface TopToolbarProps {
 
 const ToolContainer = memo(({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="h-12 box-border p-2 flex items-center gap-2 relative z-10 bg-refly-bg-content-z2 rounded-xl border-[1px] border-solid border-refly-Card-Border shadow-md">
+    <div className="h-12 box-border p-2 flex items-center gap-2 relative z-10 bg-refly-bg-content-z2 rounded-xl border-[1px] border-solid border-refly-Card-Border shadow-refly-m">
       {children}
     </div>
   );

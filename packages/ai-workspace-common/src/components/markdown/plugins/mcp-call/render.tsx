@@ -421,7 +421,7 @@ const MCPCall: React.FC<MCPCallProps> = (props) => {
 
   return (
     <>
-      <div className="my-3 rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 text-black dark:text-gray-100 font-mono shadow-md">
+      <div className="my-3 rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 text-black dark:text-gray-100 font-mono shadow-refly-m">
         {/* Header bar */}
         <div
           className="flex items-center px-4 py-2 cursor-pointer select-none bg-gray-50 dark:bg-gray-700 min-h-[44px]"
@@ -490,7 +490,7 @@ const MCPCall: React.FC<MCPCallProps> = (props) => {
             <img
               src={imageUrl}
               alt={imageName}
-              className="max-w-full h-auto rounded-md shadow-md max-h-[300px]"
+              className="max-w-full h-auto rounded-md shadow-refly-m max-h-[300px]"
               onClick={() => {
                 setPreviewImageUrl(imageUrl);
                 setIsPreviewModalVisible(true);

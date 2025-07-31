@@ -310,7 +310,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
 
         {/* Action buttons - show in both readonly and edit modes */}
         {isHovered && (
-          <div className="absolute -bottom-9 left-1/2 flex -translate-x-1/2 space-x-1 rounded-md bg-white p-1 shadow-md z-10">
+          <div className="absolute -bottom-9 left-1/2 flex -translate-x-1/2 space-x-1 rounded-md bg-white p-1 shadow-refly-m z-10">
             {/* Copy button - always available */}
             <Button
               type="text"

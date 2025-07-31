@@ -82,7 +82,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({
                   type="default"
                   icon={<UnorderedListOutlined />}
                   onClick={toggleMinimap}
-                  className="bg-white shadow-md rounded-r-md border-l-0 h-8 hover:bg-gray-50 border border-gray-200 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950"
+                  className="bg-white shadow-refly-m rounded-r-md border-l-0 h-8 hover:bg-gray-50 border border-gray-200 dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950"
                   style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                 />
               </Tooltip>

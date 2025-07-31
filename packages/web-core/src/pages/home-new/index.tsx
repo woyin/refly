@@ -82,7 +82,7 @@ const UnsignedFrontPage = memo(() => {
           <div className={cn('p-6 max-w-4xl mx-auto z-10')}>
             <Title />
 
-            <div className="w-full rounded-[12px] shadow-md overflow-hidden border-[1px] border border-solid border-refly-primary-default bg-refly-bg-content-z2">
+            <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border-[1px] border border-solid border-refly-primary-default bg-refly-bg-content-z2">
               <div className="p-4">
                 {selectedSkill && (
                   <div className="flex w-full justify-between">

@@ -244,7 +244,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
           },
           nodeType === 'memo'
             ? 'block !py-0 gap-0 h-8'
-            : '-right-1 -top-11 -left-1 -right-1 -bottom-1 -z-1 rounded-[20px] bg-refly-bg-control-z0 border-[1px] border-solid border-refly-Card-Border absolute gap-1 shadow-md transition-opacity duration-200',
+            : '-right-1 -top-11 -left-1 -right-1 -bottom-1 -z-1 rounded-[20px] bg-refly-bg-control-z0 border-[1px] border-solid border-refly-Card-Border absolute gap-1 shadow-refly-m transition-opacity duration-200',
         )}
         ref={buttonContainerRef}
       >

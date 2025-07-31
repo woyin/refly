@@ -84,7 +84,7 @@ export const SessionChat = ({ canvasId }: { canvasId: string }) => {
           <Button
             size="small"
             type="default"
-            className="text-[11px] flex items-center gap-1 h-5 font-medium border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:border-red-700 dark:hover:text-red-300 dark:bg-red-950/20 dark:hover:bg-red-900/30 shadow-sm hover:shadow-md transition-all duration-200"
+            className="text-[11px] flex items-center gap-1 h-5 font-medium border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:border-red-700 dark:hover:text-red-300 dark:bg-red-950/20 dark:hover:bg-red-900/30 shadow-sm hover:shadow-refly-m transition-all duration-200"
             onClick={handleAbort}
           >
             <span>{t('copilot.chatActions.stop')}</span>
