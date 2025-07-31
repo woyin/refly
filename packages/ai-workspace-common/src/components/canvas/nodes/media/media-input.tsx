@@ -11,6 +11,7 @@ import { useChatStoreShallow } from '@refly/stores';
 import { useFrontPageStoreShallow } from '@refly/stores';
 import { MediaModelSelector } from './media-model-selector';
 import { ProviderItem } from '@refly/openapi-schema';
+import { type MediaQueryData } from '@refly/stores';
 
 const { TextArea } = Input;
 
@@ -105,11 +106,11 @@ const MediaChatInput = memo(
           // Check if there's no canvas open
           if (!isCanvasOpen) {
             // Create a new canvas first
-            const mediaQueryData = {
-              providerKey: selectedModel?.provider?.providerKey,
+            const mediaQueryData: MediaQueryData = {
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',
+              providerItemId: selectedModel?.itemId,
             };
             setMediaQueryData(mediaQueryData);
             debouncedCreateCanvas('front-page', { isMediaGeneration: true });
@@ -118,7 +119,6 @@ const MediaChatInput = memo(
               providerItemId: selectedModel?.itemId,
               targetType: 'canvas',
               targetId: canvasId,
-              providerKey: selectedModel?.provider?.providerKey,
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',

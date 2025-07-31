@@ -5,6 +5,7 @@ import {
   useChatStoreShallow,
   usePilotStoreShallow,
   useCanvasStoreShallow,
+  type MediaQueryData,
 } from '@refly/stores';
 import { genActionResultID } from '@refly/utils/id';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
@@ -55,7 +56,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
     runtimeConfig: SkillRuntimeConfig;
     isPilotActivated?: boolean;
     isMediaGeneration?: boolean;
-    mediaQueryData?: any;
+    mediaQueryData?: MediaQueryData;
   } | null>(null);
 
   // Store parameters needed for actions when URL parameters are processed
@@ -134,12 +135,11 @@ export const useCanvasInitialActions = (canvasId: string) => {
           return;
         }
 
-        const { mediaType, query, model, providerKey } = pendingMediaQueryData;
+        const { mediaType, query, model, providerItemId } = pendingMediaQueryData;
         nodeOperationsEmitter.emit('generateMedia', {
-          providerItemId: modelInfo.providerItemId,
+          providerItemId,
           targetType: 'canvas',
           targetId: canvasId,
-          providerKey,
           mediaType: mediaType,
           query: query,
           model: model,

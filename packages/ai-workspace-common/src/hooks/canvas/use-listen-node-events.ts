@@ -148,7 +148,6 @@ export const useListenNodeOperationEvents = () => {
   const handleGenerateMedia = useCallback(
     async ({
       providerItemId,
-      providerKey,
       mediaType,
       query,
       model,
@@ -193,7 +192,6 @@ export const useListenNodeOperationEvents = () => {
           body: {
             prompt: query,
             mediaType,
-            provider: providerKey,
             model,
             providerItemId,
             targetType,

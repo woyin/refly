@@ -5470,8 +5470,9 @@ export const MediaGenerateRequestSchema = {
     },
     provider: {
       type: 'string',
-      description: 'Optional provider selection',
+      description: 'Optional provider selection (use providerItemId instead)',
       nullable: true,
+      deprecated: true,
     },
     prompt: {
       type: 'string',

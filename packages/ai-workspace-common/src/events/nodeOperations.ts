@@ -38,7 +38,6 @@ export type Events = {
   };
   generateMedia: {
     providerItemId: string;
-    providerKey: string;
     mediaType: MediaType;
     targetType: EntityType;
     targetId: string;

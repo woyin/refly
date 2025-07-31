@@ -3826,7 +3826,8 @@ export type MediaGenerateRequest = {
    */
   providerItemId?: string;
   /**
-   * Optional provider selection
+   * Optional provider selection (use providerItemId instead)
+   * @deprecated
    */
   provider?: string | null;
   /**
