@@ -110,7 +110,6 @@ export const Subscription = () => {
       },
     },
     [usagePagination.page, usagePagination.pageSize],
-    // @ts-ignore
     { enabled: true },
   );
   const {
@@ -126,7 +125,6 @@ export const Subscription = () => {
       },
     },
     [rechargePagination.page, rechargePagination.pageSize],
-    // @ts-ignore
     { enabled: true },
   );
 
