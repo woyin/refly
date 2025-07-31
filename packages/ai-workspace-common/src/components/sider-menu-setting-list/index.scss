@@ -82,6 +82,15 @@
 
 }
 
+.theme-dropdown-submenu {
+  .ant-dropdown-menu-item-group-title {
+    display: none;
+  }
+  .ant-dropdown-menu-item-group-list {
+    margin: 0 0!important;
+  }
+}
+
 .subscription-card {
   background-image: url("../../assets/banner.svg");
   background-size: cover;

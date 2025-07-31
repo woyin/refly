@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Input, Button } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
+import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { cn } from '@refly/utils/cn';
@@ -241,18 +241,14 @@ const MediaChatInput = memo(
 
             <div className="flex items-center gap-2">
               <Button
-                className="text-xs"
+                className="flex items-center !h-9 !w-9 rounded-full border-none"
                 size="small"
                 type="primary"
-                icon={<SendOutlined />}
+                icon={<Send size={20} />}
                 onClick={handleSend}
                 disabled={loading || !query?.trim()}
                 loading={loading}
-              >
-                {loading
-                  ? t('common.generating', 'Generating...')
-                  : t(`canvas.nodes.mediaSkill.${currentMediaType}Generate`, 'Generate')}
-              </Button>
+              />
             </div>
           </div>
         )}
