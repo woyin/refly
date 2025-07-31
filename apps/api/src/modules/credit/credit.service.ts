@@ -180,6 +180,14 @@ export class CreditService {
     };
 
     try {
+      // Check if user is early bird and model is early bird free
+      const isEarlyBirdUser = await this.isEarlyBirdUser(user);
+      if (isEarlyBirdUser && creditBilling?.isEarlyBirdFree) {
+        result.canUse = true;
+        result.message = 'Early bird user with early bird model - direct access granted';
+        return result;
+      }
+
       // Lazy load daily gift credits
       await this.lazyLoadDailyGiftCredits(user.uid);
 
