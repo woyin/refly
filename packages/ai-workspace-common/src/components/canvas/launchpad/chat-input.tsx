@@ -365,7 +365,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
             onSelect={onSelect}
           >
             <TextArea
-              style={{ paddingLeft: 0, paddingRight: 0, height: '100%' }}
+              style={{ paddingLeft: 0, paddingRight: 0 }}
               ref={inputRef}
               autoFocus={!readonly}
               disabled={readonly}
@@ -386,16 +386,16 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
               )}
               placeholder={getPlaceholder(selectedSkillName)}
               autoSize={{
-                minRows: minRows ?? 1,
-                maxRows: maxRows ?? 6,
+                minRows: 1,
+                maxRows: 6,
               }}
               data-cy="chat-input"
             />
           </AutoComplete>
         ) : (
           <TextArea
-            style={{ paddingLeft: 0, paddingRight: 0, height: '100%' }}
             ref={inputRef}
+            style={{ paddingLeft: 0, paddingRight: 0 }}
             autoFocus={!readonly}
             disabled={readonly}
             onFocus={handleFocus}
