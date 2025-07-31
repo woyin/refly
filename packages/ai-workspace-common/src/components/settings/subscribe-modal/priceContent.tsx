@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { Row, Col, Tag } from 'antd';
 import { useTranslation } from 'react-i18next';
-
+import { logEvent } from '@refly/telemetry-web';
 // styles
 import './index.scss';
 import { Checked, Wait } from 'refly-icons';
@@ -125,6 +125,12 @@ const PlanItem = (props: {
 
   const handleButtonClick = () => {
     if (isButtonDisabled) return;
+
+    // Track subscription button click event
+    logEvent('subscription::price_table_click', 'settings', {
+      plan_type: planType,
+      interval: interval,
+    });
 
     if (isLogin) {
       handleClick?.();
