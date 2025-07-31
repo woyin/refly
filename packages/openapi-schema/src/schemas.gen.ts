@@ -2255,6 +2255,10 @@ export const SubscriptionSchema = {
       type: 'string',
       description: 'Subscription ID',
     },
+    lookupKey: {
+      type: 'string',
+      description: 'Subscription lookup key',
+    },
     planType: {
       type: 'string',
       description: 'Subscription plan type',

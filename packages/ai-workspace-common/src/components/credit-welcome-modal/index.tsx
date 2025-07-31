@@ -15,6 +15,8 @@ export const CreditWelcomeModal = () => {
     userProfile: state.userProfile,
   }));
 
+  const isEarlyBirdUser = userProfile?.subscription?.lookupKey === 'refly_max_yearly_limited_offer';
+
   const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
     setSubscribeModalVisible: state.setSubscribeModalVisible,
     setPlanType: state.setPlanType,
@@ -39,6 +41,9 @@ export const CreditWelcomeModal = () => {
 
   // Learn more button click handler
   const handleLearnMore = () => {
+    if (isEarlyBirdUser) {
+      // TODO: release note page
+    }
     // Can navigate to points system details page
     setSubscribeModalVisible(true);
     handleClose();
@@ -54,75 +59,153 @@ export const CreditWelcomeModal = () => {
       bodyStyle={{ padding: '20px 16px' }}
       maskClosable={false}
     >
-      <div className="flex flex-col items-start w-full p-0 dark:bg-[#1E1E1E] bg-white">
-        {/* Logo container */}
-        <div className="w-full flex justify-start mb-4">
-          <Logo />
-        </div>
+      {isEarlyBirdUser ? (
+        <div className="flex flex-col items-start w-full p-0 dark:bg-[#1E1E1E] bg-white">
+          {/* Logo container */}
+          <div className="w-full flex justify-start mb-4">
+            <Logo />
+          </div>
 
-        {/* Title section */}
-        <div
-          className="mt-[16px]
-        [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
-        >
-          {t('subscription.subscriptionManagement.creditsWelcome.title')}
-        </div>
-        <div
-          className="
-        [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
-        >
-          {t('subscription.subscriptionManagement.creditsWelcome.subtitle')}
-        </div>
+          {/* Title section */}
+          <div
+            className="mt-[16px]
+                [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+          >
+            {t('subscription.earlyBirdsWelcome.title')}
+          </div>
+          <div
+            className="
+                [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+          >
+            {t('subscription.earlyBirdsWelcome.subtitle')}
+          </div>
 
-        {/* Description text */}
-        <div
-          className=" mt-[8px]
-       [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
-        >
-          {t('subscription.subscriptionManagement.creditsWelcome.description1')}
-        </div>
-        <div
-          className="
-       [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
-        >
-          {t('subscription.subscriptionManagement.creditsWelcome.description2')}
-        </div>
+          {/* Description text */}
+          <div
+            className=" mt-[8px]
+               [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
+          >
+            {t('subscription.earlyBirdsWelcome.description1')}
+          </div>
+          <div
+            className="
+               [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5 mt-2"
+          >
+            {t('subscription.earlyBirdsWelcome.description2')}
+          </div>
+          <div
+            className="
+               [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5 mt-2"
+          >
+            {t('subscription.earlyBirdsWelcome.description3')}
+          </div>
 
-        {/* Divider */}
-        <div
-          className="w-full h-[1px] my-4 border-t border-dashed border-black/10 dark:border-white/10
-        flex flex-col items-start gap-4 self-stretch
-        "
-        />
+          {/* Divider */}
+          <div
+            className="w-full h-[1px] my-4 border-t border-dashed border-black/10 dark:border-white/10
+                flex flex-col items-start gap-4 self-stretch
+                "
+          />
 
-        <div
-          className="
+          <div
+            className="
+        self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal leading-[56px] tracking-[-2px]                  "
+          >
+            {t('subscription.earlyBirdsWelcome.slogan')}
+          </div>
+
+          {/* Button area */}
+          <div className="flex justify-center gap-4 w-full mt-[40px]">
+            <Button
+              onClick={handleClose}
+              className="
+                    flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center flex-[1_0_0] border-[color:var(--border---refly-Control-Border,rgba(0,0,0,0.14))] dark:border-gray-600 [background:var(--bg-control---refly-bg-control-z0,#F6F6F6)] dark:bg-gray-700 dark:text-white rounded-lg border-[0.5px] border-solid
+                    "
+            >
+              {t('subscription.earlyBirdsWelcome.gotIt')}
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleLearnMore}
+              className="
+                    flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center flex-[1_0_0] [background:var(--primary---refly-primary-default,#0E9F77)] dark:bg-[#0E9F77] dark:text-white rounded-lg
+                    "
+            >
+              {t('subscription.earlyBirdsWelcome.learnMore')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-start w-full p-0 dark:bg-[#1E1E1E] bg-white">
+          {/* Logo container */}
+          <div className="w-full flex justify-start mb-4">
+            <Logo />
+          </div>
+
+          {/* Title section */}
+          <div
+            className="mt-[16px]
+      [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+          >
+            {t('subscription.subscriptionManagement.creditsWelcome.title')}
+          </div>
+          <div
+            className="
+      [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+          >
+            {t('subscription.subscriptionManagement.creditsWelcome.subtitle')}
+          </div>
+
+          {/* Description text */}
+          <div
+            className=" mt-[8px]
+     [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
+          >
+            {t('subscription.subscriptionManagement.creditsWelcome.description1')}
+          </div>
+          <div
+            className="
+     [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
+          >
+            {t('subscription.subscriptionManagement.creditsWelcome.description2')}
+          </div>
+
+          {/* Divider */}
+          <div
+            className="w-full h-[1px] my-4 border-t border-dashed border-black/10 dark:border-white/10
+      flex flex-col items-start gap-4 self-stretch
+      "
+          />
+
+          <div
+            className="
 self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal leading-[56px] tracking-[-2px]                  "
-        >
-          {t('subscription.subscriptionManagement.creditsWelcome.slogan')}
-        </div>
+          >
+            {t('subscription.subscriptionManagement.creditsWelcome.slogan')}
+          </div>
 
-        {/* Button area */}
-        <div className="flex justify-center gap-4 w-full mt-[40px]">
-          <Button
-            onClick={handleClose}
-            className="
-            flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center flex-[1_0_0] border-[color:var(--border---refly-Control-Border,rgba(0,0,0,0.14))] dark:border-gray-600 [background:var(--bg-control---refly-bg-control-z0,#F6F6F6)] dark:bg-gray-700 dark:text-white rounded-lg border-[0.5px] border-solid
-            "
-          >
-            {t('subscription.subscriptionManagement.creditsWelcome.continueButton')}
-          </Button>
-          <Button
-            type="primary"
-            onClick={handleLearnMore}
-            className="
-            flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center flex-[1_0_0] [background:var(--primary---refly-primary-default,#0E9F77)] dark:bg-[#0E9F77] dark:text-white rounded-lg
-            "
-          >
-            {t('subscription.subscriptionManagement.creditsWelcome.learnMoreButton')}
-          </Button>
+          {/* Button area */}
+          <div className="flex justify-center gap-4 w-full mt-[40px]">
+            <Button
+              onClick={handleClose}
+              className="
+          flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center flex-[1_0_0] border-[color:var(--border---refly-Control-Border,rgba(0,0,0,0.14))] dark:border-gray-600 [background:var(--bg-control---refly-bg-control-z0,#F6F6F6)] dark:bg-gray-700 dark:text-white rounded-lg border-[0.5px] border-solid
+          "
+            >
+              {t('subscription.subscriptionManagement.creditsWelcome.continueButton')}
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleLearnMore}
+              className="
+          flex h-[var(--height-button\_default,32px)] [padding:var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingRight,12px)_var(--spacing-button\_default-paddingTop,6px)_var(--spacing-button\_default-paddingLeft,12px)] justify-center items-center flex-[1_0_0] [background:var(--primary---refly-primary-default,#0E9F77)] dark:bg-[#0E9F77] dark:text-white rounded-lg
+          "
+            >
+              {t('subscription.subscriptionManagement.creditsWelcome.learnMoreButton')}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </Modal>
   );
 };

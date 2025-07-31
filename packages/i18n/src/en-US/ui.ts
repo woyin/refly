@@ -2983,7 +2983,7 @@ const translations = {
       description2: "With the credit system online, you don't need to change any usage habits.",
       description3: 'Kimi, GPT-4.1, Gemini and other main models can still be used without limits.',
       slogan:
-        'Thank you for accompanying us on this journey. A new creative adventure begins with the credit era!',
+        'Thank you for your trust, may we journey together towards broader creative horizons!',
       gotIt: 'Got it',
       learnMore: 'Learn about my unlimited privileges',
     },
