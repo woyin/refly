@@ -6,11 +6,11 @@ import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo
 import { Button } from 'antd';
 
 // Local storage key for tracking if the modal has been shown
-const CREDITS_WELCOME_SHOWN_KEY = 'refly_credits_welcome_shown';
+const CREDITS_WELCOME_SHOWN_KEY = '__REFLY_CREDITS_WELCOME_SHOWN';
 
 export const CreditWelcomeModal = () => {
   const [visible, setVisible] = useState(false);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
@@ -26,7 +26,7 @@ export const CreditWelcomeModal = () => {
   useEffect(() => {
     // Check if user is logged in and if this is the first time showing the modal
     if (userProfile?.uid) {
-      const hasShown = localStorage.getItem(CREDITS_WELCOME_SHOWN_KEY + Math.random());
+      const hasShown = localStorage.getItem(CREDITS_WELCOME_SHOWN_KEY);
       if (!hasShown) {
         setVisible(true);
       }
@@ -108,8 +108,9 @@ export const CreditWelcomeModal = () => {
           />
 
           <div
-            className="
-        self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal leading-[56px] tracking-[-2px]                  "
+            className={`
+self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal ${i18n.language === 'en' || i18n.language.startsWith('en-') ? 'leading-[40px]' : 'leading-[56px]'} tracking-[-2px]                  
+`}
           >
             {t('subscription.earlyBirdsWelcome.slogan')}
           </div>
@@ -178,8 +179,9 @@ export const CreditWelcomeModal = () => {
           />
 
           <div
-            className="
-self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal leading-[56px] tracking-[-2px]                  "
+            className={`
+self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal ${i18n.language === 'en' || i18n.language.startsWith('en-') ? 'leading-[40px]' : 'leading-[56px]'} tracking-[-2px]                  
+`}
           >
             {t('subscription.subscriptionManagement.creditsWelcome.slogan')}
           </div>
