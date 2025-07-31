@@ -39,27 +39,82 @@ const DropdownItem = React.memo(
   ),
 );
 
-// User info component
-const UserInfo = React.memo(
+// Subscription card component
+const SubscriptionCard = React.memo(
   ({
-    nickname,
-    email,
-    t,
-    handleSubscriptionClick,
-    setOpen,
+    planType,
     creditBalance,
+    t,
+    setOpen,
+    handleSubscriptionClick,
   }: {
-    nickname?: string;
-    email?: string;
-    t: TFunction;
-    handleSubscriptionClick: () => void;
-    setOpen: (open: boolean) => void;
+    planType: string;
     creditBalance: number;
+    t: TFunction;
+    setOpen: (open: boolean) => void;
+    handleSubscriptionClick: () => void;
   }) => {
-    const { planType, setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
-      planType: state.planType,
+    const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
       setSubscribeModalVisible: state.setSubscribeModalVisible,
     }));
+
+    return (
+      <div className="subscription-card p-3 shadow-refly-m rounded-lg border-solid border-[1px] border-refly-Card-Border bg-refly-bg-float-z3">
+        <div className="flex items-center justify-between gap-2 text-refly-text-0 text-xs leading-4 font-semibold">
+          {planType === 'free'
+            ? t('subscription.subscriptionManagement.planNames.freePlan')
+            : t(`subscription.plans.${planType}.title`)}
+          {planType === 'free' && (
+            <Button
+              type="primary"
+              size="small"
+              className="h-5 py-0.5 px-2 text-xs leading-4"
+              onClick={() => {
+                setOpen(false);
+                setSubscribeModalVisible(true);
+              }}
+            >
+              {t('subscription.subscriptionManagement.upgradePlan')}
+            </Button>
+          )}
+        </div>
+        <Divider className="my-2" />
+        <div className="flex items-center justify-between gap-2 text-refly-text-0 text-xs leading-4">
+          <div className="flex items-center gap-1">
+            <Subscription size={14} />
+            {t('subscription.subscriptionManagement.remainingCredits')}
+          </div>
+          <Button
+            type="text"
+            size="small"
+            className="h-5 py-0.5 px-1 text-xs leading-4"
+            onClick={handleSubscriptionClick}
+          >
+            {creditBalance}
+            <ArrowRight size={12} />
+          </Button>
+        </div>
+      </div>
+    );
+  },
+);
+
+interface UserInfoProps {
+  nickname?: string;
+  email?: string;
+  t: TFunction;
+  handleSubscriptionClick: () => void;
+  setOpen: (open: boolean) => void;
+  creditBalance: number;
+}
+
+// User info component
+const UserInfo = React.memo(
+  ({ nickname, email, t, handleSubscriptionClick, setOpen, creditBalance }: UserInfoProps) => {
+    const { planType } = useSubscriptionStoreShallow((state) => ({
+      planType: state.planType,
+    }));
+
     return (
       <div className="py-2 flex flex-col gap-3">
         <div>
@@ -70,42 +125,13 @@ const UserInfo = React.memo(
             {email ?? 'No email provided'}
           </div>
         </div>
-        <div className="subscription-card p-3 shadow-refly-m rounded-lg border-solid border-[1px] border-refly-Card-Border bg-refly-bg-float-z3">
-          <div className="flex items-center justify-between gap-2 text-refly-text-0 text-xs leading-4 font-semibold">
-            {planType === 'free'
-              ? t('subscription.subscriptionManagement.planNames.freePlan')
-              : t(`subscription.plans.${planType}.title`)}
-            {planType === 'free' && (
-              <Button
-                type="primary"
-                size="small"
-                className="h-5 py-0.5 px-2 text-xs leading-4"
-                onClick={() => {
-                  setOpen(false);
-                  setSubscribeModalVisible(true);
-                }}
-              >
-                {t('subscription.subscriptionManagement.upgradePlan')}
-              </Button>
-            )}
-          </div>
-          <Divider className="my-2" />
-          <div className="flex items-center justify-between gap-2 text-refly-text-0 text-xs leading-4">
-            <div className="flex items-center gap-1">
-              <Subscription size={14} />
-              {t('subscription.subscriptionManagement.remainingCredits')}
-            </div>
-            <Button
-              type="text"
-              size="small"
-              className="h-5 py-0.5 px-1 text-xs leading-4"
-              onClick={handleSubscriptionClick}
-            >
-              {creditBalance}
-              <ArrowRight size={12} />
-            </Button>
-          </div>
-        </div>
+        <SubscriptionCard
+          planType={planType}
+          creditBalance={creditBalance}
+          t={t}
+          setOpen={setOpen}
+          handleSubscriptionClick={handleSubscriptionClick}
+        />
       </div>
     );
   },
@@ -122,10 +148,12 @@ const ThemeAppearanceItem = React.memo(({ themeMode, t }: { themeMode: string; t
   </div>
 ));
 
-export const SiderMenuSettingList = (props: {
+interface SiderMenuSettingListProps {
   creditBalance: number;
   children: React.ReactNode;
-}) => {
+}
+
+export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
   const { t } = useTranslation();
   const userStore = useUserStore();
   // Check if user is logged in by checking if userProfile exists and has email

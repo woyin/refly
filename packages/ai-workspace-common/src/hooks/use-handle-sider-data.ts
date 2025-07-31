@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSiderStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
@@ -30,6 +30,7 @@ export const useHandleSiderData = (initData?: boolean) => {
   const [isLoadingResource, setIsLoadingResource] = useState(false);
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const hasInitialized = useRef(false);
 
   const requestCanvasList = async () => {
     const { data: res, error } = await getClient().listCanvases({
@@ -152,13 +153,14 @@ export const useHandleSiderData = (initData?: boolean) => {
   };
 
   useEffect(() => {
-    if (initData) {
+    if (initData && !hasInitialized.current) {
+      hasInitialized.current = true;
       loadSiderData(true);
       if (projectId) {
         getSourceList();
       }
     }
-  }, []);
+  }, [initData, projectId]);
 
   return {
     loadSiderData,
