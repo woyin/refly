@@ -21,7 +21,7 @@ const GithubStarComponent = () => {
 
   return (
     <div
-      className="flex overflow-hidden gap-0.5 justify-center items-center self-stretch px-2 py-1 my-auto text-xs font-semibold leading-none text-center whitespace-nowrap bg-white rounded-xl border border-solid border-black border-opacity-10 text-zinc-900 cursor-pointer hover:bg-gray-100"
+      className="flex overflow-hidden gap-0.5 justify-center items-center self-stretch px-2 py-1 my-auto text-xs font-semibold leading-none text-center whitespace-nowrap bg-refly-bg-content-z2 rounded-xl border-[1px] border-solid border-refly-Card-Border text-refly-text-0 cursor-pointer hover:bg-refly-tertiary-hover"
       onClick={handleClick}
     >
       <Github size={14} />

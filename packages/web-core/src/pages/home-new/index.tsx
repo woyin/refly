@@ -79,12 +79,7 @@ const UnsignedFrontPage = memo(() => {
 
       <div className="w-full h-full pt-2 overflow-y-auto" id="front-page-scrollable-div">
         <div className={cn('relative w-full h-full')}>
-          <div
-            className={cn(
-              'p-6 max-w-4xl mx-auto z-10',
-              canvasTemplateEnabled ? '' : 'flex flex-col justify-center',
-            )}
-          >
+          <div className={cn('p-6 max-w-4xl mx-auto z-10')}>
             <Title />
 
             <div className="w-full rounded-[12px] shadow-md overflow-hidden border-[1px] border border-solid border-refly-primary-default bg-refly-bg-content-z2">

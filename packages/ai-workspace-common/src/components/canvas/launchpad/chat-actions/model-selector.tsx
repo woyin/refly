@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
-import { Button, Dropdown, DropdownProps, MenuProps, Skeleton, Tooltip } from 'antd';
+import { Button, Dropdown, DropdownProps, MenuProps, Skeleton, Tooltip, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { ModelIcon } from '@lobehub/icons';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
@@ -16,6 +16,7 @@ import './index.scss';
 import { useUserStoreShallow } from '@refly/stores';
 import { ArrowDown, Settings } from 'refly-icons';
 import cn from 'classnames';
+const { Paragraph } = Typography;
 
 interface ModelSelectorProps {
   model: ModelInfo | null;
@@ -32,7 +33,11 @@ const SelectedModelDisplay = memo(
     open,
     model,
     handleOpenSettingModal,
-  }: { open: boolean; model: ModelInfo | null; handleOpenSettingModal: () => void }) => {
+  }: {
+    open: boolean;
+    model: ModelInfo | null;
+    handleOpenSettingModal: () => void;
+  }) => {
     const { t } = useTranslation();
 
     if (!model) {
@@ -63,7 +68,12 @@ const SelectedModelDisplay = memo(
         )}
       >
         <ModelIcon model={model.name} type={'color'} size={16} />
-        <span className="truncate leading-5">{model.label}</span>
+        <Paragraph
+          className="truncate leading-5 max-w-28 !mb-0 text-sm"
+          ellipsis={{ rows: 1, tooltip: true }}
+        >
+          {model.label}
+        </Paragraph>
         <ArrowDown size={12} color="var(--refly-text-0)" className="flex-shrink-0" />
       </Button>
     );

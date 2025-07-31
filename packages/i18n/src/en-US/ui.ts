@@ -733,6 +733,7 @@ const translations = {
       passwordConfirmPlaceholder: 'Enter your new password again',
     },
     tab: {
+      home: 'Home',
       product: 'Product',
       price: 'Pricing',
       docs: 'Docs',
@@ -3056,6 +3057,7 @@ const translations = {
       changePlan: 'Change Plan',
       upgradePlan: 'Upgrade Plan',
       availableCredits: 'Available Credits',
+      remainingCredits: 'Credits',
       knowledgeBaseFiles: 'Knowledge Base Files',
       creditUsageDetails: 'Credit Usage Details',
       creditRechargeDetails: 'Credit Recharge Details',

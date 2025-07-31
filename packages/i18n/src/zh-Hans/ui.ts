@@ -17,6 +17,7 @@ const translations = {
       changePlan: '变更套餐',
       upgradePlan: '升级套餐',
       availableCredits: '剩余可用积分',
+      remainingCredits: '剩余积分',
       knowledgeBaseFiles: '知识库文件',
       creditUsageDetails: '积分使用明细',
       creditRechargeDetails: '积分获取明细',
@@ -638,6 +639,7 @@ const translations = {
       passwordConfirmPlaceholder: '请再次输入您的新密码',
     },
     tab: {
+      home: '首页',
       product: '产品',
       price: '价格',
       docs: '文档',
