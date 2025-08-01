@@ -44,8 +44,6 @@ select:focus {
   box-shadow: none;
 }
 
-
-
 .prose
   :where(blockquote p:first-of-type):not(
     :where([class~='not-prose'], [class~='not-prose'] *)
@@ -125,5 +123,3 @@ html,
 body {
   line-height: 1.5;
 }
-
-
