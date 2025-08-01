@@ -31,11 +31,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Handle http exceptions
     if (exception instanceof HttpException) {
-      this.logger.warn(
-        `Request: ${request.method} ${request.url} http exception: (${exception.getStatus()}) ${
-          exception.message
-        }, ` + `stack: ${exception.stack}`,
-      );
+      // Print warning logs for all exceptions except status 401
+      if (exception.getStatus() !== HttpStatus.UNAUTHORIZED) {
+        this.logger.warn(
+          `Request: ${request.method} ${request.url} http exception: (${exception.getStatus()}) ${
+            exception.message
+          }, ` + `stack: ${exception.stack}`,
+        );
+      }
 
       const status = exception.getStatus();
       response?.status(status).json(exception.getResponse());
