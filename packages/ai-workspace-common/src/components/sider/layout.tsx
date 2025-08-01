@@ -15,7 +15,7 @@ import {
 } from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
-import { useUserStoreShallow } from '@refly/stores';
+import { useSubscriptionStoreShallow, useUserStoreShallow } from '@refly/stores';
 // components
 import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
 import { useTranslation } from 'react-i18next';
@@ -137,18 +137,16 @@ const SettingItem = () => {
 
   const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
 
-  const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
-    setShowSettingModal: state.setShowSettingModal,
-    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+  const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
+    setSubscribeModalVisible: state.setSubscribeModalVisible,
   }));
 
   const handleSubscriptionClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
-      setShowSettingModal(true);
+      setSubscribeModalVisible(true);
     },
-    [setSettingsModalActiveTab, setShowSettingModal],
+    [setSubscribeModalVisible],
   );
 
   return (
@@ -182,7 +180,8 @@ const SettingItem = () => {
                 <span className="font-medium">{creditBalance}</span>
               </div>
 
-              {userProfile?.subscription?.planType === 'free' && (
+              {(!userProfile?.subscription?.planType ||
+                userProfile?.subscription?.planType === 'free') && (
                 <>
                   <Divider type="vertical" className="m-0" />
 

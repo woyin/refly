@@ -234,16 +234,19 @@
         padding: 2px 8px;
         min-height: unset;
         line-height: unset;
+        border-radius: 16px;
       }
 
       .ant-segmented-item-selected {
         background-color: #fff !important;
+        border-radius: 16px !important;
 
         .ant-segmented-item-label {
           color: var(--text-icon-refly-text-0, #1c1f23);
           text-align: center;
           font-size: 12px;
           font-weight: 600;
+          border-radius: 16px;
         }
       }
     }
@@ -362,15 +365,22 @@
         background-color: #1c1f23;
         border: 1px solid #424242;
 
+        .ant-segmented-item {
+          border-radius: 16px !important;
+        }
+
         .ant-segmented-item-label {
           color: var(--text-color-primary);
+          border-radius: 16px;
         }
 
         .ant-segmented-item-selected {
           background-color: #424242 !important;
+          border-radius: 16px !important;
 
           .ant-segmented-item-label {
             color: var(--text-color-primary);
+            border-radius: 16px;
           }
         }
       }
