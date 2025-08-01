@@ -1,4 +1,4 @@
-![refly-cover](https://static.refly.ai/landing/refly-cover.png)
+![refly-cover](https://static.refly.ai/landing/refly-cover.webp)
 
 <div align="center">
 
