@@ -21,6 +21,10 @@ export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
       colorBgMask: 'var(--refly-modal-mask)',
       borderRadiusLG: 20,
       boxShadow: '0 8px 32px 0 #00000014',
+      // Input focus styles - remove outline and box-shadow
+      controlOutline: 'none',
+      controlOutlineWidth: 0,
+      controlBoxShadow: 'none',
     },
     algorithm: theme.defaultAlgorithm,
   },
