@@ -396,9 +396,9 @@ const translations = {
   },
   tabMeta: {
     landingPage: {
-      title: 'The Open Source Vibe Workflow Platform',
+      title: 'The Open-Source Human-AI Collaborative Agent Platform',
       description:
-        'Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.',
+        "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     },
     threadLibrary: {
       title: 'Threads',
@@ -411,17 +411,17 @@ const translations = {
     },
   },
   landingPage: {
-    title: 'The Open Source Vibe Workflow Platform',
+    title: 'The Open-Source Human-AI Collaborative Agent Platform',
     subTitle:
-      'Powered by multi-threaded dialogue, knowledge integration, context memory, and intelligent search, Refly is the best way to transform ideas into quality content.',
+      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     getStarted: 'Get Started',
     login: 'Login',
-    simplySlogan: 'Vibe Workflow',
-    slogan: 'The Open Source Vibe Workflow Platform',
+    simplySlogan: 'Human-AI Collaborative Agent',
+    slogan: 'The Open-Source Human-AI Collaborative Agent Platform',
     description:
-      'Refly is the best way to transform ideas into quality content through multi-threaded dialogue, knowledge integration, context memory, and intelligent search.',
+      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     anotherDescription:
-      'A free-form canvas creation platform powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, easily transforms ideas into quality content.',
+      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     simplyDescription: {
       first:
         'Powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, ',
@@ -652,7 +652,7 @@ const translations = {
         contactUs: 'Contact us',
       },
       description:
-        'Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.',
+        "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
       right: 'Refly.ai. All rights reserved.',
       product: {
         title: 'Products',
@@ -830,10 +830,9 @@ const translations = {
   frontPage: {
     welcome: {
       part1: 'The World #1 Open Source',
-      part2: 'Vibe Workflow',
+      part2: 'Human-AI Collaborative Agent',
       part3: 'Platform',
     },
-    vibeWorkflow: 'Vibe Workflow',
     githubStar: 'Star us on GitHub!',
     fromCommunity: 'From the community',
     fromCommunityDesc: 'Discover a way to use Refly for work, or even beyond.',
@@ -1731,7 +1730,7 @@ const translations = {
       skill: 'skill',
     },
     homePage: {
-      title: 'The Open Source Vibe Workflow Platform',
+      title: 'The Open Source Human-AI Collaborative Agent Platform',
       searchPlaceholder: 'Search for Refly',
       selectedWeblink: {
         title: 'Ask a Question Based on the Selected Web Page:',

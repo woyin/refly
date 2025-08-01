@@ -390,9 +390,9 @@ const translations = {
   },
   tabMeta: {
     landingPage: {
-      title: '开源 Vibe Workflow 平台',
+      title: '开源人机协作 Agent 平台',
       description:
-        '快速总结与形成洞察、自动化归档以及智能语义搜索——Refly 能够为你打造第二大脑，拓展你的知识视野，并赋予你超乎寻常的能力。',
+        '全球首个开源的人机协作 Agent 平台。通过可视化画布与多模态资源库的深度融合，它将人类判断力与 AI 执行力合二为一，帮助设计师、运营者和创作者高效处理复杂任务——打造更流畅、更透明的智能工作空间。',
     },
     digestTopics: {
       title: '所有主题',
@@ -409,7 +409,7 @@ const translations = {
     },
   },
   landingPage: {
-    slogan: '开源 Vibe Workflow 平台',
+    slogan: '开源人机协作 Agent 平台',
     simplySlogan: '创作引擎',
     description:
       '基于自由画布的创作平台，通过多线程对话、代码组件、知识库整合、上下文记忆和智能搜索，轻松将想法转化为优质内容。',
@@ -805,7 +805,7 @@ const translations = {
   frontPage: {
     welcome: {
       part1: '全球首个开源',
-      part2: 'Vibe Workflow',
+      part2: '人机协作 Agent',
       part3: '平台',
     },
     githubStar: '在 GitHub 为我们点 Star!',
@@ -1679,7 +1679,7 @@ const translations = {
       skill: '技能',
     },
     homePage: {
-      title: '开源 Vibe Workflow 平台',
+      title: '开源人机协作 Agent 平台',
       searchPlaceholder: '输入搜索内容...',
       selectedWeblink: {
         title: '基于选中网页提问：',

@@ -19,7 +19,7 @@ export const translation = {
     loggedHomePage: {
       newThreadText: '新会话',
       homePage: {
-        title: '开源 Vibe Workflow 平台',
+        title: '开源人机协作 Agent 平台',
         header: {
           fullscreen: '全屏',
           settings: '设置',
