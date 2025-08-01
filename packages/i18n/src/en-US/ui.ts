@@ -406,9 +406,6 @@ const translations = {
     },
   },
   landingPage: {
-    getStarted: 'Get Started',
-    login: 'Login',
-    simplySlogan: 'Agentic Workspace for Human-AI Collaboration',
     slogan: 'The Open-Source Agentic Workspace for Human-AI Collaboration',
     description:
       "Refly.AI is the open-source Agentic Workspace for Human-AI Collaboration. Seamlessly blend human insight with AI execution across real-world scenarios—whether you're rapidly prototyping a product design, creating polished presentations, conducting hot-topic analysis, automating deep research workflows, generating multimodal marketing content, or orchestrating complex operational pipelines, Refly empowers your team to achieve any task with transparency and control.",
