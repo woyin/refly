@@ -6,10 +6,10 @@
     <b>
         <a href="https://www.refly.ai" target="_blank">Refly.AI</a><br>
     </b>
-    ⭐️  开源 Vibe Workflow 平台 ⭐️ <br>
+    ⭐️  开源人机协作 Agent 平台 ⭐️ <br>
 </h1>
 
-Refly 是一个开创性的开源 Vibe Workflow 平台，旨在解决您最复杂的挑战。只需要动动嘴，您就可以轻松地设计、构建和复用智能工作流，借助 AI 智能体和可无限扩展的 MCP 工具，完成高质量的工作结果交付，从而大幅提升生产力。
+Refly.AI 是全球首个开源的人机协作 Agent 平台。通过可视化画布与多模态资源库的深度融合，它将人类判断力与 AI 执行力合二为一，帮助设计师、运营者和创作者高效处理复杂任务——打造更流畅、更透明的智能工作空间。
 
 [🚀 v0.9.0 发布！刷爆创意：积分自由 × 全新界面 × 多模态魔法](https://docs.refly.ai/zh/changelog/v0.9.0)
 
@@ -233,7 +233,7 @@ kubectl apply -f refly-deployment.yaml
 15. [Resend](https://github.com/resend/react-email) - 用于构建邮件发送功能的库。
 16. 其他上游依赖。
 
-非常感谢社区提供如此强大而简单的库，使我们能够更专注于产品逻辑的实现。我们希望将来我们的项目也能为大家提供更易用的 Vibe Workflow 平台。
+非常感谢社区提供如此强大而简单的库，使我们能够更专注于产品逻辑的实现。我们希望将来我们的项目也能为大家提供更易用的**人机协作 Agent 平台**。
 
 ## 安全问题
 
