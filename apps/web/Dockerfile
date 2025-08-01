@@ -9,7 +9,7 @@ COPY deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy static files
 WORKDIR /usr/share/nginx/html
-COPY apps/web-next/dist .
+COPY apps/web/dist .
 
 # Create config.js template
 RUN echo 'window.ENV = { \

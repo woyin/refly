@@ -28,7 +28,7 @@ jobs:
         run: pnpm install
 
       - name: Build
-        run: pnpm build:web-next
+        run: pnpm build:web
         env:
           NODE_OPTIONS: '--max_old_space_size=8192'
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -53,5 +53,5 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: refly-app-staging
           branch: main
-          workingDirectory: apps/web-next
+          workingDirectory: apps/web
           directory: dist
