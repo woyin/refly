@@ -395,11 +395,6 @@ const translations = {
       'We are dedicated to enhancing the stability and efficiency of our services. To achieve this, we have scheduled a system maintenance that will take place from 21:00 to 23:00 Beijing Time. During this period, our services will be temporarily unavailable. For our users in Seattle, this maintenance corresponds to 05:00 to 07:00 AM local time, taking into account the current daylight saving time adjustments. We apologize for any inconvenience this may cause and appreciate your understanding and support.',
   },
   tabMeta: {
-    landingPage: {
-      title: 'The Open-Source Human-AI Collaborative Agent Platform',
-      description:
-        "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
-    },
     threadLibrary: {
       title: 'Threads',
     },
@@ -411,17 +406,14 @@ const translations = {
     },
   },
   landingPage: {
-    title: 'The Open-Source Human-AI Collaborative Agent Platform',
-    subTitle:
-      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     getStarted: 'Get Started',
     login: 'Login',
-    simplySlogan: 'Human-AI Collaborative Agent',
-    slogan: 'The Open-Source Human-AI Collaborative Agent Platform',
+    simplySlogan: 'Agentic Workspace for Human-AI Collaboration',
+    slogan: 'The Open-Source Agentic Workspace for Human-AI Collaboration',
     description:
-      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
+      "Refly.AI is the open-source Agentic Workspace for Human-AI Collaboration. Seamlessly blend human insight with AI execution across real-world scenarios—whether you're rapidly prototyping a product design, creating polished presentations, conducting hot-topic analysis, automating deep research workflows, generating multimodal marketing content, or orchestrating complex operational pipelines, Refly empowers your team to achieve any task with transparency and control.",
     anotherDescription:
-      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
+      "Refly.AI is the open-source Agentic Workspace for Human-AI Collaboration. Seamlessly blend human insight with AI execution across real-world scenarios—whether you're rapidly prototyping a product design, creating polished presentations, conducting hot-topic analysis, automating deep research workflows, generating multimodal marketing content, or orchestrating complex operational pipelines, Refly empowers your team to achieve any task with transparency and control.",
     simplyDescription: {
       first:
         'Powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, ',
@@ -1730,7 +1722,6 @@ const translations = {
       skill: 'skill',
     },
     homePage: {
-      title: 'The Open Source Human-AI Collaborative Agent Platform',
       searchPlaceholder: 'Search for Refly',
       selectedWeblink: {
         title: 'Ask a Question Based on the Selected Web Page:',

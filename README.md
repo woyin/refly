@@ -4,12 +4,12 @@
 
 <h1 align="center" style="border-bottom: none">
     <b>
-        <a href="https://www.refly.ai">Refly.AI</a><br>
+        <a href="https://refly.ai">Refly.AI</a><br>
     </b>
-    ⭐️  The Open-Source Human-AI Collaborative Agent Platform ⭐️ <br>
+    ⭐️  The Open-Source Agentic Workspace for Human-AI Collaboration ⭐️ <br>
 </h1>
 
-Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.
+Refly.AI is the open-source Agentic Workspace for Human–AI Collaboration. Seamlessly blend human insight with AI execution across real-world scenarios—whether you’re rapidly prototyping a product design, creating polished presentations, conducting hot-topic analysis, automating deep research workflows, generating multimodal marketing content, or orchestrating complex operational pipelines, Refly empowers your team to achieve any task with transparency and control.
 
 [🚀 v0.9.0 Released! A milestone update focused on creative freedom, clarity, and control. 🚀](https://docs.refly.ai/changelog/v0.9.0)
 
@@ -221,7 +221,7 @@ We would also like to thank the following open-source projects that make ReflyAI
 15. [Resend](https://github.com/resend/react-email) - Library for building email sending functionality.
 16. Other upstream dependencies.
 
-We are deeply grateful to the community for providing such powerful yet simple libraries that allow us to focus more on implementing product logic. We hope that our project will also provide an easier-to-use **Human-AI Collaborative Agent Platform** for everyone in the future.
+We are deeply grateful to the community for providing such powerful yet simple libraries that allow us to focus more on implementing product logic. We hope that our project will also provide an easier-to-use **Agentic Workspace for Human-AI Collaboration** for everyone in the future.
 
 ## Security Issues
 
