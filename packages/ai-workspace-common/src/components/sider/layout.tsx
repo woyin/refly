@@ -182,7 +182,8 @@ const SettingItem = () => {
                 <span className="font-medium">{creditBalance}</span>
               </div>
 
-              {userProfile?.subscription?.planType === 'free' && (
+              {(!userProfile?.subscription?.planType ||
+                userProfile?.subscription?.planType === 'free') && (
                 <>
                   <Divider type="vertical" className="m-0" />
 
