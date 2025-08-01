@@ -207,7 +207,7 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.usageDetails'),
       dataIndex: 'usageType',
       key: 'usageType',
-      align: 'center',
+      align: 'left',
       render: (value: string) => {
         const key = `subscription.subscriptionManagement.usageType.${value}`;
         return t(key);
@@ -217,14 +217,14 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.usageTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      align: 'center',
+      align: 'left',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
       title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
-      align: 'center',
+      align: 'right',
       render: (amount) => `${amount > 0 ? '-' : ''}${amount.toLocaleString()}`,
     },
   ];
@@ -235,7 +235,7 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.rechargeSource'),
       dataIndex: 'source',
       key: 'source',
-      align: 'center',
+      align: 'left',
       render: (source) => {
         const sourceMap: Record<string, string> = {
           purchase: t('credit.recharge.source.purchase'),
@@ -251,34 +251,34 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.rechargeTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      align: 'center',
+      align: 'left',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
       title: t('subscription.subscriptionManagement.expiryDate'),
       dataIndex: 'expiresAt',
       key: 'expiresAt',
-      align: 'center',
+      align: 'left',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD') : '-'),
     },
     {
       title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
-      align: 'center',
+      align: 'right',
       render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
     },
     {
       title: t('subscription.subscriptionManagement.remaining'),
       dataIndex: 'balance',
       key: 'balance',
-      align: 'center',
+      align: 'right',
       render: (balance) => balance.toLocaleString(),
     },
     {
       title: t('subscription.subscriptionManagement.status'),
       key: 'status',
-      align: 'center',
+      align: 'left',
       render: (_, record) => {
         if (!record.enabled) {
           return t('subscription.subscriptionManagement.disabled');
