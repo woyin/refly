@@ -19,7 +19,6 @@ export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
       controlItemBgActiveHover: 'var(--refly-tertiary-hover)',
       // Modal specific tokens
       colorBgMask: 'var(--refly-modal-mask)',
-      borderRadiusLG: 20,
       boxShadow: '0 8px 32px 0 #00000014',
       // Input focus styles - remove outline and box-shadow
       controlOutline: 'none',

@@ -37,7 +37,6 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
       token: {
         // Modal specific tokens
         colorBgMask: 'var(--refly-modal-mask)',
-        borderRadiusLG: 20,
         boxShadow: '0 8px 32px 0 #00000014',
         ...(isDarkMode
           ? {
