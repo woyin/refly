@@ -7,7 +7,7 @@
   --refly-bg-float-z3: #ffffff;
   --refly-bg-glass-content: #ffffffcc;
   --refly-bg-canvas: #fbfbfb;
-  --refly-modal-mask: #00000026;
+  --refly-modal-mask: rgba(0, 0, 0, 0.15);
   --refly-Card-Border: rgba(0, 0, 0, 0.1);
   --refly-line: #1c232229;
   --refly-text-0: #1c1f23;
@@ -49,7 +49,7 @@
   --refly-bg-float-z3: #292929;
   --refly-bg-glass-content: #000000cc;
   --refly-bg-canvas: #1e1d1d;
-  --refly-modal-mask: #00000026;
+  --refly-modal-mask: rgba(0, 0, 0, 0.4);
   --refly-Card-Border: rgba(216, 216, 216, 0.1);
   --refly-line: #1c23221a;
   --refly-text-0: #f9f9f9;

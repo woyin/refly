@@ -39,6 +39,10 @@ export default defineContentScript({
               token: {
                 colorPrimary: '#00968F',
                 borderRadius: 6,
+                // Modal specific tokens
+                colorBgMask: 'var(--refly-modal-mask)',
+                borderRadiusLG: 20,
+                boxShadow: '0 8px 32px 0 #00000014',
               },
             }}
           >

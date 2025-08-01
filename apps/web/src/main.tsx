@@ -152,6 +152,10 @@ export const App = () => {
             token: {
               colorPrimary: '#0E9F77',
               borderRadius: 8,
+              // Modal specific tokens
+              colorBgMask: 'var(--refly-modal-mask)',
+              borderRadiusLG: 20,
+              boxShadow: '0 8px 32px 0 #00000014',
               ...(shouldUseDarkTheme
                 ? {
                     controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
@@ -181,6 +185,10 @@ export const App = () => {
         token: {
           colorPrimary: '#0E9F77',
           borderRadius: 8,
+          // Modal specific tokens
+          colorBgMask: 'var(--refly-modal-mask)',
+          borderRadiusLG: 20,
+          boxShadow: '0 8px 32px 0 #00000014',
           ...(shouldUseDarkTheme
             ? {
                 controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
