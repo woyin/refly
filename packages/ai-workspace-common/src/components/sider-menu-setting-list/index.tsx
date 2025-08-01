@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button, Dropdown, Divider } from 'antd';
+import { Button, Dropdown, Divider, Avatar } from 'antd';
 import { useUserStore } from '@refly/stores';
 import { useSiderStoreShallow } from '@refly/stores';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
@@ -17,11 +17,13 @@ import {
   Contact,
   Exit,
   Parse,
+  Account,
 } from 'refly-icons';
 import './index.scss';
 import React from 'react';
 import { TFunction } from 'i18next';
 import { useSubscriptionStoreShallow } from '@refly/stores';
+import { UserSettings } from '@refly/openapi-schema';
 
 // Reusable dropdown item component
 const DropdownItem = React.memo(
@@ -100,9 +102,7 @@ const SubscriptionCard = React.memo(
 );
 
 interface UserInfoProps {
-  nickname?: string;
-  email?: string;
-  planType: string;
+  userProfile: UserSettings;
   t: TFunction;
   handleSubscriptionClick: () => void;
   setOpen: (open: boolean) => void;
@@ -111,23 +111,23 @@ interface UserInfoProps {
 
 // User info component
 const UserInfo = React.memo(
-  ({
-    nickname,
-    email,
-    t,
-    handleSubscriptionClick,
-    setOpen,
-    creditBalance,
-    planType,
-  }: UserInfoProps) => {
+  ({ userProfile, t, handleSubscriptionClick, setOpen, creditBalance }: UserInfoProps) => {
+    const planType = userProfile?.subscription?.planType || 'free';
+    const nickname = userProfile?.nickname || 'No nickname';
+    const email = userProfile?.email || 'No email';
+
     return (
       <div className="py-2 flex flex-col gap-3">
-        <div>
-          <div className="text-sm font-semibold text-refly-text-0 leading-5 truncate">
-            {nickname}
-          </div>
-          <div className="text-xs text-refly-text-2 leading-4 truncate">
-            {email ?? 'No email provided'}
+        <div className="flex items-center gap-2">
+          <Avatar icon={<Account />} src={userProfile?.avatar} size={36} />
+
+          <div>
+            <div className="text-sm font-semibold text-refly-text-0 leading-5 truncate">
+              {nickname}
+            </div>
+            <div className="text-xs text-refly-text-2 leading-4 truncate">
+              {email ?? 'No email provided'}
+            </div>
           </div>
         </div>
         <SubscriptionCard
@@ -268,9 +268,7 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
             className: 'user-header',
             label: (
               <UserInfo
-                nickname={userStore?.userProfile?.nickname}
-                email={userStore?.userProfile?.email}
-                planType={userStore?.userProfile?.subscription?.planType || 'free'}
+                userProfile={userStore?.userProfile}
                 t={t}
                 handleSubscriptionClick={handleSubscriptionClick}
                 setOpen={setOpen}

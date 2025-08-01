@@ -3,6 +3,7 @@ import './process-polyfill';
 import './utils/dom-patch';
 import './index.css';
 import './tokens.css';
+import './antd-overrides.css';
 
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

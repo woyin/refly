@@ -34,15 +34,20 @@ export function InitializationSuspense({ children }: InitializationSuspenseProps
 
   useEffect(() => {
     const themeConfig = {
-      token: isDarkMode
-        ? {
-            controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
-            controlItemBgActiveHover: 'rgba(255, 255, 255, 0.12)',
-          }
-        : {
-            controlItemBgActive: '#f1f1f0',
-            controlItemBgActiveHover: '#e0e0e0',
-          },
+      token: {
+        // Modal specific tokens
+        colorBgMask: 'var(--refly-modal-mask)',
+        boxShadow: '0 8px 32px 0 #00000014',
+        ...(isDarkMode
+          ? {
+              controlItemBgActive: 'rgba(255, 255, 255, 0.08)',
+              controlItemBgActiveHover: 'rgba(255, 255, 255, 0.12)',
+            }
+          : {
+              controlItemBgActive: '#f1f1f0',
+              controlItemBgActiveHover: '#e0e0e0',
+            }),
+      },
       algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
     };
     updateTheme(themeConfig);

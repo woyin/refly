@@ -80,8 +80,8 @@ export default () => ({
     },
     jwt: {
       secret: process.env.JWT_SECRET || 'test',
-      expiresIn: process.env.JWT_EXPIRATION_TIME || '1h',
-      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRATION_TIME || '7d',
+      expiresIn: process.env.JWT_EXPIRATION_TIME || '1d',
+      refreshExpiresIn: process.env.JWT_REFRESH_EXPIRATION_TIME || '14d',
     },
     collab: {
       tokenExpiry: process.env.COLLAB_TOKEN_EXPIRY || '1h',

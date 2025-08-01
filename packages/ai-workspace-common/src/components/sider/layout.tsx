@@ -15,7 +15,7 @@ import {
 } from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
-import { useUserStoreShallow } from '@refly/stores';
+import { useSubscriptionStoreShallow, useUserStoreShallow } from '@refly/stores';
 // components
 import { SearchQuickOpenBtn } from '@refly-packages/ai-workspace-common/components/search-quick-open-btn';
 import { useTranslation } from 'react-i18next';
@@ -29,8 +29,7 @@ import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/us
 import { SettingsModalActiveTab, SiderData, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
-import { AiOutlineUser } from 'react-icons/ai';
-import { SideLeft, SideRight } from 'refly-icons';
+import { SideLeft, SideRight, Account } from 'refly-icons';
 
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
@@ -137,18 +136,16 @@ const SettingItem = () => {
 
   const { creditBalance, isBalanceSuccess } = useSubscriptionUsage();
 
-  const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
-    setShowSettingModal: state.setShowSettingModal,
-    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+  const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
+    setSubscribeModalVisible: state.setSubscribeModalVisible,
   }));
 
   const handleSubscriptionClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
-      setShowSettingModal(true);
+      setSubscribeModalVisible(true);
     },
-    [setSettingsModalActiveTab, setShowSettingModal],
+    [setSubscribeModalVisible],
   );
 
   return (
@@ -160,9 +157,9 @@ const SettingItem = () => {
             title={userProfile?.nickname}
           >
             <Avatar
-              size={32}
+              size={36}
               src={userProfile?.avatar}
-              icon={<AiOutlineUser />}
+              icon={<Account />}
               className="flex-shrink-0"
             />
             <span className={cn('inline-block truncate font-semibold text-refly-text-0')}>
@@ -182,7 +179,8 @@ const SettingItem = () => {
                 <span className="font-medium">{creditBalance}</span>
               </div>
 
-              {userProfile?.subscription?.planType === 'free' && (
+              {(!userProfile?.subscription?.planType ||
+                userProfile?.subscription?.planType === 'free') && (
                 <>
                   <Divider type="vertical" className="m-0" />
 

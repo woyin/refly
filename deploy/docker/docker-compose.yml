@@ -13,11 +13,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_healthy
-    working_dir: /app/apps/api/dist
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: >
-      sh -c "node scripts/sync-db-schema.js && node main.js"
     ports:
       - 5800:5800
       - 5801:5801
@@ -25,6 +22,7 @@ services:
     env_file:
       - .env
     environment:
+      - AUTO_MIGRATE_DB_SCHEMA=1
       - MINIO_INTERNAL_ENDPOINT=minio
       - MINIO_EXTERNAL_ENDPOINT=minio
       - REDIS_HOST=redis

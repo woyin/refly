@@ -1,15 +1,15 @@
-![refly-cover](https://github.com/user-attachments/assets/2930c555-09a7-4ea2-a18a-2b1d8a7ef4ae)
+![refly-cover](https://static.refly.ai/landing/refly-cover.webp)
 
 <div align="center">
 
 <h1 align="center" style="border-bottom: none">
     <b>
-        <a href="https://www.refly.ai" target="_blank">Refly.AI</a><br>
+        <a href="https://refly.ai" target="_blank">Refly.AI</a><br>
     </b>
-    ⭐️  开源人机协作 Agent 平台 ⭐️ <br>
+    ⭐️ 全球领先的开源人机协作 Agentic 工作空间 ⭐️ <br>
 </h1>
 
-Refly.AI 是全球首个开源的人机协作 Agent 平台。通过可视化画布与多模态资源库的深度融合，它将人类判断力与 AI 执行力合二为一，帮助设计师、运营者和创作者高效处理复杂任务——打造更流畅、更透明的智能工作空间。
+Refly.AI 是一款开源的 Agentic 工作空间，专为人机协作而生。在真实场景中无缝融合人类洞察与 AI 执行力——无论是快速原型设计、精美 PPT 制作、热点话题分析、深度研究流程自动化、多模态营销内容生成，还是复杂业务流程编排，Refly 都能为团队提供全链路透明可控的任务驱动体验。
 
 [🚀 v0.9.0 发布！刷爆创意：积分自由 × 全新界面 × 多模态魔法](https://docs.refly.ai/zh/changelog/v0.9.0)
 
@@ -233,7 +233,7 @@ kubectl apply -f refly-deployment.yaml
 15. [Resend](https://github.com/resend/react-email) - 用于构建邮件发送功能的库。
 16. 其他上游依赖。
 
-非常感谢社区提供如此强大而简单的库，使我们能够更专注于产品逻辑的实现。我们希望将来我们的项目也能为大家提供更易用的**人机协作 Agent 平台**。
+非常感谢社区提供如此强大而简单的库，使我们能够更专注于产品逻辑的实现。我们希望将来我们的项目也能为大家提供更易用的**Agentic 工作空间**。
 
 ## 安全问题
 

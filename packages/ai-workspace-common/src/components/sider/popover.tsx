@@ -6,6 +6,7 @@ import { Logo } from '../common/logo';
 import { GithubStar } from '../common/github-star';
 import cn from 'classnames';
 import { useState } from 'react';
+import './popover.scss';
 
 interface SiderPopoverProps {
   children?: React.ReactNode;
@@ -35,16 +36,12 @@ export const SiderPopover = (props: SiderPopoverProps) => {
         <Popover
           zIndex={11}
           overlayInnerStyle={{ padding: 0, boxShadow: 'none', border: 'none' }}
-          className="shadow-none"
+          overlayClassName="sider-popover-animation"
           arrow={false}
           placement="bottom"
           align={align}
           open={isVisible}
-          content={
-            <div className="animate-slide-in-left">
-              <SiderLayout source="popover" />
-            </div>
-          }
+          content={<SiderLayout source="popover" />}
         >
           {children || (
             <Button

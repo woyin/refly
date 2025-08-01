@@ -76,13 +76,13 @@ export const Subscription = () => {
 
   const { planType: subscriptionPlanType, cancelAt } = displaySubscription ?? {};
 
-  const { setSubscribeModalVisible, setPlanType, planType } = useSubscriptionStoreShallow(
-    (state) => ({
+  const { setSubscribeModalVisible, setPlanType, planType, setOpenedFromSettings } =
+    useSubscriptionStoreShallow((state) => ({
       setSubscribeModalVisible: state.setSubscribeModalVisible,
       setPlanType: state.setPlanType,
       planType: state.planType,
-    }),
-  );
+      setOpenedFromSettings: state.setOpenedFromSettings,
+    }));
 
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
@@ -159,6 +159,10 @@ export const Subscription = () => {
   const handleManageBilling = async () => {
     if (portalLoading) return;
 
+    if (!userProfile?.customerId) {
+      return;
+    }
+
     setPortalLoading(true);
     try {
       const { data } = await getClient().createPortalSession();
@@ -203,7 +207,7 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.usageDetails'),
       dataIndex: 'usageType',
       key: 'usageType',
-      align: 'center',
+      align: 'left',
       render: (value: string) => {
         const key = `subscription.subscriptionManagement.usageType.${value}`;
         return t(key);
@@ -213,14 +217,14 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.usageTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      align: 'center',
+      align: 'left',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
       title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
-      align: 'center',
+      align: 'right',
       render: (amount) => `${amount > 0 ? '-' : ''}${amount.toLocaleString()}`,
     },
   ];
@@ -231,7 +235,7 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.rechargeSource'),
       dataIndex: 'source',
       key: 'source',
-      align: 'center',
+      align: 'left',
       render: (source) => {
         const sourceMap: Record<string, string> = {
           purchase: t('credit.recharge.source.purchase'),
@@ -247,34 +251,34 @@ export const Subscription = () => {
       title: t('subscription.subscriptionManagement.rechargeTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
-      align: 'center',
+      align: 'left',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD HH:mm:ss') : ''),
     },
     {
       title: t('subscription.subscriptionManagement.expiryDate'),
       dataIndex: 'expiresAt',
       key: 'expiresAt',
-      align: 'center',
+      align: 'left',
       render: (text) => (text ? dayjs(text).format('YYYY.MM.DD') : '-'),
     },
     {
       title: t('subscription.subscriptionManagement.creditChange'),
       dataIndex: 'amount',
       key: 'amount',
-      align: 'center',
+      align: 'right',
       render: (amount) => `${amount > 0 ? '+' : ''}${amount.toLocaleString()}`,
     },
     {
       title: t('subscription.subscriptionManagement.remaining'),
       dataIndex: 'balance',
       key: 'balance',
-      align: 'center',
+      align: 'right',
       render: (balance) => balance.toLocaleString(),
     },
     {
       title: t('subscription.subscriptionManagement.status'),
       key: 'status',
-      align: 'center',
+      align: 'left',
       render: (_, record) => {
         if (!record.enabled) {
           return t('subscription.subscriptionManagement.disabled');
@@ -295,8 +299,9 @@ export const Subscription = () => {
   const handleClickSubscription = useCallback(() => {
     logEvent('subscription::upgrade_click', 'settings');
     setShowSettingModal(false);
+    setOpenedFromSettings(true);
     setSubscribeModalVisible(true);
-  }, [setSubscribeModalVisible, setShowSettingModal]);
+  }, [setSubscribeModalVisible, setShowSettingModal, setOpenedFromSettings]);
 
   const PaidPlanCard = () => {
     return (
@@ -321,7 +326,7 @@ export const Subscription = () => {
                   ? t('common.loading')
                   : t('subscription.subscriptionManagement.viewBilling')}
               </div>
-              {subscriptionPlanType === 'free' && (
+              {subscriptionPlanType === 'free' && !!userProfile?.customerId && (
                 <Button
                   type="primary"
                   className="ant-btn-primary"
@@ -351,6 +356,7 @@ export const Subscription = () => {
             className="upgrade-button ant-btn-primary"
             onClick={() => {
               setShowSettingModal(false);
+              setOpenedFromSettings(true);
               setSubscribeModalVisible(true);
             }}
           >

@@ -1,6 +1,7 @@
 .subscribe-modal {
   .ant-modal-content {
     height: 100vh;
+    border-radius: 0;
     padding: 0;
     margin: 0;
     box-sizing: border-box;
@@ -250,7 +251,7 @@
         }
 
         &:hover:not(:disabled) {
-          background-color: #e5e7eb;
+          background: var(--primary---refly-primary-hover, #1b9774);
           border-color: #9ca3af;
         }
       }

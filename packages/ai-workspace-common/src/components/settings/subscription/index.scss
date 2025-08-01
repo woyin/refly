@@ -234,17 +234,25 @@
         padding: 2px 8px;
         min-height: unset;
         line-height: unset;
+        border-radius: 16px;
       }
 
       .ant-segmented-item-selected {
         background-color: #fff !important;
+        border-radius: 16px !important;
 
         .ant-segmented-item-label {
           color: var(--text-icon-refly-text-0, #1c1f23);
           text-align: center;
           font-size: 12px;
           font-weight: 600;
+          border-radius: 16px;
         }
+      }
+
+      // Ensure consistent border radius during transitions
+      .ant-segmented-thumb {
+        border-radius: 16px !important;
       }
     }
 
@@ -271,11 +279,14 @@
       .ant-table-thead > tr > th {
         background: #fff !important;
         border-bottom: none;
-        color: var(--text-icon-refly-text-0, #1c1f23);
-        font-weight: normal;
+        color: var(--text-icon-refly-text-1, rgba(28, 31, 35, 0.8));
+        font-family: "PingFang SC";
+        font-size: 14px;
+        font-style: normal;
+        font-weight: 600;
+        line-height: 20px;
         padding: 12px 16px;
         border-right: none !important;
-        font-size: 14px;
 
         // Remove the separator line (::before pseudo-element)
         &::before {
@@ -362,16 +373,28 @@
         background-color: #1c1f23;
         border: 1px solid #424242;
 
+        .ant-segmented-item {
+          border-radius: 16px !important;
+        }
+
         .ant-segmented-item-label {
           color: var(--text-color-primary);
+          border-radius: 16px;
         }
 
         .ant-segmented-item-selected {
           background-color: #424242 !important;
+          border-radius: 16px !important;
 
           .ant-segmented-item-label {
             color: var(--text-color-primary);
+            border-radius: 16px;
           }
+        }
+
+        // Ensure consistent border radius during transitions
+        .ant-segmented-thumb {
+          border-radius: 16px !important;
         }
       }
 
@@ -395,12 +418,15 @@
 
         .ant-table-thead > tr > th {
           background: #222222 !important;
-          color: rgba(255, 255, 255, 0.85);
+          color: rgba(255, 255, 255, 0.8);
           border-bottom: none;
           border-right: none !important;
-          font-weight: 500;
-          padding: 12px 16px;
+          font-family: "PingFang SC";
           font-size: 14px;
+          font-style: normal;
+          font-weight: 600;
+          line-height: 20px;
+          padding: 12px 16px;
 
           // Remove the separator line (::before pseudo-element)
           &::before {
