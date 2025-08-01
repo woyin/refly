@@ -183,10 +183,9 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
       className="settings-modal"
       centered
       width={'90vw'}
-      height={'85vh'}
+      height={'80vh'}
       style={{
         maxWidth: '1400px',
-        maxHeight: '800px',
       }}
       title={null}
       footer={null}
