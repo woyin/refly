@@ -5,23 +5,27 @@ import { useShallow } from 'zustand/react/shallow';
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeState {
-  // 主题模式
+  // Theme mode
   themeMode: ThemeMode;
-  // 是否为暗色模式
+  // Whether it's dark mode
   isDarkMode: boolean;
+  // Whether user is logged in
+  isLoggedIn: boolean;
 
-  // 设置主题模式
+  // Set theme mode
   setThemeMode: (mode: ThemeMode) => void;
-  // 初始化主题
+  // Initialize theme
   initTheme: () => void;
+  // Set login status
+  setLoggedIn: (status: boolean) => void;
 }
 
-// 检测系统是否为暗色模式
+// Check if system is in dark mode
 const isSystemDarkMode = () => {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches;
 };
 
-// 应用暗色模式到文档
+// Apply dark mode to document
 const applyDarkMode = (isDark: boolean) => {
   if (isDark) {
     document.documentElement.classList.add('dark');
@@ -35,11 +39,12 @@ export const useThemeStore = create<ThemeState>()(
     (set, get) => ({
       themeMode: 'system',
       isDarkMode: false,
+      isLoggedIn: false,
 
       setThemeMode: (mode: ThemeMode) => {
         set({ themeMode: mode });
 
-        // 根据模式设置暗色模式状态
+        // Set dark mode status based on mode
         let isDark = false;
         if (mode === 'dark') {
           isDark = true;
@@ -51,18 +56,33 @@ export const useThemeStore = create<ThemeState>()(
         applyDarkMode(isDark);
       },
 
+      setLoggedIn: (status: boolean) => {
+        set({ isLoggedIn: status });
+        // Re-initialize theme when login status changes
+        setTimeout(() => get().initTheme(), 0);
+      },
+
       initTheme: () => {
-        const { themeMode } = get();
+        const { themeMode, isLoggedIn } = get();
+
+        // If not logged in, default to light mode
+        if (!isLoggedIn) {
+          set({ themeMode: 'light', isDarkMode: false });
+          applyDarkMode(false);
+          return;
+        }
+
+        // If logged in, follow stored theme settings
         console.log('initTheme themeMode', themeMode);
 
-        // 根据当前主题模式初始化
+        // Initialize based on current theme mode
         let isDark = false;
         if (themeMode === 'dark') {
           isDark = true;
         } else if (themeMode === 'system') {
           isDark = isSystemDarkMode();
 
-          // 监听系统主题变化
+          // Listen for system theme changes
           const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
           const handleChange = (e: MediaQueryListEvent) => {
             if (get().themeMode === 'system') {
@@ -80,7 +100,10 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'theme-storage',
-      partialize: (state) => ({ themeMode: state.themeMode }),
+      partialize: (state) => ({
+        themeMode: state.themeMode,
+        isLoggedIn: state.isLoggedIn,
+      }),
     },
   ),
 );

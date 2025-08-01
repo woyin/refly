@@ -3,6 +3,7 @@
 import { type Options } from '@hey-api/client-fetch';
 import { UseQueryResult } from '@tanstack/react-query';
 import {
+  abortAction,
   addNodesToCanvasPage,
   addReferences,
   autoNameCanvas,
@@ -64,6 +65,9 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getCreditBalance,
+  getCreditRecharge,
+  getCreditUsage,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -510,6 +514,38 @@ export const UseCheckSettingsFieldKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useCheckSettingsFieldKey, ...(queryKey ?? [clientOptions])];
+export type GetCreditRechargeDefaultResponse = Awaited<
+  ReturnType<typeof getCreditRecharge>
+>['data'];
+export type GetCreditRechargeQueryResult<
+  TData = GetCreditRechargeDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCreditRechargeKey = 'GetCreditRecharge';
+export const UseGetCreditRechargeKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useGetCreditRechargeKey, ...(queryKey ?? [clientOptions])];
+export type GetCreditUsageDefaultResponse = Awaited<ReturnType<typeof getCreditUsage>>['data'];
+export type GetCreditUsageQueryResult<
+  TData = GetCreditUsageDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCreditUsageKey = 'GetCreditUsage';
+export const UseGetCreditUsageKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useGetCreditUsageKey, ...(queryKey ?? [clientOptions])];
+export type GetCreditBalanceDefaultResponse = Awaited<ReturnType<typeof getCreditBalance>>['data'];
+export type GetCreditBalanceQueryResult<
+  TData = GetCreditBalanceDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetCreditBalanceKey = 'GetCreditBalance';
+export const UseGetCreditBalanceKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useGetCreditBalanceKey, ...(queryKey ?? [clientOptions])];
 export type GetSubscriptionPlansDefaultResponse = Awaited<
   ReturnType<typeof getSubscriptionPlans>
 >['data'];
@@ -906,6 +942,12 @@ export type DeleteLabelInstanceMutationResult = Awaited<ReturnType<typeof delete
 export const useDeleteLabelInstanceKey = 'DeleteLabelInstance';
 export const UseDeleteLabelInstanceKeyFn = (mutationKey?: Array<unknown>) => [
   useDeleteLabelInstanceKey,
+  ...(mutationKey ?? []),
+];
+export type AbortActionMutationResult = Awaited<ReturnType<typeof abortAction>>;
+export const useAbortActionKey = 'AbortAction';
+export const UseAbortActionKeyFn = (mutationKey?: Array<unknown>) => [
+  useAbortActionKey,
   ...(mutationKey ?? []),
 ];
 export type InvokeSkillMutationResult = Awaited<ReturnType<typeof invokeSkill>>;

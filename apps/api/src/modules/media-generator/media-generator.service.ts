@@ -1,5 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { User, MediaGenerateRequest, MediaGenerateResponse } from '@refly/openapi-schema';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  User,
+  MediaGenerateRequest,
+  MediaGenerateResponse,
+  CreditBilling,
+} from '@refly/openapi-schema';
 import {
   ReplicateAudioGenerator,
   ReplicateVideoGenerator,
@@ -10,19 +15,63 @@ import {
   VolcesVideoGenerator,
   VolcesImageGenerator,
 } from '@refly/providers';
+import { ModelUsageQuotaExceeded, ProviderItemNotFoundError } from '@refly/errors';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_SYNC_MEDIA_CREDIT_USAGE } from '../../utils/const';
+import { SyncMediaCreditUsageJobData } from '../subscription/subscription.dto';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
+import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
 import { PromptProcessorService } from './prompt-processor.service';
-import { genActionResultID } from '@refly/utils';
+import { genActionResultID, pick } from '@refly/utils';
+
+// Define generator interface for type safety
+interface MediaGenerator {
+  generate(params: { model: string; prompt: string; apiKey: string }): Promise<{ output: string }>;
+}
+
+// Generator factory type
+type GeneratorFactory = () => MediaGenerator;
+
+// Generator mapping configuration
+type GeneratorConfig = {
+  [provider: string]: {
+    [mediaType: string]: GeneratorFactory;
+  };
+};
 
 @Injectable()
 export class MediaGeneratorService {
+  private readonly logger = new Logger(MediaGeneratorService.name);
+
+  // Generator configuration mapping
+  private readonly generatorConfig: GeneratorConfig = {
+    replicate: {
+      audio: () => new ReplicateAudioGenerator(),
+      video: () => new ReplicateVideoGenerator(),
+      image: () => new ReplicateImageGenerator(),
+    },
+    fal: {
+      audio: () => new FalAudioGenerator(),
+      video: () => new FalVideoGenerator(),
+      image: () => new FalImageGenerator(),
+    },
+    volces: {
+      video: () => new VolcesVideoGenerator(),
+      image: () => new VolcesImageGenerator(),
+    },
+  };
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
+    private readonly credit: CreditService,
     private readonly providerService: ProviderService,
     private readonly promptProcessor: PromptProcessorService,
+    @InjectQueue(QUEUE_SYNC_MEDIA_CREDIT_USAGE)
+    private readonly mediaCreditUsageReportQueue: Queue<SyncMediaCreditUsageJobData>,
   ) {}
 
   /**
@@ -35,13 +84,19 @@ export class MediaGeneratorService {
     try {
       const resultId = genActionResultID();
 
+      const { mediaType, model, prompt, targetType, targetId, providerItemId } = request;
+
       // Creating an ActionResult Record
       await this.prisma.actionResult.create({
         data: {
           resultId,
           uid: user.uid,
           type: 'media',
-          title: `${request.mediaType} generation: ${request.prompt.substring(0, 50)}...`,
+          title: `${mediaType} generation: ${prompt.substring(0, 50)}...`,
+          modelName: model,
+          targetType,
+          targetId,
+          providerItemId,
           status: 'waiting',
           input: JSON.stringify(request),
           version: 0,
@@ -50,7 +105,7 @@ export class MediaGeneratorService {
 
       // Perform media generation asynchronously
       this.executeMediaGeneration(user, resultId, request).catch((error) => {
-        console.error(`Media generation failed for ${resultId}:`, error);
+        this.logger.error(`Media generation failed for ${resultId}:`, error);
       });
 
       return {
@@ -58,7 +113,7 @@ export class MediaGeneratorService {
         resultId,
       };
     } catch (error) {
-      console.error('Media generation initialization failed:', error);
+      this.logger.error('Media generation initialization failed:', error);
       return {
         success: false,
       };
@@ -76,9 +131,11 @@ export class MediaGeneratorService {
     request: MediaGenerateRequest,
   ): Promise<void> {
     let result: { output: string };
+    const { providerItemId, prompt } = request;
+
     try {
       // ===== Language Processing: Detect and translate prompt =====
-      const promptProcessingResult = await this.promptProcessor.processPrompt(request.prompt);
+      const promptProcessingResult = await this.promptProcessor.processPrompt(prompt);
 
       // Update status to Executing with language processing info
       await this.prisma.actionResult.update({
@@ -87,7 +144,7 @@ export class MediaGeneratorService {
           status: 'executing',
           // Store language processing info while keeping original request intact
           input: JSON.stringify({
-            ...request, // Keep original request fields unchanged (prompt = original user input)
+            ...pick(request, ['mediaType', 'model', 'prompt']), // Keep original request fields unchanged (prompt = original user input)
             // Add new fields for language processing
             englishPrompt: promptProcessingResult.translatedPrompt, // English version for generation
             detectedLanguage: promptProcessingResult.detectedLanguage,
@@ -96,16 +153,22 @@ export class MediaGeneratorService {
         },
       });
 
-      const providerKey = request.provider;
+      const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
 
-      const provider = await this.providerService.findProvider(user, {
-        category: 'mediaGeneration',
-        providerKey: providerKey,
-        enabled: true,
-      });
+      if (!providerItem) {
+        throw new ProviderItemNotFoundError(`provider item ${providerItemId} not found`);
+      }
 
-      if (!provider) {
-        throw new Error('No media generation provider found');
+      const creditBilling: CreditBilling = providerItem?.creditBilling
+        ? JSON.parse(providerItem?.creditBilling)
+        : undefined;
+
+      if (creditBilling) {
+        const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
+        this.logger.log('creditUsageResult', creditUsageResult);
+        if (!creditUsageResult.canUse) {
+          throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
+        }
       }
 
       // Create request with translated prompt for third-party service
@@ -114,19 +177,11 @@ export class MediaGeneratorService {
         prompt: promptProcessingResult.translatedPrompt, // Use English prompt for generation
       };
 
-      if (providerKey === 'replicate') {
-        result = await this.generateWithReplicate(user, translatedRequest, provider.apiKey);
-      } else if (providerKey === 'fal') {
-        result = await this.generateWithFal(user, translatedRequest, provider.apiKey);
-      } else if (providerKey === 'volces') {
-        result = await this.generateWithVolces(user, translatedRequest, provider.apiKey);
-      } else {
-        throw new Error(`Unsupported provider: ${providerKey}`);
-      }
+      result = await this.generateWithProvider(translatedRequest, providerItem.provider);
 
       const uploadResult = await this.miscService.dumpFileFromURL(user, {
         url: result.output,
-        entityId: resultId, //ActionResult
+        entityId: resultId,
         entityType: 'mediaResult',
         visibility: 'private',
       });
@@ -140,8 +195,25 @@ export class MediaGeneratorService {
           storageKey: uploadResult.storageKey, // Save storage key
         },
       });
+
+      if (this.mediaCreditUsageReportQueue && creditBilling) {
+        const basicUsageData = {
+          uid: user.uid,
+          resultId,
+        };
+        const mediaCreditUsage: SyncMediaCreditUsageJobData = {
+          ...basicUsageData,
+          creditBilling,
+          timestamp: new Date(),
+        };
+
+        await this.mediaCreditUsageReportQueue.add(
+          `media_credit_usage_report:${resultId}`,
+          mediaCreditUsage,
+        );
+      }
     } catch (error) {
-      console.error(`Media generation failed for ${resultId}:`, error);
+      this.logger.error(`Media generation failed for ${resultId}: ${error.stack}`);
 
       // Update status to failed
       await this.prisma.actionResult.update({
@@ -154,174 +226,38 @@ export class MediaGeneratorService {
     }
   }
 
-  private async generateWithReplicate(
-    _user: User,
+  /**
+   * Generate media using the appropriate provider and media type
+   * @param request Media generation request
+   * @param apiKey API key for the provider
+   * @returns Generated media output
+   */
+  private async generateWithProvider(
     request: MediaGenerateRequest,
-    apiKey: string,
+    provider: { apiKey: string; providerKey: string },
   ): Promise<{ output: string }> {
-    let result: { output: string };
+    const { mediaType, model, prompt } = request;
+    const { apiKey, providerKey } = provider;
 
-    switch (request.mediaType) {
-      case 'audio':
-        result = await this.generateAudioWithReplicate(request, apiKey);
-        break;
-      case 'video':
-        result = await this.generateVideoWithReplicate(request, apiKey);
-        break;
-      case 'image':
-        result = await this.generateImageWithReplicate(request, apiKey);
-        break;
-      default:
-        throw new Error(`Unsupported media type: ${request.mediaType}`);
+    // Get the generator factory from configuration
+    const providerConfig = this.generatorConfig[providerKey];
+    if (!providerConfig) {
+      throw new Error(
+        `Unsupported provider for media generation: ${providerKey}, provider item id: ${request.providerItemId}`,
+      );
     }
 
-    return result;
-  }
-
-  private async generateWithFal(
-    _user: User,
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    let result: { output: string };
-
-    switch (request.mediaType) {
-      case 'audio':
-        result = await this.generateAudioWithFal(request, apiKey);
-        break;
-      case 'video':
-        result = await this.generateVideoWithFal(request, apiKey);
-        break;
-      case 'image':
-        result = await this.generateImageWithFal(request, apiKey);
-        break;
-      default:
-        throw new Error(`Unsupported media type: ${request.mediaType}`);
+    const generatorFactory = providerConfig[mediaType];
+    if (!generatorFactory) {
+      throw new Error(`Unsupported media type '${mediaType}' for provider '${providerKey}'`);
     }
-    return result;
-  }
 
-  private async generateWithVolces(
-    _user: User,
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    let result: { output: string };
-
-    switch (request.mediaType) {
-      case 'video':
-        result = await this.generateVideoWithVolces(request, apiKey);
-        break;
-      case 'image':
-        result = await this.generateImageWithVolces(request, apiKey);
-        break;
-      default:
-        throw new Error(`Unsupported media type: ${request.mediaType}`);
-    }
-    return result;
-  }
-
-  private async generateAudioWithReplicate(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new ReplicateAudioGenerator();
-
+    // Create generator instance and generate media
+    const generator = generatorFactory();
     return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
-    });
-  }
-
-  private async generateVideoWithReplicate(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new ReplicateVideoGenerator();
-
-    return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
-    });
-  }
-
-  private async generateImageWithReplicate(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new ReplicateImageGenerator();
-
-    return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
-    });
-  }
-
-  private async generateAudioWithFal(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new FalAudioGenerator();
-
-    return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
-    });
-  }
-
-  private async generateVideoWithFal(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new FalVideoGenerator();
-
-    return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
-    });
-  }
-
-  private async generateImageWithFal(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new FalImageGenerator();
-
-    return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
-    });
-  }
-
-  private async generateVideoWithVolces(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new VolcesVideoGenerator();
-
-    return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
-    });
-  }
-
-  private async generateImageWithVolces(
-    request: MediaGenerateRequest,
-    apiKey: string,
-  ): Promise<{ output: string }> {
-    const generator = new VolcesImageGenerator();
-
-    return await generator.generate({
-      model: request.model,
-      prompt: request.prompt,
-      apiKey: apiKey,
+      model,
+      prompt,
+      apiKey,
     });
   }
 }

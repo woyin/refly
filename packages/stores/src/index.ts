@@ -13,11 +13,15 @@ export {
   useCanvasStore,
   useCanvasStoreShallow,
 } from './stores/canvas';
-export { useChatStore, useChatStoreShallow } from './stores/chat';
+export { useChatStore, useChatStoreShallow, type ChatMode } from './stores/chat';
 export { useContextPanelStore, useContextPanelStoreShallow } from './stores/context-panel';
 export { useCopilotStore, useCopilotStoreShallow } from './stores/copilot';
 export { useDocumentStore, useDocumentStoreShallow } from './stores/document';
-export { useFrontPageStore, useFrontPageStoreShallow } from './stores/front-page';
+export {
+  type MediaQueryData,
+  useFrontPageStore,
+  useFrontPageStoreShallow,
+} from './stores/front-page';
 export {
   useImportNewTriggerModal,
   useImportNewTriggerModalShallow,

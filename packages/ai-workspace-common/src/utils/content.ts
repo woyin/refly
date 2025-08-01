@@ -24,6 +24,19 @@ export const truncateContent = (
 };
 
 /**
+ * Removes all tool_use tags and their content from a string
+ * @param content The content to process
+ * @returns Content with all tool_use tags removed
+ */
+export const removeToolUseTags = (content: string): string => {
+  if (!content) return '';
+
+  // Remove all <tool_use> tags and their content (global match)
+  const toolUseRegex = /<tool_use>[\s\S]*?<\/tool_use>/g;
+  return content.replace(toolUseRegex, '');
+};
+
+/**
  * Processes an array of content strings, joins them, and truncates to max length
  * @param contents Array of content strings
  * @param separator Separator to use when joining content
@@ -36,6 +49,10 @@ export const processContentPreview = (
   maxLength = MAX_CONTENT_PREVIEW_LENGTH,
 ): string => {
   const filteredContents = contents.filter(Boolean) as string[];
-  const joinedContent = filteredContents.join(separator);
+
+  // Remove tool_use tags from each content item
+  const processedContents = filteredContents.map(removeToolUseTags);
+
+  const joinedContent = processedContents.join(separator);
   return truncateContent(joinedContent, maxLength);
 };

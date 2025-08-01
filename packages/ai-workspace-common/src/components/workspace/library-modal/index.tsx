@@ -25,6 +25,7 @@ export const LibraryModal = (props: LibraryModalProps) => {
   const { visible, setVisible } = props;
   const { t } = useTranslation();
   const { projectId } = useGetProjectCanvasId();
+  console.log('projectId', projectId);
 
   const activeKey = useKnowledgeBaseStoreShallow((state) => state.libraryModalActiveKey);
   const updateLibraryModalActiveKey = useKnowledgeBaseStoreShallow(
@@ -34,47 +35,48 @@ export const LibraryModal = (props: LibraryModalProps) => {
   const [refreshProjectList, setRefreshProjectList] = useState(false);
 
   const tabs = useMemo(
-    () => [
-      {
-        key: 'project',
-        label: (
-          <div className="flex items-center justify-between w-full">
+    () =>
+      [
+        {
+          key: 'project',
+          label: (
+            <div className="flex items-center justify-between w-full">
+              <span className="flex items-center">
+                <IconProject />
+                <span className="ml-1">{t('common.project')}</span>
+              </span>
+            </div>
+          ),
+          children: (
+            <ProjectList
+              showLibraryModal={visible}
+              setShowLibraryModal={setVisible}
+              refresh={refreshProjectList}
+              setRefresh={setRefreshProjectList}
+            />
+          ),
+        },
+        !projectId && {
+          key: 'document',
+          label: (
             <span className="flex items-center">
-              <IconProject />
-              <span className="ml-1">{t('common.project')}</span>
+              <IconDocument />
+              <span className="ml-1">{t('common.document')}</span>
             </span>
-          </div>
-        ),
-        children: (
-          <ProjectList
-            showLibraryModal={visible}
-            setShowLibraryModal={setVisible}
-            refresh={refreshProjectList}
-            setRefresh={setRefreshProjectList}
-          />
-        ),
-      },
-      !projectId && {
-        key: 'document',
-        label: (
-          <span className="flex items-center">
-            <IconDocument />
-            <span className="ml-1">{t('common.document')}</span>
-          </span>
-        ),
-        children: <DocumentList />,
-      },
-      !projectId && {
-        key: 'resource',
-        label: (
-          <span className="flex items-center">
-            <IconResource />
-            <span className="ml-1">{t('common.resource')}</span>
-          </span>
-        ),
-        children: <ResourceList />,
-      },
-    ],
+          ),
+          children: <DocumentList />,
+        },
+        !projectId && {
+          key: 'resource',
+          label: (
+            <span className="flex items-center">
+              <IconResource />
+              <span className="ml-1">{t('common.resource')}</span>
+            </span>
+          ),
+          children: <ResourceList />,
+        },
+      ].filter(Boolean),
     [activeKey, t, refreshProjectList, projectId, visible, setVisible],
   );
 
@@ -95,7 +97,7 @@ export const LibraryModal = (props: LibraryModalProps) => {
         focusTriggerAfterClose={false}
       >
         <Tabs
-          defaultActiveKey={activeKey}
+          defaultActiveKey={projectId ? 'project' : activeKey}
           items={tabs}
           onChange={(key) => updateLibraryModalActiveKey(key)}
         />

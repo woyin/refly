@@ -33,16 +33,19 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import {
   nodeActionEmitter,
   createNodeEventName,
+  cleanupNodeEvents,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { MediaType } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 
 interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   mediaType?: MediaType;
   prompt?: string;
   model?: string;
   resultId?: string;
+  providerItemId?: string;
 }
 
 interface MediaSkillResponseNodeProps extends NodeProps {
@@ -56,19 +59,27 @@ const MediaSkillResponseNode = memo(
   ({ id, data, isPreview, selected, hideHandles, onNodeClick }: MediaSkillResponseNodeProps) => {
     const { t } = useTranslation();
     const { metadata } = data ?? {};
-    const { mediaType = 'image', prompt = '', model = '', resultId = '', status } = metadata ?? {};
+    const {
+      mediaType = 'image',
+      prompt = '',
+      model = '',
+      resultId = '',
+      status,
+      providerItemId,
+    } = metadata ?? {};
 
     const [isHovered, setIsHovered] = useState(false);
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
     const targetRef = useRef<HTMLDivElement>(null);
     const { getNode, getEdges, getNodes } = useReactFlow();
     const setNodeDataByEntity = useSetNodeDataByEntity();
+    const { refetchUsage } = useSubscriptionUsage();
 
     useSelectedNodeZIndex(id, selected);
 
     const { addNode } = useAddNode();
     const { deleteNode } = useDeleteNode();
-    const { readonly } = useCanvasContext();
+    const { canvasId, readonly } = useCanvasContext();
 
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
@@ -117,12 +128,16 @@ const MediaSkillResponseNode = memo(
         if (result.status === 'finish' && result.outputUrl) {
           // Create appropriate media node
           handleCreateMediaNode(result.outputUrl, result.storageKey);
+          // Refresh balance after successful generation
+          refetchUsage();
         } else if (result.status === 'failed') {
           // Update node to show error state
           console.error('Media generation failed:', result.errors);
+          // Refresh balance after failed generation
+          refetchUsage();
         }
       }
-    }, [result, resultId]);
+    }, [result, resultId, refetchUsage]);
 
     const handleCreateMediaNode = useCallback(
       async (outputUrl: string, storageKey: string) => {
@@ -179,8 +194,6 @@ const MediaSkillResponseNode = memo(
             });
           }
 
-          console.log('connectedTo', mediaSkillNode, connectedTo);
-
           // Delete this MediaSkillResponse node
           deleteNode(
             {
@@ -231,6 +244,9 @@ const MediaSkillResponseNode = memo(
             mediaType,
             model,
             provider: 'replicate',
+            providerItemId,
+            targetType: 'canvas',
+            targetId: canvasId,
           },
         });
 
@@ -249,6 +265,8 @@ const MediaSkillResponseNode = memo(
               },
             },
           );
+          // Refresh balance after retry request is sent
+          refetchUsage();
         }
       } catch (error) {
         console.error('Failed to retry media generation:', error);
@@ -259,28 +277,38 @@ const MediaSkillResponseNode = memo(
       prompt,
       mediaType,
       model,
+      providerItemId,
+      canvasId,
       resetFailedState,
       stopPolling,
       removeStreamResult,
       removeActionResult,
-      startPolling,
       setNodeDataByEntity,
-      id,
+      data?.entityId,
       data?.metadata,
+      refetchUsage,
       t,
     ]);
 
-    const handleDelete = useCallback(() => {
-      if (resultId) {
-        stopPolling(resultId);
-      }
-      deleteNode({
-        id,
-        type: 'mediaSkillResponse',
-        data,
-        position: { x: 0, y: 0 },
-      } as unknown as CanvasNode);
-    }, [id, data, resultId, stopPolling, deleteNode]);
+    const handleDelete = useCallback(
+      (e?: React.MouseEvent) => {
+        // Prevent event bubbling to avoid conflicts
+        e?.preventDefault();
+        e?.stopPropagation();
+
+        if (resultId) {
+          stopPolling(resultId);
+        }
+
+        deleteNode({
+          id,
+          type: 'mediaSkillResponse',
+          data,
+          position: { x: 0, y: 0 },
+        } as unknown as CanvasNode);
+      },
+      [id, data, resultId, stopPolling, deleteNode],
+    );
 
     const safeContainerStyle = useMemo(() => {
       const style = { ...containerStyle };
@@ -300,6 +328,8 @@ const MediaSkillResponseNode = memo(
       return () => {
         nodeActionEmitter.off(createNodeEventName(id, 'rerun'), handleNodeRerun);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
+        // Clean up all node events to prevent conflicts
+        cleanupNodeEvents(id);
       };
     }, [id, handleRetry, handleDelete]);
 
@@ -436,7 +466,7 @@ const MediaSkillResponseNode = memo(
                       >
                         {t('common.retry', 'Retry')}
                       </Button>
-                      <Button size="small" onClick={handleDelete}>
+                      <Button size="small" onClick={(e) => handleDelete(e)}>
                         {t('common.delete', 'Delete')}
                       </Button>
                     </div>

@@ -278,7 +278,7 @@ export default function FeatureBlocks() {
               key={idx}
               {...feature}
               className={cn(
-                'group relative overflow-hidden rounded-xl border border-transparent bg-gradient-to-b from-neutral-50 to-neutral-100 p-6 shadow-md transition-all hover:shadow-xl',
+                'group relative overflow-hidden rounded-xl border border-transparent bg-gradient-to-b from-neutral-50 to-neutral-100 p-6 shadow-refly-m transition-all hover:shadow-xl',
                 feature.className,
               )}
             >

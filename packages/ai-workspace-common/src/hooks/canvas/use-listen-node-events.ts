@@ -1,10 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
-import {
-  nodeOperationsEmitter,
-  MediaType,
-} from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useAddNode } from './use-add-node';
 import { CanvasNode, CanvasNodeFilter } from '@refly/canvas-common';
@@ -15,6 +12,7 @@ import { useReactFlow } from '@xyflow/react';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { genMediaSkillResponseID } from '@refly/utils/id';
 import { useChatStoreShallow } from '@refly/stores';
+import { Events } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
@@ -149,18 +147,14 @@ export const useListenNodeOperationEvents = () => {
 
   const handleGenerateMedia = useCallback(
     async ({
-      providerKey,
+      providerItemId,
       mediaType,
       query,
       model,
       nodeId,
-    }: {
-      providerKey: string;
-      mediaType: MediaType;
-      query: string;
-      model: string;
-      nodeId: string;
-    }) => {
+      targetType,
+      targetId,
+    }: Events['generateMedia']) => {
       if (readonly) return;
 
       let targetNodeId = nodeId;
@@ -198,8 +192,10 @@ export const useListenNodeOperationEvents = () => {
           body: {
             prompt: query,
             mediaType,
-            provider: providerKey,
             model,
+            providerItemId,
+            targetType,
+            targetId,
           },
         });
 
@@ -219,6 +215,7 @@ export const useListenNodeOperationEvents = () => {
                 prompt: query,
                 model,
                 resultId,
+                providerItemId,
               },
             },
           };

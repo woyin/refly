@@ -1,5 +1,5 @@
-import { Button, Form, Input, Upload, message, Typography } from 'antd';
-import { useEffect, useState } from 'react';
+import { Button, Form, Input, Upload, message, Modal } from 'antd';
+import { useState, useMemo, useEffect } from 'react';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { AiOutlineUser } from 'react-icons/ai';
 
@@ -8,21 +8,18 @@ import { useUserStore, useUserStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedCallback } from 'use-debounce';
 import ImgCrop from 'antd-img-crop';
-import { useSiderStoreShallow } from '@refly/stores';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { BiSolidEdit } from 'react-icons/bi';
-
-const { Title } = Typography;
+import { ContentHeader } from '../contentHeader';
+import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
 
 export const AccountSetting = () => {
   const [form] = Form.useForm();
   const userStore = useUserStore();
   const { t } = useTranslation();
   const [loadingAvatar, setLoadingAvatar] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  const { showSettingModal } = useSiderStoreShallow((state) => ({
-    showSettingModal: state.showSettingModal,
-  }));
   const [avatarKey, setAvatarKey] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const userProfile = useUserStoreShallow((state) => state.userProfile);
@@ -39,16 +36,9 @@ export const AccountSetting = () => {
     'success',
   );
   const [nameMessage, setNameMessage] = useState('');
-  const [emailStatus, setEmailStatus] = useState<'error' | 'success' | 'warning' | 'validating'>(
-    'success',
-  );
-  const [_emailMessage, setEmailMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const statusMap = {
-    name: { status: nameStatus, setStatus: setNameStatus, setMessage: setNameMessage },
-    email: { status: emailStatus, setStatus: setEmailStatus, setMessage: setEmailMessage },
-  };
+  const { handleLogout, contextHolder } = useLogout();
 
   const uploadAvatar = async (file: File) => {
     if (loadingAvatar) return;
@@ -93,27 +83,26 @@ export const AccountSetting = () => {
     }
   };
 
-  const validateField = async (value: string, field: 'name' | 'email') => {
-    const { setStatus, setMessage } = statusMap[field];
+  const validateField = async (value: string) => {
     if (!value) {
-      setStatus('error');
-      setMessage(t(`settings.account.${field}Placeholder`));
+      setNameStatus('error');
+      setNameMessage(t('settings.account.namePlaceholder'));
       return;
     }
     if (!/^[a-zA-Z0-9_]{1,30}$/.test(value)) {
-      setStatus('error');
-      setMessage(t(`settings.account.${field}ValidationError`));
+      setNameStatus('error');
+      setNameMessage(t('settings.account.nameValidationError'));
       return;
     }
-    setMessage(t(''));
+    setNameMessage('');
 
     const isAvailable = await checkUsername(value);
     if (!isAvailable) {
-      setStatus('error');
-      setMessage(t(`settings.account.${field}Invalid`));
+      setNameStatus('error');
+      setNameMessage(t('settings.account.nameInvalid'));
     } else {
-      setStatus('success');
-      setMessage('');
+      setNameStatus('success');
+      setNameMessage('');
     }
   };
 
@@ -141,123 +130,220 @@ export const AccountSetting = () => {
       setLoading(false);
       message.success(t('settings.account.updateSuccess'));
       userStore.setUserProfile({ ...userStore.userProfile, name, nickname, avatar: avatarUrl });
+      setIsEditModalVisible(false);
     });
   };
 
-  useEffect(() => {
-    if (showSettingModal) {
-      form.setFieldsValue({
-        ...userStore.userProfile,
-      });
-      setAvatarKey(userStore.userProfile?.avatar ?? '');
-      setAvatarError(false);
+  const handleEditClick = () => {
+    setIsEditModalVisible(true);
+    form.setFieldsValue({
+      name: userProfile?.name,
+      nickname: userProfile?.nickname,
+    });
+    setAvatarKey(userProfile?.avatar ?? '');
+    setAvatarUrl(userProfile?.avatar ?? '');
+    setAvatarError(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditModalVisible(false);
+    form.resetFields();
+    setAvatarKey(userProfile?.avatar ?? '');
+    setAvatarUrl(userProfile?.avatar ?? '');
+    setAvatarError(false);
+    setNameStatus('success');
+    setNameMessage('');
+  };
+
+  // Avatar display component
+  const AvatarDisplay = useMemo(() => {
+    if (userProfile?.avatar && !avatarError) {
+      return (
+        <img
+          src={userProfile.avatar}
+          alt="avatar"
+          className="w-full h-full object-cover rounded-full"
+          onError={() => {
+            setAvatarError(true);
+          }}
+        />
+      );
     }
-  }, [showSettingModal]);
+    return (
+      <div className="flex items-center justify-center w-full h-full">
+        <AiOutlineUser size={32} className="text-gray-400" />
+      </div>
+    );
+  }, [userProfile?.avatar, avatarError]);
 
   return (
-    <div className="p-4 pt-0 h-full overflow-hidden flex flex-col">
-      <Title level={4} className="pb-4">
-        {t('settings.tabs.account')}
-      </Title>
-      <div className="w-full h-full pb-10 box-border overflow-y-auto">
-        <div className="min-w-[680px] pr-4">
-          <Form form={form} layout="vertical">
-            <Form.Item label={t('settings.account.avatar')} name="avatar">
-              <ImgCrop
-                rotationSlider
-                modalTitle={t('settings.account.cropAvatar')}
-                modalOk={t('common.confirm')}
-                modalCancel={t('common.cancel')}
-              >
-                <Upload
-                  listType="picture-circle"
-                  name="avatar"
-                  showUploadList={false}
-                  beforeUpload={beforeUpload}
-                >
-                  <div className="w-full h-full group relative bg-gray-200 rounded-full flex items-center justify-center overflow-hidden dark:bg-gray-800">
-                    {loadingAvatar && (
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                        <AiOutlineLoading3Quarters size={22} className="animate-spin text-white" />
-                      </div>
-                    )}
-                    {!loadingAvatar && (
-                      <div className="absolute invisible group-hover:visible inset-0 bg-black/20 flex items-center justify-center">
-                        <BiSolidEdit size={22} className="text-white" />
-                      </div>
-                    )}
+    <div className="h-full overflow-hidden flex flex-col">
+      <ContentHeader title={t('settings.tabs.account')} />
 
-                    {avatarKey && !avatarError ? (
-                      <img
-                        src={avatarUrl}
-                        alt="avatar"
-                        className="w-full h-full object-cover"
-                        onError={() => {
-                          setAvatarError(true);
-                        }}
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center">
-                        <AiOutlineUser size={32} className="text-white" />
-                        <div className="text-gray-400 text-xs mt-1">
-                          {t('settings.account.uploadAvatar')}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Upload>
-              </ImgCrop>
-            </Form.Item>
-
-            <Form.Item
-              label={t('settings.account.name')}
-              name="name"
-              required
-              validateStatus={nameStatus}
-              help={nameMessage}
-              rules={[{ required: true, message: t('settings.account.namePlaceholder') }]}
-            >
-              <Input
-                maxLength={30}
-                showCount
-                prefix="@"
-                placeholder={t('settings.account.namePlaceholder')}
-                onChange={(e) => {
-                  debouncedValidateField(e.target.value, 'name');
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label={t('settings.account.nickname')}
-              name="nickname"
-              required
-              rules={[{ required: true, message: t('settings.account.nicknamePlaceholder') }]}
-            >
-              <Input
-                maxLength={30}
-                showCount
-                placeholder={t('settings.account.nicknamePlaceholder')}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label={t('settings.account.email')}
-              name="email"
-              required
-              rules={[{ required: true, message: t('settings.account.nicknamePlaceholder') }]}
-            >
-              <Input disabled placeholder={t('settings.account.emailPlaceholder')} />
-            </Form.Item>
-
-            <div className="flex justify-end mt-6">
-              <Button type="primary" onClick={handleUpdate} loading={loading}>
-                {t('settings.account.update')}
-              </Button>
+      <div className="px-5 py-6 w-full h-full box-border overflow-y-auto">
+        <div className="flex flex-col gap-6">
+          {/* User Profile Section */}
+          <div className="p-3 rounded-xl bg-refly-bg-control-z0 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-[52px] h-[52px] bg-gray-200 rounded-full overflow-hidden flex-shrink-0">
+                {AvatarDisplay}
+              </div>
+              <div>
+                <div className="mb-[2px] text-base leading-[26px] font-semibold text-refly-text-0">
+                  {userProfile?.name || 'Unknown'}
+                </div>
+                <div className="text-sm leading-5 text-refly-text-1">
+                  {userProfile?.email || 'No email provided'}
+                </div>
+              </div>
             </div>
-          </Form>
+
+            <Button
+              type="text"
+              color="default"
+              variant="filled"
+              onClick={handleEditClick}
+              className="font-semibold hover:bg-refly-tertiary-hover"
+            >
+              {t('settings.account.editAccount')}
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-2 text-sm  text-refly-text-0 leading-5">
+            <div className="font-semibold">{t('settings.account.name')}</div>
+            <div>{userProfile?.name || 'Not set'}</div>
+          </div>
+
+          <div className="flex flex-col gap-2 text-sm  text-refly-text-0 leading-5">
+            <div className="font-semibold">{t('settings.account.nickname')}</div>
+            <div>{userProfile?.nickname || 'Not set'}</div>
+          </div>
+
+          <div className="flex flex-col gap-2 text-sm  text-refly-text-0 leading-5">
+            <div className="font-semibold">{t('settings.account.email')}</div>
+            <div>{userProfile?.email || 'Not set'}</div>
+          </div>
+
+          {/* Logout Button */}
+          <div>
+            <Button
+              color="danger"
+              variant="filled"
+              onClick={handleLogout}
+              className="text-refly-func-danger-default font-semibold"
+            >
+              {t('settings.account.logout')}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Edit Account Modal */}
+      <Modal
+        centered
+        title={t('settings.account.editAccount')}
+        open={isEditModalVisible}
+        onCancel={handleCancelEdit}
+        footer={[
+          <Button key="cancel" onClick={handleCancelEdit}>
+            {t('common.cancel')}
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            onClick={handleUpdate}
+            loading={loading}
+            disabled={nameStatus === 'error'}
+          >
+            {t('common.save')}
+          </Button>,
+        ]}
+        width={500}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" className="mt-4">
+          <Form.Item label={t('settings.account.avatar')} name="avatar">
+            <ImgCrop
+              rotationSlider
+              modalTitle={t('settings.account.cropAvatar')}
+              modalOk={t('common.confirm')}
+              modalCancel={t('common.cancel')}
+            >
+              <Upload
+                listType="picture-circle"
+                name="avatar"
+                showUploadList={false}
+                beforeUpload={beforeUpload}
+              >
+                <div className="w-full h-full group relative bg-gray-200 rounded-full flex items-center justify-center overflow-hidden dark:bg-gray-800">
+                  {loadingAvatar && (
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                      <AiOutlineLoading3Quarters size={22} className="animate-spin text-white" />
+                    </div>
+                  )}
+                  {!loadingAvatar && (
+                    <div className="absolute invisible group-hover:visible inset-0 bg-black/20 flex items-center justify-center">
+                      <BiSolidEdit size={22} className="text-white" />
+                    </div>
+                  )}
+
+                  {avatarKey && !avatarError ? (
+                    <img
+                      src={avatarUrl}
+                      alt="avatar"
+                      className="w-full h-full object-cover"
+                      onError={() => {
+                        setAvatarError(true);
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <AiOutlineUser size={32} className="text-white" />
+                      <div className="text-gray-400 text-xs mt-1">
+                        {t('settings.account.uploadAvatar')}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Upload>
+            </ImgCrop>
+          </Form.Item>
+
+          <Form.Item
+            label={t('settings.account.name')}
+            name="name"
+            required
+            validateStatus={nameStatus}
+            help={nameMessage}
+            rules={[{ required: true, message: t('settings.account.namePlaceholder') }]}
+          >
+            <Input
+              maxLength={30}
+              showCount
+              prefix="@"
+              placeholder={t('settings.account.namePlaceholder')}
+              onChange={(e) => {
+                debouncedValidateField(e.target.value);
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label={t('settings.account.nickname')}
+            name="nickname"
+            required
+            rules={[{ required: true, message: t('settings.account.nicknamePlaceholder') }]}
+          >
+            <Input
+              maxLength={30}
+              showCount
+              placeholder={t('settings.account.nicknamePlaceholder')}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {contextHolder}
     </div>
   );
 };

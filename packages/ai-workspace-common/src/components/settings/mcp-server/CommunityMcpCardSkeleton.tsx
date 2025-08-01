@@ -3,24 +3,7 @@ import { Card, Skeleton, Space } from 'antd';
 
 export const CommunityMcpCardSkeleton: React.FC = memo(() => {
   return (
-    <Card
-      className="community-mcp-card-skeleton bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-      style={{
-        height: '100px',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: '8px',
-        overflow: 'hidden',
-      }}
-      styles={{
-        body: {
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-        },
-      }}
-    >
+    <Card className=" border-solid border-[1px] border-refly-Card-Border">
       {/* Main content layout skeleton */}
       <div className="flex items-center justify-between h-full">
         {/* Left side skeleton */}

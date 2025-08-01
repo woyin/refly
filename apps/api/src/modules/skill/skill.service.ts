@@ -33,6 +33,7 @@ import {
   LLMModelConfig,
   CodeArtifact,
   MediaGenerationModelConfig,
+  CreditBilling,
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
 import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
@@ -42,6 +43,7 @@ import { InvokeSkillJobData, CheckStuckActionsJobData } from './skill.dto';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { CreditService } from '../credit/credit.service';
 import {
   ModelUsageQuotaExceeded,
   ParamsError,
@@ -81,6 +83,7 @@ export class SkillService implements OnModuleInit {
     private readonly config: ConfigService,
     private readonly knowledgeService: KnowledgeService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly credit: CreditService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly providerService: ProviderService,
     private readonly skillInvokerService: SkillInvokerService,
@@ -186,7 +189,7 @@ export class SkillService implements OnModuleInit {
         return;
       }
 
-      this.logger.warn(
+      this.logger.log(
         `Found stuck actions ${stuckResults.map((r) => r.resultId).join(', ')}, marking them as failed`,
       );
 
@@ -200,10 +203,7 @@ export class SkillService implements OnModuleInit {
           const user = { uid: result.uid } as User;
 
           try {
-            await this.actionService.abortAction(user, {
-              resultId: result.resultId,
-              reason: timeoutError,
-            });
+            await this.actionService.abortAction(user, result, timeoutError);
             return { success: true, resultId: result.resultId };
           } catch (error) {
             this.logger.error(`Failed to abort stuck action ${result.resultId}: ${error?.message}`);
@@ -314,7 +314,7 @@ export class SkillService implements OnModuleInit {
       }
       let tpl = this.skillInventory.find((tpl) => tpl.name === instance.tplName);
       if (!tpl) {
-        console.log(`skill ${instance.tplName} not found`);
+        this.logger.log(`skill ${instance.tplName} not found`);
         tpl = this.skillInventory?.[0];
       }
       tplConfigMap.set(instance.tplName, tpl);
@@ -451,6 +451,13 @@ export class SkillService implements OnModuleInit {
     const providerItem = await this.providerService.findProviderItemById(user, modelItemId);
 
     if (!providerItem || providerItem.category !== 'llm' || !providerItem.enabled) {
+      // Create failed action result record before throwing error
+      await this.createFailedActionResult(
+        resultId,
+        uid,
+        'Provider item not valid or disabled',
+        param,
+      );
       throw new ProviderItemNotFoundError(`provider item ${modelItemId} not valid`);
     }
 
@@ -464,16 +471,23 @@ export class SkillService implements OnModuleInit {
       }
     }
 
-    if (tiers.length > 0) {
-      // Check for usage quota
-      const usageResult = await this.subscriptionService.checkRequestUsage(user);
+    const creditBilling: CreditBilling = providerItem?.creditBilling
+      ? JSON.parse(providerItem?.creditBilling)
+      : undefined;
 
-      for (const tier of tiers) {
-        if (!usageResult[tier]) {
-          throw new ModelUsageQuotaExceeded(
-            `model provider (${tier}) not available for current plan`,
-          );
-        }
+    if (creditBilling) {
+      const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
+      this.logger.log(`checkRequestCreditUsage result: ${JSON.stringify(creditUsageResult)}`);
+
+      if (!creditUsageResult.canUse) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Credit not available: ${creditUsageResult.message}`,
+          param,
+        );
+        throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
       }
     }
 
@@ -508,6 +522,13 @@ export class SkillService implements OnModuleInit {
         },
       });
       if (!project) {
+        // Create failed action result record before throwing error
+        await this.createFailedActionResult(
+          resultId,
+          uid,
+          `Project ${param.projectId} not found`,
+          param,
+        );
         throw new ProjectNotFoundError(`project ${param.projectId} not found`);
       }
     }
@@ -634,6 +655,85 @@ export class SkillService implements OnModuleInit {
     }
 
     return data;
+  }
+
+  /**
+   * Create a failed action result record for pre-check failures
+   */
+  private async createFailedActionResult(
+    resultId: string,
+    uid: string,
+    errorMessage: string,
+    param: InvokeSkillRequest,
+  ): Promise<void> {
+    try {
+      // Find the latest version for this resultId
+      const latestResult = await this.prisma.actionResult.findFirst({
+        where: {
+          resultId,
+          uid,
+        },
+        orderBy: {
+          version: 'desc',
+        },
+      });
+
+      const nextVersion = latestResult ? latestResult.version + 1 : 0;
+
+      // Check if a failed record with the same version already exists
+      const existingFailedResult = await this.prisma.actionResult.findFirst({
+        where: {
+          resultId,
+          uid,
+          version: nextVersion,
+          status: 'failed',
+        },
+      });
+
+      if (existingFailedResult) {
+        this.logger.warn(
+          `Failed action result already exists for resultId: ${resultId}, version: ${nextVersion}, skipping creation`,
+        );
+        return;
+      }
+
+      // Create a failed action result record
+      await this.prisma.actionResult.create({
+        data: {
+          resultId,
+          uid,
+          version: nextVersion,
+          type: 'skill',
+          status: 'failed',
+          title: param.input?.query ?? 'Skill execution failed',
+          targetId: param.target?.entityId,
+          targetType: param.target?.entityType,
+          modelName: param.modelName ?? 'unknown',
+          projectId: param.projectId,
+          actionMeta: JSON.stringify({
+            type: 'skill',
+            name: param.skillName ?? 'unknown',
+            icon: 'error',
+          }),
+          errors: JSON.stringify([errorMessage]),
+          input: JSON.stringify(param.input ?? {}),
+          context: JSON.stringify(param.context ?? {}),
+          tplConfig: JSON.stringify(param.tplConfig ?? {}),
+          runtimeConfig: JSON.stringify(param.runtimeConfig ?? {}),
+          history: JSON.stringify(param.resultHistory ?? []),
+          providerItemId: param.modelItemId,
+        },
+      });
+
+      this.logger.log(
+        `Successfully created failed action result for resultId: ${resultId}, version: ${nextVersion} with error: ${errorMessage}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to create failed action result for resultId ${resultId}: ${error?.message}`,
+      );
+      // Don't throw error here to avoid masking the original error
+    }
   }
 
   /**

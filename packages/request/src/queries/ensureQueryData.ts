@@ -14,6 +14,9 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getCreditBalance,
+  getCreditRecharge,
+  getCreditUsage,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -56,6 +59,8 @@ import {
   GetCanvasStateData,
   GetCanvasTransactionsData,
   GetCodeArtifactDetailData,
+  GetCreditRechargeData,
+  GetCreditUsageData,
   GetDocumentDetailData,
   GetPageByCanvasIdData,
   GetPageDetailData,
@@ -361,6 +366,30 @@ export const ensureUseCheckSettingsFieldData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseCheckSettingsFieldKeyFn(clientOptions),
     queryFn: () => checkSettingsField({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditRechargeData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditRechargeData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditRechargeKeyFn(clientOptions),
+    queryFn: () => getCreditRecharge({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditUsageData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetCreditUsageData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditUsageKeyFn(clientOptions),
+    queryFn: () => getCreditUsage({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetCreditBalanceData = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetCreditBalanceKeyFn(clientOptions),
+    queryFn: () => getCreditBalance({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSubscriptionPlansData = (
   queryClient: QueryClient,

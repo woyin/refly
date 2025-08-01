@@ -32,6 +32,13 @@ export function defineConfig(): Config {
     content,
     theme: {
       extend: {
+        gridTemplateColumns: {
+          // Custom grid columns for avatar wall
+          '13': 'repeat(13, minmax(0, 1fr))',
+          '14': 'repeat(14, minmax(0, 1fr))',
+          '15': 'repeat(15, minmax(0, 1fr))',
+          '16': 'repeat(16, minmax(0, 1fr))',
+        },
         fontFamily: {
           inter: ['Inter', 'sans-serif'],
           'architects-daughter': ['"Architects Daughter"', 'sans-serif'],
@@ -44,6 +51,28 @@ export function defineConfig(): Config {
           lg: ['18px', '28px'],
           xl: ['20px', '30px'],
           '2xl': ['24px', '36px'],
+        },
+        animation: {
+          'slide-in-left': 'slideInLeft 0.3s ease-out',
+        },
+        boxShadow: {
+          'refly-s': '0 1px 6px 0 #0000003d',
+          'refly-m': '0 2px 20px 4px #0000000a',
+          'refly-l': '0 8px 40px 0 #00000014',
+          'refly-primary': '0 8px 60px 0 #1d463d1a',
+          'refly-xl': '0 8px 32px 0 #00000014',
+        },
+        keyframes: {
+          slideInLeft: {
+            '0%': {
+              transform: 'translateX(-100%)',
+              opacity: '0',
+            },
+            '100%': {
+              transform: 'translateX(0)',
+              opacity: '1',
+            },
+          },
         },
         colors: {
           ...reflyColors,

@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { memo, useState, useCallback, useEffect, useMemo } from 'react';
 import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode, CanvasNodeData, ResourceNodeMeta } from '@refly/canvas-common';
@@ -25,11 +25,6 @@ import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useDeleteResource } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-resource';
 import { genSkillID } from '@refly/utils/id';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
-import {
-  useNodeSize,
-  MAX_HEIGHT_CLASS,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
 import { NodeHeader } from './shared/node-header';
 import { ContentPreview } from './shared/content-preview';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
@@ -40,19 +35,21 @@ import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
-import cn from 'classnames';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+
+const NODE_WIDTH = 320;
+const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
 
 const NodeContent = memo(
   ({
     data,
     isOperating,
-    isPreview,
   }: { data: CanvasNodeData<ResourceNodeMeta>; isOperating: boolean; isPreview: boolean }) => {
     const { t } = useTranslation();
-    const { indexStatus, sizeMode } = data?.metadata ?? {};
+    const { indexStatus } = data?.metadata ?? {};
 
     if (indexStatus === 'wait_parse') {
       return (
@@ -77,7 +74,6 @@ const NodeContent = memo(
     return (
       <ContentPreview
         content={data.contentPreview || t('canvas.nodePreview.resource.noContentPreview')}
-        sizeMode={isPreview ? 'adaptive' : sizeMode}
         isOperating={isOperating}
       />
     );
@@ -94,15 +90,13 @@ export const ResourceNode = memo(
     useSelectedNodeZIndex(id, selected);
     const updateNodeTitle = useUpdateNodeTitle();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-
-    const { resourceType, indexStatus, sizeMode = 'adaptive' } = data?.metadata ?? {};
+    const { setNodeStyle } = useNodeData();
+    const { resourceType, indexStatus } = data?.metadata ?? {};
     const ResourceIcon =
       resourceType === 'weblink' ? HiOutlineSquare3Stack3D : HiOutlineSquare3Stack3D;
 
     const { i18n, t } = useTranslation();
     const language = i18n.languages?.[0];
-
-    const targetRef = useRef<HTMLDivElement>(null);
 
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
@@ -113,19 +107,6 @@ export const ResourceNode = memo(
 
     const { readonly } = useCanvasContext();
     const { refetchUsage } = useSubscriptionUsage();
-
-    const { containerStyle, handleResize } = useNodeSize({
-      id,
-      node,
-      sizeMode,
-      readonly,
-      isOperating,
-      minWidth: 100,
-      maxWidth: 800,
-      minHeight: 80,
-      defaultWidth: 288,
-      defaultHeight: 384,
-    });
 
     // Check if node has any connections
     const isTargetConnected = edges?.some((edge) => edge.target === id);
@@ -310,6 +291,10 @@ export const ResourceNode = memo(
       }
     }, [data.entityId, remoteResult, setNodeDataByEntity]);
 
+    useEffect(() => {
+      setNodeStyle(id, NODE_SIDE_CONFIG);
+    }, [id, setNodeStyle]);
+
     // Add event handling
     useEffect(() => {
       // Create node-specific event handlers
@@ -344,89 +329,73 @@ export const ResourceNode = memo(
     }, [id, handleAddToContext, handleDelete, handleDeleteFile, handleAskAI, handleCreateDocument]);
 
     return (
-      <div className={classNames({ nowheel: isOperating && isHovered })}>
-        <div
-          ref={targetRef}
-          onMouseEnter={!isPreview ? handleMouseEnter : undefined}
-          onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-          style={isPreview ? { width: 288, height: 200 } : containerStyle}
-          onClick={onNodeClick}
-          className={classNames({
-            'nodrag nopan select-text': isOperating,
-          })}
-        >
-          <div
-            className={`h-full
-            flex flex-col
-            ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
-          `}
-          >
-            {!isPreview && !readonly && (
-              <NodeActionButtons
-                nodeId={id}
-                nodeType="resource"
-                isNodeHovered={isHovered}
-                isSelected={selected}
-              />
-            )}
-
-            <div className={cn('flex flex-col h-full relative p-3 box-border', MAX_HEIGHT_CLASS)}>
-              <NodeHeader
-                title={data?.title}
-                fixedTitle={t('canvas.nodeTypes.resource')}
-                Icon={ResourceIcon}
-                iconBgColor={NODE_COLORS.resource}
-                canEdit={!readonly}
-                updateTitle={updateTitle}
-              />
-
-              <div className="relative flex-grow min-h-0 overflow-y-auto pr-2 -mr-2">
-                <NodeContent data={data} isOperating={isOperating} isPreview={isPreview} />
-              </div>
-              {/* Timestamp container */}
-              <div className="flex justify-end items-center text-[10px] text-gray-400 mt-1 px-1">
-                {time(data.createdAt, language as LOCALE)
-                  ?.utc()
-                  ?.fromNow()}
-              </div>
-            </div>
-
-            {/* Handles */}
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={isTargetConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="resource"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={isSourceConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="resource"
-                />
-              </>
-            )}
-          </div>
-        </div>
-
-        {!isPreview && selected && sizeMode === 'adaptive' && !readonly && (
-          <NodeResizerComponent
-            targetRef={targetRef}
+      <div
+        onMouseEnter={!isPreview ? handleMouseEnter : undefined}
+        onMouseLeave={!isPreview ? handleMouseLeave : undefined}
+        onClick={onNodeClick}
+        className={classNames({
+          nowheel: isOperating && isHovered,
+          'nodrag nopan select-text': isOperating,
+        })}
+      >
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="resource"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={isPreview}
-            sizeMode={sizeMode}
-            onResize={handleResize}
           />
         )}
+
+        {/* Handles */}
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={isTargetConnected}
+              isNodeHovered={isHovered}
+              nodeType="resource"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={isSourceConnected}
+              isNodeHovered={isHovered}
+              nodeType="resource"
+            />
+          </>
+        )}
+
+        <div
+          style={NODE_SIDE_CONFIG}
+          className={`h-full flex flex-col relative p-4 box-border z-1
+            ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
+          `}
+        >
+          <NodeHeader
+            title={data?.title}
+            fixedTitle={t('canvas.nodeTypes.resource')}
+            Icon={ResourceIcon}
+            iconBgColor={NODE_COLORS.resource}
+            canEdit={!readonly}
+            updateTitle={updateTitle}
+          />
+
+          <div className="relative flex-grow min-h-0 overflow-y-auto pr-2 -mr-2">
+            <NodeContent data={data} isOperating={isOperating} isPreview={isPreview} />
+          </div>
+          {/* Timestamp container */}
+          <div className="flex justify-end items-center text-[10px] text-gray-400 mt-1">
+            {time(data.createdAt, language as LOCALE)
+              ?.utc()
+              ?.fromNow()}
+          </div>
+        </div>
       </div>
     );
   },
@@ -435,10 +404,6 @@ export const ResourceNode = memo(
     const prevStyle = prevProps.data?.metadata?.style;
     const nextStyle = nextProps.data?.metadata?.style;
     const styleEqual = JSON.stringify(prevStyle) === JSON.stringify(nextStyle);
-
-    const prevSizeMode = prevProps.data?.metadata?.sizeMode;
-    const nextSizeMode = nextProps.data?.metadata?.sizeMode;
-    const sizeModeEqual = prevSizeMode === nextSizeMode;
 
     return (
       prevProps.id === nextProps.id &&
@@ -450,8 +415,7 @@ export const ResourceNode = memo(
       prevProps.data?.contentPreview === nextProps.data?.contentPreview &&
       prevProps.data?.createdAt === nextProps.data?.createdAt &&
       JSON.stringify(prevProps.data?.metadata) === JSON.stringify(nextProps.data?.metadata) &&
-      styleEqual &&
-      sizeModeEqual // Add sizeMode comparison
+      styleEqual
     );
   },
 );

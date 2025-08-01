@@ -6,12 +6,12 @@ import { IconLeft, IconEdit } from '@refly-packages/ai-workspace-common/componen
 import { iconClassName } from '@refly-packages/ai-workspace-common/components/project/project-directory';
 import cn from 'classnames';
 import { useState } from 'react';
-import { AiOutlineMenuFold } from 'react-icons/ai';
 import { CreateProjectModal } from '@refly-packages/ai-workspace-common/components/project/project-create';
 import { ActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/project-list';
 import { SlPicture } from 'react-icons/sl';
 import { DownOutlined } from '@ant-design/icons';
 import { useSiderStoreShallow } from '@refly/stores';
+import { SideLeft } from 'refly-icons';
 
 const { Paragraph, Text } = Typography;
 export const ProjectSettings = ({
@@ -60,7 +60,7 @@ export const ProjectSettings = ({
             <Button
               type="text"
               size="small"
-              icon={<AiOutlineMenuFold className={cn(iconClassName, 'text-gray-500')} />}
+              icon={<SideLeft className={cn(iconClassName, 'text-gray-500')} />}
               onClick={() => setCollapse(true)}
             />
           )}

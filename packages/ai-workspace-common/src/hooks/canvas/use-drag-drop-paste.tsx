@@ -94,7 +94,7 @@ export const useDragDropPaste = ({ canvasId, readonly }: UseDragDropPasteOptions
 
     return (
       <div className="absolute inset-0 z-50 bg-green-50/30 pointer-events-none flex items-center justify-center border-2 border-green-500/30 rounded-lg">
-        <div className="bg-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+        <div className="bg-white px-4 py-2 rounded-lg shadow-refly-m hover:shadow-lg transition-shadow duration-200">
           <span className="text-green-600 font-medium hover:text-green-700 transition-colors duration-200">
             {t('common.dropImageHere')}
           </span>

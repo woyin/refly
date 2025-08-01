@@ -136,7 +136,7 @@ const UseCasesGallery = memo(
               shape="round"
               className={cn(
                 'transition-all duration-200',
-                activeCategory === category.id && 'shadow-md',
+                activeCategory === category.id && 'shadow-refly-m',
               )}
               style={
                 activeCategory === category.id
@@ -160,7 +160,7 @@ const UseCasesGallery = memo(
               className="no-underline text-inherit"
             >
               <Card
-                className="group overflow-hidden transition-all duration-300 hover:shadow-md cursor-pointer h-full"
+                className="group overflow-hidden transition-all duration-300 hover:shadow-refly-m cursor-pointer h-full"
                 bodyStyle={{ padding: 0 }}
                 cover={
                   <div className="relative h-48 w-full overflow-hidden">

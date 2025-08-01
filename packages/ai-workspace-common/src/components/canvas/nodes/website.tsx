@@ -1,4 +1,4 @@
-import { memo, useState, useCallback, useRef, useEffect } from 'react';
+import { memo, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode, CanvasNodeData, WebsiteNodeMeta } from '@refly/canvas-common';
@@ -21,32 +21,26 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 import { NodeHeader } from './shared/node-header';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import {
-  MAX_HEIGHT_CLASS,
-  useNodeSize,
-} from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
 import { IContextItem } from '@refly/common-types';
 import { genSkillID } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import cn from 'classnames';
-import Moveable from 'react-moveable';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 
-const DEFAULT_WIDTH = 288;
-const DEFAULT_MIN_HEIGHT = 100;
-const MAX_WIDTH = 3000;
+const NODE_WIDTH = 320;
+const NODE_EDIT_CONFIG = { width: 320, height: 288 };
+const NODE_PREVIEW_CONFIG = { width: 800, height: 600 };
 
 /**
  * Website node content component that displays either a form for URL input or an iframe preview
  */
 const NodeContent = memo(
   ({ data, readonly }: { data: CanvasNodeData<WebsiteNodeMeta>; readonly: boolean }) => {
-    const { url = '', viewMode = 'form', sizeMode = 'adaptive' } = data?.metadata ?? {};
+    const { url = '', viewMode = 'form' } = data?.metadata ?? {};
     const [isEditing, setIsEditing] = useState(viewMode === 'form' || !url);
     const { t } = useTranslation();
     const setNodeDataByEntity = useSetNodeDataByEntity();
@@ -225,111 +219,106 @@ const NodeContent = memo(
             </Button>
           </div>
         </div>
-        <div
-          className={classNames('flex-1 overflow-hidden', {
-            'max-h-[40px]': sizeMode === 'compact',
-          })}
-        >
-          {sizeMode === 'adaptive' ? (
-            <iframe
-              ref={iframeRef}
-              src={url}
-              title={data.title}
-              className="w-full h-full border-0"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
-              allow="fullscreen"
-              referrerPolicy="no-referrer"
-              loading="lazy"
-              onLoad={(e) => {
-                try {
-                  // Try to access iframe content to mute any audio/video elements
-                  const iframe = e.target as HTMLIFrameElement;
-                  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        <div className="flex-1 overflow-hidden">
+          <iframe
+            ref={iframeRef}
+            src={url}
+            title={data.title}
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+            allow="fullscreen"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            onLoad={(e) => {
+              try {
+                // Try to access iframe content to mute any audio/video elements
+                const iframe = e.target as HTMLIFrameElement;
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
 
-                  if (iframeDoc) {
-                    // Function to handle media elements
-                    const handleMediaElement = (element: HTMLMediaElement) => {
-                      element.muted = true;
-                      element.autoplay = false;
+                if (iframeDoc) {
+                  // Function to handle media elements
+                  const handleMediaElement = (element: HTMLMediaElement) => {
+                    element.muted = true;
+                    element.autoplay = false;
+                    element.setAttribute('autoplay', 'false');
+                    element.setAttribute('preload', 'none');
+
+                    // Remove any existing event listeners
+                    const elementClone = element.cloneNode(true) as HTMLMediaElement;
+                    element.parentNode?.replaceChild(elementClone, element);
+
+                    // Prevent play attempts
+                    elementClone.addEventListener(
+                      'play',
+                      (e) => {
+                        if (elementClone.muted === false) {
+                          elementClone.muted = true;
+                          e.preventDefault();
+                          elementClone.pause();
+                        }
+                      },
+                      true,
+                    );
+                  };
+
+                  // Handle existing media elements
+                  const mediaElements = iframeDoc.querySelectorAll('video, audio, iframe');
+                  for (const element of Array.from(mediaElements)) {
+                    if (element instanceof HTMLMediaElement) {
+                      handleMediaElement(element);
+                    } else if (element instanceof HTMLIFrameElement) {
+                      // Handle nested iframes
+                      element.setAttribute('allow', 'fullscreen');
                       element.setAttribute('autoplay', 'false');
-                      element.setAttribute('preload', 'none');
-
-                      // Remove any existing event listeners
-                      const elementClone = element.cloneNode(true) as HTMLMediaElement;
-                      element.parentNode?.replaceChild(elementClone, element);
-
-                      // Prevent play attempts
-                      elementClone.addEventListener(
-                        'play',
-                        (e) => {
-                          if (elementClone.muted === false) {
-                            elementClone.muted = true;
-                            e.preventDefault();
-                            elementClone.pause();
-                          }
-                        },
-                        true,
-                      );
-                    };
-
-                    // Handle existing media elements
-                    const mediaElements = iframeDoc.querySelectorAll('video, audio, iframe');
-                    for (const element of Array.from(mediaElements)) {
-                      if (element instanceof HTMLMediaElement) {
-                        handleMediaElement(element);
-                      } else if (element instanceof HTMLIFrameElement) {
-                        // Handle nested iframes
-                        element.setAttribute('allow', 'fullscreen');
-                        element.setAttribute('autoplay', 'false');
-                      }
                     }
+                  }
 
-                    // Create observer to handle dynamically added elements
-                    const observer = new MutationObserver((mutations) => {
-                      for (const mutation of mutations) {
-                        for (const node of Array.from(mutation.addedNodes)) {
-                          if (node instanceof HTMLElement) {
-                            // Handle newly added media elements
-                            const newMediaElements = node.querySelectorAll('video, audio, iframe');
-                            for (const element of Array.from(newMediaElements)) {
-                              if (element instanceof HTMLMediaElement) {
-                                handleMediaElement(element);
-                              } else if (element instanceof HTMLIFrameElement) {
-                                element.setAttribute('allow', 'fullscreen');
-                                element.setAttribute('autoplay', 'false');
-                              }
+                  // Create observer to handle dynamically added elements
+                  const observer = new MutationObserver((mutations) => {
+                    for (const mutation of mutations) {
+                      for (const node of Array.from(mutation.addedNodes)) {
+                        if (node instanceof HTMLElement) {
+                          // Handle newly added media elements
+                          const newMediaElements = node.querySelectorAll('video, audio, iframe');
+                          for (const element of Array.from(newMediaElements)) {
+                            if (element instanceof HTMLMediaElement) {
+                              handleMediaElement(element);
+                            } else if (element instanceof HTMLIFrameElement) {
+                              element.setAttribute('allow', 'fullscreen');
+                              element.setAttribute('autoplay', 'false');
                             }
+                          }
 
-                            // Also check if the node itself is a media element
-                            if (node instanceof HTMLMediaElement) {
-                              handleMediaElement(node);
-                            } else if (node instanceof HTMLIFrameElement) {
-                              node.setAttribute('allow', 'fullscreen');
-                              node.setAttribute('autoplay', 'false');
-                            }
+                          // Also check if the node itself is a media element
+                          if (node instanceof HTMLMediaElement) {
+                            handleMediaElement(node);
+                          } else if (node instanceof HTMLIFrameElement) {
+                            node.setAttribute('allow', 'fullscreen');
+                            node.setAttribute('autoplay', 'false');
                           }
                         }
                       }
-                    });
+                    }
+                  });
 
-                    // Start observing
-                    observer.observe(iframeDoc.body, {
-                      childList: true,
-                      subtree: true,
-                    });
+                  // Start observing
+                  observer.observe(iframeDoc.body, {
+                    childList: true,
+                    subtree: true,
+                  });
 
-                    // Add strict CSP
-                    const meta = iframeDoc.createElement('meta');
-                    meta.setAttribute('http-equiv', 'Content-Security-Policy');
-                    meta.setAttribute(
-                      'content',
-                      "media-src 'none'; autoplay 'none'; camera 'none'; microphone 'none'",
-                    );
-                    iframeDoc.head?.insertBefore(meta, iframeDoc.head.firstChild);
+                  // Add strict CSP
+                  const meta = iframeDoc.createElement('meta');
+                  meta.setAttribute('http-equiv', 'Content-Security-Policy');
+                  meta.setAttribute(
+                    'content',
+                    "media-src 'none'; autoplay 'none'; camera 'none'; microphone 'none'",
+                  );
+                  iframeDoc.head?.insertBefore(meta, iframeDoc.head.firstChild);
 
-                    // Add CSS to prevent autoplay and ensure muted state
-                    const style = iframeDoc.createElement('style');
-                    style.textContent = `
+                  // Add CSS to prevent autoplay and ensure muted state
+                  const style = iframeDoc.createElement('style');
+                  style.textContent = `
                     video, audio, iframe {
                       autoplay: false !important;
                       muted: true !important;
@@ -348,18 +337,17 @@ const NodeContent = memo(
                       pointer-events: auto !important;
                     }
                   `;
-                    iframeDoc.head?.appendChild(style);
+                  iframeDoc.head?.appendChild(style);
 
-                    // Clean up observer when iframe is unloaded
-                    return () => observer.disconnect();
-                  }
-                } catch {
-                  // Ignore cross-origin errors
-                  console.debug('Cannot access iframe content due to same-origin policy');
+                  // Clean up observer when iframe is unloaded
+                  return () => observer.disconnect();
                 }
-              }}
-            />
-          ) : null}
+              } catch {
+                // Ignore cross-origin errors
+                console.debug('Cannot access iframe content due to same-origin policy');
+              }
+            }}
+          />
         </div>
       </div>
     );
@@ -372,15 +360,7 @@ const NodeContent = memo(
     const prevReadonly = prevProps.readonly;
     const nextReadonly = nextProps.readonly;
 
-    const prevSizeMode = prevProps.data?.metadata?.sizeMode;
-    const nextSizeMode = nextProps.data?.metadata?.sizeMode;
-
-    return (
-      prevUrl === nextUrl &&
-      prevViewMode === nextViewMode &&
-      prevReadonly === nextReadonly &&
-      prevSizeMode === nextSizeMode
-    );
+    return prevUrl === nextUrl && prevViewMode === nextViewMode && prevReadonly === nextReadonly;
   },
 );
 
@@ -400,10 +380,6 @@ export const WebsiteNode = memo(
   }: WebsiteNodeProps) => {
     const { t } = useTranslation();
     const [isHovered, setIsHovered] = useState(false);
-    const [isResizing] = useState(false);
-    const targetRef = useRef<HTMLDivElement>(null);
-    const moveableRef = useRef<Moveable>(null);
-    const iframeRef = useRef<HTMLIFrameElement>(null);
     useSelectedNodeZIndex(id, selected);
 
     const { addToContext } = useAddToContext();
@@ -412,6 +388,14 @@ export const WebsiteNode = memo(
     const { addNode } = useAddNode();
     const updateNodeTitle = useUpdateNodeTitle();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
+    const { setNodeStyle } = useNodeData();
+
+    const { viewMode = 'form' } = data?.metadata ?? {};
+    const isEditing = viewMode === 'form' || !data?.metadata?.url;
+    const nodeStyle = useMemo(
+      () => (isEditing ? NODE_EDIT_CONFIG : NODE_PREVIEW_CONFIG),
+      [isEditing],
+    );
 
     // Hover effect
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
@@ -424,20 +408,6 @@ export const WebsiteNode = memo(
     const node = getNode(id);
 
     const { readonly } = useCanvasContext();
-
-    const { sizeMode = 'adaptive' } = data?.metadata ?? {};
-
-    const { containerStyle, handleResize } = useNodeSize({
-      id,
-      node,
-      sizeMode,
-      isOperating,
-      minWidth: DEFAULT_WIDTH,
-      maxWidth: MAX_WIDTH,
-      minHeight: DEFAULT_MIN_HEIGHT,
-      defaultWidth: DEFAULT_WIDTH,
-      defaultHeight: 'auto',
-    });
 
     // Check if node has any connections
     const edges = getEdges();
@@ -523,23 +493,18 @@ export const WebsiteNode = memo(
       [data, addNode, t, getConnectionInfo],
     );
 
-    // Enhanced resize handler
-    const handleEnhancedResize = useCallback(
-      (params: any) => {
-        if (iframeRef.current) {
-          iframeRef.current.style.pointerEvents = 'none';
-        }
-        handleResize(params);
-      },
-      [handleResize],
-    );
-
     const updateTitle = (newTitle: string) => {
       if (newTitle === node.data?.title) {
         return;
       }
       updateNodeTitle(newTitle, data.entityId, id, 'website');
     };
+
+    // Set node style on mount
+    useEffect(() => {
+      setNodeStyle(id, nodeStyle);
+    }, [id, setNodeStyle, nodeStyle]);
+
     // Add event handling
     useEffect(() => {
       // Create node-specific event handlers
@@ -566,91 +531,71 @@ export const WebsiteNode = memo(
     }, [id, handleAddToContext, handleDelete, handleAskAI]);
 
     return (
-      <div className={classNames({ nowheel: isOperating && isHovered })} data-cy="website-node">
+      <div
+        data-cy="website-node"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={classNames({
+          'rounded-2xl relative': true,
+          nowheel: isOperating && isHovered,
+          'relative nodrag nopan select-text': isOperating,
+        })}
+        style={isPreview ? { width: NODE_WIDTH, height: 200 } : nodeStyle}
+        onClick={onNodeClick}
+      >
+        {!isPreview && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="website"
+            isNodeHovered={isHovered}
+            isSelected={selected}
+          />
+        )}
+
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={isTargetConnected}
+              isNodeHovered={isHovered}
+              nodeType="website"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={isSourceConnected}
+              isNodeHovered={isHovered}
+              nodeType="website"
+            />
+          </>
+        )}
+
         <div
-          ref={targetRef}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={classNames({
-            'relative nodrag nopan select-text': isOperating,
-            'pointer-events-none': isResizing,
-          })}
-          style={isPreview ? { width: 288, height: 200 } : containerStyle}
-          onClick={onNodeClick}
+          className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
         >
-          <div
-            className={`h-full flex flex-col ${getNodeCommonStyles({ selected, isHovered })} ${isResizing ? 'pointer-events-none' : ''}`}
-          >
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={isTargetConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="website"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={isSourceConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="website"
-                />
-              </>
-            )}
-
-            {!isPreview && !readonly && (
-              <NodeActionButtons
-                nodeId={id}
-                nodeType="website"
-                isNodeHovered={isHovered}
-                isSelected={selected}
-              />
-            )}
-
-            <div className={cn('flex flex-col h-full p-3 box-border', MAX_HEIGHT_CLASS)}>
-              <NodeHeader
-                canEdit={!readonly}
-                fixedTitle={t('canvas.nodeTypes.website')}
-                title={data?.title}
-                Icon={IconWebsite}
-                updateTitle={updateTitle}
-              />
-              <div
-                className={cn('relative flex-grow overflow-y-auto pr-2 -mr-2', {
-                  'pointer-events-none': isResizing,
-                })}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    overflowY: 'auto',
-                  }}
-                  className={isResizing ? 'pointer-events-none' : ''}
-                >
-                  <NodeContent data={data} readonly={readonly} />
-                </div>
-              </div>
+          <NodeHeader
+            canEdit={!readonly}
+            fixedTitle={t('canvas.nodeTypes.website')}
+            title={data?.title}
+            Icon={IconWebsite}
+            updateTitle={updateTitle}
+          />
+          <div className="relative flex-grow overflow-y-auto pr-2 -mr-2">
+            <div
+              style={{
+                height: '100%',
+                overflowY: 'auto',
+              }}
+            >
+              <NodeContent data={data} readonly={readonly} />
             </div>
           </div>
         </div>
-
-        {!isPreview && selected && sizeMode === 'adaptive' && !readonly && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
-            isSelected={selected}
-            isHovered={isHovered}
-            isPreview={isPreview}
-            sizeMode={sizeMode}
-            onResize={handleEnhancedResize}
-          />
-        )}
       </div>
     );
   },

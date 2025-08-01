@@ -3,6 +3,8 @@
 import { type Options } from '@hey-api/client-fetch';
 import { InfiniteData, useInfiniteQuery, UseInfiniteQueryOptions } from '@tanstack/react-query';
 import {
+  getCreditRecharge,
+  getCreditUsage,
   listCanvases,
   listCanvasTemplates,
   listCodeArtifacts,
@@ -17,6 +19,10 @@ import {
   listSkillTriggers,
 } from '../requests/services.gen';
 import {
+  GetCreditRechargeData,
+  GetCreditRechargeError,
+  GetCreditUsageData,
+  GetCreditUsageError,
   ListCanvasesData,
   ListCanvasesError,
   ListCanvasTemplatesData,
@@ -331,6 +337,56 @@ export const useListPilotSessionsInfinite = <
     queryKey: Common.UseListPilotSessionsKeyFn(clientOptions, queryKey),
     queryFn: ({ pageParam }) =>
       listPilotSessions({
+        ...clientOptions,
+        query: { ...clientOptions.query, page: pageParam as number },
+      }).then((response) => response.data as TData) as TData,
+    initialPageParam: '1',
+    getNextPageParam: (response) =>
+      (
+        response as {
+          nextPage: number;
+        }
+      ).nextPage,
+    ...options,
+  });
+export const useGetCreditRechargeInfinite = <
+  TData = InfiniteData<Common.GetCreditRechargeDefaultResponse>,
+  TError = GetCreditRechargeError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditRechargeData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseInfiniteQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useInfiniteQuery({
+    queryKey: Common.UseGetCreditRechargeKeyFn(clientOptions, queryKey),
+    queryFn: ({ pageParam }) =>
+      getCreditRecharge({
+        ...clientOptions,
+        query: { ...clientOptions.query, page: pageParam as number },
+      }).then((response) => response.data as TData) as TData,
+    initialPageParam: '1',
+    getNextPageParam: (response) =>
+      (
+        response as {
+          nextPage: number;
+        }
+      ).nextPage,
+    ...options,
+  });
+export const useGetCreditUsageInfinite = <
+  TData = InfiniteData<Common.GetCreditUsageDefaultResponse>,
+  TError = GetCreditUsageError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseInfiniteQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useInfiniteQuery({
+    queryKey: Common.UseGetCreditUsageKeyFn(clientOptions, queryKey),
+    queryFn: ({ pageParam }) =>
+      getCreditUsage({
         ...clientOptions,
         query: { ...clientOptions.query, page: pageParam as number },
       }).then((response) => response.data as TData) as TData,

@@ -317,7 +317,7 @@ const SharePage = () => {
                   className={`transition-all duration-300 h-[400px] rounded-lg bg-white dark:bg-gray-900 ${
                     activeNodeIndex === index
                       ? 'shadow-[0_10px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.15)] transform -translate-y-1 border border-blue-400'
-                      : 'shadow-md hover:shadow-lg dark:hover:shadow-gray-600'
+                      : 'shadow-refly-m hover:shadow-lg dark:hover:shadow-gray-600'
                   }`}
                 >
                   <NodeRenderer

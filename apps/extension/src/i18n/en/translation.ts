@@ -19,7 +19,7 @@ export const translation = {
     loggedHomePage: {
       newThreadText: 'New Thread',
       homePage: {
-        title: 'The Open Source Vibe Workflow Platform',
+        title: 'The Open-Source Human-AI Collaborative Agent Platform',
         header: {
           fullscreen: 'Fullscreen',
           settings: 'Settings',

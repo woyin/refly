@@ -253,6 +253,9 @@ import type {
   GetActionResultData,
   GetActionResultError,
   GetActionResultResponse2,
+  AbortActionData,
+  AbortActionError,
+  AbortActionResponse,
   ListSkillsError,
   ListSkillsResponse,
   InvokeSkillData,
@@ -314,6 +317,14 @@ import type {
   CheckSettingsFieldData,
   CheckSettingsFieldError,
   CheckSettingsFieldResponse2,
+  GetCreditRechargeData,
+  GetCreditRechargeError,
+  GetCreditRechargeResponse2,
+  GetCreditUsageData,
+  GetCreditUsageError,
+  GetCreditUsageResponse2,
+  GetCreditBalanceError,
+  GetCreditBalanceResponse,
   GetSubscriptionPlansError,
   GetSubscriptionPlansResponse2,
   GetSubscriptionUsageError,
@@ -1704,6 +1715,19 @@ export const getActionResult = <ThrowOnError extends boolean = false>(
 };
 
 /**
+ * Abort action
+ * Abort an action
+ */
+export const abortAction = <ThrowOnError extends boolean = false>(
+  options: Options<AbortActionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<AbortActionResponse, AbortActionError, ThrowOnError>({
+    ...options,
+    url: '/action/abort',
+  });
+};
+
+/**
  * List skills
  * List all skills
  */
@@ -2039,6 +2063,57 @@ export const checkSettingsField = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/user/checkSettingsField',
+  });
+};
+
+/**
+ * Get credit recharge
+ * Get credit recharge
+ */
+export const getCreditRecharge = <ThrowOnError extends boolean = false>(
+  options?: Options<GetCreditRechargeData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditRechargeResponse2,
+    GetCreditRechargeError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/recharge',
+  });
+};
+
+/**
+ * Get credit usage
+ * Get credit usage
+ */
+export const getCreditUsage = <ThrowOnError extends boolean = false>(
+  options?: Options<GetCreditUsageData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditUsageResponse2,
+    GetCreditUsageError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/usage',
+  });
+};
+
+/**
+ * Get credit balance
+ * Get credit balance
+ */
+export const getCreditBalance = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetCreditBalanceResponse,
+    GetCreditBalanceError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/credit/balance',
   });
 };
 

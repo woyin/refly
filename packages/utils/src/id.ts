@@ -33,6 +33,9 @@ export enum IDPrefix {
   VIDEO = 'v-',
   AUDIO = 'a-',
   MEDIA_SKILL_RESPONSE = 'msr-',
+  CREDIT_RECHARGE = 'cr-',
+  CREDIT_USAGE = 'cu-',
+  CREDIT_DEBT = 'cd-',
 }
 
 export function genUID(): string {
@@ -169,3 +172,18 @@ export const genCanvasVersionId = () => {
   const timestamp = Date.now();
   return `cv-${timestamp}-${createId()}`;
 };
+
+export const genCreditRechargeId = () => {
+  const timestamp = Date.now();
+  return `${IDPrefix.CREDIT_RECHARGE}${timestamp}-${createId()}`;
+};
+
+export const genCreditUsageId = () => {
+  const timestamp = Date.now();
+  return `${IDPrefix.CREDIT_USAGE}${timestamp}-${createId()}`;
+};
+
+export function genCreditDebtId() {
+  const timestamp = Date.now();
+  return `${IDPrefix.CREDIT_DEBT}${timestamp}-${createId()}`;
+}

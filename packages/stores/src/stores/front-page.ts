@@ -6,10 +6,11 @@ import type {
   MediaType,
 } from '@refly/openapi-schema';
 
-interface MediaqueryData {
+export interface MediaQueryData {
   mediaType: MediaType;
   query: string;
   model: string;
+  providerItemId: string;
 }
 
 interface FrontPageState {
@@ -17,12 +18,12 @@ interface FrontPageState {
   selectedSkill: Skill | null;
   tplConfig: SkillTemplateConfig | null;
   runtimeConfig: SkillRuntimeConfig | null;
-  mediaQueryData: MediaqueryData | null;
+  mediaQueryData: MediaQueryData | null;
   setQuery?: (query: string) => void;
   setSelectedSkill?: (skill: Skill | null) => void;
   setTplConfig?: (tplConfig: SkillTemplateConfig | null) => void;
   setRuntimeConfig?: (runtimeConfig: SkillRuntimeConfig | null) => void;
-  setMediaQueryData?: (mediaQueryData: MediaqueryData | null) => void;
+  setMediaQueryData?: (mediaQueryData: MediaQueryData | null) => void;
   reset?: () => void;
 }
 

@@ -276,7 +276,7 @@ const EmptyContentPrompt: FC<EmptyContentPromptProps> = ({
                 key={node.id}
                 data-index={index}
                 className={classNames(
-                  'relative rounded-lg transition overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-gray-600 bg-white dark:bg-gray-700 ring-1',
+                  'relative rounded-lg transition overflow-hidden shadow-sm hover:shadow-refly-m dark:hover:shadow-gray-600 bg-white dark:bg-gray-700 ring-1',
                   'cursor-pointer',
                   selectedNodeIds.includes(node.data?.entityId)
                     ? 'ring-green-600'

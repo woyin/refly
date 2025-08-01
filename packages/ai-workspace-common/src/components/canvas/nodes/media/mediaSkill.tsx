@@ -3,7 +3,7 @@ import { CanvasNode, CanvasNodeData, MediaSkillNodeMeta } from '@refly/canvas-co
 import { Node } from '@xyflow/react';
 import { Typography } from 'antd';
 import { CustomHandle } from '../shared/custom-handle';
-import { useState, useCallback, useEffect, useMemo, memo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 import { getNodeCommonStyles } from '../index';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
@@ -15,11 +15,8 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { IContextItem } from '@refly/common-types';
 import { useEdgeStyles } from '@refly-packages/ai-workspace-common/components/canvas/constants';
 import { genUniqueId } from '@refly/utils/id';
-import { useNodeSize } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
 import { useCanvasStoreShallow } from '@refly/stores';
-import { NodeResizer as NodeResizerComponent } from '../shared/node-resizer';
 import classNames from 'classnames';
-import Moveable from 'react-moveable';
 import { useContextUpdateByEdges } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useDebouncedCallback } from 'use-debounce';
@@ -34,6 +31,8 @@ import { useChatStoreShallow } from '@refly/stores';
 
 const { Text } = Typography;
 
+const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
+
 type MediaSkillNode = Node<CanvasNodeData<MediaSkillNodeMeta>, 'mediaSkill'>;
 
 export const MediaSkillNode = memo(
@@ -41,47 +40,22 @@ export const MediaSkillNode = memo(
     const { t } = useTranslation();
     const [isHovered, setIsHovered] = useState(false);
     const { edges } = useCanvasData();
-    const { setNodeData } = useNodeData();
+    const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
     const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
     const { deleteNode } = useDeleteNode();
     useSelectedNodeZIndex(id, selected);
 
-    const moveableRef = useRef<Moveable>(null);
-    const targetRef = useRef<HTMLDivElement>(null);
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
     }));
     const isOperating = operatingNodeId === id;
-    const node = useMemo(() => getNode(id), [id, getNode]);
     const { readonly } = useCanvasContext();
 
     // Get mediaSelectedModel from store for fallback
     const { mediaSelectedModel } = useChatStoreShallow((state) => ({
       mediaSelectedModel: state.mediaSelectedModel,
     }));
-
-    const { containerStyle, handleResize, updateSize } = useNodeSize({
-      id,
-      node,
-      readonly,
-      isOperating,
-      minWidth: 100,
-      maxWidth: 800,
-      minHeight: 150,
-      defaultWidth: 400,
-      defaultHeight: 'auto',
-    });
-
-    // Add a safe container style with NaN check
-    const safeContainerStyle = useMemo(() => {
-      const style = { ...containerStyle };
-      // Ensure height is never NaN
-      if (typeof style.height === 'number' && Number.isNaN(style.height)) {
-        style.height = 'auto';
-      }
-      return style;
-    }, [containerStyle]);
 
     const { metadata = {} } = data;
     const { query, contextItems = [], selectedModel } = metadata;
@@ -169,25 +143,6 @@ export const MediaSkillNode = memo(
       [updateNodeData],
     );
 
-    const resizeMoveable = useCallback((width: number, height: number) => {
-      moveableRef.current?.request('resizable', { width, height });
-    }, []);
-
-    useEffect(() => {
-      if (!targetRef.current || readonly) return;
-
-      const { offsetWidth, offsetHeight } = targetRef.current;
-      // Ensure we're not passing NaN values to resizeMoveable
-      if (
-        !Number.isNaN(offsetWidth) &&
-        !Number.isNaN(offsetHeight) &&
-        offsetWidth > 0 &&
-        offsetHeight > 0
-      ) {
-        resizeMoveable(offsetWidth, offsetHeight);
-      }
-    }, [resizeMoveable, targetRef.current?.offsetHeight]);
-
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
 
     const handleMouseEnter = useCallback(() => {
@@ -242,93 +197,80 @@ export const MediaSkillNode = memo(
       return () => edgeEventsEmitter.off('edgeChange', handleEdgeChange);
     }, [id, debouncedUpdateContextItems, getNode]);
 
+    // Set node style on mount
+    useEffect(() => {
+      setNodeStyle(id, NODE_SIDE_CONFIG);
+    }, [id, setNodeStyle]);
+
     return (
-      <div className={classNames({ nowheel: isOperating && isHovered })}>
-        <div
-          ref={targetRef}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={classNames({
-            'relative group nodrag nopan select-text': isOperating,
-          })}
-          style={safeContainerStyle}
-        >
-          <div className={`w-full h-full ${getNodeCommonStyles({ selected, isHovered })}`}>
-            {
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={isTargetConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="mediaSkill"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={isSourceConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="mediaSkill"
-                />
-              </>
-            }
-
-            {!readonly && (
-              <NodeActionButtons
-                nodeId={id}
-                nodeType="mediaSkill"
-                isNodeHovered={isHovered}
-                isSelected={selected}
-              />
-            )}
-
-            <div className="flex flex-col gap-3 h-full p-3 box-border max-w-[1024px] mx-auto">
-              {/* Node Type Header */}
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700">
-                <div className="w-6 h-6 rounded bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center">
-                  <IconImage className="w-3 h-3 text-white" />
-                </div>
-                <Text className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {t('canvas.nodes.mediaSkill.mediaGenerate', 'Media Generator')}
-                </Text>
-              </div>
-
-              {/* TODO: add context manager */}
-              {false && (
-                <ContextManager contextItems={contextItems} setContextItems={setContextItems} />
-              )}
-
-              <MediaChatInput
-                readonly={readonly}
-                query={localQuery || ''}
-                setQuery={(value) => {
-                  setQuery(value);
-                  if (updateSize) {
-                    setTimeout(() => updateSize({ height: 'auto' }), 0);
-                  }
-                }}
-                nodeId={id}
-                defaultModel={localSelectedModel}
-                onModelChange={setSelectedModel}
-              />
-            </div>
-          </div>
-        </div>
-
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={classNames({
+          'rounded-2xl relative': true,
+          nowheel: isOperating && isHovered,
+          'relative nodrag nopan select-text': isOperating,
+        })}
+        style={NODE_SIDE_CONFIG}
+        data-cy="media-skill-node"
+      >
         {!readonly && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="mediaSkill"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={false}
-            onResize={handleResize}
           />
         )}
+
+        <CustomHandle
+          id={`${id}-target`}
+          nodeId={id}
+          type="target"
+          position={Position.Left}
+          isConnected={isTargetConnected}
+          isNodeHovered={isHovered}
+          nodeType="mediaSkill"
+        />
+        <CustomHandle
+          id={`${id}-source`}
+          nodeId={id}
+          type="source"
+          position={Position.Right}
+          isConnected={isSourceConnected}
+          isNodeHovered={isHovered}
+          nodeType="mediaSkill"
+        />
+
+        <div
+          className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
+        >
+          {/* Node Type Header */}
+          <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700 mb-3">
+            <div className="w-6 h-6 rounded bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center">
+              <IconImage className="w-3 h-3 text-white" />
+            </div>
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-200">
+              {t('canvas.nodes.mediaSkill.mediaGenerate', 'Media Generator')}
+            </Text>
+          </div>
+
+          {/* TODO: add context manager */}
+          {false && (
+            <ContextManager contextItems={contextItems} setContextItems={setContextItems} />
+          )}
+
+          <div className="flex-grow">
+            <MediaChatInput
+              readonly={readonly}
+              query={localQuery || ''}
+              setQuery={setQuery}
+              nodeId={id}
+              defaultModel={localSelectedModel}
+              onModelChange={setSelectedModel}
+            />
+          </div>
+        </div>
       </div>
     );
   },

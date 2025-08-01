@@ -3,13 +3,13 @@ import { CanvasNode, CanvasNodeData, SkillNodeMeta } from '@refly/canvas-common'
 import { Node } from '@xyflow/react';
 import { Form } from 'antd';
 import { CustomHandle } from './shared/custom-handle';
-import { useState, useCallback, useEffect, useMemo, memo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
 import { getNodeCommonStyles } from './index';
 import { ModelInfo, Skill, SkillRuntimeConfig, SkillTemplateConfig } from '@refly/openapi-schema';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow } from '@refly/stores';
+import { useChatStoreShallow, useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { cleanupNodeEvents } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -21,11 +21,6 @@ import { useEdgeStyles } from '@refly-packages/ai-workspace-common/components/ca
 import { genActionResultID, genUniqueId } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
-import { useNodeSize } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { useCanvasStoreShallow } from '@refly/stores';
-import { NodeResizer as NodeResizerComponent } from './shared/node-resizer';
-import classNames from 'classnames';
-import Moveable from 'react-moveable';
 import { useContextUpdateByEdges } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
 import { ChatPanel } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
@@ -37,6 +32,10 @@ import { useContextPanelStore } from '@refly/stores';
 import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/edge';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
+import classNames from 'classnames';
+
+const NODE_WIDTH = 320;
+const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
 
 type SkillNode = Node<CanvasNodeData<SkillNodeMeta>, 'skill'>;
 
@@ -44,7 +43,7 @@ export const SkillNode = memo(
   ({ data, selected, id }: NodeProps<SkillNode>) => {
     const [isHovered, setIsHovered] = useState(false);
     const { edges } = useCanvasData();
-    const { setNodeData } = useNodeData();
+    const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
     const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
     const { addNode } = useAddNode();
@@ -52,38 +51,13 @@ export const SkillNode = memo(
     const [form] = Form.useForm();
     useSelectedNodeZIndex(id, selected);
 
-    const moveableRef = useRef<Moveable>(null);
-    const targetRef = useRef<HTMLDivElement>(null);
     const { operatingNodeId } = useCanvasStoreShallow((state) => ({
       operatingNodeId: state.operatingNodeId,
     }));
     const isOperating = operatingNodeId === id;
-    const node = useMemo(() => getNode(id), [id, getNode]);
     const { canvasId, readonly } = useCanvasContext();
 
     const { projectId, handleProjectChange, getFinalProjectId } = useAskProject();
-
-    const { containerStyle, handleResize, updateSize } = useNodeSize({
-      id,
-      node,
-      readonly,
-      isOperating,
-      minWidth: 100,
-      maxWidth: 800,
-      minHeight: 200,
-      defaultWidth: 400,
-      defaultHeight: 'auto',
-    });
-
-    // Add a safe container style with NaN check
-    const safeContainerStyle = useMemo(() => {
-      const style = { ...containerStyle };
-      // Ensure height is never NaN
-      if (typeof style.height === 'number' && Number.isNaN(style.height)) {
-        style.height = 'auto';
-      }
-      return style;
-    }, [containerStyle]);
 
     const { entityId, metadata = {} } = data;
     const {
@@ -181,24 +155,9 @@ export const SkillNode = memo(
       [id],
     );
 
-    const resizeMoveable = useCallback((width: number, height: number) => {
-      moveableRef.current?.request('resizable', { width, height });
-    }, []);
-
     useEffect(() => {
-      if (!targetRef.current || readonly) return;
-
-      const { offsetWidth, offsetHeight } = targetRef.current;
-      // Ensure we're not passing NaN values to resizeMoveable
-      if (
-        !Number.isNaN(offsetWidth) &&
-        !Number.isNaN(offsetHeight) &&
-        offsetWidth > 0 &&
-        offsetHeight > 0
-      ) {
-        resizeMoveable(offsetWidth, offsetHeight);
-      }
-    }, [resizeMoveable, targetRef.current?.offsetHeight]);
+      setNodeStyle(id, NODE_SIDE_CONFIG);
+    }, [id, setNodeStyle]);
 
     useEffect(() => {
       if (skillSelectedModel && !modelInfo) {
@@ -358,86 +317,72 @@ export const SkillNode = memo(
     }, [id, debouncedUpdateContextItems]);
 
     return (
-      <div className={classNames({ nowheel: isOperating && isHovered })}>
-        <div
-          ref={targetRef}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={classNames({
-            'relative group nodrag nopan select-text': isOperating,
-          })}
-          style={safeContainerStyle}
-        >
-          <div className={`w-full h-full  ${getNodeCommonStyles({ selected, isHovered })}`}>
-            {
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={isTargetConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="skill"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={isSourceConnected}
-                  isNodeHovered={isHovered}
-                  nodeType="skill"
-                />
-              </>
-            }
-
-            {!readonly && (
-              <NodeActionButtons
-                nodeId={id}
-                nodeType="skill"
-                isNodeHovered={isHovered}
-                isSelected={selected}
-              />
-            )}
-
-            <ChatPanel
-              mode="node"
-              readonly={readonly}
-              query={localQuery}
-              setQuery={setQuery}
-              selectedSkill={skill}
-              setSelectedSkill={setSelectedSkill}
-              contextItems={contextItems}
-              setContextItems={setContextItems}
-              modelInfo={modelInfo}
-              setModelInfo={setModelInfo}
-              runtimeConfig={runtimeConfig || {}}
-              setRuntimeConfig={setRuntimeConfig}
-              tplConfig={tplConfig}
-              setTplConfig={setTplConfig}
-              handleSendMessage={handleSendMessage}
-              handleAbortAction={abortAction}
-              onInputHeightChange={() => updateSize({ height: 'auto' })}
-              projectId={projectId}
-              handleProjectChange={(projectId) => {
-                handleProjectChange(projectId);
-                updateNodeData({ metadata: { projectId } });
-              }}
-            />
-          </div>
-        </div>
-
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={classNames({
+          'rounded-2xl relative': true,
+          nowheel: isOperating && isHovered,
+          'relative nodrag nopan select-text': isOperating,
+        })}
+        style={NODE_SIDE_CONFIG}
+        data-cy="skill-node"
+      >
         {!readonly && (
-          <NodeResizerComponent
-            moveableRef={moveableRef}
-            targetRef={targetRef}
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="skill"
+            isNodeHovered={isHovered}
             isSelected={selected}
-            isHovered={isHovered}
-            isPreview={false}
-            onResize={handleResize}
           />
         )}
+
+        <CustomHandle
+          id={`${id}-target`}
+          nodeId={id}
+          type="target"
+          position={Position.Left}
+          isConnected={isTargetConnected}
+          isNodeHovered={isHovered}
+          nodeType="skill"
+        />
+        <CustomHandle
+          id={`${id}-source`}
+          nodeId={id}
+          type="source"
+          position={Position.Right}
+          isConnected={isSourceConnected}
+          isNodeHovered={isHovered}
+          nodeType="skill"
+        />
+
+        <div
+          className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
+        >
+          <ChatPanel
+            mode="node"
+            readonly={readonly}
+            query={localQuery}
+            setQuery={setQuery}
+            selectedSkill={skill}
+            setSelectedSkill={setSelectedSkill}
+            contextItems={contextItems}
+            setContextItems={setContextItems}
+            modelInfo={modelInfo}
+            setModelInfo={setModelInfo}
+            runtimeConfig={runtimeConfig || {}}
+            setRuntimeConfig={setRuntimeConfig}
+            tplConfig={tplConfig}
+            setTplConfig={setTplConfig}
+            handleSendMessage={handleSendMessage}
+            handleAbortAction={abortAction}
+            projectId={projectId}
+            handleProjectChange={(projectId) => {
+              handleProjectChange(projectId);
+              updateNodeData({ metadata: { projectId } });
+            }}
+          />
+        </div>
       </div>
     );
   },

@@ -1,15 +1,13 @@
 import { useEffect, useState, memo } from 'react';
 import { Button, Dropdown, DropdownProps, MenuProps } from 'antd';
 import {
-  IconMoreHorizontal,
-  IconDelete,
-  IconEdit,
   IconPlayOutline,
-  IconCopy,
   IconRemove,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { More, Delete, Copy, Edit } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useCanvasOperationStoreShallow } from '@refly/stores';
+import './index.scss';
 
 interface CanvasActionDropdown {
   canvasId: string;
@@ -20,6 +18,8 @@ interface CanvasActionDropdown {
   afterRename?: (newTitle: string, canvasId: string) => void;
   handleUseCanvas?: () => void;
   handleRemoveFromProject?: () => void;
+  children?: React.ReactNode;
+  offset?: [number, number];
 }
 
 export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
@@ -30,6 +30,8 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     updateShowStatus,
     handleUseCanvas,
     handleRemoveFromProject,
+    children,
+    offset,
   } = props;
   const [popupVisible, setPopupVisible] = useState(false);
   const { t } = useTranslation();
@@ -46,14 +48,14 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     handleUseCanvas && {
       label: (
         <div
-          className="flex items-center"
+          className="flex items-center gap-1"
           onClick={(e) => {
             e.stopPropagation();
             setPopupVisible(false);
             handleUseCanvas();
           }}
         >
-          <IconPlayOutline size={16} className="mr-2" />
+          <IconPlayOutline size={18} />
           {t('workspace.canvasListModal.continue')}
         </div>
       ),
@@ -62,14 +64,14 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     {
       label: (
         <div
-          className="flex items-center"
+          className="flex items-center gap-1"
           onClick={(e) => {
             e.stopPropagation();
             openRenameModal(canvasId, canvasName);
             setPopupVisible(false);
           }}
         >
-          <IconEdit size={16} className="mr-2" />
+          <Edit size={18} />
           {t('canvas.toolbar.rename')}
         </div>
       ),
@@ -78,14 +80,14 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     {
       label: (
         <div
-          className="flex items-center"
+          className="flex items-center gap-1"
           onClick={(e) => {
             e.stopPropagation();
             openDuplicateModal(canvasId, canvasName);
             setPopupVisible(false);
           }}
         >
-          <IconCopy size={14} className="mr-2" />
+          <Copy size={18} />
           {t('canvas.toolbar.duplicate')}
         </div>
       ),
@@ -94,14 +96,14 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     handleRemoveFromProject && {
       label: (
         <div
-          className="flex items-center"
+          className="flex items-center gap-1"
           onClick={(e) => {
             e.stopPropagation();
             setPopupVisible(false);
             handleRemoveFromProject();
           }}
         >
-          <IconRemove size={16} className="mr-2" />
+          <IconRemove size={16} />
           {t('canvas.toolbar.removeFromProject')}
         </div>
       ),
@@ -110,14 +112,14 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
     {
       label: (
         <div
-          className="flex items-center text-red-600"
+          className="flex items-center text-refly-func-danger-default gap-1"
           onClick={(e) => {
             e.stopPropagation();
             openDeleteModal(canvasId, canvasName);
             setPopupVisible(false);
           }}
         >
-          <IconDelete size={16} className="mr-2" />
+          <Delete size={18} />
           {t('canvas.toolbar.deleteCanvas')}
         </div>
       ),
@@ -141,19 +143,32 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
 
   return (
     <Dropdown
+      overlayClassName="canvas-action-dropdown"
       trigger={['click']}
       open={popupVisible}
       onOpenChange={handleOpenChange}
       menu={{
         items,
+        ...(offset && {
+          style: {
+            top: offset[1],
+            left: offset[0],
+          },
+        }),
       }}
     >
-      <Button
-        size={btnSize}
-        onClick={(e) => e.stopPropagation()}
-        type="text"
-        icon={<IconMoreHorizontal />}
-      />
+      {children ? (
+        <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          {children}
+        </div>
+      ) : (
+        <Button
+          size={btnSize}
+          onClick={(e) => e.stopPropagation()}
+          type="text"
+          icon={<More size={16} />}
+        />
+      )}
     </Dropdown>
   );
 });

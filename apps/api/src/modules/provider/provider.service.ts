@@ -25,7 +25,7 @@ import {
   Provider as ProviderModel,
   ProviderItem as ProviderItemModel,
 } from '../../generated/client';
-import { genProviderItemID, genProviderID, providerInfoList, pick } from '@refly/utils';
+import { genProviderItemID, genProviderID, providerInfoList, safeParseJSON } from '@refly/utils';
 import {
   ProviderNotFoundError,
   ProviderItemNotFoundError,
@@ -160,13 +160,13 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findProvider(user: User, param: ListProvidersData['query']) {
-    const { enabled, providerKey, category } = param;
+    const { enabled, providerKey, category, isGlobal } = param;
     const provider = await this.prisma.provider.findFirst({
       where: {
-        uid: user.uid,
         enabled,
         providerKey,
         deletedAt: null,
+        ...(isGlobal ? { isGlobal: true } : { uid: user.uid }),
         ...(category ? { categories: { contains: category } } : {}),
       },
     });
@@ -380,25 +380,37 @@ export class ProviderService implements OnModuleInit {
   }
 
   /**
-   * Get user preferences from database
+   * Get user preferences from database or existing preference json config.
    */
-  private async getUserPreferences(uid: string): Promise<UserPreferences> {
-    try {
-      const userPo = await this.prisma.user.findUnique({
-        where: { uid },
-        select: {
-          preferences: true,
-        },
-      });
+  async getUserPreferences(user: User, preferenceJson?: string): Promise<UserPreferences> {
+    const { uid } = user;
+    const defaultPreferences: UserPreferences = {
+      providerMode: this.configService.get('provider.defaultMode'),
+    };
 
-      if (!userPo?.preferences) {
-        return {};
+    try {
+      let rawPreference = preferenceJson;
+      if (!rawPreference) {
+        const userPo = await this.prisma.user.findUnique({
+          where: { uid },
+          select: {
+            preferences: true,
+          },
+        });
+        rawPreference = userPo?.preferences;
       }
 
-      return JSON.parse(userPo.preferences);
+      if (!rawPreference) {
+        return defaultPreferences;
+      }
+
+      return {
+        ...defaultPreferences,
+        ...safeParseJSON(rawPreference),
+      };
     } catch (error) {
       this.logger.warn(`Failed to get user preferences for ${uid}: ${error?.message || error}`);
-      return {};
+      return defaultPreferences;
     }
   }
 
@@ -408,26 +420,18 @@ export class ProviderService implements OnModuleInit {
   async getUserMediaConfig(
     user: User,
     mediaType: 'image' | 'audio' | 'video',
-    model?: string,
-    provider?: string,
   ): Promise<{
     provider: string;
+    providerItemId: string;
     model: string;
   } | null> {
     if (!mediaType) {
       return null;
     }
 
-    if (model && provider) {
-      return {
-        provider,
-        model,
-      };
-    }
-
     try {
       // Get user's default model configuration from preferences
-      const userPreferences = await this.getUserPreferences(user.uid);
+      const userPreferences = await this.getUserPreferences(user);
       const userDefaultModel = userPreferences?.defaultModel;
 
       // Get the specific media model configuration based on mediaType
@@ -474,7 +478,8 @@ export class ProviderService implements OnModuleInit {
       );
 
       return {
-        provider: configuredProviderItem.provider?.providerKey || 'replicate',
+        provider: configuredProviderItem.provider?.providerKey,
+        providerItemId: configuredProviderItem.itemId,
         model: config.modelId,
       };
     } catch (error) {
@@ -484,12 +489,22 @@ export class ProviderService implements OnModuleInit {
   }
 
   async listProviderItems(user: User, param: ListProviderItemsData['query']) {
-    const { providerId, category, enabled } = param;
+    const { providerId, category, enabled, isGlobal } = param;
+
+    if (isGlobal) {
+      const { items: globalItems } = await this.globalProviderCache.get();
+      return globalItems.filter(
+        (item) =>
+          (!providerId || item.providerId === providerId) &&
+          (!category || item.category === category) &&
+          (enabled === undefined || item.enabled === enabled),
+      );
+    }
 
     // Fetch user's provider items
     return this.prisma.providerItem.findMany({
       where: {
-        uid: user.uid,
+        ...(isGlobal ? { isGlobal: true } : { uid: user.uid }),
         providerId,
         category,
         enabled,
@@ -504,9 +519,59 @@ export class ProviderService implements OnModuleInit {
     });
   }
 
+  /**
+   * Try to find credit billing config for user-specific provider items
+   * @param items - The provider items to find credit billing for
+   * @returns A map of itemId to credit billing config
+   */
+  private async findCreditBillingForItems(
+    items: ProviderItemModel[],
+  ): Promise<Record<string, string>> {
+    if (!items?.length) {
+      return {};
+    }
+
+    // Get global items once instead of calling cache multiple times
+    const { items: globalItems } = await this.globalProviderCache.get();
+
+    // Create a lookup map for global items to avoid O(n) search for each item
+    const globalItemsMap = new Map<string, ProviderItemModel>();
+
+    for (const globalItem of globalItems) {
+      try {
+        const config = JSON.parse(globalItem.config || '{}');
+        const key = `${globalItem.providerId}:${config.modelId}`;
+        globalItemsMap.set(key, globalItem);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse config for global item ${globalItem.itemId}: ${error?.message}`,
+        );
+      }
+    }
+
+    const creditBillingMap: Record<string, string> = {};
+
+    // Process all items in a single pass
+    for (const item of items) {
+      try {
+        const config = JSON.parse(item.config || '{}');
+        const key = `${item.providerId}:${config.modelId}`;
+        const sourceGlobalProviderItem = globalItemsMap.get(key);
+
+        if (sourceGlobalProviderItem) {
+          creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to parse config for item ${item.itemId}: ${error?.message}`);
+      }
+    }
+
+    return creditBillingMap;
+  }
+
   async findProviderItemById(user: User, itemId: string) {
     const item = await this.prisma.providerItem.findUnique({
-      where: { itemId, uid: user.uid, deletedAt: null },
+      where: { itemId, deletedAt: null },
       include: {
         provider: true,
       },
@@ -514,6 +579,20 @@ export class ProviderService implements OnModuleInit {
 
     if (!item) {
       return null;
+    }
+
+    // If the provider item is not global, check if it belongs to the user
+    if (item.uid && item.uid !== user.uid) {
+      throw new ProviderItemNotFoundError(`provider item ${itemId} not found`);
+    }
+
+    if (item.uid) {
+      // Try to inherit credit billing from global provider item
+      const creditBillingMap = await this.findCreditBillingForItems([item]);
+      const creditBilling = creditBillingMap[item.itemId];
+      if (creditBilling) {
+        item.creditBilling = creditBilling;
+      }
     }
 
     // Decrypt API key
@@ -527,32 +606,15 @@ export class ProviderService implements OnModuleInit {
   }
 
   async prepareGlobalProviderItemsForUser(user: User) {
-    const { items } = await this.globalProviderCache.get();
-
-    const providerItems = await this.prisma.providerItem.createManyAndReturn({
-      data: items
-        .filter((item) => item.enabled)
-        .map((item) => ({
-          itemId: genProviderItemID(),
-          uid: user.uid,
-          ...pick(item, ['providerId', 'category', 'name', 'enabled', 'config', 'tier']),
-          ...(item.tier ? { groupName: item.tier.toUpperCase() } : {}),
-        })),
-    });
-
-    const { preferences } = await this.prisma.user.findUnique({
-      where: { uid: user.uid },
-      select: {
-        preferences: true,
-      },
-    });
-
+    const userPreferences = await this.getUserPreferences(user);
     const defaultModel = this.configService.get('defaultModel');
-    const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+
     const defaultModelConfig: DefaultModelConfig = { ...userPreferences.defaultModel };
 
+    const { items } = await this.globalProviderCache.get();
+
     if (defaultModel.chat && !userPreferences.defaultModel?.chat) {
-      const chatItem = providerItems.find((item) => {
+      const chatItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.chat;
       });
@@ -562,7 +624,7 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.agent && !userPreferences.defaultModel?.agent) {
-      const agentItem = providerItems.find((item) => {
+      const agentItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.agent;
       });
@@ -572,7 +634,7 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.queryAnalysis && !userPreferences.defaultModel?.queryAnalysis) {
-      const queryAnalysisItem = providerItems.find((item) => {
+      const queryAnalysisItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.queryAnalysis;
       });
@@ -582,12 +644,42 @@ export class ProviderService implements OnModuleInit {
     }
 
     if (defaultModel.titleGeneration && !userPreferences.defaultModel?.titleGeneration) {
-      const titleGenerationItem = providerItems.find((item) => {
+      const titleGenerationItem = items.find((item) => {
         const config: LLMModelConfig = JSON.parse(item.config);
         return config.modelId === defaultModel.titleGeneration;
       });
       if (titleGenerationItem) {
         defaultModelConfig.titleGeneration = providerItemPO2DTO(titleGenerationItem);
+      }
+    }
+
+    if (defaultModel.image && !userPreferences.defaultModel?.image) {
+      const imageItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.image;
+      });
+      if (imageItem) {
+        defaultModelConfig.image = providerItemPO2DTO(imageItem);
+      }
+    }
+
+    if (defaultModel.video && !userPreferences.defaultModel?.video) {
+      const videoItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.video;
+      });
+      if (videoItem) {
+        defaultModelConfig.video = providerItemPO2DTO(videoItem);
+      }
+    }
+
+    if (defaultModel.audio && !userPreferences.defaultModel?.audio) {
+      const audioItem = items.find((item) => {
+        const config: MediaGenerationModelConfig = JSON.parse(item.config);
+        return config.modelId === defaultModel.audio;
+      });
+      if (audioItem) {
+        defaultModelConfig.audio = providerItemPO2DTO(audioItem);
       }
     }
 
@@ -606,8 +698,18 @@ export class ProviderService implements OnModuleInit {
     });
   }
 
-  private async findProviderItemsByCategory(user: User, category: ProviderCategory) {
-    // Prioritize user configured provider item
+  async findProviderItemsByCategory(user: User, category: ProviderCategory) {
+    const { items: globalItems } = await this.globalProviderCache.get();
+    const globalItemsByCategory = globalItems.filter((item) => item.category === category);
+
+    const userPreferences = await this.getUserPreferences(user);
+
+    // If user is using global provider mode, return global provider items
+    if (userPreferences.providerMode === 'global') {
+      return globalItemsByCategory;
+    }
+
+    // In custom provider mode, find user configured provider items
     const items = await this.prisma.providerItem.findMany({
       where: { uid: user.uid, category, deletedAt: null },
       include: {
@@ -616,9 +718,13 @@ export class ProviderService implements OnModuleInit {
     });
 
     if (items.length > 0) {
+      // Try to inherit credit billing from global provider items using batch lookup
+      const creditBillingMap = await this.findCreditBillingForItems(items);
+
       // Decrypt API key and return
       return items.map((item) => ({
         ...item,
+        creditBilling: creditBillingMap[item.itemId],
         provider: {
           ...item.provider,
           apiKey: this.encryptionService.decrypt(item.provider.apiKey),
@@ -626,17 +732,28 @@ export class ProviderService implements OnModuleInit {
       }));
     }
 
-    // Fallback to global provider items
-    const { items: globalItems } = await this.globalProviderCache.get();
-    return globalItems.filter((item) => item.category === category);
+    // Fallback to global provider items if no user configured provider items found
+    return globalItemsByCategory;
   }
 
   async findGlobalProviderItemByModelID(modelId: string) {
+    if (!modelId) {
+      return null;
+    }
+
     const { items: globalItems } = await this.globalProviderCache.get();
     const item = globalItems.find((item) => {
-      const config: LLMModelConfig = JSON.parse(item.config);
-      return config.modelId === modelId;
+      try {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        return config.modelId === modelId;
+      } catch (error) {
+        this.logger.warn(
+          `Failed to parse config for global item ${item.itemId}: ${error?.message}`,
+        );
+        return false;
+      }
     });
+
     if (!item) {
       return null;
     }
@@ -644,12 +761,41 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findLLMProviderItemByModelID(user: User, modelId: string) {
+    if (!modelId) {
+      return null;
+    }
+
     const items = await this.findProviderItemsByCategory(user, 'llm');
 
     for (const item of items) {
-      const config: LLMModelConfig = JSON.parse(item.config);
-      if (config.modelId === modelId) {
-        return item;
+      try {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        if (config.modelId === modelId) {
+          return item;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to parse config for item ${item.itemId}: ${error?.message}`);
+      }
+    }
+
+    return null;
+  }
+
+  async findMediaProviderItemByModelID(user: User, modelId: string) {
+    if (!modelId) {
+      return null;
+    }
+
+    const items = await this.findProviderItemsByCategory(user, 'mediaGeneration');
+
+    for (const item of items) {
+      try {
+        const config: LLMModelConfig = JSON.parse(item.config);
+        if (config.modelId === modelId) {
+          return item;
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to parse config for item ${item.itemId}: ${error?.message}`);
       }
     }
 
@@ -762,16 +908,7 @@ export class ProviderService implements OnModuleInit {
     scene: ModelScene,
     userPo?: { preferences: string },
   ): Promise<ProviderItemModel | null> {
-    const { preferences } =
-      userPo ||
-      (await this.prisma.user.findUnique({
-        where: { uid: user.uid },
-        select: {
-          preferences: true,
-        },
-      }));
-
-    const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+    const userPreferences = await this.getUserPreferences(user, userPo?.preferences);
     const { defaultModel: userDefaultModel } = userPreferences;
 
     let itemId: string | null = null;
@@ -802,9 +939,9 @@ export class ProviderService implements OnModuleInit {
     // If found in user preferences, try to use it
     if (itemId) {
       const providerItem = await this.prisma.providerItem.findUnique({
-        where: { itemId, uid: user.uid, deletedAt: null },
+        where: { itemId, deletedAt: null },
       });
-      if (providerItem) {
+      if (providerItem && (providerItem.uid === user.uid || !providerItem.uid)) {
         return providerItem;
       }
     }
@@ -875,13 +1012,7 @@ export class ProviderService implements OnModuleInit {
   }
 
   async findProviderByCategory(user: User, category: ProviderCategory) {
-    const { preferences } = await this.prisma.user.findUnique({
-      where: { uid: user.uid },
-      select: {
-        preferences: true,
-      },
-    });
-    const userPreferences: UserPreferences = JSON.parse(preferences || '{}');
+    const userPreferences = await this.getUserPreferences(user);
 
     let providerId: string | null = null;
     if (category === 'webSearch' && userPreferences.webSearch) {

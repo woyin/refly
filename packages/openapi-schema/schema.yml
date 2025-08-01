@@ -6,7 +6,7 @@ info:
     email: support@refly.ai
   version: 0.2.0
 externalDocs:
-  description: The Open Source Vibe Workflow Platform
+  description: The Open Source Human-AI Collaborative Agent Platform
   url: https://refly.ai
 servers:
   - url: /v1
@@ -2025,6 +2025,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetActionResultResponse'
+  /action/abort:
+    post:
+      tags:
+        - action
+      summary: Abort action
+      description: Abort an action
+      operationId: abortAction
+      requestBody:
+        description: Abort action request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbortActionRequest'
+        required: true
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /skill/list:
     get:
       tags:
@@ -2503,6 +2524,84 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CheckSettingsFieldResponse'
+  /credit/recharge:
+    get:
+      tags:
+        - credit
+      summary: Get credit recharge
+      description: Get credit recharge
+      operationId: getCreditRecharge
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: successful operation
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditRechargeResponse'      
+  /credit/usage:
+    get:
+      tags:
+        - credit
+      summary: Get credit usage
+      description: Get credit usage
+      operationId: getCreditUsage
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: successful operation
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCreditUsageResponse'
+  /credit/balance:
+    get:
+      tags:
+        - credit
+      summary: Get credit balance
+      description: Get credit balance
+      operationId: getCreditBalance
+      responses:
+        '200':
+          description: successful operation
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getCreditBalanceResponse'
   /subscription/plans:
     get:
       tags:
@@ -2642,6 +2741,11 @@ paths:
           description: Provider category
           schema:
             $ref: '#/components/schemas/ProviderCategory'
+        - name: isGlobal
+          in: query
+          description: Whether the provider is global
+          schema:
+            type: boolean
       responses:
         '200':
           description: successful operation
@@ -2752,6 +2856,11 @@ paths:
           description: Provider category
           schema:
             $ref: '#/components/schemas/ProviderCategory'
+        - name: isGlobal
+          in: query
+          description: Whether the provider item is global
+          schema:
+            type: boolean
       responses:
         '200':
           description: successful operation
@@ -4670,10 +4779,9 @@ components:
       description: Subscription plan type
       enum:
         - free
-        - plus
-        - pro
-        - max
-        - ultra
+        - starter
+        - maker
+        - enterprise
     SubscriptionStatus:
       type: string
       description: Subscription status
@@ -4696,6 +4804,9 @@ components:
         subscriptionId:
           type: string
           description: Subscription ID
+        lookupKey:
+          type: string
+          description: Subscription lookup key
         planType:
           type: string
           description: Subscription plan type
@@ -4904,6 +5015,12 @@ components:
         audio:
           description: Default audio generation model
           $ref: '#/components/schemas/ProviderItem'
+    ProviderMode:
+      type: string
+      description: Provider mode
+      enum:
+        - global
+        - custom
     UserPreferences:
       type: object
       description: User preferences
@@ -4911,6 +5028,9 @@ components:
         operationMode:
           description: Operation mode
           $ref: '#/components/schemas/OperationMode'
+        providerMode:
+          description: Provider mode
+          $ref: '#/components/schemas/ProviderMode'
         disableHoverCard:
           type: boolean
           description: Whether to disable hover tutorial
@@ -5820,6 +5940,17 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/ActionResult'
+    AbortActionRequest:
+      type: object
+      required:
+        - resultId
+      properties:
+        resultId:
+          type: string
+          description: Action result ID
+        version:
+          type: integer
+          description: Action result version
     QueryReferencesRequest:
       type: object
       properties:
@@ -6851,10 +6982,19 @@ components:
           model:
             type: string
             description: Model name for content generation
+          targetType:
+            $ref: '#/components/schemas/EntityType'
+          targetId:
+            type: string
+            description: Target ID
+          providerItemId:
+            type: string
+            description: Provider item ID
           provider:
             type: string
-            description: Optional provider selection
+            description: Optional provider selection (use providerItemId instead)
             nullable: true
+            deprecated: true
           prompt:
             type: string
             description: Text prompt for content generation
@@ -7119,12 +7259,79 @@ components:
                 url:
                   type: string
                   description: Portal session URL
+    GetCreditRechargeResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit recharge data with pagination
+              properties:
+                data:
+                  type: array
+                  description: Credit recharge list
+                  items:
+                    $ref: '#/components/schemas/CreditRecharge'
+                total:
+                  type: integer
+                  description: Total number of records
+                page:
+                  type: integer
+                  description: Current page number
+                pageSize:
+                  type: integer
+                  description: Number of items per page
+    GetCreditUsageResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit usage data with pagination
+              properties:
+                data:
+                  type: array
+                  description: Credit usage list
+                  items:
+                    $ref: '#/components/schemas/CreditUsage'
+                total:
+                  type: integer
+                  description: Total number of records
+                page:
+                  type: integer
+                  description: Current page number
+                pageSize:
+                  type: integer
+                  description: Number of items per page
+    getCreditBalanceResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: Credit balance
+              properties:
+                creditBalance:
+                  type: number
+                  description: Credit balance
+                creditAmount:
+                  type: number
+                  description: Credit amount
     SubscriptionPlan:
       type: object
       properties:
         planType:
           type: string
           description: Subscription plan type
+        creditQuota:
+          type: number
+          description: Credit quota per month
+        dailyGiftCreditQuota:
+          type: number
+          description: Daily gift credit quota
         t1TokenQuota:
           type: number
           description: Token quota per month (T1)
@@ -7705,6 +7912,31 @@ components:
         - $ref: '#/components/schemas/EmbeddingModelConfig'
         - $ref: '#/components/schemas/RerankerModelConfig'
         - $ref: '#/components/schemas/MediaGenerationModelConfig'
+    CreditBilling:
+      type: object
+      description: Credit billing configuration for provider items
+      required:
+        - unitCost
+        - unit
+        - minCharge
+      properties:
+        unitCost:
+          type: number
+          description: Credit consumption per unit usage
+          minimum: 0
+        unit:
+          type: string
+          description: Measurement unit (e.g., token, product, second)
+          example: "5k_tokens"
+        minCharge:
+          type: number
+          description: Minimum credit charge per request
+          minimum: 0
+        isEarlyBirdFree:
+          type: boolean
+          description: Whether this billing is free for early bird users
+          default: false
+
     ProviderItemOption:
       type: object
       properties:
@@ -7762,6 +7994,118 @@ components:
         group:
           type: string
           description: Provider item group
+        creditBilling:
+          description: Credit billing info
+          $ref: '#/components/schemas/CreditBilling'
+    CreditRecharge:
+      type: object
+      description: Credit recharge record for user balance management
+      required:
+        - rechargeId
+        - uid
+        - amount
+        - balance
+        - enabled
+        - expiresAt
+        - createdAt
+        - updatedAt
+      properties:
+        rechargeId:
+          type: string
+          description: Unique recharge record ID
+        uid:
+          type: string
+          description: User UID who owns this recharge record
+        amount:
+          type: integer
+          description: Original recharge amount in credits
+          minimum: 0
+        balance:
+          type: integer
+          description: Remaining balance for this recharge record
+          minimum: 0
+        enabled:
+          type: boolean
+          description: Whether this recharge record is enabled (false after 30 days)
+          default: true
+        source:
+          type: string
+          description: Recharge source type
+          enum:
+            - subscription
+            - purchase
+            - gift
+            - promotion
+            - refund
+          default: "purchase"
+        description:
+          type: string
+          description: Optional description for this recharge
+        expiresAt:
+          type: string
+          format: date-time
+          description: Expiration timestamp (30 days from creation)
+        createdAt:
+          type: string
+          format: date-time
+          description: Record creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Record last update timestamp
+
+    CreditUsage:
+      type: object
+      description: Credit usage record for tracking consumption
+      required:
+        - usageId
+        - uid
+        - amount
+        - usageType
+        - createdAt
+      properties:
+        usageId:
+          type: string
+          description: Unique usage record ID
+        uid:
+          type: string
+          description: User UID who consumed the credits
+        amount:
+          type: integer
+          description: Amount of credits consumed
+          minimum: 0
+        providerItemId:
+          type: string
+          description: Provider item ID that consumed the credits
+        modelName:
+          type: string
+          description: Model name used for this consumption
+        usageType:
+          type: string
+          description: Type of usage that consumed credits
+          enum:
+            - model_call
+            - media_generation
+            - embedding
+            - reranking
+            - other
+          default: "model_call"
+        actionResultId:
+          type: string
+          description: Related action result ID (if applicable)
+        pilotSessionId:
+          type: string
+          description: Related pilot session ID (if applicable)
+        description:
+          type: string
+          description: Optional description for this usage
+        modelUsageDetails:
+          type: string
+          description: Model usage details for skill execution (JSON array of model usage)
+        createdAt:
+          type: string
+          format: date-time
+          description: Usage record creation timestamp
     ListProvidersResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

@@ -512,7 +512,7 @@ export function SlideshowEdit(props: PageEditProps) {
 
     if (pageLoadError) {
       return (
-        <div className="flex flex-col items-center justify-center h-[400px] bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-all shadow-sm hover:shadow-md dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950">
+        <div className="flex flex-col items-center justify-center h-[400px] bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-all shadow-sm hover:shadow-refly-m dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950">
           <div className="w-16 h-16 flex items-center justify-center rounded-full bg-gray-50 dark:bg-gray-950 mb-4">
             <FileTextOutlined style={{ fontSize: '28px', color: '#bfbfbf' }} />
           </div>
@@ -524,7 +524,7 @@ export function SlideshowEdit(props: PageEditProps) {
     if (!pageDetail) {
       return (
         <div
-          className="flex flex-col items-center justify-center h-[400px] bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-all shadow-sm hover:shadow-md dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950"
+          className="flex flex-col items-center justify-center h-[400px] bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-all shadow-sm hover:shadow-refly-m dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950"
           onClick={handleOpenEmptyContentModal}
         >
           <div className="w-16 h-16 flex items-center justify-center rounded-full bg-gray-50 dark:bg-gray-950 mb-4">
@@ -581,7 +581,7 @@ export function SlideshowEdit(props: PageEditProps) {
                 className={`transition-all duration-300 h-[400px] rounded-lg bg-white dark:bg-gray-900 ${
                   activeNodeIndex === index
                     ? 'shadow-[0_10px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.15)] transform -translate-y-1'
-                    : 'shadow-md hover:shadow-lg dark:shadow-md dark:shadow-gray-950 dark:hover:shadow-lg dark:hover:shadow-gray-950'
+                    : 'shadow-refly-m hover:shadow-lg dark:shadow-refly-m dark:shadow-gray-950 dark:hover:shadow-lg dark:hover:shadow-gray-950'
                 }`}
               >
                 <NodeRenderer
@@ -596,7 +596,7 @@ export function SlideshowEdit(props: PageEditProps) {
           </div>
         ) : (
           <div
-            className="flex flex-col items-center justify-center h-[400px] bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-all shadow-sm hover:shadow-md  dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950"
+            className="flex flex-col items-center justify-center h-[400px] bg-white rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-all shadow-sm hover:shadow-refly-m  dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-950"
             onClick={handleOpenEmptyContentModal}
           >
             <div className="w-16 h-16 flex items-center justify-center rounded-full bg-gray-50 dark:bg-gray-950 mb-4">

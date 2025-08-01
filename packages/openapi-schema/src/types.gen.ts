@@ -1716,7 +1716,7 @@ export type SubscriptionInterval = 'monthly' | 'yearly';
 /**
  * Subscription plan type
  */
-export type SubscriptionPlanType = 'free' | 'plus' | 'pro' | 'max' | 'ultra';
+export type SubscriptionPlanType = 'free' | 'starter' | 'maker' | 'enterprise';
 
 /**
  * Subscription status
@@ -1736,6 +1736,10 @@ export type Subscription = {
    * Subscription ID
    */
   subscriptionId: string;
+  /**
+   * Subscription lookup key
+   */
+  lookupKey?: string;
   /**
    * Subscription plan type
    */
@@ -1951,6 +1955,11 @@ export type DefaultModelConfig = {
 };
 
 /**
+ * Provider mode
+ */
+export type ProviderMode = 'global' | 'custom';
+
+/**
  * User preferences
  */
 export type UserPreferences = {
@@ -1958,6 +1967,10 @@ export type UserPreferences = {
    * Operation mode
    */
   operationMode?: OperationMode;
+  /**
+   * Provider mode
+   */
+  providerMode?: ProviderMode;
   /**
    * Whether to disable hover tutorial
    */
@@ -2784,6 +2797,17 @@ export type DeleteDocumentRequest = {
 
 export type GetActionResultResponse = BaseResponse & {
   data?: ActionResult;
+};
+
+export type AbortActionRequest = {
+  /**
+   * Action result ID
+   */
+  resultId: string;
+  /**
+   * Action result version
+   */
+  version?: number;
 };
 
 export type QueryReferencesRequest = {
@@ -3790,8 +3814,18 @@ export type MediaGenerateRequest = {
    * Model name for content generation
    */
   model?: string;
+  targetType?: EntityType;
   /**
-   * Optional provider selection
+   * Target ID
+   */
+  targetId?: string;
+  /**
+   * Provider item ID
+   */
+  providerItemId?: string;
+  /**
+   * Optional provider selection (use providerItemId instead)
+   * @deprecated
    */
   provider?: string | null;
   /**
@@ -4056,11 +4090,83 @@ export type CreatePortalSessionResponse = BaseResponse & {
   };
 };
 
+export type GetCreditRechargeResponse = BaseResponse & {
+  /**
+   * Credit recharge data with pagination
+   */
+  data?: {
+    /**
+     * Credit recharge list
+     */
+    data?: Array<CreditRecharge>;
+    /**
+     * Total number of records
+     */
+    total?: number;
+    /**
+     * Current page number
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
+};
+
+export type GetCreditUsageResponse = BaseResponse & {
+  /**
+   * Credit usage data with pagination
+   */
+  data?: {
+    /**
+     * Credit usage list
+     */
+    data?: Array<CreditUsage>;
+    /**
+     * Total number of records
+     */
+    total?: number;
+    /**
+     * Current page number
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
+};
+
+export type getCreditBalanceResponse = BaseResponse & {
+  /**
+   * Credit balance
+   */
+  data?: {
+    /**
+     * Credit balance
+     */
+    creditBalance?: number;
+    /**
+     * Credit amount
+     */
+    creditAmount?: number;
+  };
+};
+
 export type SubscriptionPlan = {
   /**
    * Subscription plan type
    */
   planType?: string;
+  /**
+   * Credit quota per month
+   */
+  creditQuota?: number;
+  /**
+   * Daily gift credit quota
+   */
+  dailyGiftCreditQuota?: number;
   /**
    * Token quota per month (T1)
    */
@@ -4649,6 +4755,28 @@ export type ProviderItemConfig =
   | RerankerModelConfig
   | MediaGenerationModelConfig;
 
+/**
+ * Credit billing configuration for provider items
+ */
+export type CreditBilling = {
+  /**
+   * Credit consumption per unit usage
+   */
+  unitCost: number;
+  /**
+   * Measurement unit (e.g., token, product, second)
+   */
+  unit: string;
+  /**
+   * Minimum credit charge per request
+   */
+  minCharge: number;
+  /**
+   * Whether this billing is free for early bird users
+   */
+  isEarlyBirdFree?: boolean;
+};
+
 export type ProviderItemOption = {
   /**
    * Provider item name
@@ -4709,7 +4837,117 @@ export type ProviderItem = {
    * Provider item group
    */
   group?: string;
+  /**
+   * Credit billing info
+   */
+  creditBilling?: CreditBilling;
 };
+
+/**
+ * Credit recharge record for user balance management
+ */
+export type CreditRecharge = {
+  /**
+   * Unique recharge record ID
+   */
+  rechargeId: string;
+  /**
+   * User UID who owns this recharge record
+   */
+  uid: string;
+  /**
+   * Original recharge amount in credits
+   */
+  amount: number;
+  /**
+   * Remaining balance for this recharge record
+   */
+  balance: number;
+  /**
+   * Whether this recharge record is enabled (false after 30 days)
+   */
+  enabled: boolean;
+  /**
+   * Recharge source type
+   */
+  source?: 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
+  /**
+   * Optional description for this recharge
+   */
+  description?: string;
+  /**
+   * Expiration timestamp (30 days from creation)
+   */
+  expiresAt: string;
+  /**
+   * Record creation timestamp
+   */
+  createdAt: string;
+  /**
+   * Record last update timestamp
+   */
+  updatedAt: string;
+};
+
+/**
+ * Recharge source type
+ */
+export type source = 'subscription' | 'purchase' | 'gift' | 'promotion' | 'refund';
+
+/**
+ * Credit usage record for tracking consumption
+ */
+export type CreditUsage = {
+  /**
+   * Unique usage record ID
+   */
+  usageId: string;
+  /**
+   * User UID who consumed the credits
+   */
+  uid: string;
+  /**
+   * Amount of credits consumed
+   */
+  amount: number;
+  /**
+   * Provider item ID that consumed the credits
+   */
+  providerItemId?: string;
+  /**
+   * Model name used for this consumption
+   */
+  modelName?: string;
+  /**
+   * Type of usage that consumed credits
+   */
+  usageType: 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'other';
+  /**
+   * Related action result ID (if applicable)
+   */
+  actionResultId?: string;
+  /**
+   * Related pilot session ID (if applicable)
+   */
+  pilotSessionId?: string;
+  /**
+   * Optional description for this usage
+   */
+  description?: string;
+  /**
+   * Model usage details for skill execution (JSON array of model usage)
+   */
+  modelUsageDetails?: string;
+  /**
+   * Usage record creation timestamp
+   */
+  createdAt: string;
+};
+
+/**
+ * Type of usage that consumed credits
+ */
+export type usageType = 'model_call' | 'media_generation' | 'embedding' | 'reranking' | 'other';
 
 export type ListProvidersResponse = BaseResponse & {
   data?: Array<Provider>;
@@ -6004,6 +6242,17 @@ export type GetActionResultResponse2 = GetActionResultResponse;
 
 export type GetActionResultError = unknown;
 
+export type AbortActionData = {
+  /**
+   * Abort action request
+   */
+  body: AbortActionRequest;
+};
+
+export type AbortActionResponse = BaseResponse;
+
+export type AbortActionError = unknown;
+
 export type ListSkillsResponse = ListSkillResponse;
 
 export type ListSkillsError = unknown;
@@ -6243,6 +6492,44 @@ export type CheckSettingsFieldResponse2 = CheckSettingsFieldResponse;
 
 export type CheckSettingsFieldError = unknown;
 
+export type GetCreditRechargeData = {
+  query?: {
+    /**
+     * Page number (1-based)
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
+};
+
+export type GetCreditRechargeResponse2 = GetCreditRechargeResponse;
+
+export type GetCreditRechargeError = unknown;
+
+export type GetCreditUsageData = {
+  query?: {
+    /**
+     * Page number (1-based)
+     */
+    page?: number;
+    /**
+     * Number of items per page
+     */
+    pageSize?: number;
+  };
+};
+
+export type GetCreditUsageResponse2 = GetCreditUsageResponse;
+
+export type GetCreditUsageError = unknown;
+
+export type GetCreditBalanceResponse = getCreditBalanceResponse;
+
+export type GetCreditBalanceError = unknown;
+
 export type GetSubscriptionPlansResponse2 = GetSubscriptionPlansResponse;
 
 export type GetSubscriptionPlansError = unknown;
@@ -6293,6 +6580,10 @@ export type ListProvidersData = {
      * Whether the provider is enabled
      */
     enabled?: boolean;
+    /**
+     * Whether the provider is global
+     */
+    isGlobal?: boolean;
     /**
      * Provider key
      */
@@ -6346,6 +6637,10 @@ export type ListProviderItemsData = {
      * Whether the provider item is enabled
      */
     enabled?: boolean;
+    /**
+     * Whether the provider item is global
+     */
+    isGlobal?: boolean;
     /**
      * Provider ID
      */

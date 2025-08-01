@@ -140,14 +140,16 @@ const translations = {
     validate: 'Validate',
     refresh: 'Refresh',
     generating: 'Generating...',
+    yes: 'Yes',
+    no: 'No',
   },
   mode: {
     ask: 'Ask',
     agent: 'Agent',
-    askDescription: 'Answer your question in a single step',
-    agentDescription: 'Solve complex problems with multiple steps',
+    askDescription: 'Ask mode: answer your question in a single step',
+    agentDescription: 'Agent mode: automatically plan and execute tasks',
     media: 'Media',
-    mediaDescription: 'Generate images/videos/audios',
+    mediaDescription: 'Media mode: generate images, videos, audios',
   },
   pages: {
     share: {
@@ -394,9 +396,9 @@ const translations = {
   },
   tabMeta: {
     landingPage: {
-      title: 'The Open Source Vibe Workflow Platform',
+      title: 'The Open-Source Human-AI Collaborative Agent Platform',
       description:
-        'Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.',
+        "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     },
     threadLibrary: {
       title: 'Threads',
@@ -409,28 +411,30 @@ const translations = {
     },
   },
   landingPage: {
-    title: 'The Open Source Vibe Workflow Platform',
+    title: 'The Open-Source Human-AI Collaborative Agent Platform',
     subTitle:
-      'Powered by multi-threaded dialogue, knowledge integration, context memory, and intelligent search, Refly is the best way to transform ideas into quality content.',
+      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     getStarted: 'Get Started',
     login: 'Login',
-    simplySlogan: 'Vibe Workflow',
-    slogan: 'The Open Source Vibe Workflow Platform',
+    simplySlogan: 'Human-AI Collaborative Agent',
+    slogan: 'The Open-Source Human-AI Collaborative Agent Platform',
     description:
-      'Refly is the best way to transform ideas into quality content through multi-threaded dialogue, knowledge integration, context memory, and intelligent search.',
+      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     anotherDescription:
-      'A free-form canvas creation platform powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, easily transforms ideas into quality content.',
+      "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
     simplyDescription: {
       first:
         'Powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, ',
       second: 'Refly is the best way to transform ideas into quality content.',
     },
-    messageText: 'v0.8.0: Multimodal Agent Is Officially Launched 🚀',
-    simpleMessageText: 'v0.8.0: Multimodal Agent Is Officially Launched 🚀',
+    messageText:
+      '🚀 v0.9.0 Released! A milestone update focused on creative freedom, clarity, and control. 🚀',
+    simpleMessageText:
+      '🚀 v0.9.0 Released! A milestone update focused on creative freedom, clarity, and control. 🚀',
     tryForFree: 'Get Started',
     tryItNow: 'Try It Now',
     creationEngine: 'Creation Engine',
-    addToChrome: 'Add to Chrome',
+    addToChrome: 'Install Browser Extension',
     contactUs: 'Contact Us',
     watchVideo: 'Watch Video',
     joinBtn: 'Join for free',
@@ -637,7 +641,7 @@ const translations = {
       title: 'Plans and Pricing',
       subtitle: 'Embark on your AI content creation journey with Refly',
       description:
-        'Sign up and enjoy a unlimited trial with 50 standard model calls per day. No credit card required.',
+        'One-click registration, instantly access top-tier AI models, no configuration required, no credit card needed, unlimited creation.',
       limitedOffer:
         'Now 50% off forever with annual subscription! Price adjustment and unlimited plan discontinuation on March 16th, 00:00 UTC',
     },
@@ -648,7 +652,7 @@ const translations = {
         contactUs: 'Contact us',
       },
       description:
-        'Refly is a pioneering vibe workflow platform designed to solve your most complex challenges. Effortlessly design, build, and reuse intelligent workflows to boost productivity with AI agents and infinite expansion of MCP tools.',
+        "Refly.AI is the world's first open-source human-AI collaborative Agent platform. By combining a visual canvas with a multimodal resource library, it fuses human judgment and AI execution to help designers, operators, and creators efficiently tackle complex tasks—delivering a smoother, more transparent intelligent workspace.",
       right: 'Refly.ai. All rights reserved.',
       product: {
         title: 'Products',
@@ -692,6 +696,12 @@ const translations = {
       continue: 'Continue',
       signin: 'Sign in',
       signup: 'Sign up',
+      greeting: {
+        signin: 'Welcome back!',
+        signup: 'Welcome!',
+        signinSubtitle: 'Welcome back! Sign in to continue.',
+        signupSubtitle: 'Welcome! Please fill in the details to get started.',
+      },
       signinTitle: 'Sign in to Refly',
       signinSubtitle: 'Welcome back! Sign in to continue.',
       signupTitle: 'Create your account',
@@ -712,6 +722,7 @@ const translations = {
       utilText: 'By registering, you agree to our',
       privacyPolicy: 'Privacy Policy',
       terms: 'Terms of Service',
+      or: 'or use email to login',
     },
     resetPasswordModal: {
       title: 'Reset Password',
@@ -724,6 +735,7 @@ const translations = {
       passwordConfirmPlaceholder: 'Enter your new password again',
     },
     tab: {
+      home: 'Home',
       product: 'Product',
       price: 'Pricing',
       docs: 'Docs',
@@ -818,10 +830,9 @@ const translations = {
   frontPage: {
     welcome: {
       part1: 'The World #1 Open Source',
-      part2: 'Vibe Workflow',
+      part2: 'Human-AI Collaborative Agent',
       part3: 'Platform',
     },
-    vibeWorkflow: 'Vibe Workflow',
     githubStar: 'Star us on GitHub!',
     fromCommunity: 'From the community',
     fromCommunityDesc: 'Discover a way to use Refly for work, or even beyond.',
@@ -849,11 +860,13 @@ const translations = {
     title: 'Share',
     login: 'Start Writing with Refly',
     updateShare: 'Sync',
-    updateShareTooltip: 'Sync shared content',
+    updateShareTooltip: 'Sync latest shared content',
     updateShareSuccess: '​​Latest canvas content synced and shared successfully!',
-    copyLink: 'Copy',
+    copyLink: 'Copy Link',
+    linkCopied: 'Link copied',
     copyLinkTooltip: 'Copy shared link',
-    publishTemplate: 'Publish',
+    publishTemplate: 'Publish to Community',
+    publish: 'Publish',
     publishTemplateTooltip: 'Publish canvas to template',
     linkShare: 'Link Share',
     updateCanvasPermissionSuccess: 'Update canvas permission successfully',
@@ -861,8 +874,8 @@ const translations = {
     accessOptions: {
       anyone: 'Anyone with the link',
       anyoneDescription: 'Anyone with the link can access',
-      off: 'Disabled',
-      offDescription: 'Only you can access',
+      off: 'Only You',
+      offDescription: 'Only you can access through the link',
     },
   },
   workspace: {
@@ -1223,7 +1236,7 @@ const translations = {
       toggleLaunchpadTitle: 'Toggle Ask AI Display State',
       editTitle: 'Edit Canvas Title',
       editTitlePlaceholder: 'Please enter the title of the canvas',
-      rename: 'Rename',
+      rename: 'Edit Canvas Name',
       duplicate: 'Duplicate Canvas',
       syncingChanges: 'Syncing Changes',
       synced: 'Last synced at {{time}}',
@@ -1717,7 +1730,7 @@ const translations = {
       skill: 'skill',
     },
     homePage: {
-      title: 'The Open Source Vibe Workflow Platform',
+      title: 'The Open Source Human-AI Collaborative Agent Platform',
       searchPlaceholder: 'Search for Refly',
       selectedWeblink: {
         title: 'Ask a Question Based on the Selected Web Page:',
@@ -1747,7 +1760,7 @@ const translations = {
     },
     siderMenu: {
       contactUs: 'Contact Us',
-      addToChrome: 'Add to Chrome',
+      addToChrome: 'Install Browser Extension',
       canvasTitle: 'Canvas',
       canvasDescription:
         'Create, edit, and view canvas, unlike traditional Chatbot applications, Refly completes the entire process of dialogue thinking, content consumption, and creation through an infinite two-dimensional canvas.',
@@ -1779,6 +1792,7 @@ const translations = {
       tour: 'View Tutorial',
       template: 'Template',
       home: 'Home',
+      systemTheme: 'System Theme',
     },
   },
   knowledgeLibrary: {
@@ -1960,7 +1974,7 @@ const translations = {
       description: "👋 Welcome to Refly! Let's proceed with some necessary configurations.",
     },
     tabs: {
-      providers: 'Providers',
+      providers: 'Provider Config',
       modelConfig: 'Model Config',
       parserConfig: 'Parser Config',
       resourceParser: 'Resource Parser',
@@ -1977,6 +1991,7 @@ const translations = {
       noToolsAvailable: 'No tools available',
       availableToolsPrefix: 'Available Tools: ',
       collapse: 'Collapse',
+      viewMore: 'View More',
       viewToolsWithCount: 'View Tools ({{count}})',
       title: 'MCP Server Management',
       name: 'Name',
@@ -1989,9 +2004,10 @@ const translations = {
       reconnect: 'Reconnection Settings',
       enabled: 'Enabled',
       status: 'Status',
-      addServer: 'Add Server',
-      editServer: 'Edit Server',
-      deleteServer: 'Delete Server',
+      noServers: 'No MCP servers',
+      addServer: 'Add MCP',
+      editServer: 'Edit MCP',
+      deleteServer: 'Delete MCP',
       deleteConfirmTitle: 'Delete MCP Server',
       deleteConfirmMessage: 'Are you sure you want to delete the MCP server "{{name}}"?',
       deleteSuccess: 'MCP server deleted successfully',
@@ -2112,6 +2128,7 @@ const translations = {
       updateError: 'Failed to update user information. Please try again!',
       updateSuccess: 'User information updated successfully!',
       nameInvalid: 'The username is taken',
+      editAccount: 'Edit Account Information',
 
       logout: 'Log Out',
       logoutConfirmation: {
@@ -2159,6 +2176,8 @@ const translations = {
       subscriptionManagement: 'Manage Billing and Subscriptions',
       subscriptionStatus: {
         free: 'FREE',
+        maker: 'MAKER',
+        starter: 'STARTER',
         ultra: 'ULTRA',
         pro: 'PRO',
         max: 'MAX',
@@ -2343,11 +2362,6 @@ const translations = {
       },
     },
     copilot: {
-      mcpSelector: {
-        title: 'MCP Selector',
-        empty: 'No MCP servers available',
-        browseMcpStore: 'Go to Store',
-      },
       recommendQuestions: {
         refresh: 'Refresh',
       },
@@ -2413,6 +2427,13 @@ const translations = {
       default: 'Default Group',
       group: 'Group Name',
       groupPlaceholder: 'Please set up group name to categorize and manage the models',
+      providerMode: 'Configuration Mode',
+      providerModeDescription:
+        'Global mode will use server-configured models, and custom mode supports configuring your own provider models',
+      custom: 'Custom',
+      global: 'Global',
+      syncSuccessfully: 'Configuration mode updated successfully!',
+      syncFailed: 'Failed to update providerMode configuration, please try again!',
       description: 'Description',
       descriptionPlaceholder: 'Please enter a description for this model',
     },
@@ -2436,7 +2457,7 @@ const translations = {
       settingPlaceholder: 'Not configured',
     },
     defaultModel: {
-      title: 'Default Model',
+      title: 'Default Model Config',
       chat: 'Default Q&A Model',
       agent: 'Default Agent Model',
       queryAnalysis: 'Question Analysis & Context Processing',
@@ -2586,6 +2607,9 @@ const translations = {
       viewPreview: 'View preview',
       createCodeArtifact: 'Create code artifact',
       copySourceCode: 'Copy source code',
+      collapse: 'Collapse',
+      expand: 'Expand',
+      collapsed: 'Collapsed',
       mermaidError: 'Error rendering Mermaid diagram',
       mermaid: {
         copySourceSuccess: 'Source code copied to clipboard',
@@ -2800,6 +2824,9 @@ const translations = {
       title: 'Choose MCP Servers',
       empty: 'No MCP servers available',
       selected: 'Selected',
+      browseMcpStore: 'Go to Install',
+      manageMcpServers: 'Manage MCP',
+      useMcpServers: 'Use MCP',
     },
     contextItem: {
       current: 'Current ',
@@ -2947,11 +2974,220 @@ const translations = {
     },
   },
   subscription: {
+    modalTitle: 'Upgrade to Get More Credits',
+    cancelAnytime: "Cancel anytime. By subscribing, you agree to Refly's",
+    privacy: 'Privacy',
+    terms: 'Terms',
+    earlyBirdsWelcome: {
+      title: 'To Our Earliest Companions',
+      subtitle: 'On the first day of the credit system launch, we want to thank you the most.',
+      description1: 'Thank you for your support during the unlimited era.',
+      description2: "With the credit system online, you don't need to change any usage habits.",
+      description3: 'Kimi, GPT-4.1, Gemini and other main models can still be used without limits.',
+      slogan:
+        'Thank you for your trust, may we journey together towards broader creative horizons!',
+      gotIt: 'Got it',
+      learnMore: 'Learn about my unlimited privileges',
+    },
+    plans: {
+      priceMonthly: '{{price}}/month',
+      priceYearly: '{{price}}/month',
+      priceYearlyTotal: '{{price}}/year Save 20%',
+      upgrade: 'Upgrade to {{planType}}',
+      cannotChangeTo: 'Cannot change to {{planType}}',
+      currentPlan: 'Current Plan',
+      free: {
+        title: 'Free Plan',
+        description: 'A welcoming gateway to explore the power of AI—completely free',
+        price: 'Free forever',
+        buttonText: 'Continue for free',
+        buttonTextDowngrade: 'Downgrade to Free',
+        features: [
+          'Daily new credits\n100 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n100 files',
+          'File upload limit\nMax 5MB',
+          'Service support\nCommunity support (WeChat, Lark, Discord)',
+        ],
+      },
+      pro: {
+        title: 'PRO',
+      },
+      plus: {
+        title: 'PLUS',
+      },
+      max: {
+        title: 'MAX',
+      },
+      starter: {
+        title: 'Starter Plan',
+        description: 'The perfect choice for curious minds beginning their AI journey',
+        buttonText: 'Get Starter',
+        features: [
+          'Daily new credits\n300 points',
+          'Monthly credits\n2,000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n200 files',
+          'File upload limit\nMax 10MB',
+          'Service support\nHigh priority email support',
+        ],
+      },
+      maker: {
+        title: 'Maker Plan',
+        description: 'A high-performance toolkit for ambitious creators ready to go further',
+        buttonText: 'Get Maker',
+        features: [
+          'Daily new credits\n300 points',
+          'Monthly credits\n4000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n500 files',
+          'File upload limit\nMax 20MB',
+          'Service support\nHigh priority support',
+        ],
+      },
+      enterprise: {
+        title: 'Enterprise Plan',
+        description: 'A scalable AI workspace built for professional teams and serious innovation',
+        buttonText: 'Contact Sales',
+        features: [
+          'Monthly customized credits',
+          'Visualization Canvas + Nodes',
+          'Multi-model integration + Smart retrieval',
+          'Knowledge base deep connection',
+          'Template and node sharing',
+          'More enterprise capabilities coming soon',
+        ],
+      },
+    },
+    subscriptionManagement: {
+      title: 'Subscription Management',
+      subtitle: 'Manage subscription plans and credits',
+      currentPlan: 'Current Subscription Plan',
+      willExpire: 'expires',
+      willAutoRenew: 'will auto-renew',
+      viewBilling: 'View Billing',
+      changePlan: 'Change Plan',
+      upgradePlan: 'Upgrade Plan',
+      availableCredits: 'Available Credits',
+      remainingCredits: 'Credits',
+      knowledgeBaseFiles: 'Knowledge Base Files',
+      creditUsageDetails: 'Credit Usage Details',
+      creditRechargeDetails: 'Credit Recharge Details',
+      pagination: {
+        totalItems: '{{start}}-{{end}} of {{total}} items',
+      },
+      usageDetails: 'Usage Details',
+      usageTime: 'Usage Time',
+      creditChange: 'Credit Change',
+      rechargeSource: 'Source',
+      rechargeTime: 'Recharge Time',
+      expiryDate: 'Expiry Date',
+      remaining: 'Remaining',
+      status: 'Status',
+      disabled: 'Expired',
+      usageType: {
+        model_call: 'Model Call',
+        media_generation: 'Media Generation',
+        embedding: 'Embedding',
+        reranking: 'Reranking',
+        other: 'Other',
+      },
+      depleted: 'Depleted',
+      expired: 'Expired',
+      available: 'Available',
+      planNames: {
+        starter: 'Starter Plan',
+        maker: 'Maker Plan',
+        freePlan: 'Free Plan',
+      },
+      creditsWelcome: {
+        title: 'Dear Creator',
+        subtitle: 'Refly.ai has officially launched the credits system!',
+        description1:
+          'Your existing membership benefits have been fully preserved, and you will automatically receive corresponding credits for content generation each month.',
+        description2:
+          'If you want to experience flexible billing and exclusive activities, feel free to upgrade to the new plan at any time (with exclusive limited-time double credits)!',
+        slogan:
+          'Thank you for accompanying us on this journey. A new creative adventure begins with the credit era!',
+        continueButton: 'Continue with current version',
+        learnMoreButton: 'Learn about new plans',
+      },
+    },
+    yearly: 'Yearly',
+    monthly: 'Monthly',
+    save20: 'Save 20%',
+    mostPopular: 'Most Popular',
     storageExceeded: {
-      title: 'Storage Quota Exceeded',
+      title: 'Storage Full',
       description:
-        'You have reached your storage limit. Upgrade your plan to continue using our services with expanded storage capacity.',
+        'Your storage space has reached its limit. Upgrade your plan for more storage to continue using our services.',
       upgrade: 'Upgrade Now',
+    },
+    storageFullModal: {
+      free: {
+        title: 'Free Plan',
+        titleCn: 'Current Plan',
+        description: 'A welcoming gateway to explore the power of AI—completely free',
+        price: 'Free forever',
+        buttonText: 'Continue for free',
+        buttonTextDowngrade: 'Downgrade to Free',
+        features: [
+          'Daily new credits\n100 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n100 files',
+          'File upload limit\nMax 5MB',
+          'Support\nCommunity support',
+        ],
+      },
+      starter: {
+        title: 'Starter Plan',
+        titleCn: 'Starter Plan',
+        description: 'The ideal choice for light explorers',
+        priceMonthly: '$ {{price}}/month',
+        priceYearly: '$ {{price}}/month',
+        priceYearlyTotal: '$ {{price}}/year, save 20%',
+        buttonText: 'Upgrade to {{planName}}',
+        features: [
+          'Daily new credits\n300 points',
+          'Monthly credits\n2,000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n200 files',
+          'File upload limit\nMax 10MB',
+          'Support\nPriority email support',
+        ],
+      },
+      maker: {
+        title: 'Maker Plan',
+        titleCn: 'Maker Plan',
+        description: 'The high-performance choice for advanced creators',
+        priceMonthly: '$ {{price}}/month',
+        priceYearly: '$ {{price}}/month',
+        priceYearlyTotal: '$ {{price}}/year, save 20%',
+        buttonText: 'Upgrade to {{planName}}',
+        features: [
+          'Daily new credits\n300 points',
+          'Monthly credits\n4,000 points',
+          'Top AI models\nOpenAI, Claude, Grok, DeepSeek...',
+          'Knowledge base files\n500 files',
+          'File upload limit\nMax 20MB',
+          'Support\nPriority email support',
+        ],
+      },
+      enterprise: {
+        title: 'Enterprise',
+        titleCn: 'Enterprise Plan',
+        description: 'The AI workbench designed for businesses',
+        buttonText: 'Contact Sales',
+        features: [
+          'More monthly credits',
+          'Visual Canvas + Nodes',
+          'Multi-model integration + Smart retrieval',
+          'Deep knowledge base connections',
+          'Template and node sharing',
+          'More enterprise features coming soon',
+        ],
+      },
+      currentPlan: 'Current Plan',
     },
   },
   template: {
@@ -3076,6 +3312,17 @@ const translations = {
     pageId: 'Page ID',
     unknown: 'Unknown',
     refresh: 'Refresh Nodes',
+  },
+  credit: {
+    recharge: {
+      source: {
+        purchase: 'Purchase',
+        gift: 'Gift',
+        promotion: 'Promotion',
+        refund: 'Refund',
+        subscription: 'Subscription',
+      },
+    },
   },
 };
 

@@ -50,7 +50,7 @@ export default defineConfig({
     base: process.env.MODE === 'desktop' ? './' : '/',
     proxy: {
       '/v1': {
-        target: 'https://refly.ai/',
+        target: 'http://localhost:5800',
         changeOrigin: true,
         secure: false,
       },

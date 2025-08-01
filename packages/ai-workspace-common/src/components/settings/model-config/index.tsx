@@ -3,7 +3,6 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import {
   Button,
-  Input,
   Empty,
   Switch,
   Tooltip,
@@ -14,35 +13,30 @@ import {
   Divider,
   Tag,
   Modal,
-  Collapse,
+  Segmented,
+  Skeleton,
 } from 'antd';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-import { LuPlus, LuSearch, LuMessageCircle, LuImage, LuSettings } from 'react-icons/lu';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
+import { IconDelete, IconEdit } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {
-  IconDelete,
-  IconEdit,
-  IconMoreHorizontal,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
-import { LLMModelConfig, ProviderCategory, ProviderItem } from '@refly/openapi-schema';
+  LLMModelConfig,
+  ProviderCategory,
+  ProviderItem,
+  ProviderMode,
+} from '@refly/openapi-schema';
 import { ModelIcon } from '@lobehub/icons';
 import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/model';
 import { useGroupModels } from '@refly-packages/ai-workspace-common/hooks/use-group-models';
 import { ModelFormModal } from './model-form';
-import { useUserStoreShallow } from '@refly/stores';
-import { useChatStoreShallow } from '@refly/stores';
+import { useUserStoreShallow, useChatStoreShallow } from '@refly/stores';
+import { More, Settings, Back, Chat, Media, AIModel } from 'refly-icons';
+import { ContentHeader } from '../contentHeader';
+import { DefaultModel } from '../default-model';
 
 const MODEL_TIER_TO_COLOR = {
   free: 'green',
   t1: 'blue',
   t2: 'orange',
-};
-
-const panelStyle: React.CSSProperties = {
-  marginBottom: 12,
-  borderRadius: 8,
-  border: 'none',
-  background: 'rgba(0,0,0, 0.02)',
 };
 
 const ActionDropdown = ({
@@ -99,7 +93,7 @@ const ActionDropdown = ({
 
   return (
     <Dropdown trigger={['click']} open={visible} onOpenChange={handleOpenChange} menu={{ items }}>
-      <Button type="text" icon={<IconMoreHorizontal />} />
+      <Button type="text" icon={<More size={18} />} />
     </Dropdown>
   );
 };
@@ -119,6 +113,11 @@ const ModelItem = memo(
     isSubmitting: boolean;
   }) => {
     const { t } = useTranslation();
+    const { userProfile } = useUserStoreShallow((state) => ({
+      userProfile: state.userProfile,
+    }));
+
+    const editable = userProfile?.preferences?.providerMode === 'custom';
 
     const handleToggleChange = useCallback(
       (checked: boolean) => {
@@ -140,46 +139,53 @@ const ModelItem = memo(
     }, [model, onDelete]);
 
     return (
-      <div className="bg-white relative mb-3 px-5 py-0.5 rounded-md cursor-pointer border border-solid border-gray-100 group hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="relative px-1.5 py-0.5 rounded-md cursor-pointer group hover:bg-refly-tertiary-hover">
+        <div className="min-h-8 flex items-center justify-between flex-wrap gap-3">
           <div className="flex-1 flex items-center gap-2">
             <ModelIcon
               model={(model.config as LLMModelConfig)?.modelId || model.name}
               size={18}
               type={'color'}
             />
-            <div className="font-medium">{model.name}</div>
+            <div className="text-refly-text-0">{model.name}</div>
+          </div>
 
-            <Divider type="vertical" />
-            <div className="font-normal text-xs text-gray-500">{model.provider?.name}</div>
+          <div className="flex items-center gap-3">
+            <div className="text-refly-text-1 text-xs">{model.provider?.name}</div>
 
             {model.tier && (
               <>
-                <Divider type="vertical" />
-                <Tag color={MODEL_TIER_TO_COLOR[model.tier]}>
+                <Divider type="vertical" className="bg-refly-Card-Border m-0 h-4" />
+                <Tag
+                  color={MODEL_TIER_TO_COLOR[model.tier]}
+                  className="text-[10px] h-4 flex items-center justify-center leading-[14px] rounded-[4px]"
+                >
                   {t(`settings.modelTier.${model.tier}`)}
                 </Tag>
               </>
             )}
-          </div>
 
-          <div className="flex items-center gap-2">
-            <ActionDropdown model={model} handleEdit={handleEdit} handleDelete={handleDelete} />
-
-            <Tooltip
-              title={
-                model.enabled ? t('settings.modelConfig.disable') : t('settings.modelConfig.enable')
-              }
-            >
-              <div onClick={handleSwitchWrapperClick} className="flex items-center">
-                <Switch
-                  size="small"
-                  checked={model.enabled ?? false}
-                  onChange={handleToggleChange}
-                  loading={isSubmitting}
-                />
-              </div>
-            </Tooltip>
+            {editable && (
+              <>
+                <Tooltip
+                  title={
+                    model.enabled
+                      ? t('settings.modelConfig.disable')
+                      : t('settings.modelConfig.enable')
+                  }
+                >
+                  <div onClick={handleSwitchWrapperClick} className="flex items-center">
+                    <Switch
+                      size="small"
+                      checked={model.enabled ?? false}
+                      onChange={handleToggleChange}
+                      loading={isSubmitting}
+                    />
+                  </div>
+                </Tooltip>
+                <ActionDropdown model={model} handleEdit={handleEdit} handleDelete={handleDelete} />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -197,17 +203,18 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, _setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<ProviderItem | null>(null);
-  const [activeCollapseKeys, setActiveCollapseKeys] = useState<string[]>([]);
-  const [userHasInteracted, setUserHasInteracted] = useState(false);
   const [activeTab, setActiveTab] = useState('conversation');
+  const [isConfigDefaultModel, setIsConfigDefaultModel] = useState(false);
 
   const { userProfile, setUserProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
     setUserProfile: state.setUserProfile,
   }));
+
+  const editable = userProfile?.preferences?.providerMode === 'custom';
 
   const { setMediaModelList } = useChatStoreShallow((state) => ({
     setMediaModelList: state.setMediaModelList,
@@ -222,6 +229,46 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const chatModel = defaultModel.chat;
   const queryAnalysisModel = defaultModel.queryAnalysis;
   const titleGenerationModel = defaultModel.titleGeneration;
+
+  const [providerMode, setProviderMode] = useState<ProviderMode>(
+    defaultPreferences.providerMode || 'global',
+  );
+
+  const [isProviderModeChanging, setIsProviderModeChanging] = useState(false);
+
+  const handleProviderModeChange = useCallback(
+    async (checked: boolean) => {
+      setIsProviderModeChanging(true);
+      const newMode: ProviderMode = checked ? 'custom' : 'global';
+
+      const updatedPreferences = {
+        ...defaultPreferences,
+        providerMode: newMode,
+      };
+
+      try {
+        const res = await getClient().updateSettings({
+          body: {
+            preferences: updatedPreferences,
+          },
+        });
+
+        if (res?.data?.success) {
+          message.success(t('settings.modelConfig.syncSuccessfully'));
+          setUserProfile({
+            ...userProfile,
+            preferences: updatedPreferences,
+          });
+          setProviderMode(newMode);
+        }
+      } catch {
+        message.error(t('settings.modelConfig.syncFailed'));
+      } finally {
+        setIsProviderModeChanging(false);
+      }
+    },
+    [defaultPreferences, setUserProfile, userProfile, t],
+  );
 
   const getDefaultModelTypes = (itemId: string) => {
     const type = [];
@@ -271,7 +318,9 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
 
   const getProviderItems = useCallback(async () => {
     setIsLoading(true);
-    const res = await getClient().listProviderItems();
+    const res = await getClient().listProviderItems({
+      query: providerMode === 'global' ? { isGlobal: true, enabled: true } : {},
+    });
     setIsLoading(false);
     if (res?.data?.success) {
       const list = res?.data?.data || [];
@@ -280,7 +329,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       setReranker(list.filter((item) => item.category === 'reranker')?.[0]);
       setMediaGenerationModels(list.filter((item) => item.category === 'mediaGeneration'));
     }
-  }, []);
+  }, [providerMode]);
 
   const updateModelMutation = async (enabled: boolean, model: ProviderItem) => {
     setIsUpdating(true);
@@ -460,133 +509,87 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const { handleGroupModelList } = useGroupModels();
   const sortedGroups = useMemo(() => handleGroupModelList(filteredModels), [filteredModels]);
 
-  // When search query changes, update active collapse keys to show matching groups
-  useEffect(() => {
-    if (searchQuery.trim() && userHasInteracted) {
-      const matchingGroupKeys = sortedGroups
-        .filter((group) =>
-          group.models.some((model) =>
-            model.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-          ),
-        )
-        .map((group) => group.key);
-
-      setActiveCollapseKeys(matchingGroupKeys);
-    }
-  }, [searchQuery, sortedGroups, userHasInteracted]);
-
-  // Update active keys when groups change (initial load)
-  useEffect(() => {
-    if (sortedGroups.length > 0 && !userHasInteracted) {
-      setActiveCollapseKeys(sortedGroups.map((group) => group.key));
-    }
-  }, [sortedGroups, userHasInteracted]);
-
   useEffect(() => {
     if (visible) {
       getProviderItems();
     }
-  }, [visible, getProviderItems]);
+  }, [visible, getProviderItems, providerMode]);
 
-  // Handle collapse panel change
-  const handleCollapseChange = (keys: string | string[]) => {
-    setUserHasInteracted(true);
-    setActiveCollapseKeys(typeof keys === 'string' ? [keys] : keys);
-  };
-
-  // Tab items for model categories
-  const tabItems = [
-    {
-      key: 'conversation',
-      label: t('settings.modelConfig.conversationModels'),
-      icon: <LuMessageCircle className="h-4 w-4 flex items-center" />,
-    },
-    {
-      key: 'media',
-      label: t('settings.modelConfig.mediaGeneration'),
-      icon: <LuImage className="h-4 w-4 flex items-center" />,
-    },
-    {
-      key: 'other',
-      label: t('settings.modelConfig.otherModels'),
-      icon: <LuSettings className="h-4 w-4 flex items-center" />,
-    },
-  ];
+  // Segmented options for model categories
+  const segmentedOptions = useMemo(
+    () => [
+      {
+        label: (
+          <div className="flex items-center justify-center gap-1.5 w-full">
+            <Chat size={16} />
+            <span>{t('settings.modelConfig.conversationModels')}</span>
+          </div>
+        ),
+        value: 'conversation',
+      },
+      {
+        label: (
+          <div className="flex items-center justify-center gap-1.5 w-full">
+            <Media size={16} />
+            <span>{t('settings.modelConfig.mediaGeneration')}</span>
+          </div>
+        ),
+        value: 'media',
+      },
+      {
+        label: (
+          <div className="flex items-center justify-center gap-1.5 w-full">
+            <AIModel size={16} />
+            <span>{t('settings.modelConfig.otherModels')}</span>
+          </div>
+        ),
+        value: 'other',
+      },
+    ],
+    [t],
+  );
 
   const renderConversationModels = () => (
-    <>
-      {/* Search and Add Bar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="relative flex-1 max-w-xs">
-          <Input
-            prefix={<LuSearch className="h-4 w-4 text-gray-400" />}
-            placeholder={t('settings.modelConfig.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <Button
-          type="primary"
-          icon={<LuPlus className="h-5 w-5 flex items-center" />}
-          onClick={() => handleAddModel('llm')}
+    <div
+      className={cn(
+        !isLoading && filteredModels.length === 0 ? 'flex items-center justify-center' : '',
+        'min-h-[50px] overflow-y-auto',
+      )}
+    >
+      {isLoading ? (
+        <Skeleton active title={false} paragraph={{ rows: 10 }} />
+      ) : filteredModels.length === 0 ? (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            searchQuery ? (
+              <>
+                <p>{t('settings.modelConfig.noSearchResults')}</p>
+                <p className="text-sm text-gray-400">
+                  {t('settings.modelConfig.tryDifferentSearch')}
+                </p>
+              </>
+            ) : (
+              <p>{t('settings.modelConfig.noModels')}</p>
+            )
+          }
         >
-          {t('settings.modelConfig.addModel')}
-        </Button>
-      </div>
-
-      {/* Models List */}
-      <div
-        className={cn(
-          isLoading || filteredModels.length === 0 ? 'flex items-center justify-center' : '',
-          filteredModels.length === 0
-            ? 'p-4 border-dashed border-gray-200 dark:border-gray-600 rounded-md'
-            : '',
-          'min-h-[50px] overflow-y-auto',
-        )}
-      >
-        {isLoading ? (
-          <div className="flex items-center justify-center h-[300px]">
-            <Spin />
-          </div>
-        ) : filteredModels.length === 0 ? (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              searchQuery ? (
-                <>
-                  <p>{t('settings.modelConfig.noSearchResults')}</p>
-                  <p className="text-sm text-gray-400">
-                    {t('settings.modelConfig.tryDifferentSearch')}
-                  </p>
-                </>
-              ) : (
-                <p>{t('settings.modelConfig.noModels')}</p>
-              )
-            }
-          >
-            {!searchQuery && (
-              <Button
-                onClick={() => handleAddModel('llm')}
-                icon={<LuPlus className="flex items-center" />}
-              >
-                {t('settings.modelConfig.addFirstModel')}
-              </Button>
-            )}
-          </Empty>
-        ) : (
-          <div className="mb-4 w-full">
-            <Collapse
-              size="small"
-              activeKey={activeCollapseKeys}
-              onChange={handleCollapseChange}
-              bordered={false}
-              className="bg-transparent"
-              items={sortedGroups.map((group) => ({
-                key: group.key,
-                label: <span className="font-medium text-base">{group.name}</span>,
-                style: panelStyle,
-                children: group.models.map((model) => (
+          {!searchQuery && editable && (
+            <Button onClick={() => handleAddModel('llm')}>
+              {t('settings.modelConfig.addFirstModel')}
+            </Button>
+          )}
+        </Empty>
+      ) : (
+        <div className="mb-4 w-full space-y-5">
+          {sortedGroups.map((group) => (
+            <div key={group.key} className="space-y-1">
+              <div className="text-xs text-refly-text-1 font-semibold mb-2 px-1.5 pt-2 pb-1">
+                {group.name}
+              </div>
+              {group.models
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((model) => (
                   <ModelItem
                     key={model.itemId}
                     model={model}
@@ -595,67 +598,52 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
                     onToggleEnabled={handleToggleEnabled}
                     isSubmitting={isUpdating}
                   />
-                )),
-              }))}
-            />
+                ))}
+            </div>
+          ))}
 
-            <div className="text-center text-gray-400 text-sm mt-4 pb-10">{t('common.noMore')}</div>
+          <div className="text-center text-refly-text-2 text-sm mt-4 pb-10">
+            {t('common.noMore')}
           </div>
-        )}
-      </div>
-    </>
+        </div>
+      )}
+    </div>
   );
 
   const renderMediaGenerationModels = () => (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <Input
-          placeholder={t('settings.modelConfig.searchPlaceholder')}
-          prefix={<LuSearch className="h-4 w-4 text-gray-400" />}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
-        />
-        <Button
-          type="primary"
-          icon={<LuPlus className="h-4 w-4" />}
-          onClick={() => handleAddModel('mediaGeneration')}
+    <div className="flex-1 overflow-auto">
+      {isLoading ? (
+        <Skeleton className="p-4" active title={false} paragraph={{ rows: 7 }} />
+      ) : mediaGenerationModels.length === 0 ? (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={t('settings.modelConfig.noMediaModels')}
         >
-          {t('settings.modelConfig.addModel')}
-        </Button>
-      </div>
-
-      <div className="flex-1 overflow-auto">
-        <Spin spinning={isLoading}>
-          {mediaGenerationModels.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t('settings.modelConfig.noMediaModels')}
-            >
-              <Button
-                onClick={() => handleAddModel('mediaGeneration')}
-                icon={<LuPlus className="flex items-center" />}
-              >
-                {t('settings.modelConfig.addFirstModel')}
-              </Button>
-            </Empty>
-          ) : (
-            <div className="space-y-2">
-              {mediaGenerationModels.map((model) => (
-                <ModelItem
-                  key={model.itemId}
-                  model={model}
-                  onEdit={handleEditModel}
-                  onDelete={handleDeleteModel}
-                  onToggleEnabled={handleToggleEnabled}
-                  isSubmitting={isUpdating}
-                />
-              ))}
-            </div>
+          {editable && (
+            <Button onClick={() => handleAddModel('mediaGeneration')}>
+              {t('settings.modelConfig.addFirstModel')}
+            </Button>
           )}
-        </Spin>
-      </div>
-    </>
+        </Empty>
+      ) : (
+        <div className="space-y-2">
+          {mediaGenerationModels.map((model) => (
+            <ModelItem
+              key={model.itemId}
+              model={model}
+              onEdit={handleEditModel}
+              onDelete={handleDeleteModel}
+              onToggleEnabled={handleToggleEnabled}
+              isSubmitting={isUpdating}
+            />
+          ))}
+
+          <div className="text-center text-refly-text-2 text-sm mt-4 pb-10">
+            {t('common.noMore')}
+          </div>
+        </div>
+      )}
+    </div>
   );
 
   const renderOtherModels = () => (
@@ -723,34 +711,82 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     }
   };
 
-  return (
-    <div className="p-4 pt-0 h-full overflow-hidden flex flex-col">
-      {/* Custom Tab Header */}
-      <div className="flex border-b border-gray-100 dark:border-gray-800 mb-4">
-        {tabItems.map((tab) => (
-          <div
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`
-              cursor-pointer relative px-4 py-2.5 flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 ease-in-out 
-              ${
-                activeTab === tab.key
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }
-            `}
-          >
-            <div className="text-sm">{tab.icon}</div>
-            <div>{tab.label}</div>
-            {activeTab === tab.key && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600 dark:bg-green-400 rounded-t-sm" />
-            )}
-          </div>
-        ))}
-      </div>
+  const customActions = useMemo(() => {
+    return (
+      <div className="flex items-center gap-3">
+        <Tooltip title={t('settings.modelConfig.providerModeDescription')}>
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-semibold text-refly-text-0">
+              {t('settings.modelConfig.providerMode')}
+            </div>
 
-      {/* Tab Content */}
-      <div className="flex-1 overflow-auto">{renderTabContent()}</div>
+            <Switch
+              loading={isProviderModeChanging}
+              checkedChildren={t('settings.modelConfig.custom')}
+              unCheckedChildren={t('settings.modelConfig.global')}
+              checked={providerMode === 'custom'}
+              onChange={handleProviderModeChange}
+            />
+          </div>
+        </Tooltip>
+
+        <Divider type="vertical" className="h-6 bg-refly-Card-Border m-0" />
+
+        <Button
+          type="text"
+          className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
+          icon={<Settings size={18} />}
+          onClick={() => setIsConfigDefaultModel(!isConfigDefaultModel)}
+        >
+          {t(`settings.${isConfigDefaultModel ? 'modelConfig' : 'defaultModel'}.title`)}
+        </Button>
+        {['conversation', 'media'].includes(activeTab) && editable && (
+          <Button
+            type="primary"
+            onClick={() => {
+              if (activeTab === 'conversation') {
+                handleAddModel('llm');
+              } else {
+                handleAddModel('mediaGeneration');
+              }
+            }}
+          >
+            {t('settings.modelConfig.addModel')}
+          </Button>
+        )}
+      </div>
+    );
+  }, [handleAddModel, t, activeTab, setIsConfigDefaultModel, editable, isConfigDefaultModel]);
+
+  return (
+    <div className="h-full overflow-hidden flex flex-col">
+      {/* Custom Tab Header */}
+      <ContentHeader
+        title={t(`settings.${isConfigDefaultModel ? 'defaultModel' : 'modelConfig'}.title`)}
+        onTitleClick={isConfigDefaultModel ? () => setIsConfigDefaultModel(false) : null}
+        prefixIcon={isConfigDefaultModel ? <Back size={18} /> : null}
+        customActions={customActions}
+      />
+      {isConfigDefaultModel ? (
+        <DefaultModel visible={isConfigDefaultModel} />
+      ) : (
+        <>
+          <div className="px-5 pt-5">
+            <Segmented
+              shape="round"
+              options={segmentedOptions}
+              value={activeTab}
+              onChange={(value) => setActiveTab(value as string)}
+              className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"
+              size="middle"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-5 flex-1 overflow-auto">{renderTabContent()}</div>
+        </>
+      )}
 
       {/* Modal for Create and Edit */}
       <ModelFormModal

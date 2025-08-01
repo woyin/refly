@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { message, Typography, Table, Select, Button } from 'antd';
+import { message, Select, Button } from 'antd';
 import { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { ProviderModal } from '../model-providers/provider-modal';
 import { useListProviders } from '@refly-packages/ai-workspace-common/queries';
@@ -9,8 +9,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { ProviderConfig, Provider } from '@refly/openapi-schema';
 import { IconPlus } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
-
-const { Title } = Typography;
+import { ContentHeader } from '@refly-packages/ai-workspace-common/components/settings/contentHeader';
 
 type ParserCategory = 'webSearch' | 'urlParsing' | 'pdfParsing';
 
@@ -23,6 +22,36 @@ const DEFAULT_PROVIDERS = {
 interface ParserConfigProps {
   visible: boolean;
 }
+
+interface ConfigCardProps {
+  title: string;
+  value: string;
+  options: Array<{ label: string; value: string }>;
+  type: ParserCategory;
+  onSelect: (value: string, type: ParserCategory) => void;
+  renderDropdown: (menu: React.ReactNode, type: ParserCategory) => React.ReactElement;
+}
+
+const ConfigCard = memo(
+  ({ title, value, options, type, onSelect, renderDropdown }: ConfigCardProps) => {
+    const { t } = useTranslation();
+
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="text-sm text-refly-text-0 font-semibold leading-5">{title}</div>
+        <Select
+          className="w-full"
+          value={value}
+          placeholder={t('settings.parserConfig.settingPlaceholder')}
+          options={options}
+          onChange={(value) => onSelect(value, type)}
+          dropdownRender={(menu) => renderDropdown(menu, type)}
+          size="middle"
+        />
+      </div>
+    );
+  },
+);
 
 export const Loading = memo(() => {
   return (
@@ -261,78 +290,62 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
     [isLoading, openProviderModal, t],
   );
 
+  // Configuration data for each parser type
+  const configData = useMemo(
+    () => [
+      {
+        type: 'webSearch' as const,
+        title: t('settings.parserConfig.webSearch'),
+        value: webSearchValue,
+        options: getProviderOptions.webSearch,
+      },
+      {
+        type: 'urlParsing' as const,
+        title: t('settings.parserConfig.urlParsing'),
+        value: urlParsingValue,
+        options: getProviderOptions.urlParsing,
+      },
+      {
+        type: 'pdfParsing' as const,
+        title: t('settings.parserConfig.pdfParsing'),
+        value: pdfParsingValue,
+        options: getProviderOptions.pdfParsing,
+      },
+    ],
+    [t, webSearchValue, urlParsingValue, pdfParsingValue, getProviderOptions],
+  );
+
   return (
-    <div className="p-4 pt-0 h-full overflow-hidden flex flex-col">
-      <Title level={4} className="pb-4">
-        {t('settings.tabs.parserConfig')}
-      </Title>
+    <div className="h-full overflow-hidden flex flex-col">
+      <ContentHeader title={t('settings.tabs.parserConfig')} />
 
-      <div className="flex-grow overflow-y-auto space-y-8">
-        <div>
-          <div className="space-y-6">
-            <Table
-              tableLayout="fixed"
-              columns={[
-                {
-                  title: t('settings.parserConfig.parserType'),
-                  dataIndex: 'parserType',
-                  key: 'parserType',
-                  width: '25%',
-                },
-                {
-                  title: t('settings.parserConfig.parserProvider'),
-                  dataIndex: 'provider',
-                  key: 'provider',
-                  width: '75%',
-                  render: (_, record) => (
-                    <Select
-                      className="w-full"
-                      value={record.value}
-                      placeholder={t('settings.parserConfig.settingPlaceholder')}
-                      options={getProviderOptions[record.type]}
-                      onChange={(value) => handleSelectProvider(value, record.type)}
-                      dropdownRender={(menu) => renderSelectDropdown(menu, record.type)}
-                    />
-                  ),
-                },
-              ]}
-              dataSource={[
-                {
-                  key: 'webSearch',
-                  parserType: t('settings.parserConfig.webSearch'),
-                  type: 'webSearch' as const,
-                  value: webSearchValue,
-                },
-                {
-                  key: 'urlParsing',
-                  parserType: t('settings.parserConfig.urlParsing'),
-                  type: 'urlParsing' as const,
-                  value: urlParsingValue,
-                },
-                {
-                  key: 'pdfParsing',
-                  parserType: t('settings.parserConfig.pdfParsing'),
-                  type: 'pdfParsing' as const,
-                  value: pdfParsingValue,
-                },
-              ]}
-              pagination={false}
-              bordered
-              className="shadow-sm"
+      <div className="px-5 py-6 w-full h-full box-border overflow-y-auto">
+        <div className="flex flex-col gap-6">
+          {configData.map((config) => (
+            <ConfigCard
+              key={config.type}
+              title={config.title}
+              value={config.value}
+              options={config.options}
+              type={config.type}
+              onSelect={handleSelectProvider}
+              renderDropdown={renderSelectDropdown}
             />
+          ))}
 
-            {/* Provider Modal */}
-            <ProviderModal
-              isOpen={isProviderModalOpen}
-              filterCategory={currentType}
-              presetProviders={presetProviders}
-              onClose={handleProviderModalClose}
-              onSuccess={handleCreateProviderSuccess}
-              disabledEnableControl={true}
-            />
-          </div>
+          {/* Provider Modal */}
+          <ProviderModal
+            isOpen={isProviderModalOpen}
+            filterCategory={currentType}
+            presetProviders={presetProviders}
+            onClose={handleProviderModalClose}
+            onSuccess={handleCreateProviderSuccess}
+            disabledEnableControl={true}
+          />
         </div>
       </div>
     </div>
   );
 });
+
+ConfigCard.displayName = 'ConfigCard';

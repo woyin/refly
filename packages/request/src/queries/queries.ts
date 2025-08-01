@@ -3,6 +3,7 @@
 import { type Options } from '@hey-api/client-fetch';
 import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from '@tanstack/react-query';
 import {
+  abortAction,
   addNodesToCanvasPage,
   addReferences,
   autoNameCanvas,
@@ -64,6 +65,9 @@ import {
   getCanvasTransactions,
   getCodeArtifactDetail,
   getCollabToken,
+  getCreditBalance,
+  getCreditRecharge,
+  getCreditUsage,
   getDocumentDetail,
   getPageByCanvasId,
   getPageDetail,
@@ -133,6 +137,8 @@ import {
   validateMcpServer,
 } from '../requests/services.gen';
 import {
+  AbortActionData,
+  AbortActionError,
   AddNodesToCanvasPageData,
   AddNodesToCanvasPageError,
   AddReferencesData,
@@ -252,6 +258,11 @@ import {
   GetCodeArtifactDetailData,
   GetCodeArtifactDetailError,
   GetCollabTokenError,
+  GetCreditBalanceError,
+  GetCreditRechargeData,
+  GetCreditRechargeError,
+  GetCreditUsageData,
+  GetCreditUsageError,
   GetDocumentDetailData,
   GetDocumentDetailError,
   GetPageByCanvasIdData,
@@ -909,6 +920,51 @@ export const useCheckSettingsField = <
     queryKey: Common.UseCheckSettingsFieldKeyFn(clientOptions, queryKey),
     queryFn: () =>
       checkSettingsField({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCreditRecharge = <
+  TData = Common.GetCreditRechargeDefaultResponse,
+  TError = GetCreditRechargeError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditRechargeData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCreditRechargeKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditRecharge({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCreditUsage = <
+  TData = Common.GetCreditUsageDefaultResponse,
+  TError = GetCreditUsageError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetCreditUsageData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCreditUsageKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditUsage({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetCreditBalance = <
+  TData = Common.GetCreditBalanceDefaultResponse,
+  TError = GetCreditBalanceError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetCreditBalanceKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getCreditBalance({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetSubscriptionPlans = <
@@ -1922,6 +1978,23 @@ export const useDeleteLabelInstance = <
   useMutation<TData, TError, Options<DeleteLabelInstanceData, true>, TContext>({
     mutationKey: Common.UseDeleteLabelInstanceKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteLabelInstance(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useAbortAction = <
+  TData = Common.AbortActionMutationResult,
+  TError = AbortActionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<AbortActionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<AbortActionData, true>, TContext>({
+    mutationKey: Common.UseAbortActionKeyFn(mutationKey),
+    mutationFn: (clientOptions) => abortAction(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useInvokeSkill = <

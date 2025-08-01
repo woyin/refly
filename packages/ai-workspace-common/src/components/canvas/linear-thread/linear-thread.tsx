@@ -38,7 +38,7 @@ export const EmptyThreadWelcome = memo(() => {
             <Avatar
               size={64}
               src={userProfile?.avatar}
-              className="relative border-2 border-white shadow-md"
+              className="relative border-2 border-white shadow-refly-m"
               icon={<AiOutlineUser />}
             />
           </div>

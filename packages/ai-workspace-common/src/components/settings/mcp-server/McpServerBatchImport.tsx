@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, message, Typography, Alert } from 'antd';
-import { ImportOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { McpServerJsonEditor } from './McpServerJsonEditor';
 import { useCreateMcpServer, useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
@@ -251,10 +250,9 @@ export const McpServerBatchImport: React.FC<McpServerBatchImportProps> = ({ onSu
   return (
     <>
       <Button
-        type="default"
-        icon={<ImportOutlined />}
+        type="text"
         onClick={showModal}
-        className="border dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-100 dark:border-gray-600"
+        className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
       >
         {t('settings.mcpServer.batchImport')}
       </Button>
@@ -273,10 +271,6 @@ export const McpServerBatchImport: React.FC<McpServerBatchImportProps> = ({ onSu
           </Button>,
         ]}
       >
-        {/* <Typography.Paragraph className="mb-4">
-          {t('settings.mcpServer.batchImportDescription')}
-        </Typography.Paragraph> */}
-
         <Alert
           message={t('settings.mcpServer.jsonModeStdioWarning')}
           type="warning"

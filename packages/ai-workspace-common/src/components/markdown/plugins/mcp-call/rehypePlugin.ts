@@ -43,13 +43,93 @@ const safeExtract = (content: string, regex: RegExp): string => {
 };
 
 /**
- * Extract image URL from a string
+ * Decode URL that may have been encoded by remarkGfm
+ * @param url The potentially encoded URL
+ * @returns The decoded URL
+ */
+const decodeUrlFromRemarkGfm = (url: string): string => {
+  try {
+    // Handle specific cases where remarkGfm might have encoded certain characters
+    // that are common in JSON strings within URLs
+    let decodedUrl = url
+      .replace(/%5C%22/g, '\\"') // %5C%22 -> \"
+      .replace(/%5Cn/g, '\\n') // %5Cn -> \n
+      .replace(/%5Cr/g, '\\r') // %5Cr -> \r
+      .replace(/%5Ct/g, '\\t') // %5Ct -> \t
+      .replace(/%2C/g, ',') // %2C -> ,
+      .replace(/%5C/g, '\\'); // %5C -> \
+
+    // Then try standard URL decoding for any remaining encoded characters
+    decodedUrl = decodeURIComponent(decodedUrl);
+
+    return decodedUrl;
+  } catch {
+    // If decoding fails, try without decodeURIComponent
+    try {
+      return url
+        .replace(/%5C%22/g, '\\"')
+        .replace(/%5Cn/g, '\\n')
+        .replace(/%5Cr/g, '\\r')
+        .replace(/%5Ct/g, '\\t')
+        .replace(/%2C/g, ',')
+        .replace(/%5C/g, '\\');
+    } catch {
+      // If all decoding fails, return the original URL
+      return url;
+    }
+  }
+};
+
+/**
+ * Extract URLs from HTML elements (for content processed by remarkGfm)
+ * @param element The HTML element to extract URLs from
+ * @returns Array of found URLs
+ */
+const extractUrlsFromHtmlElements = (element: any): string[] => {
+  const urls: string[] = [];
+
+  if (element?.type === 'element' && element?.tagName === 'a' && element?.properties?.href) {
+    // Decode the URL in case it was encoded by remarkGfm
+    const decodedUrl = decodeUrlFromRemarkGfm(element.properties.href);
+    urls.push(decodedUrl);
+  }
+
+  if (element?.children) {
+    for (const child of element.children) {
+      urls.push(...extractUrlsFromHtmlElements(child));
+    }
+  }
+
+  return urls;
+};
+
+/**
+ * Extract image URL from a string or HTML elements
  * @param str The string to search in
+ * @param htmlElements Optional HTML elements to search in (for remarkGfm processed content)
  * @returns The found image URL, format and whether it's an HTTP link
  */
 const extractImageUrl = (
   str: string,
+  htmlElements?: any[],
 ): { url: string | undefined; format: string | undefined; isHttp: boolean } => {
+  // First check HTML elements if provided (for remarkGfm processed content)
+  if (htmlElements) {
+    for (const element of htmlElements) {
+      const urls = extractUrlsFromHtmlElements(element);
+      for (const url of urls) {
+        const httpMatch = HTTP_IMAGE_URL_REGEX.exec(url);
+        if (httpMatch?.groups && httpMatch[0]) {
+          return {
+            url: httpMatch[0],
+            format: httpMatch.groups.format,
+            isHttp: true,
+          };
+        }
+      }
+    }
+  }
+
   // First check if it contains a base64 image URL
   const base64Match = BASE64_IMAGE_URL_REGEX.exec(str);
   if (base64Match?.groups && base64Match[0]) {
@@ -388,10 +468,20 @@ function rehypePlugin() {
 
       // Handle text nodes within paragraphs that might contain our tool tags
       if (node.type === 'element' && node.tagName === 'p' && node.children?.length > 0) {
+        // Extract URLs from any link elements that might have been processed by remarkGfm
+        const linkElements = node.children.filter(
+          (child: any) =>
+            child.type === 'element' && child.tagName === 'a' && child.properties?.href,
+        );
+
         const paragraphText = node.children
           .map((child: any) => {
             if (child.type === 'text') return child.value;
             if (child.type === 'raw') return child.value;
+            // Include href from link elements to preserve URLs processed by remarkGfm (with decoding)
+            if (child.type === 'element' && child.tagName === 'a' && child.properties?.href) {
+              return decodeUrlFromRemarkGfm(child.properties.href);
+            }
             return '';
           })
           .join('');
@@ -438,8 +528,8 @@ function rehypePlugin() {
               let _isVideoHttpUrl = false;
               let videoNameFromArgs = 'video'; // Default video name
 
-              // Directly search for image URL in the result string
-              const { url, format, isHttp } = extractImageUrl(resultStr);
+              // Directly search for image URL in the result string, also check link elements from remarkGfm
+              const { url, format, isHttp } = extractImageUrl(resultStr, linkElements);
               if (url) {
                 imageUrlFromDetails = url;
                 imageFormatFromDetails = format;
@@ -449,7 +539,7 @@ function rehypePlugin() {
                 try {
                   const resultObj = JSON.parse(resultStr);
                   const resultJsonStr = JSON.stringify(resultObj);
-                  const jsonResult = extractImageUrl(resultJsonStr);
+                  const jsonResult = extractImageUrl(resultJsonStr, linkElements);
 
                   if (jsonResult.url) {
                     imageUrlFromDetails = jsonResult.url;

@@ -139,7 +139,7 @@ export class GenerateMedia extends BaseSkill {
     );
     const quality = parsedParams.quality || String(tplConfig?.quality?.value ?? 'high');
 
-    const { provider, model } =
+    const { provider, model, providerItemId } =
       (await this.engine.service.getUserMediaConfig(user, mediaType)) || {};
 
     if (!provider) {
@@ -160,7 +160,7 @@ export class GenerateMedia extends BaseSkill {
       ...tplConfig,
       // Override with parsed parameters
       mediaType: { value: mediaType },
-      provider: { value: provider },
+      providerItemId: { value: providerItemId },
       model: { value: model },
       quality: { value: quality },
     });
@@ -196,7 +196,7 @@ export class GenerateMedia extends BaseSkill {
           mediaType,
           prompt: optimizedPrompt,
           model: model || undefined,
-          provider,
+          providerItemId,
         },
       );
 
@@ -474,19 +474,11 @@ The ${mediaType} has been generated and is ready for use.`,
       }
 
       this.engine.logger.log(
-        `Calling ${params.provider} for ${params.mediaType} generation with model ${params.model || 'auto-selected'}`,
+        `Calling ${params.mediaType} generation with model ${params.model || 'auto-selected'}`,
       );
 
-      // Build media generation request
-      const mediaRequest: MediaGenerateRequest = {
-        mediaType: params.mediaType,
-        prompt: params.prompt,
-        model: params.model,
-        provider: params.provider,
-      };
-
       // Start media generation
-      const generateResponse = await this.engine.service?.generateMedia?.(user, mediaRequest);
+      const generateResponse = await this.engine.service?.generateMedia?.(user, params);
 
       if (!generateResponse.success || !generateResponse.resultId) {
         throw new Error(
@@ -596,7 +588,7 @@ The ${mediaType} has been generated and is ready for use.`,
             mediaType: params.mediaType,
             prompt: params.prompt,
             model: params.model,
-            provider: params.provider,
+            providerItemId: params.providerItemId,
             outputUrl: actionResult.outputUrl,
             storageKey: actionResult.storageKey,
             elapsedTime,

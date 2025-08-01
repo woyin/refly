@@ -1,7 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Input, Empty, Row, Col, Typography, Tag, message } from 'antd';
-import { LuSearch } from 'react-icons/lu';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useTranslation } from 'react-i18next';
 
 import { useListCommunityProviders } from '@refly-packages/ai-workspace-common/queries/provider-community';
@@ -13,6 +11,8 @@ import {
 } from './provider-store-types';
 import { CommunityProviderCard } from './CommunityProviderCard';
 import { filterProviders, isProviderInstalled } from './provider-store-utils';
+import { CommunityMcpCardSkeleton } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/CommunityMcpCardSkeleton';
+import { Search } from 'refly-icons';
 
 const { Text } = Typography;
 
@@ -70,8 +70,26 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Spin />
+      <div className="community-mcp-list h-full flex flex-col px-5 py-3">
+        <div className="mb-4 flex items-center gap-10">
+          <Input
+            className="flex-1"
+            placeholder={t('settings.mcpServer.community.searchPlaceholder')}
+            prefix={<Search size={16} />}
+            disabled
+          />
+        </div>
+
+        {/* Loading skeleton */}
+        <div className="flex-1 overflow-auto">
+          <Row gutter={[16, 12]}>
+            {Array.from({ length: 16 }).map((_, index) => (
+              <Col key={index} xs={24} sm={12} md={6} lg={6} xl={6}>
+                <CommunityMcpCardSkeleton />
+              </Col>
+            ))}
+          </Row>
+        </div>
       </div>
     );
   }
@@ -93,17 +111,17 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
   }
 
   return (
-    <div className="h-full overflow-hidden flex flex-col">
+    <div className="h-full flex flex-col px-5 py-3">
       {/* Search and filters */}
-      <div className="mb-8 space-y-5">
+      <div className="w-full flex-shrink-0 mb-3 space-y-3">
         {/* Search bar */}
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative flex-1">
           <Input
-            prefix={<LuSearch className="h-4 w-4 text-gray-400" />}
+            prefix={<Search size={16} />}
             placeholder={t('settings.modelProviders.searchPlaceholder')}
             value={filters.searchText}
             onChange={(e) => handleFiltersChange({ searchText: e.target.value })}
-            className="transition-all duration-200 focus:shadow-md"
+            className="transition-all duration-200 focus:shadow-refly-m"
           />
         </div>
 
@@ -149,7 +167,7 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {filteredProviders.length === 0 ? (
           <Empty
             description={
@@ -163,13 +181,13 @@ export const ProviderStore: React.FC<CommunityProviderListProps> = ({
           />
         ) : (
           <>
-            {/* Provider cards grid - maximum 2 per row */}
-            <Row gutter={[24, 24]}>
+            {/* Provider cards grid - maximum 4 per row */}
+            <Row gutter={[24, 24]} className="pb-24">
               {filteredProviders.map((provider) => {
                 const isInstalled = isProviderInstalled(provider, installedProviders);
 
                 return (
-                  <Col key={provider.providerId} xs={24} sm={24} md={12}>
+                  <Col key={provider.providerId} xs={24} sm={12} md={8} lg={6}>
                     <CommunityProviderCard
                       config={provider}
                       isInstalled={isInstalled}

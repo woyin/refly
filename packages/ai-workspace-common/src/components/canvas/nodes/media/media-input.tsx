@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Input, Button } from 'antd';
-import { SendOutlined } from '@ant-design/icons';
+import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { cn } from '@refly/utils/cn';
@@ -11,6 +11,7 @@ import { useChatStoreShallow } from '@refly/stores';
 import { useFrontPageStoreShallow } from '@refly/stores';
 import { MediaModelSelector } from './media-model-selector';
 import { ProviderItem } from '@refly/openapi-schema';
+import { type MediaQueryData } from '@refly/stores';
 
 const { TextArea } = Input;
 
@@ -49,7 +50,7 @@ const MediaChatInput = memo(
       [onModelChange],
     );
 
-    const { projectId, isCanvasOpen } = useGetProjectCanvasId();
+    const { projectId, isCanvasOpen, canvasId } = useGetProjectCanvasId();
     const { debouncedCreateCanvas } = useCreateCanvas({
       projectId,
       afterCreateSuccess: () => {
@@ -105,17 +106,19 @@ const MediaChatInput = memo(
           // Check if there's no canvas open
           if (!isCanvasOpen) {
             // Create a new canvas first
-            const mediaQueryData = {
-              providerKey: selectedModel?.provider?.providerKey,
+            const mediaQueryData: MediaQueryData = {
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',
+              providerItemId: selectedModel?.itemId,
             };
             setMediaQueryData(mediaQueryData);
             debouncedCreateCanvas('front-page', { isMediaGeneration: true });
           } else {
             nodeOperationsEmitter.emit('generateMedia', {
-              providerKey: selectedModel?.provider?.providerKey,
+              providerItemId: selectedModel?.itemId,
+              targetType: 'canvas',
+              targetId: canvasId,
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',
@@ -127,7 +130,15 @@ const MediaChatInput = memo(
           setLoading(false);
         }
       },
-      [loading, selectedModel, nodeId, isCanvasOpen, debouncedCreateCanvas, currentMediaType],
+      [
+        loading,
+        selectedModel,
+        nodeId,
+        canvasId,
+        isCanvasOpen,
+        debouncedCreateCanvas,
+        currentMediaType,
+      ],
     );
 
     // Listen for media generation completion events
@@ -218,6 +229,7 @@ const MediaChatInput = memo(
 
               {/* Media Model Selector */}
               <MediaModelSelector
+                maxWidth={120}
                 model={selectedModel}
                 setModel={handleModelChange}
                 readonly={readonly}
@@ -229,18 +241,14 @@ const MediaChatInput = memo(
 
             <div className="flex items-center gap-2">
               <Button
-                className="text-xs"
+                className="flex items-center !h-9 !w-9 rounded-full border-none"
                 size="small"
                 type="primary"
-                icon={<SendOutlined />}
+                icon={<Send size={20} />}
                 onClick={handleSend}
                 disabled={loading || !query?.trim()}
                 loading={loading}
-              >
-                {loading
-                  ? t('common.generating', 'Generating...')
-                  : t(`canvas.nodes.mediaSkill.${currentMediaType}Generate`, 'Generate')}
-              </Button>
+              />
             </div>
           </div>
         )}

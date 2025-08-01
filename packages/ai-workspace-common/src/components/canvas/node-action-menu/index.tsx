@@ -5,8 +5,6 @@ import { useReactFlow } from '@xyflow/react';
 import {
   IconDelete,
   IconAskAI,
-  IconExpand,
-  IconShrink,
   IconSlideshow,
   IconPreview,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
@@ -32,7 +30,6 @@ import { useDocumentStoreShallow } from '@refly/stores';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useUngroupNodes } from '@refly-packages/ai-workspace-common/hooks/canvas/use-batch-nodes-selection/use-ungroup-nodes';
-import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { useNodeCluster } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-cluster';
 import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';
 import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
@@ -87,7 +84,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
   const { t } = useTranslation();
   const { getNode, getNodes } = useReactFlow();
   const { canvasId } = useCanvasContext();
-  const { setNodeSizeMode } = useNodeOperations();
   const { setShowPreview } = useCanvasStoreShallow((state) => ({
     setShowPreview: state.setShowPreview,
   }));
@@ -181,13 +177,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
     ungroupNodes(nodeId);
     onClose?.();
   }, [ungroupNodes, nodeId, onClose]);
-
-  const handleToggleSizeMode = useCallback(() => {
-    const newMode = localSizeMode === 'compact' ? 'adaptive' : 'compact';
-    setLocalSizeMode(newMode);
-    setNodeSizeMode(nodeId, newMode);
-    onClose?.();
-  }, [nodeId, localSizeMode, setNodeSizeMode, onClose]);
 
   const { selectNodeCluster, groupNodeCluster, layoutNodeCluster } = useNodeCluster();
 
@@ -341,27 +330,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
           onClick: handleFullScreenPreview,
           type: 'button' as const,
         },
-        {
-          key: 'toggleSizeMode',
-          icon: localSizeMode === 'compact' ? IconExpand : IconShrink,
-          label:
-            localSizeMode === 'compact'
-              ? t('canvas.nodeActions.adaptiveMode')
-              : t('canvas.nodeActions.compactMode'),
-          onClick: handleToggleSizeMode,
-          type: 'button' as const,
-          hoverContent: {
-            title:
-              localSizeMode === 'compact'
-                ? t('canvas.nodeActions.adaptiveMode')
-                : t('canvas.nodeActions.compactMode'),
-            description:
-              localSizeMode === 'compact'
-                ? t('canvas.nodeActions.adaptiveModeDescription')
-                : t('canvas.nodeActions.compactModeDescription'),
-            videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-adaptiveMode.webm',
-          },
-        },
       ].filter(Boolean);
 
       const nodeTypeItems: Record<string, MenuItem[]> = {
@@ -506,7 +474,6 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
       handlePreview,
       t,
       localSizeMode,
-      handleToggleSizeMode,
       handleAskAI,
       handleGroupCluster,
       handleLayoutCluster,
