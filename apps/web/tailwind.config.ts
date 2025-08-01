@@ -1,288 +1,146 @@
-import forms from '@tailwindcss/forms';
-import animate from 'tailwindcss-animate';
-import typography from '@tailwindcss/typography';
-import { reflyColors } from '../web-next/tailwind-colors';
+import plugin from 'tailwindcss/plugin';
+import { reflyColors } from './tailwind-colors';
 
-export default {
-  content: [
-    './index.html',
-    './src/**/*.{js,jsx,ts,tsx}',
-    '../../packages/ai-workspace-common/src/**/*.{js,jsx,ts,tsx}',
-  ],
-  darkMode: 'class',
-  theme: {
-    extend: {
-      typography: {
-        DEFAULT: {
-          css: {
-            img: {
-              margin: '0',
-              padding: '0',
-              border: 'none',
-              boxShadow: 'none',
-              display: 'inline',
-              width: 'auto',
-              height: 'auto',
+import type { Config } from 'tailwindcss';
+
+const content = [
+  './index.html',
+  './src/**/*.{js,jsx,ts,tsx}',
+  '../../packages/ai-workspace-common/src/**/*.{js,jsx,ts,tsx}',
+  '../../packages/web-core/src/**/*.{js,jsx,ts,tsx}',
+  '../../packages/ui-kit/src/**/*.{js,jsx,ts,tsx}',
+];
+
+const AntdOverwritePlugin = plugin(({ matchVariant }) => {
+  const processSpaces = (value: string) =>
+    value.replace(/([^\\_])_([^_])/g, '$1 $2').replace(/\\_/g, '_');
+  matchVariant('ant', (value) => {
+    if (value.startsWith('&')) {
+      return processSpaces(value);
+    }
+    return `& ${processSpaces(value)}`;
+  });
+});
+
+export function defineConfig(): Config {
+  return {
+    darkMode: 'class',
+    plugins: [AntdOverwritePlugin],
+    corePlugins: {
+      preflight: false,
+    },
+    content,
+    theme: {
+      extend: {
+        gridTemplateColumns: {
+          // Custom grid columns for avatar wall
+          '13': 'repeat(13, minmax(0, 1fr))',
+          '14': 'repeat(14, minmax(0, 1fr))',
+          '15': 'repeat(15, minmax(0, 1fr))',
+          '16': 'repeat(16, minmax(0, 1fr))',
+        },
+        fontFamily: {
+          inter: ['Inter', 'sans-serif'],
+          'architects-daughter': ['"Architects Daughter"', 'sans-serif'],
+          alibaba: ['Alibaba PuHuiTi', 'sans-serif'],
+        },
+        fontSize: {
+          xs: ['12px', '20px'],
+          sm: ['14px', '22px'],
+          base: ['16px', '24px'],
+          lg: ['18px', '28px'],
+          xl: ['20px', '30px'],
+          '2xl': ['24px', '36px'],
+        },
+        animation: {
+          'slide-in-left': 'slideInLeft 0.3s ease-out',
+        },
+        boxShadow: {
+          'refly-s': '0 1px 6px 0 #0000003d',
+          'refly-m': '0 2px 20px 4px #0000000a',
+          'refly-l': '0 8px 40px 0 #00000014',
+          'refly-primary': '0 8px 60px 0 #1d463d1a',
+          'refly-xl': '0 8px 32px 0 #00000014',
+        },
+        keyframes: {
+          slideInLeft: {
+            '0%': {
+              transform: 'translateX(-100%)',
+              opacity: '0',
+            },
+            '100%': {
+              transform: 'translateX(0)',
+              opacity: '1',
             },
           },
-          blockquote: {
-            quotes: 'none',
-            '&::before': {
-              content: 'none',
-            },
-            '&::after': {
-              content: 'none',
-            },
-            'p::before': {
-              content: 'none',
-            },
-            'p::after': {
-              content: 'none',
-            },
+        },
+        colors: {
+          ...reflyColors,
+          // TODO: remove below hardcoded colors after reflyColors is correctly configured
+          gray: {
+            100: '#F1F1F0',
+            200: '#D9E3EA',
+            300: '#C5D2DC',
+            400: '#9BA9B4',
+            500: '#707D86',
+            600: '#55595F',
+            700: '#33363A',
+            800: '#25282C',
+            900: '#151719',
+            950: '#090A0A',
+          },
+          green: {
+            50: '#eff4f7',
+            100: '#E8FFFA',
+            200: '#AAEADE',
+            300: '#74D5C6',
+            400: '#46C0B2',
+            500: '#1FAB9F',
+            600: '#00968F',
+            700: '#008481',
+            800: '#00716A',
+            900: '#18242c',
+          },
+          border: 'hsl(var(--border))',
+          input: 'hsl(var(--input))',
+          ring: 'hsl(var(--ring))',
+          background: 'hsl(var(--background))',
+          foreground: 'hsl(var(--foreground))',
+          primary: {
+            300: '#E8FFFA',
+            400: '#46C0B2',
+            600: '#00968F',
+            DEFAULT: 'hsl(var(--primary))',
+            foreground: 'hsl(var(--primary-foreground))',
+          },
+          secondary: {
+            DEFAULT: 'hsl(var(--secondary))',
+            foreground: 'hsl(var(--secondary-foreground))',
+          },
+          destructive: {
+            DEFAULT: 'hsl(var(--destructive))',
+            foreground: 'hsl(var(--destructive-foreground))',
+          },
+          muted: {
+            DEFAULT: 'hsl(var(--muted))',
+            foreground: 'hsl(var(--muted-foreground))',
+          },
+          accent: {
+            DEFAULT: 'hsl(var(--accent))',
+            foreground: 'hsl(var(--accent-foreground))',
+          },
+          popover: {
+            DEFAULT: 'hsl(var(--popover))',
+            foreground: 'hsl(var(--popover-foreground))',
+          },
+          card: {
+            DEFAULT: 'hsl(var(--card))',
+            foreground: 'hsl(var(--card-foreground))',
           },
         },
-      },
-      colors: {
-        ...reflyColors,
-        gray: {
-          100: '#F1F1F0',
-          200: '#D9E3EA',
-          300: '#C5D2DC',
-          400: '#9BA9B4',
-          500: '#707D86',
-          600: '#55595F',
-          700: '#33363A',
-          800: '#25282C',
-          900: '#151719',
-          950: '#090A0A',
-        },
-        green: {
-          50: '#eff4f7',
-          100: '#E8FFFA',
-          200: '#AAEADE',
-          300: '#74D5C6',
-          400: '#46C0B2',
-          500: '#1FAB9F',
-          600: '#00968F',
-          700: '#008481',
-          800: '#00716A',
-          900: '#18242c',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        primary: {
-          300: '#E8FFFA',
-          400: '#46C0B2',
-          600: '#00968F',
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-      },
-      spacing: {
-        '9/16': '56.25%',
-        '3/4': '75%',
-        '1/1': '100%',
-      },
-      fontFamily: {
-        inter: ['Inter', 'sans-serif'],
-        'architects-daughter': ['"Architects Daughter"', 'sans-serif'],
-        alibaba: ['Alibaba PuHuiTi', 'sans-serif'],
-      },
-      fontSize: {
-        xs: '0.75rem',
-        sm: '0.875rem',
-        base: '1rem',
-        lg: '1.125rem',
-        xl: '1.25rem',
-        '2xl': '1.5rem',
-        '3xl': '2rem',
-        '4xl': '2.5rem',
-        '5xl': '3.25rem',
-        '6xl': '4rem',
-      },
-      inset: {
-        full: '100%',
-      },
-      letterSpacing: {
-        tighter: '-0.02em',
-        tight: '-0.01em',
-        normal: '0',
-        wide: '0.01em',
-        wider: '0.02em',
-        widest: '0.4em',
-      },
-      minWidth: {
-        10: '2.5rem',
-      },
-      scale: {
-        98: '.98',
-      },
-      keyframes: {
-        'accordion-down': {
-          from: { height: '0' },
-          to: { height: 'var(--radix-accordion-content-height)' },
-        },
-        'accordion-up': {
-          from: { height: 'var(--radix-accordion-content-height)' },
-          to: { height: '0' },
-        },
-        'background-position-spin': {
-          '0%': { backgroundPosition: 'top center' },
-          '100%': { backgroundPosition: 'bottom center' },
-        },
-        gradient: {
-          to: {
-            backgroundPosition: 'var(--bg-size) 0',
-          },
-        },
-        meteor: {
-          '0%': { transform: 'rotate(215deg) translateX(0)', opacity: '1' },
-          '70%': { opacity: '1' },
-          '100%': {
-            transform: 'rotate(215deg) translateX(-500px)',
-            opacity: '0',
-          },
-        },
-        grid: {
-          '0%': { transform: 'translateY(-50%)' },
-          '100%': { transform: 'translateY(0)' },
-        },
-        marquee: {
-          from: { transform: 'translateX(0)' },
-          to: { transform: 'translateX(calc(-100% - var(--gap)))' },
-        },
-        'marquee-vertical': {
-          from: { transform: 'translateY(0)' },
-          to: { transform: 'translateY(calc(-100% - var(--gap)))' },
-        },
-        flip: {
-          to: { rotate: '360deg' },
-        },
-        rotate: {
-          to: {
-            transform: 'rotate(90deg)',
-          },
-        },
-        'spin-around': {
-          '0%': {
-            transform: 'translateZ(0) rotate(0)',
-          },
-          '15%, 35%': {
-            transform: 'translateZ(0) rotate(90deg)',
-          },
-          '65%, 85%': {
-            transform: 'translateZ(0) rotate(270deg)',
-          },
-          '100%': {
-            transform: 'translateZ(0) rotate(360deg)',
-          },
-        },
-        ripple: {
-          '0%, 100%': {
-            transform: 'translate(-50%, -50%) scale(1)',
-          },
-          '50%': {
-            transform: 'translate(-50%, -50%) scale(0.9)',
-          },
-        },
-        slide: {
-          to: {
-            transform: 'translate(calc(100cqw - 100%), 0)',
-          },
-        },
-        line: {
-          '0%': { 'mask-position-x': '0%' },
-          '100%': { 'mask-position-x': '100%' },
-        },
-        'border-beam': {
-          '100%': {
-            'offset-distance': '100%',
-          },
-        },
-        shimmer: {
-          '0%, 90%, 100%': {
-            'background-position': 'calc(-100% - var(--shimmer-width)) 0',
-          },
-          '30%, 60%': {
-            'background-position': 'calc(100% + var(--shimmer-width)) 0',
-          },
-        },
-        orbit: {
-          '0%': {
-            transform: 'rotate(0deg) translateY(calc(var(--radius) * 1px)) rotate(0deg)',
-          },
-          '100%': {
-            transform: 'rotate(360deg) translateY(calc(var(--radius) * 1px)) rotate(-360deg)',
-          },
-        },
-        'shine-pulse': {
-          '0%': {
-            'background-position': '0% 0%',
-          },
-          '50%': {
-            'background-position': '100% 100%',
-          },
-          to: {
-            'background-position': '0% 0%',
-          },
-        },
-      },
-      animation: {
-        'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out',
-        gradient: 'gradient 8s linear infinite',
-        meteor: 'meteor 5s linear infinite',
-        grid: 'grid 15s linear infinite',
-        marquee: 'marquee var(--duration) infinite linear',
-        'marquee-vertical': 'marquee-vertical var(--duration) linear infinite',
-        flip: 'flip calc(var(--spark) * 2) infinite steps(2, end)',
-        rotate: 'rotate var(--spark) linear infinite both',
-        'spin-around': 'spin-around calc(var(--speed) * 2) infinite linear',
-        slide: 'slide var(--speed) ease-in-out infinite alternate',
-        ripple: 'ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite',
-        line: 'line 2s linear infinite',
-        shimmer: 'shimmer 8s infinite',
-        'border-beam': 'border-beam calc(var(--duration)*1s) infinite linear',
-        orbit: 'orbit calc(var(--duration)*1s) linear infinite',
-        backgroundPositionSpin: 'background-position-spin 3000ms infinite alternate',
       },
     },
-  },
-  plugins: [
-    forms({
-      strategy: 'class', // 只在使用 form-* 类时应用样式
-    }),
-    animate,
-    typography,
-  ],
-  corePlugins: {
-    preflight: false,
-  },
-};
+  };
+}
+
+export default defineConfig();
