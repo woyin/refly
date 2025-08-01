@@ -1,4 +1,4 @@
-![product](/images/product.webp)
+![product](https://static.refly.ai/landing/refly-cover.png)
 
 # Welcome to Refly
 

@@ -1,4 +1,4 @@
-![refly-cover](https://github.com/user-attachments/assets/2930c555-09a7-4ea2-a18a-2b1d8a7ef4ae)
+![refly-cover](https://static.refly.ai/landing/refly-cover.png)
 
 <div align="center">
 
