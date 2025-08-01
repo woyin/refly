@@ -1,4 +1,4 @@
-![product](https://static.refly.ai/landing/refly-cover.png)
+![product](https://static.refly.ai/landing/refly-cover-2.webp)
 
 # 欢迎使用 Refly
 
