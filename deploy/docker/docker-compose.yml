@@ -22,6 +22,7 @@ services:
     env_file:
       - .env
     environment:
+      - AUTO_MIGRATE_DB_SCHEMA=1
       - MINIO_INTERNAL_ENDPOINT=minio
       - MINIO_EXTERNAL_ENDPOINT=minio
       - REDIS_HOST=redis
