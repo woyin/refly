@@ -8,6 +8,14 @@ import { Button } from 'antd';
 // Local storage key for tracking if the modal has been shown
 const CREDITS_WELCOME_SHOWN_KEY = '__REFLY_CREDITS_WELCOME_SHOWN';
 
+// Configuration for external URLs
+const EXTERNAL_URLS = {
+  creditUsageGuide: {
+    en: 'https://docs.refly.ai/cloud/credit-usage-guide',
+    zh: 'https://docs.refly.ai/zh/cloud/credit-usage-guide',
+  },
+} as const;
+
 // Glassmorphism styles
 const glassmorphismStyles = `
   .glassmorphism-modal .ant-modal-content {
@@ -29,6 +37,12 @@ const glassmorphismStyles = `
     border: 0.5px solid var(--border---refly-Card-Border-dark, rgba(255, 255, 255, 0.10)) !important;
   }
 `;
+
+// Helper function to get localized URL
+const getLocalizedUrl = (urlConfig: Record<string, string>, currentLanguage: string): string => {
+  const isChinese = currentLanguage === 'zh' || currentLanguage.startsWith('zh-');
+  return isChinese ? urlConfig.zh : urlConfig.en;
+};
 
 export const CreditWelcomeModal = () => {
   const [visible, setVisible] = useState(false);
@@ -64,10 +78,13 @@ export const CreditWelcomeModal = () => {
   // Learn more button click handler
   const handleLearnMore = () => {
     if (isEarlyBirdUser) {
-      // TODO: release note page
+      // Navigate to credit usage guide based on i18n language
+      const creditUsageGuideUrl = getLocalizedUrl(EXTERNAL_URLS.creditUsageGuide, i18n.language);
+      window.open(creditUsageGuideUrl, '_blank');
+    } else {
+      // Can navigate to points system details page
+      setSubscribeModalVisible(true);
     }
-    // Can navigate to points system details page
-    setSubscribeModalVisible(true);
     handleClose();
   };
 
