@@ -62,7 +62,7 @@ export const CreditWelcomeModal = () => {
   useEffect(() => {
     // Check if user is logged in and if this is the first time showing the modal
     if (userProfile?.uid) {
-      const hasShown = localStorage.getItem(CREDITS_WELCOME_SHOWN_KEY + Math.random());
+      const hasShown = localStorage.getItem(CREDITS_WELCOME_SHOWN_KEY);
       if (!hasShown) {
         setVisible(true);
       }

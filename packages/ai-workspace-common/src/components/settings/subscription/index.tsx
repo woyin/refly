@@ -159,6 +159,10 @@ export const Subscription = () => {
   const handleManageBilling = async () => {
     if (portalLoading) return;
 
+    if (!userProfile?.customerId) {
+      return;
+    }
+
     setPortalLoading(true);
     try {
       const { data } = await getClient().createPortalSession();
@@ -321,7 +325,7 @@ export const Subscription = () => {
                   ? t('common.loading')
                   : t('subscription.subscriptionManagement.viewBilling')}
               </div>
-              {subscriptionPlanType === 'free' && (
+              {subscriptionPlanType === 'free' && !!userProfile?.customerId && (
                 <Button
                   type="primary"
                   className="ant-btn-primary"
