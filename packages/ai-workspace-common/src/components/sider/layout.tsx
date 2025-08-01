@@ -29,8 +29,7 @@ import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/us
 import { SettingsModalActiveTab, SiderData, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
-import { AiOutlineUser } from 'react-icons/ai';
-import { SideLeft, SideRight } from 'refly-icons';
+import { SideLeft, SideRight, Account } from 'refly-icons';
 
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
@@ -158,9 +157,9 @@ const SettingItem = () => {
             title={userProfile?.nickname}
           >
             <Avatar
-              size={32}
+              size={36}
               src={userProfile?.avatar}
-              icon={<AiOutlineUser />}
+              icon={<Account />}
               className="flex-shrink-0"
             />
             <span className={cn('inline-block truncate font-semibold text-refly-text-0')}>

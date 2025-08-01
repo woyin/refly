@@ -44,23 +44,6 @@ select:focus {
   box-shadow: none;
 }
 
-/* Global styles to remove Ant Design button shadows */
-.ant-btn,
-.ant-btn:hover,
-.ant-btn:focus,
-.ant-btn:active {
-  box-shadow: none !important;
-}
-
-/* Remove shadows from all Ant Design button variants */
-.ant-btn-primary,
-.ant-btn-default,
-.ant-btn-dashed,
-.ant-btn-link,
-.ant-btn-text {
-  box-shadow: none !important;
-}
-
 .prose
   :where(blockquote p:first-of-type):not(
     :where([class~='not-prose'], [class~='not-prose'] *)
@@ -139,15 +122,4 @@ select:focus {
 html,
 body {
   line-height: 1.5;
-}
-
-.ant-dropdown-menu-root {
-  padding: 8px !important;
-  border: 1px solid var(--refly-Card-Border) !important;
-  .ant-dropdown-menu-item {
-    padding: 6px 8px !important;
-    &:hover {
-      background-color: var(--refly-tertiary-hover) !important;
-    }
-  }
 }
