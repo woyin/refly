@@ -76,13 +76,13 @@ export const Subscription = () => {
 
   const { planType: subscriptionPlanType, cancelAt } = displaySubscription ?? {};
 
-  const { setSubscribeModalVisible, setPlanType, planType } = useSubscriptionStoreShallow(
-    (state) => ({
+  const { setSubscribeModalVisible, setPlanType, planType, setOpenedFromSettings } =
+    useSubscriptionStoreShallow((state) => ({
       setSubscribeModalVisible: state.setSubscribeModalVisible,
       setPlanType: state.setPlanType,
       planType: state.planType,
-    }),
-  );
+      setOpenedFromSettings: state.setOpenedFromSettings,
+    }));
 
   const { setShowSettingModal } = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
@@ -299,8 +299,9 @@ export const Subscription = () => {
   const handleClickSubscription = useCallback(() => {
     logEvent('subscription::upgrade_click', 'settings');
     setShowSettingModal(false);
+    setOpenedFromSettings(true);
     setSubscribeModalVisible(true);
-  }, [setSubscribeModalVisible, setShowSettingModal]);
+  }, [setSubscribeModalVisible, setShowSettingModal, setOpenedFromSettings]);
 
   const PaidPlanCard = () => {
     return (
@@ -355,6 +356,7 @@ export const Subscription = () => {
             className="upgrade-button ant-btn-primary"
             onClick={() => {
               setShowSettingModal(false);
+              setOpenedFromSettings(true);
               setSubscribeModalVisible(true);
             }}
           >

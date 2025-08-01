@@ -3,16 +3,26 @@ import { useTranslation } from 'react-i18next';
 import { logEvent } from '@refly/telemetry-web';
 // styles
 import './index.scss';
-import { useSubscriptionStoreShallow } from '@refly/stores';
+import { useSiderStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import { PriceContent } from './priceContent';
 
 export const SubscribeModal = () => {
   const { t } = useTranslation('ui');
-  const { subscribeModalVisible: visible, setSubscribeModalVisible: setVisible } =
-    useSubscriptionStoreShallow((state) => ({
-      subscribeModalVisible: state.subscribeModalVisible,
-      setSubscribeModalVisible: state.setSubscribeModalVisible,
-    }));
+  const {
+    subscribeModalVisible: visible,
+    setSubscribeModalVisible: setVisible,
+    openedFromSettings,
+    setOpenedFromSettings,
+  } = useSubscriptionStoreShallow((state) => ({
+    subscribeModalVisible: state.subscribeModalVisible,
+    setSubscribeModalVisible: state.setSubscribeModalVisible,
+    openedFromSettings: state.openedFromSettings,
+    setOpenedFromSettings: state.setOpenedFromSettings,
+  }));
+
+  const { setShowSettingModal } = useSiderStoreShallow((state) => ({
+    setShowSettingModal: state.setShowSettingModal,
+  }));
 
   return (
     <Modal
@@ -28,6 +38,11 @@ export const SubscribeModal = () => {
       className="subscribe-modal !p-0"
       onCancel={() => {
         setVisible(false);
+        // Only reopen SettingModal if SubscribeModal was opened from it
+        if (openedFromSettings) {
+          setShowSettingModal(true);
+          setOpenedFromSettings(false); // Reset the flag
+        }
         logEvent('subscription::price_table_close', 'settings');
       }}
     >
