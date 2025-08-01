@@ -6,7 +6,6 @@ import {
   Logger,
   HttpException,
   Inject,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
@@ -32,8 +31,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Handle http exceptions
     if (exception instanceof HttpException) {
-      // Print warning logs for all exceptions except UnauthorizedException
-      if (!(exception instanceof UnauthorizedException)) {
+      // Print warning logs for all exceptions except status 401
+      if (exception.getStatus() !== HttpStatus.UNAUTHORIZED) {
         this.logger.warn(
           `Request: ${request.method} ${request.url} http exception: (${exception.getStatus()}) ${
             exception.message
