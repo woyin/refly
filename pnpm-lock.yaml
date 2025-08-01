@@ -858,12 +858,6 @@ importers:
       '@ant-design/icons':
         specifier: ^5.5.2
         version: 5.6.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@arco-design/web-react':
-        specifier: ^2.47.1
-        version: 2.66.2(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@arco-themes/react-refly-ai':
-        specifier: 0.0.3
-        version: 0.0.3(@arco-design/web-react@2.66.2(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@codesandbox/sandpack-react':
         specifier: ^2.19.10
         version: 2.20.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1014,24 +1008,6 @@ importers:
       '@tiptap/suggestion':
         specifier: 2.7.4
         version: 2.7.4(@tiptap/core@2.7.4(@tiptap/pm@2.7.4))(@tiptap/pm@2.7.4)
-      '@types/is-hotkey':
-        specifier: ~0.1.7
-        version: 0.1.10
-      '@types/lodash.throttle':
-        specifier: ^4.1.9
-        version: 4.1.9
-      '@types/md5':
-        specifier: ^2.3.2
-        version: 2.3.5
-      '@types/react-syntax-highlighter':
-        specifier: ^15.5.6
-        version: 15.5.13
-      '@types/unist':
-        specifier: ^3.0.3
-        version: 3.0.3
-      '@types/uuid':
-        specifier: ^9.0.1
-        version: 9.0.8
       '@xyflow/react':
         specifier: ^12.3.5
         version: 12.8.2(@types/react@18.3.23)(immer@10.1.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1230,15 +1206,9 @@ importers:
       shiki:
         specifier: ^1.27.2
         version: 1.29.2
-      sonner:
-        specifier: ^1.7.2
-        version: 1.7.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tailwind-merge:
         specifier: ^2.2.2
         version: 2.6.0
-      terser:
-        specifier: ^5.30.4
-        version: 5.43.1
       tippy.js:
         specifier: ^6.3.7
         version: 6.3.7
@@ -1266,9 +1236,6 @@ importers:
       uuid:
         specifier: ^9.0.0
         version: 9.0.1
-      vite-tsconfig-paths:
-        specifier: ~4.3.2
-        version: 4.3.2(typescript@5.8.3)(vite@5.4.19(@types/node@24.0.14)(less@4.3.0)(sass-embedded@1.89.2)(sass@1.71.1)(terser@5.43.1))
       words-count:
         specifier: ~2.0.2
         version: 2.0.2
@@ -1294,15 +1261,21 @@ importers:
       '@redux-devtools/extension':
         specifier: ^3.3.0
         version: 3.3.0(redux@5.0.1)
-      '@refly/arco-vite-plugin-react':
-        specifier: 1.3.3
-        version: 1.3.3
       '@types/chrome':
         specifier: 0.0.227
         version: 0.0.227
+      '@types/is-hotkey':
+        specifier: ~0.1.7
+        version: 0.1.10
+      '@types/lodash.throttle':
+        specifier: ^4.1.9
+        version: 4.1.9
       '@types/markdown-it':
         specifier: ~14.1.1
         version: 14.1.2
+      '@types/md5':
+        specifier: ^2.3.5
+        version: 2.3.5
       '@types/react':
         specifier: ^18.2.66
         version: 18.3.23
@@ -1315,27 +1288,18 @@ importers:
       '@types/react-helmet':
         specifier: ^6.1.11
         version: 6.1.11
-      '@vitejs/plugin-react':
-        specifier: ^4.2.1
-        version: 4.6.0(vite@5.4.19(@types/node@24.0.14)(less@4.3.0)(sass-embedded@1.89.2)(sass@1.71.1)(terser@5.43.1))
-      autoprefixer:
-        specifier: ^10.4.13
-        version: 10.4.21(postcss@8.5.6)
-      less:
-        specifier: ^4.2.0
-        version: 4.3.0
-      postcss:
-        specifier: ^8.4.21
-        version: 8.5.6
-      sass:
-        specifier: 1.71.1
-        version: 1.71.1
+      '@types/react-syntax-highlighter':
+        specifier: ^15.5.6
+        version: 15.5.13
+      '@types/unist':
+        specifier: ^3.0.3
+        version: 3.0.3
+      '@types/uuid':
+        specifier: ^9.0.1
+        version: 9.0.8
       tailwindcss:
         specifier: ^3.2.6
         version: 3.4.17(ts-node@10.9.2(@swc/core@1.12.14(@swc/helpers@0.5.17))(@types/node@24.0.14)(typescript@5.8.3))
-      vite:
-        specifier: ^5.2.0
-        version: 5.4.19(@types/node@24.0.14)(less@4.3.0)(sass-embedded@1.89.2)(sass@1.71.1)(terser@5.43.1)
       wxt:
         specifier: workspace:*
         version: link:../wxt
@@ -14925,12 +14889,6 @@ packages:
 
   sonic-boom@4.2.0:
     resolution: {integrity: sha512-INb7TM37/mAcsGmc9hyyI6+QR3rR1zVRu36B0NeGXKnOOLiZOfER5SA+N7X7k3yUYRzLWafduTDvJAfDswwEww==}
-
-  sonner@1.7.4:
-    resolution: {integrity: sha512-DIS8z4PfJRbIyfVFDVnK9rO3eYDtse4Omcm6bt0oEr5/jtLgysmjuBl1frJ9E/EQZrFmKx2A8m/s5s9CRXIzhw==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
 
   sort-keys-length@1.0.1:
     resolution: {integrity: sha512-GRbEOUqCxemTAk/b32F2xa8wDTs+Z1QHOkbhJDQTvv/6G3ZkbJ+frYWsTcc7cBB3Fu4wy4XlLCuNtJuMn7Gsvw==}
@@ -32375,11 +32333,6 @@ snapshots:
   sonic-boom@4.2.0:
     dependencies:
       atomic-sleep: 1.0.0
-
-  sonner@1.7.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
-    dependencies:
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
 
   sort-keys-length@1.0.1:
     dependencies:
