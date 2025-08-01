@@ -467,10 +467,10 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
         loading={getIsLoading(item.key)}
         icon={item.icon && <item.icon className="flex items-center w-4 h-4" />}
         onClick={() => {
-          handleMenuClick(item.key);
           logEvent('canvas::add_node', Date.now(), {
             node_type: item.key,
           });
+          handleMenuClick(item.key);
         }}
       >
         <span className="flex-1 text-left truncate">{item.title}</span>

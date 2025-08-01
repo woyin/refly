@@ -170,10 +170,10 @@ export const ToolbarButtons = memo(
         loading={isLoading}
         icon={<Download size={18} />}
         onClick={() => {
-          exportCanvasAsImage(canvasTitle);
           logEvent('canvas::canvas_download_image', Date.now(), {
             canvas_id: canvasId,
           });
+          exportCanvasAsImage(canvasTitle);
         }}
       />
     );
@@ -183,10 +183,10 @@ export const ToolbarButtons = memo(
         type="text"
         icon={<IconSlideshow size={18} />}
         onClick={() => {
-          setShowSlideshow(!showSlideshow);
           logEvent('canvas::canvas_demo_click', Date.now(), {
             canvas_id: canvasId,
           });
+          setShowSlideshow(!showSlideshow);
         }}
       />
     );

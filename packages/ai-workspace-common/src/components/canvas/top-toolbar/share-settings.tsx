@@ -236,10 +236,10 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
               description={t('shareContent.accessOptions.offDescription')}
               isFirst={true}
               onClick={() => {
-                handleAccessChange('off');
                 logEvent('canvas::canvas_share_private', Date.now(), {
                   canvas_id: canvasId,
                 });
+                handleAccessChange('off');
               }}
             />
 
@@ -265,10 +265,10 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
                 variant="filled"
                 className="flex-shrink-0 w-[104px] h-[32px] text-sm text-refly-text-0 leading-5 font-semibold"
                 onClick={() => {
-                  updateShare();
                   logEvent('canvas::canvas_share_public_sync', Date.now(), {
                     canvas_id: canvasId,
                   });
+                  updateShare();
                 }}
                 loading={updateShareLoading}
                 disabled={updateShareLoading}
@@ -282,10 +282,10 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
                 color="default"
                 variant="filled"
                 onClick={() => {
-                  copyLink();
                   logEvent('canvas::canvas_share_copy_link', Date.now(), {
                     canvas_id: canvasId,
                   });
+                  copyLink();
                 }}
                 disabled={linkCopied}
                 className="flex-shrink-0 w-[104px] h-[32px] text-sm text-refly-text-0 leading-5 font-semibold"
@@ -306,10 +306,10 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
             size="small"
             className="w-[104px] h-[32px]"
             onClick={() => {
-              handlePublishToCommunity();
               logEvent('canvas::canvas_publish_template', Date.now(), {
                 canvas_id: canvasId,
               });
+              handlePublishToCommunity();
             }}
           >
             {t('shareContent.publish')}

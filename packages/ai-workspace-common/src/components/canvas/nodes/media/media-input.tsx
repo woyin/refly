@@ -247,13 +247,13 @@ const MediaChatInput = memo(
                 type="primary"
                 icon={<Send size={20} />}
                 onClick={() => {
-                  handleSend();
                   logEvent('canvas::node_execute', Date.now(), {
                     node_type: 'mediaGenerate',
                     model_name: selectedModel?.config?.modelId,
                     used_knowledge_base: false,
                     used_mcp: false,
                   });
+                  handleSend();
                 }}
                 disabled={loading || !query?.trim()}
                 loading={loading}

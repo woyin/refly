@@ -171,8 +171,6 @@ export const ChatActions = memo(
               disabled={!canSendMessage}
               className="text-xs flex items-center gap-1"
               onClick={() => {
-                handleSendClick();
-
                 // Check if knowledge base is used (resource or document types)
                 const usedKnowledgeBase =
                   contextItems?.some(
@@ -191,6 +189,7 @@ export const ChatActions = memo(
                   used_knowledge_base: usedKnowledgeBase,
                   used_mcp: usedMcp,
                 });
+                handleSendClick();
               }}
             >
               <SendOutlined />

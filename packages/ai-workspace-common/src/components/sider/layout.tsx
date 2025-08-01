@@ -241,10 +241,10 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
         },
       )}
       onClick={() => {
-        navigate(`/canvas/${canvas.id}`);
         logEvent('canvas::select_existing_canvas', Date.now(), {
           canvas_id: canvas.id,
         });
+        navigate(`/canvas/${canvas.id}`);
       }}
     >
       <div className="flex items-center justify-between">

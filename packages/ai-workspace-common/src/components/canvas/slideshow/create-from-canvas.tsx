@@ -179,10 +179,10 @@ export const CreatePageFromCanvas = memo(({ canvasId, afterCreate }: CreatePageF
               <Button
                 type="primary"
                 onClick={(e) => {
-                  handleSubmit(e);
                   logEvent('canvas::canvas_demo_play', Date.now(), {
                     canvas_id: canvasId,
                   });
+                  handleSubmit(e);
                 }}
                 loading={isPending}
                 disabled={nodeIds?.length === 0}
