@@ -42,6 +42,7 @@ import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { useGetCreditBalance } from '@refly-packages/ai-workspace-common/queries';
 import { CreditWelcomeModal } from '@refly-packages/ai-workspace-common/components/credit-welcome-modal';
+import { logEvent } from '@refly/telemetry-web';
 
 const Sider = Layout.Sider;
 
@@ -243,6 +244,9 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
       )}
       onClick={() => {
         navigate(`/canvas/${canvas.id}`);
+        logEvent('canvas::select_existing_canvas', Date.now(), {
+          canvas_id: canvas.id,
+        });
       }}
     >
       <div className="flex items-center justify-between">
