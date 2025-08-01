@@ -1,12 +1,11 @@
 openapi: 3.0.3
 info:
   title: Refly AI
-  description: AI-native knowledge management solutions and infra.
+  description: The Open-Source Agentic Workspace for Human-AI Collaboration
   contact:
     email: support@refly.ai
   version: 0.2.0
 externalDocs:
-  description: The Open Source Human-AI Collaborative Agent Platform
   url: https://refly.ai
 servers:
   - url: /v1
