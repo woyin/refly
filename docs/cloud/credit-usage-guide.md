@@ -51,6 +51,7 @@ No manual action required, can switch to new packages anytime for more flexible 
 8. DeepSeek V3
 9. DeepSeek R1
 10. Grok 4
+11. Qwen3 Coder
 
 ## 📊 How to Check Credit Balance and Usage
 
