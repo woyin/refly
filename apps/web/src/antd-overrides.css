@@ -49,35 +49,36 @@
   padding: 4px;
   border: 1px solid var(--refly-Card-Border) !important;
   background-color: var(--refly-bg-control-z0) !important;
+}
 
-  .ant-segmented-item {
-    border-radius: 16px !important;
-    &:hover {
-      background-color: var(--refly-tertiary-hover) !important;
-    }
-  }
+.ant-segmented .ant-segmented-item {
+  border-radius: 16px !important;
+}
 
-  .ant-segmented-item-label {
-    color: var(--text-refly-text-0) !important;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 400;
-    padding: 2px 8px;
-    min-height: unset;
-    line-height: unset;
-    border-radius: 16px;
-  }
+.ant-segmented .ant-segmented-item:hover {
+  background-color: var(--refly-tertiary-hover) !important;
+}
 
-  .ant-segmented-item-selected {
-    background-color: var(--refly-bg-control-z1) !important;
-    border-radius: 16px !important;
+.ant-segmented .ant-segmented-item-label {
+  color: var(--text-refly-text-0) !important;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 2px 8px;
+  min-height: unset;
+  line-height: unset;
+  border-radius: 16px;
+}
 
-    .ant-segmented-item-label {
-      color: var(--text-refly-text-0) !important;
-      text-align: center;
-      font-size: 12px;
-      font-weight: 600;
-      border-radius: 16px;
-    }
-  }
+.ant-segmented .ant-segmented-item-selected {
+  background-color: var(--refly-bg-control-z1) !important;
+  border-radius: 16px !important;
+}
+
+.ant-segmented .ant-segmented-item-selected .ant-segmented-item-label {
+  color: var(--text-refly-text-0) !important;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 16px;
 }
