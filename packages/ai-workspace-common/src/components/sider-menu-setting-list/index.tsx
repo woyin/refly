@@ -122,10 +122,10 @@ const UserInfo = React.memo(
           <Avatar icon={<Account />} src={userProfile?.avatar} size={36} />
 
           <div>
-            <div className="text-sm font-semibold text-refly-text-0 leading-5 truncate">
+            <div className="max-w-40 text-sm font-semibold text-refly-text-0 leading-5 truncate">
               {nickname}
             </div>
-            <div className="text-xs text-refly-text-2 leading-4 truncate">
+            <div className="max-w-40 text-xs text-refly-text-2 leading-4 truncate">
               {email ?? 'No email provided'}
             </div>
           </div>
