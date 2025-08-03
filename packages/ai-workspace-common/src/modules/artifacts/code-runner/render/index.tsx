@@ -17,6 +17,7 @@ interface RendererProps {
   height?: string;
   onChange?: (content: string, type: CodeArtifactType) => void;
   readonly?: boolean;
+  showActions?: boolean;
 }
 
 const Renderer = memo<RendererProps>(
@@ -30,6 +31,7 @@ const Renderer = memo<RendererProps>(
     height = '100%',
     onChange,
     readonly,
+    showActions = true,
   }) => {
     // Memoize the onChange callback for mind map to prevent unnecessary re-renders
     const memoizedMindMapOnChange = useMemo(() => {
@@ -45,12 +47,21 @@ const Renderer = memo<RendererProps>(
             title={title}
             language={language}
             onRequestFix={onRequestFix}
+            showActions={showActions}
           />
         );
       }
 
       case 'image/svg+xml': {
-        return <SVGRender content={content} title={title} width={width} height={height} />;
+        return (
+          <SVGRender
+            content={content}
+            title={title}
+            width={width}
+            height={height}
+            showActions={showActions}
+          />
+        );
       }
 
       case 'application/refly.artifacts.mermaid': {
@@ -78,12 +89,26 @@ const Renderer = memo<RendererProps>(
       }
 
       case 'text/html': {
-        return <HTMLRenderer htmlContent={content} width={width} height={height} />;
+        return (
+          <HTMLRenderer
+            htmlContent={content}
+            width={width}
+            height={height}
+            showActions={showActions}
+          />
+        );
       }
 
       default: {
         // Default to HTML renderer for unknown types
-        return <HTMLRenderer htmlContent={content} width={width} height={height} />;
+        return (
+          <HTMLRenderer
+            htmlContent={content}
+            width={width}
+            height={height}
+            showActions={showActions}
+          />
+        );
       }
     }
   },
@@ -97,7 +122,8 @@ const Renderer = memo<RendererProps>(
       prevProps.language === nextProps.language &&
       prevProps.width === nextProps.width &&
       prevProps.height === nextProps.height &&
-      prevProps.onChange === nextProps.onChange
+      prevProps.onChange === nextProps.onChange &&
+      prevProps.showActions === nextProps.showActions
     );
   },
 );

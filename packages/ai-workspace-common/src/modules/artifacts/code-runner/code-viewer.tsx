@@ -32,6 +32,7 @@ export default memo(
     canvasReadOnly = false,
     type = 'text/html',
     onTypeChange,
+    showActions = true,
   }: {
     code: string;
     language: string;
@@ -47,6 +48,7 @@ export default memo(
     canvasReadOnly?: boolean;
     type?: CodeArtifactType;
     onTypeChange?: (type: CodeArtifactType) => void;
+    showActions?: boolean;
   }) {
     const { t } = useTranslation();
     const [refresh, setRefresh] = useState(0);
@@ -388,6 +390,7 @@ export default memo(
                             : undefined
                         }
                         readonly={readOnly || canvasReadOnly}
+                        showActions={showActions}
                       />
                     </div>
                   )}
@@ -424,6 +427,7 @@ export default memo(
                           : undefined
                       }
                       readonly={readOnly || canvasReadOnly}
+                      showActions={showActions}
                     />
                   </div>
                 )}
@@ -443,7 +447,8 @@ export default memo(
       prevProps.isGenerating === nextProps.isGenerating &&
       prevProps.activeTab === nextProps.activeTab &&
       prevProps.readOnly === nextProps.readOnly &&
-      prevProps.type === nextProps.type
+      prevProps.type === nextProps.type &&
+      prevProps.showActions === nextProps.showActions
     );
   },
 );
