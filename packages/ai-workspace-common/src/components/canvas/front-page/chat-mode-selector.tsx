@@ -24,7 +24,7 @@ const ModeOptionLabel = memo(
 
     return (
       <Tooltip title={t(tooltipKey)} placement="bottom">
-        <div className="flex items-center gap-[2px] min-h-[28px]">
+        <div className="flex items-center gap-[2px]">
           {icon}
           {currentMode === mode && <span className="font-semibold leading-5">{t(labelKey)}</span>}
         </div>
