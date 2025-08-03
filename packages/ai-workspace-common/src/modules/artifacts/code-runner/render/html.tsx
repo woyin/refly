@@ -12,10 +12,17 @@ interface HTMLRendererProps {
   title?: string;
   width?: string;
   height?: string;
+  showActions?: boolean;
 }
 
 const HTMLRenderer = memo(
-  ({ htmlContent, title, width = '100%', height = '100%' }: HTMLRendererProps) => {
+  ({
+    htmlContent,
+    title,
+    width = '100%',
+    height = '100%',
+    showActions = true,
+  }: HTMLRendererProps) => {
     const { t } = useTranslation();
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [zoomImageUrl, setZoomImageUrl] = useState<string>('');
@@ -50,7 +57,7 @@ const HTMLRenderer = memo(
             </style>
           </head>
           <body>
-            <div id="html-content">${htmlContent}</div>
+            <div id="html-content">${htmlContent || ''}</div>
           </body>
         </html>
       `;
@@ -237,41 +244,43 @@ const HTMLRenderer = memo(
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="absolute bottom-2 right-2 z-10">
-          <Space.Compact className="shadow-sm rounded-md overflow-hidden backdrop-blur-sm">
-            <Tooltip title={t('common.preview', 'Preview')}>
-              <Button
-                type="default"
-                className="flex items-center justify-center bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-600 dark:hover:border-purple-400 border border-gray-200/80 dark:border-gray-700/80 text-gray-700 dark:text-gray-300"
-                icon={<PiMagnifyingGlassPlusBold className="w-4 h-4" />}
-                onClick={handleZoom}
-              >
-                <span className="sr-only">Preview</span>
-              </Button>
-            </Tooltip>
-            <Tooltip title={t('artifact.svg.downloadAsPng', 'Download ')}>
-              <Button
-                type="default"
-                className="flex items-center justify-center bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-600 dark:hover:border-blue-400 border-x border-gray-200/80 dark:border-gray-700/80 text-gray-700 dark:text-gray-300"
-                icon={<DownloadIcon className="w-4 h-4" />}
-                onClick={() => downloadImage(false)}
-              >
-                <span className="sr-only">PNG</span>
-              </Button>
-            </Tooltip>
-            <Tooltip title={t('artifact.svg.copyToClipboard', 'Copy to clipboard')}>
-              <Button
-                type="default"
-                className="flex items-center justify-center bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-600 dark:hover:border-purple-400 border border-gray-200/80 dark:border-gray-700/80 text-gray-700 dark:text-gray-300"
-                icon={<CopyIcon className="w-4 h-4" />}
-                onClick={copyImage}
-              >
-                <span className="sr-only">Copy</span>
-              </Button>
-            </Tooltip>
-          </Space.Compact>
-        </div>
+        {/* Action Buttons - conditionally rendered based on showActions prop */}
+        {showActions && (
+          <div className="absolute bottom-2 right-2 z-10">
+            <Space.Compact className="shadow-sm rounded-md overflow-hidden backdrop-blur-sm">
+              <Tooltip title={t('common.preview', 'Preview')}>
+                <Button
+                  type="default"
+                  className="flex items-center justify-center bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-600 dark:hover:border-purple-400 border border-gray-200/80 dark:border-gray-700/80 text-gray-700 dark:text-gray-300"
+                  icon={<PiMagnifyingGlassPlusBold className="w-4 h-4" />}
+                  onClick={handleZoom}
+                >
+                  <span className="sr-only">Preview</span>
+                </Button>
+              </Tooltip>
+              <Tooltip title={t('artifact.svg.downloadAsPng', 'Download ')}>
+                <Button
+                  type="default"
+                  className="flex items-center justify-center bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-600 dark:hover:border-blue-400 border-x border-gray-200/80 dark:border-gray-700/80 text-gray-700 dark:text-gray-300"
+                  icon={<DownloadIcon className="w-4 h-4" />}
+                  onClick={() => downloadImage(false)}
+                >
+                  <span className="sr-only">PNG</span>
+                </Button>
+              </Tooltip>
+              <Tooltip title={t('artifact.svg.copyToClipboard', 'Copy to clipboard')}>
+                <Button
+                  type="default"
+                  className="flex items-center justify-center bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-600 dark:hover:border-purple-400 border border-gray-200/80 dark:border-gray-700/80 text-gray-700 dark:text-gray-300"
+                  icon={<CopyIcon className="w-4 h-4" />}
+                  onClick={copyImage}
+                >
+                  <span className="sr-only">Copy</span>
+                </Button>
+              </Tooltip>
+            </Space.Compact>
+          </div>
+        )}
 
         {/* Image Preview Modal */}
         <ImagePreview

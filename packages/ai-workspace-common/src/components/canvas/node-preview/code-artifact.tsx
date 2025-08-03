@@ -277,6 +277,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
             onChange={handleCodeChange}
             canvasReadOnly={canvasReadOnly}
             type={currentType as CodeArtifactType}
+            showActions={true}
           />
         )}
       </CodeViewerLayout>
