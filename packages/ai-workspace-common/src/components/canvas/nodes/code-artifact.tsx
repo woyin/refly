@@ -77,12 +77,13 @@ const NodeContent = memo(
     return (
       <div className="h-full w-full">
         <Renderer
-          content={artifactData?.content}
+          content={artifactData?.content || ''}
           type={artifactData?.type}
           key={artifactData?.artifactId}
           title={artifactData?.title}
           language={artifactData?.language}
           onRequestFix={() => {}}
+          showActions={false}
         />
       </div>
     );
