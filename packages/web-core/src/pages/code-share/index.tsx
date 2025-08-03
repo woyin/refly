@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Renderer from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/render';
 import { useSiderStoreShallow } from '@refly/stores';
@@ -14,6 +14,7 @@ const ShareCodePage = () => {
     setCollapse: state.setCollapse,
   }));
   const { data: codeData, loading: isLoading } = useFetchShareData(shareId);
+  const [showBranding, setShowBranding] = useState(true);
 
   console.log({ codeData });
 
@@ -26,6 +27,11 @@ const ShareCodePage = () => {
   const toggleSidebar = useCallback(() => {
     setCollapse(!collapse);
   }, [collapse, setCollapse]);
+
+  // Handle close button click
+  const handleClose = useCallback(() => {
+    setShowBranding(false);
+  }, []);
 
   // Memoize the render key to prevent unnecessary re-renders
   const renderKey = useMemo(() => Date.now().toString(), [codeData?.content]);
@@ -43,7 +49,7 @@ const ShareCodePage = () => {
 
   return (
     <div className="flex h-full w-full grow relative">
-      {collapse && <PoweredByRefly onClick={toggleSidebar} />}
+      {collapse && showBranding && <PoweredByRefly onClick={toggleSidebar} onClose={handleClose} />}
 
       <div
         className={`absolute h-16 bottom-0 left-0 right-0 box-border flex justify-between items-center py-2 px-4 pr-0 bg-transparent ${
