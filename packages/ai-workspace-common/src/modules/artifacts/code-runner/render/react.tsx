@@ -13,19 +13,21 @@ import { useTranslation } from 'react-i18next';
 const ReactCodeRunner = memo(
   ({
     code,
-    // biome-ignore lint/correctness/noUnusedVariables: <explanation>
+    /* biome-ignore lint/correctness/noUnusedVariables: language is passed but not used directly */
     language,
+    /* biome-ignore lint/correctness/noUnusedVariables: title is passed but not used directly */
     title,
     onRequestFix,
     showErrorMessage = true,
+    showActions = true,
   }: {
     code: string;
     title: string;
     language?: string;
     onRequestFix?: (e: string) => void;
     showErrorMessage?: boolean;
+    showActions?: boolean;
   }) => {
-    console.log('title', title);
     // Memoize tsconfig
     const tsConfig = useMemo(
       () => `{
@@ -71,7 +73,9 @@ const ReactCodeRunner = memo(
           showOpenNewtab={false}
           className="h-full w-full"
         />
-        {onRequestFix && showErrorMessage && <ErrorMessage onRequestFix={onRequestFix} />}
+        {onRequestFix && showErrorMessage && showActions && (
+          <ErrorMessage onRequestFix={onRequestFix} />
+        )}
       </SandpackProvider>
     );
   },
@@ -80,7 +84,8 @@ const ReactCodeRunner = memo(
       prevProps.code === nextProps.code &&
       prevProps.language === nextProps.language &&
       prevProps.showErrorMessage === nextProps.showErrorMessage &&
-      prevProps.onRequestFix === nextProps.onRequestFix
+      prevProps.onRequestFix === nextProps.onRequestFix &&
+      prevProps.showActions === nextProps.showActions
     );
   },
 );
@@ -108,8 +113,7 @@ const ErrorMessage = memo(
         message.success(t('codeArtifact.errorCopySuccess'));
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setDidCopy(false);
-      } catch (error) {
-        console.error('Failed to copy error message:', error);
+      } catch (/* biome-ignore lint/correctness/noUnusedVariables: error is caught but not used directly */ error) {
         message.error(t('codeArtifact.errorCopyFailed'));
         setDidCopy(false);
       }

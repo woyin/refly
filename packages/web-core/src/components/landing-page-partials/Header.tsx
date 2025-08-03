@@ -16,6 +16,7 @@ import { UILocaleList } from '@refly-packages/ai-workspace-common/components/ui-
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { Language } from 'refly-icons';
+import logoIcon from '@refly-packages/ai-workspace-common/assets/logo.svg';
 
 function Header() {
   const navigate = useNavigate();
@@ -187,7 +188,7 @@ function Header() {
 
         <Button type="primary" onClick={() => setLoginModalOpen(true)}>
           <img
-            src="https://cdn.builder.io/api/v1/image/assets/f44ed067fc3e420798dad83a24cfd6e5/3a304ca07c96be7fffe3132bd5126890c6d77e4d?placeholderIfAbsent=true"
+            src={logoIcon}
             className="object-contain shrink-0 self-stretch my-auto w-4 aspect-square"
             alt="Start icon"
           />

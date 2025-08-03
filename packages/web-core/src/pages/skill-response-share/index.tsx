@@ -6,7 +6,7 @@ import { SimpleStepCard } from '@refly-packages/ai-workspace-common/components/s
 import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { PreviewChatInput } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/preview-chat-input';
 import { ActionStep } from '@refly/openapi-schema';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import PoweredByRefly from '../../components/common/PoweredByRefly';
 
 const SkillResponseSharePage = () => {
@@ -17,6 +17,7 @@ const SkillResponseSharePage = () => {
     setCollapse: state.setCollapse,
   }));
   const { data: skillResponseData, loading: isLoading } = useFetchShareData(shareId);
+  const [showBranding, setShowBranding] = useState(true);
 
   // Force collapse by default
   useEffect(() => {
@@ -27,6 +28,11 @@ const SkillResponseSharePage = () => {
   const toggleSidebar = useCallback(() => {
     setCollapse(!collapse);
   }, [collapse, setCollapse]);
+
+  // Handle close button click
+  const handleClose = useCallback(() => {
+    setShowBranding(false);
+  }, []);
 
   if (isLoading) {
     return (
@@ -57,7 +63,7 @@ const SkillResponseSharePage = () => {
 
   return (
     <div className="flex h-full w-full grow relative">
-      {collapse && <PoweredByRefly onClick={toggleSidebar} />}
+      {collapse && showBranding && <PoweredByRefly onClick={toggleSidebar} onClose={handleClose} />}
 
       <div
         className={`absolute h-16 bottom-0 left-0 right-0 box-border flex justify-between items-center py-2 px-4 pr-0 bg-transparent ${
