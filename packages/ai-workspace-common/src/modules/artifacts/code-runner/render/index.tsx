@@ -47,12 +47,21 @@ const Renderer = memo<RendererProps>(
             title={title}
             language={language}
             onRequestFix={onRequestFix}
+            showActions={showActions}
           />
         );
       }
 
       case 'image/svg+xml': {
-        return <SVGRender content={content} title={title} width={width} height={height} />;
+        return (
+          <SVGRender
+            content={content}
+            title={title}
+            width={width}
+            height={height}
+            showActions={showActions}
+          />
+        );
       }
 
       case 'application/refly.artifacts.mermaid': {

@@ -65,6 +65,7 @@ const ShareCodePage = () => {
               language={codeData.language}
               readonly
               onRequestFix={handleRequestFix}
+              showActions={false}
             />
           </div>
         ) : (
