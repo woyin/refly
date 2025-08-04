@@ -1131,6 +1131,8 @@ const translations = {
       group: 'Group',
       mediaSkill: 'Media Skill',
       mediaSkillResponse: 'Media Skill Response',
+      video: 'Video',
+      audio: 'Audio',
     },
     presetScenarios: {
       title: 'Preset Scenarios',

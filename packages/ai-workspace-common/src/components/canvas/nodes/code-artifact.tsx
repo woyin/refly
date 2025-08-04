@@ -73,7 +73,7 @@ const NodeContent = memo(
     }, [shareData, remoteData, legacyData]);
 
     return (
-      <div className="h-full w-full">
+      <div className="h-full w-full pointer-events-none">
         <Renderer
           content={artifactData?.content || ''}
           type={artifactData?.type}
