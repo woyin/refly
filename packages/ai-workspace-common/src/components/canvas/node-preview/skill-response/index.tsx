@@ -9,7 +9,7 @@ import { Subscription } from 'refly-icons';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { ActionStepCard } from './action-step';
 import { convertResultContextToItems, purgeContextItems } from '@refly/canvas-common';
-
+import { logEvent } from '@refly/telemetry-web';
 import { PreviewChatInput } from './preview-chat-input';
 import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
@@ -194,6 +194,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       setSubscribeModalVisible(true);
+
+      logEvent('subscription::upgrade_click', 'skill_invoke');
     },
     [setSubscribeModalVisible],
   );
@@ -262,12 +264,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   }, [node.id]);
 
   const error = guessModelProviderError(result?.errors?.[0]);
-
-  useEffect(() => {
-    if (error instanceof ModelUsageQuotaExceeded && creditBalance <= 0 && isBalanceSuccess) {
-      handleSubscriptionClick();
-    }
-  }, [error, creditBalance, handleSubscriptionClick]);
 
   const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
   const errDescription = useMemo(() => {
