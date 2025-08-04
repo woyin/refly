@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useState, useRef, memo } from 'react';
-import { Button, Modal, Result, message } from 'antd';
+import { Button, Modal, Result, message, Splitter } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
@@ -72,6 +72,7 @@ import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hoo
 import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ChevronUp } from 'lucide-react';
+import { CanvasResources } from './canvas-resources';
 
 const GRID_SIZE = 10;
 
@@ -1121,7 +1122,14 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     <EditorPerformanceProvider>
       <ReactFlowProvider>
         <CanvasProvider readonly={readonly} canvasId={canvasId}>
-          <Flow canvasId={canvasId} />
+          <Splitter className="w-full h-[calc(100vh-16px)]">
+            <Splitter.Panel>
+              <Flow canvasId={canvasId} />
+            </Splitter.Panel>
+            <Splitter.Panel>
+              <CanvasResources />
+            </Splitter.Panel>
+          </Splitter>
         </CanvasProvider>
       </ReactFlowProvider>
     </EditorPerformanceProvider>
