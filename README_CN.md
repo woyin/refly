@@ -72,7 +72,7 @@ kubectl apply -f refly-deployment.yaml
 
 访问 [http://localhost:5700](http://localhost:5700/) （ Kubernetes 部署访问 `http://${HOST_IP}:30001` ）开始使用 ReflyAI。
 
-核心部署教程、环境变量配置和常见问题参见 👉 [部署教程](https://docs.refly.ai/zh/guide/self-deploy)。
+核心部署教程、环境变量配置和常见问题参见 👉 [部署教程](https://docs.refly.ai/zh/community-version/self-deploy/)。
 
 ### 本地开发
 
