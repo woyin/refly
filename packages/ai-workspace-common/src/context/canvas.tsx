@@ -35,6 +35,7 @@ import { IContextItem } from '@refly/common-types';
 import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
+import { logEvent } from '@refly/telemetry-web';
 
 // Wait time for syncCanvasData to be called
 const SYNC_CANVAS_LOCAL_WAIT_TIME = 200;
@@ -234,6 +235,13 @@ export const CanvasProvider = ({
 
     if (conflict) {
       const userChoice = await handleConflictResolution(canvasId, conflict);
+      logEvent('canvas::conflict_version', userChoice, {
+        canvasId,
+        source: 'create_new_version',
+        localVersion: conflict.localState.version,
+        remoteVersion: conflict.remoteState.version,
+      });
+
       if (userChoice === 'local') {
         finalState = conflict.localState;
       } else {
@@ -488,6 +496,13 @@ export const CanvasProvider = ({
             localState,
             remoteState,
           });
+          logEvent('canvas::conflict_version', userChoice, {
+            canvasId,
+            source: 'initial_fetch',
+            localVersion: localState.version,
+            remoteVersion: remoteState.version,
+          });
+
           if (userChoice === 'local') {
             // Use local state, and set it to remote
             finalState = localState;
