@@ -142,6 +142,7 @@ export const CanvasProvider = ({
   children: React.ReactNode;
 }) => {
   const { t } = useTranslation();
+  const [modal, contextHolder] = Modal.useModal();
   const [lastUpdated, setLastUpdated] = useState<number>();
   const [loading, setLoading] = useState(false);
 
@@ -386,7 +387,7 @@ export const CanvasProvider = ({
 
       return new Promise((resolve) => {
         let selected: 'local' | 'remote' = 'local';
-        Modal.confirm({
+        modal.confirm({
           title: t('canvas.conflict.title'),
           centered: true,
           content: (
@@ -614,6 +615,7 @@ export const CanvasProvider = ({
         redo,
       }}
     >
+      {contextHolder}
       {children}
     </CanvasContext.Provider>
   );
