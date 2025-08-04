@@ -71,9 +71,9 @@ cd deploy/kubernetes
 kubectl apply -f refly-deployment.yaml
 ```
 
-For the following steps, you can visit [Self-deploy Guide](https://docs.refly.ai/guide/self-deploy) for more details.
+For the following steps, you can visit [Self-deploy Guide](https://docs.refly.ai/community-version/self-deploy/) for more details.
 
-For core deployment tutorials, environment variable configuration, and FAQs, please refer to 👉 [Deployment Guide](https://docs.refly.ai/guide/self-deploy).
+For core deployment tutorials, environment variable configuration, and FAQs, please refer to 👉 [Deployment Guide](https://docs.refly.ai/community-version/self-deploy/).
 
 ### Local Development
 
