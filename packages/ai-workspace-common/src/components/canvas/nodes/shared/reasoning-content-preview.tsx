@@ -41,10 +41,7 @@ export const ReasoningContentPreview = memo(
       }
     }, [stepStatus, sizeMode]);
 
-    const markdownClassName = useMemo(
-      () => `text-xs overflow-hidden pointer-events-none select-none ${className}`,
-      [className],
-    );
+    const markdownClassName = useMemo(() => `text-xs overflow-hidden ${className}`, [className]);
 
     if (!content) return null;
 

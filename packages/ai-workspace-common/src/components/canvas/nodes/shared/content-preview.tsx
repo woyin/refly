@@ -14,7 +14,7 @@ export const ContentPreview = memo(
     const previewContent = content ?? '';
 
     const markdownClassName = useMemo(
-      () => `text-xs overflow-hidden max-h-[120px] pointer-events-none select-none ${className}`,
+      () => `text-xs overflow-hidden max-h-[120px] ${className}`,
       [className],
     );
 
