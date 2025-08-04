@@ -55,6 +55,9 @@ export const ChatActions = memo(
     const { t } = useTranslation();
     const { canvasId, readonly } = useCanvasContext();
     const { handleUploadImage } = useUploadImage();
+    const { selectedMcpServers } = useLaunchpadStoreShallow((state) => ({
+      selectedMcpServers: state.selectedMcpServers,
+    }));
 
     const handleSendClick = () => {
       handleSendMessage();
@@ -177,10 +180,6 @@ export const ChatActions = memo(
                     (item) => item?.type === 'resource' || item?.type === 'document',
                   ) ?? false;
 
-                // Check if MCP is used (selectedMcpServers from launchpad store)
-                const { selectedMcpServers } = useLaunchpadStoreShallow((state) => ({
-                  selectedMcpServers: state.selectedMcpServers,
-                }));
                 const usedMcp = selectedMcpServers?.length > 0;
 
                 logEvent('canvas::node_execute', Date.now(), {
