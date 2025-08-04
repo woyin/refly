@@ -13,7 +13,7 @@ Refly.AI 是一款开源的 Agentic 工作空间，专为人机协作而生。�
 
 [🚀 v0.9.0 发布！刷爆创意：积分自由 × 全新界面 × 多模态魔法](https://docs.refly.ai/zh/changelog/v0.9.0)
 
-[Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/zh/guide/self-deploy) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
+[Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/zh/community-version/self-deploy/) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
 
 <p align="center">
     <a href="https://refly.ai" target="_blank">
