@@ -1,6 +1,5 @@
 import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
-import classNames from 'classnames';
 import { Divider, Input, message, Typography } from 'antd';
 import type { InputRef } from 'antd';
 import { CanvasNode } from '@refly/canvas-common';
@@ -22,7 +21,6 @@ import {
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -229,9 +227,6 @@ export const SkillResponseNode = memo(
     const [isHovered, setIsHovered] = useState(false);
     useSelectedNodeZIndex(id, selected);
 
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
     const { setNodeData, setNodeStyle } = useNodeData();
     const { getEdges } = useReactFlow();
     const updateNodeTitle = useUpdateNodeTitle();
@@ -250,7 +245,6 @@ export const SkillResponseNode = memo(
     const { title, contentPreview: content, metadata, createdAt, entityId } = data ?? {};
     const { errMsg } = useSkillError(metadata?.errors?.[0]);
 
-    const isOperating = operatingNodeId === id;
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
     const {
@@ -531,6 +525,7 @@ export const SkillResponseNode = memo(
                 entityId: genSkillID(),
                 metadata: {
                   ...metadata,
+                  query: '',
                   contextItems: mergedContextItems,
                   selectedSkill: currentSkill,
                   modelInfo,
@@ -644,11 +639,7 @@ export const SkillResponseNode = memo(
       <div
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={classNames({
-          'rounded-2xl relative': true,
-          nowheel: isOperating && isHovered,
-          'relative nodrag nopan select-text': isOperating,
-        })}
+        className="rounded-2xl relative"
         data-cy="skill-response-node"
         onClick={onNodeClick}
       >
@@ -733,7 +724,6 @@ export const SkillResponseNode = memo(
                 <MultimodalContentPreview
                   resultId={entityId}
                   content={truncateContent(content)}
-                  isOperating={isOperating}
                   sources={sources}
                   metadata={metadata}
                 />

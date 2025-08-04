@@ -291,8 +291,8 @@ export class StorageQuotaExceeded extends BaseError {
 export class ModelUsageQuotaExceeded extends BaseError {
   code = 'E2002';
   messageDict = {
-    en: 'Model usage quota exceeded, please upgrade your subscription',
-    'zh-CN': '模型使用额度不足，请升级订阅套餐',
+    en: 'Execution failed, credit quota insufficient, please upgrade your subscription',
+    'zh-CN': '执行失败，积分额度不足，请升级订阅套餐',
   };
 }
 

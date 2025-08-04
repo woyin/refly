@@ -13,7 +13,7 @@ Refly.AI is the open-source Agentic Workspace for Human–AI Collaboration. Seam
 
 [🚀 v0.9.0 Released! A milestone update focused on creative freedom, clarity, and control. 🚀](https://docs.refly.ai/changelog/v0.9.0)
 
-[Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/guide/self-deploy) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
+[Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/community-version/self-deploy) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
 
 <p align="center">
     <a href="https://refly.ai" target="_blank">
@@ -71,9 +71,9 @@ cd deploy/kubernetes
 kubectl apply -f refly-deployment.yaml
 ```
 
-For the following steps, you can visit [Self-deploy Guide](https://docs.refly.ai/guide/self-deploy) for more details.
+For the following steps, you can visit [Self-deploy Guide](https://docs.refly.ai/community-version/self-deploy/) for more details.
 
-For core deployment tutorials, environment variable configuration, and FAQs, please refer to 👉 [Deployment Guide](https://docs.refly.ai/guide/self-deploy).
+For core deployment tutorials, environment variable configuration, and FAQs, please refer to 👉 [Deployment Guide](https://docs.refly.ai/community-version/self-deploy/).
 
 ### Local Development
 

@@ -1109,6 +1109,8 @@ const translations = {
       group: '分组',
       mediaSkill: '媒体技能',
       mediaSkillResponse: '媒体技能响应',
+      video: '视频',
+      audio: '音频',
     },
     presetScenarios: {
       title: '预设场景',
@@ -1296,6 +1298,11 @@ const translations = {
       local: '保留本地版本 (最后修改时间: {{time}})',
       remote: '保留远程版本 (最后修改时间: {{time}})',
     },
+    syncFailure: {
+      title: '画布同步失败',
+      content: '与服务器同步画布内容时似乎遇到了问题，请检查您的网络连接或稍后再试。',
+      reload: '重新加载',
+    },
     contextSelector: {
       placeholder: '搜索节点...',
     },
@@ -1368,6 +1375,7 @@ const translations = {
       downloadFile: '下载文件',
       editGroupNamePlaceholder: '请输入分组名称',
       addToSlideshow: '插入幻灯片',
+      upgrade: '升级套餐',
       more: '更多选项',
     },
     nodeStatus: {

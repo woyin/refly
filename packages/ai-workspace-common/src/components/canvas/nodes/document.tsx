@@ -10,8 +10,6 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { HiOutlineDocumentText } from 'react-icons/hi2';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
-import { useCanvasStoreShallow } from '@refly/stores';
-import classNames from 'classnames';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import {
   createNodeEventName,
@@ -56,11 +54,6 @@ export const DocumentNode = memo(
     const { getNode } = useReactFlow();
     useSelectedNodeZIndex(id, selected);
 
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-
-    const isOperating = operatingNodeId === id;
     const node = useMemo(() => getNode(id), [id, getNode]);
 
     // Check if node has any connections
@@ -238,10 +231,6 @@ export const DocumentNode = memo(
       <div
         onMouseEnter={!isPreview ? handleMouseEnter : undefined}
         onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-        className={classNames({
-          nowheel: isOperating && isHovered,
-          'relative nodrag nopan select-text': isOperating,
-        })}
         onClick={onNodeClick}
       >
         {!isPreview && !hideHandles && (
@@ -297,7 +286,6 @@ export const DocumentNode = memo(
           <div className="flex-grow overflow-y-auto pr-2 -mr-2">
             <ContentPreview
               content={data.contentPreview || t('canvas.nodePreview.document.noContentPreview')}
-              isOperating={isOperating}
               className="min-h-8"
             />
           </div>

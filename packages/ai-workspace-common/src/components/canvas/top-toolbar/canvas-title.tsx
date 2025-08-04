@@ -12,10 +12,12 @@ export const CanvasTitle = memo(
     canvasLoading,
     canvasTitle,
     language,
+    syncFailureCount,
   }: {
     canvasLoading: boolean;
     canvasTitle: string;
     language: LOCALE;
+    syncFailureCount: number;
   }) => {
     const { t } = useTranslation();
 
@@ -40,7 +42,7 @@ export const CanvasTitle = memo(
               className={`
               relative w-2.5 h-2.5 rounded-full
               transition-colors duration-700 ease-in-out
-              ${isSyncing ? 'bg-yellow-500 animate-pulse' : 'bg-green-400'}
+              ${canvasLoading || syncFailureCount > 0 ? 'bg-yellow-500 animate-pulse' : 'bg-green-400'}
             `}
             />
           </Tooltip>

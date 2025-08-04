@@ -7,7 +7,6 @@ import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './index';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import classNames from 'classnames';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { FiCode, FiEye, FiExternalLink, FiCopy } from 'react-icons/fi';
 import { Button, Form, Input, message, Tooltip } from 'antd';
@@ -19,7 +18,6 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { NodeHeader } from './shared/node-header';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { IContextItem } from '@refly/common-types';
 import { genSkillID } from '@refly/utils/id';
@@ -400,11 +398,6 @@ export const WebsiteNode = memo(
     // Hover effect
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
 
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-
-    const isOperating = operatingNodeId === id;
     const node = getNode(id);
 
     const { readonly } = useCanvasContext();
@@ -535,11 +528,7 @@ export const WebsiteNode = memo(
         data-cy="website-node"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={classNames({
-          'rounded-2xl relative': true,
-          nowheel: isOperating && isHovered,
-          'relative nodrag nopan select-text': isOperating,
-        })}
+        className="rounded-2xl relative"
         style={isPreview ? { width: NODE_WIDTH, height: 200 } : nodeStyle}
         onClick={onNodeClick}
       >

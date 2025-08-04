@@ -49,6 +49,7 @@ interface PreCodeProps {
   'data-should-preview'?: boolean;
   'data-is-mermaid'?: boolean;
   mode?: MarkdownMode;
+  showActions?: boolean;
 }
 
 const PreCode = React.memo(
@@ -61,6 +62,7 @@ const PreCode = React.memo(
     'data-should-preview': dataShouldPreview,
     'data-is-mermaid': dataIsMermaid,
     mode = 'interactive',
+    showActions = true,
   }: PreCodeProps) => {
     const { t } = useTranslation();
 
@@ -148,7 +150,7 @@ const PreCode = React.memo(
     // If it's a mermaid diagram, render MermaidComponent
     if (isMermaid && codeContent) {
       return (
-        <MermaidComponent id={id} mode={mode}>
+        <MermaidComponent id={id} mode={mode} showActions={showActions}>
           {codeContent}
         </MermaidComponent>
       );

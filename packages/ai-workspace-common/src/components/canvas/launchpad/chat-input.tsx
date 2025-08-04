@@ -59,6 +59,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
 
     const inputRef = useRef<TextAreaRef>(null);
     const hasMatchedOptions = useRef(false);
+    const [isFocused, setIsFocused] = useState(false);
 
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
@@ -265,6 +266,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
 
     // Handle focus event and propagate it upward, then move cursor to end
     const handleFocus = useCallback(() => {
+      setIsFocused(true);
       if (onFocus && !readonly) {
         onFocus();
       }
@@ -278,7 +280,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
           el.setSelectionRange(length, length);
         }
       }, 0);
-    }, [onFocus, readonly]);
+    }, [onFocus, readonly, setIsFocused]);
 
     // Get placeholder dynamically based on OS
     const getPlaceholder = useCallback(
@@ -371,6 +373,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
               disabled={readonly}
               onFocus={handleFocus}
               onBlur={() => {
+                setIsFocused(false);
                 setTimeout(() => {
                   setShowSkillSelector(false);
                 }, 100);
@@ -383,6 +386,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
                 '!m-0 !bg-transparent outline-none box-border border-none resize-none focus:outline-none focus:shadow-none focus:border-none',
                 inputClassName,
                 readonly && 'cursor-not-allowed',
+                isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
               )}
               placeholder={getPlaceholder(selectedSkillName)}
               autoSize={{
@@ -400,6 +404,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
             disabled={readonly}
             onFocus={handleFocus}
             onBlur={() => {
+              setIsFocused(false);
               setTimeout(() => {
                 setShowSkillSelector(false);
               }, 100);
@@ -412,6 +417,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
               '!m-0 !bg-transparent outline-none box-border border-none resize-none focus:outline-none focus:shadow-none focus:border-none',
               inputClassName,
               readonly && 'cursor-not-allowed',
+              isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
             )}
             placeholder={getPlaceholder(selectedSkillName)}
             autoSize={{

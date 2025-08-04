@@ -52,7 +52,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
   const isShareCanvas = useMatch('/share/canvas/:canvasId');
   const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
 
-  const { loading, readonly, shareData, undo, redo } = useCanvasContext();
+  const { loading, readonly, shareData, undo, redo, syncFailureCount } = useCanvasContext();
 
   const { canvasInitialized, canvasTitle: canvasTitleFromStore } = useCanvasStoreShallow(
     (state) => ({
@@ -69,7 +69,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
       setLoginModalOpen(true);
       return;
     }
-    duplicateCanvas(canvasId, () => {});
+    duplicateCanvas(canvasId);
   };
 
   return (
@@ -99,6 +99,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
                 canvasTitle={canvasTitle}
                 canvasLoading={loading || !canvasInitialized}
                 language={language}
+                syncFailureCount={syncFailureCount}
               />
             </CanvasActionDropdown>
           )}

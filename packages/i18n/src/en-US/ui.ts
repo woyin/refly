@@ -1131,6 +1131,8 @@ const translations = {
       group: 'Group',
       mediaSkill: 'Media Skill',
       mediaSkillResponse: 'Media Skill Response',
+      video: 'Video',
+      audio: 'Audio',
     },
     presetScenarios: {
       title: 'Preset Scenarios',
@@ -1328,6 +1330,12 @@ const translations = {
       local: 'Keep local version (Last modified: {{time}})',
       remote: 'Keep remote version (Last modified: {{time}})',
     },
+    syncFailure: {
+      title: 'Canvas Sync Failed',
+      content:
+        'There seems to be some issues syncing the canvas content with the server. Please check your internet connection or try again later.',
+      reload: 'Reload',
+    },
     contextSelector: {
       placeholder: 'Search nodes...',
     },
@@ -1407,6 +1415,7 @@ const translations = {
       downloadFile: 'Download File',
       editGroupNamePlaceholder: 'Please enter the group name',
       addToSlideshow: 'Add to Slideshow',
+      upgrade: 'Upgrade Plan',
       more: 'More Options',
     },
     nodeStatus: {
