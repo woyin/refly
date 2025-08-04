@@ -53,11 +53,15 @@ const MAX_STATE_TX_COUNT = 100;
 // If the last transaction is older than this threshold, a new version will be created
 const MAX_VERSION_AGE = 1000 * 60 * 60;
 
+// Max number of sync failures before showing the blocking modal
+const CANVAS_SYNC_FAILURE_COUNT_THRESHOLD = 5;
+
 interface CanvasContextType {
   canvasId: string;
   readonly: boolean;
   loading: boolean;
   shareLoading: boolean;
+  syncFailureCount: number;
   shareNotFound?: boolean;
   shareData?: RawCanvasData;
   lastUpdated?: number;
@@ -145,6 +149,28 @@ export const CanvasProvider = ({
   const [modal, contextHolder] = Modal.useModal();
   const [lastUpdated, setLastUpdated] = useState<number>();
   const [loading, setLoading] = useState(false);
+
+  const [syncFailureCount, setSyncFailureCount] = useState(0);
+  const [syncFailureModalOpen, setSyncFailureModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (syncFailureCount > CANVAS_SYNC_FAILURE_COUNT_THRESHOLD && !syncFailureModalOpen) {
+      setSyncFailureModalOpen(true);
+      modal.warning({
+        title: t('canvas.syncFailure.title'),
+        content: t('canvas.syncFailure.content'),
+        centered: true,
+        okText: t('canvas.syncFailure.reload'),
+        cancelText: t('common.cancel'),
+        onOk: () => {
+          window.location.reload();
+        },
+        onCancel: () => {
+          setSyncFailureModalOpen(false);
+        },
+      });
+    }
+  }, [syncFailureCount, syncFailureModalOpen, modal, t]);
 
   const isSyncingRemoteRef = useRef(false); // Lock for syncWithRemote
   const isSyncingLocalRef = useRef(false); // Lock for syncCanvasData
@@ -255,6 +281,7 @@ export const CanvasProvider = ({
 
     if (!error && data?.success) {
       console.log('[syncWithRemote] synced successfully');
+      setSyncFailureCount(0);
       await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
         ...state,
         transactions: state?.transactions?.map((tx) => ({
@@ -262,6 +289,8 @@ export const CanvasProvider = ({
           syncedAt: tx.syncedAt ?? Date.now(),
         })),
       }));
+    } else {
+      setSyncFailureCount((count) => count + 1);
     }
   };
 
@@ -495,13 +524,6 @@ export const CanvasProvider = ({
     setCanvasInitialized(canvasId, true);
   }, 10);
 
-  useEffect(() => {
-    if (readonly) return;
-
-    syncCanvasData.flush();
-    initialFetchCanvasState(canvasId);
-  }, [canvasId, readonly, initialFetchCanvasState, syncCanvasData]);
-
   const undo = useCallback(async () => {
     const currentState = await get(`canvas-state:${canvasId}`);
     const transactions = currentState?.transactions;
@@ -563,6 +585,8 @@ export const CanvasProvider = ({
 
         // Pull new transactions from server
         const remoteTxs = await pollCanvasTransactions(canvasId, version);
+        setSyncFailureCount(0);
+
         // Filter out transactions that already exist locally
         const newTxs = remoteTxs?.filter((tx) => !localTxIds.has(tx.txId)) ?? [];
         if (newTxs.length > 0) {
@@ -577,6 +601,7 @@ export const CanvasProvider = ({
         }
       } catch (err) {
         console.error('[pollCanvasTransactions] failed:', err);
+        setSyncFailureCount((count) => count + 1);
       }
     };
 
@@ -592,13 +617,18 @@ export const CanvasProvider = ({
   useEffect(() => {
     if (readonly) return;
 
+    setSyncFailureCount(0);
+    initialFetchCanvasState(canvasId);
+
     return () => {
+      syncCanvasData.flush();
+
       // Clear canvas data
       setState({ nodes: [], edges: [] });
       setLoading(false);
       setCanvasInitialized(canvasId, false);
     };
-  }, [canvasId, readonly]);
+  }, [canvasId, readonly, initialFetchCanvasState, syncCanvasData]);
 
   return (
     <CanvasContext.Provider
@@ -608,6 +638,7 @@ export const CanvasProvider = ({
         readonly,
         shareLoading,
         shareNotFound,
+        syncFailureCount,
         shareData: canvasData,
         lastUpdated,
         syncCanvasData,
