@@ -44,9 +44,6 @@ export class ReplicateAudioGenerator extends BaseAudioGenerator {
     const isBarkModel = request.model === 'suno-ai/bark';
     const isMusicGenModel = request.model === 'meta/musicgen';
 
-    // Check if model requires polling
-    const requiresPolling = isBarkModel || isMusicGenModel;
-
     let inputData = {};
 
     if (isTextModel) {
@@ -91,54 +88,7 @@ export class ReplicateAudioGenerator extends BaseAudioGenerator {
       };
     }
 
-    if (requiresPolling) {
-      // Use polling mechanism for models that require it
-      return this.generateWithPolling(url, headers, data);
-    } else {
-      // Use immediate response for other models
-      return this.generateImmediate(url, headers, data);
-    }
-  }
-
-  /**
-   * Generate audio with immediate response
-   */
-  private async generateImmediate(
-    url: string,
-    headers: Record<string, string>,
-    data: any,
-  ): Promise<AudioGenerationResponse> {
-    // Add Prefer: wait header for immediate response
-    const immediateHeaders = {
-      ...headers,
-      Prefer: 'wait',
-    };
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: immediateHeaders,
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Replicate API error: ${response.status} ${response.statusText} - ${errorText}`,
-      );
-    }
-
-    const result = await response.json();
-
-    console.log(`result: ${JSON.stringify(result)}`);
-
-    if (!result.output) {
-      const errorMessage = result.error ? `:${JSON.stringify(result.error)}` : '';
-      throw new Error(`No URL${errorMessage}`);
-    }
-
-    return {
-      output: Array.isArray(result.output) ? result.output[0] : result.output,
-    };
+    return this.generateWithPolling(url, headers, data);
   }
 
   /**
