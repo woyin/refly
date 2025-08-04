@@ -1298,6 +1298,11 @@ const translations = {
       local: '保留本地版本 (最后修改时间: {{time}})',
       remote: '保留远程版本 (最后修改时间: {{time}})',
     },
+    syncFailure: {
+      title: '画布同步失败',
+      content: '与服务器同步画布内容时似乎遇到了问题，请检查您的网络连接或稍后再试。',
+      reload: '重新加载',
+    },
     contextSelector: {
       placeholder: '搜索节点...',
     },

@@ -1330,6 +1330,12 @@ const translations = {
       local: 'Keep local version (Last modified: {{time}})',
       remote: 'Keep remote version (Last modified: {{time}})',
     },
+    syncFailure: {
+      title: 'Canvas Sync Failed',
+      content:
+        'There seems to be some issues syncing the canvas content with the server. Please check your internet connection or try again later.',
+      reload: 'Reload',
+    },
     contextSelector: {
       placeholder: 'Search nodes...',
     },
