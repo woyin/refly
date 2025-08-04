@@ -36,6 +36,9 @@ import { useGetCanvasDetail } from '@refly-packages/ai-workspace-common/queries'
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 
+// Wait time for syncCanvasData to be called
+const SYNC_CANVAS_LOCAL_WAIT_TIME = 200;
+
 // Remote sync interval
 const SYNC_REMOTE_INTERVAL = 2000;
 
@@ -345,7 +348,7 @@ export const CanvasProvider = ({
     } finally {
       isSyncingLocalRef.current = false;
     }
-  }, 500);
+  }, SYNC_CANVAS_LOCAL_WAIT_TIME);
 
   // Function to update canvas data from state
   const updateCanvasDataFromState = useCallback(
@@ -494,8 +497,9 @@ export const CanvasProvider = ({
   useEffect(() => {
     if (readonly) return;
 
+    syncCanvasData.flush();
     initialFetchCanvasState(canvasId);
-  }, [canvasId, readonly, initialFetchCanvasState]);
+  }, [canvasId, readonly, initialFetchCanvasState, syncCanvasData]);
 
   const undo = useCallback(async () => {
     const currentState = await get(`canvas-state:${canvasId}`);
