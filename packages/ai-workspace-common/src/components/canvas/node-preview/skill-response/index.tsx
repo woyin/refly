@@ -187,12 +187,12 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     setSubscribeModalVisible: state.setSubscribeModalVisible,
   }));
 
-  const { data: balanceData } = useGetCreditBalance();
+  const { data: balanceData, isSuccess: isBalanceSuccess } = useGetCreditBalance();
   const creditBalance = balanceData?.data?.creditBalance ?? 0;
 
   const handleSubscriptionClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
       setSubscribeModalVisible(true);
     },
     [setSubscribeModalVisible],
@@ -261,6 +261,14 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     };
   }, [node.id]);
 
+  const error = guessModelProviderError(result?.errors?.[0]);
+
+  useEffect(() => {
+    if (error instanceof ModelUsageQuotaExceeded && creditBalance <= 0 && isBalanceSuccess) {
+      handleSubscriptionClick();
+    }
+  }, [error, creditBalance, handleSubscriptionClick]);
+
   const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
   const errDescription = useMemo(() => {
     return `${errCode} ${errMsg} ${rawError ? `: ${String(rawError)}` : ''}`;
@@ -277,8 +285,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       </div>
     );
   }
-
-  const error = guessModelProviderError(result?.errors?.[0]);
 
   return (
     <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto">
@@ -362,7 +368,9 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
                 >
                   {t('common.copyRequestInfo')}
                 </Button>
-                {error instanceof ModelUsageQuotaExceeded && creditBalance <= 0 ? (
+                {error instanceof ModelUsageQuotaExceeded &&
+                creditBalance <= 0 &&
+                isBalanceSuccess ? (
                   <Button
                     type="primary"
                     size="small"
