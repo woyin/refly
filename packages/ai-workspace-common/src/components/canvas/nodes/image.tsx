@@ -3,10 +3,8 @@ import { Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 
-import { useCanvasStoreShallow } from '@refly/stores';
 import { CustomHandle } from './shared/custom-handle';
 import { ImageNodeProps } from './shared/types';
-import classNames from 'classnames';
 import { NodeHeader } from './shared/node-header';
 import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {
@@ -47,12 +45,6 @@ export const ImageNode = memo(
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
     const { readonly } = useCanvasContext();
     const { setNodeStyle } = useNodeData();
-
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-
-    const isOperating = operatingNodeId === id;
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -194,11 +186,7 @@ export const ImageNode = memo(
         onMouseLeave={!isPreview ? handleMouseLeave : undefined}
         style={NODE_SIDE_CONFIG}
         onClick={onNodeClick}
-        className={classNames({
-          relative: true,
-          nowheel: isOperating && isHovered,
-          'nodrag nopan select-text': isOperating,
-        })}
+        className="relative"
       >
         <div className="absolute -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[60%]">
           <div

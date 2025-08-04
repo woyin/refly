@@ -65,7 +65,7 @@ const Renderer = memo<RendererProps>(
       }
 
       case 'application/refly.artifacts.mermaid': {
-        return <Markdown content={`\`\`\`mermaid\n${content}\n\`\`\``} />;
+        return <Markdown content={`\`\`\`mermaid\n${content}\n\`\`\``} showActions={showActions} />;
       }
 
       case 'text/markdown': {

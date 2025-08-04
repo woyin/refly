@@ -2,10 +2,8 @@ import { memo, useState, useCallback, useEffect } from 'react';
 import { Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
-import classNames from 'classnames';
 import { NodeHeader } from './shared/node-header';
 import { HiExclamationTriangle } from 'react-icons/hi2';
 import { Audio } from 'refly-icons';
@@ -75,12 +73,6 @@ export const AudioNode = memo(
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
     const { readonly } = useCanvasContext();
-
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-
-    const isOperating = operatingNodeId === id;
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -217,11 +209,7 @@ export const AudioNode = memo(
         onMouseLeave={!isPreview ? handleMouseLeave : undefined}
         style={NODE_SIDE_CONFIG}
         onClick={onNodeClick}
-        className={classNames({
-          relative: true,
-          nowheel: isOperating && isHovered,
-          'nodrag nopan select-text': isOperating,
-        })}
+        className="relative"
       >
         {!isPreview && !readonly && (
           <NodeActionButtons
@@ -291,7 +279,7 @@ export const AudioNode = memo(
                 <audio
                   src={currentAudioUrl}
                   controls
-                  className="w-full max-w-sm rounded-md"
+                  className="w-full max-w-sm rounded-md cursor-pointer"
                   preload="metadata"
                   onError={handleAudioError}
                   onLoadStart={() => setAudioError(false)}

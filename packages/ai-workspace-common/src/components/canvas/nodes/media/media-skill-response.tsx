@@ -6,7 +6,6 @@ import {
   useNodeSize,
   MAX_HEIGHT_CLASS,
 } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { getNodeCommonStyles } from '../index';
 import { CustomHandle } from '../shared/custom-handle';
 import { useActionResultStoreShallow } from '@refly/stores';
@@ -28,7 +27,6 @@ import { Button, Spin, message } from 'antd';
 import { cn } from '@refly/utils/cn';
 import { NodeProps } from '@xyflow/react';
 import { CanvasNodeFilter } from '@refly/canvas-common';
-import classNames from 'classnames';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   nodeActionEmitter,
@@ -81,18 +79,13 @@ const MediaSkillResponseNode = memo(
     const { deleteNode } = useDeleteNode();
     const { canvasId, readonly } = useCanvasContext();
 
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-
-    const isOperating = operatingNodeId === id;
     const node = useMemo(() => getNode(id), [id, getNode]);
 
     const { containerStyle } = useNodeSize({
       id,
       node,
       readonly,
-      isOperating,
+      isOperating: false, // Removed isOperating logic to allow dragging after double click
       minWidth: 200,
       maxWidth: 500,
       minHeight: 120,
@@ -382,97 +375,92 @@ const MediaSkillResponseNode = memo(
     const hasFailed = result?.status === 'failed' || status === 'failed';
 
     return (
-      <div className={isOperating && isHovered ? 'nowheel' : ''}>
+      <div
+        ref={targetRef}
+        onMouseEnter={!isPreview ? handleMouseEnter : undefined}
+        onMouseLeave={!isPreview ? handleMouseLeave : undefined}
+        style={isPreview ? { width: 320, height: 180 } : safeContainerStyle}
+        onClick={onNodeClick}
+      >
         <div
-          ref={targetRef}
-          onMouseEnter={!isPreview ? handleMouseEnter : undefined}
-          onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-          style={isPreview ? { width: 320, height: 180 } : safeContainerStyle}
-          onClick={onNodeClick}
-          className={classNames({
-            'nodrag nopan select-text': isOperating,
-          })}
+          className={`w-full h-full ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}`}
         >
-          <div
-            className={`w-full h-full ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}`}
-          >
-            {!isPreview && !hideHandles && (
-              <>
-                <CustomHandle
-                  id={`${id}-target`}
-                  nodeId={id}
-                  type="target"
-                  position={Position.Left}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="mediaSkillResponse"
-                />
-                <CustomHandle
-                  id={`${id}-source`}
-                  nodeId={id}
-                  type="source"
-                  position={Position.Right}
-                  isConnected={false}
-                  isNodeHovered={isHovered}
-                  nodeType="mediaSkillResponse"
-                />
-              </>
-            )}
+          {!isPreview && !hideHandles && (
+            <>
+              <CustomHandle
+                id={`${id}-target`}
+                nodeId={id}
+                type="target"
+                position={Position.Left}
+                isConnected={false}
+                isNodeHovered={isHovered}
+                nodeType="mediaSkillResponse"
+              />
+              <CustomHandle
+                id={`${id}-source`}
+                nodeId={id}
+                type="source"
+                position={Position.Right}
+                isConnected={false}
+                isNodeHovered={isHovered}
+                nodeType="mediaSkillResponse"
+              />
+            </>
+          )}
 
-            <div className={cn('flex flex-col h-full relative box-border p-4', MAX_HEIGHT_CLASS)}>
-              {/* Header */}
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center">
-                  <MediaIcon className="w-3 h-3 text-white" />
+          <div className={cn('flex flex-col h-full relative box-border p-4', MAX_HEIGHT_CLASS)}>
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center">
+                <MediaIcon className="w-3 h-3 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {t('canvas.nodes.mediaSkill.generating', 'Generating {{type}}...', {
+                    type: getMediaTypeLabel(),
+                  })}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{prompt}</div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {isGenerating && !hasFailed && (
+                <div className="text-center">
+                  <Spin
+                    indicator={<IconLoading className="animate-spin text-2xl text-green-500" />}
+                    size="large"
+                  />
+                  <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     {t('canvas.nodes.mediaSkill.generating', 'Generating {{type}}...', {
                       type: getMediaTypeLabel(),
                     })}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{prompt}</div>
                 </div>
-              </div>
+              )}
 
-              {/* Content */}
-              <div className="flex-1 flex flex-col items-center justify-center">
-                {isGenerating && !hasFailed && (
-                  <div className="text-center">
-                    <Spin
-                      indicator={<IconLoading className="animate-spin text-2xl text-green-500" />}
-                      size="large"
-                    />
-                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                      {t('canvas.nodes.mediaSkill.generating', 'Generating {{type}}...', {
-                        type: getMediaTypeLabel(),
-                      })}
-                    </div>
+              {hasFailed && (
+                <div className="text-center">
+                  <IconError className="text-2xl text-red-500" />
+                  <div className="text-sm text-red-600 dark:text-red-400 mb-3">
+                    {t('canvas.nodes.mediaSkill.failed', 'Generation failed')}
                   </div>
-                )}
-
-                {hasFailed && (
-                  <div className="text-center">
-                    <IconError className="text-2xl text-red-500" />
-                    <div className="text-sm text-red-600 dark:text-red-400 mb-3">
-                      {t('canvas.nodes.mediaSkill.failed', 'Generation failed')}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="small"
-                        type="primary"
-                        icon={<IconRerun className="text-xs" />}
-                        onClick={handleRetry}
-                      >
-                        {t('common.retry', 'Retry')}
-                      </Button>
-                      <Button size="small" onClick={(e) => handleDelete(e)}>
-                        {t('common.delete', 'Delete')}
-                      </Button>
-                    </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<IconRerun className="text-xs" />}
+                      onClick={handleRetry}
+                    >
+                      {t('common.retry', 'Retry')}
+                    </Button>
+                    <Button size="small" onClick={(e) => handleDelete(e)}>
+                      {t('common.delete', 'Delete')}
+                    </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

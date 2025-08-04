@@ -6,7 +6,6 @@ import { Markdown } from '@refly-packages/ai-workspace-common/components/markdow
 interface MultimodalContentPreviewProps {
   content: string;
   sources?: Source[];
-  isOperating: boolean;
   className?: string;
   resultId?: string;
   metadata?: {
@@ -64,24 +63,17 @@ const TextContent = memo(
   ({
     content,
     sources,
-    isOperating,
     className,
     resultId,
   }: {
     content: string;
     sources?: Source[];
-    isOperating: boolean;
     className?: string;
     resultId?: string;
   }) => {
     const markdownClassName = useMemo(
-      () =>
-        `text-xs overflow-hidden max-h-[120px] truncate ${
-          isOperating
-            ? 'pointer-events-auto cursor-text select-text'
-            : 'pointer-events-none select-none'
-        } ${className}`,
-      [isOperating, className],
+      () => `text-xs overflow-hidden max-h-[120px] truncate ${className}`,
+      [className],
     );
 
     return (
@@ -96,14 +88,7 @@ const TextContent = memo(
 );
 
 export const MultimodalContentPreview = memo(
-  ({
-    content,
-    sources,
-    isOperating,
-    className = '',
-    resultId,
-    metadata,
-  }: MultimodalContentPreviewProps) => {
+  ({ content, sources, className = '', resultId, metadata }: MultimodalContentPreviewProps) => {
     const contentType = metadata?.contentType || 'text';
     const generationConfig = metadata?.generationConfig;
 
@@ -120,7 +105,6 @@ export const MultimodalContentPreview = memo(
             <TextContent
               content={content}
               sources={sources}
-              isOperating={isOperating}
               className={className}
               resultId={resultId}
             />
@@ -133,7 +117,6 @@ export const MultimodalContentPreview = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.content === nextProps.content &&
-      prevProps.isOperating === nextProps.isOperating &&
       prevProps.className === nextProps.className &&
       JSON.stringify(prevProps.sources) === JSON.stringify(nextProps.sources) &&
       JSON.stringify(prevProps.metadata) === JSON.stringify(nextProps.metadata)

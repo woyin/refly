@@ -1109,6 +1109,8 @@ const translations = {
       group: '分组',
       mediaSkill: '媒体技能',
       mediaSkillResponse: '媒体技能响应',
+      video: '视频',
+      audio: '音频',
     },
     presetScenarios: {
       title: '预设场景',

@@ -12,7 +12,6 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
-import { useCanvasStoreShallow } from '@refly/stores';
 import classNames from 'classnames';
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Markdown } from 'tiptap-markdown';
@@ -68,13 +67,8 @@ export const MemoNode = ({
   const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
   const [isFocused, setIsFocused] = useState(false);
-  const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-    operatingNodeId: state.operatingNodeId,
-  }));
 
   const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
-
-  const isOperating = operatingNodeId === id;
 
   // Check if node has any connections
   const edges = getEdges();
@@ -88,7 +82,7 @@ export const MemoNode = ({
     node,
     sizeMode: 'adaptive',
     readonly,
-    isOperating,
+    isOperating: false,
     minWidth: 100,
     maxWidth: 800,
     minHeight: 80,
@@ -386,13 +380,9 @@ export const MemoNode = ({
             ? {
                 width: 288,
                 height: 200,
-                userSelect: 'none',
-                cursor: readonly ? 'default' : isOperating || isFocused ? 'default' : 'grab',
               }
             : {
                 ...containerStyle,
-                userSelect: 'none',
-                cursor: readonly ? 'default' : isOperating || isFocused ? 'default' : 'grab',
               }
         }
       >
@@ -442,14 +432,6 @@ export const MemoNode = ({
             </>
           )}
 
-          {/* {!isPreview && !readonly && (
-            <NodeActionButtons
-              nodeId={id}
-              nodeType="memo"
-              isNodeHovered={isHovered}
-              isSelected={selected}
-            />
-          )} */}
           <div className="flex flex-col h-full p-3 box-border">
             <div className="relative flex-grow overflow-y-auto pr-2 -mr-2">
               <div

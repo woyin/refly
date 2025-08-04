@@ -1020,7 +1020,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             onNodeDragStart={readonly ? handleReadonlyDrag : handleNodeDragStart}
             onNodeDragStop={readonly ? undefined : handleNodeDragStop}
             nodeDragThreshold={10}
-            nodesDraggable={!operatingNodeId && !readonly}
+            nodesDraggable={!readonly}
             nodesConnectable={!readonly}
             elementsSelectable={!readonly}
             onSelectionContextMenu={readonly ? undefined : onSelectionContextMenu}

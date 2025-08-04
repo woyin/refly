@@ -9,7 +9,7 @@ import { getNodeCommonStyles } from './index';
 import { ModelInfo, Skill, SkillRuntimeConfig, SkillTemplateConfig } from '@refly/openapi-schema';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow, useCanvasStoreShallow } from '@refly/stores';
+import { useChatStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { cleanupNodeEvents } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -32,7 +32,6 @@ import { useContextPanelStore } from '@refly/stores';
 import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/edge';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
-import classNames from 'classnames';
 
 const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
@@ -51,10 +50,6 @@ export const SkillNode = memo(
     const [form] = Form.useForm();
     useSelectedNodeZIndex(id, selected);
 
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-    const isOperating = operatingNodeId === id;
     const { canvasId, readonly } = useCanvasContext();
 
     const { projectId, handleProjectChange, getFinalProjectId } = useAskProject();
@@ -218,57 +213,52 @@ export const SkillNode = memo(
       const { runtimeConfig: contextRuntimeConfig } = useContextPanelStore.getState();
       const finalProjectId = getFinalProjectId(projectId);
 
-      console.log('contextRuntimeConfig', contextItems);
-      // return;
+      const resultId = genActionResultID();
+      invokeAction(
+        {
+          resultId,
+          ...data?.metadata,
+          tplConfig,
+          runtimeConfig: {
+            ...contextRuntimeConfig,
+            ...runtimeConfig,
+          },
+          projectId: finalProjectId,
+        },
+        {
+          entityId: canvasId,
+          entityType: 'canvas',
+        },
+      );
+      addNode(
+        {
+          type: 'skillResponse',
+          data: {
+            title: query,
+            entityId: resultId,
+            metadata: {
+              ...data?.metadata,
+              status: 'executing',
+              contextItems,
+              tplConfig,
+              selectedSkill,
+              modelInfo,
+              runtimeConfig: {
+                ...contextRuntimeConfig,
+                ...runtimeConfig,
+              },
+              structuredData: {
+                query,
+              },
+              projectId: finalProjectId,
+            },
+          },
+          position: node.position,
+        },
+        convertContextItemsToNodeFilters(contextItems),
+      );
 
       deleteElements({ nodes: [node] });
-
-      setTimeout(() => {
-        const resultId = genActionResultID();
-        invokeAction(
-          {
-            resultId,
-            ...data?.metadata,
-            tplConfig,
-            runtimeConfig: {
-              ...contextRuntimeConfig,
-              ...runtimeConfig,
-            },
-            projectId: finalProjectId,
-          },
-          {
-            entityId: canvasId,
-            entityType: 'canvas',
-          },
-        );
-        addNode(
-          {
-            type: 'skillResponse',
-            data: {
-              title: query,
-              entityId: resultId,
-              metadata: {
-                ...data?.metadata,
-                status: 'executing',
-                contextItems,
-                tplConfig,
-                selectedSkill,
-                modelInfo,
-                runtimeConfig: {
-                  ...contextRuntimeConfig,
-                  ...runtimeConfig,
-                },
-                structuredData: {
-                  query,
-                },
-                projectId: finalProjectId,
-              },
-            },
-            position: node.position,
-          },
-          convertContextItemsToNodeFilters(contextItems),
-        );
-      });
     }, [id, getNode, deleteElements, invokeAction, canvasId, addNode, form]);
 
     const handleDelete = useCallback(() => {
@@ -320,11 +310,7 @@ export const SkillNode = memo(
       <div
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={classNames({
-          'rounded-2xl relative': true,
-          nowheel: isOperating && isHovered,
-          'relative nodrag nopan select-text': isOperating,
-        })}
+        className="rounded-2xl relative"
         style={NODE_SIDE_CONFIG}
         data-cy="skill-node"
       >
