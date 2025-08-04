@@ -1368,6 +1368,7 @@ const translations = {
       downloadFile: '下载文件',
       editGroupNamePlaceholder: '请输入分组名称',
       addToSlideshow: '插入幻灯片',
+      upgrade: '升级套餐',
       more: '更多选项',
     },
     nodeStatus: {

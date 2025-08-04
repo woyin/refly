@@ -1407,6 +1407,7 @@ const translations = {
       downloadFile: 'Download File',
       editGroupNamePlaceholder: 'Please enter the group name',
       addToSlideshow: 'Add to Slideshow',
+      upgrade: 'Upgrade Plan',
       more: 'More Options',
     },
     nodeStatus: {
