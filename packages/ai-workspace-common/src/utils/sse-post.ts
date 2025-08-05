@@ -38,7 +38,9 @@ const makeSSERequest = async (
       if (error instanceof AuthenticationExpiredError) {
         throw error;
       }
-      throw new ConnectionError(error);
+      // Convert error to string for ConnectionError constructor
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new ConnectionError(errorMessage);
     }
   }
 
@@ -84,7 +86,7 @@ export const ssePost = async ({
       return;
     }
 
-    reader = response.body?.getReader();
+    reader = response.body?.getReader() ?? null;
     const decoder = new TextDecoder('utf-8');
     let isSkillFirstMessage = true;
     let bufferStr = '';
@@ -268,7 +270,16 @@ export const ssePost = async ({
             scheduleBatchProcessing();
           }
         } catch (err) {
-          onSkillError?.(err);
+          // Create a proper SkillEvent for the error
+          const errorEvent: SkillEvent = {
+            event: 'error',
+            error: {
+              success: false,
+              errCode: 'PARSE_ERROR',
+              errMsg: err instanceof Error ? err.message : String(err),
+            },
+          };
+          onSkillError?.(errorEvent);
           onCompleted?.(true);
           hasError = true;
           return;
@@ -278,7 +289,8 @@ export const ssePost = async ({
           await read();
         }
       } catch (err) {
-        if (err.name === 'AbortError') {
+        // Type guard for AbortError
+        if (err instanceof Error && err.name === 'AbortError') {
           console.log('Read operation aborted');
           return;
         }
@@ -287,14 +299,17 @@ export const ssePost = async ({
 
     await read();
   } catch (error) {
-    if (error.name === 'AbortError') {
+    // Type guard for AbortError
+    if (error instanceof Error && error.name === 'AbortError') {
       console.log('Fetch aborted');
     } else {
       console.error('Fetch error:', error);
+      // Convert error to string for ConnectionError constructor
+      const errorMessage = error instanceof Error ? error.message : String(error);
       onSkillError?.({
         error: {
           success: false,
-          errCode: new ConnectionError(error).code,
+          errCode: new ConnectionError(errorMessage).code,
         },
         event: 'error',
       });

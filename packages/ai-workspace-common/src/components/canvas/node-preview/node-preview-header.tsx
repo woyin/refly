@@ -49,6 +49,7 @@ import { NodeHeader as CommonNodeHeader } from '@refly-packages/ai-workspace-com
 import { useExportDocument } from '@refly-packages/ai-workspace-common/hooks/use-export-document';
 import { useDebouncedCallback } from 'use-debounce';
 import { useCanvasStoreShallow } from '@refly/stores';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 // Get icon component based on node type and metadata
 const getNodeIcon = (node: CanvasNode<any>) => {
@@ -191,7 +192,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
 
     const handleAddToContext = useCallback(() => {
       addToContext({
-        type: currentNode.type,
+        type: currentNode.type as CanvasNodeType,
         title: currentNode.data?.title,
         entityId: currentNode.data?.entityId,
         metadata: currentNode.data?.metadata,
@@ -409,7 +410,12 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
       if (newTitle === currentNode.data?.title) {
         return;
       }
-      updateNodePreviewTitle(newTitle, currentNode.data.entityId, currentNode.id, currentNode.type);
+      updateNodePreviewTitle(
+        newTitle,
+        currentNode.data.entityId,
+        currentNode.id,
+        currentNode.type as CanvasNodeType,
+      );
     };
 
     return (

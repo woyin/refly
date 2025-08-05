@@ -61,7 +61,7 @@ export const NodeSelector = (props: NodeSelectorProps) => {
   const sortedItems: IContextItem[] = [...targetNodes].reverse().map((node) => ({
     title: node.data?.title,
     entityId: node.data?.entityId,
-    type: node.type,
+    type: node.type as CanvasNodeType,
     metadata: node.data?.metadata,
   }));
 

@@ -5,7 +5,7 @@ import { getNodeHeight, getNodeLevel, getNodeWidth } from './nodes';
 import { getNodeAbsolutePosition } from './position';
 
 export interface LayoutBranchOptions {
-  fromRoot?: boolean; // 是否从根节点开始布局
+  fromRoot?: boolean; // whether to layout from root nodes
   direction?: 'TB' | 'LR';
   fixedNodeLevels?: boolean;
   spacing?: {
@@ -58,7 +58,7 @@ export const getNodesAtLevel = (
     const item = queue.shift() ?? { node: null, level: -1 };
     const { node, level: currentLevel } = item;
 
-    if (visited.has(node.id) || !node) continue;
+    if (!node || visited.has(node.id)) continue;
     visited.add(node.id);
 
     if (currentLevel === level) {
@@ -227,37 +227,6 @@ export const getBranchCluster = (nodeId: string, nodes: Node[], edges: any[]): N
   }
 
   return nodes.filter((node) => cluster.has(node.id));
-};
-
-// Get all connected nodes to the right of a given node
-const _getRightwardNodes = (nodeId: string, nodes: Node[], edges: any[]): Node[] => {
-  const visited = new Set<string>();
-  const rightwardNodes: Node[] = [];
-  const queue = [nodeId];
-
-  while (queue.length > 0) {
-    const currentId = queue.shift() ?? '';
-    if (visited.has(currentId) || !currentId) continue;
-    visited.add(currentId);
-
-    const currentNode = nodes.find((n) => n.id === currentId);
-    if (currentNode) {
-      rightwardNodes.push(currentNode);
-
-      // Only follow outgoing edges to nodes that are to the right
-      const outgoingIds = edges
-        .filter((edge) => edge.source === currentId)
-        .map((edge) => edge.target)
-        .filter((targetId) => {
-          const targetNode = nodes.find((n) => n.id === targetId);
-          return targetNode && targetNode.position.x >= currentNode.position.x;
-        });
-
-      queue.push(...outgoingIds);
-    }
-  }
-
-  return rightwardNodes;
 };
 
 export const getLayoutBranchPositionUpdates = (

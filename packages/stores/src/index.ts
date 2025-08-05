@@ -14,7 +14,11 @@ export {
   useCanvasStoreShallow,
 } from './stores/canvas';
 export { useChatStore, useChatStoreShallow, type ChatMode } from './stores/chat';
-export { useContextPanelStore, useContextPanelStoreShallow } from './stores/context-panel';
+export {
+  type FilterErrorInfo,
+  useContextPanelStore,
+  useContextPanelStoreShallow,
+} from './stores/context-panel';
 export { useCopilotStore, useCopilotStoreShallow } from './stores/copilot';
 export { useDocumentStore, useDocumentStoreShallow } from './stores/document';
 export {
@@ -29,10 +33,6 @@ export {
 export { useImportResourceStore, useImportResourceStoreShallow } from './stores/import-resource';
 export { useKnowledgeBaseStore, useKnowledgeBaseStoreShallow } from './stores/knowledge-base';
 export { useLaunchpadStore, useLaunchpadStoreShallow } from './stores/launchpad';
-export {
-  useNavigationContextStore,
-  useNavigationContextStoreShallow,
-} from './stores/navigation-context';
 export { usePilotStore, usePilotStoreShallow } from './stores/pilot';
 export { useProjectSelectorStore, useProjectSelectorStoreShallow } from './stores/project-selector';
 export {

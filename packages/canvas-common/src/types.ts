@@ -115,7 +115,7 @@ export type ToolNodeMeta = {
 };
 
 export type ResponseNodeMeta = {
-  status: ActionStatus;
+  status?: ActionStatus;
   version?: number;
   modelInfo?: ModelInfo;
   tokenUsage?: TokenUsageItem[];
@@ -135,6 +135,7 @@ export type ResponseNodeMeta = {
   shareId?: string;
   pilotSessionId?: string;
   pilotStepId?: string;
+  [key: string]: any;
 };
 
 export type ImageNodeMeta = {

@@ -136,8 +136,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
             node: {
               type: 'resource',
               data: {
-                title: item.title,
-                entityId: item.metadata?.entityId,
+                title: item.title ?? '',
+                entityId: item.metadata?.entityId ?? '',
                 contentPreview: item.pageContent,
                 metadata: {
                   contentPreview: item.pageContent,

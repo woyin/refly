@@ -6,7 +6,7 @@ export const useGetProjectCanvasId = () => {
   const matchCanvas = useMatch('/canvas/:canvasId');
   const params = useParams();
 
-  const projectId = matchProject ? params?.projectId || matchProject?.params?.projectId : null;
+  const projectId = matchProject ? params?.projectId || matchProject?.params?.projectId : undefined;
   const canvasId = matchCanvas
     ? params?.canvasId || matchCanvas?.params?.canvasId
     : searchParams.get('canvasId');

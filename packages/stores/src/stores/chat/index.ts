@@ -36,13 +36,13 @@ export interface ChatState {
 
   messageIntentContext: MessageIntentContext | undefined; // has messageIntentContext means sendMessage interaction, otherwise means route jump interaction
 
-  selectedModel: ModelInfo;
-  skillSelectedModel: ModelInfo;
+  selectedModel: ModelInfo | null;
+  skillSelectedModel: ModelInfo | null;
   chatMode: ChatMode;
   enableWebSearch: boolean;
   enableDeepReasonWebSearch: boolean;
   enableKnowledgeBaseSearch: boolean;
-  mediaSelectedModel: ProviderItem;
+  mediaSelectedModel: ProviderItem | null;
   mediaModelList: ProviderItem[];
   mediaModelListLoading: boolean;
 
