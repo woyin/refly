@@ -50,7 +50,7 @@ export interface ChatState {
   setNewQAText: (val: string) => void;
   setMessageIntentContext: (val: MessageIntentContext) => void;
   setSelectedModel: (val: ModelInfo) => void;
-  setSkillSelectedModel: (val: ModelInfo) => void;
+  setSkillSelectedModel: (val: ModelInfo | null) => void;
   setChatMode: (val: ChatMode) => void;
   setEnableWebSearch: (val: boolean) => void;
   setEnableDeepReasonWebSearch: (val: boolean) => void;
@@ -94,7 +94,7 @@ export const useChatStore = create<ChatState>()(
         setNewQAText: (val: string) => set({ newQAText: val }),
         setMessageIntentContext: (val: MessageIntentContext) => set({ messageIntentContext: val }),
         setSelectedModel: (val: ModelInfo) => set({ selectedModel: val }),
-        setSkillSelectedModel: (val: ModelInfo) => set({ skillSelectedModel: val }),
+        setSkillSelectedModel: (val: ModelInfo | null) => set({ skillSelectedModel: val }),
         setChatMode: (val: ChatMode) => set({ chatMode: val }),
         setEnableWebSearch: (val: boolean) => set({ enableWebSearch: val }),
         setEnableDeepReasonWebSearch: (val: boolean) => set({ enableDeepReasonWebSearch: val }),

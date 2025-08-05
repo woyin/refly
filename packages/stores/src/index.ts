@@ -30,7 +30,11 @@ export {
   useImportNewTriggerModal,
   useImportNewTriggerModalShallow,
 } from './stores/import-new-trigger-modal';
-export { useImportResourceStore, useImportResourceStoreShallow } from './stores/import-resource';
+export {
+  type LinkMeta,
+  useImportResourceStore,
+  useImportResourceStoreShallow,
+} from './stores/import-resource';
 export { useKnowledgeBaseStore, useKnowledgeBaseStoreShallow } from './stores/knowledge-base';
 export { useLaunchpadStore, useLaunchpadStoreShallow } from './stores/launchpad';
 export { usePilotStore, usePilotStoreShallow } from './stores/pilot';

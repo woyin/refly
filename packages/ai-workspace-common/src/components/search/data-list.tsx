@@ -87,9 +87,12 @@ export function DataList({
 
       return { success: true, data };
     }
+
+    // Default return for unknown domains
+    return { success: false };
   };
 
-  const loadMore = async (currentPage?: number) => {
+  const loadMore = async (currentPage = 0) => {
     if (isRequesting || !hasMore) return;
 
     // 获取数据
@@ -110,8 +113,7 @@ export function DataList({
       return;
     }
 
-    // 处理分页
-    if (res?.data?.length < 10) {
+    if ((res?.data?.length ?? 0) < 10) {
       setHasMore(false);
     }
 
@@ -162,9 +164,9 @@ export function DataList({
               <p
                 className="search-res-title text-gray-900 dark:text-gray-100 text-sm font-medium break-words"
                 // biome-ignore lint/security/noDangerouslySetInnerHtml: trust server highlights
-                dangerouslySetInnerHTML={{ __html: item?.highlightedTitle }}
+                dangerouslySetInnerHTML={{ __html: item?.highlightedTitle ?? '' }}
               />
-              {item?.snippets?.length > 0 && (
+              {item?.snippets && item?.snippets?.length > 0 && (
                 <p
                   className="search-res-desc text-gray-500 dark:text-gray-400 text-xs mt-1 break-words"
                   // biome-ignore lint/security/noDangerouslySetInnerHtml: trust server highlights

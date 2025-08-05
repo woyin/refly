@@ -49,7 +49,7 @@ export function useCollabToken(): UseCollabTokenResult {
         const newToken = res.data.token;
         cachedToken = newToken;
         // Set expiration time when new token is received
-        tokenExpirationTime = res.data.expiresAt;
+        tokenExpirationTime = res.data.expiresAt ?? 0;
         return newToken;
       })
       .finally(() => {

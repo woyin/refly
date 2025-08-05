@@ -168,7 +168,7 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
 
         if (res?.data?.success) {
           setUserProfile({
-            ...userProfile,
+            ...userProfile!,
             preferences: updatedPreferences,
           });
           message.success(t('settings.defaultModel.updateSuccessfully'));

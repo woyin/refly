@@ -441,7 +441,9 @@ export const CanvasToolbar = memo<ToolbarProps>(({ onToolSelect, nodeLength }) =
         // For subsequent nodes, provide an offset based on the previous node
         const position = referencePosition
           ? {
+              // @ts-ignore
               x: referencePosition.x,
+              // @ts-ignore
               y: referencePosition.y + 150, // Add vertical spacing between nodes
             }
           : undefined;

@@ -461,7 +461,7 @@ function rehypePlugin() {
 
             // Replace the original node with the new nodes
             parent.children.splice(index, 1, ...newNodes);
-            return [SKIP, index + newNodes.length - 1]; // Skip to after the last inserted node
+            return [SKIP, (index ?? 0) + newNodes.length - 1]; // Skip to after the last inserted node
           }
         }
       }

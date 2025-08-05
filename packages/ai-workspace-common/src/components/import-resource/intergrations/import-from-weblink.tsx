@@ -32,7 +32,7 @@ export const ImportFromWeblink = () => {
 
   const { projectId, isCanvasOpen } = useGetProjectCanvasId();
 
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId || null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
   const { updateSourceList } = useUpdateSourceList();
 
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
@@ -113,7 +113,7 @@ export const ImportFromWeblink = () => {
       return {
         projectId: currentProjectId,
         resourceType: 'weblink',
-        title: link?.title,
+        title: link?.title ?? '',
         data: {
           url: link?.url,
           title: link?.title,
@@ -153,7 +153,7 @@ export const ImportFromWeblink = () => {
               x: insertNodePosition?.x + index * 300,
               y: insertNodePosition?.y,
             }
-          : null;
+          : undefined;
 
         nodeOperationsEmitter.emit('addNode', {
           node: {

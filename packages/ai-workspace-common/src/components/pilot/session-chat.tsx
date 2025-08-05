@@ -33,9 +33,10 @@ export const SessionChat = ({ canvasId }: { canvasId: string }) => {
       return;
     }
 
-    if (data.data?.sessionId) {
-      setActiveSessionId(data.data?.sessionId);
-      setSessionId(data.data?.sessionId);
+    const sessionId = data?.data?.sessionId;
+    if (sessionId) {
+      setActiveSessionId(sessionId);
+      setSessionId(sessionId);
     } else {
       message.error(
         t('pilot.createPilotSessionFailed', {
@@ -53,7 +54,7 @@ export const SessionChat = ({ canvasId }: { canvasId: string }) => {
       title: inputValue,
       input: { query: inputValue },
       maxEpoch: 3,
-      providerItemId: skillSelectedModel.providerItemId,
+      providerItemId: skillSelectedModel?.providerItemId,
     });
   };
 

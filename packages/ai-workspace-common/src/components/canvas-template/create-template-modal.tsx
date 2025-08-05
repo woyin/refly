@@ -28,7 +28,8 @@ export const CreateTemplateModal = ({
     if (confirmLoading) return;
 
     setConfirmLoading(true);
-    const { storageKey } = await uploadCanvasCover();
+    const cover = await uploadCanvasCover();
+
     const { data } = await getClient().createCanvasTemplate({
       body: {
         title,
@@ -36,7 +37,7 @@ export const CreateTemplateModal = ({
         language: i18n.language,
         categoryId,
         canvasId,
-        coverStorageKey: storageKey,
+        coverStorageKey: cover?.storageKey,
       },
     });
     setConfirmLoading(false);

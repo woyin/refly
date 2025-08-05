@@ -162,12 +162,12 @@ export const TemplateList = ({
       const res = await getClient().listCanvasTemplates({
         query: {
           language,
-          categoryId: categoryId === 'my-templates' ? null : categoryId,
+          categoryId: categoryId === 'my-templates' ? undefined : categoryId,
           scope: categoryId === 'my-templates' ? 'private' : 'public',
           ...queryPayload,
         },
       });
-      return res?.data;
+      return res?.data ?? { success: true, data: [] };
     },
     pageSize: 12,
   });

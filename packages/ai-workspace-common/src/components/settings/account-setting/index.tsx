@@ -129,7 +129,7 @@ export const AccountSetting = () => {
       }
       setLoading(false);
       message.success(t('settings.account.updateSuccess'));
-      userStore.setUserProfile({ ...userStore.userProfile, name, nickname, avatar: avatarUrl });
+      userStore.setUserProfile({ ...userStore.userProfile!, name, nickname, avatar: avatarUrl });
       setIsEditModalVisible(false);
     });
   };

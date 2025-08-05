@@ -51,7 +51,7 @@ export const ImportFromFile = () => {
   }));
 
   const { projectId, isCanvasOpen } = useGetProjectCanvasId();
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId || null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
   const { updateSourceList } = useUpdateSourceList();
 
   const { refetchUsage, storageUsage, fileParsingUsage } = useSubscriptionUsage();
@@ -85,7 +85,7 @@ export const ImportFromFile = () => {
     multiple: true,
     accept: ALLOWED_FILE_EXTENSIONS.join(','),
     fileList: fileList.map((item) => ({
-      uid: item.uid,
+      uid: item.uid ?? '',
       name: item.title,
       status: item?.status,
       url: item.url,
@@ -192,7 +192,7 @@ export const ImportFromFile = () => {
                 resourceType: 'file',
               },
             },
-            position: nodePosition,
+            position: nodePosition ?? undefined,
           },
         });
       }
@@ -252,7 +252,7 @@ export const ImportFromFile = () => {
               {t('resource.import.dragOrClick')}
             </p>
             <p className="ant-upload-hint text-gray-400 mt-2">{genUploadHint()}</p>
-            {fileParsingUsage?.pagesLimit >= 0 && (
+            {fileParsingUsage?.pagesLimit && fileParsingUsage?.pagesLimit >= 0 && (
               <div className="text-green-500 mt-2 text-xs font-medium flex items-center justify-center gap-1">
                 <LuInfo />
                 {t('resource.import.fileParsingUsage', {

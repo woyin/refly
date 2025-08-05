@@ -45,7 +45,7 @@ export const PilotList = memo(
         if (page === 1) {
           setAllSessions(sessionsData.data);
         } else {
-          setAllSessions((prev) => [...prev, ...sessionsData.data]);
+          setAllSessions((prev) => [...prev, ...(sessionsData.data ?? [])]);
         }
 
         // Check if we have more data to load
