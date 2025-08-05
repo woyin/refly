@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { EditorBubbleItem, EditorInstance, useEditor } from '../../core/components';
 import { useTranslation } from 'react-i18next';
 import { Button, Popover } from 'antd';
@@ -187,9 +187,9 @@ export const ColorSelector = ({ open, onOpenChange, triggerEditor }: ColorSelect
       placement="bottom"
       overlayClassName="editor-color-popover"
     >
-      <Button size="small" type="text" className="w-5 h-5 p-0.5 rounded-[6px] hover:bg-transparent">
+      <Button type="text" className="gap-0.5 rounded-none pl-1 pr-2">
         <span
-          className="font-normal"
+          className="rounded-sm px-1 text-sm font-normal"
           style={{
             color: activeColorItem?.color,
             backgroundColor: activeHighlightItem?.color,
@@ -197,6 +197,7 @@ export const ColorSelector = ({ open, onOpenChange, triggerEditor }: ColorSelect
         >
           A
         </span>
+        <ChevronDown className="h-3 w-3 font-normal" />
       </Button>
     </Popover>
   );

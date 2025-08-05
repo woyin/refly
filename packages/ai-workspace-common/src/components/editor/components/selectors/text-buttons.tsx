@@ -55,7 +55,7 @@ export const TextButtons = ({ triggerEditor }: { triggerEditor?: EditorInstance 
   ];
 
   return (
-    <>
+    <div className="flex items-center">
       {items.map((item) => (
         <EditorBubbleItem
           triggerEditor={triggerEditor}
@@ -64,19 +64,15 @@ export const TextButtons = ({ triggerEditor }: { triggerEditor?: EditorInstance 
             item.command(editor);
           }}
         >
-          <Button
-            size="small"
-            type="text"
-            className="w-5 h-5 p-0.5 rounded-[6px] hover:bg-transparent"
-          >
+          <Button type="text" className="rounded-none px-1.5">
             <item.icon
-              className={cn('h-4 w-4', {
-                'text-refly-primary-default': item.isActive(editor),
+              className={cn('h-3.5 w-3.5', {
+                'text-green-500': item.isActive(editor),
               })}
             />
           </Button>
         </EditorBubbleItem>
       ))}
-    </>
+    </div>
   );
 };

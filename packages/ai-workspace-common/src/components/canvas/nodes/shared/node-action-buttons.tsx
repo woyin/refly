@@ -18,6 +18,7 @@ import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/can
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { useShallow } from 'zustand/react/shallow';
+import CommonColorPicker from './color-picker';
 
 type ActionButtonType = {
   key: string;
@@ -27,6 +28,8 @@ type ActionButtonType = {
   danger?: boolean;
   loading?: boolean;
   color?: string;
+  bgColor?: string;
+  onChangeBackground?: (bgColor: string) => void;
 };
 
 type NodeActionButtonsProps = {
@@ -34,10 +37,12 @@ type NodeActionButtonsProps = {
   nodeType: CanvasNodeType;
   isNodeHovered: boolean;
   isSelected?: boolean;
+  bgColor?: string;
+  onChangeBackground?: (bgColor: string) => void;
 };
 
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
-  ({ nodeId, nodeType, isNodeHovered }) => {
+  ({ nodeId, nodeType, isNodeHovered, bgColor, onChangeBackground }) => {
     const { t } = useTranslation();
     const { readonly } = useCanvasContext();
     const { getNode } = useReactFlow();
@@ -274,15 +279,20 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
           </div>
 
           {showMoreButton && (
-            <Tooltip title={t('canvas.nodeActions.more')} placement="top">
-              <Button
-                type="text"
-                size="small"
-                icon={<More size={18} />}
-                onClick={handleOpenContextMenu}
-                className="h-6 p-0 flex items-center justify-center"
-              />
-            </Tooltip>
+            <div className="flex items-center pag-3">
+              {nodeType === 'memo' && (
+                <CommonColorPicker color={bgColor} onChange={onChangeBackground} />
+              )}
+              <Tooltip title={t('canvas.nodeActions.more')} placement="top">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<More size={18} />}
+                  onClick={handleOpenContextMenu}
+                  className="h-6 p-0 flex items-center justify-center"
+                />
+              </Tooltip>
+            </div>
           )}
         </div>
       </div>

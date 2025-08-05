@@ -33,7 +33,6 @@ import {
   nodeActionEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
-import { MemoEditor } from './memo-editor';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { genSkillID, genMemoID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
@@ -400,6 +399,8 @@ export const MemoNode = ({
             nodeType="memo"
             isNodeHovered={isHovered}
             isSelected={selected}
+            bgColor={bgColor}
+            onChangeBackground={onUpdateBgColor}
           />
         )}
 
@@ -440,11 +441,6 @@ export const MemoNode = ({
             ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
           `}
         >
-          {!isPreview && !readonly && (
-            <div className="p-3 border-x-0 border-t-0 border-solid border-[1px] border-refly-Card-Border">
-              <MemoEditor editor={editor} bgColor={bgColor} onChangeBackground={onUpdateBgColor} />
-            </div>
-          )}
           <div className="relative flex-grow overflow-y-auto p-3">
             <div
               className="editor-wrapper h-full"

@@ -49,17 +49,29 @@
     display: none;
   }
   &.handle {
-    width: 24px ;
-    height: 24px;
+    // Base size that will be scaled by currentZoom
+    --base-size: 24px;
+    --base-inner-size: 20px;
+    --base-border-width: 2px;
+    --base-offset: 5px;
+    
+    // Calculate scaled sizes based on currentZoom
+    --scaled-size: calc(var(--base-size) * var(--current-zoom, 1));
+    --scaled-inner-size: calc(var(--base-inner-size) * var(--current-zoom, 1));
+    --scaled-border-width: calc(var(--base-border-width) * var(--current-zoom, 1));
+    --scaled-offset: calc(var(--base-offset) * var(--current-zoom, 1));
+    
+    width: var(--scaled-size);
+    height: var(--scaled-size);
     background: transparent;
     border: none;
     
     &::before {
       content: '';
       position: absolute;
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--refly-text-3);
+      width: var(--scaled-inner-size);
+      height: var(--scaled-inner-size);
+      border: var(--scaled-border-width) solid var(--refly-text-3);
       border-radius: 50%;
       background: transparent;
       transition: all 0.2s ease;
@@ -75,8 +87,8 @@
   
   // Top-left corner - show only top-left arc
   &.handle.top.left {
-    top: 8px;
-    left: 8px;
+    top: var(--scaled-offset);
+    left: var(--scaled-offset);
     &::before {
       clip-path: polygon(50% 50%, 0% 50%, 0% 0%, 50% 0%) !important;
     }
@@ -84,8 +96,8 @@
   
   // Top-right corner - show only top-right arc
   &.handle.top.right {
-    top: 8px;
-    left: calc(100% - 8px);
+    top: var(--scaled-offset);
+    left: calc(100% - var(--scaled-offset));
     &::before {
       clip-path: polygon(50% 50%, 100% 50%, 100% 0%, 50% 0%) !important;
     }
@@ -93,8 +105,8 @@
   
   // Bottom-left corner - show only bottom-left arc
   &.handle.bottom.left {
-    top: calc(100% - 8px);
-    left: 8px;
+    top: calc(100% - var(--scaled-offset));
+    left: var(--scaled-offset);
     &::before {
       clip-path: polygon(50% 50%, 0% 50%, 0% 100%, 50% 100%) !important;
     }
@@ -102,8 +114,8 @@
   
   // Bottom-right corner - show only bottom-right arc
   &.handle.bottom.right {
-    top: calc(100% - 8px);
-    left: calc(100% - 8px);
+    top: calc(100% - var(--scaled-offset));
+    left: calc(100% - var(--scaled-offset));
     &::before {
       clip-path: polygon(50% 50%, 100% 50%, 100% 100%, 50% 100%) !important;
     }
