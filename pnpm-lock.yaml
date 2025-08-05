@@ -918,6 +918,9 @@ importers:
       '@refly/telemetry-web':
         specifier: workspace:*
         version: link:../telemetry-web
+      '@refly/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
       '@refly/ui-kit':
         specifier: workspace:*
         version: link:../ui-kit
@@ -3845,7 +3848,6 @@ packages:
   '@lancedb/lancedb@0.19.1':
     resolution: {integrity: sha512-EsEP5eGpVzmpryNS/V9IPZvtBmImsE8rAWjhLQuhD9bbF3upcICTovQBK7A3lhy81D2g1RWaJaSSAmLtGPPOyA==}
     engines: {node: '>= 18'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
     peerDependencies:
       apache-arrow: '>=15.0.0 <=18.1.0'

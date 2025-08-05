@@ -37,6 +37,7 @@
     "@refly/openapi-schema": "workspace:*",
     "@refly/stores": "workspace:*",
     "@refly/telemetry-web": "workspace:*",
+    "@refly/tsconfig": "workspace:*",
     "@refly/ui-kit": "workspace:*",
     "@refly/utils": "workspace:*",
     "@sentry/react": "^7.113.0",
