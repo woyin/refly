@@ -86,6 +86,10 @@ export const CanvasLayoutControls = memo(() => {
       '--current-zoom',
       Math.min(currentZoom, 1).toString(),
     );
+
+    return () => {
+      document.documentElement.style.removeProperty('--current-zoom');
+    };
   }, [currentZoom]);
 
   // Zoom control handlers

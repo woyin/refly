@@ -34,7 +34,6 @@ const CommonColorPicker: FC<CommonColorPickerProps> = ({
   const [open, setOpen] = useState(false);
 
   const handleColorChange = (_color: Color | any, css: string) => {
-    console.log('css', _color, css);
     onChange?.(css);
   };
 
