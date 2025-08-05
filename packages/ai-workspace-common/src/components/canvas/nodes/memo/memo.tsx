@@ -44,7 +44,6 @@ import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks
 import { NodeActionButtons } from '../shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { Divider } from 'antd';
 
 export const MemoNode = ({
   data,
@@ -86,7 +85,7 @@ export const MemoNode = ({
     minWidth: 100,
     maxWidth: 800,
     minHeight: 80,
-    defaultWidth: 200,
+    defaultWidth: 320,
     defaultHeight: 200,
   });
 
@@ -386,7 +385,39 @@ export const MemoNode = ({
               }
         }
       >
-        {!isPreview && selected && !readonly && (
+        {!isPreview && isHovered && !readonly && (
+          <NodeActionButtons
+            nodeId={id}
+            nodeType="memo"
+            isNodeHovered={isHovered}
+            isSelected={selected}
+          />
+        )}
+
+        {!isPreview && !hideHandles && (
+          <>
+            <CustomHandle
+              id={`${id}-target`}
+              nodeId={id}
+              type="target"
+              position={Position.Left}
+              isConnected={isTargetConnected}
+              isNodeHovered={isHovered}
+              nodeType="memo"
+            />
+            <CustomHandle
+              id={`${id}-source`}
+              nodeId={id}
+              type="source"
+              position={Position.Right}
+              isConnected={isSourceConnected}
+              isNodeHovered={isHovered}
+              nodeType="memo"
+            />
+          </>
+        )}
+
+        {/* {!isPreview && selected && !readonly && (
           <div className="absolute flex items-center left-[50%] -translate-x-1/2 -top-8 z-50 px-2 bg-white rounded-lg shadow-lg dark:bg-gray-900">
             <MemoEditor editor={editor} bgColor={bgColor} onChangeBackground={onUpdateBgColor} />
             <Divider className="mx-0 h-8" type="vertical" />
@@ -397,7 +428,7 @@ export const MemoNode = ({
               isSelected={selected}
             />
           </div>
-        )}
+        )} */}
 
         <div
           style={{ backgroundColor: bgColor }}
@@ -406,50 +437,31 @@ export const MemoNode = ({
           }}
           className={`
             h-full
+            w-full
+            relative
+            z-1
+            flex flex-col h-full box-border
             ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
           `}
         >
-          {!isPreview && !hideHandles && (
-            <>
-              <CustomHandle
-                id={`${id}-target`}
-                nodeId={id}
-                type="target"
-                position={Position.Left}
-                isConnected={isTargetConnected}
-                isNodeHovered={isHovered}
-                nodeType="memo"
+          <div className="p-3 border-x-0 border-t-0 border-solid border-[1px] border-refly-Card-Border">
+            <MemoEditor editor={editor} bgColor={bgColor} onChangeBackground={onUpdateBgColor} />
+          </div>
+          <div className="relative flex-grow overflow-y-auto p-3">
+            <div
+              className="editor-wrapper h-full"
+              style={{ userSelect: 'text', cursor: isPreview || readonly ? 'default' : 'text' }}
+            >
+              <EditorContent
+                editor={editor}
+                className={classNames('text-xs memo-node-editor h-full w-full')}
               />
-              <CustomHandle
-                id={`${id}-source`}
-                nodeId={id}
-                type="source"
-                position={Position.Right}
-                isConnected={isSourceConnected}
-                isNodeHovered={isHovered}
-                nodeType="memo"
-              />
-            </>
-          )}
-
-          <div className="flex flex-col h-full p-3 box-border">
-            <div className="relative flex-grow overflow-y-auto pr-2 -mr-2">
-              <div
-                className="editor-wrapper h-full"
-                style={{ userSelect: 'text', cursor: isPreview || readonly ? 'default' : 'text' }}
-              >
-                <EditorContent
-                  editor={editor}
-                  className={classNames('text-xs memo-node-editor h-full w-full')}
-                />
-              </div>
             </div>
-
-            <div className="flex justify-end items-center flex-shrink-0 mt-2 text-[10px] text-gray-400 z-20">
-              {time(data.createdAt, language as LOCALE)
-                ?.utc()
-                ?.fromNow()}
-            </div>
+          </div>
+          <div className="flex justify-end items-center flex-shrink-0 p-3 text-[10px] text-gray-400 z-20">
+            {time(data.createdAt, language as LOCALE)
+              ?.utc()
+              ?.fromNow()}
           </div>
         </div>
       </div>
@@ -457,10 +469,7 @@ export const MemoNode = ({
       {!isPreview && selected && !readonly && (
         <NodeResizerComponent
           targetRef={targetRef}
-          isSelected={selected}
-          isHovered={isHovered}
-          isPreview={isPreview}
-          sizeMode="adaptive"
+          showControl={!isPreview && (isHovered || selected)}
           onResize={handleResize}
         />
       )}

@@ -278,7 +278,7 @@ export const DocumentNode = memo(
             title={data.title || t('common.untitled')}
             fixedTitle={t('canvas.nodeTypes.document')}
             Icon={HiOutlineDocumentText}
-            iconBgColor="#00968F"
+            iconBgColor="#0E9F77"
             canEdit={!readonly}
             updateTitle={updateTitle}
           />

@@ -30,7 +30,7 @@ export const SkillAvatar = (props: SkillAvatarProps) => {
           icon.value
         )
       ) : (
-        <span style={{ color: '#00968F' }}>{displayName}</span>
+        <span style={{ color: '#0E9F77' }}>{displayName}</span>
       )}
     </Avatar>
   );

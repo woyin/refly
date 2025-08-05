@@ -289,7 +289,7 @@ const DocumentList = () => {
       <Empty description={t('common.empty')}>
         <Button
           loading={isCreating}
-          className="text-[#00968F]"
+          className="text-[#0E9F77]"
           icon={<IconCreateDocument className="-mr-1 flex items-center justify-center" />}
           onClick={() => {
             createDocument(t('common.untitled'), '', reload);

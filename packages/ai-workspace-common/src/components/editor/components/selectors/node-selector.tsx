@@ -1,5 +1,5 @@
 import { SVGProps } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { EditorBubbleItem, EditorInstance, useEditor } from '../../core/components';
 import { LuCode, LuList, LuListOrdered, LuListTodo } from 'react-icons/lu';
 import { RiH1, RiH2, RiH3, RiQuoteText, RiText } from 'react-icons/ri';
@@ -121,9 +121,8 @@ export const NodeSelector = ({ triggerEditor, open, onOpenChange }: NodeSelector
       className="flex items-center"
       overlayClassName="editor-node-selector-popover"
     >
-      <Button type="text" className="gap-0.5 flex items-center space-x-1 px-2 rounded-none">
-        <activeItem.icon className="h-3.5 w-3.5" />
-        <ChevronDown className="h-3 w-3" />
+      <Button size="small" type="text" className="w-5 h-5 p-0.5 rounded-[6px] hover:bg-transparent">
+        <activeItem.icon className="h-4 w-4" />
       </Button>
     </Popover>
   );

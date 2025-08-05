@@ -18,12 +18,12 @@ export const useEdgeStyles = () => {
         transition: 'stroke 0.2s, stroke-width 0.2s',
       },
       hover: {
-        stroke: '#00968F',
+        stroke: '#0E9F77',
         strokeWidth: 2,
         transition: 'stroke 0.2s, stroke-width 0.2s',
       },
       selected: {
-        stroke: '#00968F',
+        stroke: '#0E9F77',
         strokeWidth: 2,
         transition: 'stroke 0.2s, stroke-width 0.2s',
       },

@@ -4,10 +4,7 @@ import Moveable from 'react-moveable';
 interface NodeResizerProps {
   moveableRef?: React.RefObject<Moveable>;
   targetRef: React.RefObject<HTMLElement>;
-  isSelected: boolean;
-  isHovered: boolean;
-  isPreview?: boolean;
-  sizeMode?: 'compact' | 'adaptive';
+  showControl: boolean;
   onResize: (params: any) => void;
   onResizeEnd?: () => void;
 }
@@ -15,10 +12,7 @@ interface NodeResizerProps {
 export const NodeResizer: React.FC<NodeResizerProps> = ({
   moveableRef,
   targetRef,
-  isSelected,
-  isHovered,
-  isPreview = false,
-  sizeMode = 'adaptive',
+  showControl,
   onResize,
   onResizeEnd,
 }) => {
@@ -49,7 +43,7 @@ export const NodeResizer: React.FC<NodeResizerProps> = ({
     }
   }, [isResizing, handleGlobalMouseUp]);
 
-  if (isPreview || !isSelected || sizeMode !== 'adaptive') {
+  if (!showControl) {
     return null;
   }
 
@@ -84,12 +78,10 @@ export const NodeResizer: React.FC<NodeResizerProps> = ({
         onResizeEnd?.();
       }}
       hideDefaultLines={true}
-      className={`!pointer-events-auto ${!isHovered ? 'moveable-control-hidden' : 'moveable-control-show'}`}
+      className={`!pointer-events-auto ${!showControl ? 'moveable-control-hidden' : 'moveable-control-show'}`}
       snappable={true}
       snapThreshold={5}
       elementGuidelines={['top', 'left', 'bottom', 'right']}
-      verticalGuidelines={[0, 100, 200, 300]}
-      horizontalGuidelines={[0, 100, 200, 300]}
     />
   );
 };

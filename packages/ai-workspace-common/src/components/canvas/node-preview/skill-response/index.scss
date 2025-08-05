@@ -26,7 +26,7 @@
       padding: 8px 12px;
       border-radius: 8px;
       background-color: #f1f1f0;
-      background-color: #00968f;
+      background-color: #0E9F77;
       color: #fff;
       font-size: 16px;
       max-width: 100%;
@@ -85,7 +85,7 @@
 
       &.active {
         background-color: #f1f1f0;
-        border-color: #00968f;
+        border-color: #0E9F77;
       }
       &.disabled {
         background-color: #f1f1f0;
@@ -139,7 +139,7 @@
     }
 
     .context-preview {
-      border: 1px solid #00968f;
+      border: 1px solid #0E9F77;
       border-radius: 8px;
       padding: 12px;
       height: 240px;
@@ -313,11 +313,11 @@
       border-radius: 8px;
 
       &:hover {
-        color: #00968f;
+        color: #0E9F77;
         cursor: pointer;
 
         .ai-copilot-related-question-title {
-          color: #00968f;
+          color: #0E9F77;
         }
       }
 
@@ -328,7 +328,7 @@
       .ai-copilot-related-question-title {
         font-size: 12px;
         // color: rgba(0, 0, 0, 1);
-        color: #00968f;
+        color: #0E9F77;
       }
     }
   }
@@ -500,7 +500,7 @@
     &.active {
       cursor: pointer;
       background-color: #f1f1f0;
-      color: #00968f;
+      color: #0E9F77;
     }
   }
 
@@ -516,7 +516,7 @@
     &.active {
       cursor: pointer;
       background-color: #f1f1f0;
-      color: #00968f;
+      color: #0E9F77;
     }
 
     .action-text {

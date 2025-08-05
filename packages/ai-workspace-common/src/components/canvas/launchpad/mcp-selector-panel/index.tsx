@@ -123,14 +123,14 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
             className="mb-2"
             imageStyle={{ height: 40, width: 40, margin: '4px auto' }}
             description={
-              <span className="text-[12px] text-[#00968f]">{t('copilot.mcpSelector.empty')}</span>
+              <span className="text-[12px] text-[#0E9F77]">{t('copilot.mcpSelector.empty')}</span>
             }
           />
           <Button
             type="link"
             size="small"
             onClick={handleOpenMcpStore}
-            className="text-[12px] text-[#00968f] hover:text-[#007c74] p-0 flex items-center gap-1"
+            className="text-[12px] text-[#0E9F77] hover:text-[#007c74] p-0 flex items-center gap-1"
           >
             {t('copilot.mcpSelector.browseMcpStore')}
             <ChevronRight className="w-3 h-3" />
@@ -159,7 +159,7 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
             'rounded-lg border border-solid m-1 py-2 px-3 mb-2',
             'cursor-pointer transition-all duration-200',
             selectedMcpServers.includes(server.name)
-              ? 'border-[#00968f] bg-[#00968f]/5 dark:bg-[#00968f]/10'
+              ? 'border-[#0E9F77] bg-[#0E9F77]/5 dark:bg-[#0E9F77]/10'
               : 'border-black/10 dark:border-gray-700',
             'hover:bg-gray-50 hover:border-gray-200 hover:shadow-sm dark:hover:bg-gray-700 dark:hover:border-gray-600',
           )}
@@ -169,7 +169,7 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
             {' '}
             {/* Changed to flex-col for name and description stacking */}
             <div className="flex items-center">
-              <ToolOutlined className="text-[#00968f] mr-2 flex-shrink-0" />
+              <ToolOutlined className="text-[#0E9F77] mr-2 flex-shrink-0" />
               <span className="text-[12px] text-gray-700 dark:text-gray-200 font-medium block truncate">
                 {server.name}
               </span>
@@ -182,7 +182,7 @@ export const McpSelectorPanel: React.FC<McpSelectorPanelProps> = ({ isOpen, onCl
             </Tooltip>
           </div>
           {selectedMcpServers.includes(server.name) && (
-            <CheckCircle2 className="w-4 h-4 text-[#00968f] ml-2" />
+            <CheckCircle2 className="w-4 h-4 text-[#0E9F77] ml-2" />
           )}
         </div>
       );

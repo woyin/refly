@@ -14,7 +14,7 @@ export const CreateMemoSelector: React.FC<CreateMemoSelectorProps> = (props) => 
   return (
     <Tooltip title={t('knowledgeBase.canvas.editor.toolbar.createMemo')}>
       <Button type="text" className="rounded-none px-2" onClick={handleClick}>
-        <IconMemo className="w-3 h-3 text-[#00968F]" size={16} strokeWidth={3} />
+        <IconMemo className="w-3 h-3 text-[#0E9F77]" size={16} strokeWidth={3} />
       </Button>
     </Tooltip>
   );

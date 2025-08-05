@@ -37,7 +37,7 @@ export const CustomEdge = memo(
     const [isEditing, setIsEditing] = useState(false);
 
     const selectedStyle = {
-      stroke: isEditing ? 'rgba(0, 150, 143, 0.2)' : '#00968F',
+      stroke: isEditing ? 'rgba(0, 150, 143, 0.2)' : '#0E9F77',
       strokeWidth: 2,
       transition: 'stroke 0.2s, stroke-width 0.2s',
     };

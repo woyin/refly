@@ -78,12 +78,12 @@ const GRID_SIZE = 10;
 const selectionStyles = `
   .react-flow__selection {
     background: rgba(0, 150, 143, 0.03) !important;
-    border: 0.5px solid #00968F !important;
+    border: 0.5px solid #0E9F77 !important;
   }
   
   .react-flow__nodesselection-rect {
     background: rgba(0, 150, 143, 0.03) !important;
-    border: 0.5px solid #00968F !important;
+    border: 0.5px solid #0E9F77 !important;
   }
 `;
 

@@ -82,11 +82,11 @@ export const CollaborativeEditor = memo(
           box-shadow: 0 0 0 2px rgba(0, 150, 143, 0.5);
         }
         .moveable-control {
-          background-color: #00968F !important;
+          background-color: #0E9F77 !important;
           border-color: #fff !important;
         }
         .moveable-line {
-          background-color: #00968F !important;
+          background-color: #0E9F77 !important;
         }
         
         ${

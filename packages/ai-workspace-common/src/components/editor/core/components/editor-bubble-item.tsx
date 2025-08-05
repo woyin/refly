@@ -23,7 +23,7 @@ export const EditorBubbleItem = forwardRef<
   if (!editor) return null;
 
   return (
-    <Comp ref={ref} {...rest} onClick={() => onSelect?.(editor)}>
+    <Comp className="flex items-center" ref={ref} {...rest} onClick={() => onSelect?.(editor)}>
       {children}
     </Comp>
   );

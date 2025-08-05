@@ -144,7 +144,7 @@ export const SearchProgress: React.FC = () => {
                     step.step === 'Processing...' ? (
                       <Spin
                         indicator={
-                          <LoadingOutlined style={{ fontSize: 12, color: '#00968f' }} spin />
+                          <LoadingOutlined style={{ fontSize: 12, color: '#0E9F77' }} spin />
                         }
                       />
                     ) : undefined,

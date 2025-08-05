@@ -39,13 +39,23 @@ const CommonColorPicker: FC<CommonColorPickerProps> = ({
 
   return (
     <AntdColorPicker
-      className={`memo-color-picker items-center border-none rounded-lg hover:refly-tertiary-hover ${className}`}
+      size="small"
+      className={`memo-color-picker items-center border-none rounded-lg hover:refly-tertiary-hover p-0 ${className}`}
       defaultValue={color}
       onChange={handleColorChange}
       showText={false}
       presets={[{ label: t('common.presetColors'), colors: presetColors }]}
       disabledAlpha={disabledAlpha}
-    />
+    >
+      <div
+        className={`flex items-center justify-center rounded-md w-6 h-6 hover:bg-refly-tertiary-hover ${className}`}
+      >
+        <div
+          className="w-4 h-4 rounded-lg border-solid border-[2px] border-refly-Card-Border"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+    </AntdColorPicker>
   );
 };
 
