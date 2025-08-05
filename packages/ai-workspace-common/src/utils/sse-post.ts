@@ -82,7 +82,11 @@ export const ssePost = async ({
 
     const baseResp = await extractBaseResp(response, { success: true });
     if (!baseResp.success) {
-      onSkillError?.({ error: baseResp, event: 'error' });
+      onSkillError?.({
+        resultId: payload.resultId ?? '',
+        error: baseResp,
+        event: 'error',
+      });
       return;
     }
 
@@ -272,6 +276,7 @@ export const ssePost = async ({
         } catch (err) {
           // Create a proper SkillEvent for the error
           const errorEvent: SkillEvent = {
+            resultId: payload.resultId ?? '',
             event: 'error',
             error: {
               success: false,
@@ -307,6 +312,7 @@ export const ssePost = async ({
       // Convert error to string for ConnectionError constructor
       const errorMessage = error instanceof Error ? error.message : String(error);
       onSkillError?.({
+        resultId: payload.resultId ?? '',
         error: {
           success: false,
           errCode: new ConnectionError(errorMessage).code,

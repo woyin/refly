@@ -72,6 +72,7 @@ export abstract class BaseSkill extends StructuredTool {
 
     const eventData: SkillEvent = {
       event: data.event,
+      resultId: config.configurable.resultId,
       step: config.metadata?.step,
       ...data,
     };

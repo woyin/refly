@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useReactFlow } from '@xyflow/react';
 import { SelectionBubble } from './selection-bubble';
 import { useSelectionContext } from './use-selection-context';
-import { CanvasNode } from '../../components/canvas/nodes/shared/types';
+import { CanvasNode } from '@refly/canvas-common';
 
 interface CanvasSelectionContextProps {
   containerClass?: string;
@@ -78,7 +78,12 @@ export const CanvasSelectionContext: React.FC<CanvasSelectionContextProps> = ({
 
       try {
         const node = getNodeData(text);
-        addToContext(node);
+        addToContext({
+          title: node.data.title ?? '',
+          entityId: node.id,
+          type: node.type,
+          metadata: node.data.metadata,
+        });
         message.success(t('knowledgeBase.context.addToContextSuccess'));
       } catch (error) {
         console.error('Error adding to context:', error);

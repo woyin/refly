@@ -1,6 +1,6 @@
 import { StorageUsageMeter } from '@refly/openapi-schema';
 
-export function getAvailableFileCount(storageUsage: StorageUsageMeter) {
+export function getAvailableFileCount(storageUsage: StorageUsageMeter | undefined) {
   if (!storageUsage || storageUsage.fileCountQuota < 0) {
     return Number.POSITIVE_INFINITY;
   }

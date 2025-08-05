@@ -400,7 +400,7 @@ const errorMap = {
 };
 
 export function getErrorMessage(code: string, locale: string): string {
-  const ErrorClass = errorMap[code];
+  const ErrorClass = errorMap[code as keyof typeof errorMap];
   if (!ErrorClass) {
     return new UnknownError().getMessage(locale);
   }

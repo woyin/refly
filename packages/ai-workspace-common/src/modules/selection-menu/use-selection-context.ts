@@ -224,7 +224,7 @@ export const useSelectionContext = ({
       // Tiptap doesn't have a direct selection change event,
       // but we can use the update event which fires on selection changes
       const updateHandler = ({ editor: updatedEditor }: { editor: Editor }) => {
-        if (updatedEditor.isActive) {
+        if (updatedEditor.isInitialized) {
           handleSelection();
         }
       };

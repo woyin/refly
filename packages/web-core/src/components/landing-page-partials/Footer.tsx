@@ -147,9 +147,11 @@ function Footer() {
                       {t('landingPage.footer.product.title')}
                     </h6>
                     <ul className="list-none text-sm">
-                      {t('landingPage.footer.product.list', {
-                        returnObjects: true,
-                      })?.map((item: string, index: number) => (
+                      {(
+                        t('landingPage.footer.product.list', {
+                          returnObjects: true,
+                        }) as any[]
+                      )?.map((item: string, index: number) => (
                         <li key={index} className="mb-1">
                           <Link
                             to="#"
