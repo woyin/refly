@@ -393,11 +393,11 @@ export const MemoNode = ({
             : null
         }
       >
-        {!isPreview && isHovered && !readonly && !isResizing && (
+        {!isPreview && (selected || isHovered) && !readonly && !isResizing && (
           <NodeActionButtons
             nodeId={id}
             nodeType="memo"
-            isNodeHovered={isHovered}
+            isNodeHovered={selected || isHovered}
             isSelected={selected}
             bgColor={bgColor}
             onChangeBackground={onUpdateBgColor}
