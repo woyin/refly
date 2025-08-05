@@ -127,12 +127,16 @@ const getInternalState = ({
   edgeLookup?: Map<string, any>;
 } = {}) => {
   updateConnectionLookup(connectionLookup, edgeLookup, edges);
-  adoptUserNodes(nodes, nodeLookup, parentLookup, {
-    elevateNodesOnSelect: false,
-  });
+  const cleanedNodes = nodes?.filter((node) => !!node) ?? [];
+
+  if (cleanedNodes.length > 0) {
+    adoptUserNodes(cleanedNodes, nodeLookup, parentLookup, {
+      elevateNodesOnSelect: false,
+    });
+  }
 
   return {
-    nodes,
+    nodes: cleanedNodes,
     edges,
   };
 };

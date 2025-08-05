@@ -86,10 +86,11 @@ export const useNodeOperations = () => {
   const updateNodesWithSync = useCallback(
     (nodes: any[]) => {
       const { nodeLookup, parentLookup } = getState();
-      adoptUserNodes(nodes, nodeLookup, parentLookup, {
+      const cleanedNodes = nodes.filter((node) => !!node);
+      adoptUserNodes(cleanedNodes, nodeLookup, parentLookup, {
         elevateNodesOnSelect: false,
       });
-      setState({ nodes });
+      setState({ nodes: cleanedNodes });
       syncCanvasData();
     },
     [syncCanvasData],
