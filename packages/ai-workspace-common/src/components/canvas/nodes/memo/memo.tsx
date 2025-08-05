@@ -1,4 +1,4 @@
-import { Position, useReactFlow } from '@xyflow/react';
+import { Position, useReactFlow, NodeResizer } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { MemoNodeProps } from '../shared/types';
 import { CustomHandle } from '../shared/custom-handle';
@@ -39,7 +39,6 @@ import { genSkillID, genMemoID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useNodeSize } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-size';
-import { NodeResizer as NodeResizerComponent } from '../shared/node-resizer';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from '../shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
@@ -66,6 +65,7 @@ export const MemoNode = ({
   const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
   const [isFocused, setIsFocused] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
 
   const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
 
@@ -76,7 +76,7 @@ export const MemoNode = ({
 
   const { readonly } = useCanvasContext();
 
-  const { containerStyle, handleResize } = useNodeSize({
+  const { updateSize } = useNodeSize({
     id,
     node,
     sizeMode: 'adaptive',
@@ -88,6 +88,15 @@ export const MemoNode = ({
     defaultWidth: 320,
     defaultHeight: 200,
   });
+
+  // Handle resize with ReactFlow NodeResizer
+  const handleResize = useCallback(
+    (_event: any, params: any) => {
+      const { width, height } = params;
+      updateSize({ width, height });
+    },
+    [updateSize],
+  );
 
   // Handle node hover events
   const handleMouseEnter = useCallback(() => {
@@ -367,12 +376,14 @@ export const MemoNode = ({
   }, [id, handleAddToContext, handleDelete, handleInsertToDoc, handleAskAI, handleDuplicate]);
 
   return (
-    <div className={classNames({ nowheel: isFocused && isHovered })}>
+    <div className="relative w-full h-full">
       <div
         ref={targetRef}
         onMouseEnter={!isPreview ? handleMouseEnter : undefined}
         onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-        className="relative"
+        className={classNames('w-full h-full rounded-2xl relative', {
+          nowheel: isFocused && isHovered,
+        })}
         onClick={onNodeClick}
         style={
           isPreview
@@ -380,12 +391,10 @@ export const MemoNode = ({
                 width: 288,
                 height: 200,
               }
-            : {
-                ...containerStyle,
-              }
+            : null
         }
       >
-        {!isPreview && isHovered && !readonly && (
+        {!isPreview && isHovered && !readonly && !isResizing && (
           <NodeActionButtons
             nodeId={id}
             nodeType="memo"
@@ -417,19 +426,6 @@ export const MemoNode = ({
           </>
         )}
 
-        {/* {!isPreview && selected && !readonly && (
-          <div className="absolute flex items-center left-[50%] -translate-x-1/2 -top-8 z-50 px-2 bg-white rounded-lg shadow-lg dark:bg-gray-900">
-            <MemoEditor editor={editor} bgColor={bgColor} onChangeBackground={onUpdateBgColor} />
-            <Divider className="mx-0 h-8" type="vertical" />
-            <NodeActionButtons
-              nodeId={id}
-              nodeType="memo"
-              isNodeHovered={isHovered}
-              isSelected={selected}
-            />
-          </div>
-        )} */}
-
         <div
           style={{ backgroundColor: bgColor }}
           onClick={() => {
@@ -444,9 +440,11 @@ export const MemoNode = ({
             ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
           `}
         >
-          <div className="p-3 border-x-0 border-t-0 border-solid border-[1px] border-refly-Card-Border">
-            <MemoEditor editor={editor} bgColor={bgColor} onChangeBackground={onUpdateBgColor} />
-          </div>
+          {!isPreview && !readonly && (
+            <div className="p-3 border-x-0 border-t-0 border-solid border-[1px] border-refly-Card-Border">
+              <MemoEditor editor={editor} bgColor={bgColor} onChangeBackground={onUpdateBgColor} />
+            </div>
+          )}
           <div className="relative flex-grow overflow-y-auto p-3">
             <div
               className="editor-wrapper h-full"
@@ -465,12 +463,19 @@ export const MemoNode = ({
           </div>
         </div>
       </div>
-
       {!isPreview && selected && !readonly && (
-        <NodeResizerComponent
-          targetRef={targetRef}
-          showControl={!isPreview && (isHovered || selected)}
+        <NodeResizer
+          minWidth={100}
+          maxWidth={800}
+          minHeight={80}
+          maxHeight={1200}
           onResize={handleResize}
+          onResizeStart={() => {
+            setIsResizing(true);
+          }}
+          onResizeEnd={() => {
+            setIsResizing(false);
+          }}
         />
       )}
     </div>

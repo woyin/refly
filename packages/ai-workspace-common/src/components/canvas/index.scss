@@ -41,3 +41,71 @@
 .react-flow__attribution {
   background: transparent !important;
 }
+
+// Custom NodeResizer styles - show only corner controls with dashed arc appearance
+.react-flow__resize-control {
+  // Hide all edge controls
+  &.line {
+    display: none;
+  }
+  &.handle {
+    width: 24px ;
+    height: 24px;
+    background: transparent;
+    border: none;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--refly-text-3);
+      border-radius: 50%;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+    
+    &:hover {
+      &::before {
+        border-color: var(--refly-primary-default) !important;
+        transform: scale(1.1) !important;
+      }
+    }
+  }
+  
+  // Top-left corner - show only top-left arc
+  &.handle.top.left {
+    top: 8px;
+    left: 8px;
+    &::before {
+      clip-path: polygon(50% 50%, 0% 50%, 0% 0%, 50% 0%) !important;
+    }
+  }
+  
+  // Top-right corner - show only top-right arc
+  &.handle.top.right {
+    top: 8px;
+    left: calc(100% - 8px);
+    &::before {
+      clip-path: polygon(50% 50%, 100% 50%, 100% 0%, 50% 0%) !important;
+    }
+  }
+  
+  // Bottom-left corner - show only bottom-left arc
+  &.handle.bottom.left {
+    top: calc(100% - 8px);
+    left: 8px;
+    &::before {
+      clip-path: polygon(50% 50%, 0% 50%, 0% 100%, 50% 100%) !important;
+    }
+  }
+  
+  // Bottom-right corner - show only bottom-right arc
+  &.handle.bottom.right {
+    top: calc(100% - 8px);
+    left: calc(100% - 8px);
+    &::before {
+      clip-path: polygon(50% 50%, 100% 50%, 100% 100%, 50% 100%) !important;
+    }
+  }
+}

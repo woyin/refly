@@ -39,6 +39,7 @@ const CommonColorPicker: FC<CommonColorPickerProps> = ({
 
   return (
     <AntdColorPicker
+      arrow={false}
       size="small"
       className={`memo-color-picker items-center border-none rounded-lg hover:refly-tertiary-hover p-0 ${className}`}
       defaultValue={color}
