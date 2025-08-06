@@ -35,6 +35,7 @@ import {
   useUserStore,
   useUserStoreShallow,
   usePilotStoreShallow,
+  useCanvasResourcesPanelStoreShallow,
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
@@ -1106,6 +1107,13 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const { canvasId, readonly } = props;
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
+  const { resourcesPanelWidth, setResourcesPanelWidth } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
+      resourcesPanelWidth: state.resourcesPanelWidth,
+      setResourcesPanelWidth: state.setResourcesPanelWidth,
+    }),
+  );
+
   useEffect(() => {
     if (readonly) {
       return;
@@ -1118,15 +1126,28 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     }
   }, [canvasId, setCurrentCanvasId]);
 
+  // Handle panel resize
+  const handlePanelResize = useCallback(
+    (sizes: number[]) => {
+      if (sizes.length >= 2) {
+        setResourcesPanelWidth(sizes[1]);
+      }
+    },
+    [setResourcesPanelWidth],
+  );
+
   return (
     <EditorPerformanceProvider>
       <ReactFlowProvider>
         <CanvasProvider readonly={readonly} canvasId={canvasId}>
-          <Splitter className="w-full h-[calc(100vh-16px)]">
+          <Splitter
+            className="canvas-splitter w-full h-[calc(100vh-16px)]"
+            onResize={handlePanelResize}
+          >
             <Splitter.Panel>
               <Flow canvasId={canvasId} />
             </Splitter.Panel>
-            <Splitter.Panel>
+            <Splitter.Panel size={resourcesPanelWidth} min={480} max={800}>
               <CanvasResources />
             </Splitter.Panel>
           </Splitter>
