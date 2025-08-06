@@ -14,6 +14,7 @@ export class FalAudioGenerator extends BaseAudioGenerator {
       'fal-ai/elevenlabs/tts/turbo-v2.5': 'fal-ai/elevenlabs',
       'fal-ai/orpheus-tts': 'fal-ai/orpheus-tts',
       'fal-ai/elevenlabs/sound-effects': 'fal-ai/elevenlabs',
+      'fal-ai/elevenlabs/tts/multilingual-v2': 'fal-ai/elevenlabs',
     };
     const baseModel = modelMap[request.model] || request.model;
 
@@ -37,6 +38,7 @@ export class FalAudioGenerator extends BaseAudioGenerator {
       case 'fal-ai/orpheus-tts':
       case 'fal-ai/dia-tts':
       case 'fal-ai/elevenlabs/sound-effects':
+      case 'fal-ai/elevenlabs/tts/multilingual-v2':
         data = {
           text: request.prompt,
         };
