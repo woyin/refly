@@ -1,9 +1,7 @@
 import { Breadcrumb, Button, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { SideRight } from 'refly-icons';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
-
-export type CanvasResourcesParentType = 'stepsRecord' | 'resultsRecord' | 'myUpload';
+import { useCanvasResourcesPanelStoreShallow, type CanvasResourcesParentType } from '@refly/stores';
 
 interface CanvasResourcesHeaderProps {
   parentType?: CanvasResourcesParentType;
@@ -17,12 +15,25 @@ export const CanvasResourcesHeader = ({
   setParentType,
 }: CanvasResourcesHeaderProps) => {
   const { t } = useTranslation();
-  const { setResourcesPanelWidth } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setResourcesPanelWidth: state.setResourcesPanelWidth,
-  }));
+  const { setResourcesPanelWidth, setShowLeftOverview } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
+      setResourcesPanelWidth: state.setResourcesPanelWidth,
+      setShowLeftOverview: state.setShowLeftOverview,
+    }),
+  );
 
   const handleClose = () => {
     setResourcesPanelWidth(0);
+    setShowLeftOverview(false);
+  };
+
+  const handleShowLeftOverview = () => {
+    setShowLeftOverview(true);
+  };
+
+  const handleParentClick = () => {
+    setParentType?.(null);
+    setShowLeftOverview(false);
   };
 
   return (
@@ -33,8 +44,10 @@ export const CanvasResourcesHeader = ({
         </Tooltip>
         {parentType ? (
           <Breadcrumb>
-            <Breadcrumb.Item onClick={() => setParentType?.(null)}>
-              <a>{t(`canvas.resourceLibrary.${parentType}`)}</a>
+            <Breadcrumb.Item onClick={handleParentClick}>
+              <a onMouseEnter={handleShowLeftOverview}>
+                {t(`canvas.resourceLibrary.${parentType}`)}
+              </a>
             </Breadcrumb.Item>
             {resourceTitle && <Breadcrumb.Item>{resourceTitle}</Breadcrumb.Item>}
           </Breadcrumb>

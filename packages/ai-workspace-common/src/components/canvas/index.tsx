@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useState, useRef, memo } from 'react';
-import { Button, Modal, Result, message, Splitter } from 'antd';
+import { Button, Modal, Result, message, Splitter, Popover } from 'antd';
 import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
@@ -74,6 +74,7 @@ import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ChevronUp } from 'lucide-react';
 import { CanvasResources } from './canvas-resources';
+import { ResourceOverview } from './canvas-resources/resource-overview';
 
 const GRID_SIZE = 10;
 
@@ -1107,12 +1108,21 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const { canvasId, readonly } = props;
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
-  const { resourcesPanelWidth, setResourcesPanelWidth } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
-      resourcesPanelWidth: state.resourcesPanelWidth,
-      setResourcesPanelWidth: state.setResourcesPanelWidth,
-    }),
-  );
+  const {
+    resourcesPanelWidth,
+    setResourcesPanelWidth,
+    showLeftOverview,
+    setShowLeftOverview,
+    activeTab,
+    setActiveTab,
+  } = useCanvasResourcesPanelStoreShallow((state) => ({
+    resourcesPanelWidth: state.resourcesPanelWidth,
+    setResourcesPanelWidth: state.setResourcesPanelWidth,
+    showLeftOverview: state.showLeftOverview,
+    setShowLeftOverview: state.setShowLeftOverview,
+    activeTab: state.activeTab,
+    setActiveTab: state.setActiveTab,
+  }));
 
   useEffect(() => {
     if (readonly) {
@@ -1136,6 +1146,32 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     [setResourcesPanelWidth],
   );
 
+  // Calculate max width as 50% of parent container
+  const [maxPanelWidth, setMaxPanelWidth] = useState(800);
+
+  useEffect(() => {
+    const updateMaxWidth = () => {
+      const canvasContainer = document.querySelector('.canvas-splitter');
+      if (canvasContainer) {
+        setMaxPanelWidth(Math.floor(canvasContainer.clientWidth * 0.5));
+      }
+    };
+
+    // Initial calculation
+    updateMaxWidth();
+
+    // Listen for window resize events
+    const resizeObserver = new ResizeObserver(updateMaxWidth);
+    const canvasContainer = document.querySelector('.canvas-splitter');
+    if (canvasContainer) {
+      resizeObserver.observe(canvasContainer);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <EditorPerformanceProvider>
       <ReactFlowProvider>
@@ -1147,8 +1183,25 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
             <Splitter.Panel>
               <Flow canvasId={canvasId} />
             </Splitter.Panel>
-            <Splitter.Panel size={resourcesPanelWidth} min={480} max={800}>
-              <CanvasResources />
+
+            <Splitter.Panel size={resourcesPanelWidth} min={480} max={maxPanelWidth}>
+              <Popover
+                overlayClassName="resources-panel-popover"
+                open={showLeftOverview}
+                onOpenChange={setShowLeftOverview}
+                arrow={false}
+                content={
+                  <div className="w-[360px] h-full">
+                    <ResourceOverview activeTab={activeTab} setActiveTab={setActiveTab} />
+                  </div>
+                }
+                placement="left"
+                align={{
+                  offset: [0, 0],
+                }}
+              >
+                <CanvasResources />
+              </Popover>
             </Splitter.Panel>
           </Splitter>
         </CanvasProvider>

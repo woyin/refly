@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CanvasResourcesParentType } from './canvas-resources-header';
+import { type CanvasResourcesParentType } from '@refly/stores';
 import { Segmented } from 'antd';
 import { useTranslation } from 'react-i18next';
 
@@ -30,12 +30,12 @@ export const ResourceOverview = ({ activeTab, setActiveTab }: ResourceOverviewPr
         value: 'stepsRecord',
       },
       {
-        label: t('canvas.resourceLibrary.myUploads'),
-        value: 'myUpload',
-      },
-      {
         label: t('canvas.resourceLibrary.resultsRecord'),
         value: 'resultsRecord',
+      },
+      {
+        label: t('canvas.resourceLibrary.myUploads'),
+        value: 'myUpload',
       },
     ];
   }, [t]);

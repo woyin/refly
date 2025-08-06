@@ -59,6 +59,7 @@ export { useSubscriptionStore, useSubscriptionStoreShallow } from './stores/subs
 export {
   useCanvasResourcesPanelStore,
   useCanvasResourcesPanelStoreShallow,
+  type CanvasResourcesParentType,
 } from './stores/canvas-resources-panel';
 export {
   useMultilingualSearchStore,
