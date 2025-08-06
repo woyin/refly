@@ -56,7 +56,7 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
     setShowLinearThread: state.setShowLinearThread,
   }));
 
-  const { data: projectDetail } = useGetProjectDetail({ query: { projectId } }, [], {
+  const { data: projectDetail } = useGetProjectDetail({ query: { projectId } }, undefined, {
     enabled: !!projectId,
   });
   const data = projectDetail?.data;
