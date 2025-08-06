@@ -984,6 +984,11 @@ paths:
           description: Related project ID
           schema:
             type: string
+        - name: canvasId
+          in: query
+          description: Related canvas ID
+          schema:
+            type: string
         - name: order
           in: query
           description: Order
@@ -1208,6 +1213,11 @@ paths:
         - name: projectId
           in: query
           description: Related project ID
+          schema:
+            type: string
+        - name: canvasId
+          in: query
+          description: Related canvas ID
           schema:
             type: string
         - name: order
@@ -1609,6 +1619,11 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: canvasId
+          in: query
+          description: Related canvas ID
+          schema:
+            type: string
         - name: page
           in: query
           description: Page number
@@ -3792,6 +3807,9 @@ components:
           type: string
           description: Raw file storage key (used to download the file)
           deprecated: true
+        canvasId:
+          type: string
+          description: Canvas ID to bind with
         createdAt:
           type: string
           format: date-time
@@ -3838,6 +3856,9 @@ components:
         readOnly:
           type: boolean
           description: Whether this document is read-only
+        canvasId:
+          type: string
+          description: Canvas ID to bind with
         createdAt:
           type: string
           format: date-time
@@ -4659,6 +4680,9 @@ components:
         resultVersion:
           type: number
           description: Action result version
+        canvasId:
+          type: string
+          description: Canvas ID to bind with
         createdAt:
           type: string
           format: date-time
@@ -5436,6 +5460,9 @@ components:
         title:
           type: string
           description: Custom document title for the duplicate
+        canvasId:
+          type: string
+          description: Target canvas ID
     DuplicateResourceRequest:
       type: object
       required:
@@ -5447,6 +5474,9 @@ components:
         title:
           type: string
           description: Custom resource title for the duplicate
+        canvasId:
+          type: string
+          description: Target canvas ID
     UpsertCanvasRequest:
       type: object
       properties:
@@ -5802,6 +5832,9 @@ components:
         projectId:
           type: string
           description: Project ID to bind with
+        canvasId:
+          type: string
+          description: Canvas ID to bind with
         data:
           description: Resource metadata
           $ref: '#/components/schemas/ResourceMeta'
@@ -5909,6 +5942,9 @@ components:
         projectId:
           type: string
           description: Project ID to bind with
+        canvasId:
+          type: string
+          description: Canvas ID to bind with
         readOnly:
           type: boolean
           description: Whether this document is read-only
@@ -6206,6 +6242,9 @@ components:
         resultVersion:
           type: number
           description: Action result version
+        canvasId:
+          type: string
+          description: Canvas ID to bind with
         previewStorageKey:
           type: string
           description: Code artifact preview storage key
@@ -6237,6 +6276,17 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/CodeArtifact'
+    DuplicateCodeArtifactRequest:
+      type: object
+      required:
+        - artifactId
+      properties:
+        artifactId:
+          type: string
+          description: Code artifact ID to duplicate
+        canvasId:
+          type: string
+          description: Target canvas ID
     CreateShareRequest:
       type: object
       required:
@@ -6305,6 +6355,9 @@ components:
         projectId:
           type: string
           description: Project ID to duplicate the share to
+        canvasId:
+          type: string
+          description: Target canvas ID
     DuplicateShareResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
