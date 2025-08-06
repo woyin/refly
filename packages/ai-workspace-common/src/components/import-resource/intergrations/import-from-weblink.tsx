@@ -32,7 +32,7 @@ export const ImportFromWeblink = () => {
 
   const { projectId, isCanvasOpen } = useGetProjectCanvasId();
 
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId || null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
   const { updateSourceList } = useUpdateSourceList();
 
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
@@ -113,7 +113,7 @@ export const ImportFromWeblink = () => {
       return {
         projectId: currentProjectId,
         resourceType: 'weblink',
-        title: link?.title,
+        title: link?.title ?? '',
         data: {
           url: link?.url,
           title: link?.title,
@@ -153,7 +153,7 @@ export const ImportFromWeblink = () => {
               x: insertNodePosition?.x + index * 300,
               y: insertNodePosition?.y,
             }
-          : null;
+          : undefined;
 
         nodeOperationsEmitter.emit('addNode', {
           node: {
@@ -234,7 +234,7 @@ export const ImportFromWeblink = () => {
       {/* footer */}
       <div className="w-full flex justify-between items-center border-t border-solid border-[#e5e5e5] dark:border-[#2f2f2f] border-x-0 border-b-0 p-[16px] rounded-none">
         <div className="flex items-center gap-x-[8px]">
-          <p className="font-bold whitespace-nowrap text-md text-[#00968f]">
+          <p className="font-bold whitespace-nowrap text-md text-[#0E9F77]">
             {t('resource.import.linkCount', { count: scrapeLinks?.length || 0 })}
           </p>
           <StorageLimit

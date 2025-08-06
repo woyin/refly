@@ -33,7 +33,7 @@ export const getAbsolutePosition = (node: Node, nodes: Node[]) => {
   while (parent) {
     position.x += parent.position.x;
     position.y += parent.position.y;
-    parent = nodes.find((n) => n.id === parent.parentId);
+    parent = nodes.find((n) => n.id === parent?.parentId);
   }
   return position;
 };

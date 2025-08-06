@@ -13,7 +13,7 @@ import { useUserStore } from '@refly/stores';
 
 // Custom styles for switch component
 const switchStyles = {
-  backgroundColor: '#00968F',
+  backgroundColor: '#0E9F77',
 };
 
 interface ProjectKnowledgeToggleProps {
@@ -91,10 +91,10 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
 
   return (
     <div className={`project-kb-toggle mt-auto pt-2 pb-2 ${className}`}>
-      <div className="rounded-lg flex items-center justify-between bg-refly-bg-content-z2 p-2 pt-0 pb-0 border border-solid border-refly-Card-Border hover:border-[#00968F]/30 transition-all cursor-pointer">
+      <div className="rounded-lg flex items-center justify-between bg-refly-bg-content-z2 p-2 pt-0 pb-0 border border-solid border-refly-Card-Border hover:border-[#0E9F77]/30 transition-all cursor-pointer">
         <div className="flex items-center gap-2 flex-shrink overflow-hidden">
           <LuBrain
-            className={`transition-colors duration-300 flex-shrink-0 ${enabledKnowledgeBase ? 'text-[#00968F]' : 'text-gray-500'}`}
+            className={`transition-colors duration-300 flex-shrink-0 ${enabledKnowledgeBase ? 'text-[#0E9F77]' : 'text-gray-500'}`}
             size={16}
           />
 
@@ -133,7 +133,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
                       <Button
                         type="primary"
                         size="small"
-                        className="bg-[#00968F] hover:bg-[#007F7A] flex items-center"
+                        className="bg-[#0E9F77] hover:bg-[#007F7A] flex items-center"
                         icon={<LuPlus size={14} />}
                         onClick={() => setCreateProjectModalVisible(true)}
                       >
@@ -166,7 +166,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
                       </span>
                     </div>
                     {project.projectId === currentProjectId && (
-                      <LuCheck className="text-[#00968F]" size={16} />
+                      <LuCheck className="text-[#0E9F77]" size={16} />
                     )}
                   </div>
                 </Select.Option>
@@ -198,7 +198,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
           <Tooltip
             title={
               <div className="p-1 max-w-xs">
-                <div className="font-medium mb-1 text-[#00968F]">{t('project.askProject')}</div>
+                <div className="font-medium mb-1 text-[#0E9F77]">{t('project.askProject')}</div>
                 <div className="text-xs text-gray-400">
                   <span className="mt-1 block">
                     {enabledKnowledgeBase

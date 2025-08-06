@@ -48,8 +48,8 @@ function HeroHome() {
                 y2="577.921"
                 gradientUnits="userSpaceOnUse"
               >
-                <stop stopColor="#00968F" stopOpacity=".01" />
-                <stop offset="1" stopColor="#00968F" stopOpacity=".32" />
+                <stop stopColor="#0E9F77" stopOpacity=".01" />
+                <stop offset="1" stopColor="#0E9F77" stopOpacity=".32" />
               </linearGradient>
             </defs>
             <path
@@ -80,11 +80,11 @@ function HeroHome() {
                     )}
                   >
                     <AnimatedShinyText className="flex-1 inline-flex items-center justify-center transition ease-out">
-                      <span className="whitespace-nowrap text-[#00968F] text-sm sm:text-base">
+                      <span className="whitespace-nowrap text-[#0E9F77] text-sm sm:text-base">
                         🚀 {t('landingPage.messageText')}
                       </span>
                     </AnimatedShinyText>
-                    <ArrowRightIcon className="ml-2 h-4 w-4 shrink-0 text-[#00968F] transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
+                    <ArrowRightIcon className="ml-2 h-4 w-4 shrink-0 text-[#0E9F77] transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
                   </div>
                 </div>
               </div>

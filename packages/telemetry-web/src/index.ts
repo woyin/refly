@@ -28,12 +28,12 @@ export const setupStatsig = async () => {
 
 export const logEvent = (
   eventName: string,
-  value?: string | number,
+  value?: string | number | null,
   metadata?: Record<string, any>,
 ) => {
   if (!statsigClient) {
     return;
   }
 
-  statsigClient.logEvent(eventName, value, metadata);
+  statsigClient.logEvent(eventName, value ?? undefined, metadata);
 };

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useListSkills as useListSkillsQuery } from '@refly-packages/ai-workspace-common/queries';
 
 export const useListSkills = () => {
-  const { data: skillData } = useListSkillsQuery({}, null, {
+  const { data: skillData } = useListSkillsQuery({}, undefined, {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

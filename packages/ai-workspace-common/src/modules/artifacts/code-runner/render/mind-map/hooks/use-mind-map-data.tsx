@@ -42,10 +42,10 @@ const DEFAULT_EDGE_STYLE = {
 
 // Dagre layout options for consistent mind map layout
 const LAYOUT_OPTIONS = {
-  direction: 'LR', // Left to right layout
+  direction: 'LR' as const, // Left to right layout
   nodeSep: 10, // Node separation distance
   rankSep: 250, // Rank separation distance (between levels)
-  ranker: 'network-simplex', // Use network-simplex for better hierarchical layouts
+  ranker: 'network-simplex' as const, // Use network-simplex for better hierarchical layouts
 };
 
 export const useMindMapData = ({

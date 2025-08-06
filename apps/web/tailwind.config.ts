@@ -96,7 +96,7 @@ export function defineConfig(): Config {
             300: '#74D5C6',
             400: '#46C0B2',
             500: '#1FAB9F',
-            600: '#00968F',
+            600: '#0E9F77',
             700: '#008481',
             800: '#00716A',
             900: '#18242c',
@@ -109,7 +109,7 @@ export function defineConfig(): Config {
           primary: {
             300: '#E8FFFA',
             400: '#46C0B2',
-            600: '#00968F',
+            600: '#0E9F77',
             DEFAULT: 'hsl(var(--primary))',
             foreground: 'hsl(var(--primary-foreground))',
           },

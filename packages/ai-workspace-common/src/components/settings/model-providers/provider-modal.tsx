@@ -14,8 +14,8 @@ import {
 } from 'antd';
 import { SyncOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import getClient from '../../../requests/proxiedRequest';
-import { Provider, ProviderCategory, ProviderTestResult } from '../../../requests/types.gen';
-import { ProviderInfo, providerInfoList } from '../../../../../utils/src';
+import { Provider, ProviderCategory, ProviderTestResult } from '@refly/openapi-schema';
+import { ProviderInfo, providerInfoList } from '@refly/utils';
 import { useTestProviderConnection } from '../../../queries';
 
 export const ProviderModal = React.memo(
@@ -262,7 +262,7 @@ export const ProviderModal = React.memo(
             },
           });
 
-          const providerResult = testResult.data.data as ProviderTestResult;
+          const providerResult = testResult?.data?.data as ProviderTestResult;
 
           if (providerResult?.status === 'success') {
             const successResult = {
@@ -290,11 +290,12 @@ export const ProviderModal = React.memo(
             },
           });
 
-          if (!createRes.data?.success) {
+          if (!createRes.data?.success || !createRes.data?.data) {
             throw new Error(t('settings.modelProviders.createTempProviderFailed'));
           }
 
           const tempProvider = createRes.data.data;
+
           try {
             const testResult = await testProviderMutation.mutateAsync({
               body: {
@@ -302,7 +303,7 @@ export const ProviderModal = React.memo(
               },
             });
 
-            const providerResult = testResult.data.data as ProviderTestResult;
+            const providerResult = testResult?.data?.data as ProviderTestResult;
 
             if (providerResult?.status === 'success') {
               const successResult = {
@@ -365,17 +366,17 @@ export const ProviderModal = React.memo(
             updateBody.apiKey = values.apiKey;
           }
 
-          const res = await getClient().updateProvider({
+          const { data } = await getClient().updateProvider({
             body: updateBody,
           });
-          if (res.data.success) {
+          if (data?.success && data?.data) {
             message.success(t('common.saveSuccess'));
-            onSuccess?.(res.data.data);
+            onSuccess?.(data.data);
             form.resetFields();
             onClose();
           }
         } else {
-          const res = await getClient().createProvider({
+          const { data } = await getClient().createProvider({
             body: {
               name: values.name,
               enabled: values.enabled,
@@ -385,9 +386,9 @@ export const ProviderModal = React.memo(
               categories: values.categories,
             },
           });
-          if (res.data.success) {
+          if (data?.success && data?.data) {
             message.success(t('common.addSuccess'));
-            onSuccess?.(res.data.data);
+            onSuccess?.(data.data);
             form.resetFields();
             onClose();
           }

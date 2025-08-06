@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useReactFlow } from '@xyflow/react';
 import { SelectionBubble } from './selection-bubble';
 import { useSelectionContext } from './use-selection-context';
-import { CanvasNode } from '../../components/canvas/nodes/shared/types';
+import { CanvasNode } from '@refly/canvas-common';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 interface CanvasSelectionContextProps {
   containerClass?: string;
@@ -78,7 +79,12 @@ export const CanvasSelectionContext: React.FC<CanvasSelectionContextProps> = ({
 
       try {
         const node = getNodeData(text);
-        addToContext(node);
+        addToContext({
+          title: node.data.title ?? '',
+          entityId: node.id,
+          type: node.type as CanvasNodeType,
+          metadata: node.data.metadata,
+        });
         message.success(t('knowledgeBase.context.addToContextSuccess'));
       } catch (error) {
         console.error('Error adding to context:', error);
@@ -114,11 +120,11 @@ export const CanvasSelectionContext: React.FC<CanvasSelectionContextProps> = ({
         <Button
           type="text"
           size="small"
-          className="text-[#00968F] hover:text-[#00968F]/80"
+          className="text-[#0E9F77] hover:text-[#0E9F77]/80"
           onClick={() => handleAddToContext(selectedText)}
-          icon={<MessageSquareDiff size={12} className="text-[#00968F]" />}
+          icon={<MessageSquareDiff size={12} className="text-[#0E9F77]" />}
         >
-          <span className="font-medium text-xs text-[#00968F]">
+          <span className="font-medium text-xs text-[#0E9F77]">
             {t('knowledgeBase.context.addToContext')}
           </span>
         </Button>

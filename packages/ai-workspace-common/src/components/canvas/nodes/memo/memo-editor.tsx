@@ -20,15 +20,18 @@ export const MemoEditor: FC<MemoEditorProps> = ({ editor, bgColor, onChangeBackg
   const [openColor, setOpenColor] = useState(false);
 
   return (
-    <div className="flex gap-1">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <NodeSelector open={openNode} onOpenChange={setOpenNode} triggerEditor={editor} />
+        <Divider className="mx-0 h-3" type="vertical" />
+        <ColorSelector open={openColor} onOpenChange={setOpenColor} triggerEditor={editor} />
+
+        <TextButtons triggerEditor={editor} />
+        <Divider className="mx-0 h-3" type="vertical" />
+        <LinkSelector open={openLink} onOpenChange={setOpenLink} triggerEditor={editor} />
+      </div>
+
       <CommonColorPicker color={bgColor} onChange={onChangeBackground} />
-      <Divider className="mx-0 h-8" type="vertical" />
-      <NodeSelector open={openNode} onOpenChange={setOpenNode} triggerEditor={editor} />
-      <Divider className="mx-0 h-8" type="vertical" />
-      <ColorSelector open={openColor} onOpenChange={setOpenColor} triggerEditor={editor} />
-      <Divider className="mx-0 h-8" type="vertical" />
-      <TextButtons triggerEditor={editor} />
-      <LinkSelector open={openLink} onOpenChange={setOpenLink} triggerEditor={editor} />
     </div>
   );
 };

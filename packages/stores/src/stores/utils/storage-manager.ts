@@ -45,7 +45,7 @@ export class AutoEvictionStorageManager implements StateStorage {
       maxAge: options.maxAge ?? this.ONE_DAY_MS,
       maxItems: options.maxItems ?? this.DEFAULT_MAX_ITEMS,
       maxSize: options.maxSize ?? this.DEFAULT_MAX_SIZE,
-      debug: options.debug,
+      debug: options.debug ?? false,
     };
   }
 

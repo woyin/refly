@@ -43,7 +43,12 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     }));
 
   const renderPopoverContent = (item: Source) => {
-    const domain = safeParseURL(item.url);
+    const domain = safeParseURL(item.url ?? '');
+    const targetLanguage =
+      outputLocale.code === 'auto'
+        ? item.metadata?.translatedDisplayLocale || 'en'
+        : outputLocale.code;
+
     return (
       <div className="search-result-popover-content">
         {/* Title section */}
@@ -51,13 +56,9 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
           <h4 className="font-medium text-base m-0 break-words dark:border-gray-700">
             <TranslationWrapper
               content={item.title || ''}
-              targetLanguage={
-                outputLocale.code === 'auto'
-                  ? item.metadata?.translatedDisplayLocale
-                  : outputLocale.code
-              }
+              targetLanguage={targetLanguage}
               className="dark:!text-gray-200"
-              originalLocale={item.metadata?.originalLocale}
+              originalLocale={item.metadata?.originalLocale || 'en'}
               enableTranslation={config.enableTranslation}
             />
           </h4>
@@ -79,12 +80,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
         <div className="content-body pt-0">
           <TranslationWrapper
             content={item.pageContent}
-            targetLanguage={
-              outputLocale.code === 'auto'
-                ? item.metadata?.translatedDisplayLocale
-                : outputLocale.code
-            }
-            originalLocale={item.metadata?.originalLocale}
+            targetLanguage={targetLanguage}
+            originalLocale={item.metadata?.originalLocale || 'en'}
             enableTranslation={config.enableTranslation}
           />
         </div>
@@ -185,12 +182,13 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                             {item.metadata?.translatedDisplayLocale && (
                               <Tag className="locale-tag">
                                 <span>
-                                  <AiOutlineGlobal /> {getLocaleName(item.metadata.originalLocale)}
+                                  <AiOutlineGlobal />{' '}
+                                  {getLocaleName(item.metadata?.originalLocale || 'en')}
                                 </span>{' '}
                                 →{' '}
                                 <span>
                                   <AiOutlineTranslation />{' '}
-                                  {getLocaleName(item.metadata.translatedDisplayLocale)}
+                                  {getLocaleName(item.metadata?.translatedDisplayLocale || 'en')}
                                 </span>
                               </Tag>
                             )}
@@ -204,10 +202,10 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                               content={item.title || ''}
                               targetLanguage={
                                 outputLocale.code === 'auto'
-                                  ? item.metadata?.translatedDisplayLocale
+                                  ? item.metadata?.translatedDisplayLocale || 'en'
                                   : outputLocale.code
                               }
-                              originalLocale={item.metadata?.originalLocale}
+                              originalLocale={item.metadata?.originalLocale || 'en'}
                               enableTranslation={config.enableTranslation}
                             />
                           </div>
@@ -216,10 +214,10 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                               content={item.pageContent}
                               targetLanguage={
                                 outputLocale.code === 'auto'
-                                  ? item.metadata?.translatedDisplayLocale
+                                  ? item.metadata?.translatedDisplayLocale || 'en'
                                   : outputLocale.code
                               }
-                              originalLocale={item.metadata?.originalLocale}
+                              originalLocale={item.metadata?.originalLocale || 'en'}
                               enableTranslation={config.enableTranslation}
                             />
                           </div>

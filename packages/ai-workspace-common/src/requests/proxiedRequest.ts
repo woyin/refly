@@ -82,7 +82,7 @@ client.interceptors.request.use(async (request) => {
   return request;
 });
 
-client.interceptors.response.use(async (response, request) => {
+client.interceptors.response.use(async (response, request): Promise<Response> => {
   // Get the cached request and clear it from cache
   const cachedRequest = getAndClearCachedRequest(request);
   return await responseInterceptorWithTokenRefresh(response, cachedRequest ?? request);
@@ -191,7 +191,7 @@ const wrapFunctions = (module: any) => {
         } catch (err) {
           const errResp = {
             success: false,
-            errCode: new ConnectionError(err).code,
+            errCode: new ConnectionError(err instanceof Error ? err.message : String(err)).code,
           };
           showErrorNotification(errResp, getLocale());
           return {
@@ -215,7 +215,7 @@ const wrapFunctions = (module: any) => {
         } catch (err) {
           const errResp = {
             success: false,
-            errCode: new ConnectionError(err).code,
+            errCode: new ConnectionError(err instanceof Error ? err.message : String(err)).code,
           };
           showErrorNotification(errResp, getLocale());
           return {

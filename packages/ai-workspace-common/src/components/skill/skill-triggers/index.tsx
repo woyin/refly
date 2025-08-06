@@ -38,7 +38,7 @@ export const SkillTriggers = () => {
       const res = await getClient().listSkillTriggers({
         query: { ...queryPayload, skillId },
       });
-      return res?.data;
+      return res?.data ?? { success: true, data: [] };
     },
     pageSize: 12,
   });
@@ -51,7 +51,7 @@ export const SkillTriggers = () => {
     let eventMessage = t(`skill.newTriggerModal.${simpleEventName}`);
     if (timerConfig) {
       eventType = 'timer';
-      eventMessage = `${timerConfig.datetime}（${t(`skill.newTriggerModal.${timerConfig.repeatInterval}`)}）`;
+      eventMessage = `${timerConfig.datetime} (${t(`skill.newTriggerModal.${timerConfig.repeatInterval}`)})`;
     }
     const updateTriggerStatus = async (val: boolean) => {
       const error = await createTrigger.updateTriggerStatus(trigger, val);

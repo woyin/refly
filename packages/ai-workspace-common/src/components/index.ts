@@ -1,5 +1,3 @@
-export { default as Transition } from './transition';
-
 export * from './document';
 export * from './tour-modal';
 export * from './translation-wrapper';
@@ -20,7 +18,6 @@ export * from './home-redirect';
 export * from './hover-card';
 export * from './canvas-template';
 export * from './ui-locale-list';
-export * from './use-searchable-list';
 
 // For directories without index files, export individual files
 export * from './common/result-display';
@@ -33,9 +30,6 @@ export * from './common/tooltip-button';
 
 // Canvas exports (index.tsx exists)
 export * from './canvas';
-
-// Editor exports (index.ts exists)
-export * from './editor';
 
 // Message exports (individual files)
 export * from './message/add-to-context-message';

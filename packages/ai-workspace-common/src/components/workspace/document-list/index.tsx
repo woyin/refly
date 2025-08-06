@@ -127,22 +127,26 @@ const ActionDropdown = ({ doc, afterDelete }: { doc: Document; afterDelete: () =
   };
 
   const items: MenuProps['items'] = [
-    !isShareCanvas && {
-      label: (
-        <div className="flex items-center flex-grow">
-          <LuPlus size={16} className="mr-2" />
-          {t('workspace.addToCanvas')}
-        </div>
-      ),
-      key: 'addToCanvas',
-      onClick: () => {
-        if (isCanvasOpen) {
-          handleAddToCanvas();
-        } else {
-          message.error(t('workspace.noCanvasSelected'));
-        }
-      },
-    },
+    ...(!isShareCanvas
+      ? [
+          {
+            label: (
+              <div className="flex items-center flex-grow">
+                <LuPlus size={16} className="mr-2" />
+                {t('workspace.addToCanvas')}
+              </div>
+            ),
+            key: 'addToCanvas',
+            onClick: () => {
+              if (isCanvasOpen) {
+                handleAddToCanvas();
+              } else {
+                message.error(t('workspace.noCanvasSelected'));
+              }
+            },
+          },
+        ]
+      : []),
     {
       label: (
         <div className="flex items-center flex-grow">
@@ -230,11 +234,13 @@ const DocumentCard = ({ item, onDelete }: { item: Document; onDelete: () => void
             <Typography.Text className="text-sm font-medium w-48" ellipsis={{ tooltip: true }}>
               {item.title || t('common.untitled')}
             </Typography.Text>
-            <p className="text-xs text-gray-500">
-              {time(item.updatedAt, language as LOCALE)
-                .utc()
-                .fromNow()}
-            </p>
+            {item.updatedAt && (
+              <p className="text-xs text-gray-500">
+                {time(item.updatedAt, language as LOCALE)
+                  .utc()
+                  .fromNow()}
+              </p>
+            )}
           </div>
         </div>
         <ActionDropdown doc={item} afterDelete={onDelete} />
@@ -255,7 +261,7 @@ const DocumentList = () => {
       const res = await getClient().listDocuments({
         query: queryPayload,
       });
-      return res?.data;
+      return res?.data ?? { success: true, data: [] };
     },
     pageSize: 12,
   });
@@ -289,7 +295,7 @@ const DocumentList = () => {
       <Empty description={t('common.empty')}>
         <Button
           loading={isCreating}
-          className="text-[#00968F]"
+          className="text-[#0E9F77]"
           icon={<IconCreateDocument className="-mr-1 flex items-center justify-center" />}
           onClick={() => {
             createDocument(t('common.untitled'), '', reload);

@@ -12,6 +12,7 @@ import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canv
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { CanvasNode } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import './index.scss';
 
 export const ContextItem = ({
   item,
@@ -31,7 +32,7 @@ export const ContextItem = ({
   const { t } = useTranslation();
   const { readonly } = useCanvasContext();
   const { title, entityId, selection, metadata, type } = item ?? {};
-  const icon = getContextItemIcon(item.type, null, { withHistory: metadata?.withHistory });
+  const icon = getContextItemIcon(item.type, undefined, { withHistory: metadata?.withHistory });
   const { setSelectedNode } = useNodeSelection();
   const { getNodes } = useReactFlow();
   const { setNodeCenter } = useNodePosition();

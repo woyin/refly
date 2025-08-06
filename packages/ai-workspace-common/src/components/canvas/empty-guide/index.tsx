@@ -42,7 +42,7 @@ export const EmptyGuide = ({ canvasId }: { canvasId: string }) => {
           <Button
             icon={<IconImportResource className="-mr-1 flex items-center justify-center" />}
             type="text"
-            className="text-[20px] text-[#00968F] py-[4px] px-[8px]"
+            className="text-[20px] text-[#0E9F77] py-[4px] px-[8px]"
             onClick={() => setImportResourceModalVisible(true)}
             data-cy="canvas-import-resource-button"
             style={{ pointerEvents: 'auto' }}
@@ -53,7 +53,7 @@ export const EmptyGuide = ({ canvasId }: { canvasId: string }) => {
           <Button
             type="text"
             icon={<IconAskAI className="-mr-1 flex items-center justify-center" />}
-            className="text-[20px] text-[#00968F] py-[4px] px-[8px]"
+            className="text-[20px] text-[#0E9F77] py-[4px] px-[8px]"
             onClick={() => setShowLinearThread(!showLinearThread)}
             data-cy="canvas-ask-ai-button"
             style={{ pointerEvents: 'auto' }}
@@ -65,7 +65,7 @@ export const EmptyGuide = ({ canvasId }: { canvasId: string }) => {
             <Button
               icon={<IconTemplate className="-mr-1 flex items-center justify-center" />}
               type="text"
-              className="text-[20px] text-[#00968F] py-[4px] px-[8px]"
+              className="text-[20px] text-[#0E9F77] py-[4px] px-[8px]"
               onClick={() => setVisible(true)}
               data-cy="canvas-create-document-button"
               style={{ pointerEvents: 'auto' }}

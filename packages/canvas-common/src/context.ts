@@ -17,7 +17,7 @@ export const convertResultContextToItems = (
     items.push({
       type: 'skillResponse',
       entityId: item.resultId,
-      title: item.title,
+      title: item.title ?? '',
     });
   }
 
@@ -98,25 +98,6 @@ export const convertResultContextToItems = (
     });
   }
 
-  // Handle images separately - they're not part of the standard contentList
-  // Images are handled specially in useInvokeAction.ts via findImages
-  // if (context?.images && Array.isArray(context.input.images)) {
-  //   for (const imageKey of context.input.images) {
-  //     // Add image context items
-  //     items.push({
-  //       type: 'image',
-  //       entityId: typeof imageKey === 'object' ? imageKey.entityId || '' : '',
-  //       title: typeof imageKey === 'object' ? imageKey.title || 'Image' : 'Image',
-  //       metadata: {
-  //         storageKey: typeof imageKey === 'object' ? imageKey.storageKey : imageKey,
-  //         imageUrl: typeof imageKey === 'object' ? imageKey.imageUrl || '' : '',
-  //         // Other image-specific metadata
-  //         ...(typeof imageKey === 'object' ? imageKey.metadata || {} : {}),
-  //       },
-  //     });
-  //   }
-  // }
-
   return purgeContextItems(items);
 };
 
@@ -195,7 +176,7 @@ export const convertContextItemsToInvokeParams = (
     purgedItems
       ?.filter((item) => item.type === 'memo' && getMemo)
       ?.flatMap((item) =>
-        getMemo(item).map((memo) => ({
+        getMemo!(item).map((memo) => ({
           content: memo.content,
           metadata: {
             domain: 'memo',
@@ -344,13 +325,13 @@ export const convertContextItemsToEdges = (
     return { edgesToAdd, edgesToDelete };
   }
 
-  const currentNode = nodes.find((node) => node.data?.entityId === resultId);
+  const currentNode = nodes?.find((node) => node.data?.entityId === resultId);
   if (!currentNode) {
     console.warn('currentNode not found');
     return { edgesToAdd, edgesToDelete };
   }
 
-  const relatedEdges = edges.filter((edge) => edge.target === currentNode.id) ?? [];
+  const relatedEdges = edges?.filter((edge) => edge.target === currentNode.id) ?? [];
 
   // Create a map of source entity IDs to their corresponding node IDs
   const entityNodeMap = new Map<string, string>();
@@ -369,7 +350,7 @@ export const convertContextItemsToEdges = (
   // Process each item to create edges based on relationships
   for (const item of items ?? []) {
     const itemNodeId = entityNodeMap.get(item.entityId as string);
-    if (!edgeSourceIdSet.has(itemNodeId)) {
+    if (itemNodeId && !edgeSourceIdSet.has(itemNodeId)) {
       const newEdge: Edge = {
         id: `${itemNodeId}-${currentNode.id}`,
         source: itemNodeId,

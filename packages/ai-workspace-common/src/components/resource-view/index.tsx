@@ -43,32 +43,25 @@ const ResourceMeta = memo(
   }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.languages?.[0];
+    const indexStatus = resourceDetail?.indexStatus ?? 'finish';
 
     return (
       <div className="knowledge-base-resource-meta">
-        {['wait_parse', 'wait_index', 'index_failed'].includes(resourceDetail?.indexStatus) && (
+        {['wait_parse', 'wait_index', 'index_failed'].includes(indexStatus) && (
           <Alert
             className="py-[8px] px-[15px] !items-center"
             style={{ marginBottom: 16 }}
-            type={
-              ['wait_index', 'wait_parse'].includes(resourceDetail?.indexStatus)
-                ? 'warning'
-                : 'error'
-            }
+            type={['wait_index', 'wait_parse'].includes(indexStatus) ? 'warning' : 'error'}
             showIcon
-            icon={
-              ['wait_index', 'wait_parse'].includes(resourceDetail?.indexStatus) ? (
-                <LoadingOutlined />
-              ) : null
-            }
+            icon={['wait_index', 'wait_parse'].includes(indexStatus) ? <LoadingOutlined /> : null}
             description={
-              t(`resource.${resourceDetail?.indexStatus}`) +
-              (['wait_index', 'index_failed'].includes(resourceDetail?.indexStatus)
-                ? `: ${t(`resource.${resourceDetail?.indexStatus}_tip`)}`
+              t(`resource.${indexStatus}`) +
+              (['wait_index', 'index_failed'].includes(indexStatus)
+                ? `: ${t(`resource.${indexStatus}_tip`)}`
                 : '')
             }
             action={
-              ['index_failed'].includes(resourceDetail?.indexStatus) ? (
+              ['index_failed'].includes(indexStatus) ? (
                 <Button
                   size="small"
                   loading={isReindexing}
@@ -86,7 +79,7 @@ const ResourceMeta = memo(
         <div className="knowledge-base-directory-site-intro">
           <div className="site-intro-icon flex justify-center items-center">
             <ResourceIcon
-              url={resourceDetail?.data?.url}
+              url={resourceDetail?.data?.url ?? ''}
               resourceType={resourceDetail?.resourceType}
               extension={resourceDetail?.downloadURL?.split('.').pop()}
               size={24}
@@ -98,7 +91,7 @@ const ResourceMeta = memo(
             )}
             {resourceDetail?.data?.url && (
               <a
-                className="site-intro-site-url no-underline text-[#00968F]"
+                className="site-intro-site-url no-underline text-[#0E9F77]"
                 href={resourceDetail?.data?.url}
                 target="_blank"
                 rel="noreferrer"
@@ -130,9 +123,9 @@ const ResourceMeta = memo(
 const genIndexErrorSubTitle = (indexError: IndexError, t: TFunction) => {
   if (indexError?.type === 'pageLimitExceeded') {
     return t('resource.pageLimitExceeded', {
-      numPages: indexError.metadata.numPages,
-      used: indexError.metadata.pageUsed,
-      limit: indexError.metadata.pageLimit,
+      numPages: indexError.metadata?.numPages,
+      used: indexError.metadata?.pageUsed,
+      limit: indexError.metadata?.pageLimit,
     });
   }
   return t('resource.unknownError');
@@ -207,7 +200,7 @@ export const ResourceView = memo(
       data,
       refetch: refetchResourceDetail,
       isLoading,
-    } = useGetResourceDetail({ query: { resourceId } }, null, {
+    } = useGetResourceDetail({ query: { resourceId } }, undefined, {
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
@@ -217,6 +210,7 @@ export const ResourceView = memo(
     });
     const { data: shareData } = useFetchShareData<Resource>(shareId);
     const resourceDetail = useMemo(() => shareData || data?.data || null, [shareData, data]);
+    const indexStatus = resourceDetail?.indexStatus ?? 'finish';
 
     const handleReindexResource = useCallback(
       async (resourceId: string) => {
@@ -240,7 +234,7 @@ export const ResourceView = memo(
 
     useEffect(() => {
       let intervalId: NodeJS.Timeout;
-      if (['wait_parse', 'wait_index'].includes(resourceDetail?.indexStatus)) {
+      if (['wait_parse', 'wait_index'].includes(indexStatus)) {
         intervalId = setInterval(() => {
           refetchResourceDetail();
         }, 2000);
@@ -268,7 +262,7 @@ export const ResourceView = memo(
     return (
       <div className="knowledge-base-resource-detail-container pt-[16px]">
         <div className="h-full">
-          {isLoading ? (
+          {isLoading || !resourceDetail ? (
             <div className="knowledge-base-resource-skeleton">
               <Skeleton active style={{ marginTop: 24 }} />
               <Skeleton active style={{ marginTop: 24 }} />
@@ -287,7 +281,7 @@ export const ResourceView = memo(
                   <Result
                     status="500"
                     title={t('resource.parse_failed')}
-                    subTitle={genIndexErrorSubTitle(resourceDetail?.indexError, t)}
+                    subTitle={genIndexErrorSubTitle(resourceDetail?.indexError ?? {}, t)}
                     extra={
                       !readonly && (
                         <div className="flex justify-center items-center gap-2">

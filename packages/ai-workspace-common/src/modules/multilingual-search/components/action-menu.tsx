@@ -35,7 +35,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
   }));
 
   const { projectId, isCanvasOpen } = useGetProjectCanvasId();
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId || null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
   const { updateSourceList } = useUpdateSourceList();
 
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
@@ -73,7 +73,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
       const batchCreateResourceData: UpsertResourceRequest[] = selectedItems.map((item) => ({
         projectId: currentProjectId,
         resourceType: 'weblink',
-        title: item.title,
+        title: item.title ?? '',
         data: {
           url: item.url,
           title: item.title,
@@ -120,7 +120,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
                     contentPreview: resource.contentPreview,
                   },
                 },
-                position: nodePosition,
+                position: nodePosition ?? undefined,
               },
             });
           });
@@ -136,8 +136,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
             node: {
               type: 'resource',
               data: {
-                title: item.title,
-                entityId: item.metadata?.entityId,
+                title: item.title ?? '',
+                entityId: item.metadata?.entityId ?? '',
                 contentPreview: item.pageContent,
                 metadata: {
                   contentPreview: item.pageContent,
@@ -153,16 +153,14 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
   };
 
   const canImportCount = getAvailableFileCount(storageUsage);
-  const disableSave = () => {
-    return selectedItems.length === 0 || selectedItems.length > canImportCount;
-  };
+  const saveDisabled = selectedItems.length === 0 || selectedItems.length > canImportCount;
 
   return (
     <Affix offsetBottom={0} target={props.getTarget}>
       <div className="intergation-footer bg-white dark:bg-[#1f1f1f] !border-[#e5e5e5] dark:!border-[#2f2f2f]">
         <div className="footer-location">
           <Checkbox
-            checked={selectedItems.length && selectedItems.length === results.length}
+            checked={selectedItems.length > 0 && selectedItems.length === results.length}
             indeterminate={selectedItems.length > 0 && selectedItems.length < results.length}
             onChange={(e) => handleSelectAll(e.target.checked)}
           />
@@ -180,7 +178,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
           <Button
             type="primary"
             onClick={handleSave}
-            disabled={disableSave() || props.disabled}
+            disabled={props.disabled ?? saveDisabled}
             loading={saveLoading}
           >
             {isCanvasOpen ? t('common.saveToCanvas') : t('common.save')}

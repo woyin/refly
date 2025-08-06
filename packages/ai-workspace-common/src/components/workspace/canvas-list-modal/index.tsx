@@ -91,7 +91,7 @@ export const CanvasListModal = memo((props: CanvasListProps) => {
       const res = await getClient().listCanvases({
         query: queryPayload,
       });
-      return res?.data;
+      return res?.data ?? { success: true, data: [] };
     },
     pageSize: 12,
   });

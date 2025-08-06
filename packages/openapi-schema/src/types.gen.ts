@@ -2963,7 +2963,7 @@ export type SkillEvent = {
   /**
    * Result ID
    */
-  resultId?: string;
+  resultId: string;
   /**
    * Result version
    */

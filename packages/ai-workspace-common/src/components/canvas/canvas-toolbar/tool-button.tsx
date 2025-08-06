@@ -17,7 +17,7 @@ export type ToolValue =
 // Define toolbar item interface
 export interface ToolbarItem {
   type: 'button' | 'popover' | 'divider';
-  icon?: React.ElementType;
+  icon: React.ElementType;
   value?: ToolValue;
   domain?: string;
   tooltip?: string;
@@ -54,7 +54,7 @@ export const ToolButton: FC<ToolButtonProps> = memo(
       contextCnt > 0 && tool.value === 'handleLaunchpad' ? (
         <Badge
           size="small"
-          color="#00968F"
+          color="#0E9F77"
           offset={[-2, 2]}
           count={contextCnt}
           overflowCount={9999}

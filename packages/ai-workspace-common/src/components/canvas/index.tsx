@@ -78,12 +78,12 @@ const GRID_SIZE = 10;
 const selectionStyles = `
   .react-flow__selection {
     background: rgba(0, 150, 143, 0.03) !important;
-    border: 0.5px solid #00968F !important;
+    border: 0.5px solid #0E9F77 !important;
   }
   
   .react-flow__nodesselection-rect {
     background: rgba(0, 150, 143, 0.03) !important;
-    border: 0.5px solid #00968F !important;
+    border: 0.5px solid #0E9F77 !important;
   }
 `;
 
@@ -133,8 +133,8 @@ const MiniMapNode = (props: any) => {
         rx={12}
         ry={12}
         style={{
-          fill: getMiniMapNodeColor(node),
-          stroke: getMiniMapNodeStrokeColor(node),
+          fill: node ? getMiniMapNodeColor(node) : '#6172F3',
+          stroke: node ? getMiniMapNodeStrokeColor(node) : 'transparent',
           strokeWidth: 10,
           opacity: 0.5,
           strokeDasharray: node?.type === 'group' ? '10,10' : 'none',
@@ -521,7 +521,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
   useEffect(() => {
     if (contextMenu.type === 'node') {
-      setContextMenuOpenedCanvasId(contextMenu.open ? contextMenu.nodeId : null);
+      setContextMenuOpenedCanvasId(contextMenu.open ? (contextMenu.nodeId ?? null) : null);
     }
   }, [contextMenu, setContextMenuOpenedCanvasId]);
 
@@ -1013,10 +1013,10 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             onConnect={readonly ? readonlyConnect : onConnect}
             onConnectStart={readonly ? undefined : temporaryEdgeOnConnectStart}
             onConnectEnd={readonly ? undefined : temporaryEdgeOnConnectEnd}
-            onNodeClick={handleNodeClick}
+            onNodeClick={handleNodeClick as any}
             onPaneClick={handlePanelClick}
-            onPaneContextMenu={readonly ? undefined : onPaneContextMenu}
-            onNodeContextMenu={readonly ? undefined : onNodeContextMenu}
+            onPaneContextMenu={readonly ? undefined : (onPaneContextMenu as any)}
+            onNodeContextMenu={readonly ? undefined : (onNodeContextMenu as any)}
             onNodeDragStart={readonly ? handleReadonlyDrag : handleNodeDragStart}
             onNodeDragStop={readonly ? undefined : handleNodeDragStop}
             nodeDragThreshold={10}

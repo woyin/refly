@@ -72,7 +72,7 @@ const SessionHeader = memo(
                   (steps.filter((step) => step.status === 'finish').length / steps.length) * 100,
                 )}
                 size={14}
-                strokeColor="#00968F"
+                strokeColor="#0E9F77"
               />
               <div className="text-xs font-medium flex items-center">
                 {steps.filter((step) => step.status === 'finish').length} / {steps.length}
@@ -86,7 +86,7 @@ const SessionHeader = memo(
               size="small"
               className="flex items-center justify-center p-0 !w-7 h-7 text-gray-500 hover:text-gray-600 min-w-0"
               icon={<RiChatNewLine className="w-4 h-4" />}
-              onClick={() => handleSessionClick(null)}
+              onClick={() => handleSessionClick('')}
             />
           </Tooltip>
           <Popover
@@ -271,7 +271,7 @@ export const SessionContainer = memo(
       {
         query: { sessionId },
       },
-      null,
+      [],
       {
         enabled: !!sessionId,
         refetchInterval: isPolling ? POLLING_INTERVAL : false,
@@ -343,13 +343,15 @@ export const SessionContainer = memo(
     return (
       <div className={containerClassName}>
         {/* Header */}
-        <SessionHeader
-          canvasId={canvasId}
-          session={session}
-          steps={sortedSteps}
-          onClose={handleClose}
-          onSessionClick={handleSessionClick}
-        />
+        {session && (
+          <SessionHeader
+            canvasId={canvasId}
+            session={session}
+            steps={sortedSteps}
+            onClose={handleClose}
+            onSessionClick={handleSessionClick}
+          />
+        )}
 
         {!session ? (
           <NoSession loading={isLoading} error={!!error} canvasId={canvasId} />

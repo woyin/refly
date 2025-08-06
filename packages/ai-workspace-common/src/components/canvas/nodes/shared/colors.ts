@@ -2,7 +2,7 @@ import { CanvasNodeType } from '@refly/openapi-schema';
 
 // Define background colors for different node types
 export const NODE_COLORS: Record<CanvasNodeType | 'threadHistory', string> = {
-  document: '#00968F',
+  document: '#0E9F77',
   resource: '#17B26A',
   skillResponse: '#F79009',
   toolResponse: '#F79009',

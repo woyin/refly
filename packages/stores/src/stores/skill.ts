@@ -26,7 +26,7 @@ interface SkillManageState {
   setIsFetchingSkillInstances: (isFetching: boolean) => void;
   setIsFetchingSkillTemplates: (isFetching: boolean) => void;
   setSelectedSkillInstance: (skillInstance: SkillInstance) => void;
-  setSelectedSkill: (skill: Skill) => void;
+  setSelectedSkill: (skill: Skill | null) => void;
   setSkillManagerModalVisible: (visible: boolean) => void;
   resetState: () => void;
 }
@@ -57,7 +57,7 @@ export const useSkillStore = create<SkillManageState>()(
       set((state) => ({ ...state, isFetchingSkillTemplates: isFetching })),
     setSelectedSkillInstance: (skillInstance: SkillInstance) =>
       set((state) => ({ ...state, selectedSkillInstance: skillInstance })),
-    setSelectedSkill: (skill: Skill) => set((state) => ({ ...state, selectedSkill: skill })),
+    setSelectedSkill: (skill: Skill | null) => set((state) => ({ ...state, selectedSkill: skill })),
     setSkillManagerModalVisible: (visible: boolean) =>
       set((state) => ({ ...state, skillManagerModalVisible: visible })),
     resetState: () => set((state) => ({ ...state, ...defaultState })),

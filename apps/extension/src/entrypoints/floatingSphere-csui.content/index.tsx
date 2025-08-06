@@ -37,7 +37,7 @@ export default defineContentScript({
           <ConfigProvider
             theme={{
               token: {
-                colorPrimary: '#00968F',
+                colorPrimary: '#0E9F77',
                 borderRadius: 8,
                 // Modal specific tokens
                 colorBgMask: 'var(--refly-modal-mask)',

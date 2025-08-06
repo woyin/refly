@@ -45,7 +45,7 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
       return {
         ...baseMetadata,
         query: '',
-        modelInfo: null,
+        modelInfo: undefined,
       } as SkillNodeMeta;
 
     case 'tool':

@@ -53,7 +53,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
         artifactId,
       },
     },
-    null,
+    [],
     { enabled: Boolean(isLogin && !shareId && artifactId) },
   );
   const { data: shareData, loading: isShareLoading } = useFetchShareData<CodeArtifact>(shareId);
@@ -110,7 +110,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
 
   useEffect(() => {
     if (artifactData) {
-      setContent(artifactData.content);
+      setContent(artifactData.content ?? '');
     }
   }, [artifactData]);
 

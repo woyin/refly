@@ -42,7 +42,7 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
           readonly={readonly}
           skill={{
             icon: actionMeta?.icon,
-            name: actionMeta?.name,
+            name: actionMeta?.name ?? '',
           }}
           className="rounded-t-[7px]"
         />

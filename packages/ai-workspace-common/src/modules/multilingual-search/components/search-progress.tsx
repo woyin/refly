@@ -5,7 +5,7 @@ import { useMultilingualSearchStore } from '@refly/stores';
 import './search-progress.scss';
 import { useTranslation } from 'react-i18next';
 
-const renderStepResult = (step: string, result: any, t: any) => {
+const renderStepResult = (step: string, result: Record<string, any>, t: any) => {
   switch (step) {
     case 'rewriteQuery':
       return (
@@ -28,7 +28,7 @@ const renderStepResult = (step: string, result: any, t: any) => {
     case 'translateQuery':
       return (
         <ul>
-          {Object.entries(result.translatedQueries).map(([locale, queries]: [string, string[]]) => (
+          {Object.entries(result.translatedQueries).map(([locale, queries]: [string, any]) => (
             <li key={locale}>
               {locale}: {queries.join(', ')}
             </li>
@@ -144,15 +144,15 @@ export const SearchProgress: React.FC = () => {
                     step.step === 'Processing...' ? (
                       <Spin
                         indicator={
-                          <LoadingOutlined style={{ fontSize: 12, color: '#00968f' }} spin />
+                          <LoadingOutlined style={{ fontSize: 12, color: '#0E9F77' }} spin />
                         }
                       />
                     ) : undefined,
                   children: (
                     <div className="step-content">
-                      <h4>{getStepName(step.step, t)}</h4>
-                      {step.result && renderStepResult(step.step, step.result, t)}
-                      {step.duration > 0 && (
+                      <h4>{getStepName(step.step ?? '', t)}</h4>
+                      {step.result && renderStepResult(step.step ?? '', step.result, t)}
+                      {step.duration && step.duration > 0 && (
                         <span className="duration">
                           {t('resource.multilingualSearch.progress.duration', {
                             duration: step.duration,

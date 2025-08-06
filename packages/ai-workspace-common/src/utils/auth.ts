@@ -49,7 +49,7 @@ const isNetworkError = (error: unknown): boolean => {
 };
 
 export const refreshToken = async (): Promise<RefreshResult> => {
-  if (isRefreshing) {
+  if (isRefreshing && refreshPromise) {
     return refreshPromise;
   }
 
@@ -188,8 +188,10 @@ export const refreshTokenAndRetry = async (failedRequest: Request): Promise<Resp
     if (!isNetworkError(error)) {
       // Clear queue and reject all pending requests
       while (requestQueue.length > 0) {
-        const { reject } = requestQueue.shift();
-        reject(new AuthenticationExpiredError());
+        const request = requestQueue.shift();
+        if (request) {
+          request.reject(new AuthenticationExpiredError());
+        }
       }
 
       if (!isRefreshed) {
@@ -222,7 +224,10 @@ export const refreshTokenAndRetry = async (failedRequest: Request): Promise<Resp
   }
 };
 
-export const responseInterceptorWithTokenRefresh = async (response: Response, request: Request) => {
+export const responseInterceptorWithTokenRefresh = async (
+  response: Response,
+  request: Request,
+): Promise<Response> => {
   if (request.url.includes('/v1/auth/refreshToken')) {
     return response;
   }
@@ -240,7 +245,7 @@ export const responseInterceptorWithTokenRefresh = async (response: Response, re
         } else {
           // If offline, we'll keep the session and retry when back online
           console.warn('Authentication error while offline, will retry when online');
-          return new Promise((resolve) => {
+          return new Promise<Response>((resolve) => {
             const onlineHandler = async () => {
               window.removeEventListener('online', onlineHandler);
               try {

@@ -39,7 +39,7 @@ const NodeHeader = memo(
       <div className="flex justify-between">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded bg-[#6172F3] shadow-lg flex items-center justify-center flex-shrink-0">
-            {getSkillIcon(selectedSkillName, 'w-4 h-4 text-white')}
+            {getSkillIcon(selectedSkillName ?? '', 'w-4 h-4 text-white')}
           </div>
           <span className="text-sm font-medium leading-normal text-[rgba(0,0,0,0.8)] truncate dark:text-[rgba(225,225,225,0.8)]">
             {selectedSkillName
@@ -77,7 +77,7 @@ export const SkillNodePreview = memo(({ node }: SkillNodePreviewProps) => {
 
   const { entityId, metadata = {} } = node?.data ?? {};
   const { query, selectedSkill, modelInfo, contextItems = [], tplConfig, runtimeConfig } = metadata;
-  const skill = useFindSkill(selectedSkill?.name);
+  const skill = useFindSkill(selectedSkill?.name ?? '');
 
   const [localQuery, setLocalQuery] = useState(query);
 
@@ -263,9 +263,9 @@ export const SkillNodePreview = memo(({ node }: SkillNodePreviewProps) => {
       <ChatInput
         readonly={readonly}
         ref={chatInputRef}
-        query={localQuery}
+        query={localQuery ?? ''}
         setQuery={setQuery}
-        selectedSkillName={skill?.name}
+        selectedSkillName={skill?.name ?? null}
         inputClassName="px-1 py-0"
         maxRows={100}
         handleSendMessage={handleSendMessage}
@@ -294,14 +294,14 @@ export const SkillNodePreview = memo(({ node }: SkillNodePreviewProps) => {
       )}
 
       <ChatActions
-        query={localQuery}
-        model={modelInfo}
+        query={localQuery ?? ''}
+        model={modelInfo ?? null}
         setModel={setModelInfo}
         handleSendMessage={handleSendMessage}
         handleAbort={abortAction}
         onUploadImage={handleImageUpload}
         contextItems={contextItems}
-        runtimeConfig={runtimeConfig}
+        runtimeConfig={runtimeConfig ?? {}}
         setRuntimeConfig={setRuntimeConfig}
       />
     </div>

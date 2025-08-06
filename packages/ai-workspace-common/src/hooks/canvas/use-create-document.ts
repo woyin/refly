@@ -14,7 +14,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { useReactFlow, XYPosition } from '@xyflow/react';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useSiderStoreShallow } from '@refly/stores';
-import { Document } from '@refly/openapi-schema';
+import { CanvasNode, Document } from '@refly/openapi-schema';
 import { CanvasNodeFilter } from '@refly/canvas-common';
 
 export const useCreateDocument = () => {
@@ -45,8 +45,9 @@ export const useCreateDocument = () => {
         setSourceList([
           {
             ...data,
-            entityId: data.docId,
-            entityType: 'document',
+            id: data.docId,
+            type: 'document',
+            name: data.title,
           },
           ...sourceList,
         ]);
@@ -56,7 +57,7 @@ export const useCreateDocument = () => {
   );
 
   const checkStorageUsage = useCallback(() => {
-    if (getAvailableFileCount(storageUsage) <= 0) {
+    if (storageUsage && getAvailableFileCount(storageUsage) <= 0) {
       setStorageExceededModalVisible(true);
       return false;
     }
@@ -100,12 +101,14 @@ export const useCreateDocument = () => {
         return;
       }
 
-      const docId = data?.data?.docId;
+      const docId = data?.data?.docId ?? '';
 
       message.success(t('common.putSuccess'));
       refetchUsage();
 
-      pushDocumentToSourceList(data?.data);
+      if (data?.data) {
+        pushDocumentToSourceList(data.data);
+      }
 
       if (addToCanvas) {
         const nodes = getNodes();
@@ -115,7 +118,7 @@ export const useCreateDocument = () => {
         const targetNode = nodes.find((n) => n.data?.entityId === targetNodeId);
         const connectTo: CanvasNodeFilter[] = [];
 
-        if (sourceNode) {
+        if (sourceNodeId && sourceNode) {
           connectTo.push({
             type: sourceNode.type as CanvasNodeType,
             entityId: sourceNodeId,
@@ -123,7 +126,7 @@ export const useCreateDocument = () => {
           });
         }
 
-        if (targetNode) {
+        if (targetNodeId && targetNode) {
           connectTo.push({
             type: targetNode.type as CanvasNodeType,
             entityId: targetNodeId,
@@ -136,7 +139,7 @@ export const useCreateDocument = () => {
           return null;
         }
 
-        const newNode = {
+        const newNode: Partial<CanvasNode> = {
           type: 'document' as CanvasNodeType,
           data: {
             entityId: docId,
@@ -206,10 +209,12 @@ export const useCreateDocument = () => {
       }
 
       const doc = data?.data;
-      const docId = doc?.docId;
+      const docId = doc?.docId ?? '';
 
       message.success(t('common.putSuccess'));
-      pushDocumentToSourceList(doc);
+      if (doc) {
+        pushDocumentToSourceList(doc);
+      }
       if (canvasId && canvasId !== 'empty') {
         const newNode = {
           type: 'document' as CanvasNodeType,
@@ -266,10 +271,12 @@ export const useCreateDocument = () => {
         return;
       }
 
-      const docId = data?.data?.docId;
+      const docId = data?.data?.docId ?? '';
 
       message.success(t('common.putSuccess'));
-      pushDocumentToSourceList(data?.data);
+      if (data?.data) {
+        pushDocumentToSourceList(data.data);
+      }
       if (canvasId && canvasId !== 'empty') {
         const newNode = {
           type: 'document' as CanvasNodeType,

@@ -60,12 +60,17 @@ export const CreateProjectModal = ({
     if (confirmLoading) return;
 
     setConfirmLoading(true);
-    const payload = {
+    const payload: {
+      name: string;
+      description: string;
+      coverStorageKey: string | null;
+      customInstructions: string;
+      projectId?: string;
+    } = {
       name: title,
       description,
       coverStorageKey,
       customInstructions: instructions,
-      projectId: null,
     };
 
     if (projectId) {
@@ -75,13 +80,15 @@ export const CreateProjectModal = ({
     const { data } = await submitRequest(payload);
 
     setConfirmLoading(false);
-    if (data?.success) {
+    if (data?.success && data?.data) {
       setVisible(false);
       message.success(t(`project.action.${mode}Success`));
       if (mode === 'create') {
         navigate(`/project/${data?.data?.projectId}?canvasId=empty`);
       }
-      onSuccess?.({ ...data?.data, coverUrl: coverPictureUrl });
+      // Ensure we have a valid Project object with required projectId
+      const projectData = data.data as Project;
+      onSuccess?.({ ...projectData, coverUrl: coverPictureUrl });
     }
   };
 

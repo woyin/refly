@@ -51,7 +51,7 @@ export const ImportFromFile = () => {
   }));
 
   const { projectId, isCanvasOpen } = useGetProjectCanvasId();
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId || null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
   const { updateSourceList } = useUpdateSourceList();
 
   const { refetchUsage, storageUsage, fileParsingUsage } = useSubscriptionUsage();
@@ -85,7 +85,7 @@ export const ImportFromFile = () => {
     multiple: true,
     accept: ALLOWED_FILE_EXTENSIONS.join(','),
     fileList: fileList.map((item) => ({
-      uid: item.uid,
+      uid: item.uid ?? '',
       name: item.title,
       status: item?.status,
       url: item.url,
@@ -192,7 +192,7 @@ export const ImportFromFile = () => {
                 resourceType: 'file',
               },
             },
-            position: nodePosition,
+            position: nodePosition ?? undefined,
           },
         });
       }
@@ -247,12 +247,12 @@ export const ImportFromFile = () => {
       <div className="flex-grow overflow-y-auto px-10 py-6 box-border flex flex-col justify-center">
         <div className="w-full file-upload-container">
           <Dragger {...props}>
-            <RiInboxArchiveLine className="text-3xl text-[#00968f]" />
+            <RiInboxArchiveLine className="text-3xl text-[#0E9F77]" />
             <p className="ant-upload-text mt-4 text-gray-600 dark:text-gray-300">
               {t('resource.import.dragOrClick')}
             </p>
             <p className="ant-upload-hint text-gray-400 mt-2">{genUploadHint()}</p>
-            {fileParsingUsage?.pagesLimit >= 0 && (
+            {fileParsingUsage?.pagesLimit && fileParsingUsage?.pagesLimit >= 0 && (
               <div className="text-green-500 mt-2 text-xs font-medium flex items-center justify-center gap-1">
                 <LuInfo />
                 {t('resource.import.fileParsingUsage', {
@@ -268,7 +268,7 @@ export const ImportFromFile = () => {
       {/* footer */}
       <div className="w-full flex justify-between items-center border-t border-solid border-[#e5e5e5] dark:border-[#2f2f2f] border-x-0 border-b-0 p-[16px] rounded-none">
         <div className="flex items-center gap-x-[8px]">
-          <p className="font-bold whitespace-nowrap text-md text-[#00968f]">
+          <p className="font-bold whitespace-nowrap text-md text-[#0E9F77]">
             {t('resource.import.fileCount', { count: fileList?.length || 0 })}
           </p>
           <StorageLimit

@@ -3,7 +3,7 @@ import { memo, useMemo, useRef, useCallback } from 'react';
 import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LinkOutlined, SendOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow, useLaunchpadStoreShallow } from '@refly/stores';
+import { useUserStoreShallow, useLaunchpadStore } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from './model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
@@ -23,8 +23,8 @@ export interface CustomAction {
 
 interface ChatActionsProps {
   query: string;
-  model: ModelInfo;
-  setModel: (model: ModelInfo) => void;
+  model: ModelInfo | null;
+  setModel: (model: ModelInfo | null) => void;
   runtimeConfig: SkillRuntimeConfig;
   setRuntimeConfig: (runtimeConfig: SkillRuntimeConfig) => void;
   className?: string;
@@ -49,23 +49,35 @@ export const ChatActions = memo(
       customActions,
       className,
       onUploadImage,
+      handleAbort,
       contextItems,
       isExecuting = false,
     } = props;
     const { t } = useTranslation();
     const { canvasId, readonly } = useCanvasContext();
     const { handleUploadImage } = useUploadImage();
-    const { selectedMcpServers } = useLaunchpadStoreShallow((state) => ({
-      selectedMcpServers: state.selectedMcpServers,
-    }));
 
-    const handleSendClick = () => {
+    const handleSendClick = useCallback(() => {
+      // Check if knowledge base is used (resource or document types)
+      const usedKnowledgeBase =
+        contextItems?.some((item) => item?.type === 'resource' || item?.type === 'document') ??
+        false;
+
+      const { selectedMcpServers } = useLaunchpadStore.getState();
+      const usedMcp = selectedMcpServers?.length > 0;
+
+      logEvent('canvas::node_execute', Date.now(), {
+        node_type: 'askAI',
+        model_name: model?.name ?? '',
+        used_knowledge_base: usedKnowledgeBase,
+        used_mcp: usedMcp,
+      });
       handleSendMessage();
-    };
+    }, [contextItems, model, handleSendMessage]);
 
-    const handleAbortClick = () => {
-      props.handleAbort();
-    };
+    const handleAbortClick = useCallback(() => {
+      handleAbort();
+    }, [handleAbort]);
 
     // hooks
     const isWeb = getRuntime() === 'web';
@@ -99,7 +111,11 @@ export const ChatActions = memo(
 
     const containerRef = useRef<HTMLDivElement>(null);
 
-    return readonly ? null : (
+    if (readonly) {
+      return null;
+    }
+
+    return (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center gap-1">
           <ModelSelector
@@ -173,23 +189,7 @@ export const ChatActions = memo(
               type="primary"
               disabled={!canSendMessage}
               className="text-xs flex items-center gap-1"
-              onClick={() => {
-                // Check if knowledge base is used (resource or document types)
-                const usedKnowledgeBase =
-                  contextItems?.some(
-                    (item) => item?.type === 'resource' || item?.type === 'document',
-                  ) ?? false;
-
-                const usedMcp = selectedMcpServers?.length > 0;
-
-                logEvent('canvas::node_execute', Date.now(), {
-                  node_type: 'askAI',
-                  model_name: model.name,
-                  used_knowledge_base: usedKnowledgeBase,
-                  used_mcp: usedMcp,
-                });
-                handleSendClick();
-              }}
+              onClick={handleSendClick}
             >
               <SendOutlined />
               <span>{t('copilot.chatActions.send')}</span>

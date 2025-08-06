@@ -10,7 +10,7 @@ export const useHandleUrlParamsCallback = () => {
   const navigate = useNavigate();
   const userProfile = localStorage.getItem('refly-user-profile');
   const [showModal, setShowModal] = useState(false);
-  const okButtonProps = { style: { backgroundColor: '#00968F' } };
+  const okButtonProps = { style: { backgroundColor: '#0E9F77' } };
 
   useEffect(() => {
     if (showModal) return;

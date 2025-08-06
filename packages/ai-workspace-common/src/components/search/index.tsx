@@ -255,7 +255,15 @@ export const Search = React.memo((props: SearchProps) => {
 
   const getRenderData = useCallback(
     (domain: string) => {
-      return renderData?.find((item) => item.domain === domain);
+      return (
+        renderData?.find((item) => item.domain === domain) ?? {
+          domain: '',
+          heading: '',
+          data: [],
+          icon: null,
+          action: false,
+        }
+      );
     },
     [renderData],
   );

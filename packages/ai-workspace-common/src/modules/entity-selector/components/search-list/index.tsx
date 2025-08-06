@@ -27,9 +27,9 @@ interface SearchListProps {
 
 // Define domain colors similar to NODE_COLORS
 const DOMAIN_COLORS: Record<SearchDomain, string> = {
-  document: '#00968F',
+  document: '#0E9F77',
   resource: '#17B26A',
-  canvas: '#00968F',
+  canvas: '#0E9F77',
 };
 
 // Get icon component based on domain and metadata
@@ -168,7 +168,7 @@ export const SearchList = (props: SearchListProps) => {
               <div
                 key={option.id}
                 className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                  option.isSelected ? 'text-[#00968F]' : ''
+                  option.isSelected ? 'text-[#0E9F77]' : ''
                 }`}
                 onClick={() => handleItemClick(option)}
               >
@@ -176,7 +176,7 @@ export const SearchList = (props: SearchListProps) => {
                 <span className="flex-grow truncate">{option.title || t('common.untitled')}</span>
                 {mode === 'multiple' && option.isSelected && (
                   <div className="flex-shrink-0">
-                    <CheckOutlined className="text-[#00968F] w-4 h-4" />
+                    <CheckOutlined className="text-[#0E9F77] w-4 h-4" />
                   </div>
                 )}
               </div>
@@ -184,7 +184,7 @@ export const SearchList = (props: SearchListProps) => {
 
             {isRequesting && (
               <div className="flex items-center justify-center py-4">
-                <AiOutlineLoading3Quarters className="animate-spin text-[#00968F]" />
+                <AiOutlineLoading3Quarters className="animate-spin text-[#0E9F77]" />
               </div>
             )}
 

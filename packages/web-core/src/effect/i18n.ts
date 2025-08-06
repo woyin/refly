@@ -2,12 +2,8 @@ import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-import enUSUi from '@refly/i18n/en-US/ui';
-import enUSSkill from '@refly/i18n/en-US/skill';
-import enUSSkillLog from '@refly/i18n/en-US/skill-log';
-import zhHansUi from '@refly/i18n/zh-Hans/ui';
-import zhHansSkill from '@refly/i18n/zh-Hans/skill';
-import zhHansSkillLog from '@refly/i18n/zh-Hans/skill-log';
+import { enUSUi, enUSSkill, enUSSkillLog } from '@refly/i18n/en-US';
+import { zhHansUi, zhHansSkill, zhHansSkillLog } from '@refly/i18n/zh-Hans';
 
 export const setupI18n = () => {
   return i18next

@@ -12,8 +12,6 @@ const RequestAccess = () => {
   const { t } = useTranslation();
   const { handleLogout, contextHolder } = useLogout();
 
-  const _visible = true;
-
   return (
     <Modal
       className="request-access-modal"

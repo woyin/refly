@@ -30,8 +30,9 @@ export const useCreateDocumentPurely = () => {
         setSourceList([
           {
             ...data,
-            entityId: data.docId,
-            entityType: 'document',
+            id: data.docId,
+            name: data.title,
+            type: 'document',
           },
           ...sourceList,
         ]);
@@ -41,7 +42,7 @@ export const useCreateDocumentPurely = () => {
   );
 
   const checkStorageUsage = useCallback(() => {
-    if (getAvailableFileCount(storageUsage) <= 0) {
+    if (storageUsage && getAvailableFileCount(storageUsage) <= 0) {
       setStorageExceededModalVisible(true);
       return false;
     }
@@ -76,7 +77,9 @@ export const useCreateDocumentPurely = () => {
       onSuccess?.();
       refetchUsage();
 
-      pushDocumentToSourceList(data?.data);
+      if (data?.data) {
+        pushDocumentToSourceList(data.data);
+      }
 
       return docId;
     },

@@ -42,8 +42,8 @@ export const ActionDropdown = ({
 }) => {
   const { t } = useTranslation();
   const [popupVisible, setPopupVisible] = useState(false);
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+
+  const handleDelete = async () => {
     const res = await getClient().deleteProject({
       body: {
         projectId: project.projectId,
@@ -77,7 +77,10 @@ export const ActionDropdown = ({
           title={t('project.action.deleteConfirm', {
             name: project?.name || t('common.untitled'),
           })}
-          onConfirm={handleDelete}
+          onConfirm={(e) => {
+            e?.stopPropagation();
+            handleDelete();
+          }}
           onCancel={(e?: React.MouseEvent) => {
             e?.stopPropagation();
             setPopupVisible(false);
@@ -170,9 +173,10 @@ const ProjectCard = ({
               {project?.name || t('common.untitled')}
             </Typography.Text>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {time(project?.updatedAt, language as LOCALE)
-                .utc()
-                .fromNow()}
+              {project?.updatedAt &&
+                time(project?.updatedAt, language as LOCALE)
+                  .utc()
+                  .fromNow()}
             </p>
           </div>
         </div>
@@ -264,12 +268,12 @@ const ProjectList = ({
   const { dataList, loadMore, reload, hasMore, isRequesting, setDataList } = useFetchDataList({
     fetchData: async (queryPayload) => {
       const { isLogin } = useUserStore.getState();
-      if (!isLogin) return;
+      if (!isLogin) return { success: true, data: [] };
 
       const res = await getClient().listProjects({
         query: queryPayload,
       });
-      return res?.data;
+      return res?.data ?? { success: true, data: [] };
     },
     pageSize: 12,
   });
@@ -324,7 +328,7 @@ const ProjectList = ({
         id: project.projectId,
         name: project.name,
         description: project.description,
-        updatedAt: project.updatedAt,
+        updatedAt: project.updatedAt ?? '',
         coverUrl: project.coverUrl,
         type: 'project' as const,
       }))
@@ -336,7 +340,7 @@ const ProjectList = ({
     <div className="h-full flex items-center justify-center">
       <Empty description={t('common.empty')}>
         <Button
-          className="text-[#00968F]"
+          className="text-[#0E9F77]"
           icon={<IconPlus className="-mr-1 flex items-center justify-center" />}
           onClick={() => {
             setCreateProjectModalVisible(true);

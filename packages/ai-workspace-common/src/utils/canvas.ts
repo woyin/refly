@@ -1,4 +1,4 @@
-import { CanvasNode } from '../components/canvas/nodes';
+import { CanvasNode } from '@refly/canvas-common';
 import { Node } from '@xyflow/react';
 
 // Define NodePreview type directly since it's not exported from canvas.ts
