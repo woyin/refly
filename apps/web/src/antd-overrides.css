@@ -1,5 +1,25 @@
 /* Ant Design Component Overrides */
 
+/* Direct CSS overrides for default button */
+.ant-btn-default {
+  color: var(--refly-text-0);
+  background-color: var(--refly-bg-control-z0);
+  border: solid 0.5px var(--refly-Card-Border);
+  font-weight: 600;
+}
+
+.ant-btn-default:hover {
+  color: var(--refly-text-0) !important;
+  background-color: var(--refly-tertiary-hover) !important;
+  border-color:var(--refly-Card-Border) !important;
+}
+
+.ant-btn-default:disabled {
+  color: var(--refly-text-3) !important;
+  background-color: var(--refly-bg-control-z0) !important;
+  border-color: var(--refly-Card-Border) !important;
+}
+
 /* Global styles to remove Ant Design button shadows */
 .ant-btn,
 .ant-btn:hover,
