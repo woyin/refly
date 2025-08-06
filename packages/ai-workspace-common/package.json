@@ -13,8 +13,7 @@
     "./utils": "./src/utils/index.ts"
   },
   "scripts": {
-    "preview": "vite preview",
-    "codegen": "openapi-rq -i ../openapi-schema/schema.yml -o src --noSchemas && biome check ./src --write --no-errors-on-unmatched"
+    "codegen": "openapi-rq -i ../openapi-schema/schema.yml -o src --noSchemas && node scripts/postprocess-codegen.cjs"
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
