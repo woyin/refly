@@ -43,7 +43,7 @@ export const AddBaseMarkContext = ({ contextItems, setContextItems }: AddBaseMar
     <Badge
       count={(contextItems || []).length}
       size="small"
-      color="#00968F"
+      color="#0E9F77"
       style={{ zIndex: 1000 }}
     >
       <Popover

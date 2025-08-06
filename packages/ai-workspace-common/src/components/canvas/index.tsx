@@ -78,12 +78,12 @@ const GRID_SIZE = 10;
 const selectionStyles = `
   .react-flow__selection {
     background: rgba(0, 150, 143, 0.03) !important;
-    border: 0.5px solid #00968F !important;
+    border: 0.5px solid #0E9F77 !important;
   }
   
   .react-flow__nodesselection-rect {
     background: rgba(0, 150, 143, 0.03) !important;
-    border: 0.5px solid #00968F !important;
+    border: 0.5px solid #0E9F77 !important;
   }
 `;
 
@@ -1020,7 +1020,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             onNodeDragStart={readonly ? handleReadonlyDrag : handleNodeDragStart}
             onNodeDragStop={readonly ? undefined : handleNodeDragStop}
             nodeDragThreshold={10}
-            nodesDraggable={!operatingNodeId && !readonly}
+            nodesDraggable={!readonly}
             nodesConnectable={!readonly}
             elementsSelectable={!readonly}
             onSelectionContextMenu={readonly ? undefined : onSelectionContextMenu}

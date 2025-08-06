@@ -35,7 +35,7 @@ export const UsageProgress = memo<UsageProgressProps>(({ label, tooltip, used, q
         </div>
       </div>
       <Progress
-        strokeColor={used >= quota ? '#dc2626' : '#00968f'}
+        strokeColor={used >= quota ? '#dc2626' : '#0E9F77'}
         percent={percent}
         size={{ height: 4 }}
         showInfo={false}

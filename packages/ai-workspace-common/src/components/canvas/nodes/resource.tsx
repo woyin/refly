@@ -11,9 +11,7 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { HiOutlineSquare3Stack3D } from 'react-icons/hi2';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { useGetResourceDetail } from '@refly-packages/ai-workspace-common/queries';
-import classNames from 'classnames';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import {
   createNodeEventName,
@@ -44,10 +42,7 @@ const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
 
 const NodeContent = memo(
-  ({
-    data,
-    isOperating,
-  }: { data: CanvasNodeData<ResourceNodeMeta>; isOperating: boolean; isPreview: boolean }) => {
+  ({ data }: { data: CanvasNodeData<ResourceNodeMeta>; isPreview: boolean }) => {
     const { t } = useTranslation();
     const { indexStatus } = data?.metadata ?? {};
 
@@ -74,7 +69,6 @@ const NodeContent = memo(
     return (
       <ContentPreview
         content={data.contentPreview || t('canvas.nodePreview.resource.noContentPreview')}
-        isOperating={isOperating}
       />
     );
   },
@@ -98,11 +92,6 @@ export const ResourceNode = memo(
     const { i18n, t } = useTranslation();
     const language = i18n.languages?.[0];
 
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-
-    const isOperating = operatingNodeId === id;
     const node = useMemo(() => getNode(id), [id, getNode]);
 
     const { readonly } = useCanvasContext();
@@ -333,10 +322,6 @@ export const ResourceNode = memo(
         onMouseEnter={!isPreview ? handleMouseEnter : undefined}
         onMouseLeave={!isPreview ? handleMouseLeave : undefined}
         onClick={onNodeClick}
-        className={classNames({
-          nowheel: isOperating && isHovered,
-          'nodrag nopan select-text': isOperating,
-        })}
       >
         {!isPreview && !readonly && (
           <NodeActionButtons
@@ -387,7 +372,7 @@ export const ResourceNode = memo(
           />
 
           <div className="relative flex-grow min-h-0 overflow-y-auto pr-2 -mr-2">
-            <NodeContent data={data} isOperating={isOperating} isPreview={isPreview} />
+            <NodeContent data={data} isPreview={isPreview} />
           </div>
           {/* Timestamp container */}
           <div className="flex justify-end items-center text-[10px] text-gray-400 mt-1">

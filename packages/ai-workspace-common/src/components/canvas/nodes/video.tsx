@@ -2,10 +2,8 @@ import { memo, useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useReactFlow, Position } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import { useCanvasStoreShallow } from '@refly/stores';
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
-import classNames from 'classnames';
 import { NodeHeader } from './shared/node-header';
 import { HiOutlineFilm } from 'react-icons/hi2';
 import {
@@ -60,12 +58,6 @@ export const VideoNode = memo(
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
     const { readonly } = useCanvasContext();
-
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-
-    const isOperating = operatingNodeId === id;
 
     // Check if node has any connections
     const { getEdges } = useReactFlow();
@@ -180,11 +172,7 @@ export const VideoNode = memo(
       <div
         onMouseEnter={!isPreview ? handleMouseEnter : undefined}
         onMouseLeave={!isPreview ? handleMouseLeave : undefined}
-        className={classNames({
-          'rounded-2xl relative': true,
-          nowheel: isOperating && isHovered,
-          'relative nodrag nopan select-text': isOperating,
-        })}
+        className="rounded-2xl relative"
         style={NODE_SIDE_CONFIG}
         onClick={onNodeClick}
       >

@@ -15,8 +15,6 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { IContextItem } from '@refly/common-types';
 import { useEdgeStyles } from '@refly-packages/ai-workspace-common/components/canvas/constants';
 import { genUniqueId } from '@refly/utils/id';
-import { useCanvasStoreShallow } from '@refly/stores';
-import classNames from 'classnames';
 import { useContextUpdateByEdges } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useDebouncedCallback } from 'use-debounce';
@@ -46,10 +44,6 @@ export const MediaSkillNode = memo(
     const { deleteNode } = useDeleteNode();
     useSelectedNodeZIndex(id, selected);
 
-    const { operatingNodeId } = useCanvasStoreShallow((state) => ({
-      operatingNodeId: state.operatingNodeId,
-    }));
-    const isOperating = operatingNodeId === id;
     const { readonly } = useCanvasContext();
 
     // Get mediaSelectedModel from store for fallback
@@ -206,11 +200,7 @@ export const MediaSkillNode = memo(
       <div
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={classNames({
-          'rounded-2xl relative': true,
-          nowheel: isOperating && isHovered,
-          'relative nodrag nopan select-text': isOperating,
-        })}
+        className="rounded-2xl relative"
         style={NODE_SIDE_CONFIG}
         data-cy="media-skill-node"
       >

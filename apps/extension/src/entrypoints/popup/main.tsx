@@ -14,7 +14,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#00968F',
+          colorPrimary: '#0E9F77',
           borderRadius: 6,
           controlItemBgActive: '#f1f1f0',
           controlItemBgActiveHover: '#e0e0e0',

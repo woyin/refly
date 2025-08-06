@@ -336,7 +336,7 @@ const ProjectList = ({
     <div className="h-full flex items-center justify-center">
       <Empty description={t('common.empty')}>
         <Button
-          className="text-[#00968F]"
+          className="text-[#0E9F77]"
           icon={<IconPlus className="-mr-1 flex items-center justify-center" />}
           onClick={() => {
             setCreateProjectModalVisible(true);

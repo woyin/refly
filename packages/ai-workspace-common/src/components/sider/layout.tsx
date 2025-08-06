@@ -141,10 +141,24 @@ const SettingItem = () => {
     setSubscribeModalVisible: state.setSubscribeModalVisible,
   }));
 
+  const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
+    setShowSettingModal: state.setShowSettingModal,
+    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+  }));
+
   const handleSubscriptionClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       setSubscribeModalVisible(true);
+    },
+    [setSubscribeModalVisible],
+  );
+
+  const handleCreditClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setSettingsModalActiveTab(SettingsModalActiveTab.Subscription);
+      setShowSettingModal(true);
     },
     [setSubscribeModalVisible],
   );
@@ -170,7 +184,7 @@ const SettingItem = () => {
 
           {subscriptionEnabled && isBalanceSuccess && (
             <div
-              onClick={handleSubscriptionClick}
+              onClick={handleCreditClick}
               className="h-8 p-2 flex items-center gap-1.5 text-refly-text-0 text-xs cursor-pointer
             rounded-[80px] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z2 whitespace-nowrap flex-shrink-0
             "
@@ -185,7 +199,10 @@ const SettingItem = () => {
                 <>
                   <Divider type="vertical" className="m-0" />
 
-                  <div className="text-[color:var(--primary---refly-primary-default,#0E9F77)] text-xs font-semibold leading-4 whitespace-nowrap">
+                  <div
+                    onClick={handleSubscriptionClick}
+                    className="text-[color:var(--primary---refly-primary-default,#0E9F77)] text-xs font-semibold leading-4 whitespace-nowrap"
+                  >
                     {t('common.upgrade')}
                   </div>
                 </>

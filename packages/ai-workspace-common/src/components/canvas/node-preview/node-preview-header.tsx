@@ -179,7 +179,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
         okText: t('common.delete'),
         cancelText: t('common.cancel'),
         okButtonProps: { danger: true },
-        cancelButtonProps: { className: 'hover:!border-[#00968F] hover:!text-[#00968F] ' },
+        cancelButtonProps: { className: 'hover:!border-[#0E9F77] hover:!text-[#0E9F77] ' },
         onOk: () => {
           currentNode.type === 'document'
             ? deleteDocument(currentNode.data?.entityId)

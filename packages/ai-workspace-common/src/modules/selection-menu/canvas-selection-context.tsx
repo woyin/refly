@@ -114,11 +114,11 @@ export const CanvasSelectionContext: React.FC<CanvasSelectionContextProps> = ({
         <Button
           type="text"
           size="small"
-          className="text-[#00968F] hover:text-[#00968F]/80"
+          className="text-[#0E9F77] hover:text-[#0E9F77]/80"
           onClick={() => handleAddToContext(selectedText)}
-          icon={<MessageSquareDiff size={12} className="text-[#00968F]" />}
+          icon={<MessageSquareDiff size={12} className="text-[#0E9F77]" />}
         >
-          <span className="font-medium text-xs text-[#00968F]">
+          <span className="font-medium text-xs text-[#0E9F77]">
             {t('knowledgeBase.context.addToContext')}
           </span>
         </Button>

@@ -12,6 +12,7 @@ import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canv
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { CanvasNode } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import './index.scss';
 
 export const ContextItem = ({
   item,

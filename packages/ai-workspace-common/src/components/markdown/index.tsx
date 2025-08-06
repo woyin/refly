@@ -69,9 +69,10 @@ export const Markdown = memo(
       className?: string;
       resultId?: string;
       mode?: MarkdownMode;
+      showActions?: boolean;
     } & React.DOMAttributes<HTMLDivElement>,
   ) => {
-    const { content: rawContent, mode = 'interactive' } = props;
+    const { content: rawContent, mode = 'interactive', showActions = true } = props;
     const content = processWithArtifact(rawContent);
 
     const mdRef = useRef<HTMLDivElement>(null);
@@ -104,7 +105,9 @@ export const Markdown = memo(
 
           return [
             element.tag,
-            (innerProps: any) => <Component {...innerProps} id={outerResultId} mode={mode} />,
+            (innerProps: any) => (
+              <Component {...innerProps} id={outerResultId} mode={mode} showActions={showActions} />
+            ),
           ];
         }),
       );

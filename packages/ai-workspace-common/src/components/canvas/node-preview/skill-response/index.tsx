@@ -1,15 +1,15 @@
 import { useEffect, useState, useMemo, memo, useCallback } from 'react';
 import { Button, Divider, message, Result, Skeleton, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useActionResultStoreShallow } from '@refly/stores';
+import { useActionResultStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ActionResult, ActionStep } from '@refly/openapi-schema';
 import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
-
+import { Subscription } from 'refly-icons';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { ActionStepCard } from './action-step';
 import { convertResultContextToItems, purgeContextItems } from '@refly/canvas-common';
-
+import { logEvent } from '@refly/telemetry-web';
 import { PreviewChatInput } from './preview-chat-input';
 import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
@@ -31,6 +31,8 @@ import { useUserStore } from '@refly/stores';
 import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
+import { guessModelProviderError, ModelUsageQuotaExceeded } from '@refly/errors';
+import { useGetCreditBalance } from '@refly-packages/ai-workspace-common/queries';
 
 interface SkillResponseNodePreviewProps {
   node: CanvasNode<ResponseNodeMeta>;
@@ -181,6 +183,23 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
   const { errCode, errMsg, rawError } = useSkillError(result?.errors?.[0]);
 
+  const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
+    setSubscribeModalVisible: state.setSubscribeModalVisible,
+  }));
+
+  const { data: balanceData, isSuccess: isBalanceSuccess } = useGetCreditBalance();
+  const creditBalance = balanceData?.data?.creditBalance ?? 0;
+
+  const handleSubscriptionClick = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      setSubscribeModalVisible(true);
+
+      logEvent('subscription::upgrade_click', 'skill_invoke');
+    },
+    [setSubscribeModalVisible],
+  );
+
   const { steps = [], context, history = [] } = result ?? {};
   const contextItems = useMemo(() => {
     // Prefer contextItems from node metadata
@@ -243,6 +262,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       locateToNodePreviewEmitter.off('locateToNodePreview', handleLocateToPreview);
     };
   }, [node.id]);
+
+  const error = guessModelProviderError(result?.errors?.[0]);
 
   const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
   const errDescription = useMemo(() => {
@@ -343,15 +364,34 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
                 >
                   {t('common.copyRequestInfo')}
                 </Button>
-                <Button
-                  type="primary"
-                  size="small"
-                  className="text-xs"
-                  icon={<IconRerun className="text-xs flex items-center justify-center" />}
-                  onClick={handleRetry}
-                >
-                  {t('canvas.nodeActions.rerun')}
-                </Button>
+                {error instanceof ModelUsageQuotaExceeded &&
+                creditBalance <= 0 &&
+                isBalanceSuccess ? (
+                  <Button
+                    type="primary"
+                    size="small"
+                    className="text-xs flex items-center justify-center"
+                    icon={
+                      <Subscription
+                        size={13}
+                        className="text-[#1C1F23] dark:text-white text-xs flex items-center justify-center"
+                      />
+                    }
+                    onClick={handleSubscriptionClick}
+                  >
+                    {t('canvas.nodeActions.upgrade')}
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    size="small"
+                    className="text-xs"
+                    icon={<IconRerun className="text-xs flex items-center justify-center" />}
+                    onClick={handleRetry}
+                  >
+                    {t('canvas.nodeActions.rerun')}
+                  </Button>
+                )}
               </div>
             </div>
           )}

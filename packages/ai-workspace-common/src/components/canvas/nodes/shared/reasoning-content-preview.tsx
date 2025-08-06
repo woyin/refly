@@ -11,7 +11,6 @@ import { IconThinking } from '@refly-packages/ai-workspace-common/components/com
 interface ReasoningContentPreviewProps {
   content: string;
   sources?: Source[];
-  isOperating: boolean;
   stepStatus: 'executing' | 'finish';
   className?: string;
   resultId?: string;
@@ -22,7 +21,6 @@ export const ReasoningContentPreview = memo(
   ({
     content,
     sources,
-    isOperating,
     stepStatus,
     className = '',
     resultId,
@@ -43,16 +41,7 @@ export const ReasoningContentPreview = memo(
       }
     }, [stepStatus, sizeMode]);
 
-    // Memoize className to prevent re-renders when only isOperating changes
-    const markdownClassName = useMemo(
-      () =>
-        `text-xs overflow-hidden ${
-          isOperating
-            ? 'pointer-events-auto cursor-text select-text'
-            : 'pointer-events-none select-none'
-        } ${className}`,
-      [isOperating, className],
-    );
+    const markdownClassName = useMemo(() => `text-xs overflow-hidden ${className}`, [className]);
 
     if (!content) return null;
 
@@ -121,7 +110,6 @@ export const ReasoningContentPreview = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.content === nextProps.content &&
-      prevProps.isOperating === nextProps.isOperating &&
       prevProps.stepStatus === nextProps.stepStatus &&
       prevProps.className === nextProps.className &&
       prevProps.sizeMode === nextProps.sizeMode &&

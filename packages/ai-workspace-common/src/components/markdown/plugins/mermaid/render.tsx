@@ -29,6 +29,7 @@ interface MermaidProps {
   children: ReactNode;
   id?: string; // resultId for connecting to skill response node
   mode?: MarkdownMode;
+  showActions?: boolean;
 }
 
 // Generate unique ID for each mermaid diagram
@@ -41,7 +42,7 @@ const generateUniqueId = (() => {
 const diagramCache = new Map<string, string>();
 
 const MermaidComponent = memo(
-  ({ children, id, mode = 'interactive' }: MermaidProps) => {
+  ({ children, id, mode = 'interactive', showActions = true }: MermaidProps) => {
     const mermaidRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<string>('');
     const { t } = useTranslation();
@@ -369,7 +370,7 @@ const MermaidComponent = memo(
         )}
 
         {/* Action Buttons - Only show when successfully rendered or in code view */}
-        {(rendered || viewMode === 'code') && (
+        {(rendered || viewMode === 'code') && showActions && (
           <div className="absolute top-0 right-2 z-50 flex transition-all duration-200 ease-in-out bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-md shadow-sm border border-gray-100 dark:border-gray-700">
             <Space>
               {viewMode === 'preview' && (
@@ -494,7 +495,8 @@ const MermaidComponent = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.children?.toString() === nextProps.children?.toString() &&
-      prevProps.mode === nextProps.mode
+      prevProps.mode === nextProps.mode &&
+      prevProps.showActions === nextProps.showActions
     );
   },
 );

@@ -41,6 +41,7 @@ const MediaChatInput = memo(
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [selectedModel, setSelectedModel] = useState<ProviderItem | null>(defaultModel || null);
+    const [isFocused, setIsFocused] = useState(false);
 
     // Update parent when model changes
     const handleModelChange = useCallback(
@@ -208,6 +209,7 @@ const MediaChatInput = memo(
             'flex-1 flex-shrink-0 !m-0 bg-transparent outline-none box-border border-none focus:outline-none focus:shadow-none focus:border-none focus:ring-0',
             readonly && 'cursor-not-allowed !text-black !bg-transparent',
             'dark:hover:bg-transparent dark:hover:!bg-none dark:focus:bg-transparent dark:active:bg-transparent dark:bg-transparent dark:!bg-transparent',
+            isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
           )}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -218,6 +220,8 @@ const MediaChatInput = memo(
           disabled={readonly}
           autoSize={{ minRows: 2, maxRows: 6 }}
           onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
 
         {!readonly && (
