@@ -31,9 +31,6 @@ export * from './common/tooltip-button';
 // Canvas exports (index.tsx exists)
 export * from './canvas';
 
-// Editor exports (index.ts exists)
-export * from './editor';
-
 // Message exports (individual files)
 export * from './message/add-to-context-message';
 export * from './message/delete-node-message';

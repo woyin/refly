@@ -248,7 +248,7 @@ const EmptyContentPrompt: FC<EmptyContentPromptProps> = ({
       {/* Search bar */}
       <div className="p-4 border-b border-gray-200 flex items-center bg-white dark:bg-gray-900 gap-2 sticky top-0 z-10">
         <Input
-          ref={inputRef}
+          ref={inputRef as any}
           placeholder={t('common.searchNodes', 'Search nodes')}
           prefix={<SearchOutlined className="text-gray-400" />}
           value={searchTerm}

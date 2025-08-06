@@ -6,6 +6,7 @@ import { useReactFlow } from '@xyflow/react';
 import { SelectionBubble } from './selection-bubble';
 import { useSelectionContext } from './use-selection-context';
 import { CanvasNode } from '@refly/canvas-common';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 interface CanvasSelectionContextProps {
   containerClass?: string;
@@ -81,7 +82,7 @@ export const CanvasSelectionContext: React.FC<CanvasSelectionContextProps> = ({
         addToContext({
           title: node.data.title ?? '',
           entityId: node.id,
-          type: node.type,
+          type: node.type as CanvasNodeType,
           metadata: node.data.metadata,
         });
         message.success(t('knowledgeBase.context.addToContextSuccess'));

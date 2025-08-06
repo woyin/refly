@@ -124,7 +124,7 @@ export const SelectionBubble: React.FC<SelectionBubbleProps> = ({
     >
       {isVisible && selectedText && (
         <Tippy
-          ref={bubbleRef as React.RefObject<Element>}
+          ref={bubbleRef as React.RefObject<any>}
           content={wrappedChildren}
           visible={true}
           interactive

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Typography, Select, Tooltip } from 'antd';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 
@@ -36,8 +36,6 @@ export const FormHeader: React.FC<FormHeaderProps> = ({
   collapsed = false,
   selectTooltipTitle,
 }) => {
-  const [isMultiSelect, setIsMultiSelect] = useState(enableMultiSelect);
-
   const handleSelectChange = (value: string | string[]) => {
     if (onSelectChange) {
       onSelectChange(value);
@@ -47,14 +45,6 @@ export const FormHeader: React.FC<FormHeaderProps> = ({
   const handleCollapseChange = () => {
     if (onCollapseChange) {
       onCollapseChange(!collapsed);
-    }
-  };
-
-  const _handleSwitchChange = (checked: boolean) => {
-    setIsMultiSelect(checked);
-    // Reset selection when switching between single and multi-select
-    if (onSelectChange) {
-      onSelectChange(checked ? [] : '');
     }
   };
 
@@ -80,7 +70,7 @@ export const FormHeader: React.FC<FormHeaderProps> = ({
       >
         {enableSelect && (
           <>
-            {!isMultiSelect && (
+            {!enableMultiSelect && (
               <Tooltip title={selectTooltipTitle} getPopupContainer={getPopupContainer}>
                 <Select
                   size="small"

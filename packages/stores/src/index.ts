@@ -32,10 +32,17 @@ export {
 } from './stores/import-new-trigger-modal';
 export {
   type LinkMeta,
+  type FileItem,
+  type ImageItem,
+  type ImportResourceMenuItem,
   useImportResourceStore,
   useImportResourceStoreShallow,
 } from './stores/import-resource';
-export { useKnowledgeBaseStore, useKnowledgeBaseStoreShallow } from './stores/knowledge-base';
+export {
+  type LibraryModalActiveKey,
+  useKnowledgeBaseStore,
+  useKnowledgeBaseStoreShallow,
+} from './stores/knowledge-base';
 export { useLaunchpadStore, useLaunchpadStoreShallow } from './stores/launchpad';
 export { usePilotStore, usePilotStoreShallow } from './stores/pilot';
 export { useProjectSelectorStore, useProjectSelectorStoreShallow } from './stores/project-selector';
