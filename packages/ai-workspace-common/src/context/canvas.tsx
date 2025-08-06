@@ -186,7 +186,7 @@ export const CanvasProvider = ({
     setCanvasInitialized: state.setCanvasInitialized,
   }));
 
-  const { data: canvasDetail } = useGetCanvasDetail({ query: { canvasId } }, [], {
+  const { data: canvasDetail } = useGetCanvasDetail({ query: { canvasId } }, undefined, {
     enabled: !readonly && !!canvasId,
   });
 

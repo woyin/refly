@@ -200,7 +200,7 @@ export const ResourceView = memo(
       data,
       refetch: refetchResourceDetail,
       isLoading,
-    } = useGetResourceDetail({ query: { resourceId } }, [], {
+    } = useGetResourceDetail({ query: { resourceId } }, undefined, {
       refetchOnWindowFocus: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
