@@ -1,6 +1,6 @@
-const { readFileSync, writeFileSync } = require("node:fs");
-const { execSync } = require("node:child_process");
-const { join } = require("node:path");
+const { readFileSync, writeFileSync } = require('node:fs');
+const { execSync } = require('node:child_process');
+const { join } = require('node:path');
 
 /**
  * Gets the biome executable path from pnpm bin
@@ -8,29 +8,19 @@ const { join } = require("node:path");
 function getBiomePath() {
   try {
     // Get pnpm bin directory
-    const biomePath = join(
-      __dirname,
-      "..",
-      "..",
-      "..",
-      "node_modules",
-      ".bin",
-      "biome"
-    );
+    const biomePath = join(__dirname, '..', '..', '..', 'node_modules', '.bin', 'biome');
 
     // Check if biome exists in pnpm bin
     try {
-      execSync(`"${biomePath}" --version`, { encoding: "utf-8" });
+      execSync(`"${biomePath}" --version`, { encoding: 'utf-8' });
       return biomePath;
     } catch {
       // Fallback to system biome if not found in pnpm bin
-      return "biome";
+      return 'biome';
     }
   } catch {
-    console.warn(
-      "Could not get pnpm bin directory, falling back to system biome"
-    );
-    return "biome";
+    console.warn('Could not get pnpm bin directory, falling back to system biome');
+    return 'biome';
   }
 }
 
@@ -39,22 +29,22 @@ function getBiomePath() {
  */
 function printBiomeInfo() {
   try {
-    console.log("=== Biome Information ===");
+    console.log('=== Biome Information ===');
 
     const biomePath = getBiomePath();
 
     // Get biome version
     const version = execSync(`"${biomePath}" --version`, {
-      encoding: "utf-8",
+      encoding: 'utf-8',
     }).trim();
     console.log(`Biome Version: ${version}`);
 
     // Get biome path
     console.log(`Biome Path: ${biomePath}`);
-    console.log("========================\n");
+    console.log('========================\n');
   } catch (error) {
-    console.error("Error getting biome information:", error.message);
-    console.log("Make sure biome is installed and available in PATH\n");
+    console.error('Error getting biome information:', error.message);
+    console.log('Make sure biome is installed and available in PATH\n');
   }
 }
 
@@ -69,11 +59,11 @@ function runBiomeCheck(directories) {
     for (const dir of directories) {
       console.log(`Running biome check on ${dir}...`);
       const command = `"${biomePath}" check ${dir} --write --no-errors-on-unmatched`;
-      execSync(command, { stdio: "inherit" });
+      execSync(command, { stdio: 'inherit' });
       console.log(`Successfully ran biome check on ${dir}`);
     }
   } catch (error) {
-    console.error("Error running biome check:", error);
+    console.error('Error running biome check:', error);
     process.exit(1);
   }
 }
@@ -85,10 +75,10 @@ function runBiomeCheck(directories) {
 function addTsNoCheck(filePath) {
   try {
     // Read the file content
-    const content = readFileSync(filePath, "utf-8");
+    const content = readFileSync(filePath, 'utf-8');
 
     // Check if @ts-nocheck already exists
-    if (content.includes("@ts-nocheck")) {
+    if (content.includes('@ts-nocheck')) {
       console.log(`File ${filePath} already contains @ts-nocheck`);
       return;
     }
@@ -97,7 +87,7 @@ function addTsNoCheck(filePath) {
     const newContent = `// @ts-nocheck\n${content}`;
 
     // Write the modified content back to the file
-    writeFileSync(filePath, newContent, "utf-8");
+    writeFileSync(filePath, newContent, 'utf-8');
 
     console.log(`Successfully added @ts-nocheck to ${filePath}`);
   } catch (error) {
@@ -111,18 +101,15 @@ function addTsNoCheck(filePath) {
  */
 function postprocessQueries() {
   // Get the root directory of the source code
-  const srcDir = join(__dirname, "..", "src");
+  const srcDir = join(__dirname, '..', 'src');
 
   // Define directories to run biome check on
-  const directoriesToCheck = [
-    join(srcDir, "requests"),
-    join(srcDir, "queries"),
-  ];
+  const directoriesToCheck = [join(srcDir, 'requests'), join(srcDir, 'queries')];
 
   // Define the queries file path
-  const queriesFilePath = join(srcDir, "queries", "queries.ts");
+  const queriesFilePath = join(srcDir, 'queries', 'queries.ts');
 
-  console.log("Starting queries processing...");
+  console.log('Starting queries processing...');
 
   // First run biome check on the specified directories
   runBiomeCheck(directoriesToCheck);
@@ -130,7 +117,7 @@ function postprocessQueries() {
   // Then add ts-nocheck to queries/queries.ts
   addTsNoCheck(queriesFilePath);
 
-  console.log("Queries processing completed successfully!");
+  console.log('Queries processing completed successfully!');
 }
 
 /**
