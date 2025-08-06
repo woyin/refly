@@ -54,7 +54,7 @@ export const ToolButton: FC<ToolButtonProps> = memo(
       contextCnt > 0 && tool.value === 'handleLaunchpad' ? (
         <Badge
           size="small"
-          color="#00968F"
+          color="#0E9F77"
           offset={[-2, 2]}
           count={contextCnt}
           overflowCount={9999}

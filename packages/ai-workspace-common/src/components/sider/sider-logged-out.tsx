@@ -83,12 +83,12 @@ export const SiderLoggedOut = (props: { source: 'sider' | 'popover' }) => {
         </div>
         <Divider className="my-2" />
         {/* Language Selector */}
-        <div className="h-10 px-3 flex cursor-pointer items-center text-gray-600 hover:text-[#00968f] dark:text-gray-300 dark:hover:text-gray-100">
+        <div className="h-10 px-3 flex cursor-pointer items-center text-gray-600 hover:text-[#0E9F77] dark:text-gray-300 dark:hover:text-gray-100">
           <UILocaleList className="w-full">
             <Button
               type="text"
               size="middle"
-              className="h-10 w-full flex-grow px-2 text-gray-600 hover:text-[#00968f] dark:text-gray-300 dark:hover:text-gray-100"
+              className="h-10 w-full flex-grow px-2 text-gray-600 hover:text-[#0E9F77] dark:text-gray-300 dark:hover:text-gray-100"
             >
               <IconLanguage className="h-4 w-4" />
               {t('language')}{' '}

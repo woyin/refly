@@ -146,13 +146,15 @@ export const useAddNode = () => {
       adoptUserNodes(updatedNodes, nodeLookup, parentLookup, {
         elevateNodesOnSelect: false,
       });
-      setState({ nodes: updatedNodes.filter((node) => !node.id.startsWith('ghost-')) });
+      setState({ nodes: updatedNodes.filter((node) => node && !node.id.startsWith('ghost-')) });
 
       // Then update edges with a slight delay to ensure nodes are registered first
       // This helps prevent the race condition where edges are created but nodes aren't ready
       setTimeout(() => {
         // Update edges separately
-        setState({ edges: updatedEdges.filter((edge) => !edge.id.startsWith('temp-edge-')) });
+        setState({
+          edges: updatedEdges.filter((edge) => edge && !edge.id.startsWith('temp-edge-')),
+        });
 
         // Apply branch layout if we're connecting to existing nodes
         if (needSetCenter) {

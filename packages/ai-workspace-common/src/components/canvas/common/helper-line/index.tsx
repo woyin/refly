@@ -41,7 +41,7 @@ const HelperLinesRenderer = memo(({ horizontal, vertical }: HelperLinesProps) =>
 
     ctx.scale(dpi, dpi);
     ctx.clearRect(0, 0, width, height);
-    ctx.strokeStyle = '#00968f';
+    ctx.strokeStyle = '#0E9F77';
     ctx.globalAlpha = 0.5;
 
     if (typeof vertical === 'number') {

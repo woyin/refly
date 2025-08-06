@@ -25,7 +25,7 @@ function ATag({ ...props }, sources: Source[]) {
         href={props.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="no-underline text-[#00968F]"
+        className="no-underline text-[#0E9F77]"
       >
         {props.children}
       </a>
@@ -64,7 +64,7 @@ function ATag({ ...props }, sources: Source[]) {
                   title={source?.title}
                   href={source?.url}
                   target="_blank"
-                  className="no-underline text-[#00968F]"
+                  className="no-underline text-[#0E9F77]"
                   rel="noreferrer"
                 >
                   {source?.url}

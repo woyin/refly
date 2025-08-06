@@ -80,6 +80,18 @@ export const CanvasLayoutControls = memo(() => {
     };
   }, []);
 
+  // Update CSS custom property for resize control scaling
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--current-zoom',
+      Math.min(currentZoom, 1).toString(),
+    );
+
+    return () => {
+      document.documentElement.style.removeProperty('--current-zoom');
+    };
+  }, [currentZoom]);
+
   // Zoom control handlers
   const handleZoomIn = useCallback(() => {
     if (currentZoom < maxZoom) {

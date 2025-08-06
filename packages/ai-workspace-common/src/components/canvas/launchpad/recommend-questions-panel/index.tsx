@@ -112,7 +112,7 @@ export const RecommendQuestionsPanel: React.FC<RecommendQuestionsPanelProps> = (
           className="mb-2"
           imageStyle={{ height: 40, width: 40, margin: '4px auto' }}
           description={
-            <span className="text-[12px] text-[#00968f]">
+            <span className="text-[12px] text-[#0E9F77]">
               {t('copilot.recommendQuestions.empty')}
             </span>
           }
@@ -135,9 +135,9 @@ export const RecommendQuestionsPanel: React.FC<RecommendQuestionsPanelProps> = (
         }}
       >
         <div className="flex-1 min-w-0">
-          <span className="text-[12px] text-[#00968f] font-medium block truncate">{question}</span>
+          <span className="text-[12px] text-[#0E9F77] font-medium block truncate">{question}</span>
         </div>
-        <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 ml-2 group-hover:text-[#00968f] transition-colors" />
+        <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600 ml-2 group-hover:text-[#0E9F77] transition-colors" />
       </div>
     ));
   };

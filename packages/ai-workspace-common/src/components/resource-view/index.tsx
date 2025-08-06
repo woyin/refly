@@ -91,7 +91,7 @@ const ResourceMeta = memo(
             )}
             {resourceDetail?.data?.url && (
               <a
-                className="site-intro-site-url no-underline text-[#00968F]"
+                className="site-intro-site-url no-underline text-[#0E9F77]"
                 href={resourceDetail?.data?.url}
                 target="_blank"
                 rel="noreferrer"

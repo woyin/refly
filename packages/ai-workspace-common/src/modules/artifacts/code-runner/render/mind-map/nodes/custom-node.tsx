@@ -270,7 +270,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
           height: 'auto',
           minHeight: '40px',
           zIndex: isHovered || isOperating ? 1000 : 0, // Set higher z-index when hovered or operating
-          boxShadow: !readonly && isOperating ? '0 0 0 2px #00968F' : undefined, // Highlight when operating
+          boxShadow: !readonly && isOperating ? '0 0 0 2px #0E9F77' : undefined, // Highlight when operating
         }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -316,7 +316,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
               type="text"
               size="small"
               icon={<IconCopy className="w-3 h-3 mr-1" />}
-              className="h-7 text-xs hover:!text-[#00968F] flex items-center"
+              className="h-7 text-xs hover:!text-[#0E9F77] flex items-center"
               onClick={handleCopyContent}
             >
               {t('common.copy.title')}
@@ -329,7 +329,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
                   type="text"
                   size="small"
                   icon={<IconPlus className="w-3 h-3 mr-1" />}
-                  className="h-7 text-xs hover:!text-[#00968F] flex items-center"
+                  className="h-7 text-xs hover:!text-[#0E9F77] flex items-center"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (typeof nodeData.onAddChild === 'function') {
@@ -344,7 +344,7 @@ export const CustomNode = memo(({ id, data }: NodeProps) => {
                     type="text"
                     size="small"
                     icon={<IconPlus className="w-3 h-3 mr-1" />}
-                    className="h-7 text-xs hover:!text-[#00968F] flex items-center"
+                    className="h-7 text-xs hover:!text-[#0E9F77] flex items-center"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (typeof nodeData.onAddSibling === 'function') {

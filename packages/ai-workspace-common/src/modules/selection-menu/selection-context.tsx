@@ -109,7 +109,7 @@ export const SelectionContext = React.memo<SelectionContextProps>(
       () => [
         {
           className:
-            'w-full px-2 py-0 font-medium text-sm justify-start !text-[#00968F] hover:!text-[#00968F]/80',
+            'w-full px-2 py-0 font-medium text-sm justify-start !text-[#0E9F77] hover:!text-[#0E9F77]/80',
           icon: <IconQuote size={14} />,
           label: t('knowledgeBase.context.addToContext'),
           onClick: () => handleAddToContext(selectedText),

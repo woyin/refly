@@ -56,8 +56,8 @@ export const CustomHandle = React.memo(
           right: '-9px',
           top: '50%',
           transform: 'translateY(-50%)',
-          backgroundColor: '#00968F',
-          border: '2px solid #00968F',
+          backgroundColor: '#0E9F77',
+          border: '2px solid #0E9F77',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -73,7 +73,7 @@ export const CustomHandle = React.memo(
           width: '14px',
           height: '14px',
           background: '#fff',
-          border: `2px solid ${isNodeHovered ? '#00968F' : '#D0D5DD'}`,
+          border: `2px solid ${isNodeHovered ? '#0E9F77' : '#D0D5DD'}`,
           minWidth: '14px',
           minHeight: '14px',
           borderRadius: '50%',
@@ -137,7 +137,7 @@ export const CustomHandle = React.memo(
             position={position}
             style={handleStyle}
             isConnectable={true}
-            className="hover:opacity-100 hover:border-[#00968F] hover:scale-110 transition-all"
+            className="hover:opacity-100 hover:border-[#0E9F77] hover:scale-110 transition-all"
           />
         )}
       </div>
