@@ -17,7 +17,7 @@ export type ToolValue =
 // Define toolbar item interface
 export interface ToolbarItem {
   type: 'button' | 'popover' | 'divider';
-  icon?: React.ElementType;
+  icon: React.ElementType;
   value?: ToolValue;
   domain?: string;
   tooltip?: string;

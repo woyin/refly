@@ -73,7 +73,7 @@ const TemplateCategoryList = ({
   uiLocale: Language;
 }) => {
   const { t } = useTranslation();
-  const { data, isLoading } = useListCanvasTemplateCategories(null, null, {
+  const { data, isLoading } = useListCanvasTemplateCategories({}, [], {
     enabled: visible,
   });
   const categories = data?.data ?? [];

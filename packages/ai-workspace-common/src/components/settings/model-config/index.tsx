@@ -256,7 +256,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         if (res?.data?.success) {
           message.success(t('settings.modelConfig.syncSuccessfully'));
           setUserProfile({
-            ...userProfile,
+            ...userProfile!,
             preferences: updatedPreferences,
           });
           setProviderMode(newMode);
@@ -290,7 +290,9 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         ...defaultModel,
       };
       for (const type of types) {
-        updatedDefaultModel[type] = model;
+        if (model) {
+          updatedDefaultModel[type] = model;
+        }
       }
 
       const updatedPreferences = {
@@ -299,7 +301,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       };
 
       setUserProfile({
-        ...userProfile,
+        ...userProfile!,
         preferences: updatedPreferences,
       });
 
@@ -339,7 +341,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         enabled,
       },
     });
-    if (res.data.success) {
+    if (res.data?.success) {
       const updatedModel = { ...model, enabled };
       if (model.category === 'llm') {
         setModelItems((prev) =>
@@ -397,7 +399,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     const res = await getClient().deleteProviderItem({
       body: { itemId },
     });
-    if (res.data.success) {
+    if (res.data?.success) {
       message.success(t('common.deleteSuccess'));
 
       if (category === 'mediaGeneration') {
@@ -406,7 +408,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         setModelItems(modelItems.filter((item) => item.itemId !== itemId));
         const types = getDefaultModelTypes(itemId);
         if (types.length) {
-          updateDefaultModel(types, null);
+          updateDefaultModel(types as any, null);
         }
 
         // Emit event to refresh model list in other components
@@ -452,7 +454,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     if (!enabled && types.length) {
       disableDefaultModelConfirm(model.name, () => {
         updateModelMutation(enabled, model);
-        updateDefaultModel(types, null);
+        updateDefaultModel(types as any, null);
       });
     } else {
       updateModelMutation(enabled, model);
@@ -763,7 +765,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {/* Custom Tab Header */}
       <ContentHeader
         title={t(`settings.${isConfigDefaultModel ? 'defaultModel' : 'modelConfig'}.title`)}
-        onTitleClick={isConfigDefaultModel ? () => setIsConfigDefaultModel(false) : null}
+        onTitleClick={isConfigDefaultModel ? () => setIsConfigDefaultModel(false) : undefined}
         prefixIcon={isConfigDefaultModel ? <Back size={18} /> : null}
         customActions={customActions}
       />
@@ -799,7 +801,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         }}
         disableDefaultModelConfirm={disableDefaultModelConfirm}
         model={editingModel}
-        defaultModelTypes={getDefaultModelTypes(editingModel?.itemId)}
+        defaultModelTypes={getDefaultModelTypes(editingModel?.itemId ?? '')}
         onSuccess={handleSuccess}
         disabledEnableControl={['embedding', 'reranker'].includes(category)}
       />

@@ -5,7 +5,7 @@ import { useListProjects } from '@refly-packages/ai-workspace-common/queries';
 import { useUserStoreShallow } from '@refly/stores';
 
 interface ProjectSelectProps {
-  projectId: string | null;
+  projectId?: string;
   onSelect: (projectId: string) => void;
 }
 
@@ -15,7 +15,7 @@ export const ProjectSelect: FC<ProjectSelectProps> = memo(({ projectId, onSelect
   const pageSize = 20;
 
   const isLogin = useUserStoreShallow((state) => state.isLogin);
-  const { data, isLoading, refetch } = useListProjects({ query: { page, pageSize } }, null, {
+  const { data, isLoading, refetch } = useListProjects({ query: { page, pageSize } }, [], {
     enabled: isLogin,
   });
 

@@ -13,8 +13,7 @@
     "./utils": "./src/utils/index.ts"
   },
   "scripts": {
-    "preview": "vite preview",
-    "codegen": "openapi-rq -i ../openapi-schema/schema.yml -o src --noSchemas && biome check ./src --write --no-errors-on-unmatched"
+    "codegen": "openapi-rq -i ../openapi-schema/schema.yml -o src --noSchemas && node scripts/postprocess-codegen.cjs"
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
@@ -37,6 +36,7 @@
     "@refly/openapi-schema": "workspace:*",
     "@refly/stores": "workspace:*",
     "@refly/telemetry-web": "workspace:*",
+    "@refly/tsconfig": "workspace:*",
     "@refly/ui-kit": "workspace:*",
     "@refly/utils": "workspace:*",
     "@sentry/react": "^7.113.0",
@@ -124,7 +124,6 @@
     "react-resizable-panels": "^2.0.19",
     "react-router-dom": "^6.22.1",
     "react-syntax-highlighter": "^15.5.0",
-    "react-transition-group": "^4.4.5",
     "react-tweet": "^3.2.1",
     "react-use": "^17.5.0",
     "refly-icons": "^1.0.4",
@@ -157,6 +156,7 @@
     "@refly/common-types": "workspace:*",
     "@types/chrome": "0.0.227",
     "@types/is-hotkey": "~0.1.7",
+    "@types/lodash.debounce": "~4.0.9",
     "@types/lodash.throttle": "^4.1.9",
     "@types/markdown-it": "~14.1.1",
     "@types/md5": "^2.3.5",

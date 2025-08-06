@@ -5,8 +5,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { type Document, type Resource, type SearchResult } from '@refly/openapi-schema';
 import { type Mark } from '@refly/common-types';
 
-type SearchPage = 'notes' | 'readResources' | 'knowledgeBases' | 'convs';
-
 export interface SearchState {
   // state
   isSearchOpen: boolean;
@@ -76,7 +74,7 @@ export const useSearchStore = create<SearchState>()(
       })),
     setNoCategoryBigSearchRes: (noCategoryBigSearchRes: Mark[]) =>
       set((state) => ({ ...state, noCategoryBigSearchRes })),
-    setPages: (pages: SearchPage[]) => set((state) => ({ ...state, pages })),
+    setPages: (pages: string[]) => set((state) => ({ ...state, pages })),
     resetState: () => set((state) => ({ ...state, ...defaultState })),
   })),
 );

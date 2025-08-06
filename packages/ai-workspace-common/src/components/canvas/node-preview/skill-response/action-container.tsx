@@ -185,7 +185,7 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
 
     addToContext({
       type: 'skillResponse',
-      title: result.title,
+      title: result.title ?? '',
       entityId: result.resultId,
       // Safely pass metadata as any to avoid type errors
       metadata: (result as any)?.metadata,
@@ -209,7 +209,7 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
         type: 'skillResponse',
         position: { x: 0, y: 0 },
         data: {
-          title: result.title,
+          title: result.title ?? '',
           entityId: result.resultId,
         },
       });
@@ -261,7 +261,7 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
   return (
     <div className="flex items-center justify-between">
       <div className="-ml-1">
-        {step?.tokenUsage?.length > 0 && !isShareMode && (
+        {step?.tokenUsage && step.tokenUsage.length > 0 && !isShareMode && (
           <Dropdown menu={{ items: tokenUsageDropdownList }}>
             <Button
               type="text"
@@ -285,7 +285,7 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
                     size="small"
                     icon={<CopyOutlined style={{ fontSize: 14 }} />}
                     className={buttonClassName}
-                    onClick={() => handleCopyToClipboard(step.content)}
+                    onClick={() => handleCopyToClipboard(step.content ?? '')}
                   />
                 </Tooltip>
 
@@ -314,7 +314,10 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
                     disabled={!item.enabled}
                     loading={isCreating}
                     onClick={() => {
-                      const parsedText = parseMarkdownCitationsAndCanvasTags(step.content, sources);
+                      const parsedText = parseMarkdownCitationsAndCanvasTags(
+                        step.content ?? '',
+                        sources,
+                      );
                       handleEditorOperation(item.key as EditorOperation, parsedText || '');
                     }}
                   />

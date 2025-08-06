@@ -64,7 +64,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
   const onSkillStart = (skillEvent: SkillEvent) => {
     const { resultId } = skillEvent;
-
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
@@ -104,14 +103,17 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
 
     const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
-    updatedStep.logs = [...(updatedStep.logs || []), log];
+
+    if (log) {
+      updatedStep.logs = [...(updatedStep.logs || []), log];
+    }
 
     const updatedResult = {
       ...result,
       status: 'executing' as const,
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),
     };
-    onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
+    onUpdateResult(resultId, updatedResult, skillEvent);
   };
 
   // Optimize token usage updates by debouncing
@@ -137,7 +139,12 @@ export const useInvokeAction = (params?: { source?: string }) => {
       if (!currentResult) return;
 
       const updatedStep: ActionStep = findOrCreateStep(currentResult.steps ?? [], step);
-      updatedStep.tokenUsage = aggregateTokenUsage([...(updatedStep.tokenUsage ?? []), tokenUsage]);
+      if (tokenUsage) {
+        updatedStep.tokenUsage = aggregateTokenUsage([
+          ...(updatedStep.tokenUsage ?? []),
+          tokenUsage,
+        ]);
+      }
 
       onUpdateResult(
         resultId,
@@ -153,7 +160,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   };
 
   const findOrCreateStep = (steps: ActionStep[], stepMeta: ActionStepMeta) => {
-    const existingStep = steps?.find((s) => s.name === stepMeta?.name);
+    const existingStep = steps.find((s) => s.name === stepMeta.name);
     return existingStep
       ? { ...existingStep }
       : {
@@ -273,7 +280,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
         // Handle code artifact content if this is a code artifact stream
         if (throttleState.pendingArtifact) {
-          onSkillStreamArtifact(resultId, throttleState.pendingArtifact, updatedStep.content);
+          onSkillStreamArtifact(resultId, throttleState.pendingArtifact, updatedStep.content ?? '');
           throttleState.codeArtifactCreated = true;
         }
 
@@ -314,7 +321,11 @@ export const useInvokeAction = (params?: { source?: string }) => {
 
             // Handle the artifact content processing if needed
             if (throttleState.pendingArtifact) {
-              onSkillStreamArtifact(resultId, throttleState.pendingArtifact, updatedStep.content);
+              onSkillStreamArtifact(
+                resultId,
+                throttleState.pendingArtifact,
+                updatedStep.content ?? '',
+              );
             }
 
             onUpdateResult(resultId, updatedResult, {
@@ -390,7 +401,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[resultId];
 
-    if (!result || !step) {
+    if (!result || !step || !artifact) {
       return;
     }
 
@@ -399,7 +410,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
       ? [...updatedStep.artifacts]
       : [];
     const artifactIndex = existingArtifacts.findIndex(
-      (item) => item?.entityId === artifact?.entityId,
+      (item) => item?.entityId === artifact.entityId,
     );
 
     updatedStep.artifacts =
@@ -448,7 +459,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
       globalCurrentResultIdRef.current = '';
     }
 
-    const artifacts = result.steps?.flatMap((s) => s.artifacts);
+    const artifacts = result.steps?.flatMap((s) => s.artifacts ?? []);
     if (artifacts?.length) {
       for (const artifact of artifacts) {
         if (deletedNodeIdsRef.current.has(artifact.entityId)) {
@@ -519,7 +530,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
     const updatedResult = {
       ...result,
       status: 'failed' as const,
-      errors: [originError],
+      errors: originError ? [originError] : [],
     };
     onUpdateResult(skillEvent.resultId, updatedResult, skillEvent);
 
@@ -577,7 +588,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
       globalCurrentResultIdRef.current = resultId; // Track current active resultId
 
       const { context, resultHistory, images } = convertContextItemsToInvokeParams(
-        contextItems,
+        contextItems ?? [],
         (item) =>
           findThreadHistory({ resultId: item.entityId }).map((node) => ({
             title: node.data?.title,

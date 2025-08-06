@@ -73,7 +73,7 @@ interface CanvasContextType {
 }
 
 // HTTP interface to get canvas state
-const getCanvasState = async (canvasId: string): Promise<CanvasState> => {
+const getCanvasState = async (canvasId: string): Promise<CanvasState | undefined> => {
   const { data } = await getClient().getCanvasState({ query: { canvasId } });
   return data?.data;
 };
@@ -93,7 +93,7 @@ const pollCanvasTransactions = async (
   if (error) {
     throw error;
   }
-  return data.data;
+  return data?.data ?? [];
 };
 
 const setCanvasState = async (canvasId: string, state: CanvasState) => {
@@ -126,7 +126,7 @@ const getInternalState = ({
   connectionLookup?: Map<string, any>;
   edgeLookup?: Map<string, any>;
 } = {}) => {
-  updateConnectionLookup(connectionLookup, edgeLookup, edges);
+  updateConnectionLookup(connectionLookup, edgeLookup, edges ?? []);
   const cleanedNodes = nodes?.filter((node) => !!node) ?? [];
 
   if (cleanedNodes.length > 0) {
@@ -186,7 +186,7 @@ export const CanvasProvider = ({
     setCanvasInitialized: state.setCanvasInitialized,
   }));
 
-  const { data: canvasDetail } = useGetCanvasDetail({ query: { canvasId } }, null, {
+  const { data: canvasDetail } = useGetCanvasDetail({ query: { canvasId } }, [], {
     enabled: !readonly && !!canvasId,
   });
 
@@ -235,7 +235,7 @@ export const CanvasProvider = ({
 
     const { conflict, newState } = result;
 
-    let finalState: CanvasState;
+    let finalState: CanvasState | undefined;
 
     if (conflict) {
       const userChoice = await handleConflictResolution(canvasId, conflict);
@@ -251,7 +251,7 @@ export const CanvasProvider = ({
       } else {
         finalState = conflict.remoteState;
       }
-    } else {
+    } else if (newState) {
       finalState = newState;
     }
 
@@ -266,7 +266,7 @@ export const CanvasProvider = ({
     }
 
     // If the number of transactions is greater than the threshold, create a new version
-    if (state.transactions?.length > MAX_STATE_TX_COUNT) {
+    if ((state.transactions ?? []).length > MAX_STATE_TX_COUNT) {
       console.log('[syncWithRemote] create new version');
       const finalState = await handleCreateCanvasVersion(canvasId, state);
       if (finalState) {
@@ -296,6 +296,8 @@ export const CanvasProvider = ({
       setSyncFailureCount(0);
       await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
         ...state,
+        nodes: state?.nodes ?? [],
+        edges: state?.edges ?? [],
         transactions: state?.transactions?.map((tx) => ({
           ...tx,
           syncedAt: tx.syncedAt ?? Date.now(),
@@ -384,6 +386,8 @@ export const CanvasProvider = ({
 
         await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
           ...state,
+          nodes: state?.nodes ?? [],
+          edges: state?.edges ?? [],
           transactions: [...(state?.transactions?.filter((tx) => !tx.revoked) ?? []), diff],
         }));
       }
@@ -523,8 +527,8 @@ export const CanvasProvider = ({
 
     const lastTransaction = getLastTransaction(finalState);
     if (
-      finalState.transactions?.length > MAX_STATE_TX_COUNT ||
-      lastTransaction?.createdAt < Date.now() - MAX_VERSION_AGE
+      (finalState.transactions ?? []).length > MAX_STATE_TX_COUNT ||
+      (lastTransaction?.createdAt ?? 0) < Date.now() - MAX_VERSION_AGE
     ) {
       const newState = await handleCreateCanvasVersion(canvasId, finalState);
       if (newState) {
@@ -658,9 +662,11 @@ export const CanvasProvider = ({
         shareLoading,
         shareNotFound,
         syncFailureCount,
-        shareData: canvasData,
+        shareData: canvasData ?? undefined,
         lastUpdated,
-        syncCanvasData,
+        syncCanvasData: async () => {
+          await syncCanvasData();
+        },
         undo,
         redo,
       }}

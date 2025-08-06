@@ -36,7 +36,7 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
     const createProvider = useCreateProvider([], {
       onSuccess: (response) => {
         if (!response?.data?.success) {
-          throw response.data.errMsg;
+          throw response?.data?.errMsg;
         }
         setIsCurrentlyInstalling(false);
       },
@@ -89,7 +89,9 @@ export const CommunityProviderCard: React.FC<CommunityProviderCardProps> = memo(
     // Get localized description
     const description =
       typeof config.description === 'object'
-        ? config.description?.[language] || config.description?.en || ''
+        ? config.description?.[language as keyof typeof config.description] ||
+          config.description?.en ||
+          ''
         : config.description || '';
 
     // Get button properties based on state

@@ -91,7 +91,7 @@ export const sendMessage: (message: BackgroundMessage, needResponse?: boolean) =
             }
 
             if (fromRuntime !== 'extension-background') {
-              if (window?.addEventListener) {
+              if (window?.removeEventListener) {
                 window.removeEventListener('message', listener);
               }
             }

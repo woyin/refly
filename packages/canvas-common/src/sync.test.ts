@@ -14,6 +14,8 @@ import type {
   CanvasTransaction,
   CanvasNodeType,
   CanvasData,
+  NodeDiff,
+  EdgeDiff,
 } from '@refly/openapi-schema';
 
 const TEST_NODE_TYPE: CanvasNodeType = 'document';
@@ -38,8 +40,8 @@ const createEdge = (
 });
 const createTx = (
   id: string,
-  nodeDiffs = [],
-  edgeDiffs = [],
+  nodeDiffs: NodeDiff[] = [],
+  edgeDiffs: EdgeDiff[] = [],
   extra: Partial<CanvasTransaction> = {},
 ): CanvasTransaction => ({
   txId: id,
@@ -253,7 +255,7 @@ describe('updateCanvasState', () => {
       history: [],
     };
     const updated = updateCanvasState(state, [tx2]);
-    expect(updated.transactions.find((t) => t.txId === 'tx1')?.nodeDiffs[0].type).toBe('delete');
+    expect(updated.transactions?.find((t) => t.txId === 'tx1')?.nodeDiffs[0].type).toBe('delete');
   });
   it('should sort transactions by createdAt', () => {
     const tx1 = createTx('tx1', [], [], { createdAt: 2 });
@@ -266,8 +268,8 @@ describe('updateCanvasState', () => {
       history: [],
     };
     const updated = updateCanvasState(state, [tx2]);
-    expect(updated.transactions[0].txId).toBe('tx2');
-    expect(updated.transactions[1].txId).toBe('tx1');
+    expect(updated.transactions?.[0].txId).toBe('tx2');
+    expect(updated.transactions?.[1].txId).toBe('tx1');
   });
 });
 
@@ -303,8 +305,8 @@ describe('mergeCanvasStates', () => {
     };
     const merged = mergeCanvasStates(local, remote);
     expect(merged.transactions).toHaveLength(2);
-    expect(merged.transactions.some((t) => t.txId === 'tx1')).toBe(true);
-    expect(merged.transactions.some((t) => t.txId === 'tx2')).toBe(true);
+    expect(merged.transactions?.some((t) => t.txId === 'tx1')).toBe(true);
+    expect(merged.transactions?.some((t) => t.txId === 'tx2')).toBe(true);
   });
   it('should throw CanvasConflictException for conflicting transactions', () => {
     const tx1 = createTx('tx1', [{ type: 'add', id: 'n1', to: createNode('n1') }]);

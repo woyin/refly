@@ -321,8 +321,11 @@ export const ActionStepCard = memo(
 
     const parsedData = useMemo(
       () => ({
-        sources: parseStructuredData(step?.structuredData, 'sources'),
-        recommendedQuestions: parseStructuredData(step?.structuredData, 'recommendedQuestions'),
+        sources: parseStructuredData(step?.structuredData ?? {}, 'sources'),
+        recommendedQuestions: parseStructuredData(
+          step?.structuredData ?? {},
+          'recommendedQuestions',
+        ),
       }),
       [step?.structuredData],
     );
@@ -331,7 +334,7 @@ export const ActionStepCard = memo(
     const skillName = result.actionMeta?.name || 'commonQnA';
 
     const handleArtifactSelect = useCallback(
-      (artifact) => {
+      (artifact: any) => {
         setSelectedNodeByEntity({
           type: artifact.type,
           entityId: artifact.entityId,
@@ -354,9 +357,9 @@ export const ActionStepCard = memo(
           {` · ${t(`${skillName}.steps.${step.name}.name`, { ns: 'skill', defaultValue: step.name })}`}
         </div>
 
-        {logs?.length > 0 && (
+        {logs && logs.length > 0 && (
           <LogBox
-            logs={logs}
+            logs={logs ?? []}
             collapsed={logBoxCollapsed}
             onCollapse={setLogBoxCollapsed}
             t={t}

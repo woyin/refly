@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { ActionResult, SkillEvent } from '@refly/openapi-schema';
+import { ActionResult, ActionStep, SkillEvent } from '@refly/openapi-schema';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { useActionResultStoreShallow } from '@refly/stores';
 import { CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
@@ -11,12 +11,12 @@ import { processContentPreview } from '../../utils/content';
 // Memoize token usage calculation to avoid recalculating on every update
 const memoizeTokenUsage = (() => {
   const cache = new Map();
-  return (steps) => {
+  return (steps: ActionStep[]) => {
     const cacheKey = JSON.stringify(steps.map((s) => s?.name));
     if (cache.has(cacheKey)) {
       return cache.get(cacheKey);
     }
-    const result = aggregateTokenUsage(steps.flatMap((s) => s.tokenUsage).filter(Boolean));
+    const result = aggregateTokenUsage(steps.flatMap((s) => s.tokenUsage).filter((t) => !!t));
     cache.set(cacheKey, result);
     return result;
   };
@@ -30,18 +30,20 @@ const generateFullNodeDataUpdates = (
     entityId: payload.resultId,
     contentPreview: processContentPreview((payload?.steps || []).map((s) => s?.content || '')),
     metadata: {
-      status: payload?.status,
+      status: payload?.status ?? 'finish',
       errors: payload.errors,
       actionMeta: payload.actionMeta,
       modelInfo: payload.modelInfo,
       version: payload.version,
-      artifacts: payload.steps.flatMap((s) => s.artifacts),
-      structuredData: payload.steps.reduce(
+      artifacts: payload.steps?.flatMap((s) => s.artifacts ?? []) ?? [],
+      structuredData: payload.steps?.reduce(
         (acc, step) => Object.assign(acc, step.structuredData),
         {},
       ),
-      tokenUsage: memoizeTokenUsage(payload.steps),
-      reasoningContent: processContentPreview(payload.steps.map((s) => s?.reasoningContent || '')),
+      tokenUsage: memoizeTokenUsage(payload.steps ?? []),
+      reasoningContent: processContentPreview(
+        payload.steps?.map((s) => s?.reasoningContent || '') ?? [],
+      ),
     },
   };
 };
@@ -75,7 +77,7 @@ const generatePartialNodeDataUpdates = (payload: ActionResult, event?: SkillEven
       nodeData.metadata = {
         ...nodeData.metadata,
         status: payload?.status,
-        artifacts: steps.flatMap((s) => s.artifacts),
+        artifacts: steps.flatMap((s) => s.artifacts ?? []),
       };
       break;
 

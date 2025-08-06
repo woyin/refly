@@ -33,8 +33,6 @@ const PENALTY_SKIPPED = 0.999;
 // This will not change the order of suggestions based on SCORE_* until
 // 1000 characters are inserted between matches.
 const PENALTY_CASE_MISMATCH = 0.9999;
-// Match higher for letters closer to the beginning of the word
-const _PENALTY_DISTANCE_FROM_START = 0.9;
 // If the word has more characters than the user typed, it should
 // be penalised slightly.
 //
@@ -52,13 +50,13 @@ const IS_SPACE_REGEXP = /[\s-]/;
 const COUNT_SPACE_REGEXP = /[\s-]/g;
 
 function commandScoreInner(
-  string,
-  abbreviation,
-  lowerString,
-  lowerAbbreviation,
-  stringIndex,
-  abbreviationIndex,
-  memoizedResults,
+  string: string,
+  abbreviation: string,
+  lowerString: string,
+  lowerAbbreviation: string,
+  stringIndex: number,
+  abbreviationIndex: number,
+  memoizedResults: Record<string, number>,
 ) {
   if (abbreviationIndex === abbreviation.length) {
     if (stringIndex === string.length) {
@@ -151,7 +149,7 @@ function commandScoreInner(
   return highScore;
 }
 
-function formatInput(string) {
+function formatInput(string: string) {
   // convert all valid space characters to space so they match each other
   return string.toLowerCase().replace(COUNT_SPACE_REGEXP, ' ');
 }

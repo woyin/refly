@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSiderStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { sourceObject } from '@refly-packages/ai-workspace-common/components/project/project-directory';
 import { useUserStore } from '@refly/stores';
 
 export const DATA_NUM = 100;
@@ -76,12 +75,15 @@ export const useHandleSiderData = (initData?: boolean) => {
     setLoading && setIsLoadingProjects(true);
 
     const projects = await requestProjectsList();
+
+    if (!projects) return [];
+
     setLoading && setIsLoadingProjects(false);
     const formattedProjects = projects.map((project) => ({
       id: project.projectId,
       name: project.name,
       description: project.description,
-      updatedAt: project.updatedAt,
+      updatedAt: project.updatedAt ?? '',
       coverUrl: project.coverUrl,
       type: 'project' as const,
     }));
@@ -139,7 +141,7 @@ export const useHandleSiderData = (initData?: boolean) => {
       const dateB = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
       return dateB - dateA;
     });
-    updateSourceList(sorted as sourceObject[]);
+    updateSourceList(sorted as any);
   };
 
   const loadingSource = useMemo(

@@ -123,9 +123,9 @@ export const Markdown = memo(
       Promise.all([import('remark-math'), import('rehype-katex'), import('rehype-highlight')]).then(
         ([RemarkMath, RehypeKatex, RehypeHighlight]) => {
           setPlugins({
-            RemarkMath: RemarkMath.default,
-            RehypeKatex: RehypeKatex.default,
-            RehypeHighlight: RehypeHighlight.default,
+            RemarkMath: RemarkMath.default as any,
+            RehypeKatex: RehypeKatex.default as any,
+            RehypeHighlight: RehypeHighlight.default as any,
           });
         },
       );
@@ -147,9 +147,9 @@ export const Markdown = memo(
                     [
                       remarkGfm,
                       {
-                        singleTilde: false, // 禁用单波浪线删除线以减少冲突
-                        tablePipeAlign: true, // 保持表格对齐功能
-                        tableCellPadding: true, // 保持表格单元格填充
+                        singleTilde: false,
+                        tablePipeAlign: true,
+                        tableCellPadding: true,
                       },
                     ],
                     plugins.RemarkMath,

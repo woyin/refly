@@ -83,7 +83,7 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
           <>
             <Divider type="vertical" className="h-3" />
             <span className="flex items-center gap-1 text-xs opacity-70">
-              {getSkillIcon(skillName)}
+              {getSkillIcon(skillName ?? '')}
               {skillDisplayName}
             </span>
           </>

@@ -173,8 +173,8 @@ export const DraggableNodePreview = memo(
       () => ({
         height: isMaximized ? '100vh' : 'calc(100vh - 92px)',
         width: isMaximized ? 'calc(100vw)' : isWideMode ? '840px' : '420px',
-        top: isMaximized ? 0 : null,
-        right: isMaximized ? 0 : null,
+        top: isMaximized ? 0 : undefined,
+        right: isMaximized ? 0 : undefined,
         zIndex: isMaximized ? 50 : 10,
         transition: isMaximized
           ? 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)'
@@ -236,7 +236,7 @@ export const DraggableNodePreview = memo(
 
     // Memoize hover handler for better performance
     const handleHover = useCallback(
-      (item: DragItem, monitor) => {
+      (item: DragItem, monitor: any) => {
         if (!previewRef.current) return;
 
         const dragIndex = item.index;
@@ -490,8 +490,8 @@ export const NodePreview = memo(
       () => ({
         height: isMaximized ? '100vh' : 'calc(100vh - 72px)',
         width: isMaximized ? 'calc(100vw)' : isWideMode ? '840px' : '420px',
-        top: isMaximized ? 0 : null,
-        right: isMaximized ? 0 : null,
+        top: isMaximized ? 0 : undefined,
+        right: isMaximized ? 0 : undefined,
         zIndex: isMaximized ? 50 : 10,
         transition: isMaximized
           ? 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)'

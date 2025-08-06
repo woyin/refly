@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { IContextItem } from '@refly/common-types';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useContextPanelStore } from '@refly/stores';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 export const useSyncSelectedNodesToContext = () => {
   const { nodes } = useCanvasData();
@@ -24,7 +25,7 @@ export const useSyncSelectedNodesToContext = () => {
         .map((node) => ({
           entityId: node.data?.entityId,
           title: node.data?.title,
-          type: node.type,
+          type: node.type as CanvasNodeType,
           isPreview: true,
           metadata: {
             ...node.data?.metadata,

@@ -92,7 +92,7 @@ export const SelectionBubble: React.FC<SelectionBubbleProps> = ({
   // 包装 children 以处理点击事件
   const wrappedChildren = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
-      return React.cloneElement(child, {
+      return React.cloneElement(child as React.ReactElement<any>, {
         onClick: async (e: React.MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
@@ -124,7 +124,7 @@ export const SelectionBubble: React.FC<SelectionBubbleProps> = ({
     >
       {isVisible && selectedText && (
         <Tippy
-          ref={bubbleRef}
+          ref={bubbleRef as React.RefObject<any>}
           content={wrappedChildren}
           visible={true}
           interactive

@@ -231,7 +231,7 @@ function PortalModal<T>({
   );
 }
 
-const modalsMap = new WeakMap<symbol, [ReactElement, RefObject<PortalModelRef>]>();
+const modalsMap = new Map<symbol, [ReactElement, RefObject<PortalModelRef>]>();
 
 export function openModal<T = unknown>(
   props: OpenModalOptions<T> & {

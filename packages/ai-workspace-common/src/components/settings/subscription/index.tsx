@@ -410,8 +410,8 @@ export const Subscription = () => {
                     {storageUsage?.fileCountUsed || 0}{' '}
                     <span className="quota-text">
                       /{' '}
-                      {storageUsage?.fileCountQuota < 0
-                        ? filesPlanMap[planType]
+                      {storageUsage?.fileCountQuota && storageUsage?.fileCountQuota < 0
+                        ? filesPlanMap[planType as keyof typeof filesPlanMap]
                         : storageUsage?.fileCountQuota}
                     </span>
                   </div>

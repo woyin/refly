@@ -16,7 +16,7 @@ export const useUploadMinimap = (canvasId: string) => {
     const { data } = await getClient().upload({
       body: {
         file: image,
-        storageKey: storageKey,
+        storageKey,
         entityId: canvasId,
         entityType: 'canvas',
       },
@@ -29,6 +29,8 @@ export const useUploadMinimap = (canvasId: string) => {
     const minimap = await getMinimap();
     if (minimap) {
       const storageKey = await getCanvasMinimapStorageKey();
+      if (!storageKey) return;
+
       const result = await uploadMinimap(minimap, storageKey);
       const { data, success } = result ?? {};
 

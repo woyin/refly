@@ -41,7 +41,7 @@ export const useUploadImage = () => {
 
   const handleUploadMultipleImages = async (imageFiles: File[], canvasId: string) => {
     // Store the reference position for node placement
-    let referencePosition = null;
+    let referencePosition: { x: number; y: number } | null = null;
     const nodesData = [];
 
     for (let i = 0; i < imageFiles.length; i++) {

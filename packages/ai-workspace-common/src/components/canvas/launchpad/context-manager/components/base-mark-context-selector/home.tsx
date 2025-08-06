@@ -30,7 +30,7 @@ export function Home({
           value={`${item?.data?.title}__${item?.data?.entityId}`}
           activeValue={activeValue}
           onSelect={() => {
-            item?.onItemClick(item.data);
+            item?.onItemClick?.(item.data);
           }}
         >
           <span className="search-res-icon dark:text-gray-300">{item?.icon}</span>

@@ -32,7 +32,7 @@ export const OutputLocaleList = (props: {
     const { localSettings, userProfile } = useUserStore.getState();
 
     userStore.setLocalSettings({ ...localSettings, outputLocale: lng });
-    userStore.setUserProfile({ ...userProfile, outputLocale: lng });
+    userStore.setUserProfile({ ...userProfile!, outputLocale: lng });
     localStorage.setItem(
       'refly-local-settings',
       safeStringifyJSON({ ...localSettings, outputLocale: lng }),

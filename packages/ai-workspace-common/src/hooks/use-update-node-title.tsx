@@ -50,11 +50,9 @@ export const useUpdateNodeTitle = () => {
       }
 
       if (nodeType === 'document' && projectId) {
-        const source = sourceList.find((s) => s.entityId === entityId);
+        const source = sourceList.find((s) => s.id === entityId);
         if (source) {
-          setSourceList(
-            sourceList.map((s) => (s.entityId === entityId ? { ...s, title: newTitle } : s)),
-          );
+          setSourceList(sourceList.map((s) => (s.id === entityId ? { ...s, title: newTitle } : s)));
         }
       }
     },
