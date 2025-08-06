@@ -17,7 +17,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   plugins: [
-    pluginTypeCheck({ enable: true }), // temporarily disable type check
+    pluginTypeCheck({
+      enable:
+        process.env.NODE_ENV === 'development' || process.env.VITE_ENFORCE_TYPE_CHECK === 'true',
+    }),
     pluginReact(),
     pluginSvgr(),
     pluginSass(),
