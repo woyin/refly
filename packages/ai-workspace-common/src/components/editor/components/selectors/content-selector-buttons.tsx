@@ -14,7 +14,7 @@ export const ContentSelectorButtons: React.FC<ContentSelectorButtonsProps> = (pr
   return (
     <Tooltip title={t('knowledgeBase.canvas.editor.toolbar.quote')}>
       <Button type="text" className="rounded-none px-2 " onClick={handleClick}>
-        <IconQuote className="w-3 h-3 text-[#00968F]" size={16} />
+        <IconQuote className="w-3 h-3 text-[#0E9F77]" size={16} />
       </Button>
     </Tooltip>
   );

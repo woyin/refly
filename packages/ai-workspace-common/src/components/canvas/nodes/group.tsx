@@ -351,7 +351,7 @@ export const GroupNode = memo(
         >
           <div
             className={`relative h-full rounded-lg border-2 border-dashed ${
-              selected ? 'border-[#00968F]' : 'border-black/10 dark:border-white/10'
+              selected ? 'border-[#0E9F77]' : 'border-black/10 dark:border-white/10'
             } transition-all duration-200`}
             style={{
               background: 'transparent',

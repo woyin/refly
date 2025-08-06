@@ -72,7 +72,7 @@ const SessionHeader = memo(
                   (steps.filter((step) => step.status === 'finish').length / steps.length) * 100,
                 )}
                 size={14}
-                strokeColor="#00968F"
+                strokeColor="#0E9F77"
               />
               <div className="text-xs font-medium flex items-center">
                 {steps.filter((step) => step.status === 'finish').length} / {steps.length}
