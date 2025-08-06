@@ -44,8 +44,6 @@ const PremiumBanner = () => {
     (state) => state.setSubscribeModalVisible,
   );
 
-  if (!showPremiumBanner) return null;
-
   const handleUpgrade = useCallback(() => {
     logEvent('subscription::upgrade_click', 'input_banner');
     setSubscribeModalVisible(true);
@@ -55,6 +53,8 @@ const PremiumBanner = () => {
     logEvent('subscription::input_banner_close');
     setShowPremiumBanner(false);
   }, [setShowPremiumBanner]);
+
+  if (!showPremiumBanner) return null;
 
   return (
     <div className="flex items-center justify-between px-3 py-0.5 bg-gray-100 border-b dark:bg-gray-800 dark:border-gray-700">
