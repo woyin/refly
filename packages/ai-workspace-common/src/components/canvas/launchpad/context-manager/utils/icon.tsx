@@ -17,7 +17,7 @@ export const getContextItemIcon = (
   style?: React.CSSProperties,
   options?: { withHistory?: boolean },
 ) => {
-  const color = NODE_COLORS[type];
+  const color = NODE_COLORS[type as CanvasNodeType] ?? NODE_COLORS.document;
 
   switch (type) {
     case 'resource':

@@ -10,7 +10,6 @@ import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { useContextPanelStore } from '@refly/stores';
 import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
-import { useLaunchpadStoreShallow } from '@refly/stores';
 
 interface RecommendQuestionsPanelProps {
   isOpen: boolean;
@@ -30,10 +29,6 @@ export const RecommendQuestionsPanel: React.FC<RecommendQuestionsPanelProps> = (
 
   const skill = useFindSkill('recommendQuestions');
 
-  const { selectedMcpServers } = useLaunchpadStoreShallow((state) => ({
-    selectedMcpServers: state.selectedMcpServers,
-  }));
-
   const fetchRecommendQuestions = async (refresh = false) => {
     setLoading(true);
     const resultId = genActionResultID();
@@ -45,9 +40,8 @@ export const RecommendQuestionsPanel: React.FC<RecommendQuestionsPanelProps> = (
         query: newQAText,
         resultId,
         contextItems,
-        selectedMcpServers,
         selectedSkill: skill,
-        modelInfo: selectedModel,
+        modelInfo: selectedModel ?? undefined,
         runtimeConfig,
         tplConfig: {
           refresh: {

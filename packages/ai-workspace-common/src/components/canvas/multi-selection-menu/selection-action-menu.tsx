@@ -77,7 +77,7 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
   const handleAskAI = useCallback(() => {
     // Get all selected nodes except skills
     const selectedNodes = getNodes().filter(
-      (node) => node.selected && !['skill'].includes(node.type),
+      (node) => node.selected && !['skill'].includes(node.type ?? ''),
     ) as CanvasNode[];
 
     const connectTo = selectedNodes.map((node) => ({
@@ -159,7 +159,13 @@ export const SelectionActionMenu: FC<SelectionActionMenuProps> = ({ onClose }) =
 
     for (const node of selectedSkillNodes) {
       const { metadata } = node.data as CanvasNodeData<SkillNodeMeta>;
-      const { query, modelInfo, selectedSkill, contextItems = [], runtimeConfig = {} } = metadata;
+      const {
+        query,
+        modelInfo,
+        selectedSkill,
+        contextItems = [],
+        runtimeConfig = {},
+      } = metadata ?? {};
 
       const resultId = genActionResultID();
 

@@ -481,8 +481,8 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
       return (
         <HoverCard
           key={item.key}
-          title={item.hoverContent?.title || item.title}
-          description={item.hoverContent?.description || item.description}
+          title={item.hoverContent?.title || item.title || ''}
+          description={item.hoverContent?.description || item.description || ''}
           videoUrl={item.hoverContent?.videoUrl || item.videoUrl}
           placement="right"
           overlayStyle={{ marginLeft: '12px' }}
@@ -519,8 +519,8 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
               handleConfirm={handleConfirm}
               offset={12}
               placement="right"
-              open={item.showSearchList}
-              setOpen={item.setShowSearchList}
+              open={item.showSearchList ?? false}
+              setOpen={item.setShowSearchList ?? (() => {})}
             >
               <div key={`wrapper-${item.key}`} className="flex items-center w-full">
                 {renderButton(item)}

@@ -31,8 +31,8 @@ const getFormField = (fieldPrefix: string, key: string) => {
   return `${fieldPrefix ? `${fieldPrefix}.` : ''}${key}`;
 };
 
-const getDictValue = (dict: { [key: string]: string }, locale: string) => {
-  return dict?.[locale] || dict?.en;
+const getDictValue = (dict: { [key: string]: string } | undefined, locale: string) => {
+  return dict?.[locale] || dict?.en || '';
 };
 
 // Memoize the ConfigItem component to prevent unnecessary re-renders
@@ -154,18 +154,21 @@ const ConfigItem = React.memo(
 
     if (item.inputMode === 'select' || item.inputMode === 'multiSelect') {
       const optionValToDisplay = new Map(
-        item.options.map((option) => [option.value, getDictValue(option.labelDict, locale)]),
+        (item.options ?? []).map((option) => [
+          option.value,
+          getDictValue(option.labelDict ?? {}, locale),
+        ]),
       );
 
       const defaultValue =
         configValue?.value ||
-        (item.inputMode === 'multiSelect' ? [item.options[0]?.value] : item.options[0]?.value);
+        (item.inputMode === 'multiSelect' ? [item.options?.[0]?.value] : item.options?.[0]?.value);
 
       if (item.inputMode === 'multiSelect') {
         return (
           <Checkbox.Group
-            options={item.options.map((option) => ({
-              label: getDictValue(option.labelDict, locale),
+            options={(item.options ?? []).map((option) => ({
+              label: getDictValue(option.labelDict ?? {}, locale),
               value: option.value,
             }))}
             style={{ fontSize: '10px' }}
@@ -174,8 +177,8 @@ const ConfigItem = React.memo(
               onValueChange(
                 val,
                 Array.isArray(val)
-                  ? val.map((v) => optionValToDisplay.get(v)).join(',')
-                  : optionValToDisplay.get(val),
+                  ? val.map((v) => optionValToDisplay.get(v) ?? '').join(',')
+                  : (optionValToDisplay.get(val) ?? ''),
               );
             }}
             disabled={readonly}
@@ -188,13 +191,13 @@ const ConfigItem = React.memo(
           value={configValue?.value || defaultValue}
           onChange={(e) => {
             const checkedValue = e.target.value;
-            onValueChange(checkedValue, optionValToDisplay.get(checkedValue));
+            onValueChange(checkedValue, optionValToDisplay.get(checkedValue) ?? '');
           }}
           disabled={readonly}
         >
-          {item.options.map((option) => (
+          {(item.options ?? []).map((option) => (
             <Radio key={option.value} value={option.value} className="config-radio text-[10px]">
-              {getDictValue(option.labelDict, locale)}
+              {getDictValue(option.labelDict ?? {}, locale)}
             </Radio>
           ))}
         </Radio.Group>

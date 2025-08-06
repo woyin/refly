@@ -103,11 +103,13 @@ export const MediaSkillNode = memo(
         const edges = getEdges();
         const existingEdges = edges?.filter((edge) => edge.target === id) ?? [];
         const existingSourceIds = new Set(existingEdges.map((edge) => edge.source));
-        const newSourceNodes = contextNodes.filter((node) => !existingSourceIds.has(node?.id));
+        const newSourceNodes = contextNodes.filter(
+          (node) => !existingSourceIds.has(node?.id ?? ''),
+        );
 
         const newEdges = newSourceNodes.map((node) => ({
           id: `edge-${genUniqueId()}`,
-          source: node.id,
+          source: node?.id ?? '',
           target: id,
           style: edgeStyles.hover,
           type: 'default',

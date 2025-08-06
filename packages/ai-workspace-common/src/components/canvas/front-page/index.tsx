@@ -60,7 +60,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   }));
 
   const { debouncedCreateCanvas, isCreating } = useCreateCanvas({
-    projectId,
+    projectId: projectId ?? undefined,
     afterCreateSuccess: () => {
       // When canvas is created successfully, data is already in the store
       // No need to use localStorage anymore
@@ -73,7 +73,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const { abortAction } = useAbortAction({ source: 'front-page' });
 
   const handleSelectSkill = useCallback(
-    (skill: Skill) => {
+    (skill: Skill | null) => {
       setSelectedSkill(skill);
       setTplConfig(skill?.tplConfig ?? null);
     },

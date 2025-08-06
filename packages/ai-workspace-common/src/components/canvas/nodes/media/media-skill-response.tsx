@@ -83,7 +83,12 @@ const MediaSkillResponseNode = memo(
 
     const { containerStyle } = useNodeSize({
       id,
-      node,
+      node: node ?? {
+        id,
+        position: { x: 0, y: 0 },
+        data: {},
+        type: 'mediaSkillResponse',
+      },
       readonly,
       isOperating: false, // Removed isOperating logic to allow dragging after double click
       minWidth: 200,
@@ -120,7 +125,7 @@ const MediaSkillResponseNode = memo(
       if (result && resultId) {
         if (result.status === 'finish' && result.outputUrl) {
           // Create appropriate media node
-          handleCreateMediaNode(result.outputUrl, result.storageKey);
+          handleCreateMediaNode(result.outputUrl, result.storageKey ?? '');
           // Refresh balance after successful generation
           refetchUsage();
         } else if (result.status === 'failed') {

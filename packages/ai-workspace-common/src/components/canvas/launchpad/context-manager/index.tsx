@@ -59,7 +59,7 @@ const ContextManagerComponent = ({
             key={item.entityId}
             item={item}
             isLimit={!!filterErrorInfo?.[mapSelectionTypeToContentList(item?.type)]}
-            isActive={itemSelected.get(item.entityId)}
+            isActive={itemSelected.get(item.entityId) ?? false}
             onRemove={handleRemoveItem}
           />
         ))}

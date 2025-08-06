@@ -73,7 +73,7 @@ export const LinearThreadContainer = memo(() => {
     (
       message: { id: string; resultId: string; nodeId: string; data?: any },
       query = '',
-      contextItems = [],
+      contextItems: any[] = [],
     ) => {
       // Set as active when user interacts with this component
       setActiveResultId(ContextTarget.Global);

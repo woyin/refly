@@ -79,7 +79,12 @@ export const MemoNode = ({
 
   const { containerStyle, handleResize } = useNodeSize({
     id,
-    node,
+    node: node ?? {
+      id,
+      position: { x: 0, y: 0 },
+      data: {},
+      type: 'memo',
+    },
     sizeMode: 'adaptive',
     readonly,
     isOperating: false,

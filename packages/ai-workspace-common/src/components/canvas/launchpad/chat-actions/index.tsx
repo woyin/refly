@@ -23,8 +23,8 @@ export interface CustomAction {
 
 interface ChatActionsProps {
   query: string;
-  model: ModelInfo;
-  setModel: (model: ModelInfo) => void;
+  model: ModelInfo | null;
+  setModel: (model: ModelInfo | null) => void;
   runtimeConfig: SkillRuntimeConfig;
   setRuntimeConfig: (runtimeConfig: SkillRuntimeConfig) => void;
   className?: string;
@@ -184,7 +184,7 @@ export const ChatActions = memo(
 
                 logEvent('canvas::node_execute', Date.now(), {
                   node_type: 'askAI',
-                  model_name: model.name,
+                  model_name: model?.name ?? '',
                   used_knowledge_base: usedKnowledgeBase,
                   used_mcp: usedMcp,
                 });

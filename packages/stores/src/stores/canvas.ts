@@ -49,7 +49,7 @@ export interface CanvasState {
 
   setInitialFitViewCompleted: (completed: boolean) => void;
   deleteCanvasData: (canvasId: string) => void;
-  setCurrentCanvasId: (canvasId: string) => void;
+  setCurrentCanvasId: (canvasId: string | null) => void;
   addNodePreview: (canvasId: string, node: NodePreview) => void;
   setNodePreview: (canvasId: string, node: NodePreview) => void;
   removeNodePreview: (canvasId: string, nodeId: string) => void;
