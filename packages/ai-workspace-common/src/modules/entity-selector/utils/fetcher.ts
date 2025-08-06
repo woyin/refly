@@ -25,7 +25,7 @@ export const domainToFetchData: Record<SearchDomain, DataFetcher> = {
       ],
       contentPreview: item?.contentPreview,
     }));
-    return { success: res?.data?.success, data };
+    return { success: res?.data?.success ?? false, data };
   },
   document: async (queryPayload) => {
     const res = await getClient().listDocuments({
@@ -42,7 +42,7 @@ export const domainToFetchData: Record<SearchDomain, DataFetcher> = {
       ],
       contentPreview: item?.contentPreview,
     }));
-    return { success: res?.data?.success, data };
+    return { success: res?.data?.success ?? false, data };
   },
   canvas: async (queryPayload) => {
     const res = await getClient().listCanvases({
@@ -53,6 +53,6 @@ export const domainToFetchData: Record<SearchDomain, DataFetcher> = {
       title: item?.title,
       domain: 'canvas',
     }));
-    return { success: res?.data?.success, data };
+    return { success: res?.data?.success ?? false, data };
   },
 };

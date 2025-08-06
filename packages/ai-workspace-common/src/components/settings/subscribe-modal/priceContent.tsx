@@ -85,9 +85,9 @@ const PlanItem = (props: {
     const prices = {
       starter: { monthly: 24.9, yearly: 19.9, yearlyTotal: 238.8 },
       maker: { monthly: 49.9, yearly: 39.9, yearlyTotal: 478.8 },
-    };
+    } as const;
 
-    const priceInfo = prices[planType];
+    const priceInfo = prices[planType as keyof typeof prices];
 
     if (interval === 'monthly') {
       return (
@@ -113,10 +113,14 @@ const PlanItem = (props: {
   };
 
   const isCurrentPlan = currentPlan === planType;
-  const upgradePlan = PlanPriorityMap[PlanPriorityMap[currentPlan] + 1] || 'enterprise';
+  const upgradePlan =
+    PlanPriorityMap[PlanPriorityMap[currentPlan as keyof typeof PlanPriorityMap] + 1] ||
+    'enterprise';
 
   const isUpgrade = upgradePlan === planType;
-  const isDowngrade = PlanPriorityMap[currentPlan] > PlanPriorityMap[planType];
+  const isDowngrade =
+    PlanPriorityMap[currentPlan as keyof typeof PlanPriorityMap] >
+    PlanPriorityMap[planType as keyof typeof PlanPriorityMap];
   const isButtonDisabled = (isCurrentPlan || isDowngrade) && planType !== 'enterprise';
 
   const isHighlight =
@@ -232,7 +236,7 @@ export const PriceContent = (props: { source: PriceSource }) => {
 
   const plansData = useMemo(() => {
     const planTypes = ['free', 'starter', 'maker', 'enterprise'];
-    const data = {};
+    const data: Record<string, { title: string; description: string; features: Feature[] }> = {};
     for (const planType of planTypes) {
       data[planType] = {
         title: t(`subscription.plans.${planType}.title`),

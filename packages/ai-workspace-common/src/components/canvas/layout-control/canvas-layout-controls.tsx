@@ -56,7 +56,7 @@ export const CanvasLayoutControls = memo(() => {
   // Handle viewport changes to update zoom percentage
   useOnViewportChange({
     onChange: useCallback(
-      ({ zoom }) => {
+      ({ zoom }: { zoom: number }) => {
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
         }

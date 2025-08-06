@@ -2,7 +2,7 @@ import { memo, useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { Position, NodeProps, useReactFlow } from '@xyflow/react';
 import { CustomHandle } from './shared/custom-handle';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import { CanvasNode, CommonNodeProps } from '@refly/canvas-common';
+import { CanvasNode } from '@refly/canvas-common';
 import { GroupActionButtons } from '../group-action-menu/group-action-buttons';
 import { GroupName } from '../group-action-menu/group-name';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -27,6 +27,7 @@ import { useCanvasLayout } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 interface GroupMetadata {
   label?: string;
@@ -41,6 +42,13 @@ export interface GroupData {
   entityId: string;
   metadata?: GroupMetadata;
 }
+
+type CommonNodeProps = {
+  isPreview?: boolean;
+  hideActions?: boolean;
+  hideHandles?: boolean;
+  onNodeClick?: () => void;
+};
 
 type GroupNodeProps = Omit<NodeProps, 'data'> & {
   data: GroupData;
@@ -157,11 +165,11 @@ export const GroupNode = memo(
           let position = { x: 0, y: 0 };
           for (const node of childNodes) {
             const { position: nodePosition, connectTo: nodeConnectTo } = getConnectionInfo(
-              { entityId: node.data.entityId, type: node.type },
+              { entityId: node.data.entityId, type: node.type as CanvasNodeType },
               event?.dragCreateInfo,
             );
             connectTo.push(...nodeConnectTo);
-            position = nodePosition;
+            position = nodePosition ?? { x: 0, y: 0 };
           }
 
           addNode(

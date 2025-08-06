@@ -862,19 +862,6 @@ const translations = {
     canvasListModal: {
       continue: '继续对话',
     },
-    contentPanel: {
-      tabPanel: {
-        resource: '资源',
-        canvas: '画布',
-        project: '项目',
-        thread: '会话',
-      },
-      newButton: {
-        resource: '新资源',
-        canvas: '新画布',
-        project: '新项目',
-      },
-    },
     labelGroup: {
       addLabel: '点击添加标签',
       addLabelTitle: '添加标签',

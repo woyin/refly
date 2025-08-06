@@ -13,10 +13,6 @@ import { useTranslation } from 'react-i18next';
 const ReactCodeRunner = memo(
   ({
     code,
-    /* biome-ignore lint/correctness/noUnusedVariables: language is passed but not used directly */
-    language,
-    /* biome-ignore lint/correctness/noUnusedVariables: title is passed but not used directly */
-    title,
     onRequestFix,
     showErrorMessage = true,
     showActions = true,

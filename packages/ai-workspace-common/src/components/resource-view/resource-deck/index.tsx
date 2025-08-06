@@ -92,7 +92,7 @@ const ResourceDeck = (props: ResourceDeckProps) => {
 
   useEffect(() => {
     setDomain(domain);
-    setId(id);
+    setId(id ?? '');
     fetchReferences({ sourceId: id, sourceType: domain });
     fetchReferencedBy({ targetId: id, targetType: domain });
   }, [domain, id, setDomain, setId, fetchReferences, fetchReferencedBy]);

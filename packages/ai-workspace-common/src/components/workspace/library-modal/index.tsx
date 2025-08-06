@@ -12,7 +12,7 @@ import {
   IconProject,
   IconResource,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useKnowledgeBaseStoreShallow } from '@refly/stores';
+import { useKnowledgeBaseStoreShallow, LibraryModalActiveKey } from '@refly/stores';
 import { useState, useMemo } from 'react';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 
@@ -99,7 +99,7 @@ export const LibraryModal = (props: LibraryModalProps) => {
         <Tabs
           defaultActiveKey={projectId ? 'project' : activeKey}
           items={tabs}
-          onChange={(key) => updateLibraryModalActiveKey(key)}
+          onChange={(key) => updateLibraryModalActiveKey(key as LibraryModalActiveKey)}
         />
       </Modal>
     </>

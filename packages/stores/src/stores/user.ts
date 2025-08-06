@@ -3,8 +3,7 @@ import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { LOCALE } from '@refly/common-types';
 import { UserSettings } from '@refly/openapi-schema';
-import { OutputLocale } from '../types/common';
-import { IRuntime } from '@refly/common-types';
+import { IRuntime, OutputLocale } from '@refly/common-types';
 
 export interface LocalSettings {
   uiLocale: LOCALE;

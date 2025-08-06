@@ -725,7 +725,7 @@ export const SkillResponseNode = memo(
                   resultId={entityId}
                   content={truncateContent(content)}
                   sources={sources}
-                  metadata={metadata}
+                  metadata={metadata as any}
                 />
               )}
             </div>

@@ -1,6 +1,16 @@
 import Dagre from '@dagrejs/dagre';
+import { Node, Edge } from '@xyflow/react';
 
-export const getLayoutedElements = (nodes, edges, options) => {
+export const getLayoutedElements = (
+  nodes: Node[],
+  edges: Edge[],
+  options: {
+    direction?: 'TB' | 'LR';
+    nodeSep?: number;
+    rankSep?: number;
+    ranker?: 'network-simplex' | 'tight-tree' | 'longest-path' | 'dependency-ordered';
+  },
+): { nodes: Node[]; edges: Edge[] } => {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
   // Configure graph options

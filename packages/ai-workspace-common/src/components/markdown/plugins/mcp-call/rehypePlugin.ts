@@ -239,13 +239,11 @@ function rehypePlugin() {
               // Attempt to find and process audio data in the result
               let audioUrlFromDetails: string | undefined;
               let audioFormatFromDetails: string | undefined;
-              let _isAudioHttpUrl = false;
               let audioNameFromArgs = 'audio'; // Default audio name
 
               // Attempt to find and process video data in the result
               let videoUrlFromDetails: string | undefined;
               let videoFormatFromDetails: string | undefined;
-              let _isVideoHttpUrl = false;
               let videoNameFromArgs = 'video'; // Default video name
 
               // 1. Directly search for image URL in the result string
@@ -276,7 +274,6 @@ function rehypePlugin() {
               if (audioResult.url) {
                 audioUrlFromDetails = audioResult.url;
                 audioFormatFromDetails = audioResult.format;
-                _isAudioHttpUrl = true;
               } else {
                 // 2. If direct search fails, try to parse JSON and search in the stringified JSON result
                 try {
@@ -287,7 +284,6 @@ function rehypePlugin() {
                   if (jsonAudioResult.url) {
                     audioUrlFromDetails = jsonAudioResult.url;
                     audioFormatFromDetails = jsonAudioResult.format;
-                    _isAudioHttpUrl = jsonAudioResult.isHttp;
                   }
                 } catch (_e) {
                   // Not a JSON result, or JSON parsing failed
@@ -299,7 +295,6 @@ function rehypePlugin() {
               if (videoResult.url) {
                 videoUrlFromDetails = videoResult.url;
                 videoFormatFromDetails = videoResult.format;
-                _isVideoHttpUrl = true;
               } else {
                 // 2. If direct search fails, try to parse JSON and search in the stringified JSON result
                 try {
@@ -310,7 +305,6 @@ function rehypePlugin() {
                   if (jsonVideoResult.url) {
                     videoUrlFromDetails = jsonVideoResult.url;
                     videoFormatFromDetails = jsonVideoResult.format;
-                    _isVideoHttpUrl = jsonVideoResult.isHttp;
                   }
                 } catch (_e) {
                   // Not a JSON result, or JSON parsing failed
@@ -461,7 +455,7 @@ function rehypePlugin() {
 
             // Replace the original node with the new nodes
             parent.children.splice(index, 1, ...newNodes);
-            return [SKIP, index + newNodes.length - 1]; // Skip to after the last inserted node
+            return [SKIP, (index ?? 0) + newNodes.length - 1]; // Skip to after the last inserted node
           }
         }
       }
@@ -519,13 +513,11 @@ function rehypePlugin() {
               // Attempt to find and process audio data in the result
               let audioUrlFromDetails: string | undefined;
               let audioFormatFromDetails: string | undefined;
-              let _isAudioHttpUrl = false;
               let audioNameFromArgs = 'audio'; // Default audio name
 
               // Attempt to find and process video data in the result
               let videoUrlFromDetails: string | undefined;
               let videoFormatFromDetails: string | undefined;
-              let _isVideoHttpUrl = false;
               let videoNameFromArgs = 'video'; // Default video name
 
               // Directly search for image URL in the result string, also check link elements from remarkGfm
@@ -556,7 +548,6 @@ function rehypePlugin() {
               if (audioResult.url) {
                 audioUrlFromDetails = audioResult.url;
                 audioFormatFromDetails = audioResult.format;
-                _isAudioHttpUrl = true;
               } else {
                 // If direct search fails, try to parse JSON and search in the stringified JSON result
                 try {
@@ -567,7 +558,6 @@ function rehypePlugin() {
                   if (jsonAudioResult.url) {
                     audioUrlFromDetails = jsonAudioResult.url;
                     audioFormatFromDetails = jsonAudioResult.format;
-                    _isAudioHttpUrl = jsonAudioResult.isHttp;
                   }
                 } catch (_e) {
                   // Not a JSON result, or JSON parsing failed
@@ -579,7 +569,6 @@ function rehypePlugin() {
               if (videoResult.url) {
                 videoUrlFromDetails = videoResult.url;
                 videoFormatFromDetails = videoResult.format;
-                _isVideoHttpUrl = true;
               } else {
                 // If direct search fails, try to parse JSON and search in the stringified JSON result
                 try {
@@ -590,7 +579,6 @@ function rehypePlugin() {
                   if (jsonVideoResult.url) {
                     videoUrlFromDetails = jsonVideoResult.url;
                     videoFormatFromDetails = jsonVideoResult.format;
-                    _isVideoHttpUrl = jsonVideoResult.isHttp;
                   }
                 } catch (_e) {
                   // Not a JSON result, or JSON parsing failed

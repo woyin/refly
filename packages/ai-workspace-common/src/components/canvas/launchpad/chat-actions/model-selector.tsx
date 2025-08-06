@@ -136,10 +136,10 @@ SettingsButton.displayName = 'SettingsButton';
 const isModelDisabled = (meter: TokenUsageMeter, model: ModelInfo) => {
   if (meter && model) {
     if (model.tier === 't1') {
-      return meter.t1CountUsed >= meter.t1CountQuota && meter.t1CountQuota >= 0;
+      return meter.t1CountUsed! >= meter.t1CountQuota! && meter.t1CountQuota! >= 0;
     }
     if (model.tier === 't2') {
-      return meter.t2CountUsed >= meter.t2CountQuota && meter.t2CountQuota >= 0;
+      return meter.t2CountUsed! >= meter.t2CountQuota! && meter.t2CountQuota! >= 0;
     }
   }
   return false;
@@ -219,10 +219,10 @@ export const ModelSelector = memo(
           return {
             name: config.modelId,
             label: item.name,
-            provider: item.provider?.providerKey,
+            provider: item.provider?.providerKey ?? '',
             providerItemId: item.itemId,
-            contextLimit: config.contextLimit,
-            maxOutput: config.maxOutput,
+            contextLimit: config.contextLimit!,
+            maxOutput: config.maxOutput!,
             capabilities: config.capabilities,
             group: item.group,
           };
@@ -233,7 +233,7 @@ export const ModelSelector = memo(
     const { handleGroupModelList } = useGroupModels();
 
     const isContextIncludeImage = useMemo(() => {
-      return contextItems?.some((item) => item.type === 'image');
+      return contextItems?.some((item) => item.type === 'image') ?? false;
     }, [contextItems]);
 
     const handleMenuClick = useCallback(
@@ -260,7 +260,7 @@ export const ModelSelector = memo(
 
       const sortedGroups = handleGroupModelList(modelList);
 
-      let list = [];
+      let list: any[] = [];
       for (const group of sortedGroups) {
         if (group?.models?.length > 0) {
           const header = {
@@ -289,21 +289,23 @@ export const ModelSelector = memo(
       () => (
         <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
-            {droplist.map((item) => (
-              <div key={item.key} className="model-list-item">
-                {item.type === 'group' ? (
-                  item.label
-                ) : item.type !== 'divider' ? (
-                  <div
-                    className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
-                    onClick={() => handleMenuClick({ key: item.key as string })}
-                  >
-                    <div className="flex-shrink-0 flex items-center">{item.icon}</div>
-                    <div className="min-w-0 flex-1">{item.label}</div>
-                  </div>
-                ) : null}
-              </div>
-            ))}
+            {droplist
+              .filter((item) => !!item)
+              .map((item) => (
+                <div key={item.key} className="model-list-item">
+                  {item.type === 'group' ? (
+                    item.label
+                  ) : item.type !== 'divider' ? (
+                    <div
+                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                      onClick={() => handleMenuClick({ key: item.key as string })}
+                    >
+                      <div className="flex-shrink-0 flex items-center">{item.icon}</div>
+                      <div className="min-w-0 flex-1">{item.label}</div>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
           </div>
           <SettingsButton
             handleOpenSettingModal={handleOpenSettingModal}
@@ -321,19 +323,19 @@ export const ModelSelector = memo(
     useEffect(() => {
       if (
         !model ||
-        isModelDisabled(tokenUsage, model) ||
+        isModelDisabled(tokenUsage!, model) ||
         !modelList?.find((m) => m.name === model.name)
       ) {
         const defaultModelItemId = userProfile?.preferences?.defaultModel?.chat?.itemId;
-        let initialModel: ModelInfo | null = null;
+        let initialModel: ModelInfo | undefined;
 
         if (defaultModelItemId) {
           initialModel = modelList?.find((m) => m.providerItemId === defaultModelItemId);
         }
         if (!initialModel) {
-          initialModel = modelList?.find((m) => !isModelDisabled(tokenUsage, m));
+          initialModel = modelList?.find((m) => !isModelDisabled(tokenUsage!, m));
         }
-        setModel(initialModel);
+        setModel(initialModel ?? null);
       }
     }, [model, tokenUsage, modelList, isModelDisabled, setModel]);
 

@@ -27,7 +27,7 @@ export const ImportFromText = () => {
       setCopiedTextPayload: state.setCopiedTextPayload,
     }));
   const { projectId, isCanvasOpen } = useGetProjectCanvasId();
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(projectId || null);
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
   const { updateSourceList } = useUpdateSourceList();
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
   const { insertNodePosition } = useImportResourceStoreShallow((state) => ({
@@ -74,17 +74,17 @@ export const ImportFromText = () => {
             type: 'resource',
             data: {
               title: data?.data?.title || 'Untitled',
-              entityId: data?.data?.resourceId,
+              entityId: data?.data?.resourceId ?? '',
               contentPreview: data?.data?.contentPreview,
               metadata: {
                 resourceType: 'text',
               },
             },
-            position: insertNodePosition,
+            position: insertNodePosition ?? undefined,
           },
         });
       }
-      updateSourceList([data?.data], currentProjectId);
+      updateSourceList([data?.data!], currentProjectId);
     }
   };
 

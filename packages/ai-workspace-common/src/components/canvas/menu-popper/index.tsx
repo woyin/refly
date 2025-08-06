@@ -381,17 +381,17 @@ export const MenuPopper: FC<MenuPopperProps> = memo(({ open, position, setOpen }
   const renderButton = (item: ToolbarItem) => {
     const button = (
       <Button
-        loading={getIsLoading(item.key)}
+        loading={getIsLoading(item.key ?? '')}
         className={cn('w-full px-2 justify-start', {
           'bg-gray-100 dark:bg-gray-800': activeKey === item.key,
           'text-primary-600 dark:text-primary-300': item.primary,
           'text-red-600 dark:text-red-300': item.danger,
         })}
         type="text"
-        icon={<item.icon className="text-base flex items-center" />}
-        onClick={() => handleMenuClick({ key: item.key })}
+        icon={item.icon ? <item.icon className="text-base flex items-center" /> : undefined}
+        onClick={() => handleMenuClick({ key: item.key ?? '' })}
       >
-        <span>{t(`canvas.toolbar.${item.key}`)}</span>
+        <span>{t(`canvas.toolbar.${item.key ?? ''}`)}</span>
       </Button>
     );
 
@@ -441,8 +441,8 @@ export const MenuPopper: FC<MenuPopperProps> = memo(({ open, position, setOpen }
                 handleConfirm={handleConfirm}
                 offset={12}
                 placement="right"
-                open={item.showSearchList}
-                setOpen={item.setShowSearchList}
+                open={item.showSearchList ?? false}
+                setOpen={item.setShowSearchList ?? (() => {})}
               >
                 <div key={item.key} className="flex items-center w-full">
                   {renderButton(item)}

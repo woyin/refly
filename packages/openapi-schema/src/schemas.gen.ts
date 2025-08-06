@@ -4163,7 +4163,7 @@ export const SkillEventTypeSchema = {
 
 export const SkillEventSchema = {
   type: 'object',
-  required: ['event'],
+  required: ['event', 'resultId'],
   properties: {
     event: {
       description: 'Event type',

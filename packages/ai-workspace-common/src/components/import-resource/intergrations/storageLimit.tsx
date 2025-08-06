@@ -9,7 +9,7 @@ import { logEvent } from '@refly/telemetry-web';
 
 interface StorageLimitProps {
   resourceCount: number;
-  projectId: string | null;
+  projectId?: string;
   onSelectProject: (projectId: string) => void;
 }
 

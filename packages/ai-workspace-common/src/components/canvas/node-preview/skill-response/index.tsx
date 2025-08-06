@@ -121,7 +121,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       return;
     }
 
-    updateActionResult(resultId, data.data);
+    updateActionResult(resultId, data.data!);
 
     const remoteResult = data.data;
     const node = getNodes().find((node) => node.data?.entityId === resultId);
@@ -181,7 +181,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const tplConfig = result?.tplConfig ?? data?.metadata?.tplConfig;
   const runtimeConfig = result?.runtimeConfig ?? data?.metadata?.runtimeConfig;
 
-  const { errCode, errMsg, rawError } = useSkillError(result?.errors?.[0]);
+  const { errCode, errMsg, rawError } = useSkillError(result?.errors?.[0] ?? '');
 
   const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
     setSubscribeModalVisible: state.setSubscribeModalVisible,
@@ -208,7 +208,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     }
 
     // Fallback to contextItems from context (could be legacy nodes)
-    return convertResultContextToItems(context, history);
+    return convertResultContextToItems(context ?? {}, history);
   }, [data, context, history]);
 
   const handleDelete = useCallback(() => {
@@ -263,7 +263,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     };
   }, [node.id]);
 
-  const error = guessModelProviderError(result?.errors?.[0]);
+  const error = guessModelProviderError(result?.errors?.[0] ?? '');
 
   const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
   const errDescription = useMemo(() => {
@@ -293,7 +293,15 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             contextItems={contextItems}
             query={title}
             actionMeta={actionMeta}
-            modelInfo={modelInfo}
+            modelInfo={
+              modelInfo ?? {
+                name: '',
+                label: '',
+                provider: '',
+                contextLimit: 0,
+                maxOutput: 0,
+              }
+            }
             setEditMode={setEditMode}
             tplConfig={tplConfig}
             runtimeConfig={runtimeConfig}

@@ -14,7 +14,7 @@ import { ContentHeader } from '@refly-packages/ai-workspace-common/components/se
 type ParserCategory = 'webSearch' | 'urlParsing' | 'pdfParsing';
 
 const DEFAULT_PROVIDERS = {
-  webSearch: null,
+  webSearch: undefined,
   urlParsing: 'cheerio',
   pdfParsing: 'pdfjs',
 };
@@ -97,7 +97,7 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
   const defaultWebSearchValue = useMemo(
     () =>
       userProfile?.preferences?.webSearch?.providerId ||
-      (webSearchProviders?.length > 0 ? webSearchProviders[0]?.providerId : null),
+      (webSearchProviders?.length > 0 ? webSearchProviders[0]?.providerId : undefined),
     [userProfile?.preferences?.webSearch?.providerId, webSearchProviders],
   );
 
@@ -119,7 +119,7 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
     [userProfile?.preferences?.pdfParsing?.providerId, pdfParsingProviders],
   );
 
-  const [webSearchValue, setWebSearchValue] = useState<string>(defaultWebSearchValue);
+  const [webSearchValue, setWebSearchValue] = useState<string | undefined>(defaultWebSearchValue);
   const [urlParsingValue, setUrlParsingValue] = useState<string>(defaultUrlParsingValue);
   const [pdfParsingValue, setPdfParsingValue] = useState<string>(defaultPdfParsingValue);
 
@@ -168,14 +168,14 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
   }, []);
 
   const handleProviderModalClose = useCallback(() => {
-    setCurrentType(null);
+    setCurrentType('webSearch');
     setIsProviderModalOpen(false);
   }, []);
 
   const updateUserProfile = useCallback(
-    async (type: ParserCategory, value: ProviderConfig | undefined, afterSuccess?: () => void) => {
+    async (type: ParserCategory, value: ProviderConfig, afterSuccess?: () => void) => {
       const updatedPreferences = {
-        ...userProfile.preferences,
+        ...userProfile?.preferences,
         [type]: {
           ...value,
         },
@@ -190,9 +190,8 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
       if (res?.data?.success) {
         message.success(t('settings.parserConfig.updateConfigSuccessfully'));
         setCurrentProvider(type, value);
-        console.log('updatedPreferences', value);
         setUserProfile({
-          ...userProfile,
+          ...userProfile!,
           preferences: updatedPreferences,
         });
         if (afterSuccess) {
@@ -208,7 +207,9 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
   const handleSelectProvider = useCallback(
     (value: string, type: 'webSearch' | 'urlParsing' | 'pdfParsing') => {
       const selectedProvider = providers.find((provider) => provider.providerId === value);
-      updateUserProfile(type, selectedProvider);
+      if (selectedProvider) {
+        updateUserProfile(type, selectedProvider);
+      }
     },
     [providers, updateUserProfile],
   );
@@ -325,7 +326,7 @@ export const ParserConfig = memo(({ visible }: ParserConfigProps) => {
             <ConfigCard
               key={config.type}
               title={config.title}
-              value={config.value}
+              value={config.value ?? ''}
               options={config.options}
               type={config.type}
               onSelect={handleSelectProvider}

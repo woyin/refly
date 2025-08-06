@@ -67,7 +67,7 @@ export const SettingsGuideModal = React.memo(() => {
           };
 
     setUserProfile({
-      ...userProfile,
+      ...userProfile!,
       onboarding: {
         ...userProfile?.onboarding,
         settings,
@@ -109,7 +109,7 @@ export const SettingsGuideModal = React.memo(() => {
 
   useEffect(() => {
     setFinishedOnboardingSettings(
-      ['skipped', 'completed'].includes(userProfile?.onboarding?.settings),
+      ['skipped', 'completed'].includes(userProfile?.onboarding?.settings ?? ''),
     );
   }, [userProfile?.onboarding?.settings]);
 
@@ -120,7 +120,7 @@ export const SettingsGuideModal = React.memo(() => {
   useEffect(() => {
     setShouldShowTourModal(
       !finishedOnboardingSettings &&
-        !['skipped', 'completed'].includes(userProfile?.onboarding?.tour),
+        !['skipped', 'completed'].includes(userProfile?.onboarding?.tour ?? ''),
     );
   }, [finishedOnboardingSettings, userProfile?.onboarding?.tour]);
 

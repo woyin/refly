@@ -165,7 +165,7 @@ export const AppearanceSetting = () => {
                   onClick={() => handleThemeModeChange(option.value)}
                   title={option.title}
                   flowImage={option.flowImage}
-                  bgColor={option.bgColor}
+                  bgColor={option.bgColor!}
                 />
               )}
             </div>

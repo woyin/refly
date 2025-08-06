@@ -151,7 +151,6 @@ function PagesPage() {
           pagination={{
             pageSize: 10,
             total: pagesData?.data?.total,
-            current: pagesData?.data?.page,
             onChange: (_page, _pageSize) => {
               // Refresh query when changing page
               refetchPages();

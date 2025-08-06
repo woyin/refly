@@ -125,7 +125,7 @@ const NodeHeader = memo(
     }, [t, skills]);
 
     const handleMenuClick: MenuProps['onClick'] = useCallback(
-      ({ key }) => {
+      ({ key }: { key: string }) => {
         const selectedSkill =
           key === 'default' ? null : skills.find((skill) => skill.name === key) || null;
         setSelectedSkill(selectedSkill);
@@ -137,7 +137,7 @@ const NodeHeader = memo(
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded bg-[#6172F3] shadow-lg flex items-center justify-center flex-shrink-0">
-            {getSkillIcon(selectedSkillName, 'w-4 h-4 text-white')}
+            {getSkillIcon(selectedSkillName ?? '', 'w-4 h-4 text-white')}
           </div>
 
           <Tooltip
@@ -200,7 +200,7 @@ export interface ChatPanelProps {
   readonly?: boolean;
   query: string;
   setQuery: (query: string) => void;
-  selectedSkill: Skill | null;
+  selectedSkill?: Skill | null;
   setSelectedSkill: (skill: Skill | null) => void;
   contextItems: IContextItem[];
   setContextItems: (items: IContextItem[]) => void;
@@ -408,7 +408,7 @@ export const ChatPanel = memo(
               setTimeout(onInputHeightChange, 0);
             }
           }}
-          selectedSkillName={selectedSkill?.name}
+          selectedSkillName={selectedSkill?.name ?? null}
           inputClassName="px-1 py-0"
           maxRows={6}
           handleSendMessage={handleMessageSend}
@@ -481,7 +481,7 @@ export const ChatPanel = memo(
             )}
           >
             <SelectedSkillHeader
-              skill={selectedSkill}
+              skill={selectedSkill ?? undefined}
               setSelectedSkill={setSelectedSkill}
               onClose={() => setSelectedSkill(null)}
             />
@@ -501,7 +501,7 @@ export const ChatPanel = memo(
       <div className={`flex flex-col gap-3 h-full box-border ${className} max-w-[1024px]`}>
         <NodeHeader
           readonly={readonly}
-          selectedSkillName={selectedSkill?.name}
+          selectedSkillName={selectedSkill?.name ?? undefined}
           setSelectedSkill={setSelectedSkill}
         />
         {renderContent()}

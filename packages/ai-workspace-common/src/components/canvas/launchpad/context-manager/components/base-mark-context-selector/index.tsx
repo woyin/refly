@@ -118,7 +118,7 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
     return processedNodes.map((item) => ({
       data: { ...item, title: item?.title || t(`canvas.nodeTypes.${item?.type}`) },
       type: item?.type as CanvasNodeType,
-      icon: getContextItemIcon(item.type, { width: 12, height: 12 }),
+      icon: getContextItemIcon(item.type as any, { width: 12, height: 12 }),
       isSelected: selectedItems?.some((selected) => selected?.entityId === item?.entityId),
       onItemClick: (item: IContextItem) => {
         onSelect?.(item);
@@ -160,7 +160,7 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
           <Home
             showItemDetail={false}
             key={'search'}
-            data={sortedRenderData}
+            data={sortedRenderData as any}
             activeValue={activeValue}
             setValue={setActiveValue}
           />

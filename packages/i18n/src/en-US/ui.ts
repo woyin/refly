@@ -882,19 +882,6 @@ const translations = {
     canvasListModal: {
       continue: 'Continue Conversation',
     },
-    contentPanel: {
-      tabPanel: {
-        resource: 'Resources',
-        canvas: 'Canvas',
-        project: 'Projects',
-        thread: 'Threads',
-      },
-      newButton: {
-        resource: 'New Resource',
-        canvas: 'New Canvas',
-        project: 'New Project',
-      },
-    },
     labelGroup: {
       addLabel: 'Click to add labels',
       addLabelTitle: 'Add labels',

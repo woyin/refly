@@ -308,7 +308,7 @@ const SVGRenderer = memo(
         message.loading({ content: t('artifact.svg.downloadStarted'), key: messageKey });
 
         try {
-          let dataUrl = '';
+          let dataUrl: string | null = null;
           let blob: Blob;
 
           if (type === 'png') {

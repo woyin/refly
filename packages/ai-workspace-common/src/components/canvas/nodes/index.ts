@@ -141,14 +141,14 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
       return {
         ...baseMetadata,
         query: '',
-        modelInfo: null,
+        modelInfo: undefined,
       } as SkillNodeMeta;
 
     case 'mediaSkill':
       return {
         ...baseMetadata,
         query: '',
-        modelInfo: null,
+        modelInfo: undefined,
       } as MediaSkillNodeMeta;
 
     case 'tool':

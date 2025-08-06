@@ -56,7 +56,7 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
     setShowLinearThread: state.setShowLinearThread,
   }));
 
-  const { data: projectDetail } = useGetProjectDetail({ query: { projectId } }, null, {
+  const { data: projectDetail } = useGetProjectDetail({ query: { projectId } }, [], {
     enabled: !!projectId,
   });
   const data = projectDetail?.data;
@@ -72,6 +72,8 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
 
   const handleRemoveCanvases = useCallback(
     async (canvasIds: string[]) => {
+      if (!canvasId) return;
+
       const newCanvasList = canvasList.filter((item) => !canvasIds.includes(item.id));
       updateCanvasList(newCanvasList);
       if (canvasIds.includes(canvasId)) {
@@ -128,6 +130,8 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
 
   const handleSwitchChange = useCallback(
     (checked: boolean) => {
+      if (!canvasId) return;
+
       const { config, showLinearThread } = useCanvasStore.getState();
       const hasNodePreviews =
         config?.[canvasId]?.nodePreviews?.filter((item) => item?.type === 'skillResponse')?.length >
@@ -151,14 +155,16 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
       )}
     >
       <div className="project-directory flex h-full flex-col py-3 pb-0 overflow-y-auto overflow-x-hidden">
-        <ProjectSettings
-          source={source}
-          setCollapse={setCollapse}
-          data={projectData}
-          onUpdate={(data) => {
-            setProjectData({ ...projectData, ...data });
-          }}
-        />
+        {projectData && (
+          <ProjectSettings
+            source={source}
+            setCollapse={setCollapse}
+            data={projectData}
+            onUpdate={(data) => {
+              setProjectData({ ...projectData, ...data });
+            }}
+          />
+        )}
 
         <Divider className="my-2" />
         <div
@@ -182,15 +188,19 @@ export const ProjectDirectory = ({ projectId, source }: ProjectDirectoryProps) =
           isFetching={isLoadingCanvas}
           canvasList={canvasList}
           projectId={projectId}
-          onAddCanvasesSuccess={handleAddCanvases}
+          onAddCanvasesSuccess={handleAddCanvases as any}
           onRemoveCanvases={handleRemoveCanvases}
         />
         <SourcesMenu
           isFetching={loadingSource}
-          sourceList={sourceList}
+          sourceList={sourceList as any}
           projectId={projectId}
-          documentCount={sourceList.filter((item) => item.entityType === 'document').length || 0}
-          resourceCount={sourceList.filter((item) => item.entityType === 'resource').length || 0}
+          documentCount={
+            sourceList.filter((item: any) => item.entityType === 'document').length || 0
+          }
+          resourceCount={
+            sourceList.filter((item: any) => item.entityType === 'resource').length || 0
+          }
           onUpdatedItems={() => {
             getSourceList();
           }}

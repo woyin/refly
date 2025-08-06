@@ -209,7 +209,7 @@ export const LayoutControl: React.FC<LayoutControlProps> = memo(
     // Optimize viewport change handling
     useOnViewportChange({
       onChange: useCallback(
-        ({ zoom }) => {
+        ({ zoom }: { zoom: number }) => {
           if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
           }

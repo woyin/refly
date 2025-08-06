@@ -53,15 +53,16 @@ export function Home({
                   <p
                     className="text-gray-900 dark:text-gray-100 text-sm font-medium break-words"
                     // biome-ignore lint/security/noDangerouslySetInnerHtml: trust server highlights
-                    dangerouslySetInnerHTML={{ __html: item?.highlightedTitle }}
+                    dangerouslySetInnerHTML={{ __html: item?.highlightedTitle ?? '' }}
                   />
-                  {item?.snippets?.length > 0 &&
+                  {item?.snippets &&
+                    item.snippets.length > 0 &&
                     item.snippets.map((snippet, index) => (
                       <p
                         className="text-gray-500 dark:text-gray-400 text-xs mt-1 break-words"
                         key={index}
                         // biome-ignore lint/security/noDangerouslySetInnerHtml: trust server highlights
-                        dangerouslySetInnerHTML={{ __html: snippet.highlightedText }}
+                        dangerouslySetInnerHTML={{ __html: snippet.highlightedText ?? '' }}
                       />
                     ))}
                 </div>

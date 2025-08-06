@@ -1,7 +1,9 @@
-import enTranslation from '@refly/i18n/en-US/ui';
+import { enUSUi, enUSSkill, enUSSkillLog } from '@refly/i18n/en-US';
 
 export const translation = {
-  ...enTranslation,
+  ...enUSUi,
+  ...enUSSkill,
+  ...enUSSkillLog,
   extension: {
     loginPage: {
       title: 'Sign In or Register to start using Refly',

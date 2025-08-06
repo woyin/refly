@@ -19,7 +19,7 @@ export const useSelectionBubble = ({
   const bubbleRef = useRef<Instance<Props> | null>(null);
 
   const handleSelection = useCallback(() => {
-    if (event?.target?.closest('.refly-selector-hover-menu')) {
+    if ((event?.target as Element)?.closest('.refly-selector-hover-menu')) {
       return;
     }
 
@@ -73,7 +73,7 @@ export const useSelectionBubble = ({
 
   // 处理点击外部
   const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (event.target?.closest('.refly-selector-hover-menu')) {
+    if ((event.target as Element)?.closest('.refly-selector-hover-menu')) {
       return;
     }
 

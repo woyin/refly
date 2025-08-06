@@ -1,7 +1,10 @@
 import { useCallback, useEffect } from 'react';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import {
+  nodeOperationsEmitter,
+  Events,
+} from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useAddNode } from './use-add-node';
 import { CanvasNode, CanvasNodeFilter } from '@refly/canvas-common';
@@ -12,7 +15,6 @@ import { useReactFlow } from '@xyflow/react';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { genMediaSkillResponseID } from '@refly/utils/id';
 import { useChatStoreShallow } from '@refly/stores';
-import { Events } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
@@ -64,7 +66,8 @@ export const useListenNodeOperationEvents = () => {
         .filter((node) => descendantNodeIds.includes(node.id))
         .filter((node) => node.type === descendantNodeType)
         .sort(
-          (a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime(),
+          (a, b) =>
+            new Date(b.data.createdAt ?? '').getTime() - new Date(a.data.createdAt ?? '').getTime(),
         );
       let artifactNode: CanvasNode<CodeArtifactNodeMeta> | null = descendantNodes[0] || null;
       let nodeIdForEvent: string | undefined; // Track the node ID to use in the locate event
@@ -263,26 +266,31 @@ export const useListenNodeOperationEvents = () => {
   );
 
   useEffect(() => {
-    const handleAddNode = ({ node, connectTo, shouldPreview, needSetCenter, positionCallback }) => {
+    const handleAddNode = (event: Events['addNode']) => {
       if (readonly) return;
 
       // Add the node and get the calculated position
-      const position = addNode(node, connectTo, shouldPreview, needSetCenter);
+      const position = addNode(
+        event.node,
+        event.connectTo,
+        event.shouldPreview,
+        event.needSetCenter,
+      );
 
       // If a position callback was provided and we have a position, call it
-      if (positionCallback && typeof positionCallback === 'function' && position) {
-        positionCallback(position);
+      if (event.positionCallback && typeof event.positionCallback === 'function' && position) {
+        event.positionCallback(position);
       }
     };
 
-    const handleJumpToNode = ({ entityId, descendantNodeType, shouldPreview }) => {
+    const handleJumpToNode = (event: Events['jumpToDescendantNode']) => {
       if (readonly) return;
-      jumpToDescendantNode(entityId, descendantNodeType, shouldPreview);
+      jumpToDescendantNode(event.entityId, event.descendantNodeType, event.shouldPreview);
     };
 
-    const handleCloseNodePreviewByEntityId = ({ entityId }) => {
+    const handleCloseNodePreviewByEntityId = (event: Events['closeNodePreviewByEntityId']) => {
       if (readonly) return;
-      closeNodePreviewByEntityId(entityId);
+      closeNodePreviewByEntityId(event.entityId);
     };
 
     nodeOperationsEmitter.on('addNode', handleAddNode);

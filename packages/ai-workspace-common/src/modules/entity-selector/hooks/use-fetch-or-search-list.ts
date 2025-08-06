@@ -17,7 +17,7 @@ export const useFetchOrSearchList = ({
   fetchData,
   pageSize = 10,
 }: {
-  domain?: SearchDomain;
+  domain: SearchDomain;
   fetchData?: DataFetcher;
   pageSize?: number;
 }) => {

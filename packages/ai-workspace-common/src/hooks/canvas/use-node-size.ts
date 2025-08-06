@@ -123,7 +123,12 @@ export const useNodeSize = ({
 
   // Handle resize event
   const handleResize = useCallback(
-    ({ target, width, height, direction }) => {
+    ({
+      target,
+      width,
+      height,
+      direction,
+    }: { target: HTMLElement; width: number; height: number; direction: [number, number] }) => {
       const newWidth = Math.max(minWidth, Math.min(maxWidth, width));
       const newHeight = Math.max(minHeight, Math.min(height, MAX_HEIGHT));
 

@@ -38,7 +38,7 @@ export const useFetchDataList = <T = any>({
       }
 
       // If this page contains fewer data than pageSize, it is the last page
-      if (res?.data?.length < pageSize) {
+      if ((res?.data?.length ?? 0) < pageSize) {
         setHasMore(false);
       }
 
@@ -61,10 +61,10 @@ export const useFetchDataList = <T = any>({
       if (res?.success) {
         setDataList(res.data || []);
         setCurrentPage(2);
-        setHasMore(res.data.length >= pageSize);
+        setHasMore((res.data?.length ?? 0) >= pageSize);
       }
     } catch (err) {
-      console.error('重新加载数据失败', err);
+      console.error('reload data list error', err);
     } finally {
       setIsRequesting(false);
     }

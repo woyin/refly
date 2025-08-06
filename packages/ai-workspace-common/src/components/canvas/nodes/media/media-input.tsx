@@ -112,15 +112,15 @@ const MediaChatInput = memo(
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',
-              providerItemId: selectedModel?.itemId,
+              providerItemId: selectedModel?.itemId ?? '',
             };
             setMediaQueryData(mediaQueryData);
             debouncedCreateCanvas('front-page', { isMediaGeneration: true });
           } else {
             nodeOperationsEmitter.emit('generateMedia', {
-              providerItemId: selectedModel?.itemId,
+              providerItemId: selectedModel?.itemId ?? '',
               targetType: 'canvas',
-              targetId: canvasId,
+              targetId: canvasId ?? '',
               mediaType: currentMediaType,
               query,
               model: selectedModel?.config?.modelId || '',

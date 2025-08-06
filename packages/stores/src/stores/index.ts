@@ -18,7 +18,6 @@ export {
 export { useImportResourceStore, useImportResourceStoreShallow } from './import-resource';
 export { useKnowledgeBaseStore, useKnowledgeBaseStoreShallow } from './knowledge-base';
 export { useLaunchpadStore, useLaunchpadStoreShallow } from './launchpad';
-export { useNavigationContextStore, useNavigationContextStoreShallow } from './navigation-context';
 export { usePilotStore, usePilotStoreShallow } from './pilot';
 export { useProjectSelectorStore, useProjectSelectorStoreShallow } from './project-selector';
 export { useQuickSearchStateStore, useQuickSearchStateStoreShallow } from './quick-search-state';
