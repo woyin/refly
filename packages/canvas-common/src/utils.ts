@@ -49,14 +49,14 @@ export const prepareAddNode = (
     ?.map((filter) =>
       nodes.find((n) => n.type === filter.type && n.data?.entityId === filter.entityId),
     )
-    .filter(Boolean);
+    .filter((node): node is Node => node !== undefined);
 
   const targetNodes = connectTo
     ?.filter((filter) => filter.handleType === 'target')
     ?.map((filter) =>
       nodes.find((n) => n.type === filter.type && n.data?.entityId === filter.entityId),
     )
-    .filter(Boolean);
+    .filter((node): node is Node => node !== undefined);
 
   // Calculate new node position using the utility function
   const newPosition = calculateNodePosition({
@@ -74,7 +74,7 @@ export const prepareAddNode = (
   }
 
   // Get default metadata and apply global nodeSizeMode
-  const defaultMetadata = getNodeDefaultMetadata(node.type);
+  const defaultMetadata = getNodeDefaultMetadata(node.type ?? 'memo');
 
   // Apply the global nodeSizeMode to the new node's metadata
   if (defaultMetadata && typeof defaultMetadata === 'object') {
@@ -84,6 +84,9 @@ export const prepareAddNode = (
 
   const enrichedData = {
     createdAt: new Date().toISOString(),
+    title: node.data?.title ?? 'Untitled',
+    entityId: node.data?.entityId ?? `entity-${genUniqueId()}`,
+    contentPreview: node.data?.contentPreview,
     ...node.data,
     metadata: {
       ...defaultMetadata,
@@ -92,8 +95,8 @@ export const prepareAddNode = (
     },
   };
 
-  const newNode = {
-    type: node.type,
+  const newNode: CanvasNode = {
+    type: node.type ?? 'memo',
     data: enrichedData,
     position: newPosition,
     selected: false,
@@ -103,9 +106,9 @@ export const prepareAddNode = (
   // Create new edges based on connection types
   const newEdges: CanvasEdge[] = [];
 
-  if (connectTo?.length > 0) {
+  if (connectTo && connectTo.length > 0) {
     // Create edges from source nodes to new node (source -> new node)
-    if (sourceNodes?.length > 0) {
+    if (sourceNodes && sourceNodes.length > 0) {
       const sourceEdges = sourceNodes
         .filter((sourceNode) => {
           // Filter out the source nodes that already have an edge
@@ -124,7 +127,7 @@ export const prepareAddNode = (
     }
 
     // Create edges from new node to target nodes (new node -> target)
-    if (targetNodes?.length > 0) {
+    if (targetNodes && targetNodes.length > 0) {
       const targetEdges = targetNodes
         .filter((targetNode) => {
           // Filter out the target nodes that already have an edge

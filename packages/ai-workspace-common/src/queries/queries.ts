@@ -1,3 +1,4 @@
+// @ts-nocheck
 // generated with @7nohe/openapi-react-query-codegen@2.0.0-beta.3
 
 import { type Options } from '@hey-api/client-fetch';

@@ -140,7 +140,7 @@ export const ModelFormModal = memo(
         };
 
         if (filterProviderCategory === 'llm' || filterProviderCategory === 'mediaGeneration') {
-          const capabilitiesObject = {};
+          const capabilitiesObject: Record<string, boolean> = {};
           if (Array.isArray(values.capabilities)) {
             for (const capability of values.capabilities) {
               capabilitiesObject[capability] = true;
@@ -206,7 +206,7 @@ export const ModelFormModal = memo(
           providerId: selectedProviderId,
         },
       },
-      null,
+      [],
       {
         enabled: !!selectedProviderId && filterProviderCategory !== 'mediaGeneration',
       },
@@ -246,7 +246,7 @@ export const ModelFormModal = memo(
           },
         });
         setIsSaving(false);
-        if (res.data.success) {
+        if (res.data?.success && res.data?.data) {
           message.success(t('common.addSuccess'));
           const provider = getProviderByProviderId(values.providerId);
           onSuccess?.(filterProviderCategory, 'create', {
@@ -273,7 +273,7 @@ export const ModelFormModal = memo(
           },
         });
         setIsSaving(false);
-        if (res.data.success) {
+        if (res.data?.success && res.data?.data) {
           message.success(t('common.saveSuccess'));
           const provider = getProviderByProviderId(values.providerId);
           onSuccess?.(filterProviderCategory, 'update', {
@@ -437,7 +437,9 @@ export const ModelFormModal = memo(
 
     // Handle model ID selection
     const handleModelIdChange = useCallback(
-      (_value: string, option: ProviderItemOption) => {
+      (_value: string, option: ProviderItemOption | ProviderItemOption[] | undefined) => {
+        if (!option || Array.isArray(option)) return;
+
         resetFormExcludeField(['providerId', 'modelId']);
 
         const capabilities = getCapabilitiesFromObject(

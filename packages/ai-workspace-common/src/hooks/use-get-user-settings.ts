@@ -11,7 +11,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { LocalSettings, useUserStoreShallow } from '@refly/stores';
 import { safeStringifyJSON } from '@refly-packages/ai-workspace-common/utils/parse';
 import { mapDefaultLocale } from '@refly-packages/ai-workspace-common/utils/locale';
-import { LOCALE } from '@refly/common-types';
+import { LOCALE, OutputLocale } from '@refly/common-types';
 import { UserSettings } from '@refly/openapi-schema';
 import { UID_COOKIE } from '@refly/utils/cookie';
 import { usePublicAccessPage } from '@refly-packages/ai-workspace-common/hooks/use-is-share-page';
@@ -43,13 +43,15 @@ export const useGetUserSettings = () => {
 
   const getLoginStatus = async () => {
     let error: any;
-    let settings: UserSettings;
+    let settings: UserSettings | undefined;
 
     userStore.setIsCheckingLoginStatus(true);
     if (hasLoginCredentials) {
       const resp = await getClient().getSettings();
       error = resp.error;
-      settings = resp.data?.data;
+      if (resp.data?.data) {
+        settings = resp.data.data;
+      }
     }
     let { localSettings } = userStore;
 
@@ -72,16 +74,17 @@ export const useGetUserSettings = () => {
 
     // set tour guide
     const showSettingsGuideModal = !['skipped', 'completed'].includes(
-      settings?.onboarding?.settings,
+      settings?.onboarding?.settings ?? '',
     );
     userStore.setShowSettingsGuideModal(showSettingsGuideModal);
     const showTourModal =
-      !showSettingsGuideModal && !['skipped', 'completed'].includes(settings?.onboarding?.tour);
+      !showSettingsGuideModal &&
+      !['skipped', 'completed'].includes(settings?.onboarding?.tour ?? '');
     userStore.setShowTourModal(showTourModal);
 
     // Add localSettings
     let uiLocale = mapDefaultLocale(settings?.uiLocale as LOCALE) as LOCALE;
-    let outputLocale = settings?.outputLocale as LOCALE;
+    let outputLocale = settings?.outputLocale as OutputLocale;
 
     // Write back first
     localSettings = {

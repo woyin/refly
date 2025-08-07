@@ -180,6 +180,7 @@ export function SlideshowEdit(props: PageEditProps) {
   // Prepare node relations with updated order
   const prepareNodeRelations = useCallback((nodes: NodeRelation[]) => {
     return nodes.map((node, index) => ({
+      relationId: node.relationId,
       nodeId: node.nodeId,
       nodeType: node.nodeType,
       entityId: node.entityId,

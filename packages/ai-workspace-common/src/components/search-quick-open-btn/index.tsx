@@ -17,7 +17,7 @@ export const SearchQuickOpenBtn = (props: SearchQuickOpenBtnProps) => {
       <div
         className="flex flex-row flex-nowrap justify-between rounded-md border border-solid border-gray-200 p-2 transition-colors duration-500 hover:cursor-pointer hover:border-green-500 dark:border-gray-700 dark:hover:border-green-500"
         onClick={() => {
-          bigSearchQuickOpenEmitter.emit('openSearch');
+          bigSearchQuickOpenEmitter.emit('openSearch', true);
         }}
       >
         <div className="flex items-center text-sm font-normal text-gray-500 dark:text-gray-400">

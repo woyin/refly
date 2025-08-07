@@ -1,6 +1,7 @@
 import md5 from 'md5';
 import { v4 as UUIDV4 } from 'uuid';
 export * from './content';
+export * from './parse';
 
 export const genUniqueId = () => {
   const uuid = UUIDV4();

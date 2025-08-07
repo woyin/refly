@@ -32,7 +32,7 @@ export const useDuplicateCanvas = () => {
       message.success(t('common.putSuccess'));
       const canvasData = data.data;
       getCanvasList();
-      if (canvasData.entityId) {
+      if (canvasData?.entityId) {
         logEvent('canvas::entry_canvas_template', Date.now(), {
           entry_type: 'template',
           canvas_id: canvasData.entityId,

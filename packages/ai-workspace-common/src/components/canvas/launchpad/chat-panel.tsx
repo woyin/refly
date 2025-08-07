@@ -28,7 +28,7 @@ import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { omit } from '@refly/utils/index';
 import { cn } from '@refly/utils/cn';
-import { ActionStatus, SkillTemplateConfig } from '@refly/openapi-schema';
+import { ActionStatus, SkillTemplateConfig, ModelInfo } from '@refly/openapi-schema';
 import { ContextTarget } from '@refly/common-types';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
@@ -44,8 +44,6 @@ const PremiumBanner = () => {
     (state) => state.setSubscribeModalVisible,
   );
 
-  if (!showPremiumBanner) return null;
-
   const handleUpgrade = useCallback(() => {
     logEvent('subscription::upgrade_click', 'input_banner');
     setSubscribeModalVisible(true);
@@ -55,6 +53,8 @@ const PremiumBanner = () => {
     logEvent('subscription::input_banner_close');
     setShowPremiumBanner(false);
   }, [setShowPremiumBanner]);
+
+  if (!showPremiumBanner) return null;
 
   return (
     <div className="flex items-center justify-between px-3 py-0.5 bg-gray-100 border-b dark:bg-gray-800 dark:border-gray-700">
@@ -163,7 +163,7 @@ export const ChatPanel = ({
 
   // Listen for action completion to clear currentActionResultId
   useEffect(() => {
-    const handleActionUpdate = ({ resultId, payload }) => {
+    const handleActionUpdate = ({ resultId, payload }: { resultId: string; payload: any }) => {
       if (
         resultId === currentActionResultId &&
         (payload.status === 'finish' || payload.status === 'failed')
@@ -184,7 +184,7 @@ export const ChatPanel = ({
       form.setFieldValue('tplConfig', undefined);
     } else {
       // Create a new config object
-      const newConfig = {};
+      const newConfig: Record<string, any> = {};
 
       // Process each item in the schema
       for (const item of selectedSkill?.configSchema?.items || []) {
@@ -292,8 +292,8 @@ export const ChatPanel = ({
       {
         query,
         resultId: newResultId,
-        selectedSkill,
-        modelInfo: selectedModel,
+        selectedSkill: selectedSkill ?? undefined,
+        modelInfo: selectedModel ?? undefined,
         contextItems,
         tplConfig,
         runtimeConfig,
@@ -409,7 +409,7 @@ export const ChatPanel = ({
           )}
         >
           <SelectedSkillHeader
-            skill={selectedSkill}
+            skill={selectedSkill ?? undefined}
             setSelectedSkill={setSelectedSkill}
             onClose={() => setSelectedSkill(null)}
           />
@@ -432,7 +432,7 @@ export const ChatPanel = ({
                 readonly={readonly}
                 query={chatStore.newQAText}
                 setQuery={chatStore.setNewQAText}
-                selectedSkillName={selectedSkill?.name}
+                selectedSkillName={selectedSkill?.name ?? null}
                 autoCompletionPlacement={'topLeft'}
                 handleSendMessage={handleSendMessage}
                 onUploadImage={handleImageUpload}
@@ -448,7 +448,7 @@ export const ChatPanel = ({
                 form={form}
                 formErrors={formErrors}
                 setFormErrors={setFormErrors}
-                tplConfig={initialTplConfig}
+                tplConfig={initialTplConfig ?? undefined}
                 onFormValuesChange={(_, allValues) => {
                   // Debounce form value changes to prevent cascading updates
                   const newConfig = allValues.tplConfig;
@@ -463,7 +463,7 @@ export const ChatPanel = ({
                   if (selectedSkill?.tplConfig) {
                     form.setFieldValue('tplConfig', selectedSkill.tplConfig);
                   } else {
-                    const defaultConfig = {};
+                    const defaultConfig: Record<string, any> = {};
                     for (const item of selectedSkill?.configSchema?.items || []) {
                       if (item.defaultValue !== undefined) {
                         defaultConfig[item.key] = {
@@ -483,8 +483,12 @@ export const ChatPanel = ({
               className="py-2"
               query={chatStore.newQAText}
               model={chatStore.selectedModel}
-              setModel={chatStore.setSelectedModel}
-              runtimeConfig={runtimeConfig}
+              setModel={(model: ModelInfo | null) => {
+                if (model) {
+                  chatStore.setSelectedModel(model);
+                }
+              }}
+              runtimeConfig={runtimeConfig ?? {}}
               setRuntimeConfig={setRuntimeConfig}
               form={form}
               handleSendMessage={handleSendMessage}

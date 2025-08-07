@@ -1,7 +1,9 @@
-import cnTranslation from '@refly/i18n/zh-Hans/ui';
+import { zhHansUi, zhHansSkill, zhHansSkillLog } from '@refly/i18n/zh-Hans';
 
 export const translation = {
-  ...cnTranslation,
+  ...zhHansUi,
+  ...zhHansSkill,
+  ...zhHansSkillLog,
   extension: {
     loginPage: {
       title: '登录或注册以继续使用 Refly',

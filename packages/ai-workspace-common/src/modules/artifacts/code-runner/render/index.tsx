@@ -24,7 +24,7 @@ const Renderer = memo<RendererProps>(
   ({
     content,
     type,
-    title,
+    title = '',
     language,
     onRequestFix,
     width = '100%',

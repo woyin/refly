@@ -20,10 +20,6 @@ export const safeStringifyJSON = (value: any, errorCallback?: (e: unknown) => st
   }
 };
 
-export const safeEqual = (val1, val2): boolean => {
-  return val1 && val2 && val1 === val2;
-};
-
 export function isJSON(variable: any): boolean {
   if (typeof variable !== 'string' || !variable.startsWith('{') || !variable.endsWith('}')) {
     return false;

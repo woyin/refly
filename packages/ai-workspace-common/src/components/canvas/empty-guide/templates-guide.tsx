@@ -67,8 +67,8 @@ export const TemplatesGuide = ({ canvasId }: { canvasId: string }) => {
         <Divider className="mt-4 mb-2" />
 
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-1">
-          {data?.data?.length > 0 &&
-            data.data.map((template) => (
+          {(data?.data?.length ?? 0) > 0 &&
+            data?.data?.map((template) => (
               <div key={template.templateId} style={{ pointerEvents: 'auto' }}>
                 <TemplateCard template={template} showUser={false} />
               </div>

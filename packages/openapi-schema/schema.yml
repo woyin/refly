@@ -6126,6 +6126,7 @@ components:
       type: object
       required:
         - event
+        - resultId
       properties:
         event:
           description: Event type

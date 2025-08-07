@@ -275,18 +275,23 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
       }
 
       const commonItems: MenuItem[] = [
-        nodeType === 'skillResponse' && {
-          key: 'editQuery',
-          icon: Edit,
-          label: t('canvas.nodeActions.editQuery'),
-          onClick: handleEditQuery,
-          type: 'button' as const,
-          hoverContent: {
-            title: t('canvas.nodeActions.editQuery'),
-            description: t('canvas.nodeActions.editQueryDescription'),
-            videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-editQuery.webm',
-          },
-        },
+        ...(nodeType === 'skillResponse'
+          ? [
+              {
+                key: 'editQuery',
+                icon: Edit,
+                label: t('canvas.nodeActions.editQuery'),
+                onClick: handleEditQuery,
+                type: 'button' as const,
+                hoverContent: {
+                  title: t('canvas.nodeActions.editQuery'),
+                  description: t('canvas.nodeActions.editQueryDescription'),
+                  videoUrl:
+                    'https://static.refly.ai/onboarding/nodeAction/nodeAction-editQuery.webm',
+                },
+              },
+            ]
+          : []),
         {
           key: 'addToContext',
           icon: MessageSquareDiff,
@@ -299,30 +304,37 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
             videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-addToContext.webm',
           },
         },
-        !['group', 'skill'].includes(nodeType) && {
-          key: 'addToSlideshow',
-          icon: IconSlideshow,
-          label: t('canvas.nodeActions.addToSlideshow'),
-          onClick: handleAddToSlideshow,
-          loading: isAddingNodesToSlide,
-        },
+        ...(!['group', 'skill'].includes(nodeType)
+          ? [
+              {
+                key: 'addToSlideshow',
+                icon: IconSlideshow,
+                label: t('canvas.nodeActions.addToSlideshow'),
+                onClick: handleAddToSlideshow,
+                loading: isAddingNodesToSlide,
+              },
+            ]
+          : []),
       ];
 
       const operationItems: MenuItem[] = [
-        !clickToPreview &&
-          nodeType !== 'image' && {
-            key: 'preview',
-            icon: IconPreview,
-            label: t('canvas.nodeActions.preview'),
-            onClick: handlePreview,
-            type: 'button' as const,
-            hoverContent: {
-              title: t('canvas.nodeActions.preview'),
-              description: t('canvas.nodeActions.previewDescription'),
-              videoUrl:
-                'https://static.refly.ai/onboarding/nodeAction/nodeActionMenu-openPreview.webm',
-            },
-          },
+        ...(!clickToPreview && nodeType !== 'image'
+          ? [
+              {
+                key: 'preview',
+                icon: IconPreview,
+                label: t('canvas.nodeActions.preview'),
+                onClick: handlePreview,
+                type: 'button' as const,
+                hoverContent: {
+                  title: t('canvas.nodeActions.preview'),
+                  description: t('canvas.nodeActions.previewDescription'),
+                  videoUrl:
+                    'https://static.refly.ai/onboarding/nodeAction/nodeActionMenu-openPreview.webm',
+                },
+              },
+            ]
+          : []),
         {
           key: 'fullScreen',
           icon: RiFullscreenFill,
@@ -330,7 +342,7 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
           onClick: handleFullScreenPreview,
           type: 'button' as const,
         },
-      ].filter(Boolean);
+      ];
 
       const nodeTypeItems: Record<string, MenuItem[]> = {
         memo: [
@@ -442,21 +454,26 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
               'https://static.refly.ai/onboarding/nodeAction/nodeAction-selectOrLayout.webm',
           },
         },
-        nodeType === 'group' &&
-          ({ key: 'divider-cluster-2', type: 'divider' as const } as MenuItem),
-        nodeType === 'group' && {
-          key: 'delete',
-          icon: IconDelete,
-          label: t('canvas.nodeActions.delete'),
-          onClick: handleDelete,
-          danger: true,
-          type: 'button' as const,
-          hoverContent: {
-            title: t('canvas.nodeActions.delete'),
-            description: t('canvas.nodeActions.deleteDescription'),
-            videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-delete.webm',
-          },
-        },
+        ...(nodeType === 'group'
+          ? [{ key: 'divider-cluster-2', type: 'divider' as const } as MenuItem]
+          : []),
+        ...(nodeType === 'group'
+          ? [
+              {
+                key: 'delete',
+                icon: IconDelete,
+                label: t('canvas.nodeActions.delete'),
+                onClick: handleDelete,
+                danger: true,
+                type: 'button' as const,
+                hoverContent: {
+                  title: t('canvas.nodeActions.delete'),
+                  description: t('canvas.nodeActions.deleteDescription'),
+                  videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-delete.webm',
+                },
+              },
+            ]
+          : []),
       ];
 
       return [
@@ -559,7 +576,11 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
                 ${item.disabled ? 'pointer-events-none dark:opacity-30' : ''}
               `}
                 type="text"
-                icon={<item.icon className="w-4 h-4 flex items-center justify-center" />}
+                icon={
+                  item.icon ? (
+                    <item.icon className="w-4 h-4 flex items-center justify-center" />
+                  ) : undefined
+                }
                 loading={item.loading}
                 onClick={item.onClick}
                 disabled={item.disabled}

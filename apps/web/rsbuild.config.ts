@@ -5,6 +5,7 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
 import NodePolyfill from 'node-polyfill-webpack-plugin';
 import { codeInspectorPlugin } from 'code-inspector-plugin';
+import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 
 const { publicVars } = loadEnv({ prefixes: ['VITE_'] });
 
@@ -15,7 +16,15 @@ const gtagId = process.env.VITE_GTAG_ID;
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
-  plugins: [pluginReact(), pluginSvgr(), pluginSass()],
+  plugins: [
+    pluginTypeCheck({
+      enable:
+        process.env.NODE_ENV === 'development' || process.env.VITE_ENFORCE_TYPE_CHECK === 'true',
+    }),
+    pluginReact(),
+    pluginSvgr(),
+    pluginSass(),
+  ],
   dev: {
     hmr: true,
     liveReload: true,

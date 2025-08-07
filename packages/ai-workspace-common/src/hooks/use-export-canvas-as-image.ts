@@ -133,6 +133,11 @@ export const useExportCanvasAsImage = () => {
         // use html2canvas to create an image
         const canvas = await getCanvasElement(options);
 
+        if (!canvas) {
+          message.error(t('canvas.export.error'));
+          return;
+        }
+
         // convert the canvas to an image
         const dataUrl = canvas.toDataURL('image/png');
 

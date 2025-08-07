@@ -152,7 +152,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
           (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
           showSkillSelector &&
           hasMatchedOptions.current &&
-          options.length > 0
+          options?.length > 0
         ) {
           // Allow the default behavior for AutoComplete navigation
           return;
@@ -175,7 +175,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
           // For regular Enter key
           if (!e.shiftKey) {
             // enter should not be used to select when the skill selector is active and has options
-            if (showSkillSelector && hasMatchedOptions.current && options.length > 0) {
+            if (showSkillSelector && hasMatchedOptions.current && options?.length > 0) {
               e.preventDefault();
               return;
             }

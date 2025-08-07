@@ -85,13 +85,13 @@ export const useActionPolling = () => {
 
           const status = result.data?.status;
 
-          if (status === 'finish') {
+          if (status === 'finish' && result.data) {
             onUpdateResult(resultId, result.data);
             stopPolling(resultId);
             return;
           }
 
-          if (status === 'failed') {
+          if (status === 'failed' && result.data) {
             onUpdateResult(resultId, result.data);
             stopPolling(resultId);
             failedResultIds.add(resultId);

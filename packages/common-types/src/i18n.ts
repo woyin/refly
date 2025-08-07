@@ -158,4 +158,4 @@ export const zhCNLanguageName = Object.keys(languageNameToLocale['zh-CN']);
 export const enLocale = Object.keys(localeToLanguageName.en) as OutputLocale[];
 export const zhCNLocale = Object.keys(localeToLanguageName['zh-CN']);
 
-export type OutputLocale = keyof typeof localeToLanguageName.en;
+export type OutputLocale = keyof typeof localeToLanguageName.en | 'auto';

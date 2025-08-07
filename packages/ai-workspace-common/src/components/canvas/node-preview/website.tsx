@@ -43,7 +43,7 @@ const WebsiteNodePreviewComponent = memo(({ nodeId }: WebsiteNodePreviewProps) =
     setNodeDataByEntity(
       {
         type: 'website',
-        entityId: data?.entityId,
+        entityId: data?.entityId ?? '',
       },
       {
         metadata: {
@@ -71,7 +71,7 @@ const WebsiteNodePreviewComponent = memo(({ nodeId }: WebsiteNodePreviewProps) =
       setNodeDataByEntity(
         {
           type: 'website',
-          entityId: data?.entityId,
+          entityId: data?.entityId ?? '',
         },
         {
           metadata: {

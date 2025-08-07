@@ -49,6 +49,7 @@ import { NodeHeader as CommonNodeHeader } from '@refly-packages/ai-workspace-com
 import { useExportDocument } from '@refly-packages/ai-workspace-common/hooks/use-export-document';
 import { useDebouncedCallback } from 'use-debounce';
 import { useCanvasStoreShallow } from '@refly/stores';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 // Get icon component based on node type and metadata
 const getNodeIcon = (node: CanvasNode<any>) => {
@@ -191,7 +192,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
 
     const handleAddToContext = useCallback(() => {
       addToContext({
-        type: currentNode.type,
+        type: currentNode.type as CanvasNodeType,
         title: currentNode.data?.title,
         entityId: currentNode.data?.entityId,
         metadata: currentNode.data?.metadata,
@@ -280,7 +281,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
           resourceId: currentNode.data?.entityId,
         },
       });
-      if (data.data?.[0]) {
+      if (data?.data?.[0]) {
         downloadFile(data.data[0]);
       }
     }, [currentNode, downloadFile]);
@@ -316,42 +317,50 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
           ),
           onClick: handleAddToContext,
         },
-        canDownload && {
-          key: 'downloadFile',
-          label: (
-            <div className="flex items-center gap-2 whitespace-nowrap">
-              <IconDownloadFile className="w-4 h-4 flex-shrink-0" />
-              {t('canvas.nodeActions.downloadFile')}
-            </div>
-          ),
-          onClick: handleDownload,
-        },
-        currentNode.type === 'document' && {
-          key: 'exportDocument',
-          label: (
-            <div className="flex items-center flex-grow">
-              <IconDownloadFile size={16} className="mr-2" />
-              {t('workspace.exportAs')}
-            </div>
-          ),
-          children: [
-            {
-              key: 'exportDocumentToMarkdown',
-              label: t('workspace.exportDocumentToMarkdown'),
-              onClick: () => handleExportDocument('markdown'),
-            },
-            {
-              key: 'exportDocumentToDocx',
-              label: t('workspace.exportDocumentToDocx'),
-              onClick: () => handleExportDocument('docx'),
-            },
-            {
-              key: 'exportDocumentToPdf',
-              label: t('workspace.exportDocumentToPdf'),
-              onClick: () => handleExportDocument('pdf'),
-            },
-          ],
-        },
+        ...(canDownload
+          ? [
+              {
+                key: 'downloadFile',
+                label: (
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <IconDownloadFile className="w-4 h-4 flex-shrink-0" />
+                    {t('canvas.nodeActions.downloadFile')}
+                  </div>
+                ),
+                onClick: handleDownload,
+              },
+            ]
+          : []),
+        ...(currentNode.type === 'document'
+          ? [
+              {
+                key: 'exportDocument',
+                label: (
+                  <div className="flex items-center flex-grow">
+                    <IconDownloadFile size={16} className="mr-2" />
+                    {t('workspace.exportAs')}
+                  </div>
+                ),
+                children: [
+                  {
+                    key: 'exportDocumentToMarkdown',
+                    label: t('workspace.exportDocumentToMarkdown'),
+                    onClick: () => handleExportDocument('markdown'),
+                  },
+                  {
+                    key: 'exportDocumentToDocx',
+                    label: t('workspace.exportDocumentToDocx'),
+                    onClick: () => handleExportDocument('docx'),
+                  },
+                  {
+                    key: 'exportDocumentToPdf',
+                    label: t('workspace.exportDocumentToPdf'),
+                    onClick: () => handleExportDocument('pdf'),
+                  },
+                ],
+              },
+            ]
+          : []),
         {
           type: 'divider',
         },
@@ -366,19 +375,23 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
           onClick: () => deleteNode(currentNode),
           className: 'hover:bg-red-50',
         },
-        currentNode.type === 'document' && {
-          key: 'deleteFile',
-          label: (
-            <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
-              <IconDeleteFile className="w-4 h-4 flex-shrink-0" />
-              <span>{t('canvas.nodeActions.deleteDocument')}</span>
-            </div>
-          ),
-          onClick: () => {
-            handleDeleteFile();
-          },
-          className: 'hover:bg-red-50',
-        },
+        ...(currentNode.type === 'document'
+          ? [
+              {
+                key: 'deleteFile',
+                label: (
+                  <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
+                    <IconDeleteFile className="w-4 h-4 flex-shrink-0" />
+                    <span>{t('canvas.nodeActions.deleteDocument')}</span>
+                  </div>
+                ),
+                onClick: () => {
+                  handleDeleteFile();
+                },
+                className: 'hover:bg-red-50',
+              },
+            ]
+          : []),
         currentNode.type === 'resource' && {
           key: 'deleteFile',
           label: (
@@ -409,7 +422,12 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
       if (newTitle === currentNode.data?.title) {
         return;
       }
-      updateNodePreviewTitle(newTitle, currentNode.data.entityId, currentNode.id, currentNode.type);
+      updateNodePreviewTitle(
+        newTitle,
+        currentNode.data.entityId,
+        currentNode.id,
+        currentNode.type as CanvasNodeType,
+      );
     };
 
     return (

@@ -24,6 +24,8 @@ export const useNodePosition = () => {
     (nodeId: string, shouldSelect = false) => {
       requestAnimationFrame(() => {
         const renderedNode = getNode(nodeId);
+        if (!renderedNode) return;
+
         const nodes = getNodes();
         if (!nodes?.length) return;
 

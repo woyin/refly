@@ -37,6 +37,7 @@ import type { MenuProps, DropdownProps } from 'antd';
 import { useMatch } from 'react-router-dom';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useThemeStoreShallow } from '@refly/stores';
+import { XYPosition } from '@xyflow/react';
 
 const { Text } = Typography;
 
@@ -184,31 +185,40 @@ const SourceItemActionDropdown = memo(
       }
     };
 
-    const items: MenuProps['items'] = [
-      !isShareCanvas && {
-        label: (
-          <div className="flex items-center flex-grow">
-            <LuPlus size={16} className="mr-2" />
-            {t('workspace.addToCanvas')}
-          </div>
-        ),
-        key: 'addToCanvas',
-        onClick: ({ domEvent }) => handleAddToCanvas(domEvent as React.MouseEvent),
-      },
-      !isDocument && {
-        label: (
-          <div className="flex items-center flex-grow">
-            <LuExternalLink size={16} className="mr-2" />
-            {t('workspace.openWebpage')}
-          </div>
-        ),
-        key: 'openWebpage',
-        onClick: ({ domEvent }) => handleOpenWebpage(domEvent as React.MouseEvent),
-        disabled: !hasUrl,
-      },
-      !isDocument &&
-        isFileResource &&
-        hasDownloadUrl && {
+    const items: MenuProps['items'] = (() => {
+      const menuItems: MenuProps['items'] = [];
+
+      if (!isShareCanvas) {
+        menuItems.push({
+          label: (
+            <div className="flex items-center flex-grow">
+              <LuPlus size={16} className="mr-2" />
+              {t('workspace.addToCanvas')}
+            </div>
+          ),
+          key: 'addToCanvas',
+          onClick: ({ domEvent }: { domEvent: any }) =>
+            handleAddToCanvas(domEvent as React.MouseEvent),
+        });
+      }
+
+      if (!isDocument) {
+        menuItems.push({
+          label: (
+            <div className="flex items-center flex-grow">
+              <LuExternalLink size={16} className="mr-2" />
+              {t('workspace.openWebpage')}
+            </div>
+          ),
+          key: 'openWebpage',
+          onClick: ({ domEvent }: { domEvent: any }) =>
+            handleOpenWebpage(domEvent as React.MouseEvent),
+          disabled: !hasUrl,
+        });
+      }
+
+      if (!isDocument && isFileResource && hasDownloadUrl) {
+        menuItems.push({
           label: (
             <div className="flex items-center flex-grow">
               <IconDownloadFile size={16} className="mr-2" />
@@ -216,9 +226,12 @@ const SourceItemActionDropdown = memo(
             </div>
           ),
           key: 'downloadFile',
-          onClick: ({ domEvent }) => handleDownloadFile(domEvent as React.MouseEvent),
-        },
-      {
+          onClick: ({ domEvent }: { domEvent: any }) =>
+            handleDownloadFile(domEvent as React.MouseEvent),
+        });
+      }
+
+      menuItems.push({
         label: (
           <div className="flex items-center flex-grow">
             <IconRemove size={16} className="mr-2 text-gray-600 dark:text-gray-300" />
@@ -226,16 +239,18 @@ const SourceItemActionDropdown = memo(
           </div>
         ),
         key: 'removeFromProject',
-        onClick: ({ domEvent }) => handleRemoveFromProject(domEvent as React.MouseEvent),
-      },
-      {
+        onClick: ({ domEvent }: { domEvent: any }) =>
+          handleRemoveFromProject(domEvent as React.MouseEvent),
+      });
+
+      menuItems.push({
         label: (
           <Popconfirm
             placement="bottomLeft"
             title={t(`canvas.nodeActions.${isDocument ? 'document' : 'resource'}DeleteConfirm`, {
               title: item.title || t('common.untitled'),
             })}
-            onConfirm={handleDelete}
+            onConfirm={handleDelete as any}
             onCancel={(e?: React.MouseEvent) => {
               e?.stopPropagation();
               setPopupVisible(false);
@@ -254,8 +269,10 @@ const SourceItemActionDropdown = memo(
           </Popconfirm>
         ),
         key: 'delete',
-      },
-    ];
+      });
+
+      return menuItems;
+    })();
 
     const handleOpenChange: DropdownProps['onOpenChange'] = (open: boolean, info: any) => {
       if (info.source === 'trigger') {
@@ -394,7 +411,7 @@ export const SourcesMenu = ({
   const addSelectedSourcesToCanvas = useCallback(async () => {
     if (selectedSources.length > 0) {
       // Store the reference position for node placement
-      let referencePosition = null;
+      let referencePosition: XYPosition | null = null;
 
       for (let i = 0; i < selectedSources.length; i++) {
         const item = selectedSources[i];
@@ -403,7 +420,9 @@ export const SourcesMenu = ({
         // For subsequent nodes, provide an offset based on the previous node
         const position = referencePosition
           ? {
+              // @ts-ignore
               x: referencePosition.x,
+              // @ts-ignore
               y: referencePosition.y + 150, // Add vertical spacing between nodes
             }
           : undefined;
@@ -462,7 +481,7 @@ export const SourcesMenu = ({
         className="text-green-600 flex-shrink-0 flex items-center justify-center"
       />
     ) : (
-      <ResourceIcon url={item?.data?.url} resourceType={item.resourceType} size={14} />
+      <ResourceIcon url={item?.data?.url ?? ''} resourceType={item.resourceType} size={14} />
     );
   }, []);
 

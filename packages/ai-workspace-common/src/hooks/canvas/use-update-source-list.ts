@@ -1,5 +1,5 @@
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useSiderStoreShallow } from '@refly/stores';
+import { SourceObject, useSiderStoreShallow } from '@refly/stores';
 import { Resource, Document } from '@refly/openapi-schema';
 import { useCallback } from 'react';
 
@@ -11,12 +11,13 @@ export const useUpdateSourceList = () => {
   }));
 
   const updateSourceList = useCallback(
-    (addedList: Document[] | Resource[], projectId: string) => {
+    (addedList: Document[] | Resource[], projectId?: string) => {
       if (currentProjectId === projectId) {
-        const newSourceList = addedList.map((source) => ({
+        const newSourceList: SourceObject[] = addedList.map((source) => ({
           ...source,
-          entityId: source.resourceId,
-          entityType: 'resource' as const,
+          id: 'resourceId' in source ? source.resourceId : source.docId,
+          type: 'resource' as const,
+          name: source.title,
         }));
         setSourceList([...newSourceList, ...sourceList]);
       }

@@ -83,7 +83,7 @@ export type SkillNodeMeta = {
   resultId?: string;
   version?: number;
   selectedSkill?: Skill;
-  modelInfo?: ModelInfo;
+  modelInfo?: ModelInfo | null;
   contextItems?: IContextItem[];
   tplConfig?: SkillTemplateConfig;
   runtimeConfig?: SkillRuntimeConfig;
@@ -115,9 +115,9 @@ export type ToolNodeMeta = {
 };
 
 export type ResponseNodeMeta = {
-  status: ActionStatus;
+  status?: ActionStatus;
   version?: number;
-  modelInfo?: ModelInfo;
+  modelInfo?: ModelInfo | null;
   tokenUsage?: TokenUsageItem[];
   actionMeta?: ActionMeta;
   artifacts?: Artifact[];
@@ -135,6 +135,7 @@ export type ResponseNodeMeta = {
   shareId?: string;
   pilotSessionId?: string;
   pilotStepId?: string;
+  [key: string]: any;
 };
 
 export type ImageNodeMeta = {

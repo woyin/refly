@@ -88,7 +88,7 @@ export const GroupName: FC<GroupNameProps> = ({
           className="items-center gap-2 bg-refly-bg-content-z2 border-solid border-[1px] border-refly-Card-Border rounded-xl px-2"
           style={{ display: selected ? 'flex' : 'none' }}
         >
-          <CommonColorPicker disabledAlpha={true} color={bgColor} onChange={onChangeBgColor} />
+          <CommonColorPicker disabledAlpha={true} color={bgColor!} onChange={onChangeBgColor} />
           <Button
             type="text"
             size="small"

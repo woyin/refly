@@ -158,7 +158,7 @@ export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
     edges: state.edges,
   };
 
-  for (const transaction of state.transactions) {
+  for (const transaction of state.transactions ?? []) {
     if (!transaction.revoked && !transaction.deleted) {
       currentData = applyCanvasTransaction(currentData, transaction);
     }
@@ -207,6 +207,8 @@ export const updateCanvasState = (
   state: CanvasState,
   transactions: CanvasTransaction[],
 ): CanvasState => {
+  state.transactions ??= [];
+
   // Create a map for quick lookup of existing transactions by txId
   const txMap = new Map(state.transactions.map((tx) => [tx.txId, tx]));
 
@@ -242,8 +244,8 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
   }
 
   // Rule 1: If version and transactions are completely the same, return either local or remote
-  const localTxIds = new Set(local.transactions.map((tx) => tx.txId));
-  const remoteTxIds = new Set(remote.transactions.map((tx) => tx.txId));
+  const localTxIds = new Set(local.transactions?.map((tx) => tx.txId) ?? []);
+  const remoteTxIds = new Set(remote.transactions?.map((tx) => tx.txId) ?? []);
 
   // Check if transactions are exactly the same
   if (
@@ -258,8 +260,8 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
   const localOnlyTxIds = new Set([...localTxIds].filter((txId) => !remoteTxIds.has(txId)));
   const remoteOnlyTxIds = new Set([...remoteTxIds].filter((txId) => !localTxIds.has(txId)));
 
-  const localTxMap = new Map(local.transactions.map((tx) => [tx.txId, tx]));
-  const remoteTxMap = new Map(remote.transactions.map((tx) => [tx.txId, tx]));
+  const localTxMap = new Map(local.transactions?.map((tx) => [tx.txId, tx]) ?? []);
+  const remoteTxMap = new Map(remote.transactions?.map((tx) => [tx.txId, tx]) ?? []);
 
   // Check for conflicts - find object IDs that are modified by different transactions
   const localModifiedIds = new Set<string>();
@@ -348,7 +350,7 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
   const mergedTransactions: CanvasTransaction[] = [];
 
   // Add all transactions from local
-  for (const tx of local.transactions) {
+  for (const tx of local.transactions ?? []) {
     mergedTransactions.push(tx);
   }
 

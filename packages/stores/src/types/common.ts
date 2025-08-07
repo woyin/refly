@@ -1,16 +1,5 @@
 import { CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
 
-// Navigation context for copilot
-export interface NavigationContext {
-  type: 'canvas' | 'document' | 'project' | 'global';
-  id?: string;
-  title?: string;
-  metadata?: Record<string, any>;
-}
-
-// Locale types
-export type OutputLocale = 'en' | 'zh' | 'ja' | 'ko' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ru';
-
 // Project directory types
 export interface SourceObject {
   id: string;
