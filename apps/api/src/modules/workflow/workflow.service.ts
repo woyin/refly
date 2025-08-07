@@ -7,7 +7,7 @@ import { convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
 import { McpServerService } from '../mcp-server/mcp-server.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
-import { genWorkflowExecutionID, genWorkflowNodeExecutionID } from '@refly/utils';
+import { genWorkflowExecutionID, genWorkflowNodeExecutionID, genTransactionId } from '@refly/utils';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
@@ -52,7 +52,7 @@ export class WorkflowService {
   async initializeWorkflowExecution(user: User, canvasId: string): Promise<string> {
     try {
       // Get canvas state
-      const canvasState = await this.canvasSyncService.getState(user, { canvasId });
+      const canvasState = await this.canvasSyncService.getCanvasData(user, { canvasId });
       const { nodes, edges } = canvasState;
 
       if (!nodes?.length) {
@@ -208,10 +208,10 @@ export class WorkflowService {
       this.logger.warn('Node entityId is missing, skipping processing');
       return;
     }
-
-    // Get all canvas nodes to build proper context and history
-    const canvasData = await this.canvasService.getCanvasRawData(user, canvasId);
-    const allNodes = canvasData.nodes || [];
+    // Retrieve all canvas nodes to build context and history
+    // Fix: Pass correct parameter object to getCanvasData as required by its type definition
+    const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
+    const allNodes = canvasData?.nodes ?? [];
 
     // Convert contextItems to invoke parameters with proper data lookup
     const { context, resultHistory, images } = convertContextItemsToInvokeParams(
@@ -286,6 +286,14 @@ export class WorkflowService {
       entityId: canvasId,
     };
 
+    // Note: ActionResult will be created by skill service during skillInvokePreCheck
+    // This ensures consistency and avoids duplicate records
+
+    // Get workflow execution info for passing to skill service
+    const workflowNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+      where: { entityId: resultId },
+    });
+
     // Prepare the invoke skill request
     const invokeRequest: InvokeSkillRequest = {
       resultId,
@@ -302,7 +310,10 @@ export class WorkflowService {
       selectedMcpServers: await this.getSelectedMcpServers(user), // Get selected MCP servers from backend
       tplConfig,
       runtimeConfig,
-    };
+      // Add workflow fields to the request
+      workflowExecutionId: workflowNodeExecution?.executionId,
+      workflowNodeExecutionId: workflowNodeExecution?.nodeExecutionId,
+    } as any; // Use 'as any' to bypass TypeScript type checking for workflow fields
 
     // Send the invoke skill task
     await this.skillService.sendInvokeSkillTask(user, invokeRequest);
@@ -313,32 +324,80 @@ export class WorkflowService {
   /**
    * Sync workflow - called after skill-invoker finishes
    * @param user - The user
-   * @param resultId - The result ID from skill execution
+   * @param nodeExecutionId - The node execution ID
    */
-  async syncWorkflow(user: User, resultId: string): Promise<void> {
+  async syncWorkflow(user: User, nodeExecutionId: string): Promise<void> {
     try {
-      // Find the workflow node execution by resultId (entityId)
-      const nodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+      // Find the workflow node execution by nodeExecutionId
+      const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
         where: {
-          entityId: resultId,
-          status: 'executing',
+          nodeExecutionId: nodeExecutionId,
         },
       });
 
       if (!nodeExecution) {
-        this.logger.warn(`No executing node found for resultId: ${resultId}`);
+        this.logger.warn(`No node execution found for nodeExecutionId: ${nodeExecutionId}`);
         return;
       }
 
-      // Update node status to finished
-      await this.prisma.workflowNodeExecution.update({
-        where: { nodeExecutionId: nodeExecution.nodeExecutionId },
-        data: {
-          status: 'finished',
-          progress: 100,
-          endTime: new Date(),
-        },
-      });
+      // Only update if status is still executing
+      if (nodeExecution.status === 'executing') {
+        // Update node status to finish
+        await this.prisma.workflowNodeExecution.update({
+          where: { nodeExecutionId: nodeExecution.nodeExecutionId },
+          data: {
+            status: 'finish',
+            progress: 100,
+            endTime: new Date(),
+          },
+        });
+
+        // Update canvas node status to finish
+        const workflowExecution = await this.prisma.workflowExecution.findUnique({
+          where: { executionId: nodeExecution.executionId },
+        });
+
+        if (workflowExecution) {
+          const canvasState = await this.canvasSyncService.getCanvasData(user, {
+            canvasId: workflowExecution.canvasId,
+          });
+          const { nodes } = canvasState;
+          const canvasNode = nodes?.find((n) => n.id === nodeExecution.nodeId);
+
+          if (canvasNode) {
+            const updatedNode = {
+              ...canvasNode,
+              data: {
+                ...canvasNode.data,
+                metadata: {
+                  ...canvasNode.data?.metadata,
+                  status: 'finish',
+                },
+              },
+            };
+
+            await this.canvasSyncService.syncState(user, {
+              canvasId: workflowExecution.canvasId,
+              transactions: [
+                {
+                  txId: genTransactionId(),
+                  createdAt: Date.now(),
+                  syncedAt: Date.now(),
+                  nodeDiffs: [
+                    {
+                      type: 'update',
+                      id: nodeExecution.nodeId,
+                      from: canvasNode,
+                      to: updatedNode,
+                    },
+                  ],
+                  edgeDiffs: [],
+                },
+              ],
+            });
+          }
+        }
+      }
 
       // Get all child nodes
       const childNodeIds = JSON.parse(nodeExecution.childNodeIds || '[]') as string[];
@@ -363,7 +422,7 @@ export class WorkflowService {
             where: {
               executionId: nodeExecution.executionId,
               nodeId: { in: parentNodeIds },
-              status: 'finished',
+              status: 'finish',
             },
           })) === parentNodeIds.length;
 
@@ -389,9 +448,11 @@ export class WorkflowService {
       // Update workflow execution statistics
       await this.updateWorkflowExecutionStats(nodeExecution.executionId);
 
-      this.logger.log(`Synced workflow for resultId: ${resultId}`);
+      this.logger.log(`Synced workflow for nodeExecutionId: ${nodeExecutionId}`);
     } catch (error) {
-      this.logger.error(`Failed to sync workflow for resultId ${resultId}: ${error.message}`);
+      this.logger.error(
+        `Failed to sync workflow for nodeExecutionId ${nodeExecutionId}: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -444,7 +505,7 @@ export class WorkflowService {
         throw new Error(`Workflow execution ${executionId} not found`);
       }
 
-      const canvasState = await this.canvasSyncService.getState(user, {
+      const canvasState = await this.canvasSyncService.getCanvasData(user, {
         canvasId: workflowExecution.canvasId,
       });
       const { nodes } = canvasState;
@@ -457,18 +518,51 @@ export class WorkflowService {
 
       // Execute node based on type
       if (canvasNode.type === 'skillResponse') {
+        // Update canvas node status to executing before invoking skill
+        const updatedNode = {
+          ...canvasNode,
+          data: {
+            ...canvasNode.data,
+            contentPreview: '', // Clear content preview when starting execution
+            metadata: {
+              ...canvasNode.data?.metadata,
+              status: 'executing',
+            },
+          },
+        };
+
+        await this.canvasSyncService.syncState(user, {
+          canvasId: workflowExecution.canvasId,
+          transactions: [
+            {
+              txId: genTransactionId(),
+              createdAt: Date.now(),
+              syncedAt: Date.now(),
+              nodeDiffs: [
+                {
+                  type: 'update',
+                  id: nodeId,
+                  from: canvasNode,
+                  to: updatedNode,
+                },
+              ],
+              edgeDiffs: [],
+            },
+          ],
+        });
+
         await this.executeSkillResponseNode(
           user,
           canvasNode as unknown as CanvasNode & { data: { metadata?: ResponseNodeMeta } },
           workflowExecution.canvasId,
         );
       } else {
-        // For other node types, just mark as finished for now
+        // For other node types, just mark as finish for now
         // TODO: Implement execution for other node types
         await this.prisma.workflowNodeExecution.update({
           where: { nodeExecutionId: nodeExecution.nodeExecutionId },
           data: {
-            status: 'finished',
+            status: 'finish',
             progress: 100,
             endTime: new Date(),
           },
@@ -514,7 +608,7 @@ export class WorkflowService {
       _count: { status: true },
     });
 
-    const executedNodes = stats.find((s) => s.status === 'finished')?._count.status || 0;
+    const executedNodes = stats.find((s) => s.status === 'finish')?._count.status || 0;
     const failedNodes = stats.find((s) => s.status === 'failed')?._count.status || 0;
 
     // Check if all nodes are finished
@@ -525,7 +619,7 @@ export class WorkflowService {
     if (failedNodes > 0) {
       status = 'failed';
     } else if (waitingNodes === 0 && executingNodes === 0) {
-      status = 'finished';
+      status = 'finish';
     }
 
     await this.prisma.workflowExecution.update({

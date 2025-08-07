@@ -15,13 +15,13 @@ export class SyncWorkflowProcessor extends WorkerHost {
 
   async process(job: Job<SyncWorkflowJobData>) {
     this.logger.log(
-      `[${QUEUE_SYNC_WORKFLOW}] Processing job: ${job.id} for resultId: ${job.data.resultId}`,
+      `[${QUEUE_SYNC_WORKFLOW}] Processing job: ${job.id} for nodeExecutionId: ${job.data.nodeExecutionId}`,
     );
 
     try {
-      await this.workflowService.syncWorkflow(job.data.user, job.data.resultId);
+      await this.workflowService.syncWorkflow(job.data.user, job.data.nodeExecutionId);
       this.logger.log(
-        `[${QUEUE_SYNC_WORKFLOW}] Completed job: ${job.id} for resultId: ${job.data.resultId}`,
+        `[${QUEUE_SYNC_WORKFLOW}] Completed job: ${job.id} for nodeExecutionId: ${job.data.nodeExecutionId}`,
       );
     } catch (error) {
       this.logger.error(`[${QUEUE_SYNC_WORKFLOW}] Error processing job ${job.id}: ${error?.stack}`);

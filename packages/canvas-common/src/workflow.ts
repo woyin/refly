@@ -14,8 +14,6 @@ export class WorkflowExecutor {
   private executedNodes: Set<string> = new Set();
   // Track currently executing node IDs
   private executingNodes = new Set<string>();
-  // Store the current canvas state for workflow execution
-  private canvasState: CanvasState | null = null;
   // Node executor for handling individual node execution
   private nodeExecutor: NodeExecutor;
 
@@ -30,8 +28,6 @@ export class WorkflowExecutor {
    */
   async executeWorkflow(canvasState: CanvasState): Promise<WorkflowExecutionResult> {
     try {
-      // Store canvas state for context access
-      this.canvasState = canvasState;
       this.nodeExecutor.setCanvasState(canvasState);
 
       // Get canvas data

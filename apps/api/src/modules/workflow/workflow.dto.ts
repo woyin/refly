@@ -2,7 +2,7 @@ import { User } from '@refly/openapi-schema';
 
 export interface SyncWorkflowJobData {
   user: User;
-  resultId: string;
+  nodeExecutionId: string;
 }
 
 export interface RunWorkflowJobData {

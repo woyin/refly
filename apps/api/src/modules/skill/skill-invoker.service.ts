@@ -950,9 +950,15 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
               }),
             ]
           : []),
+        ...(result.workflowNodeExecutionId
+          ? [
+              this.prisma.workflowNodeExecution.updateMany({
+                where: { nodeExecutionId: result.workflowNodeExecutionId },
+                data: { status },
+              }),
+            ]
+          : []),
       ]);
-
-      //如果是workflow，则需要在事务内update workflow表的status
 
       writeSSEResponse(res, { event: 'end', resultId, version });
 
@@ -995,11 +1001,11 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
       }
 
       // Sync workflow if needed
-      if (this.syncWorkflowQueue) {
-        this.logger.log(`Sync workflow for result ${resultId}`);
+      if (result.workflowNodeExecutionId && this.syncWorkflowQueue) {
+        this.logger.log(`Sync workflow for nodeExecutionId ${result.workflowNodeExecutionId}`);
         await this.syncWorkflowQueue.add('syncWorkflow', {
           user: { uid: user.uid },
-          resultId: resultId,
+          nodeExecutionId: result.workflowNodeExecutionId,
         });
       }
 
