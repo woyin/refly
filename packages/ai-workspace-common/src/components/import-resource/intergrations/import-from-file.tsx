@@ -1,24 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, message, Upload, UploadProps } from 'antd';
 import { TbFile } from 'react-icons/tb';
-import { RiInboxArchiveLine } from 'react-icons/ri';
 import { useImportResourceStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import type { Resource } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { StorageLimit } from './storageLimit';
 import type { RcFile } from 'antd/es/upload/interface';
 import { genResourceID } from '@refly/utils/id';
 import { LuInfo } from 'react-icons/lu';
-import { getAvailableFileCount } from '@refly/utils/quota';
 import { useSubscriptionStoreShallow } from '@refly/stores';
 import { GrUnlock } from 'react-icons/gr';
 import { useUserStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
-import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
-import { useUpdateSourceList } from '@refly-packages/ai-workspace-common/hooks/canvas/use-update-source-list';
-import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { logEvent } from '@refly/telemetry-web';
 
 const { Dragger } = Upload;
@@ -36,27 +29,26 @@ const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.docx', '.rtf', '.txt', '.md', '.html'
 export const ImportFromFile = () => {
   const { t } = useTranslation();
   const {
-    setImportResourceModalVisible,
-    insertNodePosition,
     fileList: storageFileList,
     setFileList: setStorageFileList,
+    addToWaitingList,
+    removeFromWaitingList,
+    updateWaitingListItem,
+    waitingList,
   } = useImportResourceStoreShallow((state) => ({
-    setImportResourceModalVisible: state.setImportResourceModalVisible,
-    insertNodePosition: state.insertNodePosition,
     setFileList: state.setFileList,
     fileList: state.fileList,
+    addToWaitingList: state.addToWaitingList,
+    removeFromWaitingList: state.removeFromWaitingList,
+    updateWaitingListItem: state.updateWaitingListItem,
+    waitingList: state.waitingList,
   }));
   const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
     setSubscribeModalVisible: state.setSubscribeModalVisible,
   }));
 
-  const { projectId, isCanvasOpen } = useGetProjectCanvasId();
-  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
-  const { updateSourceList } = useUpdateSourceList();
+  const { fileParsingUsage } = useSubscriptionUsage();
 
-  const { refetchUsage, storageUsage, fileParsingUsage } = useSubscriptionUsage();
-
-  const [saveLoading, setSaveLoading] = useState(false);
   const [fileList, setFileList] = useState<FileItem[]>(storageFileList);
 
   const { userProfile } = useUserStoreShallow((state) => ({
@@ -84,12 +76,7 @@ export const ImportFromFile = () => {
     name: 'file',
     multiple: true,
     accept: ALLOWED_FILE_EXTENSIONS.join(','),
-    fileList: fileList.map((item) => ({
-      uid: item.uid ?? '',
-      name: item.title,
-      status: item?.status,
-      url: item.url,
-    })),
+    fileList: [],
     beforeUpload: async (file: File) => {
       if (uploadLimit > 0 && file.size > maxFileSizeBytes) {
         message.error(t('resource.import.fileTooLarge', { size: maxFileSize }));
@@ -97,6 +84,23 @@ export const ImportFromFile = () => {
       }
 
       const tempUid = genResourceID();
+
+      // Add file to waiting list with pending status
+      addToWaitingList({
+        id: tempUid,
+        type: 'file',
+        title: file.name,
+        status: 'pending',
+        progress: 0,
+        file: {
+          title: file.name,
+          url: '',
+          storageKey: '',
+          uid: tempUid,
+          status: 'uploading',
+        },
+      });
+
       setFileList((prev) => [
         ...prev,
         {
@@ -110,6 +114,19 @@ export const ImportFromFile = () => {
 
       const data = await uploadFile(file, tempUid);
       if (data?.url && data?.storageKey) {
+        // Update waiting list item with completed status
+        updateWaitingListItem(tempUid, {
+          status: 'pending',
+          progress: 100,
+          file: {
+            title: file.name,
+            url: data.url,
+            storageKey: data.storageKey,
+            uid: data.uid,
+            status: 'done',
+          },
+        });
+
         setFileList((prev) =>
           prev.map((item) =>
             item.uid === tempUid
@@ -124,6 +141,19 @@ export const ImportFromFile = () => {
           ),
         );
       } else {
+        // Update waiting list item with error status
+        updateWaitingListItem(tempUid, {
+          status: 'error',
+          progress: 0,
+          file: {
+            title: file.name,
+            url: '',
+            storageKey: '',
+            uid: tempUid,
+            status: 'error',
+          },
+        });
+
         setFileList((prev) => prev.filter((item) => item.uid !== tempUid));
         message.error(`${t('common.uploadFailed')}: ${file.name}`);
       }
@@ -132,77 +162,13 @@ export const ImportFromFile = () => {
     },
     onRemove: (file: RcFile) => {
       setFileList((prev) => prev.filter((item) => item.uid !== file.uid));
+      // Also remove from waiting list
+      const waitingItem = waitingList.find((item) => item.file?.uid === file.uid);
+      if (waitingItem) {
+        removeFromWaitingList(waitingItem.id);
+      }
     },
   };
-
-  const handleSave = async () => {
-    if (fileList.length === 0) {
-      message.warning(t('resource.import.emptyFile'));
-      return;
-    }
-
-    setSaveLoading(true);
-
-    const { data } = await getClient().batchCreateResource({
-      body: fileList.map((file) => ({
-        projectId: currentProjectId,
-        resourceType: 'file',
-        title: file.title,
-        storageKey: file.storageKey,
-      })),
-    });
-
-    setSaveLoading(false);
-    if (!data?.success) {
-      message.error(t('common.putFailed'));
-      return;
-    }
-
-    setFileList([]);
-    refetchUsage();
-    message.success(t('common.putSuccess'));
-    setImportResourceModalVisible(false);
-
-    if (isCanvasOpen) {
-      const resources = Array.isArray(data.data)
-        ? (data.data as Resource[]).map((resource) => ({
-            id: resource.resourceId,
-            title: resource.title,
-            domain: 'resource',
-            contentPreview: resource.contentPreview,
-          }))
-        : [];
-
-      for (const [index, resource] of resources.entries()) {
-        const nodePosition = insertNodePosition
-          ? {
-              x: insertNodePosition.x + index * 300,
-              y: insertNodePosition.y,
-            }
-          : null;
-
-        nodeOperationsEmitter.emit('addNode', {
-          node: {
-            type: 'resource',
-            data: {
-              title: resource.title,
-              entityId: resource.id,
-              contentPreview: resource.contentPreview,
-              metadata: {
-                resourceType: 'file',
-              },
-            },
-            position: nodePosition ?? undefined,
-          },
-        });
-      }
-    }
-
-    updateSourceList(Array.isArray(data.data) ? (data.data as Resource[]) : [], currentProjectId);
-  };
-
-  const canImportCount = getAvailableFileCount(storageUsage);
-  const disableSave = fileList.length === 0 || fileList.length > canImportCount;
 
   const genUploadHint = () => {
     let hint = t('resource.import.supportedFiles', {
@@ -244,47 +210,23 @@ export const ImportFromFile = () => {
       </div>
 
       {/* content */}
-      <div className="flex-grow overflow-y-auto px-10 py-6 box-border flex flex-col justify-center">
-        <div className="w-full file-upload-container">
-          <Dragger {...props}>
-            <RiInboxArchiveLine className="text-3xl text-[#0E9F77]" />
-            <p className="ant-upload-text mt-4 text-gray-600 dark:text-gray-300">
-              {t('resource.import.dragOrClick')}
-            </p>
-            <p className="ant-upload-hint text-gray-400 mt-2">{genUploadHint()}</p>
-            {fileParsingUsage?.pagesLimit && fileParsingUsage?.pagesLimit >= 0 && (
-              <div className="text-green-500 mt-2 text-xs font-medium flex items-center justify-center gap-1">
-                <LuInfo />
-                {t('resource.import.fileParsingUsage', {
-                  used: fileParsingUsage?.pagesParsed,
-                  limit: fileParsingUsage?.pagesLimit,
-                })}
-              </div>
-            )}
-          </Dragger>
-        </div>
-      </div>
-
-      {/* footer */}
-      <div className="w-full flex justify-between items-center border-t border-solid border-[#e5e5e5] dark:border-[#2f2f2f] border-x-0 border-b-0 p-[16px] rounded-none">
-        <div className="flex items-center gap-x-[8px]">
-          <p className="font-bold whitespace-nowrap text-md text-[#0E9F77]">
-            {t('resource.import.fileCount', { count: fileList?.length || 0 })}
+      <Dragger {...props} className=" w-full bg-refly-bg-control-z0 rounded-xl mb-1.5">
+        <div className="flex flex-col items-center gap-2">
+          <p className="ant-upload-text mt-4 text-refly-text-0">
+            {t('resource.import.dragOrClick')}
           </p>
-          <StorageLimit
-            resourceCount={fileList?.length || 0}
-            projectId={currentProjectId}
-            onSelectProject={setCurrentProjectId}
-          />
+          <p className="ant-upload-hint text-refly-text-1 mt-2">{genUploadHint()}</p>
+          {fileParsingUsage?.pagesLimit && fileParsingUsage?.pagesLimit >= 0 && (
+            <div className="text-green-500 mt-2 text-xs font-medium flex items-center justify-center gap-1">
+              <LuInfo />
+              {t('resource.import.fileParsingUsage', {
+                used: fileParsingUsage?.pagesParsed,
+                limit: fileParsingUsage?.pagesLimit,
+              })}
+            </div>
+          )}
         </div>
-
-        <div className="flex items-center gap-x-[8px] flex-shrink-0">
-          <Button onClick={() => setImportResourceModalVisible(false)}>{t('common.cancel')}</Button>
-          <Button type="primary" onClick={handleSave} disabled={disableSave} loading={saveLoading}>
-            {isCanvasOpen ? t('common.saveToCanvas') : t('common.save')}
-          </Button>
-        </div>
-      </div>
+      </Dragger>
     </div>
   );
 };

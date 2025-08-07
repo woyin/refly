@@ -121,21 +121,19 @@ export const TranslationWrapper: React.FC<TranslationWrapperProps> = ({
 
   // Early return for unchanged content
   if (!shouldTranslate || translatedContent === content) {
-    return <span className={cn('dark:text-gray-500', className)}>{content}</span>;
+    return <span className={cn('text-refly-text-1 text-sm', className)}>{content}</span>;
   }
 
   return (
-    <div className={`translation-wrapper ${className ?? ''}`}>
-      <div className="translation-content">
-        {isLoading ? (
-          <>
-            <span className="original-text">{content}</span>
-            <Spin indicator={<LoadingOutlined style={{ fontSize: 12, marginLeft: 4 }} spin />} />
-          </>
-        ) : (
-          <span>{translatedContent ?? content}</span>
-        )}
-      </div>
+    <div className={cn('w-full', className)}>
+      {isLoading ? (
+        <>
+          <span className="original-text">{content}</span>
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 12, marginLeft: 4 }} spin />} />
+        </>
+      ) : (
+        (translatedContent ?? content)
+      )}
     </div>
   );
 };

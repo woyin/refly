@@ -1,23 +1,26 @@
-import { Menu, Divider, Splitter, Modal } from 'antd';
-import { HiLink } from 'react-icons/hi';
+import { Divider, Modal, Button, Segmented, message } from 'antd';
 import { ImportResourceMenuItem, useImportResourceStoreShallow } from '@refly/stores';
 
-import { ImportFromWeblink } from './intergrations/import-from-weblink';
-import { ImportFromText } from './intergrations/import-from-text';
-import { ImportFromExtension } from './intergrations/import-from-extension';
+// import { ImportFromText } from './intergrations/import-from-text';
+// import { ImportFromExtension } from './intergrations/import-from-extension';
 import { useTranslation } from 'react-i18next';
 
 import './index.scss';
-import { useEffect, memo } from 'react';
-import { getRuntime } from '@refly/utils/env';
+import { useEffect, memo, useMemo, useState } from 'react';
+// import { getRuntime } from '@refly/utils/env';
 import MultilingualSearch from '@refly-packages/ai-workspace-common/modules/multilingual-search';
-import { TbClipboard, TbWorldSearch, TbBrowserPlus, TbFile } from 'react-icons/tb';
-import { PiImagesSquare } from 'react-icons/pi';
-import { IconImportResource } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { ImportFromWeblink } from './intergrations/import-from-weblink';
 import { ImportFromFile } from '@refly-packages/ai-workspace-common/components/import-resource/intergrations/import-from-file';
-import { ImportFromImage } from './intergrations/import-from-image';
-
-const MenuItem = Menu.Item;
+// import { ImportFromImage } from './intergrations/import-from-image';
+import { Close, Cuttools } from 'refly-icons';
+import WaitingList from './components/waiting-list';
+import { StorageLimit } from '@refly-packages/ai-workspace-common/components/import-resource/intergrations/storageLimit';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { UpsertResourceRequest } from '@refly/openapi-schema';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { getAvailableFileCount } from '@refly/utils/quota';
 
 export const ImportResourceModal = memo(() => {
   const { t } = useTranslation();
@@ -27,16 +30,50 @@ export const ImportResourceModal = memo(() => {
     selectedMenuItem,
     setSelectedMenuItem,
     setInsertNodePosition,
+    waitingList,
+    clearWaitingList,
   } = useImportResourceStoreShallow((state) => ({
     importResourceModalVisible: state.importResourceModalVisible,
     setImportResourceModalVisible: state.setImportResourceModalVisible,
     selectedMenuItem: state.selectedMenuItem,
     setSelectedMenuItem: state.setSelectedMenuItem,
     setInsertNodePosition: state.setInsertNodePosition,
+    waitingList: state.waitingList,
+    clearWaitingList: state.clearWaitingList,
   }));
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
-  const runtime = getRuntime();
-  const isWeb = runtime === 'web';
+  const [saveLoading, setSaveLoading] = useState(false);
+  const { projectId } = useGetProjectCanvasId();
+  const { refetchUsage, storageUsage } = useSubscriptionUsage();
+  const canImportCount = getAvailableFileCount(storageUsage);
+
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
+
+  // const runtime = getRuntime();
+  // const isWeb = runtime === 'web';
+
+  // TODO: 计算文件数量时需要去除上传的图片吗？
+  const disableSave = useMemo(() => {
+    return saveLoading || waitingList.length === 0 || waitingList.length > canImportCount;
+  }, [waitingList, canImportCount, saveLoading]);
+
+  const importResourceOptions = useMemo(() => {
+    return [
+      {
+        label: t('resource.import.fromWebSearch'),
+        value: 'import-from-web-search',
+      },
+      {
+        label: t('resource.import.fromFile'),
+        value: 'import-from-file',
+      },
+      {
+        label: t('resource.import.fromWeblink'),
+        value: 'import-from-weblink',
+      },
+    ];
+  }, [t]);
 
   useEffect(() => {
     return () => {
@@ -44,95 +81,173 @@ export const ImportResourceModal = memo(() => {
     };
   }, [setInsertNodePosition]);
 
+  const handleSaveToCanvas = async () => {
+    if (waitingList.length === 0) {
+      return;
+    }
+
+    setSaveLoading(true);
+    try {
+      // TODO: Implement save logic for waiting list items
+      // This would involve processing each item based on its type
+      // and adding them to the canvas
+      console.log('Saving waiting list items:', waitingList);
+
+      const batchCreateResourceData: UpsertResourceRequest[] = waitingList.map((link) => {
+        return {
+          projectId: currentProjectId,
+          resourceType: link?.type,
+          title: link?.title ?? '',
+          data: {
+            url: link?.url,
+            title: link?.title,
+          },
+        };
+      });
+
+      setSaveLoading(true);
+      const { data } = await getClient().batchCreateResource({
+        body: batchCreateResourceData,
+      });
+      setSaveLoading(false);
+
+      if (!data?.success) {
+        return;
+      }
+
+      refetchUsage();
+      message.success(t('common.putSuccess'));
+
+      const resources =
+        data && Array.isArray(data.data)
+          ? data.data.map((resource) => ({
+              id: resource.resourceId,
+              title: resource.title,
+              domain: 'resource',
+              contentPreview: resource.contentPreview,
+            }))
+          : [];
+      resources.forEach((resource, _index) => {
+        nodeOperationsEmitter.emit('addNode', {
+          node: {
+            type: 'resource',
+            data: {
+              title: resource.title,
+              entityId: resource.id,
+              contentPreview: resource.contentPreview,
+            },
+          },
+        });
+      });
+
+      // Clear waiting list after successful save
+      clearWaitingList();
+      setImportResourceModalVisible(false);
+    } catch (error) {
+      console.error('Error saving to canvas:', error);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setImportResourceModalVisible(false);
+  };
+
   return (
     <Modal
       open={importResourceModalVisible}
       centered
+      title={null}
       footer={null}
+      closable={false}
       onCancel={() => {
         setImportResourceModalVisible(false);
       }}
       className="import-resource-modal"
-      height={'70%'}
+      height={'80%'}
       width={'65%'}
+      maskClosable={!showSearchResults}
       style={{
-        minHeight: 500,
-        maxHeight: 660,
         minWidth: '300px',
         maxWidth: '1050px',
       }}
     >
-      <div className="import-resource-container">
-        <Splitter>
-          <Splitter.Panel collapsible={false} resizable={false} defaultSize={180}>
-            {isWeb ? (
-              <div className="import-resource-left-panel">
-                <div className="left-panel-header">
-                  <div className="left-panel-header-title">
-                    <IconImportResource className="text-2xl" />
-                    <span className="left-panel-header-title-text">
-                      {t('resource.import.title')}
-                    </span>
-                  </div>
-                  <Divider style={{ margin: '12px 0' }} />
-                  <Menu
-                    selectedKeys={[selectedMenuItem]}
-                    onClick={(info) => {
-                      setSelectedMenuItem(info.key as ImportResourceMenuItem);
-                    }}
-                  >
-                    <MenuItem key="import-from-web-search">
-                      <span className="flex items-center mr-2 gap-2">
-                        <TbWorldSearch className="text-base" />
-                        {t('resource.import.fromWebSearch')}
-                      </span>
-                    </MenuItem>
-                    <MenuItem key="import-from-file">
-                      <span className="flex items-center mr-2 gap-2">
-                        <TbFile className="text-base" />
-                        {t('resource.import.fromFile')}
-                      </span>
-                    </MenuItem>
-                    <MenuItem key="import-from-image">
-                      <span className="flex items-center mr-2 gap-2">
-                        <PiImagesSquare className="text-base" />
-                        {t('resource.import.fromImage')}
-                      </span>
-                    </MenuItem>
-                    <MenuItem key="import-from-weblink">
-                      <span className="flex items-center mr-2 gap-2">
-                        <HiLink className="text-base" />
-                        {t('resource.import.fromWeblink')}
-                      </span>
-                    </MenuItem>
-                    <MenuItem key="import-from-paste-text">
-                      <span className="flex items-center mr-2 gap-2">
-                        <TbClipboard className="text-base" />
-                        {t('resource.import.fromText')}
-                      </span>
-                    </MenuItem>
-                    <MenuItem key="import-from-extension">
-                      <span className="flex items-center mr-2 gap-2">
-                        <TbBrowserPlus className="text-base" />
-                        {t('resource.import.fromExtension')}
-                      </span>
-                    </MenuItem>
-                  </Menu>
-                </div>
-              </div>
-            ) : null}
-          </Splitter.Panel>
-          <Splitter.Panel collapsible={false} resizable={false}>
-            <div className="import-resource-right-panel">
-              {selectedMenuItem === 'import-from-weblink' ? <ImportFromWeblink /> : null}
-              {selectedMenuItem === 'import-from-paste-text' ? <ImportFromText /> : null}
-              {selectedMenuItem === 'import-from-web-search' ? <MultilingualSearch /> : null}
-              {selectedMenuItem === 'import-from-extension' ? <ImportFromExtension /> : null}
-              {selectedMenuItem === 'import-from-file' ? <ImportFromFile /> : null}
-              {selectedMenuItem === 'import-from-image' ? <ImportFromImage /> : null}
-            </div>
-          </Splitter.Panel>
-        </Splitter>
+      <div className="flex flex-col gap-4 p-6 h-full overflow-y-auto">
+        <div className="flex justify-between items-center">
+          <div className="text-refly-text-0 text-lg font-semibold leading-6">
+            {t('resource.import.title')}
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <Button type="text" icon={<Cuttools size={16} color="var(--refly-text-0)" />}>
+              <span className="text-refly-primary-default text-sm font-semibold leading-5">
+                {t('resource.import.fromExtension')}
+              </span>
+            </Button>
+            <Divider type="vertical" className="m-0 h-6 bg-refly-Card-Border" />
+            <Button
+              type="text"
+              icon={<Close size={24} color="var(--refly-text-0)" />}
+              onClick={() => setImportResourceModalVisible(false)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 p-3 pb-1.5 rounded-xl border-solid border-[1px] border-refly-Card-Border">
+          <Segmented
+            size="middle"
+            shape="round"
+            className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center "
+            options={importResourceOptions}
+            value={selectedMenuItem}
+            onChange={(value) => {
+              setSelectedMenuItem(value as ImportResourceMenuItem);
+            }}
+          />
+          {selectedMenuItem === 'import-from-web-search' && (
+            <MultilingualSearch
+              showResults={showSearchResults}
+              setShowResults={setShowSearchResults}
+            />
+          )}
+          {selectedMenuItem === 'import-from-weblink' && <ImportFromWeblink />}
+          {selectedMenuItem === 'import-from-file' && <ImportFromFile />}
+        </div>
+
+        <div className="flex-grow rounded-xl border-solid border-[1px] border-refly-Card-Border">
+          <div className="px-4 py-2 bg-refly-bg-control-z0 text-refly-text-1 text-xs font-semibold leading-4 border-solid border-[1px] border-t-0 border-x-0 border-refly-Card-Border rounded-t-xl">
+            {t('resource.import.waitingList')}{' '}
+            {waitingList.length > 0 ? `${waitingList.length} 个` : ''}
+          </div>
+
+          <WaitingList />
+        </div>
+
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-x-[8px]">
+            <p className="font-bold whitespace-nowrap text-md text-refly-primary-default">
+              {t('resource.import.fileCount', { count: waitingList?.length || 0 })}
+            </p>
+            <StorageLimit
+              resourceCount={waitingList?.length || 0}
+              projectId={currentProjectId}
+              onSelectProject={setCurrentProjectId}
+            />
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            <Button type="default" onClick={handleCancel}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleSaveToCanvas}
+              disabled={disableSave}
+              loading={saveLoading}
+            >
+              {t('common.saveToCanvas')}
+            </Button>
+          </div>
+        </div>
       </div>
     </Modal>
   );

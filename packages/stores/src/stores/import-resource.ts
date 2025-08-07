@@ -2,6 +2,7 @@ import { type XYPosition } from '@xyflow/react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
+import { Source } from '@refly/openapi-schema';
 
 export interface LinkMeta {
   key: string;
@@ -30,6 +31,20 @@ export interface ImageItem {
   status?: 'uploading' | 'done' | 'error';
 }
 
+// Waiting list item interface for pending files
+export interface WaitingListItem {
+  id: string;
+  type: 'text' | 'file' | 'weblink';
+  title?: string;
+  url?: string;
+  content?: string;
+  source?: Source; // For web search results
+  file?: FileItem; // For file uploads
+  link?: LinkMeta; // For weblink imports
+  progress?: number; // For upload progress
+  status?: 'pending' | 'processing' | 'done' | 'error';
+}
+
 export type ImportResourceMenuItem =
   | 'import-from-file'
   | 'import-from-weblink'
@@ -49,6 +64,9 @@ interface ImportResourceState {
   copiedTextPayload: { content: string; title: string; url?: string };
   insertNodePosition: XYPosition | null;
 
+  // waiting list for pending files
+  waitingList: WaitingListItem[];
+
   setImportResourceModalVisible: (visible: boolean) => void;
   setScrapeLinks: (links: LinkMeta[]) => void;
   setFileList: (fileList: FileItem[]) => void;
@@ -59,6 +77,12 @@ interface ImportResourceState {
   resetState: () => void;
   setSelectedMenuItem: (menuItem: ImportResourceMenuItem) => void;
   setInsertNodePosition: (position: XYPosition) => void;
+
+  // waiting list actions
+  addToWaitingList: (item: WaitingListItem) => void;
+  removeFromWaitingList: (id: string) => void;
+  updateWaitingListItem: (id: string, updates: Partial<WaitingListItem>) => void;
+  clearWaitingList: () => void;
 }
 
 export const defaultState = {
@@ -69,6 +93,7 @@ export const defaultState = {
   importResourceModalVisible: false,
   selectedMenuItem: 'import-from-web-search' as ImportResourceMenuItem,
   insertNodePosition: null,
+  waitingList: [],
 };
 
 export const useImportResourceStore = create<ImportResourceState>()(
@@ -87,6 +112,23 @@ export const useImportResourceStore = create<ImportResourceState>()(
       set((state) => ({ ...state, selectedMenuItem: menuItem })),
     setInsertNodePosition: (position: XYPosition) =>
       set((state) => ({ ...state, insertNodePosition: position })),
+
+    // waiting list actions
+    addToWaitingList: (item: WaitingListItem) =>
+      set((state) => ({ ...state, waitingList: [...state.waitingList, item] })),
+    removeFromWaitingList: (id: string) =>
+      set((state) => ({
+        ...state,
+        waitingList: state.waitingList.filter((item) => item.id !== id),
+      })),
+    updateWaitingListItem: (id: string, updates: Partial<WaitingListItem>) =>
+      set((state) => ({
+        ...state,
+        waitingList: state.waitingList.map((item) =>
+          item.id === id ? { ...item, ...updates } : item,
+        ),
+      })),
+    clearWaitingList: () => set((state) => ({ ...state, waitingList: [] })),
   })),
 );
 

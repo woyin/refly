@@ -41,12 +41,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
 
   const { selectedItems, results, setSelectedItems } = useMultilingualSearchStore();
-  const { setImportResourceModalVisible, insertNodePosition } = useImportResourceStoreShallow(
-    (state) => ({
+  const { setImportResourceModalVisible, insertNodePosition, addToWaitingList } =
+    useImportResourceStoreShallow((state) => ({
       setImportResourceModalVisible: state.setImportResourceModalVisible,
       insertNodePosition: state.insertNodePosition,
-    }),
-  );
+      addToWaitingList: state.addToWaitingList,
+    }));
   const [saveLoading, setSaveLoading] = useState(false);
 
   const handleSelectAll = (checked: boolean) => {
@@ -60,6 +60,29 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
     if (props.sourceType === 'multilingualSearch') {
       setImportResourceModalVisible(false);
     }
+  };
+
+  const handleAddToWaitingList = () => {
+    if (selectedItems.length === 0) {
+      message.warning(t('resource.import.emptyLink'));
+      return;
+    }
+
+    // Add selected items to waiting list
+    for (const item of selectedItems) {
+      addToWaitingList({
+        id: `${item.url}-${Date.now()}`,
+        type: 'weblink',
+        title: item.title ?? '',
+        url: item.url,
+        content: item.pageContent,
+        source: item,
+        status: 'pending',
+      });
+    }
+
+    message.success(t('resource.import.addedToWaitingList', { count: selectedItems.length }));
+    setSelectedItems([]);
   };
 
   const handleSave = async () => {
@@ -175,6 +198,9 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
         </div>
         <div className="footer-action">
           <Button onClick={handleClose}>{t('common.cancel')}</Button>
+          <Button onClick={handleAddToWaitingList} disabled={selectedItems.length === 0}>
+            {t('resource.import.addToWaiting')}
+          </Button>
           <Button
             type="primary"
             onClick={handleSave}
