@@ -47,6 +47,7 @@ import {
   QUEUE_SYNC_REQUEST_USAGE,
   QUEUE_SYNC_TOKEN_USAGE,
   QUEUE_SYNC_TOKEN_CREDIT_USAGE,
+  QUEUE_SYNC_WORKFLOW,
 } from '../../utils/const';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -54,6 +55,7 @@ import { writeSSEResponse } from '../../utils/response';
 import { genBaseRespDataFromError } from '../../utils/exception';
 import { SyncPilotStepJobData } from '../pilot/pilot.processor';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
+import { SyncWorkflowJobData } from '../workflow/workflow.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { CollabContext } from '../collab/collab.dto';
@@ -104,6 +106,9 @@ export class SkillInvokerService {
     @Optional()
     @InjectQueue(QUEUE_SYNC_PILOT_STEP)
     private pilotStepQueue?: Queue<SyncPilotStepJobData>,
+    @Optional()
+    @InjectQueue(QUEUE_SYNC_WORKFLOW)
+    private syncWorkflowQueue?: Queue<SyncWorkflowJobData>,
   ) {
     this.skillEngine = this.skillEngineService.getEngine();
     this.skillInventory = createSkillInventory(this.skillEngine);
@@ -947,6 +952,8 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           : []),
       ]);
 
+      //如果是workflow，则需要在事务内update workflow表的status
+
       writeSSEResponse(res, { event: 'end', resultId, version });
 
       // Check if we need to auto-name the target canvas
@@ -984,6 +991,15 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
         await this.pilotStepQueue.add('syncPilotStep', {
           user: { uid: user.uid },
           stepId: result.pilotStepId,
+        });
+      }
+
+      // Sync workflow if needed
+      if (this.syncWorkflowQueue) {
+        this.logger.log(`Sync workflow for result ${resultId}`);
+        await this.syncWorkflowQueue.add('syncWorkflow', {
+          user: { uid: user.uid },
+          resultId: resultId,
         });
       }
 
