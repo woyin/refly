@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { List, Button, Progress } from 'antd';
+import { List, Button, Progress, Empty } from 'antd';
 import { DeleteOutlined, FileTextOutlined, LinkOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useImportResourceStoreShallow } from '@refly/stores';
@@ -39,7 +39,12 @@ const WaitingList = memo(() => {
 
   if (waitingList.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">{t('resource.import.noPendingFiles')}</div>
+      <div className="flex items-center justify-center h-full">
+        <Empty
+          description={t('resource.import.noPendingFiles')}
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      </div>
     );
   }
 
