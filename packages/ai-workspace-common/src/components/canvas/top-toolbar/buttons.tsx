@@ -93,16 +93,15 @@ export const ToolbarButtons = memo(
     const { getNodes } = useReactFlow();
     const { hoverCardEnabled } = useHoverCard();
     const { readonly, canvasId } = useCanvasContext();
-    const { resetResourcesPanel, resourcesPanelWidth } = useCanvasResourcesPanelStoreShallow(
-      (state) => ({
-        resetResourcesPanel: state.resetResourcesPanel,
-        resourcesPanelWidth: state.resourcesPanelWidth,
-      }),
-    );
+    const { panelVisible, setPanelVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
+      panelVisible: state.panelVisible,
+      setPanelVisible: state.setPanelVisible,
+    }));
+    console.log('panelVisible', panelVisible);
 
     const handleResourcesPanelOpen = useCallback(() => {
-      resetResourcesPanel();
-    }, [resetResourcesPanel]);
+      setPanelVisible(true);
+    }, [setPanelVisible]);
 
     const { showSlideshow, showLinearThread, setShowSlideshow, setShowLinearThread } =
       useCanvasStoreShallow((state) => ({
@@ -253,7 +252,7 @@ export const ToolbarButtons = memo(
 
           <Help />
 
-          {!resourcesPanelWidth && (
+          {!panelVisible && (
             <>
               <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
 

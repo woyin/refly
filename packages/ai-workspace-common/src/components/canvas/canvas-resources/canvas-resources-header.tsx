@@ -1,29 +1,33 @@
-import { Breadcrumb, Button, Tooltip } from 'antd';
+import { memo } from 'react';
+import { Breadcrumb, Button, Tooltip, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { SideRight } from 'refly-icons';
-import { useCanvasResourcesPanelStoreShallow, type CanvasResourcesParentType } from '@refly/stores';
+import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 
-interface CanvasResourcesHeaderProps {
-  parentType?: CanvasResourcesParentType;
-  setParentType?: (parentType: CanvasResourcesParentType) => void;
-  resourceTitle?: string;
-}
+const { Text } = Typography;
 
-export const CanvasResourcesHeader = ({
-  parentType,
-  resourceTitle,
-  setParentType,
-}: CanvasResourcesHeaderProps) => {
+export const CanvasResourcesHeader = memo(() => {
   const { t } = useTranslation();
-  const { setResourcesPanelWidth, setShowLeftOverview } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
-      setResourcesPanelWidth: state.setResourcesPanelWidth,
-      setShowLeftOverview: state.setShowLeftOverview,
-    }),
-  );
+  const {
+    parentType,
+    activeNode,
+    setParentType,
+    setActiveNode,
+    setActiveTab,
+    setPanelVisible,
+    setShowLeftOverview,
+  } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setShowLeftOverview: state.setShowLeftOverview,
+    parentType: state.parentType,
+    activeNode: state.activeNode,
+    setParentType: state.setParentType,
+    setActiveNode: state.setActiveNode,
+    setActiveTab: state.setActiveTab,
+    setPanelVisible: state.setPanelVisible,
+  }));
 
   const handleClose = () => {
-    setResourcesPanelWidth(0);
+    setPanelVisible(false);
     setShowLeftOverview(false);
   };
 
@@ -32,7 +36,9 @@ export const CanvasResourcesHeader = ({
   };
 
   const handleParentClick = () => {
-    setParentType?.(null);
+    setParentType(null);
+    setActiveNode(null);
+    setActiveTab(parentType);
     setShowLeftOverview(false);
   };
 
@@ -49,7 +55,11 @@ export const CanvasResourcesHeader = ({
                 {t(`canvas.resourceLibrary.${parentType}`)}
               </a>
             </Breadcrumb.Item>
-            {resourceTitle && <Breadcrumb.Item>{resourceTitle}</Breadcrumb.Item>}
+            <Breadcrumb.Item>
+              <Text ellipsis={{ tooltip: true }} style={{ width: 300 }}>
+                {activeNode?.data?.title || t('common.untitled')}
+              </Text>
+            </Breadcrumb.Item>
           </Breadcrumb>
         ) : (
           <div className="text-refly-text-0 text-base font-semibold leading-[26px]">
@@ -59,4 +69,6 @@ export const CanvasResourcesHeader = ({
       </div>
     </div>
   );
-};
+});
+
+CanvasResourcesHeader.displayName = 'CanvasResourcesHeader';

@@ -38,7 +38,7 @@ interface DragItem {
   index: number;
 }
 
-const PreviewComponent = memo(
+export const PreviewComponent = memo(
   ({ node }: { node: CanvasNode<any> }) => {
     if (!node?.type) return null;
 

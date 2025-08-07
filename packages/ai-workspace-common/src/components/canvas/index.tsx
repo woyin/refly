@@ -17,7 +17,6 @@ import { CanvasNode } from '@refly/canvas-common';
 import { nodeTypes } from './nodes';
 import { CanvasToolbar } from './canvas-toolbar';
 import { TopToolbar } from './top-toolbar';
-import { NodePreviewContainer } from './node-preview';
 import { ContextMenu } from './context-menu';
 import { NodeContextMenu } from './node-context-menu';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
@@ -169,7 +168,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   useCanvasInitialActions(canvasId);
   // useFollowPilotSteps();
 
-  const previewContainerRef = useRef<HTMLDivElement>(null);
   const { addNode } = useAddNode();
   const { nodes, edges } = useStore(
     useShallow((state) => ({
@@ -228,7 +226,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     operatingNodeId,
     setOperatingNodeId,
     setInitialFitViewCompleted,
-    showPreview,
     setCanvasPage,
     showSlideshow,
     setShowSlideshow,
@@ -238,7 +235,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     operatingNodeId: state.operatingNodeId,
     setOperatingNodeId: state.setOperatingNodeId,
     setInitialFitViewCompleted: state.setInitialFitViewCompleted,
-    showPreview: state.showPreview,
     setCanvasPage: state.setCanvasPage,
     showSlideshow: state.showSlideshow,
     setShowSlideshow: state.setShowSlideshow,
@@ -1049,21 +1045,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         {/* Display the not found overlay when shareNotFound is true */}
         {readonly && shareNotFound && <NotFoundOverlay />}
 
-        {showPreview && (
-          <div
-            ref={previewContainerRef}
-            className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"
-            style={{
-              maxWidth: 'calc(100% - 12px)',
-            }}
-            onScroll={(e) => updateIndicators(e.currentTarget)}
-          >
-            <div className="relative h-full overflow-y-hidden">
-              <NodePreviewContainer canvasId={canvasId} nodes={nodes as unknown as CanvasNode[]} />
-            </div>
-          </div>
-        )}
-
         <MenuPopper open={menuOpen} position={menuPosition} setOpen={setMenuOpen} />
 
         {contextMenu.open && contextMenu.type === 'canvas' && (
@@ -1109,19 +1090,17 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
   const {
+    panelVisible,
     resourcesPanelWidth,
     setResourcesPanelWidth,
     showLeftOverview,
     setShowLeftOverview,
-    activeTab,
-    setActiveTab,
   } = useCanvasResourcesPanelStoreShallow((state) => ({
+    panelVisible: state.panelVisible,
     resourcesPanelWidth: state.resourcesPanelWidth,
     setResourcesPanelWidth: state.setResourcesPanelWidth,
     showLeftOverview: state.showLeftOverview,
     setShowLeftOverview: state.setShowLeftOverview,
-    activeTab: state.activeTab,
-    setActiveTab: state.setActiveTab,
   }));
 
   useEffect(() => {
@@ -1184,7 +1163,11 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
               <Flow canvasId={canvasId} />
             </Splitter.Panel>
 
-            <Splitter.Panel size={resourcesPanelWidth} min={480} max={maxPanelWidth}>
+            <Splitter.Panel
+              size={panelVisible ? resourcesPanelWidth : 0}
+              min={480}
+              max={maxPanelWidth}
+            >
               <Popover
                 overlayClassName="resources-panel-popover"
                 open={showLeftOverview}
@@ -1192,7 +1175,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
                 arrow={false}
                 content={
                   <div className="w-[360px] h-full">
-                    <ResourceOverview activeTab={activeTab} setActiveTab={setActiveTab} />
+                    <ResourceOverview />
                   </div>
                 }
                 placement="left"

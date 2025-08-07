@@ -1470,7 +1470,7 @@ const translations = {
       noStepsRecord: '暂无步骤记录',
       resultsRecord: '结果记录',
       noResultsRecord: '暂无结果记录',
-      myUploads: '我的上传',
+      myUpload: '我的上传',
       noMyUploads: '暂无上传资源',
       myUploadsDescription: '上传的资源将显示在此处',
       resultRecordDescription: '结果记录将显示在此处',

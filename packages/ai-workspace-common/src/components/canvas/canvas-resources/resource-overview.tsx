@@ -1,30 +1,26 @@
-import { useMemo } from 'react';
-import { useImportResourceStoreShallow, type CanvasResourcesParentType } from '@refly/stores';
+import { useMemo, memo } from 'react';
+import {
+  useCanvasResourcesPanelStoreShallow,
+  useImportResourceStoreShallow,
+  type CanvasResourcesParentType,
+} from '@refly/stores';
 import { Button, Segmented } from 'antd';
+import { Add } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
-import { Add } from 'refly-icons';
+import { StepList } from './step-list';
+import { ResultList } from './result-list';
+import { MyUploadList } from './my-upload';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 
-const StepsList = () => {
-  return <div>StepsList</div>;
-};
-
-const MyUploadList = () => {
-  return <div>MyUploadList</div>;
-};
-
-const ResultList = () => {
-  return <div>ResultList</div>;
-};
-
-interface ResourceOverviewProps {
-  activeTab: CanvasResourcesParentType;
-  setActiveTab: (tab: CanvasResourcesParentType) => void;
-}
-
-export const ResourceOverview = ({ activeTab, setActiveTab }: ResourceOverviewProps) => {
+export const ResourceOverview = memo(() => {
   const { t } = useTranslation();
-  const showEmpty = true;
+  const { nodes } = useRealtimeCanvasData();
+
+  const { activeTab, setActiveTab } = useCanvasResourcesPanelStoreShallow((state) => ({
+    activeTab: state.activeTab,
+    setActiveTab: state.setActiveTab,
+  }));
   const { setImportResourceModalVisible } = useImportResourceStoreShallow((state) => ({
     setImportResourceModalVisible: state.setImportResourceModalVisible,
   }));
@@ -44,7 +40,7 @@ export const ResourceOverview = ({ activeTab, setActiveTab }: ResourceOverviewPr
         value: 'resultsRecord',
       },
       {
-        label: t('canvas.resourceLibrary.myUploads'),
+        label: t('canvas.resourceLibrary.myUpload'),
         value: 'myUpload',
       },
     ];
@@ -52,7 +48,7 @@ export const ResourceOverview = ({ activeTab, setActiveTab }: ResourceOverviewPr
 
   return (
     <div className="p-4 flex-grow flex flex-col">
-      {showEmpty ? (
+      {nodes.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center gap-4">
           <img src={EmptyImage} alt="empty" className="w-[200px] h-[200px]" />
           <div className="text-refly-text-2 text-xs leading-5">
@@ -78,7 +74,7 @@ export const ResourceOverview = ({ activeTab, setActiveTab }: ResourceOverviewPr
           />
 
           <div className="flex-1 overflow-auto">
-            {activeTab === 'stepsRecord' && <StepsList />}
+            {activeTab === 'stepsRecord' && <StepList />}
             {activeTab === 'myUpload' && <MyUploadList />}
             {activeTab === 'resultsRecord' && <ResultList />}
           </div>
@@ -86,4 +82,6 @@ export const ResourceOverview = ({ activeTab, setActiveTab }: ResourceOverviewPr
       )}
     </div>
   );
-};
+});
+
+ResourceOverview.displayName = 'ResourceOverview';
