@@ -573,6 +573,7 @@ export class WorkflowService {
             endTime: new Date(),
           },
         });
+        await this.syncWorkflow(user, nodeExecution.nodeExecutionId);
       }
 
       this.logger.log(`Started execution of node ${nodeId} in workflow ${executionId}`);
