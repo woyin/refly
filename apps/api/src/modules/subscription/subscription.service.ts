@@ -552,58 +552,70 @@ export class SubscriptionService implements OnModuleInit {
     this.logger.log('Starting expire and recharge credits job');
 
     try {
-      await this.prisma.$transaction(async (prisma) => {
-        const now = new Date();
+      const now = new Date();
 
-        // Step 1: Find all non-duplicate credit recharge records that are expired but not disabled
-        const activeRecharges = await prisma.creditRecharge.findMany({
-          where: {
-            expiresAt: {
-              lte: now,
-            },
-            enabled: true,
+      // Step 1: Find all non-duplicate credit recharge records that are expired but not disabled
+      const activeRecharges = await this.prisma.creditRecharge.findMany({
+        where: {
+          expiresAt: {
+            lte: now,
           },
-          distinct: ['rechargeId'],
-          orderBy: {
-            createdAt: 'desc',
-          },
-        });
+          enabled: true,
+        },
+        distinct: ['rechargeId'],
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
 
-        this.logger.log(`Found ${activeRecharges.length} active credit recharge records`);
+      this.logger.log(`Found ${activeRecharges.length} active credit recharge records`);
 
-        // Step 2: Disable all active recharge records
-        if (activeRecharges.length > 0) {
-          await prisma.creditRecharge.updateMany({
-            where: {
-              rechargeId: {
-                in: activeRecharges.map((r) => r.rechargeId),
-              },
-            },
-            data: {
-              enabled: false,
-            },
-          });
+      // Step 2: Process subscription-based recharges only (gift recharges are now handled by lazy loading)
+      const subscriptionRecharges = activeRecharges.filter((r) => r.source === 'subscription');
 
-          this.logger.log(`Disabled ${activeRecharges.length} credit recharge records`);
-        }
+      for (const recharge of subscriptionRecharges) {
+        try {
+          // Add distributed lock to prevent duplicate monthly credit recharge
+          const lockKey = `monthly_credit_recharge_lock:${recharge.uid}`;
+          const releaseLock = await this.redis.acquireLock(lockKey);
 
-        // Step 3: Process subscription-based recharges only (gift recharges are now handled by lazy loading)
-        const subscriptionRecharges = activeRecharges.filter((r) => r.source === 'subscription');
+          if (!releaseLock) {
+            this.logger.debug(
+              `Failed to acquire lock for user ${recharge.uid}, skipping monthly credit recharge`,
+            );
+            continue; // Another process is handling this user
+          }
 
-        for (const recharge of subscriptionRecharges) {
           try {
-            // Add distributed lock to prevent duplicate monthly credit recharge
-            const lockKey = `monthly_credit_recharge_lock:${recharge.uid}`;
-            const releaseLock = await this.redis.acquireLock(lockKey);
+            await this.prisma.$transaction(async (prisma) => {
+              // Re-check if the recharge is still active and expired (double-check within transaction)
+              const currentRecharge = await prisma.creditRecharge.findFirst({
+                where: {
+                  rechargeId: recharge.rechargeId,
+                  enabled: true,
+                  expiresAt: {
+                    lte: now,
+                  },
+                },
+              });
 
-            if (!releaseLock) {
-              this.logger.debug(
-                `Failed to acquire lock for user ${recharge.uid}, skipping monthly credit recharge`,
+              if (!currentRecharge) {
+                this.logger.debug(
+                  `Recharge ${recharge.rechargeId} is no longer active or expired, skipping`,
+                );
+                return; // Already processed by another process
+              }
+
+              // Disable the expired recharge
+              await prisma.creditRecharge.update({
+                where: { rechargeId: recharge.rechargeId },
+                data: { enabled: false },
+              });
+
+              this.logger.log(
+                `Disabled expired credit recharge ${recharge.rechargeId} for user ${recharge.uid}`,
               );
-              continue; // Another process is handling this user
-            }
 
-            try {
               // Check if user has active subscription
               const subscription = await prisma.subscription.findFirst({
                 where: {
@@ -619,7 +631,7 @@ export class SubscriptionService implements OnModuleInit {
                 this.logger.log(
                   `No active subscription found for user ${recharge.uid}, skipping credit recharge`,
                 );
-                continue;
+                return;
               }
 
               // Check if there's already a new monthly credit recharge for this user
@@ -641,7 +653,7 @@ export class SubscriptionService implements OnModuleInit {
                 this.logger.debug(
                   `User ${recharge.uid} already has active monthly credit recharge, skipping`,
                 );
-                continue; // Already has new monthly credits
+                return; // Already has new monthly credits
               }
 
               // Find plan quota for credit amount
@@ -682,7 +694,7 @@ export class SubscriptionService implements OnModuleInit {
 
               if (!plan) {
                 this.logger.log(`No plan found for user ${recharge.uid}, skipping credit recharge`);
-                continue;
+                return;
               }
 
               // Handle subscription source - monthly recharge with creditQuota
@@ -697,31 +709,31 @@ export class SubscriptionService implements OnModuleInit {
                   now,
                 );
               }
-            } catch (error) {
-              this.logger.error(
-                `Error processing subscription recharge for user ${recharge.uid}:`,
-                error,
-              );
-              // Continue processing other records even if one fails
-            } finally {
-              // Always release the lock
-              try {
-                await releaseLock();
-              } catch (lockError) {
-                this.logger.warn(
-                  `Error releasing lock for user ${recharge.uid}: ${lockError.message}`,
-                );
-              }
-            }
+            });
           } catch (error) {
             this.logger.error(
               `Error processing subscription recharge for user ${recharge.uid}:`,
               error,
             );
             // Continue processing other records even if one fails
+          } finally {
+            // Always release the lock
+            try {
+              await releaseLock();
+            } catch (lockError) {
+              this.logger.warn(
+                `Error releasing lock for user ${recharge.uid}: ${lockError.message}`,
+              );
+            }
           }
+        } catch (error) {
+          this.logger.error(
+            `Error processing subscription recharge for user ${recharge.uid}:`,
+            error,
+          );
+          // Continue processing other records even if one fails
         }
-      });
+      }
 
       this.logger.log('Expire and recharge credits job completed successfully');
     } catch (error) {
