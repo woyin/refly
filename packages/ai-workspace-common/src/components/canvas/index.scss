@@ -130,5 +130,8 @@
     height: calc(100vh - 16px);
     border: solid 1px var(--refly-Card-Border);
     border-right: none;
+    .ant-popover-inner-content {
+      height: 100%;
+    }
   }
 }

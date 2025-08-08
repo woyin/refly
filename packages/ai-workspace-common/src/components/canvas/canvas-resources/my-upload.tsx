@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { List, Empty } from 'antd';
+import { List } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { File } from 'refly-icons';
 import { CanvasNode } from '@refly/canvas-common';
@@ -26,17 +26,15 @@ export const MyUploadList = memo(() => {
 
   const handleNodeSelect = (node: CanvasNode) => {
     setParentType('myUpload');
-    console.log('node', node?.data?.title);
     setActiveNode(node);
   };
 
   if (!resourceNodes?.length) {
     return (
-      <div className="h-full p-4 bg-white dark:bg-gray-800 rounded-lg text-center">
-        <Empty
-          description={t('canvas.noUploads', { defaultValue: 'No uploads found' })}
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-        />
+      <div className="h-full w-full flex items-center justify-center text-refly-text-2 text-sm leading-5">
+        {t('canvas.resourceLibrary.noMyUploads', {
+          defaultValue: 'No files uploaded yet',
+        })}
       </div>
     );
   }

@@ -11,7 +11,7 @@ export const NODE_COLORS: Record<CanvasNodeType | 'threadHistory', string> = {
   mediaSkillResponse: '#E93D82',
   tool: '#2E90FA',
   memo: '#f2eb0e',
-  group: '#6172F3',
+  group: 'var(--refly-primary-default)',
   threadHistory: '#64748b',
   image: '#02b0c7',
   codeArtifact: '#3E63DD',

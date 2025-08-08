@@ -47,7 +47,7 @@ export const ResourceOverview = memo(() => {
   }, [t]);
 
   return (
-    <div className="p-4 flex-grow flex flex-col">
+    <div className="p-4 flex-grow flex flex-col gap-4 overflow-hidden">
       {nodes.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center gap-4">
           <img src={EmptyImage} alt="empty" className="w-[200px] h-[200px]" />
@@ -73,7 +73,7 @@ export const ResourceOverview = memo(() => {
             onChange={(value) => setActiveTab(value as CanvasResourcesParentType)}
           />
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-grow overflow-y-auto min-h-0">
             {activeTab === 'stepsRecord' && <StepList />}
             {activeTab === 'myUpload' && <MyUploadList />}
             {activeTab === 'resultsRecord' && <ResultList />}

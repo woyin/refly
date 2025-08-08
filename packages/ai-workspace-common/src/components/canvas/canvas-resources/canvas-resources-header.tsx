@@ -44,12 +44,12 @@ export const CanvasResourcesHeader = memo(() => {
 
   const handleParentClick = useCallback(() => {
     if (panelMode === 'normal') {
+      setActiveTab(parentType);
       setParentType(null);
       setActiveNode(null);
-      setActiveTab(parentType);
       setShowLeftOverview(false);
     }
-  }, [setParentType, setActiveNode, setActiveTab, setShowLeftOverview, panelMode]);
+  }, [setParentType, setActiveNode, setActiveTab, setShowLeftOverview, panelMode, parentType]);
 
   const handleAddResource = useCallback(() => {
     setImportResourceModalVisible(true);

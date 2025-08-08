@@ -7,6 +7,7 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { RESULT_NODE_TYPES } from './result-list';
 import { CanvasNodeType } from '@refly/openapi-schema';
+import './index.scss';
 
 export const CanvasResources = memo(() => {
   const { showLeftOverview, activeNode, panelMode, resetState, setParentType, setPanelMode } =

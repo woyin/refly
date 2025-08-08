@@ -1176,7 +1176,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
                 onOpenChange={setShowLeftOverview}
                 arrow={false}
                 content={
-                  <div className="w-[360px] h-full">
+                  <div className="flex w-[360px] h-full">
                     <ResourceOverview />
                   </div>
                 }

@@ -1504,7 +1504,7 @@ const translations = {
       resultsRecord: 'Results',
       noResultsRecord: 'No results record',
       myUpload: 'Uploads',
-      noMyUploads: 'No uploads',
+      noMyUploads: 'No files uploaded yet',
       myUploadsDescription: 'Uploaded resources will be displayed here',
       resultRecordDescription: 'Results will be displayed here',
       stepsRecordDescription: 'Steps will be displayed here',

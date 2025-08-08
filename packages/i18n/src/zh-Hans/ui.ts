@@ -1464,7 +1464,7 @@ const translations = {
       resultsRecord: '结果记录',
       noResultsRecord: '暂无结果记录',
       myUpload: '我的上传',
-      noMyUploads: '暂无上传资源',
+      noMyUploads: '暂未上传任何文件',
       myUploadsDescription: '上传的资源将显示在此处',
       resultRecordDescription: '结果记录将显示在此处',
       stepsRecordDescription: '步骤记录将显示在此处',
