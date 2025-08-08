@@ -15,7 +15,7 @@ export const ProjectSelect: FC<ProjectSelectProps> = memo(({ projectId, onSelect
   const pageSize = 20;
 
   const isLogin = useUserStoreShallow((state) => state.isLogin);
-  const { data, isLoading, refetch } = useListProjects({ query: { page, pageSize } }, [], {
+  const { data, isLoading, refetch } = useListProjects({ query: { page, pageSize } }, undefined, {
     enabled: isLogin,
   });
 

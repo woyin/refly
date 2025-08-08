@@ -198,8 +198,7 @@ export class ProviderService implements OnModuleInit {
       },
     });
 
-    const { providers: globalProviders } = await this.globalProviderCache.get();
-    return [...globalProviders, ...providers];
+    return providers;
   }
 
   async createProvider(user: User, param: UpsertProviderRequest) {

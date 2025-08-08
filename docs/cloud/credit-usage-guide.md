@@ -68,10 +68,12 @@ You can check in the following locations:
 |-------|-------------------|
 | Claude Sonnet 4 | ~11 credits |
 | Claude Opus 4 | ~53 credits |
+| Claude Opus 4.1 | ~53 credits |
 | Claude 3.7 Sonnet (thinking) | ~11 credits |
 | Kimi K2 | ~2 credits |
 | GPT-4o | ~7 credits |
 | GPT-4.1 | ~6 credits |
+| GPT-OSS-120B | ~1 credit |
 | Gemini 2.5 Pro | ~7 credits |
 | Gemini 2.5 Flash | ~2 credits |
 | DeepSeek V3 0324 | ~1 credit |
@@ -86,6 +88,7 @@ You can check in the following locations:
 | Flux 1.1 pro ultra | ~9 credits |
 | Flux 1.1 pro | ~6 credits |
 | flux-dev | ~4 credits |
+| Flux-Krea-Dev | ~4 credits |
 | flux-schnell | ~1 credit |
 | recraft-v3 | ~6 credits |
 | recraft-v3-svg | ~12 credits |
@@ -93,6 +96,7 @@ You can check in the following locations:
 | google / imagen-4-fast | ~3 credits |
 | google / imagen-4-ultra | ~9 credits |
 | doubao-Seedream-3.0-t2i | ~6 credits |
+| Qwen-Image | ~4 credits |
 
 ### Video Models: Per Second Billing
 
@@ -101,8 +105,9 @@ You can check in the following locations:
 | Veo 3 Fast (Audio) | ~448 credits |
 | Veo 3 | ~840 credits |
 | bytedance / seedance-1-pro | ~14 credits |
-| bytedance / seedance-1-lite | ~9.8 credits |
+| bytedance / seedance-1-lite | ~10 credits |
 | kwaivgi / kling-v2.1-master | ~196 credits |
+| Wan 2.2 Fast | ~7 credits |
 
 ### Audio Models: Per Use Billing
 
@@ -111,6 +116,8 @@ You can check in the following locations:
 | suno-ai/bark | ~10 credits |
 | lucataco/ace-step | ~1 credit |
 | haoheliu/audio-Idm | ~10 credits |
+| elevenlabs-turbo-v2.5 | ~35 credits |
+| elevenlabs-multilingual-v2 | ~70 credits |
 
 ## ❓ Frequently Asked Questions (FAQ)
 

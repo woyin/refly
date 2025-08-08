@@ -898,6 +898,8 @@ model Provider {
   apiKey      String?        @map("api_key")
   /// Provider base URL
   baseUrl     String?        @map("base_url")
+  /// Extra parameters (JSON)
+  extraParams String?        @map("extra_params")
   /// Whether the provider is enabled
   enabled     Boolean        @default(true) @map("enabled")
   /// Create timestamp

@@ -6749,6 +6749,10 @@ export const ProviderSchema = {
       type: 'string',
       description: 'Provider API key (this will never be exposed to the frontend)',
     },
+    extraParams: {
+      type: 'string',
+      description: 'Provider-specific extra params (JSON string)',
+    },
   },
 } as const;
 
@@ -6772,6 +6776,10 @@ export const LLMModelConfigSchema = {
     maxOutput: {
       type: 'number',
       description: 'Model max output length (in tokens)',
+    },
+    disallowTemperature: {
+      type: 'boolean',
+      description: 'Whether the model disallow setting custom temperature',
     },
     capabilities: {
       description: 'Model capabilities',
