@@ -49,6 +49,7 @@ import {
   MediaGenerateRequest,
   MediaGenerateResponse,
   GetActionResultData,
+  LLMModelConfig,
 } from '@refly/openapi-schema';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { getChatModel } from '@refly/providers';
@@ -233,14 +234,11 @@ export class SkillEngine {
 
     const config = this.config?.configurable;
     const provider = config?.provider;
-    const model = config.modelConfigMap?.[finalScene]?.modelId || this.options.defaultModel;
+    const model = config.modelConfigMap?.[finalScene] as LLMModelConfig;
 
     return getChatModel(
       provider,
-      {
-        modelId: model,
-        modelName: model,
-      },
+      model ?? { modelId: this.options.defaultModel, modelName: this.options.defaultModel },
       params,
     );
   }
