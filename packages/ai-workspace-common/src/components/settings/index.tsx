@@ -24,7 +24,7 @@ import {
 } from 'refly-icons';
 
 import { subscriptionEnabled } from '@refly/ui-kit';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { McpServerTab } from '@refly-packages/ai-workspace-common/components/settings/mcp-server';
 import React from 'react';
 
@@ -99,84 +99,105 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
     settingsModalActiveTab || SettingsModalActiveTab.ModelConfig,
   );
 
-  // Update local active tab when prop changes
-  useEffect(() => {
-    if (visible) {
-      setLocalActiveTab(settingsModalActiveTab || SettingsModalActiveTab.ModelProviders);
-    }
-  }, [visible, settingsModalActiveTab]);
-
-  // Handle tab change
-  const handleTabChange = (key: string) => {
-    setLocalActiveTab(key as SettingsModalActiveTab);
-  };
-
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
   }));
   const providerMode = userProfile?.preferences?.providerMode;
 
-  const tabs = [
-    {
-      key: 'modelConfig',
-      label: t('settings.tabs.modelConfig'),
-      icon: <AIModel size={18} color="var(--refly-text-0)" />,
-      children: <ModelConfig visible={localActiveTab === SettingsModalActiveTab.ModelConfig} />,
+  // Guard against invalid active tab when providers are hidden
+  useEffect(() => {
+    if (localActiveTab === SettingsModalActiveTab.ModelProviders && providerMode !== 'custom') {
+      const fallback = SettingsModalActiveTab.ModelConfig;
+      setLocalActiveTab(fallback);
+      setSettingsModalActiveTab(fallback);
+    }
+  }, [providerMode, localActiveTab, setSettingsModalActiveTab]);
+
+  // Update local active tab when prop changes or when modal becomes visible
+  useEffect(() => {
+    if (!visible) return;
+    const fallback =
+      providerMode === 'custom'
+        ? SettingsModalActiveTab.ModelProviders
+        : SettingsModalActiveTab.ModelConfig;
+    setLocalActiveTab(settingsModalActiveTab || fallback);
+  }, [visible, settingsModalActiveTab, providerMode]);
+
+  // Handle tab change
+  const handleTabChange = useCallback(
+    (key: string) => {
+      setLocalActiveTab(key as SettingsModalActiveTab);
+      setSettingsModalActiveTab(key as SettingsModalActiveTab);
     },
-    ...(providerMode === 'custom'
-      ? [
-          {
-            key: 'modelProviders',
-            label: t('settings.tabs.providers'),
-            icon: <Provider size={18} color="var(--refly-text-0)" />,
-            children: (
-              <ModelProviders visible={localActiveTab === SettingsModalActiveTab.ModelProviders} />
-            ),
-          },
-        ]
-      : []),
-    {
-      key: 'parserConfig',
-      label: t('settings.tabs.parserConfig'),
-      icon: <Parse size={18} color="var(--refly-text-0)" />,
-      children: <ParserConfig visible={localActiveTab === SettingsModalActiveTab.ParserConfig} />,
-    },
-    {
-      key: 'mcpServer',
-      label: t('settings.tabs.mcpServer'),
-      icon: <Mcp size={18} color="var(--refly-text-0)" />,
-      children: <McpServerTab visible={localActiveTab === SettingsModalActiveTab.McpServer} />,
-      divider: true,
-    },
-    ...(subscriptionEnabled
-      ? [
-          {
-            key: 'subscription',
-            label: t('settings.tabs.subscription'),
-            icon: <SubscriptionIcon size={18} color="var(--refly-text-0)" />,
-            children: <Subscription />,
-          },
-        ]
-      : []),
-    {
-      key: 'account',
-      label: t('settings.tabs.account'),
-      icon: <Account size={18} color="var(--refly-text-0)" />,
-      children: <AccountSetting />,
-    },
-    {
-      key: 'language',
-      label: t('settings.tabs.language'),
-      icon: <Language size={18} color="var(--refly-text-0)" />,
-      children: <LanguageSetting />,
-    },
-    {
-      key: 'appearance',
-      label: t('settings.tabs.appearance'),
-      icon: <InterfaceLight size={18} color="var(--refly-text-0)" />,
-      children: <AppearanceSetting />,
-    },
-  ];
+    [setLocalActiveTab, setSettingsModalActiveTab],
+  );
+
+  const tabs = useMemo(
+    () => [
+      {
+        key: 'modelConfig',
+        label: t('settings.tabs.modelConfig'),
+        icon: <AIModel size={18} color="var(--refly-text-0)" />,
+        children: <ModelConfig visible={localActiveTab === SettingsModalActiveTab.ModelConfig} />,
+      },
+      ...(providerMode === 'custom'
+        ? [
+            {
+              key: 'modelProviders',
+              label: t('settings.tabs.providers'),
+              icon: <Provider size={18} color="var(--refly-text-0)" />,
+              children: (
+                <ModelProviders
+                  visible={localActiveTab === SettingsModalActiveTab.ModelProviders}
+                />
+              ),
+            },
+          ]
+        : []),
+      {
+        key: 'parserConfig',
+        label: t('settings.tabs.parserConfig'),
+        icon: <Parse size={18} color="var(--refly-text-0)" />,
+        children: <ParserConfig visible={localActiveTab === SettingsModalActiveTab.ParserConfig} />,
+      },
+      {
+        key: 'mcpServer',
+        label: t('settings.tabs.mcpServer'),
+        icon: <Mcp size={18} color="var(--refly-text-0)" />,
+        children: <McpServerTab visible={localActiveTab === SettingsModalActiveTab.McpServer} />,
+        divider: true,
+      },
+      ...(subscriptionEnabled
+        ? [
+            {
+              key: 'subscription',
+              label: t('settings.tabs.subscription'),
+              icon: <SubscriptionIcon size={18} color="var(--refly-text-0)" />,
+              children: <Subscription />,
+            },
+          ]
+        : []),
+      {
+        key: 'account',
+        label: t('settings.tabs.account'),
+        icon: <Account size={18} color="var(--refly-text-0)" />,
+        children: <AccountSetting />,
+      },
+      {
+        key: 'language',
+        label: t('settings.tabs.language'),
+        icon: <Language size={18} color="var(--refly-text-0)" />,
+        children: <LanguageSetting />,
+      },
+      {
+        key: 'appearance',
+        label: t('settings.tabs.appearance'),
+        icon: <InterfaceLight size={18} color="var(--refly-text-0)" />,
+        children: <AppearanceSetting />,
+      },
+    ],
+    [t, localActiveTab, providerMode, subscriptionEnabled],
+  );
 
   useEffect(() => {
     if (!settingsModalActiveTab) {

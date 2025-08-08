@@ -561,7 +561,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       ) : (
         <div className="mb-4 w-full space-y-2">
           {filteredModels
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
             .map((model) => (
               <ModelItem
                 key={model.itemId}
