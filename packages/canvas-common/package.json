@@ -6,8 +6,7 @@
   "types": "src/index.ts",
   "scripts": {
     "clean": "rimraf dist",
-    "test": "vitest",
-    "test:workflow:unit": "vitest run src/workflow.test.ts"
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
