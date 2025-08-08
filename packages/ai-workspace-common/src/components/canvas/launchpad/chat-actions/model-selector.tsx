@@ -174,7 +174,7 @@ export const ModelSelector = memo(
           isGlobal: userProfile?.preferences?.providerMode === 'global',
         },
       },
-      [],
+      undefined,
       {
         refetchOnWindowFocus: true,
         refetchOnMount: true,

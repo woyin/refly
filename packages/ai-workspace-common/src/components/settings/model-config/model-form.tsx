@@ -206,7 +206,7 @@ export const ModelFormModal = memo(
           providerId: selectedProviderId,
         },
       },
-      [],
+      undefined,
       {
         enabled: !!selectedProviderId && filterProviderCategory !== 'mediaGeneration',
       },
