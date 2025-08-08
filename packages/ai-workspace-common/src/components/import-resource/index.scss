@@ -248,3 +248,10 @@
     line-height: 20px;
   }
 }
+
+.file-item-container {
+  .ant-spin-container {
+    display: flex;
+    align-items: center;
+  }
+}

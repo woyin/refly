@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { message, Upload, UploadProps } from 'antd';
-import { useImportResourceStoreShallow } from '@refly/stores';
+import { useImportResourceStoreShallow, type FileItem } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useTranslation } from 'react-i18next';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
@@ -9,15 +9,8 @@ import { genResourceID } from '@refly/utils/id';
 
 const { Dragger } = Upload;
 
-interface FileItem {
-  title: string;
-  url: string;
-  storageKey: string;
-  uid?: string;
-  status?: 'uploading' | 'done' | 'error';
-}
-
 const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.docx', '.rtf', '.txt', '.md', '.html', '.epub'];
+const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.bmp'];
 
 export const ImportFromFile = () => {
   const { t } = useTranslation();
@@ -57,10 +50,19 @@ export const ImportFromFile = () => {
     return { url: '', storageKey: '', uid };
   };
 
+  // Helper function to extract file extension
+  const getFileExtension = (filename: string): string => {
+    const lastDotIndex = filename.lastIndexOf('.');
+    if (lastDotIndex === -1 || lastDotIndex === filename.length - 1) {
+      return ''; // No extension or dot at the end
+    }
+    return filename.slice(lastDotIndex + 1).toLowerCase();
+  };
+
   const props: UploadProps = {
     name: 'file',
     multiple: true,
-    accept: ALLOWED_FILE_EXTENSIONS.join(','),
+    accept: [...ALLOWED_FILE_EXTENSIONS, ...ALLOWED_IMAGE_EXTENSIONS].join(','),
     fileList: [],
     beforeUpload: async (file: File) => {
       if (uploadLimit > 0 && file.size > maxFileSizeBytes) {
@@ -69,6 +71,9 @@ export const ImportFromFile = () => {
       }
 
       const tempUid = genResourceID();
+      const fileExtension = getFileExtension(file.name);
+
+      const fileType = ALLOWED_IMAGE_EXTENSIONS.includes(`.${fileExtension}`) ? 'image' : 'file';
 
       // Add file to waiting list with pending status
       addToWaitingList({
@@ -76,24 +81,27 @@ export const ImportFromFile = () => {
         type: 'file',
         title: file.name,
         status: 'pending',
-        progress: 0,
         file: {
+          type: fileType,
           title: file.name,
           url: '',
           storageKey: '',
           uid: tempUid,
           status: 'uploading',
+          extension: fileExtension, // Add extension to file data
         },
       });
 
       setFileList((prev) => [
         ...prev,
         {
+          type: fileType,
           title: file.name,
           url: '',
           storageKey: '',
           uid: tempUid,
           status: 'uploading',
+          extension: fileExtension, // Add extension to file list item
         },
       ]);
 
@@ -102,13 +110,14 @@ export const ImportFromFile = () => {
         // Update waiting list item with completed status
         updateWaitingListItem(tempUid, {
           status: 'pending',
-          progress: 100,
           file: {
+            type: fileType,
             title: file.name,
             url: data.url,
             storageKey: data.storageKey,
             uid: data.uid,
             status: 'done',
+            extension: fileExtension, // Add extension to completed file data
           },
         });
 
@@ -116,11 +125,13 @@ export const ImportFromFile = () => {
           prev.map((item) =>
             item.uid === tempUid
               ? {
+                  type: fileType,
                   title: file.name,
                   url: data.url,
                   storageKey: data.storageKey,
                   uid: data.uid,
                   status: 'done',
+                  extension: fileExtension, // Add extension to updated file list item
                 }
               : item,
           ),
@@ -131,11 +142,13 @@ export const ImportFromFile = () => {
           status: 'error',
           progress: 0,
           file: {
+            type: fileType,
             title: file.name,
             url: '',
             storageKey: '',
             uid: tempUid,
             status: 'error',
+            extension: fileExtension, // Add extension to error file data
           },
         });
 

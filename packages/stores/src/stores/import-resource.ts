@@ -21,6 +21,8 @@ export interface FileItem {
   storageKey: string;
   uid?: string;
   status?: 'uploading' | 'done' | 'error';
+  extension?: string;
+  type?: 'file' | 'image';
 }
 
 export interface ImageItem {
