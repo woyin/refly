@@ -73,6 +73,8 @@ You can check in the following locations:
 | Kimi K2 | ~2 credits |
 | GPT-4o | ~7 credits |
 | GPT-4.1 | ~6 credits |
+| GPT-5 | ~7 credits |
+| GPT-o3 | ~6 credits |
 | GPT-OSS-120B | ~1 credit |
 | Gemini 2.5 Pro | ~7 credits |
 | Gemini 2.5 Flash | ~2 credits |
