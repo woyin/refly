@@ -551,47 +551,68 @@ export class SubscriptionService implements OnModuleInit {
   async expireAndRechargeCredits() {
     this.logger.log('Starting expire and recharge credits job');
 
+    // Add distributed lock to prevent concurrent execution of the entire job
+    const lockKey = 'expire_and_recharge_credits_job_lock';
+    const releaseLock = await this.redis.acquireLock(lockKey);
+
+    if (!releaseLock) {
+      this.logger.debug('Failed to acquire lock for expire and recharge credits job, skipping');
+      return; // Another process is handling this job
+    }
+
     try {
+      const now = new Date();
+
+      // Step 1: Find all non-duplicate credit recharge records that are expired but not disabled
+      const activeRecharges = await this.prisma.creditRecharge.findMany({
+        where: {
+          expiresAt: {
+            lte: now,
+          },
+          enabled: true,
+        },
+        distinct: ['rechargeId'],
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      this.logger.log(`Found ${activeRecharges.length} active credit recharge records`);
+
+      // Step 2: Process subscription-based recharges only (gift recharges are now handled by lazy loading)
+      const subscriptionRecharges = activeRecharges.filter((r) => r.source === 'subscription');
+
       await this.prisma.$transaction(async (prisma) => {
-        const now = new Date();
-
-        // Step 1: Find all non-duplicate credit recharge records that are expired but not disabled
-        const activeRecharges = await prisma.creditRecharge.findMany({
-          where: {
-            expiresAt: {
-              lte: now,
-            },
-            enabled: true,
-          },
-          distinct: ['rechargeId'],
-          orderBy: {
-            createdAt: 'desc',
-          },
-        });
-
-        this.logger.log(`Found ${activeRecharges.length} active credit recharge records`);
-
-        // Step 2: Disable all active recharge records
-        if (activeRecharges.length > 0) {
-          await prisma.creditRecharge.updateMany({
-            where: {
-              rechargeId: {
-                in: activeRecharges.map((r) => r.rechargeId),
-              },
-            },
-            data: {
-              enabled: false,
-            },
-          });
-
-          this.logger.log(`Disabled ${activeRecharges.length} credit recharge records`);
-        }
-
-        // Step 3: Process subscription-based recharges only (gift recharges are now handled by lazy loading)
-        const subscriptionRecharges = activeRecharges.filter((r) => r.source === 'subscription');
-
         for (const recharge of subscriptionRecharges) {
           try {
+            // Re-check if the recharge is still active and expired (double-check within transaction)
+            const currentRecharge = await prisma.creditRecharge.findFirst({
+              where: {
+                rechargeId: recharge.rechargeId,
+                enabled: true,
+                expiresAt: {
+                  lte: now,
+                },
+              },
+            });
+
+            if (!currentRecharge) {
+              this.logger.debug(
+                `Recharge ${recharge.rechargeId} is no longer active or expired, skipping`,
+              );
+              continue; // Already processed by another process
+            }
+
+            // Disable the expired recharge
+            await prisma.creditRecharge.update({
+              where: { rechargeId: recharge.rechargeId },
+              data: { enabled: false },
+            });
+
+            this.logger.log(
+              `Disabled expired credit recharge ${recharge.rechargeId} for user ${recharge.uid}`,
+            );
+
             // Check if user has active subscription
             const subscription = await prisma.subscription.findFirst({
               where: {
@@ -608,6 +629,28 @@ export class SubscriptionService implements OnModuleInit {
                 `No active subscription found for user ${recharge.uid}, skipping credit recharge`,
               );
               continue;
+            }
+
+            // Check if there's already a new monthly credit recharge for this user
+            const newExpiresAt = new Date();
+            newExpiresAt.setMonth(newExpiresAt.getMonth() + 1);
+
+            const existingMonthlyRecharge = await prisma.creditRecharge.findFirst({
+              where: {
+                uid: recharge.uid,
+                source: 'subscription',
+                enabled: true,
+                expiresAt: {
+                  gte: newExpiresAt,
+                },
+              },
+            });
+
+            if (existingMonthlyRecharge) {
+              this.logger.debug(
+                `User ${recharge.uid} already has active monthly credit recharge, skipping`,
+              );
+              continue; // Already has new monthly credits
             }
 
             // Find plan quota for credit amount
@@ -653,9 +696,6 @@ export class SubscriptionService implements OnModuleInit {
 
             // Handle subscription source - monthly recharge with creditQuota
             if (recharge.source === 'subscription' && plan.creditQuota > 0) {
-              const newExpiresAt = new Date();
-              newExpiresAt.setMonth(newExpiresAt.getMonth() + 1);
-
               await this.createCreditRecharge(
                 prisma,
                 recharge.uid,
@@ -680,6 +720,13 @@ export class SubscriptionService implements OnModuleInit {
     } catch (error) {
       this.logger.error('Error in expire and recharge credits job:', error);
       throw error;
+    } finally {
+      // Always release the lock
+      try {
+        await releaseLock();
+      } catch (lockError) {
+        this.logger.warn(`Error releasing job lock: ${lockError.message}`);
+      }
     }
   }
 

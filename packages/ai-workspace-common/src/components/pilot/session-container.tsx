@@ -271,7 +271,7 @@ export const SessionContainer = memo(
       {
         query: { sessionId },
       },
-      [],
+      undefined,
       {
         enabled: !!sessionId,
         refetchInterval: isPolling ? POLLING_INTERVAL : false,
