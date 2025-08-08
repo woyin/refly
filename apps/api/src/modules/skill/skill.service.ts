@@ -614,7 +614,6 @@ export class SkillService implements OnModuleInit {
               runtimeConfig: JSON.stringify(param.runtimeConfig),
               history: JSON.stringify(purgeResultHistory(param.resultHistory)),
               providerItemId: providerItem.itemId,
-              // Add workflow fields if they exist in the request
               workflowExecutionId: (param as any).workflowExecutionId,
               workflowNodeExecutionId: (param as any).workflowNodeExecutionId,
             },

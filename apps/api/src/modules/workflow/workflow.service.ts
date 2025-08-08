@@ -173,6 +173,7 @@ export class WorkflowService {
     user: User,
     node: CanvasNode & { data: { metadata?: ResponseNodeMeta } },
     canvasId: string,
+    executionId?: string,
   ): Promise<void> {
     // Check if the node is a skillResponse type
     if (node.type !== 'skillResponse') {
@@ -290,8 +291,12 @@ export class WorkflowService {
     // This ensures consistency and avoids duplicate records
 
     // Get workflow execution info for passing to skill service
+    // Use executionId and entityId together for more precise lookup
     const workflowNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
-      where: { entityId: resultId },
+      where: {
+        ...(executionId && { executionId }),
+        entityId: resultId,
+      },
     });
 
     // Prepare the invoke skill request
@@ -555,6 +560,7 @@ export class WorkflowService {
           user,
           canvasNode as unknown as CanvasNode & { data: { metadata?: ResponseNodeMeta } },
           workflowExecution.canvasId,
+          executionId,
         );
       } else {
         // For other node types, just mark as finish for now
