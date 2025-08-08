@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { memo, useEffect } from 'react';
+import { Modal } from 'antd';
 import { CanvasResourcesHeader } from './canvas-resources-header';
 import { ResourceOverview } from './resource-overview';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
@@ -7,19 +8,21 @@ import { PreviewComponent } from '@refly-packages/ai-workspace-common/components
 import { RESULT_NODE_TYPES } from './result-list';
 import { CanvasNodeType } from '@refly/openapi-schema';
 
-export const CanvasResources = () => {
-  const { showLeftOverview, activeNode, resetState, setParentType, setPanelVisible } =
+export const CanvasResources = memo(() => {
+  const { showLeftOverview, activeNode, panelMode, resetState, setParentType, setPanelMode } =
     useCanvasResourcesPanelStoreShallow((state) => ({
       showLeftOverview: state.showLeftOverview,
       activeNode: state.activeNode,
+      panelMode: state.panelMode,
       resetState: state.resetState,
       setParentType: state.setParentType,
-      setPanelVisible: state.setPanelVisible,
+      setPanelMode: state.setPanelMode,
     }));
 
   const { canvasId } = useCanvasContext();
 
   useEffect(() => {
+    console.log('CanvasResources useEffect', canvasId);
     if (canvasId) {
       resetState();
     }
@@ -36,11 +39,8 @@ export const CanvasResources = () => {
       if (RESULT_NODE_TYPES.includes(activeNode.type as CanvasNodeType)) {
         setParentType('resultsRecord');
       }
-
-      // Ensure resources panel is visible when active node changes
-      setPanelVisible(true);
     }
-  }, [activeNode]);
+  }, [activeNode, panelMode, setPanelMode]);
 
   return (
     <div
@@ -52,4 +52,44 @@ export const CanvasResources = () => {
       {activeNode ? <PreviewComponent node={activeNode} /> : <ResourceOverview />}
     </div>
   );
-};
+});
+
+export const CanvasResourcesWidescreenModal = memo(() => {
+  const { panelMode, setPanelMode } = useCanvasResourcesPanelStoreShallow((state) => ({
+    panelMode: state.panelMode,
+    setPanelMode: state.setPanelMode,
+  }));
+  console.log('panelMode', panelMode);
+
+  return (
+    <Modal
+      open={panelMode === 'wide'}
+      centered
+      onCancel={() => {
+        console.log('onCancel');
+        setPanelMode('normal');
+      }}
+      title={null}
+      closable={false}
+      footer={null}
+      width="90%"
+      styles={{
+        content: {
+          padding: 0,
+        },
+      }}
+      className="flex flex-col"
+    >
+      <div className="flex w-full h-[95vh]">
+        <div className="w-[360px] h-full border-r border-refly-Card-Border">
+          <ResourceOverview />
+        </div>
+        <div className="flex-1 h-full">
+          <CanvasResources />
+        </div>
+      </div>
+    </Modal>
+  );
+});
+
+CanvasResourcesWidescreenModal.displayName = 'CanvasResourcesWidescreenModal';

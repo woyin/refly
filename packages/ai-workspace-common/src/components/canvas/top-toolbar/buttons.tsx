@@ -93,15 +93,15 @@ export const ToolbarButtons = memo(
     const { getNodes } = useReactFlow();
     const { hoverCardEnabled } = useHoverCard();
     const { readonly, canvasId } = useCanvasContext();
-    const { panelVisible, setPanelVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
-      panelVisible: state.panelVisible,
-      setPanelVisible: state.setPanelVisible,
+    const { panelMode, setPanelMode } = useCanvasResourcesPanelStoreShallow((state) => ({
+      panelMode: state.panelMode,
+      setPanelMode: state.setPanelMode,
     }));
-    console.log('panelVisible', panelVisible);
 
     const handleResourcesPanelOpen = useCallback(() => {
-      setPanelVisible(true);
-    }, [setPanelVisible]);
+      console.log('handleResourcesPanelOpen');
+      setPanelMode('normal');
+    }, [setPanelMode]);
 
     const { showSlideshow, showLinearThread, setShowSlideshow, setShowLinearThread } =
       useCanvasStoreShallow((state) => ({
@@ -230,7 +230,9 @@ export const ToolbarButtons = memo(
                 onClickOutside={() => setSearchOpen(false)}
               />
             }
-            overlayClassName="node-search-popover"
+            classNames={{
+              root: 'node-search-popover',
+            }}
           >
             <Tooltip title={t('canvas.toolbar.searchNode')}>
               <Button type="text" icon={<Search size={18} />} />
@@ -252,7 +254,7 @@ export const ToolbarButtons = memo(
 
           <Help />
 
-          {!panelVisible && (
+          {panelMode === 'hidden' && (
             <>
               <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
 

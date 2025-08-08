@@ -1027,15 +1027,6 @@ const translations = {
       replaceSuccess: '内容替换成功',
       createNoteSuccess: '新建笔记成功',
     },
-    header: {
-      searchAndOpenResourceOrProject: '搜索并打开资源或项目',
-      searchOrOpenNote: '搜索或打开画布',
-      searchOrOpenThread: '搜索或打开会话',
-      openThreadHistory: '打开会话历史',
-      newThread: '新建会话',
-      fullScreen: '全屏',
-      exitFullScreen: '退出全屏',
-    },
   },
   document: {
     share: '分享文档',
@@ -1465,6 +1456,8 @@ const translations = {
     resourceLibrary: {
       title: '项目资源',
       empty: '暂无项目资源',
+      wideScreen: '宽屏',
+      exitWideScreen: '退出宽屏',
       searchPlaceholder: '搜索项目资源',
       stepsRecord: '步骤记录',
       noStepsRecord: '暂无步骤记录',

@@ -413,7 +413,7 @@ export const EnhancedSkillResponse = memo(
         <div className="flex flex-1 overflow-hidden">
           <div className="flex flex-col w-full max-w-[1024px] mx-auto">
             {threadContentComponent}
-            {chatPanelComponent}
+            <div className="hidden">{chatPanelComponent}</div>
           </div>
         </div>
       </div>

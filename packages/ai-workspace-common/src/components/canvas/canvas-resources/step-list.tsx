@@ -126,6 +126,7 @@ export const StepList = memo(() => {
         defaultExpandAll
         autoExpandParent
         showIcon={true}
+        switcherIcon={null}
         className="steps-tree [&_.ant-tree-node-content-wrapper]:py-2 [&_.ant-tree-node-content-wrapper]:min-h-[40px] [&_.ant-tree-node-content-wrapper]:flex [&_.ant-tree-node-content-wrapper]:items-center"
       />
     </div>

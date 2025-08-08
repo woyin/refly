@@ -1050,15 +1050,6 @@ const translations = {
       replaceSuccess: 'Successfully replaced content',
       createNoteSuccess: 'Successfully created new note',
     },
-    header: {
-      searchAndOpenResourceOrProject: 'Search and open resource or project',
-      searchOrOpenNote: 'Search or open canvas',
-      searchOrOpenThread: 'Search or open thread',
-      openThreadHistory: 'Open Thread History',
-      newThread: 'New Thread',
-      fullScreen: 'Full Screen',
-      exitFullScreen: 'Exit Full Screen',
-    },
   },
   document: {
     share: 'Share Document',
@@ -1505,6 +1496,8 @@ const translations = {
     resourceLibrary: {
       title: 'Project Resources',
       empty: 'No project resources',
+      wideScreen: 'Wide Screen',
+      exitWideScreen: 'Exit Wide Screen',
       searchPlaceholder: 'Search project resources',
       stepsRecord: 'Steps',
       noStepsRecord: 'No steps record',

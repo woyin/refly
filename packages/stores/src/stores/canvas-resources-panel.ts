@@ -3,20 +3,22 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
+export type CanvasResourcesPanelMode = 'wide' | 'normal' | 'hidden';
+
 export type CanvasResourcesParentType = 'stepsRecord' | 'resultsRecord' | 'myUpload';
 
 interface CanvasResourcesPanelState {
   // Panel width in pixels
-  resourcesPanelWidth: number;
-  panelVisible: boolean;
+  panelWidth: number;
+  panelMode: CanvasResourcesPanelMode;
   showLeftOverview: boolean;
   parentType: CanvasResourcesParentType | null;
   activeTab: CanvasResourcesParentType;
   activeNode: CanvasNode | null;
 
   // Methods
-  setResourcesPanelWidth: (width: number) => void;
-  setPanelVisible: (visible: boolean) => void;
+  setPanelWidth: (width: number) => void;
+  setPanelMode: (mode: CanvasResourcesPanelMode) => void;
   setShowLeftOverview: (show: boolean) => void;
   setParentType: (type: CanvasResourcesParentType | null) => void;
   setActiveTab: (tab: CanvasResourcesParentType) => void;
@@ -28,8 +30,8 @@ interface CanvasResourcesPanelState {
 const DEFAULT_PANEL_WIDTH = 480;
 
 const defaultState = {
-  resourcesPanelWidth: DEFAULT_PANEL_WIDTH,
-  panelVisible: false,
+  panelWidth: DEFAULT_PANEL_WIDTH,
+  panelMode: 'normal' as const,
   showLeftOverview: false,
   parentType: null,
   activeTab: 'stepsRecord' as const,
@@ -43,8 +45,8 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
       ...defaultState,
 
       // Methods
-      setResourcesPanelWidth: (width: number) => set({ resourcesPanelWidth: width }),
-      setPanelVisible: (visible: boolean) => set({ panelVisible: visible }),
+      setPanelWidth: (width: number) => set({ panelWidth: width }),
+      setPanelMode: (mode: CanvasResourcesPanelMode) => set({ panelMode: mode }),
       setShowLeftOverview: (show: boolean) => set({ showLeftOverview: show }),
       setParentType: (type: CanvasResourcesParentType | null) => set({ parentType: type }),
       setActiveTab: (tab: CanvasResourcesParentType) => set({ activeTab: tab }),
@@ -55,8 +57,10 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
       name: 'canvas-resources-panel-storage',
       partialize: (state) => ({
         activeTab: state.activeTab,
-        panelVisible: state.panelVisible,
-        resourcesPanelWidth: state.resourcesPanelWidth,
+        activeNode: state.activeNode,
+        parentType: state.parentType,
+        panelMode: state.panelMode,
+        panelWidth: state.panelWidth,
       }),
     },
   ),

@@ -72,7 +72,7 @@ import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hoo
 import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ChevronUp } from 'lucide-react';
-import { CanvasResources } from './canvas-resources';
+import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ResourceOverview } from './canvas-resources/resource-overview';
 
 const GRID_SIZE = 10;
@@ -1090,15 +1090,15 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
   const {
-    panelVisible,
+    panelMode,
     resourcesPanelWidth,
     setResourcesPanelWidth,
     showLeftOverview,
     setShowLeftOverview,
   } = useCanvasResourcesPanelStoreShallow((state) => ({
-    panelVisible: state.panelVisible,
-    resourcesPanelWidth: state.resourcesPanelWidth,
-    setResourcesPanelWidth: state.setResourcesPanelWidth,
+    panelMode: state.panelMode,
+    resourcesPanelWidth: state.panelWidth,
+    setResourcesPanelWidth: state.setPanelWidth,
     showLeftOverview: state.showLeftOverview,
     setShowLeftOverview: state.setShowLeftOverview,
   }));
@@ -1164,12 +1164,14 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
             </Splitter.Panel>
 
             <Splitter.Panel
-              size={panelVisible ? resourcesPanelWidth : 0}
+              size={panelMode === 'normal' ? resourcesPanelWidth : 0}
               min={480}
               max={maxPanelWidth}
             >
               <Popover
-                overlayClassName="resources-panel-popover"
+                classNames={{
+                  root: 'resources-panel-popover',
+                }}
                 open={showLeftOverview}
                 onOpenChange={setShowLeftOverview}
                 arrow={false}
@@ -1187,6 +1189,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
               </Popover>
             </Splitter.Panel>
           </Splitter>
+          <CanvasResourcesWidescreenModal />
         </CanvasProvider>
       </ReactFlowProvider>
     </EditorPerformanceProvider>
