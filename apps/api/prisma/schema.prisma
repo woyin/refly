@@ -225,6 +225,11 @@ model PilotSession {
   providerItemId String?  @map("provider_item_id")
   /// Status
   status         String   @default("init") @map("status")
+  /// Divergent mode fields
+  mode           String?  @default("linear") @map("mode")
+  maxDivergence  Int?     @default(8) @map("max_divergence")
+  maxDepth       Int?     @default(5) @map("max_depth")
+  currentDepth   Int?     @default(0) @map("current_depth")
   /// Create timestamp
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -236,27 +241,33 @@ model PilotSession {
 
 model PilotStep {
   /// Primary key
-  pk         BigInt   @id @default(autoincrement())
+  pk               BigInt   @id @default(autoincrement())
   /// Pilot step id
-  stepId     String   @unique @map("step_id")
+  stepId           String   @unique @map("step_id")
   /// Pilot session id
-  sessionId  String   @map("session_id")
+  sessionId        String   @map("session_id")
   /// Step name
-  name       String   @map("name")
+  name             String   @map("name")
   /// Epoch
-  epoch      Int      @map("epoch")
+  epoch            Int      @map("epoch")
   /// Entity id
-  entityId   String?  @map("entity_id")
+  entityId         String?  @map("entity_id")
   /// Entity type
-  entityType String?  @map("entity_type")
+  entityType       String?  @map("entity_type")
   /// Status
-  status     String   @default("init") @map("status")
+  status           String   @default("init") @map("status")
   /// Raw step output from LLM
-  rawOutput  String?  @map("raw_output")
+  rawOutput        String?  @map("raw_output")
+  /// Divergent node fields
+  nodeType         String?  @default("execution") @map("node_type")
+  depth            Int?     @default(0) @map("depth")
+  parentStepId     String?  @map("parent_step_id")
+  convergenceGroup String?  @map("convergence_group")
+  completionScore  Decimal? @map("completion_score") @db.Decimal(3, 2)
   /// Create timestamp
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
   @@index([sessionId, createdAt])
   @@map("pilot_steps")

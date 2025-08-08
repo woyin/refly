@@ -20,12 +20,16 @@ import {
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { buildSuccessResponse } from '../../utils';
 import { PilotService } from './pilot.service';
+import { PilotDivergentService } from './pilot-divergent.service';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { pilotSessionPO2DTO, pilotStepPO2DTO } from './pilot.dto';
 
 @Controller('v1/pilot')
 export class PilotController {
-  constructor(private pilotService: PilotService) {}
+  constructor(
+    private pilotService: PilotService,
+    private pilotDivergentService: PilotDivergentService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('session/new')
@@ -78,5 +82,47 @@ export class PilotController {
       ...pilotSessionPO2DTO(session),
       steps: steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     });
+  }
+
+  // ========== DIVERGENT MODE ENDPOINTS ==========
+
+  // @UseGuards(JwtAuthGuard) // Temporarily disabled for testing
+  @Post('divergent/session/new')
+  async createDivergentSession(
+    // @LoginedUser() user: User,
+    @Body() request: CreatePilotSessionRequest & {
+      mode?: 'divergent';
+      maxDivergence?: number;
+      maxDepth?: number;
+      prompt?: string;
+    },
+  ) {
+    // Mock user for testing
+    const user = { uid: 'test-user', username: 'test' } as User;
+    const result = await this.pilotDivergentService.createDivergentSession(user, {
+      ...request,
+      mode: 'divergent',
+    });
+
+    return buildSuccessResponse(result);
+  }
+
+  // @UseGuards(JwtAuthGuard) // Temporarily disabled for testing
+  @Get('divergent/session/status')
+  async getDivergentSessionStatus(@Query('sessionId') sessionId: string) {
+    const status = await this.pilotDivergentService.getDivergentSessionStatus(sessionId);
+    return buildSuccessResponse(status);
+  }
+
+  // @UseGuards(JwtAuthGuard) // Temporarily disabled for testing
+  @Get('divergent/sessions')
+  async listDivergentSessions(
+    // @LoginedUser() user: User,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    // Mock user for testing
+    const user = { uid: 'test-user', username: 'test' } as User;
+    const sessions = await this.pilotDivergentService.listDivergentSessions(user, limit);
+    return buildSuccessResponse(sessions);
   }
 }
