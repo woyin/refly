@@ -13,6 +13,8 @@ import { getAvailableFileCount } from '@refly/utils/quota';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useUpdateSourceList } from '@refly-packages/ai-workspace-common/hooks/canvas/use-update-source-list';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { genUniqueId } from '@refly/utils/id';
+import { safeParseURL } from '@refly/utils/url';
 
 export enum ImportActionMode {
   CREATE_RESOURCE = 'createResource',
@@ -70,14 +72,22 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
 
     // Add selected items to waiting list
     for (const item of selectedItems) {
+      const waitingItemId = genUniqueId();
       addToWaitingList({
-        id: `${item.url}-${Date.now()}`,
+        id: waitingItemId,
         type: 'weblink',
         title: item.title ?? '',
         url: item.url,
-        content: item.pageContent,
-        source: item,
         status: 'pending',
+        link: {
+          key: waitingItemId,
+          url: item.url,
+          title: item.title ?? '',
+          description: item.pageContent,
+          image: `https://www.google.com/s2/favicons?domain=${safeParseURL(item.url)}&sz=16`,
+          isHandled: true,
+          isError: false,
+        },
       });
     }
 

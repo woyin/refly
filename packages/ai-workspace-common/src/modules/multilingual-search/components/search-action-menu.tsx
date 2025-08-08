@@ -3,6 +3,8 @@ import { Button, Checkbox, Divider, message } from 'antd';
 import { useMultilingualSearchStore } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { useImportResourceStoreShallow } from '@refly/stores';
+import { genUniqueId } from '@refly/utils/id';
+import { safeParseURL } from '@refly/utils/url';
 
 interface SearchActionMenuProps {
   setShowResults: (showResults: boolean) => void;
@@ -28,14 +30,22 @@ export const SearchActionMenu: React.FC<SearchActionMenuProps> = ({ setShowResul
 
     // Add selected items to waiting list
     for (const item of selectedItems) {
-      console.log(item);
+      const waitingItemId = genUniqueId();
       addToWaitingList({
-        id: item.url,
+        id: waitingItemId,
         type: 'weblink',
         title: item.title ?? '',
         url: item.url,
-        content: item.pageContent,
-        source: item,
+        status: 'pending',
+        link: {
+          key: waitingItemId,
+          url: item.url,
+          title: item.title ?? '',
+          description: item.pageContent,
+          image: `https://www.google.com/s2/favicons?domain=${safeParseURL(item.url)}&sz=16`,
+          isHandled: true,
+          isError: false,
+        },
       });
     }
 

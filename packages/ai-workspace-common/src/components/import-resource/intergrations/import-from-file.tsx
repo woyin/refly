@@ -1,18 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Button, message, Upload, UploadProps } from 'antd';
-import { TbFile } from 'react-icons/tb';
+import { useEffect, useState } from 'react';
+import { message, Upload, UploadProps } from 'antd';
 import { useImportResourceStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useTranslation } from 'react-i18next';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import type { RcFile } from 'antd/es/upload/interface';
 import { genResourceID } from '@refly/utils/id';
-import { LuInfo } from 'react-icons/lu';
-import { useSubscriptionStoreShallow } from '@refly/stores';
-import { GrUnlock } from 'react-icons/gr';
-import { useUserStoreShallow } from '@refly/stores';
-import { subscriptionEnabled } from '@refly/ui-kit';
-import { logEvent } from '@refly/telemetry-web';
 
 const { Dragger } = Upload;
 
@@ -43,19 +36,11 @@ export const ImportFromFile = () => {
     updateWaitingListItem: state.updateWaitingListItem,
     waitingList: state.waitingList,
   }));
-  const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
-    setSubscribeModalVisible: state.setSubscribeModalVisible,
-  }));
 
   const { fileParsingUsage } = useSubscriptionUsage();
 
   const [fileList, setFileList] = useState<FileItem[]>(storageFileList);
 
-  const { userProfile } = useUserStoreShallow((state) => ({
-    userProfile: state.userProfile,
-  }));
-
-  const planType = userProfile?.subscription?.planType || 'free';
   const uploadLimit = fileParsingUsage?.fileUploadLimit ?? -1;
   const maxFileSize = `${uploadLimit}MB`;
   const maxFileSizeBytes = uploadLimit * 1024 * 1024;
@@ -184,41 +169,19 @@ export const ImportFromFile = () => {
     setStorageFileList(fileList);
   }, [fileList, setStorageFileList]);
 
-  const handleClickUnlockButton = useCallback(() => {
-    logEvent('subscription::upgrade_click', 'import_file');
-    setSubscribeModalVisible(true);
-  }, [setSubscribeModalVisible]);
-
   return (
     <div className="h-full flex flex-col min-w-[500px] box-border intergation-import-from-weblink">
-      {/* header */}
-      <div className="flex items-center gap-x-[8px] pt-6 px-6">
-        <span className="flex items-center justify-center">
-          <TbFile className="text-lg" />
-        </span>
-        <div className="text-base font-bold">{t('resource.import.fromFile')}</div>
-        {subscriptionEnabled && planType === 'free' && (
-          <Button
-            type="text"
-            icon={<GrUnlock className="flex items-center justify-center" />}
-            onClick={handleClickUnlockButton}
-            className="text-green-600 font-medium"
-          >
-            {t('resource.import.unlockUploadLimit')}
-          </Button>
-        )}
-      </div>
-
-      {/* content */}
-      <Dragger {...props} className=" w-full bg-refly-bg-control-z0 rounded-xl mb-1.5">
+      <Dragger
+        {...props}
+        className="file-upload-container w-full bg-refly-bg-control-z0 rounded-xl mb-1.5"
+      >
         <div className="flex flex-col items-center gap-2">
-          <p className="ant-upload-text mt-4 text-refly-text-0">
+          <div className="text-refly-primary-default text-sm font-medium leading-5">
             {t('resource.import.dragOrClick')}
-          </p>
-          <p className="ant-upload-hint text-refly-text-1 mt-2">{genUploadHint()}</p>
+          </div>
+          <div className="text-refly-text-1 text-sm leading-4">{genUploadHint()}</div>
           {fileParsingUsage?.pagesLimit && fileParsingUsage?.pagesLimit >= 0 && (
-            <div className="text-green-500 mt-2 text-xs font-medium flex items-center justify-center gap-1">
-              <LuInfo />
+            <div className="text-refly-text-1 text-sm leading-4">
               {t('resource.import.fileParsingUsage', {
                 used: fileParsingUsage?.pagesParsed,
                 limit: fileParsingUsage?.pagesLimit,

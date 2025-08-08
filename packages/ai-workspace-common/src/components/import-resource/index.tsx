@@ -16,6 +16,7 @@ import { Close, Cuttools } from 'refly-icons';
 import WaitingList from './components/waiting-list';
 import { StorageLimit } from '@refly-packages/ai-workspace-common/components/import-resource/intergrations/storageLimit';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useUpdateSourceList } from '@refly-packages/ai-workspace-common/hooks/canvas/use-update-source-list';
 import { UpsertResourceRequest } from '@refly/openapi-schema';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
@@ -30,6 +31,7 @@ export const ImportResourceModal = memo(() => {
     selectedMenuItem,
     setSelectedMenuItem,
     setInsertNodePosition,
+    insertNodePosition,
     waitingList,
     clearWaitingList,
   } = useImportResourceStoreShallow((state) => ({
@@ -38,6 +40,7 @@ export const ImportResourceModal = memo(() => {
     selectedMenuItem: state.selectedMenuItem,
     setSelectedMenuItem: state.setSelectedMenuItem,
     setInsertNodePosition: state.setInsertNodePosition,
+    insertNodePosition: state.insertNodePosition,
     waitingList: state.waitingList,
     clearWaitingList: state.clearWaitingList,
   }));
@@ -47,6 +50,7 @@ export const ImportResourceModal = memo(() => {
   const { projectId } = useGetProjectCanvasId();
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
   const canImportCount = getAvailableFileCount(storageUsage);
+  const { updateSourceList } = useUpdateSourceList();
 
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
 
@@ -88,28 +92,38 @@ export const ImportResourceModal = memo(() => {
 
     setSaveLoading(true);
     try {
-      // TODO: Implement save logic for waiting list items
-      // This would involve processing each item based on its type
-      // and adding them to the canvas
-      console.log('Saving waiting list items:', waitingList);
+      const batchCreateResourceData: UpsertResourceRequest[] = waitingList.map((item) => {
+        // For weblink items, use the link data if available
+        if (item.type === 'weblink' && item.link) {
+          return {
+            projectId: currentProjectId,
+            resourceType: 'weblink',
+            title: item.link.title || item.title || item.url || '',
+            data: {
+              url: item.url,
+              title: item.link.title || item.title || '',
+              description: item.link.description || '',
+              image: item.link.image || '',
+            },
+          };
+        }
 
-      const batchCreateResourceData: UpsertResourceRequest[] = waitingList.map((link) => {
+        // For other types, use the basic item data
         return {
           projectId: currentProjectId,
-          resourceType: link?.type,
-          title: link?.title ?? '',
+          resourceType: item.type,
+          title: item.title ?? '',
           data: {
-            url: link?.url,
-            title: link?.title,
+            url: item.url,
+            title: item.title,
+            content: item.content,
           },
         };
       });
 
-      setSaveLoading(true);
       const { data } = await getClient().batchCreateResource({
         body: batchCreateResourceData,
       });
-      setSaveLoading(false);
 
       if (!data?.success) {
         return;
@@ -127,7 +141,14 @@ export const ImportResourceModal = memo(() => {
               contentPreview: resource.contentPreview,
             }))
           : [];
-      resources.forEach((resource, _index) => {
+      resources.forEach((resource, index) => {
+        const nodePosition = insertNodePosition
+          ? {
+              x: insertNodePosition?.x + index * 300,
+              y: insertNodePosition?.y,
+            }
+          : undefined;
+
         nodeOperationsEmitter.emit('addNode', {
           node: {
             type: 'resource',
@@ -136,15 +157,18 @@ export const ImportResourceModal = memo(() => {
               entityId: resource.id,
               contentPreview: resource.contentPreview,
             },
+            position: nodePosition,
           },
         });
       });
 
-      // Clear waiting list after successful save
+      // Update source list and clear waiting list after successful save
+      updateSourceList(data && Array.isArray(data.data) ? data.data : [], currentProjectId);
       clearWaitingList();
       setImportResourceModalVisible(false);
     } catch (error) {
       console.error('Error saving to canvas:', error);
+      message.error(t('common.saveFailed'));
     } finally {
       setSaveLoading(false);
     }
@@ -214,13 +238,15 @@ export const ImportResourceModal = memo(() => {
           {selectedMenuItem === 'import-from-file' && <ImportFromFile />}
         </div>
 
-        <div className="flex-grow rounded-xl border-solid border-[1px] border-refly-Card-Border">
+        <div className="flex-grow min-h-0 overflow-hidden rounded-xl border-solid border-[1px] border-refly-Card-Border flex flex-col">
           <div className="px-4 py-2 bg-refly-bg-control-z0 text-refly-text-1 text-xs font-semibold leading-4 border-solid border-[1px] border-t-0 border-x-0 border-refly-Card-Border rounded-t-xl">
             {t('resource.import.waitingList')}{' '}
             {waitingList.length > 0 ? `${waitingList.length} 个` : ''}
           </div>
 
-          <WaitingList />
+          <div className="flex-grow overflow-y-auto">
+            <WaitingList />
+          </div>
         </div>
 
         <div className="flex justify-between items-center">

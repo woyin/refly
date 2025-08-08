@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Input } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { SearchResults } from './components/search-results';
@@ -18,6 +18,7 @@ interface MultilingualSearchProps {
 
 function MultilingualSearch({ showResults, setShowResults }: MultilingualSearchProps) {
   const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
   const {
     isSearching,
     results,
@@ -30,6 +31,7 @@ function MultilingualSearch({ showResults, setShowResults }: MultilingualSearchP
     setIsSearching,
     addSearchStep,
     setResults,
+    clearSelectedItems,
   } = useMultilingualSearchStoreShallow((state) => ({
     isSearching: state.isSearching,
     results: state.results,
@@ -44,6 +46,7 @@ function MultilingualSearch({ showResults, setShowResults }: MultilingualSearchP
     setIsSearching: state.setIsSearching,
     addSearchStep: state.addSearchStep,
     setResults: state.setResults,
+    clearSelectedItems: state.clearSelectedItems,
   }));
 
   // Cleanup on unmount
@@ -59,6 +62,28 @@ function MultilingualSearch({ showResults, setShowResults }: MultilingualSearchP
       setShowResults(true);
     }
   }, [results, isSearching]);
+
+  // Handle click outside to close search results
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Click was outside the component
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node) &&
+        setShowResults
+      ) {
+        setShowResults(false);
+        clearSelectedItems(); // Clear selected items when closing
+      }
+    };
+
+    if (showResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showResults, setShowResults, clearSelectedItems]);
 
   const handleMultilingualSearch = async (userInput?: string) => {
     if (userInput?.trim()?.length === 0) return;
@@ -98,7 +123,7 @@ function MultilingualSearch({ showResults, setShowResults }: MultilingualSearchP
   };
 
   return (
-    <div className="multilingual-search-container">
+    <div className="multilingual-search-container" ref={containerRef}>
       <div className="flex flex-col gap-1">
         <AntSearch
           placeholder={t('resource.multilingualSearch.placeholder')}
