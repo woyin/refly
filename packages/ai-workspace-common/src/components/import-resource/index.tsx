@@ -57,10 +57,11 @@ export const ImportResourceModal = memo(() => {
 
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
 
+  // TODO: 移动端支持 , 之前用了isWeb来判断是否展示菜单选项
   // const runtime = getRuntime();
   // const isWeb = runtime === 'web';
 
-  // TODO: 计算文件数量时需要去除上传的图片吗？
+  // TODO: 计算文件数量时需要去除上传的图片吗？需要测试一下文件余额不足的情况不能上传
   const disableSave = useMemo(() => {
     return saveLoading || waitingList.length === 0 || waitingList.length > canImportCount;
   }, [waitingList, canImportCount, saveLoading]);
