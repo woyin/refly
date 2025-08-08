@@ -731,7 +731,7 @@ export const ModelFormModal = memo(
                 loading={isProvidersLoading}
                 options={providerOptions}
                 onChange={handleProviderChange}
-                dropdownRender={(menu) => (
+                popupRender={(menu) => (
                   <>
                     {isProvidersLoading ? (
                       <Loading />

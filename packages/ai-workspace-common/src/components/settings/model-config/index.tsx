@@ -11,7 +11,6 @@ import {
   message,
   MenuProps,
   Divider,
-  Tag,
   Modal,
   Segmented,
   Skeleton,
@@ -26,18 +25,11 @@ import {
 } from '@refly/openapi-schema';
 import { ModelIcon } from '@lobehub/icons';
 import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/model';
-import { useGroupModels } from '@refly-packages/ai-workspace-common/hooks/use-group-models';
 import { ModelFormModal } from './model-form';
 import { useUserStoreShallow, useChatStoreShallow } from '@refly/stores';
 import { More, Settings, Back, Chat, Media, AIModel } from 'refly-icons';
 import { ContentHeader } from '../contentHeader';
 import { DefaultModel } from '../default-model';
-
-const MODEL_TIER_TO_COLOR = {
-  free: 'green',
-  t1: 'blue',
-  t2: 'orange',
-};
 
 const ActionDropdown = ({
   model,
@@ -116,7 +108,6 @@ const ModelItem = memo(
     const { userProfile } = useUserStoreShallow((state) => ({
       userProfile: state.userProfile,
     }));
-
     const editable = userProfile?.preferences?.providerMode === 'custom';
 
     const handleToggleChange = useCallback(
@@ -150,43 +141,32 @@ const ModelItem = memo(
             <div className="text-refly-text-0">{model.name}</div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-refly-text-1 text-xs">{model.provider?.name}</div>
+          {editable && (
+            <div className="flex items-center gap-3">
+              <div className="text-refly-text-1 text-xs">
+                {model.provider?.isGlobal ? t('settings.modelConfig.global') : model.provider?.name}
+              </div>
 
-            {model.tier && (
-              <>
-                <Divider type="vertical" className="bg-refly-Card-Border m-0 h-4" />
-                <Tag
-                  color={MODEL_TIER_TO_COLOR[model.tier]}
-                  className="text-[10px] h-4 flex items-center justify-center leading-[14px] rounded-[4px]"
-                >
-                  {t(`settings.modelTier.${model.tier}`)}
-                </Tag>
-              </>
-            )}
-
-            {editable && (
-              <>
-                <Tooltip
-                  title={
-                    model.enabled
-                      ? t('settings.modelConfig.disable')
-                      : t('settings.modelConfig.enable')
-                  }
-                >
-                  <div onClick={handleSwitchWrapperClick} className="flex items-center">
-                    <Switch
-                      size="small"
-                      checked={model.enabled ?? false}
-                      onChange={handleToggleChange}
-                      loading={isSubmitting}
-                    />
-                  </div>
-                </Tooltip>
-                <ActionDropdown model={model} handleEdit={handleEdit} handleDelete={handleDelete} />
-              </>
-            )}
-          </div>
+              <Divider type="vertical" className="bg-refly-Card-Border m-0 h-4" />
+              <Tooltip
+                title={
+                  model.enabled
+                    ? t('settings.modelConfig.disable')
+                    : t('settings.modelConfig.enable')
+                }
+              >
+                <div onClick={handleSwitchWrapperClick} className="flex items-center">
+                  <Switch
+                    size="small"
+                    checked={model.enabled ?? false}
+                    onChange={handleToggleChange}
+                    loading={isSubmitting}
+                  />
+                </div>
+              </Tooltip>
+              <ActionDropdown model={model} handleEdit={handleEdit} handleDelete={handleDelete} />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -507,10 +487,6 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     return items.filter((model) => model.name?.toLowerCase().includes(lowerQuery));
   }, [modelItems, searchQuery]);
 
-  // Use the utility function instead of inline implementation
-  const { handleGroupModelList } = useGroupModels();
-  const sortedGroups = useMemo(() => handleGroupModelList(filteredModels), [filteredModels]);
-
   useEffect(() => {
     if (visible) {
       getProviderItems();
@@ -583,26 +559,19 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
           )}
         </Empty>
       ) : (
-        <div className="mb-4 w-full space-y-5">
-          {sortedGroups.map((group) => (
-            <div key={group.key} className="space-y-1">
-              <div className="text-xs text-refly-text-1 font-semibold mb-2 px-1.5 pt-2 pb-1">
-                {group.name}
-              </div>
-              {group.models
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((model) => (
-                  <ModelItem
-                    key={model.itemId}
-                    model={model}
-                    onEdit={handleEditModel}
-                    onDelete={handleDeleteModel}
-                    onToggleEnabled={handleToggleEnabled}
-                    isSubmitting={isUpdating}
-                  />
-                ))}
-            </div>
-          ))}
+        <div className="mb-4 w-full space-y-2">
+          {filteredModels
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((model) => (
+              <ModelItem
+                key={model.itemId}
+                model={model}
+                onEdit={handleEditModel}
+                onDelete={handleDeleteModel}
+                onToggleEnabled={handleToggleEnabled}
+                isSubmitting={isUpdating}
+              />
+            ))}
 
           <div className="text-center text-refly-text-2 text-sm mt-4 pb-10">
             {t('common.noMore')}

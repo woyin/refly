@@ -1,6 +1,6 @@
 import { Divider, Modal } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useSiderStoreShallow, SettingsModalActiveTab } from '@refly/stores';
+import { useSiderStoreShallow, SettingsModalActiveTab, useUserStoreShallow } from '@refly/stores';
 
 // components
 import { AccountSetting } from '@refly-packages/ai-workspace-common/components/settings/account-setting';
@@ -111,6 +111,11 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
     setLocalActiveTab(key as SettingsModalActiveTab);
   };
 
+  const { userProfile } = useUserStoreShallow((state) => ({
+    userProfile: state.userProfile,
+  }));
+  const providerMode = userProfile?.preferences?.providerMode;
+
   const tabs = [
     {
       key: 'modelConfig',
@@ -118,14 +123,18 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
       icon: <AIModel size={18} color="var(--refly-text-0)" />,
       children: <ModelConfig visible={localActiveTab === SettingsModalActiveTab.ModelConfig} />,
     },
-    {
-      key: 'modelProviders',
-      label: t('settings.tabs.providers'),
-      icon: <Provider size={18} color="var(--refly-text-0)" />,
-      children: (
-        <ModelProviders visible={localActiveTab === SettingsModalActiveTab.ModelProviders} />
-      ),
-    },
+    ...(providerMode === 'custom'
+      ? [
+          {
+            key: 'modelProviders',
+            label: t('settings.tabs.providers'),
+            icon: <Provider size={18} color="var(--refly-text-0)" />,
+            children: (
+              <ModelProviders visible={localActiveTab === SettingsModalActiveTab.ModelProviders} />
+            ),
+          },
+        ]
+      : []),
     {
       key: 'parserConfig',
       label: t('settings.tabs.parserConfig'),
