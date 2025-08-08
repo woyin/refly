@@ -255,3 +255,21 @@
     align-items: center;
   }
 }
+
+.extension-modal {
+  .ant-modal-content {
+    /* Use theme tokens to support dark mode */
+    background: linear-gradient(
+      180deg,
+      var(--refly-gradient-modal-top) 0%,
+      var(--refly-gradient-modal-bottom) 25.19%
+    );
+    padding: 0;
+    .ant-modal-body {
+      padding: 0;
+      width: 740px;
+      height: 800px;
+      overflow: hidden;
+    }
+  }
+}

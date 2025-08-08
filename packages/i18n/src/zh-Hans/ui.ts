@@ -1568,10 +1568,11 @@ const translations = {
       upgrade: '升级订阅',
       fromExtension: '浏览器插件剪存',
       extensionTitle: '一键保存网页内容',
-      extensionDescription: '安装我们的 Chrome 插件，轻松保存网页内容到画布中。',
+      extensionDescription:
+        '基于自由画布的创作平台，通过多线程对话、知识库整合、上下文记忆、智能搜索和 AI 文档编辑器，轻松将想法转化为优质内容。',
       downloadExtension: '下载插件',
       viewDocs: '查看文档',
-      recommendedPlatforms: '推荐平台',
+      recommendedPlatforms: '推荐在以下平台使用',
       selectProject: '选择项目',
       emptyImage: '请至少选择一张图片',
       imageCount: '图片数量：{{count}}',

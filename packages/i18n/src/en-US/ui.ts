@@ -1610,10 +1610,10 @@ const translations = {
       fromExtension: 'Browser Extension',
       extensionTitle: 'Save Web Content with One Click',
       extensionDescription:
-        'Install our Chrome extension to easily save web content to your canvas.',
+        'Based on the free canvas creation platform, you can easily save web content to your canvas through multi-threaded conversations, knowledge base integration, context memory, intelligent search, and AI document editing.',
       downloadExtension: 'Download Extension',
       viewDocs: 'View Documentation',
-      recommendedPlatforms: 'Recommended Platforms',
+      recommendedPlatforms: 'Recommended to use on the following platforms',
       selectProject: 'Select Project',
       emptyImage: 'Please select at least one image',
       imageCount: 'Images: {{count}}',
