@@ -1286,6 +1286,8 @@ const translations = {
       notFound: 'Skill Response Not Found',
       notFoundDesc: 'The skill response you are looking for does not exist or has been removed.',
       generating: 'Generating content...',
+      shareSuccess: 'Skill response shared successfully! Link copied to clipboard.',
+      shareError: 'Failed to share skill response',
       error: {
         defaultTitle: 'Skill execution failed',
         networkError: 'If the problem persists, please check your internet connection or VPN',
@@ -1397,6 +1399,7 @@ const translations = {
       addToSlideshow: 'Add to Slideshow',
       upgrade: 'Upgrade Plan',
       more: 'More Options',
+      createAsDocument: 'Create as Document',
     },
     nodeStatus: {
       isCreatingDocument: 'Creating Document...',

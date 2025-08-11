@@ -410,11 +410,9 @@ export const EnhancedSkillResponse = memo(
         className={cn('flex flex-col h-full w-full', className)}
         onClick={handleContainerClick}
       >
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex flex-col w-full max-w-[1024px] mx-auto">
-            {threadContentComponent}
-            <div className="hidden">{chatPanelComponent}</div>
-          </div>
+        <div className="flex flex-1 overflow-hidden flex-col w-full max-w-[1024px] mx-auto">
+          {threadContentComponent}
+          <div className="hidden">{chatPanelComponent}</div>
         </div>
       </div>
     );

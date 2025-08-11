@@ -1255,6 +1255,8 @@ const translations = {
       notFound: '技能响应未找到',
       notFoundDesc: '您查找的技能响应不存在或已被删除。',
       generating: '正在生成内容...',
+      shareSuccess: '技能响应已成功分享！链接已复制到剪贴板。',
+      shareError: '技能响应分享失败',
       error: {
         defaultTitle: '技能执行失败',
         networkError: '如果问题持续存在，请检查您的网络连接或 VPN',
@@ -1357,6 +1359,7 @@ const translations = {
       addToSlideshow: '插入幻灯片',
       upgrade: '升级套餐',
       more: '更多选项',
+      createAsDocument: '创建为文档',
     },
     nodeStatus: {
       isCreatingDocument: '创建中...',

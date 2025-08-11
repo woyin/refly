@@ -20,6 +20,7 @@ interface NodeIconProps {
   iconColor?: string;
   iconSize?: number;
   small?: boolean;
+  filled?: boolean;
 }
 
 export const NodeIcon = ({
@@ -28,6 +29,7 @@ export const NodeIcon = ({
   iconColor = 'white',
   iconSize,
   small = false,
+  filled = true,
 }: NodeIconProps) => {
   const Icon = ICONS[type];
   const size = small ? 14 : 16;
@@ -36,9 +38,9 @@ export const NodeIcon = ({
       className={`rounded-lg flex items-center justify-center flex-shrink-0 ${small ? 'w-5 h-5' : 'w-6 h-6'} ${
         type === 'image' && 'bg-gradient-to-r from-pink-500 to-purple-500'
       } ${className}`}
-      style={{ backgroundColor: NODE_COLORS[type] }}
+      style={{ backgroundColor: filled ? NODE_COLORS[type] : 'transparent' }}
     >
-      <Icon size={iconSize || size} color={iconColor} />
+      <Icon size={iconSize || size} color={(filled ? 'white' : NODE_COLORS[type]) || iconColor} />
     </div>
   );
 };

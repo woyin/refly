@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Breadcrumb, Button, Tooltip, Typography } from 'antd';
 import { Add, ScreenFull, ScreenDefault, SideRight } from 'refly-icons';
 import { useCanvasResourcesPanelStoreShallow, useImportResourceStoreShallow } from '@refly/stores';
+import { TopButtons } from './top-buttons';
 
 const { Text } = Typography;
 
@@ -80,7 +81,7 @@ export const CanvasResourcesHeader = memo(() => {
       <div className="flex items-center gap-2">
         {sidePanelVisible && (
           <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>
-            <Button type="text" icon={<SideRight size={18} />} onClick={handleClose} />
+            <Button type="text" icon={<SideRight size={16} />} onClick={handleClose} />
           </Tooltip>
         )}
         {parentType ? (
@@ -102,24 +103,30 @@ export const CanvasResourcesHeader = memo(() => {
           </div>
         )}
       </div>
-      <div>
-        <Tooltip title={t('canvas.toolbar.addResource')} arrow={false}>
-          <Button type="text" icon={<Add size={18} />} onClick={handleAddResource} />
-        </Tooltip>
-        {activeNode &&
-          (wideScreenVisible ? (
-            <Tooltip title={t('canvas.resourceLibrary.exitWideScreen')} arrow={false}>
-              <Button
-                type="text"
-                icon={<ScreenDefault size={18} />}
-                onClick={handleExitWideScreen}
-              />
-            </Tooltip>
-          ) : (
-            <Tooltip title={t('canvas.resourceLibrary.wideScreen')} arrow={false}>
-              <Button type="text" icon={<ScreenFull size={18} />} onClick={handleWideScreen} />
-            </Tooltip>
-          ))}
+      <div className="flex items-center gap-3">
+        {!parentType && (
+          <Tooltip title={t('canvas.toolbar.addResource')} arrow={false}>
+            <Button size="small" type="text" icon={<Add size={18} />} onClick={handleAddResource} />
+          </Tooltip>
+        )}
+
+        <TopButtons />
+
+        {activeNode && (
+          <Tooltip
+            title={t(
+              `canvas.resourceLibrary.${wideScreenVisible ? 'exitWideScreen' : 'wideScreen'}`,
+            )}
+            arrow={false}
+          >
+            <Button
+              size="small"
+              type="text"
+              icon={wideScreenVisible ? <ScreenDefault size={16} /> : <ScreenFull size={16} />}
+              onClick={wideScreenVisible ? handleExitWideScreen : handleWideScreen}
+            />
+          </Tooltip>
+        )}
       </div>
     </div>
   );
