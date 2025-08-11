@@ -32,6 +32,7 @@ export const reflyColors = {
   'refly-primary-default-last': 'var(--refly-primary-default-last)',
   'refly-primary-disabled': 'var(--refly-primary-disabled)',
   'refly-primary-hover': 'var(--refly-primary-hover)',
+  'refly-Colorful-red-light': 'var(--refly-Colorful-red-light)',
   'refly-secondary-default': 'var(--refly-secondary-default)',
   'refly-secondary-hover': 'var(--refly-secondary-hover)',
   'refly-tertiary-default': 'var(--refly-tertiary-default)',

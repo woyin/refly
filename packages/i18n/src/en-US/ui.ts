@@ -1620,6 +1620,7 @@ const translations = {
       supportedImages: 'Supported image formats: {{formats}}',
     },
     wait_parse: 'Parsing',
+    wait_parse_tip: 'The file has not been parsed yet, can not be viewed',
     parse_failed: 'Parse Failed',
     wait_index: 'Memorizing',
     wait_index_tip:

@@ -170,7 +170,9 @@ export const ImportFromFile = () => {
 
   const genUploadHint = () => {
     let hint = t('resource.import.supportedFiles', {
-      formats: ALLOWED_FILE_EXTENSIONS.map((ext) => ext.slice(1).toUpperCase()).join(', '),
+      formats: [...ALLOWED_FILE_EXTENSIONS, ...ALLOWED_IMAGE_EXTENSIONS]
+        .map((ext) => ext.slice(1).toUpperCase())
+        .join(', '),
     });
     if (uploadLimit > 0) {
       hint += `. ${t('resource.import.fileUploadLimit', { size: maxFileSize })}`;

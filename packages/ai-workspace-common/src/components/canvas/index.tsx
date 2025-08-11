@@ -1151,6 +1151,34 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     };
   }, []);
 
+  // Close resources overview popover when clicking outside
+  const handleClickOutsideResourcesPopover = useCallback(
+    (event: MouseEvent) => {
+      if (!showLeftOverview) {
+        return;
+      }
+
+      const targetEl = event.target as HTMLElement | null;
+      const isInside = targetEl?.closest?.('[data-refly-resources-popover="true"]');
+      if (isInside) return;
+
+      setShowLeftOverview(false);
+    },
+    [showLeftOverview, setShowLeftOverview],
+  );
+
+  useEffect(() => {
+    if (!showLeftOverview) {
+      return;
+    }
+
+    // Use capture phase to ensure we catch early
+    document.addEventListener('mousedown', handleClickOutsideResourcesPopover, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideResourcesPopover, true);
+    };
+  }, [showLeftOverview, handleClickOutsideResourcesPopover]);
+
   return (
     <EditorPerformanceProvider>
       <ReactFlowProvider>
@@ -1176,7 +1204,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
                 onOpenChange={setShowLeftOverview}
                 arrow={false}
                 content={
-                  <div className="flex w-[360px] h-full">
+                  <div className="flex w-[360px] h-full" data-refly-resources-popover="true">
                     <ResourceOverview />
                   </div>
                 }
