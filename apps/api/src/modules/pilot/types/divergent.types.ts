@@ -91,6 +91,9 @@ export interface DivergentTask {
   name: string;
   skillName: string;
   parameters: Record<string, unknown>;
+  query?: string; // Task query for skill execution
+  description: string; // Task description
+  contextItemIds?: string[]; // Canvas context items for this task
   depth: number;
   priority?: number;
 }

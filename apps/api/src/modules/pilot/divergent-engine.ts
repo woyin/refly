@@ -151,8 +151,6 @@ Available skills:
 - webSearch: For finding current information from the internet
 - commonQnA: For analysis, reasoning, and connecting information
 - librarySearch: For academic and authoritative sources
-- generateDoc: For creating structured documents
-- codeArtifacts: For creating code or technical implementations
 
 Guidelines:
 1. Generate diverse, complementary tasks that approach the topic from different angles
@@ -166,7 +164,7 @@ Response format (JSON):
   "tasks": [
     {
       "name": "descriptive_task_name",
-      "skillName": "webSearch|commonQnA|librarySearch|generateDoc|codeArtifacts",
+      "skillName": "webSearch|commonQnA|librarySearch",
       "parameters": {
         "query": "specific query or instruction",
         "context": "additional context if needed"
@@ -268,6 +266,7 @@ Synthesize these results and assess completion toward the original query.`;
           query: `Subtask ${i + 1} for: ${_summaryContent.substring(0, 50)}...`,
           context: 'Auto-generated divergent task',
         },
+        description: `Description for divergent task ${i + 1}: ${_summaryContent.substring(0, 100)}...`,
         depth: _currentDepth,
         priority: i + 1,
       });
