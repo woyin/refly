@@ -30,7 +30,6 @@
     "debug": "^4.3.5",
     "dedent": "^1.5.3",
     "dotenv": "~16.4.5",
-    "duck-duck-scrape": "~2.2.5",
     "eventsource": "^3.0.6",
     "extended-eventsource": "^2.1.0",
     "is-url": "~1.2.4",
@@ -38,9 +37,7 @@
     "jsonrepair": "^3.12.0",
     "langchain": "0.3.30",
     "lodash": "~4.17.21",
-    "lodash.uniqby": "~4.7.0",
     "p-limit": "3.1.0",
-    "tsx": "^4.6.2",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.3"
   },

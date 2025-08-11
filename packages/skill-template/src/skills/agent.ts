@@ -20,7 +20,6 @@ import {
   Source,
   User,
 } from '@refly/openapi-schema';
-import { createSkillTemplateInventory } from '../inventory';
 
 // types
 import { GraphState } from '../scheduler/types';
@@ -56,7 +55,7 @@ function convertToMCPTools(langchainTools: StructuredToolInterface[]): MCPTool[]
     // Convert Zod schema to JSON schema.
     // The `as any` is used because zodToJsonSchema returns a generic JSONSchema7Type,
     // and we need to access properties like title, description, etc., which might not be strictly typed.
-    const jsonSchema = zodToJsonSchema(zodSchema) as any;
+    const jsonSchema = zodToJsonSchema(zodSchema as any) as any;
 
     const properties = (jsonSchema?.properties ?? {}) as Record<string, object>;
     const propertyKeys = Object.keys(properties);
@@ -114,12 +113,7 @@ export class Agent extends BaseSkill {
     ...baseStateGraphArgs,
   };
 
-  skills: BaseSkill[] = createSkillTemplateInventory(this.engine);
   private userAgentComponentsCache = new Map<string, CachedAgentComponents>();
-
-  isValidSkillName = (name: string) => {
-    return this.skills.some((skill) => skill.name === name);
-  };
 
   commonPreprocess = async (
     state: GraphState,
@@ -453,7 +447,9 @@ export class Agent extends BaseSkill {
       this.engine.logger.log(`Agent components initialized and cached for user ${userId}`);
       return components;
     } catch (error) {
-      this.engine.logger.error('Critical error during new agent components initialization:', error);
+      this.engine.logger.error(
+        `Critical error during new agent components initialization: ${error}`,
+      );
       if (mcpClientToCache) {
         await mcpClientToCache
           .close()
@@ -465,7 +461,7 @@ export class Agent extends BaseSkill {
           );
       }
       if (error instanceof Error && error.stack) {
-        this.engine.logger.error('Error stack for new components initialization:', error.stack);
+        this.engine.logger.error(`Error stack for new components initialization: ${error.stack}`);
       }
       await this.dispose(userId);
       throw new Error('Failed to initialize agent components');
