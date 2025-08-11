@@ -4,7 +4,6 @@ import {
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Button, Divider, Popover, Tooltip } from 'antd';
 import { memo, useCallback, useState } from 'react';
-// import { useTranslation } from 'react-i18next';
 import { PilotSession, PilotStep } from '@refly/openapi-schema';
 import { PilotList } from '@refly-packages/ai-workspace-common/components/pilot/pilot-list';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +33,7 @@ const SessionHeader = memo(
     console.log('steps', steps);
     const { t } = useTranslation();
     return (
-      <div className="flex items-center justify-between w-full px-4 pt-4 pb-3">
+      <div className="flex items-center justify-between w-full px-4 pt-4">
         {/* Header Left */}
         <div className="flex items-center gap-1">
           <svg

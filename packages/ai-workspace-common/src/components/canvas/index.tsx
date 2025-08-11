@@ -964,7 +964,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           <CanvasToolbar onToolSelect={handleToolSelect} nodeLength={nodes?.length || 0} />
         )}
         {isPilotOpen ? (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 shadow-sm rounded-lg w-[550px] border border-solid border-gray-100 dark:border-gray-800">
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 shadow-sm rounded-lg w-[568px] border border-solid border-gray-100 dark:border-gray-800">
             <Pilot canvasId={canvasId} />
           </div>
         ) : (
