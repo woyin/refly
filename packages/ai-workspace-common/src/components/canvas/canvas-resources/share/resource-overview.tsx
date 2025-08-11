@@ -8,9 +8,9 @@ import { Button, Segmented } from 'antd';
 import { Add } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
-import { StepList } from './step-list';
-import { ResultList } from './result-list';
-import { MyUploadList } from './my-upload';
+import { StepList } from '../step-list';
+import { ResultList } from '../result-list';
+import { MyUploadList } from '../my-upload';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 
 export const ResourceOverview = memo(() => {

@@ -73,7 +73,7 @@ import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ChevronUp } from 'lucide-react';
 import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
-import { ResourceOverview } from './canvas-resources/resource-overview';
+import { ResourceOverview } from './canvas-resources/share/resource-overview';
 
 const GRID_SIZE = 10;
 

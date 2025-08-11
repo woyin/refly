@@ -9,7 +9,7 @@ import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canv
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
-import { ResourceItemAction } from '../resource-item-action';
+import { ResourceItemAction } from '../share/resource-item-action';
 
 const { Text } = Typography;
 

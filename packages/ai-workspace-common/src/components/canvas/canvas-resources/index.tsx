@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef } from 'react';
 import { Modal } from 'antd';
-import { CanvasResourcesHeader } from './canvas-resources-header';
-import { ResourceOverview } from './resource-overview';
+import { CanvasResourcesHeader } from './share/canvas-resources-header';
+import { ResourceOverview } from './share/resource-overview';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';

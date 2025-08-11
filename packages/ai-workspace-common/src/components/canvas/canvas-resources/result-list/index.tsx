@@ -7,7 +7,7 @@ import { cn } from '@refly/utils/cn';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
-import { ResourceItemAction } from '../resource-item-action';
+import { ResourceItemAction } from '../share/resource-item-action';
 
 // Define the node types we want to display
 export const RESULT_NODE_TYPES: CanvasNodeType[] = [
