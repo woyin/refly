@@ -5,7 +5,14 @@ import { ChatOllama } from '@langchain/ollama';
 import { ChatFireworks } from '@langchain/community/chat_models/fireworks';
 import { BaseProvider } from '../types';
 import { AzureChatOpenAI, AzureOpenAIInput, OpenAIBaseInput } from '@langchain/openai';
+import { ChatBedrockConverse } from '@langchain/aws';
 import { wrapChatModelWithMonitoring } from '../monitoring/langfuse-wrapper';
+import { ProviderMisconfigurationError } from '@refly/errors';
+
+interface BedrockApiKeyConfig {
+  accessKeyId: string;
+  secretAccessKey: string;
+}
 
 export const getChatModel = (
   provider: BaseProvider,
@@ -30,7 +37,7 @@ export const getChatModel = (
         configuration: {
           baseURL: provider.baseUrl,
         },
-        include_reasoning: config?.capabilities?.reasoning,
+        reasoning: config?.capabilities?.reasoning ? { effort: 'medium' } : undefined,
         ...commonParams,
       });
       break;
@@ -55,6 +62,30 @@ export const getChatModel = (
         reasoningEffort: config?.capabilities?.reasoning ? 'medium' : undefined,
         ...commonParams,
       });
+      break;
+    case 'bedrock':
+      try {
+        const apiKeyConfig = JSON.parse(provider.apiKey) as BedrockApiKeyConfig;
+        model = new ChatBedrockConverse({
+          model: config.modelId,
+          region: extraParams.region,
+          credentials: apiKeyConfig,
+          ...commonParams,
+          ...(config?.capabilities?.reasoning
+            ? {
+                additionalModelRequestFields: {
+                  thinking: {
+                    type: 'enabled',
+                    budget_tokens: 2000, // Must be over 1024
+                  },
+                },
+                temperature: undefined, // Temperature must be 1 or unset for reasoning to work
+              }
+            : {}),
+        });
+      } catch (error) {
+        throw new ProviderMisconfigurationError(`Invalid bedrock api key config: ${error}`);
+      }
       break;
     default:
       throw new Error(`Unsupported provider: ${provider?.providerKey}`);
