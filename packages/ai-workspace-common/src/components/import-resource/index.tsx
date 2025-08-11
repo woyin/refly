@@ -117,6 +117,7 @@ export const ImportResourceModal = memo(() => {
           projectId: currentProjectId,
           resourceType: item.type,
           title: item.title ?? '',
+          storageKey: item.file?.storageKey,
           data: {
             url: item.url,
             title: item.title,

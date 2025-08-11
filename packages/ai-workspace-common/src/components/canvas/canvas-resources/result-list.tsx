@@ -58,8 +58,6 @@ export const ResultList = memo(() => {
     );
   }
 
-  console.log(resultNodes);
-
   return (
     <div className="overflow-y-auto h-full">
       <div className="h-full flex flex-col gap-2">
