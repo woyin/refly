@@ -56,13 +56,11 @@ export const CanvasResourcesHeader = memo(() => {
   }, [setImportResourceModalVisible]);
 
   const handleWideScreen = useCallback(() => {
-    console.log('handleWideScreen');
     setShowLeftOverview(false);
     setPanelMode('wide');
   }, [setPanelMode]);
 
   const handleExitWideScreen = useCallback(() => {
-    console.log('handleExitWideScreen');
     setPanelMode('normal');
   }, [setPanelMode]);
 

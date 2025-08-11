@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Modal } from 'antd';
 import { CanvasResourcesHeader } from './canvas-resources-header';
 import { ResourceOverview } from './resource-overview';
@@ -21,13 +21,14 @@ export const CanvasResources = memo(() => {
     }));
 
   const { canvasId } = useCanvasContext();
+  const prevCanvasIdRef = useRef<string | null>(canvasId);
 
   useEffect(() => {
-    console.log('CanvasResources useEffect', canvasId);
-    if (canvasId) {
+    if (canvasId && canvasId !== prevCanvasIdRef.current) {
+      prevCanvasIdRef.current = canvasId;
       resetState();
     }
-  }, [canvasId]);
+  }, [canvasId, resetState]);
 
   useEffect(() => {
     if (activeNode) {
@@ -45,7 +46,7 @@ export const CanvasResources = memo(() => {
 
   return (
     <div
-      className={`w-full h-full flex flex-col bg-refly-bg-content-z2 rounded-xl border-solid border-[1px] border-refly-Card-Border shadow-refly-m ${
+      className={`w-full h-full overflow-hidden flex flex-col bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m ${
         showLeftOverview ? 'rounded-l-none' : ''
       }`}
     >
@@ -60,7 +61,6 @@ export const CanvasResourcesWidescreenModal = memo(() => {
     panelMode: state.panelMode,
     setPanelMode: state.setPanelMode,
   }));
-  console.log('panelMode', panelMode);
 
   return (
     <Modal
@@ -75,13 +75,17 @@ export const CanvasResourcesWidescreenModal = memo(() => {
       footer={null}
       width="90%"
       styles={{
+        wrapper: {
+          transform: 'translateX(4.5%)',
+        },
         content: {
           padding: 0,
         },
       }}
       className="flex flex-col"
+      destroyOnHidden
     >
-      <div className="flex w-full h-[95vh]">
+      <div className="flex w-full h-[99vh]">
         <div className="w-[360px] h-full border-r border-refly-Card-Border">
           <ResourceOverview />
         </div>
