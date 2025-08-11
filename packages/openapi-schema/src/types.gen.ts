@@ -1424,6 +1424,7 @@ export type TokenUsageItem = {
   outputTokens: number;
   /**
    * Model tier
+   * @deprecated
    */
   tier?: string;
 };
