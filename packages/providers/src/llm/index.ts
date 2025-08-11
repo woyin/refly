@@ -4,16 +4,23 @@ import { EnhancedChatOpenAI } from './openai';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatFireworks } from '@langchain/community/chat_models/fireworks';
 import { BaseProvider } from '../types';
-import { OpenAIBaseInput } from '@langchain/openai';
+import { AzureChatOpenAI, AzureOpenAIInput, OpenAIBaseInput } from '@langchain/openai';
 import { wrapChatModelWithMonitoring } from '../monitoring/langfuse-wrapper';
 
 export const getChatModel = (
   provider: BaseProvider,
   config: LLMModelConfig,
-  params?: Partial<OpenAIBaseInput>,
+  params?: Partial<OpenAIBaseInput> | Partial<AzureOpenAIInput>,
   context?: { userId?: string },
 ): BaseChatModel => {
   let model: BaseChatModel;
+  const extraParams = provider.extraParams ? JSON.parse(provider.extraParams) : {};
+
+  const commonParams = {
+    ...extraParams,
+    ...params,
+    ...(config?.disallowTemperature ? { temperature: undefined } : {}),
+  };
 
   switch (provider?.providerKey) {
     case 'openai':
@@ -23,22 +30,30 @@ export const getChatModel = (
         configuration: {
           baseURL: provider.baseUrl,
         },
-        ...params,
         include_reasoning: config?.capabilities?.reasoning,
+        ...commonParams,
       });
       break;
     case 'ollama':
       model = new ChatOllama({
         model: config.modelId,
         baseUrl: provider.baseUrl?.replace(/\/v1\/?$/, ''),
-        ...params,
+        ...commonParams,
       });
       break;
     case 'fireworks':
       model = new ChatFireworks({
         model: config.modelId,
         apiKey: provider.apiKey,
-        ...params,
+        ...commonParams,
+      });
+      break;
+    case 'azure':
+      model = new AzureChatOpenAI({
+        model: config.modelId,
+        azureOpenAIApiKey: provider.apiKey,
+        reasoningEffort: config?.capabilities?.reasoning ? 'medium' : undefined,
+        ...commonParams,
       });
       break;
     default:
