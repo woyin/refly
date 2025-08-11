@@ -16,6 +16,7 @@ interface CanvasResourcesPanelState {
   parentType: CanvasResourcesParentType | null;
   activeTab: CanvasResourcesParentType;
   activeNode: CanvasNode | null;
+  searchKeyword: string;
 
   // Methods
   setPanelWidth: (width: number) => void;
@@ -25,6 +26,7 @@ interface CanvasResourcesPanelState {
   setParentType: (type: CanvasResourcesParentType | null) => void;
   setActiveTab: (tab: CanvasResourcesParentType) => void;
   setActiveNode: (node: CanvasNode | null) => void;
+  setSearchKeyword: (keyword: string) => void;
 
   resetState: () => void;
 }
@@ -39,6 +41,7 @@ const defaultState = {
   parentType: null,
   activeTab: 'stepsRecord' as const,
   activeNode: null,
+  searchKeyword: '',
 };
 
 export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
@@ -55,6 +58,7 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
       setParentType: (type: CanvasResourcesParentType | null) => set({ parentType: type }),
       setActiveTab: (tab: CanvasResourcesParentType) => set({ activeTab: tab }),
       setActiveNode: (node: CanvasNode | null) => set({ activeNode: node }),
+      setSearchKeyword: (keyword: string) => set({ searchKeyword: keyword }),
       resetState: () => set(defaultState),
     }),
     {

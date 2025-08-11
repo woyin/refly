@@ -79,13 +79,13 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
 export const StepList = memo(() => {
   const { t } = useTranslation();
   const { nodes, nodesSignature } = useRealtimeCanvasData();
-  const { setParentType, setActiveNode, activeNode } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
+  const { setParentType, setActiveNode, activeNode, searchKeyword } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
       setParentType: state.setParentType,
       setActiveNode: state.setActiveNode,
       activeNode: state.activeNode,
-    }),
-  );
+      searchKeyword: state.searchKeyword,
+    }));
   const { setNodeCenter } = useNodePosition();
   const { getNodes } = useReactFlow();
   const { deleteNode } = useDeleteNode();
@@ -135,6 +135,15 @@ export const StepList = memo(() => {
       nodeMap.set(node.id, node);
     }
 
+    // Helper function to check if a node matches the search keyword
+    const nodeMatchesSearch = (node: CanvasNode): boolean => {
+      if (!searchKeyword?.trim()) {
+        return true;
+      }
+      const title = node?.data?.title ?? '';
+      return title.toLowerCase().includes(searchKeyword.toLowerCase());
+    };
+
     // Build tree structure
     const treeNodes: TreeNode[] = [];
 
@@ -168,9 +177,41 @@ export const StepList = memo(() => {
         isDescendantOfGroup(skillNode, groupNode.id),
       );
 
-      // Add skillResponse nodes as children
+      // Add skillResponse nodes as children (filtered by search keyword)
       for (const skillNode of childSkillResponses) {
-        groupTreeNode.children?.push({
+        if (nodeMatchesSearch(skillNode)) {
+          groupTreeNode.children?.push({
+            key: skillNode.id,
+            title: (
+              <StepRowTitle
+                node={skillNode}
+                isActive={activeNode?.id === skillNode.id}
+                onLocate={handleLocateNode}
+                onDelete={handleDeleteNode}
+              />
+            ),
+            nodeType: 'skillResponse',
+            nodeData: skillNode,
+            icon: <NodeIcon type="skillResponse" small />,
+          });
+        }
+      }
+
+      // Only include group if it has skillResponse children or if the group itself matches search
+      if ((groupTreeNode.children?.length ?? 0) > 0 || nodeMatchesSearch(groupNode)) {
+        treeNodes.push(groupTreeNode);
+      }
+    }
+
+    // Add skillResponse nodes that don't belong to any group (by ancestry)
+    const orphanedSkillResponses = skillResponseNodes.filter((skillNode) => {
+      // If it belongs to any group, skip
+      return !groupNodes.some((groupNode) => isDescendantOfGroup(skillNode, groupNode.id));
+    });
+
+    for (const skillNode of orphanedSkillResponses) {
+      if (nodeMatchesSearch(skillNode)) {
+        treeNodes.push({
           key: skillNode.id,
           title: (
             <StepRowTitle
@@ -185,42 +226,10 @@ export const StepList = memo(() => {
           icon: <NodeIcon type="skillResponse" small />,
         });
       }
-
-      // Only include group if it has skillResponse children
-      if ((groupTreeNode.children?.length ?? 0) > 0) {
-        treeNodes.push(groupTreeNode);
-      }
-    }
-
-    // Add skillResponse nodes that don't belong to any group (by ancestry)
-    const orphanedSkillResponses = skillResponseNodes.filter((skillNode) => {
-      // If it belongs to any group, skip
-      return !groupNodes.some((groupNode) => isDescendantOfGroup(skillNode, groupNode.id));
-    });
-
-    for (const skillNode of orphanedSkillResponses) {
-      treeNodes.push({
-        key: skillNode.id,
-        title: (
-          <StepRowTitle
-            node={skillNode}
-            isActive={activeNode?.id === skillNode.id}
-            onLocate={handleLocateNode}
-            onDelete={handleDeleteNode}
-          />
-        ),
-        nodeType: 'skillResponse',
-        nodeData: skillNode,
-        icon: <NodeIcon type="skillResponse" small />,
-      });
     }
 
     return treeNodes;
-  }, [nodes, nodesSignature, activeNode?.id]);
-
-  const hasSteps = useMemo(() => {
-    return nodes?.some((node) => node.type === 'skillResponse') ?? false;
-  }, [nodes, nodesSignature]);
+  }, [nodes, nodesSignature, activeNode?.id, searchKeyword]);
 
   const handleNodeSelect = (
     _: React.Key[],
@@ -238,10 +247,12 @@ export const StepList = memo(() => {
     setActiveNode(node);
   };
 
-  if (!hasSteps) {
+  if (!treeData?.length) {
     return (
       <div className="h-full w-full flex items-center justify-center text-refly-text-2 text-sm leading-5">
-        {t('canvas.resourceLibrary.noStepsRecord', { defaultValue: 'No steps recorded yet' })}
+        {searchKeyword?.trim()
+          ? t('canvas.resourceLibrary.noSearchResults')
+          : t('canvas.resourceLibrary.noStepsRecord')}
       </div>
     );
   }

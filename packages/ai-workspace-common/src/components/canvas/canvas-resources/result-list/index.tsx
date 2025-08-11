@@ -23,22 +23,40 @@ const { Text } = Typography;
 export const ResultList = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
-  const { setParentType, setActiveNode, activeNode } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
+  const { setParentType, setActiveNode, activeNode, searchKeyword } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
       setParentType: state.setParentType,
       setActiveNode: state.setActiveNode,
       activeNode: state.activeNode,
-    }),
-  );
+      searchKeyword: state.searchKeyword,
+    }));
 
-  // Filter nodes by the specified types
+  // Filter nodes by the specified types and search keyword
   const resultNodes = useMemo(() => {
     if (!nodes?.length) {
       return [];
     }
 
-    return nodes.filter((node) => RESULT_NODE_TYPES.includes(node.type as CanvasNodeType));
-  }, [nodes]);
+    let filteredNodes = nodes.filter((node) =>
+      RESULT_NODE_TYPES.includes(node.type as CanvasNodeType),
+    );
+
+    // Apply search keyword filtering if provided
+    if (searchKeyword?.trim()) {
+      const keyword = searchKeyword.toLowerCase().trim();
+      filteredNodes = filteredNodes.filter((node) => {
+        const title = node.data?.title?.toLowerCase() ?? '';
+        const contentPreview = node.data?.contentPreview?.toLowerCase() ?? '';
+        const metadata = JSON.stringify(node.data?.metadata ?? {}).toLowerCase();
+
+        return (
+          title.includes(keyword) || contentPreview.includes(keyword) || metadata.includes(keyword)
+        );
+      });
+    }
+
+    return filteredNodes;
+  }, [nodes, searchKeyword]);
 
   const handleNodeSelect = useCallback(
     (node: CanvasNode) => {
@@ -51,9 +69,9 @@ export const ResultList = memo(() => {
   if (!resultNodes?.length) {
     return (
       <div className="h-full w-full flex items-center justify-center text-refly-text-2 text-sm leading-5">
-        {t('canvas.resourceLibrary.noResultsRecord', {
-          defaultValue: 'No results recorded yet',
-        })}
+        {searchKeyword?.trim()
+          ? t('canvas.resourceLibrary.noSearchResults')
+          : t('canvas.resourceLibrary.noResultsRecord')}
       </div>
     );
   }

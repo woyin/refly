@@ -9,21 +9,31 @@ import { MyUploadItem } from './my-upload-item';
 export const MyUploadList = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
-  const { setParentType, setActiveNode, activeNode } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
+  const { setParentType, setActiveNode, activeNode, searchKeyword } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
       setParentType: state.setParentType,
       setActiveNode: state.setActiveNode,
       activeNode: state.activeNode,
-    }),
-  );
+      searchKeyword: state.searchKeyword,
+    }));
+
   // Filter nodes by resource type
   const resourceNodes = useMemo(() => {
     if (!nodes?.length) {
       return [];
     }
 
-    return nodes.filter((node) => node.type === 'resource');
-  }, [nodes]);
+    let filteredNodes = nodes.filter((node) => node.type === 'resource');
+    if (searchKeyword?.trim()) {
+      const keyword = searchKeyword.toLowerCase().trim();
+      filteredNodes = filteredNodes.filter((node) => {
+        const title = node.data?.title?.toLowerCase() ?? '';
+        return title.includes(keyword);
+      });
+    }
+
+    return filteredNodes;
+  }, [nodes, searchKeyword]);
 
   const handleNodeSelect = useCallback(
     (node: CanvasNode, beforeParsed: boolean) => {
@@ -44,9 +54,9 @@ export const MyUploadList = memo(() => {
   if (!resourceNodes?.length) {
     return (
       <div className="h-full w-full flex items-center justify-center text-refly-text-2 text-sm leading-5">
-        {t('canvas.resourceLibrary.noMyUploads', {
-          defaultValue: 'No files uploaded yet',
-        })}
+        {searchKeyword?.trim()
+          ? t('canvas.resourceLibrary.noSearchResults')
+          : t('canvas.resourceLibrary.noMyUploads')}
       </div>
     );
   }

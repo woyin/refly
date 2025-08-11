@@ -1499,6 +1499,7 @@ const translations = {
       wideScreen: 'Wide Screen',
       exitWideScreen: 'Exit Wide Screen',
       searchPlaceholder: 'Search project resources',
+      noSearchResults: 'No results found',
       stepsRecord: 'Steps',
       noStepsRecord: 'No steps record',
       resultsRecord: 'Results',

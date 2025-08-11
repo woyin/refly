@@ -1459,6 +1459,7 @@ const translations = {
       wideScreen: '宽屏',
       exitWideScreen: '退出宽屏',
       searchPlaceholder: '搜索项目资源',
+      noSearchResults: '未搜索到任何结果',
       stepsRecord: '步骤记录',
       noStepsRecord: '暂无步骤记录',
       resultsRecord: '结果记录',

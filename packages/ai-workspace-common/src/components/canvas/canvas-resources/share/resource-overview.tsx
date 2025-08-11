@@ -4,7 +4,7 @@ import {
   useImportResourceStoreShallow,
   type CanvasResourcesParentType,
 } from '@refly/stores';
-import { Button, Segmented } from 'antd';
+import { Button, Input, Segmented } from 'antd';
 import { Add } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
@@ -17,10 +17,13 @@ export const ResourceOverview = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
 
-  const { activeTab, setActiveTab } = useCanvasResourcesPanelStoreShallow((state) => ({
-    activeTab: state.activeTab,
-    setActiveTab: state.setActiveTab,
-  }));
+  const { activeTab, searchKeyword, setActiveTab, setSearchKeyword } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
+      activeTab: state.activeTab,
+      searchKeyword: state.searchKeyword,
+      setActiveTab: state.setActiveTab,
+      setSearchKeyword: state.setSearchKeyword,
+    }));
   const { setImportResourceModalVisible } = useImportResourceStoreShallow((state) => ({
     setImportResourceModalVisible: state.setImportResourceModalVisible,
   }));
@@ -80,6 +83,15 @@ export const ResourceOverview = memo(() => {
         </div>
       ) : (
         <>
+          <div className="w-full">
+            <Input
+              placeholder={t('canvas.resourceLibrary.searchPlaceholder')}
+              className="border border-refly-Card-Border"
+              variant="filled"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+            />
+          </div>
           <Segmented
             className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"
             size="middle"
@@ -92,8 +104,8 @@ export const ResourceOverview = memo(() => {
 
           <div className="flex-grow overflow-y-auto min-h-0">
             {activeTab === 'stepsRecord' && <StepList />}
-            {activeTab === 'myUpload' && <MyUploadList />}
             {activeTab === 'resultsRecord' && <ResultList />}
+            {activeTab === 'myUpload' && <MyUploadList />}
           </div>
         </>
       )}
