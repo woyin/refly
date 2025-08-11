@@ -199,8 +199,9 @@ export const ImportResourceModal = memo(() => {
         width={'65%'}
         maskClosable={!showSearchResults}
         style={{
-          minWidth: '300px',
-          maxWidth: '1050px',
+          minWidth: '600px',
+          maxWidth: '720px',
+          maxHeight: '720px',
         }}
       >
         <div className="flex flex-col gap-4 p-6 h-full overflow-y-auto">
