@@ -259,7 +259,7 @@ model PilotStep {
   /// Raw step output from LLM
   rawOutput        String?  @map("raw_output")
   /// Divergent node fields
-  nodeType         String?  @default("execution") @map("node_type")
+  mode             String?  @default("subtask") @map("mode")
   depth            Int?     @default(0) @map("depth")
   parentStepId     String?  @map("parent_step_id")
   convergenceGroup String?  @map("convergence_group")

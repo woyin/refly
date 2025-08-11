@@ -473,7 +473,7 @@ export class DivergentOrchestrator {
     const latestStep = await this.prisma.pilotStep.findFirst({
       where: {
         sessionId: session.sessionId,
-        nodeType: 'summary',
+        mode: 'summary',
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -640,7 +640,7 @@ export class DivergentOrchestrator {
         entityId: entityId || stepId, // Use ActionResult ID if provided
         entityType: 'skillResponse',
         rawOutput: JSON.stringify(task),
-        nodeType: 'execution',
+        mode: 'execution',
         depth: session.currentDepth,
         convergenceGroup: `depth-${session.currentDepth}`,
         status: 'executing',
@@ -654,7 +654,7 @@ export class DivergentOrchestrator {
       const parentSummaryStep = await this.prisma.pilotStep.findFirst({
         where: {
           sessionId: session.sessionId,
-          nodeType: 'summary',
+          mode: 'summary',
           depth: session.currentDepth - 1,
         },
         orderBy: { createdAt: 'desc' },
@@ -682,7 +682,7 @@ export class DivergentOrchestrator {
         sessionId: session.sessionId,
         name: summaryTitle,
         epoch: session.currentDepth,
-        nodeType: 'summary',
+        mode: 'summary',
         depth: session.currentDepth,
         completionScore: convergenceResult.completionScore.toString(),
         status: 'completed',
@@ -694,7 +694,7 @@ export class DivergentOrchestrator {
     const executionSteps = await this.prisma.pilotStep.findMany({
       where: {
         sessionId: session.sessionId,
-        nodeType: 'execution',
+        mode: 'execution',
         depth: session.currentDepth,
         convergenceGroup: `depth-${session.currentDepth}`,
       },
@@ -728,7 +728,7 @@ export class DivergentOrchestrator {
         entityId: entityId || stepId, // Use ActionResult ID if provided
         entityType: 'skillResponse',
         rawOutput: JSON.stringify({ skill, type: 'final_output' }),
-        nodeType: 'summary',
+        mode: 'summary',
         depth: session.currentDepth,
         status: 'executing',
       },
@@ -738,7 +738,7 @@ export class DivergentOrchestrator {
     const latestSummaryStep = await this.prisma.pilotStep.findFirst({
       where: {
         sessionId: session.sessionId,
-        nodeType: 'summary',
+        mode: 'summary',
         stepId: { not: stepId }, // Exclude the final output step itself
       },
       orderBy: { createdAt: 'desc' },

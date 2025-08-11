@@ -74,7 +74,7 @@ export class PilotService {
     // Queue the pilot process instead of running it directly
     await this.runPilotQueue.add(
       `run-pilot-${sessionId}`,
-      { user, sessionId },
+      { user, sessionId, mode: 'subtask' },
       { removeOnComplete: true, removeOnFail: 100 },
     );
 
@@ -309,7 +309,16 @@ export class PilotService {
    * @param user - The user to run the pilot for
    * @param sessionId - The ID of the session to run the pilot for
    */
-  async runPilot(user: User, sessionId: string, session?: PilotSession) {
+  async runPilot(
+    user: User,
+    sessionId: string,
+    session?: PilotSession,
+    mode?: 'subtask' | 'summary' | 'finalOutput',
+  ) {
+    if (mode === 'summary') {
+      return this.runPilotSummary(user, sessionId, session, mode);
+    }
+
     const pilotSession =
       session ??
       (await this.prisma.pilotSession.findUnique({
@@ -323,14 +332,16 @@ export class PilotService {
       throw new Error('Pilot session not found');
     }
 
-    const { steps } = await this.getPilotSessionDetail(user, sessionId);
-
     const { targetId, targetType, currentEpoch, maxEpoch } = pilotSession;
     const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
       user,
       targetId,
       true,
     );
+
+    const { steps } = await this.getPilotSessionDetail(user, sessionId);
+    const latestSummarySteps =
+      steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') || [];
 
     if (currentEpoch >= maxEpoch) {
       this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
@@ -375,7 +386,7 @@ export class PilotService {
     const engine = new PilotEngine(
       agentModel,
       pilotSessionPO2DTO(pilotSession),
-      steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
+      latestSummarySteps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     );
     const rawSteps = await engine.run(canvasContentItems, 3, locale);
 
@@ -390,6 +401,8 @@ export class PilotService {
 
     const skills = this.skillService.listSkills(true);
 
+    const contextEntityIds = latestSummarySteps.map(({ step }) => step.entityId);
+
     for (const rawStep of rawSteps) {
       const stepId = genPilotStepID();
       const skill = skills.find((skill) => skill.name === rawStep.skillName);
@@ -400,7 +413,7 @@ export class PilotService {
 
       const { context, history } = await this.buildContextAndHistory(
         canvasContentItems,
-        rawStep.contextItemIds,
+        contextEntityIds,
       );
       const resultId = genActionResultID();
 
@@ -440,6 +453,7 @@ export class PilotService {
           entityType: 'skillResponse',
           rawOutput: JSON.stringify(rawStep),
           status: 'executing',
+          mode: 'subtask',
         },
       });
 
@@ -495,6 +509,181 @@ export class PilotService {
   }
 
   /**
+   * Run the pilot for a given session
+   * @param user - The user to run the pilot for
+   * @param sessionId - The ID of the session to run the pilot for
+   */
+  async runPilotSummary(
+    user: User,
+    sessionId: string,
+    session?: PilotSession,
+    _mode?: 'subtask' | 'summary' | 'finalOutput',
+  ) {
+    const pilotSession =
+      session ??
+      (await this.prisma.pilotSession.findUnique({
+        where: {
+          sessionId,
+          uid: user.uid,
+        },
+      }));
+
+    if (!pilotSession) {
+      throw new Error('Pilot session not found');
+    }
+
+    const { targetId, targetType, currentEpoch, maxEpoch } = pilotSession;
+    const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
+      user,
+      targetId,
+      true,
+    );
+
+    const { steps } = await this.getPilotSessionDetail(user, sessionId);
+    const latestSubtaskSteps =
+      steps?.filter(({ step }) => step.epoch === currentEpoch && step.mode === 'subtask') || [];
+
+    if (currentEpoch >= maxEpoch) {
+      this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
+
+      if (pilotSession.status !== 'finish') {
+        await this.prisma.pilotSession.update({
+          where: { sessionId },
+          data: { status: 'finish' },
+        });
+      }
+
+      return;
+    }
+
+    this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
+
+    const agentPi = await this.providerService.findProviderItemById(
+      user,
+      pilotSession.providerItemId,
+    );
+    if (!agentPi || agentPi.category !== 'llm' || !agentPi.enabled) {
+      throw new ProviderItemNotFoundError(
+        `provider item ${pilotSession.providerItemId} not valid for agent`,
+      );
+    }
+
+    const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
+    if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
+      throw new ProviderItemNotFoundError(`provider item ${pilotSession.providerItemId} not valid`);
+    }
+    const chatModelId = JSON.parse(chatPi.config).modelId;
+
+    const skills = this.skillService.listSkills(true);
+
+    const contextEntityIds = latestSubtaskSteps.map(({ step }) => step.entityId);
+
+    {
+      const stepId = genPilotStepID();
+      const skill = skills.find((skill) => skill.name === 'commonQnA');
+      if (!skill) {
+        this.logger.warn('Skill commonQnA not found, skip this step');
+        return;
+      }
+
+      const { context, history } = await this.buildContextAndHistory(
+        canvasContentItems,
+        contextEntityIds,
+      );
+      const resultId = genActionResultID();
+
+      const actionResult = await this.prisma.actionResult.create({
+        data: {
+          uid: user.uid,
+          resultId,
+          title: 'Summary',
+          actionMeta: JSON.stringify({
+            type: 'skill',
+            name: skill.name,
+            icon: skill.icon,
+          } as ActionMeta),
+          input: JSON.stringify({ query: 'Summary' } as SkillInput),
+          status: 'waiting',
+          targetId,
+          targetType,
+          context: JSON.stringify(context),
+          history: JSON.stringify(history),
+          modelName: chatModelId,
+          tier: chatPi.tier,
+          errors: '[]',
+          pilotStepId: stepId,
+          pilotSessionId: sessionId,
+          runtimeConfig: '{}',
+          tplConfig: '{}',
+          providerItemId: chatPi.itemId,
+        },
+      });
+      await this.prisma.pilotStep.create({
+        data: {
+          stepId,
+          name: 'Summary',
+          sessionId,
+          epoch: currentEpoch,
+          entityId: actionResult.resultId,
+          entityType: 'skillResponse',
+          rawOutput: JSON.stringify({}),
+          status: 'executing',
+          mode: 'summary',
+        },
+      });
+
+      const contextItems = convertResultContextToItems(context, history);
+
+      if (targetType === 'canvas') {
+        await this.canvasService.addNodeToCanvas(
+          user,
+          targetId,
+          {
+            type: 'skillResponse',
+            data: {
+              title: 'Summary',
+              entityId: resultId,
+              metadata: {
+                status: 'executing',
+                contextItems,
+                tplConfig: '{}',
+                runtimeConfig: '{}',
+                modelInfo: {
+                  modelId: chatModelId,
+                },
+              },
+            },
+          },
+          convertContextItemsToNodeFilters(contextItems),
+        );
+      }
+
+      await this.skillService.sendInvokeSkillTask(user, {
+        resultId,
+        input: { query: 'Summary' },
+        target: {
+          entityId: targetId,
+          entityType: targetType as EntityType,
+        },
+        modelName: chatModelId,
+        modelItemId: chatPi.itemId,
+        context,
+        resultHistory: history,
+        skillName: skill.name,
+        selectedMcpServers: [],
+      });
+    }
+
+    // Rotate the session status to waiting
+    await this.prisma.pilotSession.update({
+      where: { sessionId },
+      data: {
+        status: 'waiting',
+      },
+    });
+  }
+
+  /**
    * Whenever a step is updated, check if all steps in the same epoch are completed.
    * If so, we need to update the session status to completed.
    * If not, we need to continue waiting.
@@ -525,14 +714,38 @@ export class PilotService {
       return;
     }
 
-    const isAllStepsFinished = epochSteps.every((step) => step.status === 'finish');
+    const isAllSubtaskStepsFinished =
+      epochSteps.filter((step) => step.mode === 'subtask').length > 0 &&
+      epochSteps
+        .filter((step) => step.mode === 'subtask')
+        .every((step) => step.status === 'finish');
+
+    const isAllSummaryStepsFinished =
+      epochSteps.filter((step) => step.mode === 'summary').length > 0 &&
+      epochSteps
+        .filter((step) => step.mode === 'summary')
+        .every((step) => step.status === 'finish');
+
     const reachedMaxEpoch = step.epoch >= session.maxEpoch;
     this.logger.log(
       `Epoch (${session.currentEpoch}/${session.maxEpoch}) for session ${step.sessionId}: ` +
-        `steps are ${isAllStepsFinished ? 'finished' : 'not finished'}`,
+        `steps are ${isAllSummaryStepsFinished ? 'finished' : 'not finished'}`,
     );
 
-    if (isAllStepsFinished) {
+    if (isAllSubtaskStepsFinished && !isAllSummaryStepsFinished) {
+      await this.runPilotQueue.add(
+        `run-pilot-${step.sessionId}-${session.currentEpoch}`,
+        {
+          user,
+          sessionId: step.sessionId,
+          mode: 'summary',
+        },
+        { removeOnComplete: true, removeOnFail: 100 },
+      );
+      return;
+    }
+
+    if (isAllSubtaskStepsFinished && isAllSummaryStepsFinished) {
       await this.prisma.pilotSession.update({
         where: { sessionId: step.sessionId },
         data: {
@@ -545,7 +758,11 @@ export class PilotService {
         // Queue the next runPilot job instead of running it directly
         await this.runPilotQueue.add(
           `run-pilot-${step.sessionId}-${session.currentEpoch + 1}`,
-          { user, sessionId: step.sessionId },
+          {
+            user,
+            sessionId: step.sessionId,
+            mode: 'subtask',
+          },
           { removeOnComplete: true, removeOnFail: 100 },
         );
       }
