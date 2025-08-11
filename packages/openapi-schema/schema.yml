@@ -4771,6 +4771,12 @@ components:
         pilotSessionId:
           type: string
           description: Pilot session ID
+        workflowExecutionId:
+          type: string
+          description: Workflow execution ID for workflow context
+        workflowNodeExecutionId:
+          type: string
+          description: Workflow node execution ID for workflow context
         createdAt:
           type: string
           format: date-time
@@ -6887,6 +6893,12 @@ components:
           description: Selected MCP servers
           items:
             type: string
+        workflowExecutionId:
+          type: string
+          description: Workflow execution ID for workflow context
+        workflowNodeExecutionId:
+          type: string
+          description: Workflow node execution ID for workflow context
     InvokeSkillResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -8453,18 +8465,16 @@ components:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
         - type: object
-          required:
-            - executionId
-            - success
           properties:
-            executionId:
-              type: string
-              description: Workflow execution ID
-              example: "we-abc123"
-            success:
-              type: boolean
-              description: Whether the workflow initialization was successful
-              example: true
+            data:
+              type: object
+              required:
+                - workflowExecutionId
+              properties:
+                workflowExecutionId:
+                  type: string
+                  description: Workflow execution ID
+                  example: "we-abc123"
   securitySchemes:
     api_key:
       type: apiKey

@@ -328,10 +328,10 @@ export class WorkflowService {
 
   /**
    * Sync workflow - called after skill-invoker finishes
-   * @param user - The user
+   * @param user - The user with minimal PII (only uid)
    * @param nodeExecutionId - The node execution ID
    */
-  async syncWorkflow(user: User, nodeExecutionId: string): Promise<void> {
+  async syncWorkflow(user: Pick<User, 'uid'>, nodeExecutionId: string): Promise<void> {
     try {
       // Find the workflow node execution by nodeExecutionId
       const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
@@ -363,7 +363,17 @@ export class WorkflowService {
         });
 
         if (workflowExecution) {
-          const canvasState = await this.canvasSyncService.getCanvasData(user, {
+          // Get full user object for canvas operations
+          const fullUser = await this.prisma.user.findUnique({
+            where: { uid: user.uid },
+          });
+
+          if (!fullUser) {
+            this.logger.warn(`User not found for uid: ${user.uid}`);
+            return;
+          }
+
+          const canvasState = await this.canvasSyncService.getCanvasData(fullUser, {
             canvasId: workflowExecution.canvasId,
           });
           const { nodes } = canvasState;
@@ -381,7 +391,7 @@ export class WorkflowService {
               },
             };
 
-            await this.canvasSyncService.syncState(user, {
+            await this.canvasSyncService.syncState(fullUser, {
               canvasId: workflowExecution.canvasId,
               transactions: [
                 {

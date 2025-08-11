@@ -2203,11 +2203,11 @@ export const ActionResultSchema = {
     },
     workflowExecutionId: {
       type: 'string',
-      description: 'Workflow execution ID',
+      description: 'Workflow execution ID for workflow context',
     },
     workflowNodeExecutionId: {
       type: 'string',
-      description: 'Workflow node execution ID',
+      description: 'Workflow node execution ID for workflow context',
     },
     createdAt: {
       type: 'string',
@@ -5282,6 +5282,14 @@ export const InvokeSkillRequestSchema = {
         type: 'string',
       },
     },
+    workflowExecutionId: {
+      type: 'string',
+      description: 'Workflow execution ID for workflow context',
+    },
+    workflowNodeExecutionId: {
+      type: 'string',
+      description: 'Workflow node execution ID for workflow context',
+    },
   },
 } as const;
 
@@ -7534,17 +7542,17 @@ export const InitializeWorkflowResponseSchema = {
     },
     {
       type: 'object',
-      required: ['executionId', 'success'],
       properties: {
-        executionId: {
-          type: 'string',
-          description: 'Workflow execution ID',
-          example: 'we-abc123',
-        },
-        success: {
-          type: 'boolean',
-          description: 'Whether the workflow initialization was successful',
-          example: true,
+        data: {
+          type: 'object',
+          required: ['workflowExecutionId'],
+          properties: {
+            workflowExecutionId: {
+              type: 'string',
+              description: 'Workflow execution ID',
+              example: 'we-abc123',
+            },
+          },
         },
       },
     },

@@ -1,12 +1,14 @@
-import { User } from '@refly/openapi-schema';
+import type { User } from '@refly/openapi-schema';
+
+type JobUser = Pick<User, 'uid'>;
 
 export interface SyncWorkflowJobData {
-  user: User;
+  user: Pick<User, 'uid'>;
   nodeExecutionId: string;
 }
 
 export interface RunWorkflowJobData {
-  user: User;
+  user: JobUser;
   executionId: string;
   nodeId: string;
 }

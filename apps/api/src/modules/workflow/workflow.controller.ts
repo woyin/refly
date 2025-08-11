@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
-import { User } from '@refly/openapi-schema';
+import { User as UserModel } from '../../generated/client';
 import { WorkflowService } from './workflow.service';
 import { InitializeWorkflowRequest, InitializeWorkflowResponse } from './workflow.dto';
 
@@ -12,7 +12,7 @@ export class WorkflowController {
   @UseGuards(JwtAuthGuard)
   @Post('initialize')
   async initializeWorkflow(
-    @LoginedUser() user: User,
+    @LoginedUser() user: UserModel,
     @Body() request: InitializeWorkflowRequest,
   ): Promise<InitializeWorkflowResponse> {
     const executionId = await this.workflowService.initializeWorkflowExecution(

@@ -1688,11 +1688,11 @@ export type ActionResult = {
    */
   pilotSessionId?: string;
   /**
-   * Workflow execution ID
+   * Workflow execution ID for workflow context
    */
   workflowExecutionId?: string;
   /**
-   * Workflow node execution ID
+   * Workflow node execution ID for workflow context
    */
   workflowNodeExecutionId?: string;
   /**
@@ -3721,6 +3721,14 @@ export type InvokeSkillRequest = {
    * Selected MCP servers
    */
   selectedMcpServers?: Array<string>;
+  /**
+   * Workflow execution ID for workflow context
+   */
+  workflowExecutionId?: string;
+  /**
+   * Workflow node execution ID for workflow context
+   */
+  workflowNodeExecutionId?: string;
 };
 
 export type InvokeSkillResponse = BaseResponse & {
@@ -5267,14 +5275,12 @@ export type InitializeWorkflowRequest = {
 };
 
 export type InitializeWorkflowResponse = BaseResponse & {
-  /**
-   * Workflow execution ID
-   */
-  executionId: string;
-  /**
-   * Whether the workflow initialization was successful
-   */
-  success: boolean;
+  data?: {
+    /**
+     * Workflow execution ID
+     */
+    workflowExecutionId: string;
+  };
 };
 
 export type ListMcpServersData2 = {

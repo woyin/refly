@@ -954,7 +954,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           ? [
               this.prisma.workflowNodeExecution.updateMany({
                 where: { nodeExecutionId: result.workflowNodeExecutionId },
-                data: { status },
+                data: { status, endTime: new Date() },
               }),
             ]
           : []),
