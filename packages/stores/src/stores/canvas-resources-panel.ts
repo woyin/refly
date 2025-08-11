@@ -10,7 +10,8 @@ export type CanvasResourcesParentType = 'stepsRecord' | 'resultsRecord' | 'myUpl
 interface CanvasResourcesPanelState {
   // Panel width in pixels
   panelWidth: number;
-  panelMode: CanvasResourcesPanelMode;
+  sidePanelVisible: boolean;
+  wideScreenVisible: boolean;
   showLeftOverview: boolean;
   parentType: CanvasResourcesParentType | null;
   activeTab: CanvasResourcesParentType;
@@ -18,7 +19,8 @@ interface CanvasResourcesPanelState {
 
   // Methods
   setPanelWidth: (width: number) => void;
-  setPanelMode: (mode: CanvasResourcesPanelMode) => void;
+  setSidePanelVisible: (visible: boolean) => void;
+  setWideScreenVisible: (visible: boolean) => void;
   setShowLeftOverview: (show: boolean) => void;
   setParentType: (type: CanvasResourcesParentType | null) => void;
   setActiveTab: (tab: CanvasResourcesParentType) => void;
@@ -31,7 +33,8 @@ const DEFAULT_PANEL_WIDTH = 480;
 
 const defaultState = {
   panelWidth: DEFAULT_PANEL_WIDTH,
-  panelMode: 'normal' as const,
+  sidePanelVisible: false,
+  wideScreenVisible: false,
   showLeftOverview: false,
   parentType: null,
   activeTab: 'stepsRecord' as const,
@@ -46,7 +49,8 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
 
       // Methods
       setPanelWidth: (width: number) => set({ panelWidth: width }),
-      setPanelMode: (mode: CanvasResourcesPanelMode) => set({ panelMode: mode }),
+      setSidePanelVisible: (visible: boolean) => set({ sidePanelVisible: visible }),
+      setWideScreenVisible: (visible: boolean) => set({ wideScreenVisible: visible }),
       setShowLeftOverview: (show: boolean) => set({ showLeftOverview: show }),
       setParentType: (type: CanvasResourcesParentType | null) => set({ parentType: type }),
       setActiveTab: (tab: CanvasResourcesParentType) => set({ activeTab: tab }),
@@ -59,8 +63,9 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
         activeTab: state.activeTab,
         activeNode: state.activeNode,
         parentType: state.parentType,
-        panelMode: state.panelMode,
         panelWidth: state.panelWidth,
+        sidePanelVisible: state.sidePanelVisible,
+        wideScreenVisible: state.wideScreenVisible,
       }),
     },
   ),

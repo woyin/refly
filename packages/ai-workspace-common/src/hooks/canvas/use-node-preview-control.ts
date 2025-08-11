@@ -49,9 +49,9 @@ export const useNodePreviewControl = ({
     nodePreviews: state.config[canvasId]?.nodePreviews || [],
     canvasInitialized: state.canvasInitialized[canvasId],
   }));
-  const { setActiveNode, setPanelMode } = useCanvasResourcesPanelStoreShallow((state) => ({
+  const { setActiveNode, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
     setActiveNode: state.setActiveNode,
-    setPanelMode: state.setPanelMode,
+    setSidePanelVisible: state.setSidePanelVisible,
   }));
 
   // Cleanup non-existent node previews
@@ -85,10 +85,9 @@ export const useNodePreviewControl = ({
       addNodePreview(canvasId, node);
       setSelectedNode(node);
       setActiveNode(node);
-      console.log('previewNode', node);
-      setPanelMode('normal');
+      setSidePanelVisible(true);
     },
-    [canvasId, addNodePreview, setSelectedNode, setActiveNode, setPanelMode],
+    [canvasId, addNodePreview, setSelectedNode, setActiveNode, setSidePanelVisible],
   );
 
   const closeNodePreview = useCallback(
@@ -158,13 +157,12 @@ export const useNodePreviewControl = ({
       }
       addNodePreview(canvasId, node);
       setActiveNode(node);
-      console.log('handleNodePreview', node);
-      setPanelMode('normal');
+      setSidePanelVisible(true);
       setSelectedNode(node);
       locateToNodePreviewEmitter.emit('locateToNodePreview', { canvasId, id: node.id });
       return true;
     },
-    [canvasId, clickToPreview, addNodePreview, setSelectedNode, setActiveNode, setPanelMode],
+    [canvasId, clickToPreview, addNodePreview, setSelectedNode, setActiveNode, setSidePanelVisible],
   );
 
   return {

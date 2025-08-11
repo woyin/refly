@@ -10,14 +10,12 @@ import { CanvasNodeType } from '@refly/openapi-schema';
 import './index.scss';
 
 export const CanvasResources = memo(() => {
-  const { showLeftOverview, activeNode, panelMode, resetState, setParentType, setPanelMode } =
+  const { showLeftOverview, activeNode, resetState, setParentType } =
     useCanvasResourcesPanelStoreShallow((state) => ({
       showLeftOverview: state.showLeftOverview,
       activeNode: state.activeNode,
-      panelMode: state.panelMode,
       resetState: state.resetState,
       setParentType: state.setParentType,
-      setPanelMode: state.setPanelMode,
     }));
 
   const { canvasId } = useCanvasContext();
@@ -42,7 +40,7 @@ export const CanvasResources = memo(() => {
         setParentType('resultsRecord');
       }
     }
-  }, [activeNode, panelMode, setPanelMode]);
+  }, [activeNode]);
 
   return (
     <div
@@ -57,18 +55,19 @@ export const CanvasResources = memo(() => {
 });
 
 export const CanvasResourcesWidescreenModal = memo(() => {
-  const { panelMode, setPanelMode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    panelMode: state.panelMode,
-    setPanelMode: state.setPanelMode,
-  }));
+  const { wideScreenVisible, setWideScreenVisible } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
+      wideScreenVisible: state.wideScreenVisible,
+      setWideScreenVisible: state.setWideScreenVisible,
+    }),
+  );
 
   return (
     <Modal
-      open={panelMode === 'wide'}
+      open={wideScreenVisible}
       centered
       onCancel={() => {
-        console.log('onCancel');
-        setPanelMode('normal');
+        setWideScreenVisible(false);
       }}
       title={null}
       closable={false}

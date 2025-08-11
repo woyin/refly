@@ -1090,13 +1090,13 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
   const {
-    panelMode,
+    sidePanelVisible,
     resourcesPanelWidth,
     setResourcesPanelWidth,
     showLeftOverview,
     setShowLeftOverview,
   } = useCanvasResourcesPanelStoreShallow((state) => ({
-    panelMode: state.panelMode,
+    sidePanelVisible: state.sidePanelVisible,
     resourcesPanelWidth: state.panelWidth,
     setResourcesPanelWidth: state.setPanelWidth,
     showLeftOverview: state.showLeftOverview,
@@ -1192,7 +1192,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
             </Splitter.Panel>
 
             <Splitter.Panel
-              size={panelMode === 'normal' ? resourcesPanelWidth : 0}
+              size={sidePanelVisible ? resourcesPanelWidth : 0}
               min={480}
               max={maxPanelWidth}
             >

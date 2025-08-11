@@ -10,46 +10,57 @@ export const CanvasResourcesHeader = memo(() => {
   const { t } = useTranslation();
   const {
     parentType,
-    panelMode,
     activeNode,
+    sidePanelVisible,
+    wideScreenVisible,
     setParentType,
+    setSidePanelVisible,
+    setWideScreenVisible,
     setActiveNode,
     setActiveTab,
-    setPanelMode,
     setShowLeftOverview,
   } = useCanvasResourcesPanelStoreShallow((state) => ({
     setShowLeftOverview: state.setShowLeftOverview,
     parentType: state.parentType,
-    panelMode: state.panelMode,
     activeNode: state.activeNode,
+    sidePanelVisible: state.sidePanelVisible,
+    wideScreenVisible: state.wideScreenVisible,
     setParentType: state.setParentType,
+    setSidePanelVisible: state.setSidePanelVisible,
+    setWideScreenVisible: state.setWideScreenVisible,
     setActiveNode: state.setActiveNode,
     setActiveTab: state.setActiveTab,
-    setPanelMode: state.setPanelMode,
   }));
   const { setImportResourceModalVisible } = useImportResourceStoreShallow((state) => ({
     setImportResourceModalVisible: state.setImportResourceModalVisible,
   }));
 
   const handleClose = useCallback(() => {
-    setPanelMode('hidden');
+    setSidePanelVisible(false);
     setShowLeftOverview(false);
-  }, [setPanelMode, setShowLeftOverview]);
+  }, [setSidePanelVisible, setShowLeftOverview]);
 
   const handleShowLeftOverview = useCallback(() => {
-    if (panelMode === 'normal') {
+    if (sidePanelVisible && !wideScreenVisible) {
       setShowLeftOverview(true);
     }
-  }, [panelMode, setShowLeftOverview]);
+  }, [sidePanelVisible, wideScreenVisible, setShowLeftOverview]);
 
   const handleParentClick = useCallback(() => {
-    if (panelMode === 'normal') {
+    if (sidePanelVisible) {
       setActiveTab(parentType);
       setParentType(null);
       setActiveNode(null);
       setShowLeftOverview(false);
     }
-  }, [setParentType, setActiveNode, setActiveTab, setShowLeftOverview, panelMode, parentType]);
+  }, [
+    setParentType,
+    setActiveNode,
+    setActiveTab,
+    setShowLeftOverview,
+    parentType,
+    sidePanelVisible,
+  ]);
 
   const handleAddResource = useCallback(() => {
     setImportResourceModalVisible(true);
@@ -57,17 +68,17 @@ export const CanvasResourcesHeader = memo(() => {
 
   const handleWideScreen = useCallback(() => {
     setShowLeftOverview(false);
-    setPanelMode('wide');
-  }, [setPanelMode]);
+    setWideScreenVisible(true);
+  }, [setShowLeftOverview, setWideScreenVisible]);
 
   const handleExitWideScreen = useCallback(() => {
-    setPanelMode('normal');
-  }, [setPanelMode]);
+    setWideScreenVisible(false);
+  }, [setWideScreenVisible]);
 
   return (
     <div className="h-[65px] flex items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
       <div className="flex items-center gap-2">
-        {panelMode === 'normal' && (
+        {sidePanelVisible && (
           <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>
             <Button type="text" icon={<SideRight size={18} />} onClick={handleClose} />
           </Tooltip>
@@ -96,17 +107,17 @@ export const CanvasResourcesHeader = memo(() => {
           <Button type="text" icon={<Add size={18} />} onClick={handleAddResource} />
         </Tooltip>
         {activeNode &&
-          (panelMode === 'normal' ? (
-            <Tooltip title={t('canvas.resourceLibrary.wideScreen')} arrow={false}>
-              <Button type="text" icon={<ScreenFull size={18} />} onClick={handleWideScreen} />
-            </Tooltip>
-          ) : (
+          (wideScreenVisible ? (
             <Tooltip title={t('canvas.resourceLibrary.exitWideScreen')} arrow={false}>
               <Button
                 type="text"
                 icon={<ScreenDefault size={18} />}
                 onClick={handleExitWideScreen}
               />
+            </Tooltip>
+          ) : (
+            <Tooltip title={t('canvas.resourceLibrary.wideScreen')} arrow={false}>
+              <Button type="text" icon={<ScreenFull size={18} />} onClick={handleWideScreen} />
             </Tooltip>
           ))}
       </div>
