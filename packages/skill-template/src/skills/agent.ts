@@ -58,20 +58,24 @@ function convertToMCPTools(langchainTools: StructuredToolInterface[]): MCPTool[]
     // and we need to access properties like title, description, etc., which might not be strictly typed.
     const jsonSchema = zodToJsonSchema(zodSchema) as any;
 
+    const properties = (jsonSchema?.properties ?? {}) as Record<string, object>;
+    const propertyKeys = Object.keys(properties);
+
     const inputSchema: MCPToolInputSchema = {
-      type: jsonSchema.type || 'object', // Default to 'object' if not specified
-      title: jsonSchema.title || tool.name, // Use JSON schema title or fallback to tool name
-      description: jsonSchema.description || tool.description || '', // Use JSON schema description, fallback to tool description, then empty string
-      properties: jsonSchema.properties || {}, // Default to empty object for properties
-      required: jsonSchema.required || [], // Default to empty array for required fields
+      type: jsonSchema.type || 'object',
+      title: jsonSchema.title || tool.name,
+      description: jsonSchema.description || tool.description || '',
+      properties,
+      // Azure OpenAI requires `required` to list every key in properties when present
+      required: propertyKeys,
     };
 
     return {
-      id: tool.name, // Using tool name as a placeholder for ID
-      serverId: '', // Placeholder, as server info is not directly available in this function's scope
-      serverName: '', // Placeholder
+      id: tool.name,
+      serverId: '',
+      serverName: '',
       name: tool.name,
-      description: tool.description || '', // Fallback to empty string if description is undefined
+      description: tool.description || '',
       inputSchema,
     };
   });
@@ -377,7 +381,7 @@ export class Agent extends BaseSkill {
       let llmForGraph: Runnable<BaseMessage[], AIMessage>;
 
       if (mcpSuccessfullyInitializedAndToolsAvailable && actualMcpTools.length > 0) {
-        llmForGraph = baseLlm.bindTools(actualMcpTools, { strict: true } as never);
+        llmForGraph = baseLlm.bindTools(actualMcpTools);
         actualToolNodeInstance = new ToolNode(actualMcpTools);
       } else {
         llmForGraph = baseLlm;
