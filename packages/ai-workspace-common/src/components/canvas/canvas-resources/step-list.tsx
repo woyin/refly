@@ -186,7 +186,10 @@ export const StepList = memo(() => {
         });
       }
 
-      treeNodes.push(groupTreeNode);
+      // Only include group if it has skillResponse children
+      if ((groupTreeNode.children?.length ?? 0) > 0) {
+        treeNodes.push(groupTreeNode);
+      }
     }
 
     // Add skillResponse nodes that don't belong to any group (by ancestry)

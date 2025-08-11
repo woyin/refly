@@ -8,6 +8,9 @@ import { useState, useMemo, useCallback, useRef, memo, useEffect } from 'react';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { CodeArtifactNodePreview } from './code-artifact';
 import { WebsiteNodePreview } from './website';
+import { ImageNodePreview } from './image';
+import { AudioNodePreview } from './audio';
+import { VideoNodePreview } from './video';
 import { fullscreenEmitter } from '@refly-packages/ai-workspace-common/events/fullscreen';
 import {
   nodeActionEmitter,
@@ -59,6 +62,12 @@ export const PreviewComponent = memo(
           return <CodeArtifactNodePreview nodeId={node.id} />;
         case 'website':
           return <WebsiteNodePreview nodeId={node.id} />;
+        case 'video':
+          return <VideoNodePreview node={node} />;
+        case 'audio':
+          return <AudioNodePreview node={node} />;
+        case 'image':
+          return <ImageNodePreview node={node} />;
         default:
           return null;
       }

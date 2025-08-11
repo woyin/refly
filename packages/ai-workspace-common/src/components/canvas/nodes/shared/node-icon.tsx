@@ -33,8 +33,8 @@ export const NodeIcon = ({
   const size = small ? 14 : 16;
   return (
     <div
-      className={`rounded-lg flex items-center justify-center flex-shrink-0 ${
-        small ? 'w-5 h-5' : 'w-6 h-6'
+      className={`rounded-lg flex items-center justify-center flex-shrink-0 ${small ? 'w-5 h-5' : 'w-6 h-6'} ${
+        type === 'image' && 'bg-gradient-to-r from-pink-500 to-purple-500'
       } ${className}`}
       style={{ backgroundColor: NODE_COLORS[type] }}
     >

@@ -9,6 +9,7 @@ import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canv
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
+import { ResourceItemAction } from '../resource-item-action';
 
 const { Text } = Typography;
 
@@ -72,7 +73,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
   return (
     <div
       className={cn(
-        'group p-2 cursor-pointer hover:bg-refly-tertiary-hover flex items-center justify-between gap-2 text-refly-text-0 rounded-lg',
+        'h-9 group p-2 cursor-pointer hover:bg-refly-tertiary-hover flex items-center justify-between gap-2 text-refly-text-0 rounded-lg',
         isActive && 'bg-refly-tertiary-hover',
         isFailed && 'bg-refly-Colorful-red-light',
       )}
@@ -115,6 +116,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
             {t('common.retry')}
           </Button>
         )}
+        <ResourceItemAction node={node} />
       </div>
     </div>
   );

@@ -56,7 +56,7 @@ export const ResourceItemAction = ({
   return (
     <div
       className={cn(
-        'flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0 group-hover:opacity-100',
+        'items-center gap-1 hidden transition-opacity flex-shrink-0 group-hover:flex',
         className,
       )}
     >

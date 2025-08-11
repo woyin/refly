@@ -7,7 +7,7 @@ import { cn } from '@refly/utils/cn';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
-import { ResourceItemAction } from '@refly-packages/ai-workspace-common/components/canvas/canvas-resources/resource-item-action';
+import { ResourceItemAction } from '../resource-item-action';
 
 // Define the node types we want to display
 export const RESULT_NODE_TYPES: CanvasNodeType[] = [
@@ -65,7 +65,7 @@ export const ResultList = memo(() => {
           <div
             key={node.id}
             className={cn(
-              'group p-2 cursor-pointer hover:bg-refly-tertiary-hover flex items-center justify-between gap-2 text-refly-text-0 rounded-lg',
+              'h-9 group p-2 cursor-pointer hover:bg-refly-tertiary-hover flex items-center justify-between gap-2 text-refly-text-0 rounded-lg',
               activeNode?.id === node.id && 'bg-refly-tertiary-hover',
             )}
             onClick={() => handleNodeSelect(node)}
