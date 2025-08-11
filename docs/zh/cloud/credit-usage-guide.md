@@ -46,12 +46,15 @@ Refly 积分是一种通用计费单位，可用于调用平台上的各种 AI �
 3. Kimi K2
 4. GPT-4o
 5. GPT-4.1
-6. Gemini 2.5 Pro
-7. Gemini 2.5 Flash
-8. DeepSeek V3
-9. DeepSeek R1
-10. Grok 4
-11. Qwen3 Coder
+6. GPT-5
+7. GPT-o3
+8. GPT-OSS-120B
+9. Gemini 2.5 Pro
+10. Gemini 2.5 Flash
+11. DeepSeek V3
+12. DeepSeek R1
+13. Grok 4
+14. Qwen3 Coder
 
 ## 📊 如何查看积分余额与消耗情况？
 
