@@ -64,7 +64,7 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
           <Button
             type="text"
             size="small"
-            icon={<Delete size={16} />}
+            icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
             onClick={(e) => {
               e.stopPropagation();
               onDelete(node);
@@ -77,6 +77,7 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
 });
 
 export const StepList = memo(() => {
+  const { t } = useTranslation();
   const { nodes, nodesSignature } = useRealtimeCanvasData();
   const { setParentType, setActiveNode, activeNode } = useCanvasResourcesPanelStoreShallow(
     (state) => ({
@@ -214,6 +215,10 @@ export const StepList = memo(() => {
     return treeNodes;
   }, [nodes, nodesSignature, activeNode?.id]);
 
+  const hasSteps = useMemo(() => {
+    return nodes?.some((node) => node.type === 'skillResponse') ?? false;
+  }, [nodes, nodesSignature]);
+
   const handleNodeSelect = (
     _: React.Key[],
     info: {
@@ -229,6 +234,14 @@ export const StepList = memo(() => {
     setParentType('stepsRecord');
     setActiveNode(node);
   };
+
+  if (!hasSteps) {
+    return (
+      <div className="h-full w-full flex items-center justify-center text-refly-text-2 text-sm leading-5">
+        {t('canvas.resourceLibrary.noStepsRecord', { defaultValue: 'No steps recorded yet' })}
+      </div>
+    );
+  }
 
   return (
     <div className="step-list h-full">

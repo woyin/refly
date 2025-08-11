@@ -46,9 +46,26 @@ export const ResourceOverview = memo(() => {
     ];
   }, [t]);
 
+  const hasData = useMemo(() => {
+    return (
+      nodes.filter((node) =>
+        [
+          'skillResponse',
+          'document',
+          'resource',
+          'codeArtifact',
+          'image',
+          'video',
+          'audio',
+          'website',
+        ].includes(node.type),
+      ).length > 0
+    );
+  }, [nodes]);
+
   return (
     <div className="p-4 flex-grow flex flex-col gap-4 overflow-hidden">
-      {nodes.length === 0 ? (
+      {!hasData ? (
         <div className="h-full flex flex-col items-center justify-center gap-4">
           <img src={EmptyImage} alt="empty" className="w-[200px] h-[200px]" />
           <div className="text-refly-text-2 text-xs leading-5">

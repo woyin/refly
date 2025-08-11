@@ -75,7 +75,7 @@ export const ResourceItemAction = ({
         <Button
           type="text"
           size="small"
-          icon={<Delete size={16} />}
+          icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
           onClick={(e) => {
             e.stopPropagation();
             handleDeleteNode(node);
