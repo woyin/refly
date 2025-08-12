@@ -1889,6 +1889,7 @@ export const TokenUsageItemSchema = {
     tier: {
       type: 'string',
       description: 'Model tier',
+      deprecated: true,
     },
   },
 } as const;

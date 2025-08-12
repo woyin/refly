@@ -280,6 +280,14 @@ export class CanvasVersionNotFoundError extends BaseError {
   };
 }
 
+export class ProviderMisconfigurationError extends BaseError {
+  code = 'E1019';
+  messageDict = {
+    en: 'Provider misconfiguration, please check the provider configuration',
+    'zh-CN': '提供方配置错误，请检查提供方配置',
+  };
+}
+
 export class StorageQuotaExceeded extends BaseError {
   code = 'E2001';
   messageDict = {
@@ -388,6 +396,8 @@ const errorMap = {
   E1015: ProviderNotFoundError,
   E1016: ProviderItemNotFoundError,
   E1017: McpServerNotFoundError,
+  E1018: CanvasVersionNotFoundError,
+  E1019: ProviderMisconfigurationError,
   E2001: StorageQuotaExceeded,
   E2002: ModelUsageQuotaExceeded,
   E2003: ModelNotSupportedError,
