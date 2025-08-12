@@ -28,6 +28,7 @@ import { RunPilotJobData } from './pilot.processor';
 import { ProviderItemNotFoundError } from '@refly/errors';
 import { pilotSessionPO2DTO, pilotStepPO2DTO } from './pilot.dto';
 import { buildSummarySkillInput } from './prompt/summary';
+import { buildSubtaskSkillInput } from './prompt/subtask';
 import { findBestMatch } from '../../utils/similarity';
 
 @Injectable()
@@ -334,6 +335,8 @@ export class PilotService {
     }
 
     const { targetId, targetType, currentEpoch, maxEpoch } = pilotSession;
+    const sessionInputObj = JSON.parse(pilotSession.input ?? '{}');
+    const userQuestion = sessionInputObj?.query ?? '';
     const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
       user,
       targetId,
@@ -428,7 +431,20 @@ export class PilotService {
             name: skill.name,
             icon: skill.icon,
           } as ActionMeta),
-          input: JSON.stringify({ query: rawStep.query } as SkillInput),
+          input: JSON.stringify(
+            buildSubtaskSkillInput({
+              userQuestion,
+              locale,
+              summaryTitle:
+                latestSummarySteps?.[0]?.actionResult?.title || latestSummarySteps?.[0]?.step?.name,
+              plannedAction: {
+                priority: rawStep?.priority,
+                skillName: rawStep?.skillName as any,
+                query: rawStep?.query,
+                contextHints: (rawStep?.contextItemIds as string[]) ?? [],
+              },
+            }) as SkillInput,
+          ),
           status: 'waiting',
           targetId,
           targetType,
@@ -486,7 +502,18 @@ export class PilotService {
 
       await this.skillService.sendInvokeSkillTask(user, {
         resultId,
-        input: { query: rawStep.query },
+        input: buildSubtaskSkillInput({
+          userQuestion,
+          locale,
+          summaryTitle:
+            latestSummarySteps?.[0]?.actionResult?.title || latestSummarySteps?.[0]?.step?.name,
+          plannedAction: {
+            priority: rawStep?.priority,
+            skillName: rawStep?.skillName as any,
+            query: rawStep?.query,
+            contextHints: (rawStep?.contextItemIds as string[]) ?? [],
+          },
+        }),
         target: {
           entityId: targetId,
           entityType: targetType as EntityType,
