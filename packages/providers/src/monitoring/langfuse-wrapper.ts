@@ -1,5 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { Embeddings } from '@langchain/core/embeddings';
+import { encode } from 'gpt-tokenizer';
 
 // Try to import TraceManager from observability package if available
 let TraceManager: any = null;
@@ -10,35 +11,26 @@ try {
   console.warn('[Providers Monitoring] TraceManager not available, using basic span tracking');
 }
 
-// Accurate token calculation function
-let tokenCalculator: any = null;
-
-// Lazy load tiktoken to avoid dependency issues
-const getTokenCalculator = () => {
-  if (!tokenCalculator) {
-    try {
-      const { get_encoding } = require('@dqbd/tiktoken');
-      tokenCalculator = get_encoding('cl100k_base');
-    } catch (_error) {
-      console.warn('[Providers Monitoring] tiktoken not available, using fallback calculation');
-      return null;
-    }
-  }
-  return tokenCalculator;
-};
-
 /**
  * Calculate accurate token usage for inputs and outputs
  */
 const calculateAccurateTokenUsage = (input: any, output: string) => {
-  const calculator = getTokenCalculator();
+  const inputText = Array.isArray(input)
+    ? input.map((msg) => (typeof msg?.content === 'string' ? msg.content : '')).join('')
+    : String(input || '');
 
-  if (!calculator) {
-    // Fallback to simple estimation if tiktoken is not available
-    const inputText = Array.isArray(input)
-      ? input.map((msg) => (typeof msg?.content === 'string' ? msg.content : '')).join('')
-      : String(input || '');
+  // Use tiktoken for accurate calculation
+  try {
+    const promptTokens = encode(inputText).length;
+    const completionTokens = encode(output || '').length;
 
+    return {
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
+    };
+  } catch (error) {
+    console.warn('[Providers Monitoring] gpt-tokenizer error:', error);
     const promptTokens = Math.ceil(inputText.length / 4);
     const completionTokens = Math.ceil((output || '').length / 4);
 
@@ -48,29 +40,6 @@ const calculateAccurateTokenUsage = (input: any, output: string) => {
       totalTokens: promptTokens + completionTokens,
     };
   }
-
-  // Use tiktoken for accurate calculation
-  const inputText = Array.isArray(input)
-    ? input
-        .map((msg) => {
-          if (typeof msg?.content === 'string') {
-            return msg.content;
-          } else if (typeof msg === 'string') {
-            return msg;
-          }
-          return '';
-        })
-        .join('')
-    : String(input || '');
-
-  const promptTokens = calculator.encode(inputText).length;
-  const completionTokens = calculator.encode(output || '').length;
-
-  return {
-    promptTokens,
-    completionTokens,
-    totalTokens: promptTokens + completionTokens,
-  };
 };
 
 // Simple ID generation function
