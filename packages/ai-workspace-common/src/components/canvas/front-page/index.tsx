@@ -162,6 +162,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
                 readonly={false}
                 query={query}
                 setQuery={setQuery}
+                size="medium"
                 showChatModeSelector
               />
             ) : (

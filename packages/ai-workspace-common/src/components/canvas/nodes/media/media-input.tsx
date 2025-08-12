@@ -25,6 +25,7 @@ interface MediaChatInputProps {
   onSend?: () => void;
   defaultModel?: ProviderItem | null;
   onModelChange?: (model: ProviderItem | null) => void;
+  size?: 'small' | 'medium';
 }
 
 const MediaChatInput = memo(
@@ -37,6 +38,7 @@ const MediaChatInput = memo(
     showChatModeSelector,
     defaultModel,
     onModelChange,
+    size = 'medium',
   }: MediaChatInputProps) => {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
@@ -234,7 +236,7 @@ const MediaChatInput = memo(
 
               {/* Media Model Selector */}
               <MediaModelSelector
-                maxWidth={120}
+                size={size}
                 model={selectedModel}
                 setModel={handleModelChange}
                 readonly={readonly}
