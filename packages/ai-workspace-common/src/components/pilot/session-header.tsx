@@ -1,5 +1,5 @@
-import { IconThreadHistory } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Button, Divider, Popover, Tooltip } from 'antd';
+import { History } from 'refly-icons';
 import { memo, useCallback, useState } from 'react';
 import { PilotSession, PilotStep } from '@refly/openapi-schema';
 import { PilotList } from '@refly-packages/ai-workspace-common/components/pilot/pilot-list';
@@ -96,7 +96,7 @@ const SessionHeader = memo(
                 type="text"
                 size="small"
                 className={`flex items-center justify-center p-0 !w-4 h-4 ${isHistoryOpen ? 'text-primary-600' : 'text-gray-500 hover:text-gray-600'} min-w-0`}
-                icon={<IconThreadHistory className="w-4 h-4" />}
+                icon={<History className="w-4 h-4" />}
                 onClick={() => setIsHistoryOpen(!isHistoryOpen)}
               />
             </Tooltip>

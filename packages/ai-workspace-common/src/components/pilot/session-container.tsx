@@ -12,10 +12,11 @@ import {
 import { cn } from '@refly/utils/cn';
 import { PilotStepItem } from './pilot-step-item';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { usePilotStoreShallow } from '@refly/stores';
+import { useFrontPageStoreShallow, usePilotStoreShallow } from '@refly/stores';
 // import { SessionChat } from './session-chat';
 import { NoSession } from '@refly-packages/ai-workspace-common/components/pilot/nosession';
 import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
+import { Thinking } from 'refly-icons';
 
 // Define the active statuses that require polling
 const ACTIVE_STATUSES = ['executing', 'waiting'];
@@ -101,6 +102,9 @@ export const SessionContainer = memo(
       isPilotOpen: state.isPilotOpen,
       setIsPilotOpen: state.setIsPilotOpen,
       setActiveSessionId: state.setActiveSessionId,
+    }));
+    const { query } = useFrontPageStoreShallow((state) => ({
+      query: state.query,
     }));
 
     const handleSessionClick = useCallback(
@@ -223,7 +227,7 @@ export const SessionContainer = memo(
         {!session ? (
           <NoSession canvasId={canvasId} />
         ) : (
-          <div className="px-2 pb-2 flex-1 overflow-y-auto">
+          <div className="px-2 pb-2 flex-1 h-full w-full">
             {sortedSteps.length > 0 ? (
               <>
                 <div className="pl-1">
@@ -233,14 +237,12 @@ export const SessionContainer = memo(
                 </div>
               </>
             ) : session?.status === 'executing' ? (
-              <div className="mt-8 text-center py-4 text-gray-500 dark:text-gray-400">
-                <div className="flex justify-center items-center">
-                  <AnimatedPilotIcon className="w-12 h-12 mb-2" />
+              <div className="flex flex-col h-full">
+                <div className="px-4">{query}</div>
+                <div className="w-full bg-refly-bg-content-z2 rounded-lg p-4 flex items-center gap-2 border-[12px] border-refly-bg-content-z2">
+                  <Thinking />
+                  <span>正在理解意图分析需求...</span>
                 </div>
-                <p>
-                  {t('pilot.thinking')}
-                  <AnimatedEllipsis />
-                </p>
               </div>
             ) : (
               <div className="flex items-center justify-center h-full">

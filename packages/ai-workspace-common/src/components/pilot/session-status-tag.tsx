@@ -1,13 +1,8 @@
 import { memo, useMemo } from 'react';
 import { PilotSessionStatus, PilotStep } from '@refly/openapi-schema';
-import { Tag } from 'antd';
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
+import { ClockCircleOutlined, CloseCircleOutlined, SyncOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
+import { Finished } from 'refly-icons';
 
 export interface SessionStatusTagProps {
   status: PilotSessionStatus;
@@ -37,25 +32,54 @@ export const SessionStatusTag = memo(({ status, steps, className }: SessionStatu
   const icon = useMemo(() => {
     switch (status) {
       case 'executing':
-        return <SyncOutlined spin className="w-3 h-3" />;
+        return <SyncOutlined spin className="w-4 h-4" />;
       case 'waiting':
-        return <ClockCircleOutlined className="w-3 h-3" />;
+        return <ClockCircleOutlined className="w-4 h-4" />;
       case 'finish':
-        return <CheckCircleOutlined className="w-3 h-3" />;
+        return <Finished className="w-4 h-4" color="var(--refly-primary-default)" />;
       case 'failed':
-        return <CloseCircleOutlined className="w-3 h-3" />;
+        return <CloseCircleOutlined className="w-4 h-4" />;
       default:
         return null;
     }
   }, [status]);
-
+  const executingStepsLength = useMemo(() => {
+    return steps.filter((step) => step.status === 'executing').length;
+  }, [steps]);
+  const text = useMemo(() => {
+    switch (status) {
+      case 'executing':
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs p-1">正在规划任务...</span>
+          </div>
+        );
+      case 'waiting':
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs p-1">
+              任务执行 {executingStepsLength} / {steps.length} ...
+            </span>
+          </div>
+        );
+      case 'finish':
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs p-1">已完成{steps.length}个任务 ...</span>
+          </div>
+        );
+      case 'failed':
+        return '任务失败';
+    }
+  }, [status]);
   return (
-    <Tag className={cn(className, 'flex items-center gap-0')}>
+    <div className={cn(className, 'flex items-center gap-0 px-3')}>
       {icon}
+      {text}
       {/* <span className="text-[10px] m-0 p-0">
         {t(`pilot.status.${status}`, { defaultValue: status })}
       </span> */}
-    </Tag>
+    </div>
   );
 });
 
