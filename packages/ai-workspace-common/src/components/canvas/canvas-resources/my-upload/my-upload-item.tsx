@@ -10,6 +10,7 @@ import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { ResourceItemAction } from '../share/resource-item-action';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const { Text } = Typography;
 
@@ -24,6 +25,7 @@ export interface MyUploadItemProps {
  */
 export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProps) => {
   const { t } = useTranslation();
+  const { readonly } = useCanvasContext();
   const [isReindexing, setIsReindexing] = useState(false);
   const indexStatus = (node?.data?.metadata?.indexStatus ?? '') as IndexStatus | '';
 
@@ -103,7 +105,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
             <span className="text-xs text-refly-text-1">{t(`resource.${indexStatus}`)}</span>
           )}
         </div>
-        {(isFailed || isReindexing) && (
+        {(isFailed || isReindexing) && !readonly && (
           <Button
             type="text"
             size="small"

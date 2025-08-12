@@ -14,6 +14,7 @@ import { Image } from 'refly-icons';
 export const RESULT_NODE_TYPES: CanvasNodeType[] = [
   'document',
   'codeArtifact',
+  'website',
   'image',
   'video',
   'audio',

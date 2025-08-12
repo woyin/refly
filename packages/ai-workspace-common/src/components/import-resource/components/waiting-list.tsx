@@ -99,7 +99,7 @@ const WaitingList = memo(() => {
             <Button
               type="text"
               size="small"
-              icon={<Delete size={20} />}
+              icon={<Delete size={20} color="var(--refly-func-danger-default)" />}
               onClick={() => removeFromWaitingList(item.id)}
               className="flex-shrink-0 text-refly-text-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             />

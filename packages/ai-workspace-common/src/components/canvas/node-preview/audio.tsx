@@ -47,7 +47,7 @@ const AudioNodePreviewComponent = ({ node }: AudioNodePreviewProps) => {
   }
 
   return (
-    <div className="w-full h-full flex py-5 px-4">
+    <div className="w-full h-full flex py-5 px-4 items-center justify-center">
       {hasError ? (
         <div className="text-center text-refly-text-2 text-sm">Failed to load audio</div>
       ) : (
