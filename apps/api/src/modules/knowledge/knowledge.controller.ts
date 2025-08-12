@@ -11,7 +11,6 @@ import {
   UploadedFile,
   Res,
   Req,
-  StreamableFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -213,9 +212,9 @@ export class KnowledgeController {
     @LoginedUser() user: User,
     @Query('docId') docId: string,
     @Query('format') format: 'markdown' | 'docx' | 'pdf',
-    @Res({ passthrough: true }) res: Response,
+    @Res() res: Response,
     @Req() req: Request,
-  ): Promise<StreamableFile> {
+  ): Promise<void> {
     const data = await this.knowledgeService.exportDocument(user, { docId, format });
 
     const origin = req.headers.origin;
@@ -234,7 +233,7 @@ export class KnowledgeController {
       'Cross-Origin-Resource-Policy': 'cross-origin',
     });
 
-    return new StreamableFile(data);
+    res.end(data);
   }
 
   @UseGuards(JwtAuthGuard)
