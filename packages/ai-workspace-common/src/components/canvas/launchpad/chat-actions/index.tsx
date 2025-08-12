@@ -1,7 +1,8 @@
 import { Button, Tooltip, Upload, Switch, FormInstance } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
 import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { LinkOutlined, SendOutlined } from '@ant-design/icons';
+import { LinkOutlined } from '@ant-design/icons';
+import { Send, Stop } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow, useLaunchpadStore } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
@@ -126,6 +127,28 @@ export const ChatActions = memo(
             contextItems={contextItems}
           />
 
+          <Upload
+            accept="image/*"
+            showUploadList={false}
+            customRequest={({ file }) => {
+              if (onUploadImage) {
+                onUploadImage(file as File);
+              } else {
+                handleUploadImage(file as File, canvasId);
+              }
+            }}
+            multiple
+          >
+            <Tooltip title={t('common.uploadImage')}>
+              <Button
+                type="text"
+                size="small"
+                icon={<IconImage className="flex items-center" />}
+                className="h-7 w-7 flex items-center justify-center"
+              />
+            </Tooltip>
+          </Upload>
+
           <McpSelectorPopover />
 
           {detectedUrls?.length > 0 && (
@@ -153,47 +176,22 @@ export const ChatActions = memo(
             </Tooltip>
           ))}
 
-          <Upload
-            accept="image/*"
-            showUploadList={false}
-            customRequest={({ file }) => {
-              if (onUploadImage) {
-                onUploadImage(file as File);
-              } else {
-                handleUploadImage(file as File, canvasId);
-              }
-            }}
-            multiple
-          >
-            <Tooltip title={t('common.uploadImage')}>
-              <Button
-                className="translate-y-[0.5px]"
-                size="small"
-                icon={<IconImage className="flex items-center" />}
-              />
-            </Tooltip>
-          </Upload>
-
           {!isWeb ? null : isExecuting ? (
             <Button
               size="small"
-              type="default"
-              className="text-xs flex items-center gap-1 border-red-200 text-red-600 hover:border-red-300 hover:text-red-700 dark:border-red-800 dark:text-red-400 dark:hover:border-red-700 dark:hover:text-red-300 dark:bg-red-950/20 dark:hover:bg-red-900/30"
+              type="primary"
+              className="flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none"
               onClick={handleAbortClick}
-            >
-              <span>{t('copilot.chatActions.stop')}</span>
-            </Button>
+              icon={<Stop size={20} color="white" />}
+            />
           ) : (
             <Button
-              size="small"
               type="primary"
               disabled={!canSendMessage}
-              className="text-xs flex items-center gap-1"
+              className="flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none"
               onClick={handleSendClick}
-            >
-              <SendOutlined />
-              <span>{t('copilot.chatActions.send')}</span>
-            </Button>
+              icon={<Send size={20} color="white" />}
+            />
           )}
         </div>
       </div>

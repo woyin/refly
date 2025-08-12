@@ -155,7 +155,7 @@ export const Actions = memo(
               className="flex items-center !h-9 !w-9 rounded-full border-none"
               onClick={handleSend}
               loading={loading}
-              icon={<Send size={20} />}
+              icon={<Send size={20} color="white" />}
             />
           )}
         </div>

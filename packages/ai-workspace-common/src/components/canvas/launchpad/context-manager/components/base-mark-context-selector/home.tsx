@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { Item } from './item';
 import { RenderItem } from './type';
+import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import classNames from 'classnames';
 
 export function Home({
@@ -17,6 +18,7 @@ export function Home({
   useEffect(() => {
     setValue('refly-built-in-ask-ai');
   }, [setValue]);
+  console.log(data);
 
   return (
     <>
@@ -25,7 +27,7 @@ export function Home({
           key={item.data.entityId}
           className={classNames(
             item?.isSelected ? 'selected' : '',
-            'search-res-item dark:text-gray-200 dark:hover:bg-gray-700',
+            'search-res-item dark:text-gray-200 dark:hover:bg-gray-700 items-center',
           )}
           value={`${item?.data?.title}__${item?.data?.entityId}`}
           activeValue={activeValue}
@@ -33,7 +35,7 @@ export function Home({
             item?.onItemClick?.(item.data);
           }}
         >
-          <span className="search-res-icon dark:text-gray-300">{item?.icon}</span>
+          <NodeIcon type={item?.type} small filled={false} />
           <div className="search-res-container">
             <p
               className="search-res-title dark:!text-gray-200"

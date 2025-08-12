@@ -196,9 +196,8 @@ export const StepList = memo(() => {
           });
         }
       }
-
-      // Only include group if it has skillResponse children or if the group itself matches search
-      if ((groupTreeNode.children?.length ?? 0) > 0 || nodeMatchesSearch(groupNode)) {
+      // Only include group if it has skillResponse children
+      if ((groupTreeNode.children?.length ?? 0) > 0) {
         treeNodes.push(groupTreeNode);
       }
     }

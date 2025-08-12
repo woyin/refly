@@ -37,6 +37,10 @@
   box-shadow: none !important;
 }
 
+.ant-btn-variant-solid:disabled {
+  background: var(--refly-primary-disabled)
+}
+
 /* Dropdown menu styling */
 .ant-dropdown-menu-root {
   padding: 8px !important;

@@ -47,7 +47,9 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
         />
       )}
       {contextItems?.length > 0 && <PreviewContextManager contextItems={contextItems} />}
-      <div className="text-base break-all text-refly-text-0 leading-[26px]">{query}</div>
+      <div className="text-base break-all text-refly-text-0 font-semibold leading-[26px]">
+        {query}
+      </div>
     </div>
   );
 };
