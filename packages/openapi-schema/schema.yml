@@ -4518,6 +4518,7 @@ components:
         tier:
           type: string
           description: Model tier
+          deprecated: true
     ActionStatus:
       type: string
       description: Action status
