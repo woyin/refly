@@ -64,6 +64,10 @@ export const getChatModel = (
       });
       break;
     case 'bedrock':
+      if (!extraParams.region) {
+        throw new ProviderMisconfigurationError('Region is required for Bedrock provider');
+      }
+
       try {
         const apiKeyConfig = JSON.parse(provider.apiKey) as BedrockApiKeyConfig;
         model = new ChatBedrockConverse({
