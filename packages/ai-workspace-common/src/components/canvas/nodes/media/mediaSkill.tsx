@@ -258,6 +258,7 @@ export const MediaSkillNode = memo(
               query={localQuery || ''}
               setQuery={setQuery}
               nodeId={id}
+              size="small"
               defaultModel={localSelectedModel}
               onModelChange={setSelectedModel}
             />
