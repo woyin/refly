@@ -1424,6 +1424,7 @@ export type TokenUsageItem = {
   outputTokens: number;
   /**
    * Model tier
+   * @deprecated
    */
   tier?: string;
 };
@@ -4655,6 +4656,10 @@ export type Provider = {
    * Provider API key (this will never be exposed to the frontend)
    */
   apiKey?: string;
+  /**
+   * Provider-specific extra params (JSON string)
+   */
+  extraParams?: string;
 };
 
 /**
@@ -4677,6 +4682,10 @@ export type LLMModelConfig = {
    * Model max output length (in tokens)
    */
   maxOutput?: number;
+  /**
+   * Whether the model disallow setting custom temperature
+   */
+  disallowTemperature?: boolean;
   /**
    * Model capabilities
    */
