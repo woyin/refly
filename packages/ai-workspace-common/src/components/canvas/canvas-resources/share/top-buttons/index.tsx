@@ -1,4 +1,5 @@
-import { SkillResponseTopButtons } from '@refly-packages/ai-workspace-common/components/canvas/canvas-resources/share/top-buttons/skill-response-top-buttons';
+import { SkillResponseTopButtons } from './skill-response-top-buttons';
+import { CodeArtifactTopButtons } from './code-artifact-top-buttons';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 
 export const TopButtons = () => {
@@ -9,6 +10,8 @@ export const TopButtons = () => {
   switch (activeNode?.type) {
     case 'skillResponse':
       return <SkillResponseTopButtons node={activeNode} />;
+    case 'codeArtifact':
+      return <CodeArtifactTopButtons />;
     default:
       return null;
   }

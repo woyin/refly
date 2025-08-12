@@ -68,7 +68,7 @@ export const AddBaseMarkContext = ({ contextItems, setContextItems }: AddBaseMar
           <Button
             size="small"
             type="default"
-            className="text-[10px] h-5 gap-1 flex items-center justify-center px-1 box-border"
+            className="text-xs h-5 gap-1 flex items-center justify-center px-1 box-border rounded-[4px] font-normal"
           >
             <AddContext size={16} color="var(--refly-text-0)" />
             {contextItems?.length === 0 ? t('knowledgeBase.context.addContext') : null}

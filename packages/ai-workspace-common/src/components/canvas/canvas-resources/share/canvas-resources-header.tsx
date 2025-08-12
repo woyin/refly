@@ -120,6 +120,7 @@ export const CanvasResourcesHeader = memo(() => {
             arrow={false}
           >
             <Button
+              className="!h-5 !w-5 p-0"
               size="small"
               type="text"
               icon={wideScreenVisible ? <ScreenDefault size={16} /> : <ScreenFull size={16} />}

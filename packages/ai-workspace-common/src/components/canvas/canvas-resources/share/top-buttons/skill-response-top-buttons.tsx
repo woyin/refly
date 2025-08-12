@@ -192,7 +192,13 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   return (
     <div className="flex items-center gap-3">
       <Tooltip title={t('canvas.nodeActions.rerun')}>
-        <Button size="small" type="text" icon={<Reload size={16} />} onClick={handleReRun} />
+        <Button
+          className="!h-5 !w-5 p-0"
+          size="small"
+          type="text"
+          icon={<Reload size={16} />}
+          onClick={handleReRun}
+        />
       </Tooltip>
 
       <Divider type="vertical" className="m-0 h-4 bg-refly-Card-Border" />
@@ -211,7 +217,7 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
         }}
       >
         <Tooltip title={t('canvas.nodeActions.more')} arrow={false}>
-          <Button size="small" type="text" icon={<More size={16} />} />
+          <Button className="!h-5 !w-5 p-0" size="small" type="text" icon={<More size={16} />} />
         </Tooltip>
       </Dropdown>
     </div>
