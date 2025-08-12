@@ -2,10 +2,10 @@ import { Runnable } from '@langchain/core/runnables';
 import { ToolParams } from '@langchain/core/tools';
 import { BaseMessage } from '@langchain/core/messages';
 import { SkillEngine } from './engine';
-import { StructuredTool } from '@langchain/core/tools';
 import { StateGraphArgs } from '@langchain/langgraph';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager';
+import { StreamEvent } from '@langchain/core/dist/tracers/event_stream';
 import {
   SkillContext,
   SkillInput,
@@ -26,7 +26,7 @@ import {
 } from '@refly/openapi-schema';
 import { EventEmitter } from 'node:stream';
 
-export abstract class BaseSkill extends StructuredTool {
+export abstract class BaseSkill {
   /**
    * Skill template icon
    */
@@ -35,6 +35,14 @@ export abstract class BaseSkill extends StructuredTool {
    * Skill placeholder
    */
   placeholder = '🔧';
+  /**
+   * Skill name
+   */
+  abstract name: string;
+  /**
+   * Skill description for UI and logging
+   */
+  abstract description: string;
   /**
    * Skill template config schema
    */
@@ -48,12 +56,7 @@ export abstract class BaseSkill extends StructuredTool {
    */
   abstract graphState: StateGraphArgs<BaseSkillState>['channels'];
 
-  constructor(
-    public engine: SkillEngine,
-    protected params?: BaseToolParams,
-  ) {
-    super(params);
-  }
+  constructor(public engine: SkillEngine) {}
 
   /**
    * Convert this skill to a LangChain runnable.
@@ -163,7 +166,7 @@ export abstract class BaseSkill extends StructuredTool {
   }
 
   async _call(
-    input: typeof this.graphState,
+    input: BaseSkillState,
     _runManager?: CallbackManagerForToolRun,
     config?: SkillRunnableConfig,
   ): Promise<string> {
@@ -190,6 +193,35 @@ export abstract class BaseSkill extends StructuredTool {
     });
 
     return response;
+  }
+
+  /**
+   * Proxy streamEvents to the underlying Runnable for API consumption.
+   */
+  async *streamEvents(
+    input: SkillInput,
+    config: SkillRunnableConfig & { signal?: AbortSignal; version?: string },
+  ): AsyncGenerator<StreamEvent> {
+    this.engine.configure(config);
+
+    config.configurable.currentSkill ??= {
+      name: this.name,
+      icon: this.icon,
+    };
+
+    const runnable = this.toRunnable();
+
+    // @ts-expect-error: streamEvents exists on Runnable at runtime
+    for await (const ev of runnable.streamEvents(input, {
+      ...config,
+      metadata: {
+        ...config.metadata,
+        ...config.configurable.currentSkill,
+        resultId: config.configurable.resultId,
+      },
+    })) {
+      yield ev as StreamEvent;
+    }
   }
 }
 
