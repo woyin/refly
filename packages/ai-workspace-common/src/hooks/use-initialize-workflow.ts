@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { genCanvasID } from '@refly/utils';
+import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 
 export const useInitializeWorkflow = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [newModeLoading, setNewModeLoading] = useState(false);
+  const { getCanvasList } = useHandleSiderData();
 
   const initializeWorkflow = useCallback(
     async (canvasId: string) => {
@@ -59,7 +61,11 @@ export const useInitializeWorkflow = () => {
           t('common.putSuccess') || 'Workflow initialized in new canvas successfully',
         );
 
-        // Navigate to the new canvas
+        // Refresh sidebar canvas list to include the new canvas
+        await getCanvasList();
+
+        // Wait for 2 seconds before navigating to the new canvas
+        await new Promise((resolve) => setTimeout(resolve, 125));
         navigate(`/canvas/${newCanvasId}`);
         return true;
       } catch (err) {
@@ -70,7 +76,7 @@ export const useInitializeWorkflow = () => {
         setNewModeLoading(false);
       }
     },
-    [t, navigate],
+    [t, navigate, getCanvasList],
   );
 
   return {

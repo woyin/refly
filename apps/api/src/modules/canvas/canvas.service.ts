@@ -314,7 +314,8 @@ export class CanvasService {
   }
 
   async createCanvas(user: User, param: UpsertCanvasRequest) {
-    const canvasId = genCanvasID();
+    // Use the canvasId from param if provided, otherwise generate a new one
+    const canvasId = param?.canvasId ?? genCanvasID();
 
     const state = initEmptyCanvasState();
     const stateStorageKey = await this.canvasSyncService.saveState(canvasId, state);

@@ -9,9 +9,9 @@ import {
   CanvasNodeType,
   CanvasNode,
 } from '@refly/openapi-schema';
-import { ResponseNodeMeta } from '@refly/canvas-common';
+import { ResponseNodeMeta, CanvasNodeFilter } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
-import { convertContextItemsToInvokeParams } from '@refly/canvas-common';
+import { convertResultContextToItems } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
 import { McpServerService } from '../mcp-server/mcp-server.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
@@ -24,6 +24,8 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
+import { CanvasContentItem } from '../canvas/canvas.dto';
+import { SkillContext } from '@refly/openapi-schema';
 
 @Injectable()
 export class WorkflowService {
@@ -65,7 +67,7 @@ export class WorkflowService {
   async initializeWorkflowExecution(
     user: User,
     canvasId: string,
-    newCanvasId: string,
+    newCanvasId?: string,
   ): Promise<string> {
     try {
       // Add a new execution mode: if a new canvas ID is provided, create a new canvas and add nodes to it one by one as they are executed.
@@ -86,7 +88,7 @@ export class WorkflowService {
         select: { title: true },
       });
 
-      // If in new mode, create a new canvas and add the passed workflow variables to the new canvas data
+      // Note: Canvas creation is now handled on the frontend to avoid version conflicts
       if (newCanvasId) {
         await this.canvasService.createCanvas(user, {
           canvasId: newCanvasId,
@@ -231,96 +233,31 @@ export class WorkflowService {
     }
 
     // Extract required parameters from ResponseNodeMeta
-    const {
-      selectedSkill,
-      contextItems = [],
-      tplConfig = {},
-      runtimeConfig = {},
-      modelInfo,
-    } = metadata;
+    const { selectedSkill, tplConfig = {}, runtimeConfig = {}, modelInfo } = metadata;
 
     // Get query from title
+    //data.metadata.structuredData?.query;
     const query = data.title || '';
 
     // Get resultId from entityId
-    // In the future, generate a new resultId, i.e., the entityId in CanvasNodeData of the node, and update the entityId in contextItems accordingly.
     const resultId = data.entityId;
 
     if (!resultId) {
       this.logger.warn('Node entityId is missing, skipping processing');
       return;
     }
-    // Retrieve all canvas nodes to build context and history
-    // Fix: Pass correct parameter object to getCanvasData as required by its type definition
-    const canvasData = await this.canvasSyncService.getCanvasData(user, { canvasId });
-    const allNodes = canvasData?.nodes ?? [];
 
-    // Convert contextItems to invoke parameters with proper data lookup
-    const { context, resultHistory, images } = convertContextItemsToInvokeParams(
-      contextItems,
-      // History function - find skillResponse nodes and convert to ActionResult
-      (item) => {
-        if (item.type === 'skillResponse') {
-          const skillNode = allNodes.find((n) => n.data?.entityId === item.entityId);
-          if (skillNode) {
-            return [
-              {
-                resultId: skillNode.data?.entityId || '',
-                title: skillNode.data?.title || '',
-              } as ActionResult,
-            ];
-          }
-        }
-        return [];
-      },
-      // Memo function - find memo nodes and extract content
-      (item) => {
-        if (item.type === 'memo') {
-          const memoNode = allNodes.find((n) => n.data?.entityId === item.entityId);
-          if (memoNode) {
-            return [
-              {
-                content: memoNode.data?.contentPreview || memoNode.data?.title || '',
-                title: memoNode.data?.title || 'Memo',
-              },
-            ];
-          }
-        }
-        return [];
-      },
-      // Images function - find image nodes and extract storage keys
-      (item) => {
-        if (item.type === 'image') {
-          const imageNode = allNodes.find((n) => n.data?.entityId === item.entityId);
-          if (imageNode) {
-            return [
-              {
-                storageKey: String(imageNode.data?.metadata?.storageKey || ''),
-                title: imageNode.data?.title || 'Image',
-                entityId: imageNode.data?.entityId || '',
-                metadata: imageNode.data?.metadata || {},
-              },
-            ];
-          }
-        }
-        return [];
-      },
-      // Website function - find website nodes and extract URL info
-      (item) => {
-        if (item.type === 'website') {
-          const websiteNode = allNodes.find((n) => n.data?.entityId === item.entityId);
-          if (websiteNode) {
-            return [
-              {
-                url: String(websiteNode.data?.metadata?.url || ''),
-                title: websiteNode.data?.title || 'Website',
-              },
-            ];
-          }
-        }
-        return [];
-      },
+    // Get canvas content items for building context and history
+    const canvasContentItems: CanvasContentItem[] = await this.canvasService.getCanvasContentItems(
+      user,
+      canvasId,
+      true,
     );
+
+    // Initialize context and history
+    let context: SkillContext = { resources: [], documents: [], codeArtifacts: [] };
+    let resultHistory: ActionResult[] = [];
+    let images: string[] = [];
 
     // Prepare the target entity
     const target: Entity = {
@@ -340,21 +277,126 @@ export class WorkflowService {
       },
     });
 
+    // Get current node execution to find parent node IDs (for both new canvas and existing canvas modes)
+    const currentNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+      where: {
+        executionId,
+        nodeId: node.id,
+      },
+    });
+
+    // Build context and history from parent nodes
+    let connectToFilters: CanvasNodeFilter[] = [];
+
+    if (currentNodeExecution?.parentNodeIds) {
+      const parentNodeIds = JSON.parse(currentNodeExecution.parentNodeIds) as string[];
+
+      if (parentNodeIds.length > 0) {
+        // Get all parent node executions to find their entity IDs
+        const parentNodeExecutions = await this.prisma.workflowNodeExecution.findMany({
+          where: {
+            executionId,
+            nodeId: { in: parentNodeIds },
+          },
+        });
+
+        // Extract entity IDs from parent nodes
+        const parentEntityIds = parentNodeExecutions
+          .map((execution) => execution.entityId)
+          .filter((entityId) => entityId && entityId !== '');
+
+        // Build context and history from parent nodes using canvas content items
+        const {
+          context: parentContext,
+          history: parentHistory,
+          images: parentImages,
+        } = await this.buildContextAndHistoryFromParentNodes(canvasContentItems, parentEntityIds);
+
+        // Update context and history with parent data
+        context = parentContext;
+        resultHistory = parentHistory;
+        images = parentImages;
+
+        // Build connection filters based on parent entity IDs
+        connectToFilters = parentEntityIds.map((entityId) => ({
+          type: node.type as CanvasNodeType,
+          entityId,
+          handleType: 'source',
+        }));
+      }
+    }
+
     // If it's new canvas mode, add the new node to the new canvas
     if (newNodeId && executionId) {
-      // Add the new node to the new canvas using the canvas service
-      await this.canvasService.addNodeToCanvas(user, canvasId, {
-        id: newNodeId,
-        type: node.type as CanvasNodeType,
-        data: {
-          ...node.data,
-          entityId: resultId, // Use the same entityId for consistency
+      // Convert context and history to context items for metadata
+      const filteredContextItems = convertResultContextToItems(context, resultHistory);
+
+      // Add the new node to the new canvas using the canvas service with connection information
+      // Note: Don't set status to executing or clear contentPreview here - will be handled before skill invocation
+      await this.canvasService.addNodeToCanvas(
+        user,
+        canvasId,
+        {
+          id: newNodeId,
+          type: node.type as CanvasNodeType,
+          data: {
+            ...node.data,
+            entityId: resultId, // Use the same entityId for consistency
+            metadata: {
+              ...node.data?.metadata,
+              contextItems: filteredContextItems,
+            },
+          },
         },
-      });
+        connectToFilters,
+      );
 
       this.logger.log(
-        `Added new node ${newNodeId} to canvas ${canvasId} for workflow execution ${executionId}`,
+        `Added new node ${newNodeId} to canvas ${canvasId} for workflow execution ${executionId} with connections`,
       );
+    }
+
+    if (canvasId) {
+      const canvasState = await this.canvasSyncService.getCanvasData(user, {
+        canvasId,
+      });
+      const { nodes } = canvasState;
+      const targetNodeId = newNodeId || node.id;
+      const canvasNode = nodes?.find((n) => n.id === targetNodeId);
+
+      if (canvasNode) {
+        const updatedNode = {
+          ...canvasNode,
+          data: {
+            ...canvasNode.data,
+            contentPreview: '', // Clear content preview when starting execution
+            metadata: {
+              ...canvasNode.data?.metadata,
+              status: 'executing',
+            },
+          },
+        };
+
+        await this.canvasSyncService.syncState(user, {
+          canvasId,
+          transactions: [
+            {
+              txId: genTransactionId(),
+              createdAt: Date.now(),
+              syncedAt: Date.now(),
+              nodeDiffs: [
+                {
+                  type: 'update',
+                  id: targetNodeId,
+                  from: canvasNode,
+                  to: updatedNode,
+                },
+              ],
+              edgeDiffs: [],
+            },
+          ],
+        });
+      }
     }
 
     // Prepare the invoke skill request
@@ -394,7 +436,7 @@ export class WorkflowService {
       // Find the workflow node execution by nodeExecutionId
       const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
         where: {
-          nodeExecutionId: nodeExecutionId, //增加获得新的节点ID
+          nodeExecutionId: nodeExecutionId,
         },
       });
 
@@ -615,42 +657,6 @@ export class WorkflowService {
 
       // Execute node based on type
       if (canvasNode.type === 'skillResponse') {
-        // Only update original canvas status if not in new canvas mode
-        if (!newNodeId || !workflowExecution.newCanvasId) {
-          // Update canvas node status to executing before invoking skill
-          const updatedNode = {
-            ...canvasNode,
-            data: {
-              ...canvasNode.data,
-              contentPreview: '', // Clear content preview when starting execution
-              metadata: {
-                ...canvasNode.data?.metadata,
-                status: 'executing',
-              },
-            },
-          };
-
-          await this.canvasSyncService.syncState(user, {
-            canvasId: workflowExecution.canvasId,
-            transactions: [
-              {
-                txId: genTransactionId(),
-                createdAt: Date.now(),
-                syncedAt: Date.now(),
-                nodeDiffs: [
-                  {
-                    type: 'update',
-                    id: nodeId,
-                    from: canvasNode,
-                    to: updatedNode,
-                  },
-                ],
-                edgeDiffs: [],
-              },
-            ],
-          });
-        }
-
         await this.executeSkillResponseNode(
           user,
           canvasNode as unknown as CanvasNode & { data: { metadata?: ResponseNodeMeta } },
@@ -735,5 +741,104 @@ export class WorkflowService {
         status,
       },
     });
+  }
+
+  /**
+   * Build context and history from parent nodes and canvas content items
+   * Similar to pilot module's buildContextAndHistory method
+   */
+  private async buildContextAndHistoryFromParentNodes(
+    canvasContentItems: CanvasContentItem[],
+    parentEntityIds: string[],
+  ): Promise<{ context: SkillContext; history: ActionResult[]; images: string[] }> {
+    // Create an empty context structure
+    const context: SkillContext = {
+      resources: [],
+      documents: [],
+      codeArtifacts: [],
+    };
+    const history: ActionResult[] = [];
+    const images: string[] = [];
+
+    // If either array is empty, return the empty context
+    if (!canvasContentItems?.length || !parentEntityIds?.length) {
+      return { context, history, images };
+    }
+
+    // Create a map of entityId to contentItem for efficient lookup
+    const contentItemMap = new Map<string, CanvasContentItem>();
+    for (const item of canvasContentItems) {
+      contentItemMap.set(item.id, item);
+    }
+
+    // Process each parent entity ID
+    for (const entityId of parentEntityIds) {
+      const contentItem = contentItemMap.get(entityId);
+      if (!contentItem) {
+        continue;
+      }
+
+      switch (contentItem.type) {
+        case 'resource':
+          context.resources.push({
+            resourceId: contentItem.id,
+            resource: {
+              resourceId: contentItem.id,
+              title: contentItem.title ?? '',
+              resourceType: 'text', // Default to text if not specified
+              content: contentItem.content ?? contentItem.contentPreview ?? '',
+              contentPreview: contentItem.contentPreview ?? '',
+            },
+            isCurrent: true,
+          });
+          break;
+        case 'document':
+          context.documents.push({
+            docId: contentItem.id,
+            document: {
+              docId: contentItem.id,
+              title: contentItem.title ?? '',
+              content: contentItem.content ?? contentItem.contentPreview ?? '',
+              contentPreview: contentItem.contentPreview ?? '',
+            },
+            isCurrent: true,
+          });
+          break;
+        case 'codeArtifact':
+          context.codeArtifacts.push({
+            artifactId: contentItem.id,
+            codeArtifact: {
+              artifactId: contentItem.id,
+              title: contentItem.title ?? '',
+              content: contentItem.content ?? '',
+              type: 'text/markdown', // Default type if not specified
+            },
+            isCurrent: true,
+          });
+          break;
+        case 'skillResponse':
+          history.push({
+            resultId: contentItem.id,
+            title: contentItem.title ?? '',
+          });
+          break;
+        default:
+          // For other types (including image, website, memo), add them as contentList items
+          if (contentItem.content || contentItem.contentPreview) {
+            context.contentList = context.contentList || [];
+            context.contentList.push({
+              content: contentItem.content ?? contentItem.contentPreview ?? '',
+              metadata: {
+                title: contentItem.title,
+                id: contentItem.id,
+                type: contentItem.type,
+              },
+            });
+          }
+          break;
+      }
+    }
+
+    return { context, history, images };
   }
 }
