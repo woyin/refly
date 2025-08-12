@@ -42,16 +42,19 @@ No manual action required, can switch to new packages anytime for more flexible 
 
 **Early bird users can use these models unlimitedly:**
 1. Claude Sonnet 4
-2. Claude 3.7 Sonnet (thinking)
+2. Claude 4 Sonnet (thinking)
 3. Kimi K2
 4. GPT-4o
 5. GPT-4.1
-6. Gemini 2.5 Pro
-7. Gemini 2.5 Flash
-8. DeepSeek V3
-9. DeepSeek R1
-10. Grok 4
-11. Qwen3 Coder
+6. GPT-5
+7. GPT-o3
+8. GPT-OSS-120B
+9. Gemini 2.5 Pro
+10. Gemini 2.5 Flash
+11. DeepSeek V3
+12. DeepSeek R1
+13. Grok 4
+14. Qwen3 Coder
 
 ## 📊 How to Check Credit Balance and Usage
 
@@ -67,12 +70,13 @@ You can check in the following locations:
 | Model | Credit Consumption |
 |-------|-------------------|
 | Claude Sonnet 4 | ~11 credits |
-| Claude Opus 4 | ~53 credits |
 | Claude Opus 4.1 | ~53 credits |
-| Claude 3.7 Sonnet (thinking) | ~11 credits |
+| Claude 4 Sonnet (thinking) | ~11 credits |
 | Kimi K2 | ~2 credits |
 | GPT-4o | ~7 credits |
 | GPT-4.1 | ~6 credits |
+| GPT-5 | ~7 credits |
+| GPT-o3 | ~6 credits |
 | GPT-OSS-120B | ~1 credit |
 | Gemini 2.5 Pro | ~7 credits |
 | Gemini 2.5 Flash | ~2 credits |

@@ -42,16 +42,19 @@ Refly 积分是一种通用计费单位，可用于调用平台上的各种 AI �
 
 **早鸟用户可无限使用的模型如下：**
 1. Claude Sonnet 4
-2. Claude 3.7 Sonnet (thinking)
+2. Claude 4 Sonnet (thinking)
 3. Kimi K2
 4. GPT-4o
 5. GPT-4.1
-6. Gemini 2.5 Pro
-7. Gemini 2.5 Flash
-8. DeepSeek V3
-9. DeepSeek R1
-10. Grok 4
-11. Qwen3 Coder
+6. GPT-5
+7. GPT-o3
+8. GPT-OSS-120B
+9. Gemini 2.5 Pro
+10. Gemini 2.5 Flash
+11. DeepSeek V3
+12. DeepSeek R1
+13. Grok 4
+14. Qwen3 Coder
 
 ## 📊 如何查看积分余额与消耗情况？
 
@@ -67,12 +70,13 @@ Refly 积分是一种通用计费单位，可用于调用平台上的各种 AI �
 | 模型 | 积分消耗 |
 |------|----------|
 | Claude Sonnet 4 | 约11积分 |
-| Claude Opus 4 | 约53积分 |
 | Claude Opus 4.1 | 约53积分 |
-| Claude 3.7 Sonnet (thinking) | 约11积分 |
+| Claude 4 Sonnet (thinking) | 约11积分 |
 | Kimi K2 | 约2积分 |
 | GPT-4o | 约7积分 |
 | GPT-4.1 | 约6积分 |
+| GPT-5 | 约7积分 |
+| GPT-o3 | 约6积分 |
 | GPT-OSS-120B | 约1积分 |
 | Gemini 2.5 Pro | 约7积分 |
 | Gemini 2.5 Flash | 约2积分 |

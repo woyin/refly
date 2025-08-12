@@ -106,6 +106,7 @@ export const Actions = memo(
             <ModelSelector
               model={model}
               setModel={setModel}
+              size="medium"
               briefMode={false}
               trigger={['click']}
             />
