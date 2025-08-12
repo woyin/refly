@@ -1,13 +1,26 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
-import { User, InvokeSkillRequest, Entity, EntityType, ActionResult } from '@refly/openapi-schema';
-import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
+import {
+  User,
+  InvokeSkillRequest,
+  Entity,
+  EntityType,
+  ActionResult,
+  CanvasNodeType,
+  CanvasNode,
+} from '@refly/openapi-schema';
+import { ResponseNodeMeta } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
 import { convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
 import { McpServerService } from '../mcp-server/mcp-server.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
-import { genWorkflowExecutionID, genWorkflowNodeExecutionID, genTransactionId } from '@refly/utils';
+import {
+  genWorkflowExecutionID,
+  genWorkflowNodeExecutionID,
+  genTransactionId,
+  genNodeID,
+} from '@refly/utils';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
@@ -49,8 +62,15 @@ export class WorkflowService {
    * @param canvasId - The canvas ID
    * @returns Promise<string> - The execution ID
    */
-  async initializeWorkflowExecution(user: User, canvasId: string): Promise<string> {
+  async initializeWorkflowExecution(
+    user: User,
+    canvasId: string,
+    newCanvasId: string,
+  ): Promise<string> {
     try {
+      // Add a new execution mode: if a new canvas ID is provided, create a new canvas and add nodes to it one by one as they are executed.
+      // Only the node being executed will be added to the new canvas at that time.
+
       // Get canvas state
       const canvasState = await this.canvasSyncService.getCanvasData(user, { canvasId });
       const { nodes, edges } = canvasState;
@@ -66,6 +86,14 @@ export class WorkflowService {
         select: { title: true },
       });
 
+      // If in new mode, create a new canvas and add the passed workflow variables to the new canvas data
+      if (newCanvasId) {
+        await this.canvasService.createCanvas(user, {
+          canvasId: newCanvasId,
+          title: canvas?.title,
+        });
+      }
+
       await this.prisma.workflowExecution.create({
         data: {
           executionId,
@@ -74,6 +102,8 @@ export class WorkflowService {
           title: canvas?.title || 'Workflow Execution',
           status: 'executing',
           totalNodes: nodes.length,
+          // If in new mode, add a new field to workflowExecution to record the new canvas ID
+          newCanvasId,
         },
       });
 
@@ -119,12 +149,16 @@ export class WorkflowService {
         throw new Error('No start nodes found in workflow');
       }
 
+      // If there's a new canvas ID, generate new node IDs for each node and store them in the new database field
       // Create node execution records
       const nodeExecutions = [];
       for (const node of nodes) {
         const nodeExecutionId = genWorkflowNodeExecutionID();
         const parents = parentMap.get(node.id) || [];
         const children = childMap.get(node.id) || [];
+
+        // Generate new node ID if newCanvasId exists
+        const newNodeId = newCanvasId ? genNodeID() : null;
 
         const nodeExecution = await this.prisma.workflowNodeExecution.create({
           data: {
@@ -137,6 +171,7 @@ export class WorkflowService {
             status: startNodes.includes(node.id) ? 'waiting' : 'waiting',
             parentNodeIds: JSON.stringify(parents),
             childNodeIds: JSON.stringify(children),
+            newNodeId, // Store the new node ID for new canvas mode
           },
         });
 
@@ -146,10 +181,13 @@ export class WorkflowService {
       // Add start nodes to runWorkflowQueue
       if (this.runWorkflowQueue) {
         for (const startNodeId of startNodes) {
+          // Find the node execution record to get the new node ID
+          const nodeExecution = nodeExecutions.find((ne) => ne.nodeId === startNodeId);
           await this.runWorkflowQueue.add('runWorkflow', {
             user: { uid: user.uid },
             executionId,
             nodeId: startNodeId,
+            newNodeId: nodeExecution?.newNodeId, // Pass the new node ID for new canvas mode
           });
         }
       }
@@ -167,6 +205,8 @@ export class WorkflowService {
    * @param user - The user to process the node for
    * @param node - The CanvasNode to process
    * @param canvasId - The canvas ID
+   * @param executionId - The workflow execution ID (optional)
+   * @param newNodeId - The new node ID for new canvas mode (optional)
    * @returns Promise<void>
    */
   async executeSkillResponseNode(
@@ -174,6 +214,7 @@ export class WorkflowService {
     node: CanvasNode & { data: { metadata?: ResponseNodeMeta } },
     canvasId: string,
     executionId?: string,
+    newNodeId?: string,
   ): Promise<void> {
     // Check if the node is a skillResponse type
     if (node.type !== 'skillResponse') {
@@ -202,7 +243,7 @@ export class WorkflowService {
     const query = data.title || '';
 
     // Get resultId from entityId
-    //后续改为重新生成一个id，节点entityId不动，现在先保持这样，result ID和entityId保持一致
+    // In the future, generate a new resultId, i.e., the entityId in CanvasNodeData of the node, and update the entityId in contextItems accordingly.
     const resultId = data.entityId;
 
     if (!resultId) {
@@ -299,6 +340,23 @@ export class WorkflowService {
       },
     });
 
+    // If it's new canvas mode, add the new node to the new canvas
+    if (newNodeId && executionId) {
+      // Add the new node to the new canvas using the canvas service
+      await this.canvasService.addNodeToCanvas(user, canvasId, {
+        id: newNodeId,
+        type: node.type as CanvasNodeType,
+        data: {
+          ...node.data,
+          entityId: resultId, // Use the same entityId for consistency
+        },
+      });
+
+      this.logger.log(
+        `Added new node ${newNodeId} to canvas ${canvasId} for workflow execution ${executionId}`,
+      );
+    }
+
     // Prepare the invoke skill request
     const invokeRequest: InvokeSkillRequest = {
       resultId,
@@ -336,7 +394,7 @@ export class WorkflowService {
       // Find the workflow node execution by nodeExecutionId
       const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
         where: {
-          nodeExecutionId: nodeExecutionId,
+          nodeExecutionId: nodeExecutionId, //增加获得新的节点ID
         },
       });
 
@@ -373,11 +431,19 @@ export class WorkflowService {
             return;
           }
 
+          // Determine which canvas to update based on whether it's new canvas mode
+          const targetCanvasId =
+            nodeExecution.newNodeId && workflowExecution.newCanvasId
+              ? workflowExecution.newCanvasId
+              : workflowExecution.canvasId;
+
+          const targetNodeId = nodeExecution.newNodeId || nodeExecution.nodeId;
+
           const canvasState = await this.canvasSyncService.getCanvasData(fullUser, {
-            canvasId: workflowExecution.canvasId,
+            canvasId: targetCanvasId,
           });
           const { nodes } = canvasState;
-          const canvasNode = nodes?.find((n) => n.id === nodeExecution.nodeId);
+          const canvasNode = nodes?.find((n) => n.id === targetNodeId);
 
           if (canvasNode) {
             const updatedNode = {
@@ -392,7 +458,7 @@ export class WorkflowService {
             };
 
             await this.canvasSyncService.syncState(fullUser, {
-              canvasId: workflowExecution.canvasId,
+              canvasId: targetCanvasId,
               transactions: [
                 {
                   txId: genTransactionId(),
@@ -401,7 +467,7 @@ export class WorkflowService {
                   nodeDiffs: [
                     {
                       type: 'update',
-                      id: nodeExecution.nodeId,
+                      id: targetNodeId,
                       from: canvasNode,
                       to: updatedNode,
                     },
@@ -451,10 +517,19 @@ export class WorkflowService {
           );
 
           if (!isAlreadyQueued && this.runWorkflowQueue) {
+            // Get the child node execution to find its new node ID
+            const childNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+              where: {
+                executionId: nodeExecution.executionId,
+                nodeId: childNodeId,
+              },
+            });
+
             await this.runWorkflowQueue.add('runWorkflow', {
               user: { uid: user.uid },
               executionId: nodeExecution.executionId,
               nodeId: childNodeId,
+              newNodeId: childNodeExecution?.newNodeId, // Pass the new node ID for new canvas mode
             });
           }
         }
@@ -477,9 +552,16 @@ export class WorkflowService {
    * @param user - The user
    * @param executionId - The workflow execution ID
    * @param nodeId - The node ID to execute
+   * @param newNodeId - The new node ID for new canvas mode (optional)
    */
-  async runWorkflow(user: User, executionId: string, nodeId: string): Promise<void> {
+  async runWorkflow(
+    user: User,
+    executionId: string,
+    nodeId: string,
+    newNodeId?: string,
+  ): Promise<void> {
     try {
+      //增加传入新的节点ID
       // Get node execution record
       const nodeExecution = await this.prisma.workflowNodeExecution.findFirst({
         where: {
@@ -533,44 +615,50 @@ export class WorkflowService {
 
       // Execute node based on type
       if (canvasNode.type === 'skillResponse') {
-        // Update canvas node status to executing before invoking skill
-        const updatedNode = {
-          ...canvasNode,
-          data: {
-            ...canvasNode.data,
-            contentPreview: '', // Clear content preview when starting execution
-            metadata: {
-              ...canvasNode.data?.metadata,
-              status: 'executing',
+        // Only update original canvas status if not in new canvas mode
+        if (!newNodeId || !workflowExecution.newCanvasId) {
+          // Update canvas node status to executing before invoking skill
+          const updatedNode = {
+            ...canvasNode,
+            data: {
+              ...canvasNode.data,
+              contentPreview: '', // Clear content preview when starting execution
+              metadata: {
+                ...canvasNode.data?.metadata,
+                status: 'executing',
+              },
             },
-          },
-        };
+          };
 
-        await this.canvasSyncService.syncState(user, {
-          canvasId: workflowExecution.canvasId,
-          transactions: [
-            {
-              txId: genTransactionId(),
-              createdAt: Date.now(),
-              syncedAt: Date.now(),
-              nodeDiffs: [
-                {
-                  type: 'update',
-                  id: nodeId,
-                  from: canvasNode,
-                  to: updatedNode,
-                },
-              ],
-              edgeDiffs: [],
-            },
-          ],
-        });
+          await this.canvasSyncService.syncState(user, {
+            canvasId: workflowExecution.canvasId,
+            transactions: [
+              {
+                txId: genTransactionId(),
+                createdAt: Date.now(),
+                syncedAt: Date.now(),
+                nodeDiffs: [
+                  {
+                    type: 'update',
+                    id: nodeId,
+                    from: canvasNode,
+                    to: updatedNode,
+                  },
+                ],
+                edgeDiffs: [],
+              },
+            ],
+          });
+        }
 
         await this.executeSkillResponseNode(
           user,
           canvasNode as unknown as CanvasNode & { data: { metadata?: ResponseNodeMeta } },
-          workflowExecution.canvasId,
+          newNodeId && workflowExecution.newCanvasId
+            ? workflowExecution.newCanvasId
+            : workflowExecution.canvasId,
           executionId,
+          newNodeId,
         );
       } else {
         // For other node types, just mark as finish for now

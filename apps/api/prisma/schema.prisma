@@ -275,6 +275,8 @@ model WorkflowExecution {
   uid           String   @map("uid")
   /// Canvas id
   canvasId      String   @map("canvas_id")
+  /// New canvas id
+  newCanvasId   String?  @map("new_canvas_id")
   /// Workflow title
   title         String   @map("title")
   /// Workflow status: init, executing, finished, failed
@@ -303,6 +305,8 @@ model WorkflowNodeExecution {
   executionId     String             @map("execution_id")
   /// Canvas node id
   nodeId          String             @map("node_id")
+  /// New canvas node id
+  newNodeId       String?            @map("new_node_id")
   /// Node type
   nodeType        String             @map("node_type")
   /// Node entity id

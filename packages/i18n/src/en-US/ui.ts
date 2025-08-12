@@ -1224,6 +1224,8 @@ const translations = {
         undo: 'Undo',
         redo: 'Redo',
         zoom: 'Zoom Percentage',
+        initializeWorkflow: 'Initialize Workflow',
+        initializeWorkflowInNewCanvas: 'Initialize Workflow in New Canvas',
         zoomReset: 'Reset',
         zoomIn: 'Zoom In',
         zoomOut: 'Zoom Out',

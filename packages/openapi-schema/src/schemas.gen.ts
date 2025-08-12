@@ -7540,6 +7540,11 @@ export const InitializeWorkflowRequestSchema = {
       description: 'Canvas ID to initialize workflow for',
       example: 'canvas-123',
     },
+    newCanvasId: {
+      type: 'string',
+      description: 'New canvas ID',
+      example: 'canvas-456',
+    },
   },
 } as const;
 

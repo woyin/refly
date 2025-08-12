@@ -8467,6 +8467,10 @@ components:
           type: string
           description: Canvas ID to initialize workflow for
           example: "canvas-123"
+        newCanvasId:
+          type: string
+          description: New canvas ID
+          example: "canvas-456"
     InitializeWorkflowResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

@@ -65,7 +65,12 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
   const canvasTitle = shareData?.title || canvasTitleFromStore;
 
   const { duplicateCanvas, loading: duplicating } = useDuplicateCanvas();
-  const { initializeWorkflow, loading: initializing } = useInitializeWorkflow();
+  const {
+    initializeWorkflow,
+    initializeWorkflowInNewCanvas,
+    loading: initializing,
+    newModeLoading,
+  } = useInitializeWorkflow();
 
   const handleDuplicate = () => {
     if (!isLogin) {
@@ -81,6 +86,14 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
       return;
     }
     initializeWorkflow(canvasId);
+  };
+
+  const handleInitializeWorkflowInNewCanvas = () => {
+    if (!isLogin) {
+      setLoginModalOpen(true);
+      return;
+    }
+    initializeWorkflowInNewCanvas(canvasId);
   };
 
   return (
@@ -145,6 +158,19 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
             className={buttonClass}
           >
             <Play size={16} />
+          </TooltipButton>
+
+          {/* Add a button to trigger new execution mode, passing a new canvasId, and after successful initialization, navigate to the new canvas */}
+          <TooltipButton
+            tooltip={
+              t('canvas.toolbar.tooltip.initializeWorkflowInNewCanvas') ||
+              'Initialize Workflow in New Canvas'
+            }
+            onClick={handleInitializeWorkflowInNewCanvas}
+            disabled={newModeLoading}
+            className={buttonClass}
+          >
+            <Copy size={16} />
           </TooltipButton>
 
           {isPreviewCanvas ? (

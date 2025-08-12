@@ -3,7 +3,8 @@ import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { User as UserModel } from '../../generated/client';
 import { WorkflowService } from './workflow.service';
-import { InitializeWorkflowRequest, InitializeWorkflowResponse } from './workflow.dto';
+import { InitializeWorkflowRequest, InitializeWorkflowResponse } from '@refly/openapi-schema';
+import { buildSuccessResponse } from '../../utils';
 
 @Controller('v1/workflow')
 export class WorkflowController {
@@ -18,11 +19,9 @@ export class WorkflowController {
     const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
       request.canvasId,
+      request.newCanvasId,
     );
 
-    return {
-      executionId,
-      success: true,
-    };
+    return buildSuccessResponse({ workflowExecutionId: executionId });
   }
 }

@@ -38,6 +38,7 @@ export enum IDPrefix {
   CREDIT_RECHARGE = 'cr-',
   CREDIT_USAGE = 'cu-',
   CREDIT_DEBT = 'cd-',
+  NODE = 'node-',
 }
 
 export function genUID(): string {
@@ -196,4 +197,8 @@ export const genCreditUsageId = () => {
 export function genCreditDebtId() {
   const timestamp = Date.now();
   return `${IDPrefix.CREDIT_DEBT}${timestamp}-${createId()}`;
+}
+
+export function genNodeID(): string {
+  return IDPrefix.NODE + createId();
 }

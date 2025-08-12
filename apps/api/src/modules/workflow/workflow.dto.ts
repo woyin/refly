@@ -11,10 +11,7 @@ export interface RunWorkflowJobData {
   user: JobUser;
   executionId: string;
   nodeId: string;
-}
-
-export interface InitializeWorkflowRequest {
-  canvasId: string;
+  newNodeId?: string; // New node ID for new canvas mode
 }
 
 export interface InitializeWorkflowResponse {

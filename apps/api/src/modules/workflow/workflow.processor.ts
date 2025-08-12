@@ -44,7 +44,12 @@ export class RunWorkflowProcessor extends WorkerHost {
     );
 
     try {
-      await this.workflowService.runWorkflow(job.data.user, job.data.executionId, job.data.nodeId);
+      await this.workflowService.runWorkflow(
+        job.data.user,
+        job.data.executionId,
+        job.data.nodeId,
+        job.data.newNodeId,
+      );
       this.logger.log(
         `[${QUEUE_RUN_WORKFLOW}] Completed job: ${job.id} for executionId: ${job.data.executionId}, nodeId: ${job.data.nodeId}`,
       );
