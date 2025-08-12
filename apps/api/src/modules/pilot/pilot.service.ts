@@ -27,6 +27,7 @@ import { QUEUE_RUN_PILOT } from '../../utils/const';
 import { RunPilotJobData } from './pilot.processor';
 import { ProviderItemNotFoundError } from '@refly/errors';
 import { pilotSessionPO2DTO, pilotStepPO2DTO } from './pilot.dto';
+import { buildSummarySkillInput } from './prompt/summary';
 import { findBestMatch } from '../../utils/similarity';
 
 @Injectable()
@@ -568,6 +569,13 @@ export class PilotService {
       );
     }
 
+    // Get user's output locale preference
+    const userPo = await this.prisma.user.findUnique({
+      select: { outputLocale: true },
+      where: { uid: user.uid },
+    });
+    const locale = userPo?.outputLocale;
+
     const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
     if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
       throw new ProviderItemNotFoundError(`provider item ${pilotSession.providerItemId} not valid`);
@@ -602,7 +610,18 @@ export class PilotService {
             name: skill.name,
             icon: skill.icon,
           } as ActionMeta),
-          input: JSON.stringify({ query: 'Summary' } as SkillInput),
+          input: JSON.stringify(
+            buildSummarySkillInput({
+              userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
+              currentEpoch,
+              maxEpoch,
+              locale,
+              subtaskTitles:
+                latestSubtaskSteps
+                  ?.map(({ actionResult }) => actionResult?.title)
+                  ?.filter(Boolean) ?? [],
+            }) as SkillInput,
+          ),
           status: 'waiting',
           targetId,
           targetType,
@@ -660,7 +679,21 @@ export class PilotService {
 
       await this.skillService.sendInvokeSkillTask(user, {
         resultId,
-        input: { query: 'Summary' },
+        input: buildSummarySkillInput({
+          userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
+          currentEpoch,
+          maxEpoch,
+          locale:
+            (
+              await this.prisma.user.findUnique({
+                select: { outputLocale: true },
+                where: { uid: user.uid },
+              })
+            )?.outputLocale ?? 'en-US',
+          subtaskTitles:
+            latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ??
+            [],
+        }),
         target: {
           entityId: targetId,
           entityType: targetType as EntityType,
