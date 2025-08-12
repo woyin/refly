@@ -8,6 +8,7 @@ import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useReactFlow } from '@xyflow/react';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const ResourceItemAction = ({
   node,
@@ -17,6 +18,7 @@ export const ResourceItemAction = ({
   className?: string;
 }) => {
   const { t } = useTranslation();
+  const { readonly } = useCanvasContext();
   const { setNodeCenter } = useNodePosition();
   const { getNodes } = useReactFlow();
   const { deleteNode } = useDeleteNode();
@@ -71,17 +73,19 @@ export const ResourceItemAction = ({
           }}
         />
       </Tooltip>
-      <Tooltip title={t('common.delete')} arrow={false}>
-        <Button
-          type="text"
-          size="small"
-          icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteNode(node);
-          }}
-        />
-      </Tooltip>
+      {!readonly && (
+        <Tooltip title={t('common.delete')} arrow={false}>
+          <Button
+            type="text"
+            size="small"
+            icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteNode(node);
+            }}
+          />
+        </Tooltip>
+      )}
     </div>
   );
 };

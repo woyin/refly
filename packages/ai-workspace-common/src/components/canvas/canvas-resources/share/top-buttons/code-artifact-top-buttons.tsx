@@ -11,9 +11,11 @@ import type { MenuProps } from 'antd';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { getFileExtensionFromType } from '@refly/utils';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const CodeArtifactTopButtons = () => {
   const { t } = useTranslation();
+  const { readonly } = useCanvasContext();
   const { activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
     activeNode: state.activeNode,
   }));
@@ -22,7 +24,6 @@ export const CodeArtifactTopButtons = () => {
   const title = activeNode?.data?.title ?? 'Code Artifact';
   const type = (activeNode?.data?.metadata?.type as CodeArtifactType) ?? 'text/html';
   const content = (activeNode?.data?.metadata as any)?.content ?? '';
-  const isCanvasReadOnly = Boolean(activeNode?.data?.metadata?.canvasReadOnly);
   const nodeId = activeNode?.id ?? '';
 
   const { setNodeCenter } = useNodePosition();
@@ -113,22 +114,27 @@ export const CodeArtifactTopButtons = () => {
         ),
         onClick: handleLocateNode,
       },
-      {
-        key: 'delete',
-        label: (
-          <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
-            <Delete size={16} color="var(--refly-func-danger-default)" />
-            {t('canvas.nodeActions.delete')}
-          </div>
-        ),
-        onClick: handleDeleteNode,
-      },
+      ...(readonly
+        ? []
+        : [
+            { type: 'divider' as const },
+            {
+              key: 'delete',
+              label: (
+                <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
+                  <Delete size={16} color="var(--refly-func-danger-default)" />
+                  {t('canvas.nodeActions.delete')}
+                </div>
+              ),
+              onClick: handleDeleteNode,
+            },
+          ]),
     ];
   }, [handleDeleteNode, handleLocateNode, t]);
 
   return (
     <div className="flex items-center gap-3">
-      {!isCanvasReadOnly && (
+      {!readonly && (
         <Tooltip title={t('codeArtifact.buttons.share')}>
           <Button
             className="!h-5 !w-5 p-0"

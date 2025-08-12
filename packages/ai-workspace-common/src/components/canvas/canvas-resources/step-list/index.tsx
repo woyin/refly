@@ -10,6 +10,7 @@ import { Location, Delete } from 'refly-icons';
 import { useReactFlow } from '@xyflow/react';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const { Text } = Typography;
 
@@ -40,6 +41,7 @@ interface StepRowTitleProps {
 
 const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleProps) => {
   const { t } = useTranslation();
+  const { readonly } = useCanvasContext();
   return (
     <div className="w-full flex items-center justify-between gap-2">
       <Text
@@ -60,17 +62,19 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
             }}
           />
         </Tooltip>
-        <Tooltip title={t('common.delete')} arrow={false}>
-          <Button
-            type="text"
-            size="small"
-            icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(node);
-            }}
-          />
-        </Tooltip>
+        {!readonly && (
+          <Tooltip title={t('common.delete')} arrow={false}>
+            <Button
+              type="text"
+              size="small"
+              icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(node);
+              }}
+            />
+          </Tooltip>
+        )}
       </div>
     </div>
   );

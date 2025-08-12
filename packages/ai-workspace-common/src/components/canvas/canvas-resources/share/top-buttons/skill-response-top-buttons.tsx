@@ -20,12 +20,15 @@ import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useCanvasResourcesPanelStoreShallow, useCanvasStore } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 interface SkillResponseTopButtonsProps {
   node: CanvasNode;
 }
 export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) => {
   const { t } = useTranslation();
+  const { readonly } = useCanvasContext();
+
   const resultId = node?.data?.entityId ?? '';
   const { result } = useActionResultStoreShallow((state) => ({
     result: state.resultMap[resultId],
@@ -131,31 +134,35 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [
-      {
-        key: 'saveAsDocument',
-        disabled: !latestStepContent || isCreating,
-        loading: isCreating,
-        label: (
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <Doc size={18} color="var(--refly-text-0)" />
-            {t('canvas.nodeActions.createAsDocument')}
-            {isCreating && <Spin size="small" className="ml-1 text-refly-text-3" />}
-          </div>
-        ),
-        onClick: handleSaveAsDocument,
-      },
-      {
-        key: 'share',
-        disabled: !result || isSharing,
-        loading: isSharing,
-        label: (
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <Share size={18} color="var(--refly-text-0)" />
-            {t('common.share')}
-          </div>
-        ),
-        onClick: handleShare,
-      },
+      ...(readonly
+        ? []
+        : [
+            {
+              key: 'saveAsDocument',
+              disabled: !latestStepContent || isCreating,
+              loading: isCreating,
+              label: (
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Doc size={18} color="var(--refly-text-0)" />
+                  {t('canvas.nodeActions.createAsDocument')}
+                  {isCreating && <Spin size="small" className="ml-1 text-refly-text-3" />}
+                </div>
+              ),
+              onClick: handleSaveAsDocument,
+            },
+            {
+              key: 'share',
+              disabled: !result || isSharing,
+              loading: isSharing,
+              label: (
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Share size={18} color="var(--refly-text-0)" />
+                  {t('common.share')}
+                </div>
+              ),
+              onClick: handleShare,
+            },
+          ]),
       {
         key: 'locateNode',
         label: (
@@ -166,17 +173,22 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
         ),
         onClick: handleLocateNode,
       },
-      { type: 'divider' as const },
-      {
-        key: 'delete',
-        label: (
-          <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
-            <Delete size={16} color="var(--refly-func-danger-default)" />
-            {t('canvas.nodeActions.delete')}
-          </div>
-        ),
-        onClick: handleDeleteNode,
-      },
+      ...(readonly
+        ? []
+        : [
+            { type: 'divider' as const },
+            {
+              key: 'delete',
+              disabled: readonly,
+              label: (
+                <div className="flex items-center gap-2 text-refly-func-danger-default whitespace-nowrap">
+                  <Delete size={16} color="var(--refly-func-danger-default)" />
+                  {t('canvas.nodeActions.delete')}
+                </div>
+              ),
+              onClick: handleDeleteNode,
+            },
+          ]),
     ];
   }, [
     handleDeleteNode,
@@ -188,20 +200,24 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
     result,
     t,
     isCreating,
+    readonly,
   ]);
   return (
     <div className="flex items-center gap-3">
-      <Tooltip title={t('canvas.nodeActions.rerun')}>
-        <Button
-          className="!h-5 !w-5 p-0"
-          size="small"
-          type="text"
-          icon={<Reload size={16} />}
-          onClick={handleReRun}
-        />
-      </Tooltip>
-
-      <Divider type="vertical" className="m-0 h-4 bg-refly-Card-Border" />
+      {!readonly && (
+        <>
+          <Tooltip title={t('canvas.nodeActions.rerun')}>
+            <Button
+              className="!h-5 !w-5 p-0"
+              size="small"
+              type="text"
+              icon={<Reload size={16} />}
+              onClick={handleReRun}
+            />
+          </Tooltip>
+          <Divider type="vertical" className="m-0 h-4 bg-refly-Card-Border" />
+        </>
+      )}
 
       <Dropdown
         menu={{ items: moreMenuItems }}

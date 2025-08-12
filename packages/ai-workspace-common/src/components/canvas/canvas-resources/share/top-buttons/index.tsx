@@ -1,6 +1,7 @@
 import { SkillResponseTopButtons } from './skill-response-top-buttons';
 import { CodeArtifactTopButtons } from './code-artifact-top-buttons';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { DocumentTopButtons } from './document-top-buttons';
 
 export const TopButtons = () => {
   const { activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
@@ -12,6 +13,8 @@ export const TopButtons = () => {
       return <SkillResponseTopButtons node={activeNode} />;
     case 'codeArtifact':
       return <CodeArtifactTopButtons />;
+    case 'document':
+      return <DocumentTopButtons />;
     default:
       return null;
   }
