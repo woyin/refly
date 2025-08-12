@@ -64,6 +64,7 @@ import { SkillEngineService } from '../skill/skill-engine.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ActionService } from '../action/action.service';
+import { extractChunkContent } from '../../utils/llm';
 
 @Injectable()
 export class SkillInvokerService {
@@ -788,8 +789,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
             break;
           }
           case 'on_chat_model_stream': {
-            const content = chunk.content.toString();
-            const reasoningContent = chunk?.additional_kwargs?.reasoning_content?.toString() || '';
+            const { content, reasoningContent } = extractChunkContent(chunk);
 
             if ((content || reasoningContent) && !runMeta?.suppressOutput) {
               if (runMeta?.artifact) {
