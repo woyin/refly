@@ -56,7 +56,10 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 import '@xyflow/react/dist/style.css';
 import './index.scss';
 import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
-import { useUpdateSettings } from '@refly-packages/ai-workspace-common/queries';
+import {
+  useGetPilotSessionDetail,
+  useUpdateSettings,
+} from '@refly-packages/ai-workspace-common/queries';
 import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
@@ -70,8 +73,7 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
 import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
-// import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
-// import { ChevronUp } from 'lucide-react';
+import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
 
 const GRID_SIZE = 10;
 
@@ -214,11 +216,14 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const { pendingNode, clearPendingNode } = useCanvasNodesStore();
   const { loading, readonly, shareNotFound, shareLoading, undo, redo } = useCanvasContext();
 
-  const { isPilotOpen, setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
-    isPilotOpen: state.isPilotOpen,
-    setIsPilotOpen: state.setIsPilotOpen,
-    setActiveSessionId: state.setActiveSessionId,
-  }));
+  const { isPilotOpen, setIsPilotOpen, setActiveSessionId, activeSessionId } = usePilotStoreShallow(
+    (state) => ({
+      isPilotOpen: state.isPilotOpen,
+      setIsPilotOpen: state.setIsPilotOpen,
+      setActiveSessionId: state.setActiveSessionId,
+      activeSessionId: state.activeSessionId,
+    }),
+  );
 
   const {
     canvasInitialized,
@@ -937,7 +942,29 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       nodeOperationsEmitter.off('openNodeContextMenu', handleOpenContextMenu);
     };
   }, [onNodeContextMenu]);
-
+  const {
+    data: sessionData,
+    // isLoading,
+    // error,
+  } = useGetPilotSessionDetail(
+    {
+      query: { sessionId: activeSessionId },
+    },
+    undefined,
+    {
+      enabled: !!activeSessionId,
+    },
+  );
+  const session = useMemo(() => sessionData?.data, [sessionData]);
+  const handleClick = useCallback(() => {
+    setIsPilotOpen(!isPilotOpen);
+  }, [setIsPilotOpen]);
+  const handleSessionClick = useCallback(
+    (sessionId: string) => {
+      setActiveSessionId(sessionId);
+    },
+    [setActiveSessionId],
+  );
   return (
     <Spin
       className="w-full h-full"
@@ -966,6 +993,18 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         {isPilotOpen ? (
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 shadow-sm rounded-lg w-[568px] border border-solid border-gray-100 dark:border-gray-800">
             <Pilot canvasId={canvasId} />
+          </div>
+        ) : nodes?.length > 0 ? (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 shadow-sm rounded-lg w-[568px] border border-solid border-gray-100 dark:border-gray-800 bg-white dark:bg-neutral-900/95">
+            <div className="pb-4">
+              <SessionHeader
+                canvasId={canvasId}
+                session={session}
+                steps={[]}
+                onClick={handleClick}
+                onSessionClick={handleSessionClick}
+              />
+            </div>
           </div>
         ) : (
           <Button
@@ -1008,6 +1047,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             <span className="text-neutral-400 text-[16px] font-[400]">描述你的需求...</span>
           </Button>
         )}
+
         <TopToolbar canvasId={canvasId} mode={interactionMode} changeMode={toggleInteractionMode} />
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>

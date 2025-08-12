@@ -1,15 +1,10 @@
 import { memo, useMemo } from 'react';
 import { Divider } from 'antd';
-import { useTranslation } from 'react-i18next';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
-import {
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  QuestionCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
-import { FaCheck } from 'react-icons/fa6';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { useTranslation } from 'react-i18next';
+import { Cancelled, Finished, Pending, Running } from 'refly-icons';
 
 // Status icon mapping for pilot steps
 export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) => {
@@ -19,25 +14,25 @@ export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) =>
     case 'init':
       return (
         <div className="w-5 h-5 flex items-center justify-center">
-          <ClockCircleOutlined className="text-gray-400 dark:text-gray-500" />
+          <Pending className="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </div>
       );
     case 'executing':
       return (
         <div className="w-6 h-6 flex items-center justify-center">
-          <SyncOutlined spin className="text-yellow-500" />
+          <Running className="w-4 h-4" />
         </div>
       );
     case 'finish':
       return (
         <div className="w-5 h-5 flex items-center justify-center">
-          <FaCheck className="w-4 h-4 text-green-500" />
+          <Finished className="w-4 h-4" color="var(--refly-primary-default)" />
         </div>
       );
     case 'failed':
       return (
         <div className="w-5 h-5 flex items-center justify-center">
-          <CloseCircleOutlined className="text-red-500" />
+          <Cancelled className="w-4 h-4" color="var(--refly-error-default)" />
         </div>
       );
     default:

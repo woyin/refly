@@ -97,7 +97,8 @@ export const SessionContainer = memo(
     const [sessionStatus, setSessionStatus] = useState<string | null>(null);
     const { getNodes } = useReactFlow<CanvasNode<any>>();
 
-    const { setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
+    const { isPilotOpen, setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
+      isPilotOpen: state.isPilotOpen,
       setIsPilotOpen: state.setIsPilotOpen,
       setActiveSessionId: state.setActiveSessionId,
     }));
@@ -150,8 +151,8 @@ export const SessionContainer = memo(
       return ACTIVE_STATUSES.includes(sessionStatus ?? '');
     }, [sessionStatus]);
 
-    const handleClose = useCallback(() => {
-      setIsPilotOpen(false);
+    const handleClick = useCallback(() => {
+      setIsPilotOpen(!isPilotOpen);
     }, [setIsPilotOpen]);
 
     const handleStepClick = useCallback(
@@ -208,13 +209,15 @@ export const SessionContainer = memo(
       <div className={containerClassName}>
         {/* Header */}
         {/* {session && ( */}
-        <SessionHeader
-          canvasId={canvasId}
-          session={session}
-          steps={sortedSteps}
-          onClose={handleClose}
-          onSessionClick={handleSessionClick}
-        />
+        <div className="pb-4">
+          <SessionHeader
+            canvasId={canvasId}
+            session={session}
+            steps={sortedSteps}
+            onClick={handleClick}
+            onSessionClick={handleSessionClick}
+          />
+        </div>
         {/* )} */}
 
         {!session ? (

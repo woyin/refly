@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import { PilotSessionStatus } from '@refly/openapi-schema';
+import { PilotSessionStatus, PilotStep } from '@refly/openapi-schema';
 import { Tag } from 'antd';
 import {
   CheckCircleOutlined,
@@ -12,27 +11,28 @@ import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 
 export interface SessionStatusTagProps {
   status: PilotSessionStatus;
+  steps: PilotStep[];
   className?: string;
 }
 
-export const SessionStatusTag = memo(({ status, className }: SessionStatusTagProps) => {
-  const { t } = useTranslation();
-
-  const color = useMemo(() => {
-    switch (status) {
-      case 'init':
-        return 'blue';
-      case 'executing':
-      case 'waiting':
-        return 'processing';
-      case 'finish':
-        return 'success';
-      case 'failed':
-        return 'error';
-      default:
-        return 'default';
-    }
-  }, [status]);
+export const SessionStatusTag = memo(({ status, steps, className }: SessionStatusTagProps) => {
+  // const { t } = useTranslation();
+  console.log(steps);
+  // const color = useMemo(() => {
+  //   switch (status) {
+  //     case 'init':
+  //       return 'blue';
+  //     case 'executing':
+  //     case 'waiting':
+  //       return 'processing';
+  //     case 'finish':
+  //       return 'success';
+  //     case 'failed':
+  //       return 'error';
+  //     default:
+  //       return 'default';
+  //   }
+  // }, [status]);
 
   const icon = useMemo(() => {
     switch (status) {
@@ -50,11 +50,11 @@ export const SessionStatusTag = memo(({ status, className }: SessionStatusTagPro
   }, [status]);
 
   return (
-    <Tag color={color} className={cn(className, 'flex items-center gap-0')}>
+    <Tag className={cn(className, 'flex items-center gap-0')}>
       {icon}
-      <span className="text-[10px] m-0 p-0">
+      {/* <span className="text-[10px] m-0 p-0">
         {t(`pilot.status.${status}`, { defaultValue: status })}
-      </span>
+      </span> */}
     </Tag>
   );
 });

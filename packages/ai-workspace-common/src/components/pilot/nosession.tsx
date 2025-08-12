@@ -61,7 +61,7 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
     <div className={cn('flex bg-refly-bg-content-z2 overflow-y-auto rounded-lg')}>
       <div className={cn('relative w-full max-w-4xl mx-auto z-10', 'flex flex-col justify-center')}>
         <div className="w-full h-full rounded-[12px] shadow-refly-m overflow-hidden">
-          <div className="p-4">
+          <div className="px-4 pb-4">
             <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border-[1px] border-solid border-refly-primary-default ">
               {chatMode === 'media' ? (
                 <div className="w-full px-4 pt-4 pb-3">

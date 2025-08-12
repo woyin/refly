@@ -1,26 +1,29 @@
-import {
-  IconClose,
-  IconThreadHistory,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconThreadHistory } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Button, Divider, Popover, Tooltip } from 'antd';
 import { memo, useCallback, useState } from 'react';
 import { PilotSession, PilotStep } from '@refly/openapi-schema';
 import { PilotList } from '@refly-packages/ai-workspace-common/components/pilot/pilot-list';
 import { useTranslation } from 'react-i18next';
+import { usePilotStoreShallow } from '@refly/stores';
+import { ScreenDefault, ScreenFull } from 'refly-icons';
+import { SessionStatusTag } from '@refly-packages/ai-workspace-common/components/pilot/session-status-tag';
 const SessionHeader = memo(
   ({
     canvasId,
     session,
     steps,
-    onClose,
+    onClick,
     onSessionClick,
   }: {
     canvasId: string;
     session?: PilotSession;
     steps: PilotStep[];
-    onClose: () => void;
+    onClick: () => void;
     onSessionClick: (sessionId: string) => void;
   }) => {
+    const { isPilotOpen } = usePilotStoreShallow((state) => ({
+      isPilotOpen: state.isPilotOpen,
+    }));
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const handleSessionClick = useCallback(
       (sessionId: string) => {
@@ -66,7 +69,9 @@ const SessionHeader = memo(
           <span className="text-neutral-900 dark:text-neutral-50 text-[14px] font-semibold">
             Agent
           </span>
+          {session ? <SessionStatusTag status={session?.status} steps={steps} /> : null}
         </div>
+
         {/* Header Right */}
         <div className="flex items-center gap-2">
           <Popover
@@ -100,10 +105,21 @@ const SessionHeader = memo(
           <Button
             type="text"
             size="small"
-            className="flex items-center justify-center p-0 w-4 h-4 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 min-w-0"
-            onClick={onClose}
+            className="flex items-center justify-center p-0 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 min-w-0"
+            onClick={onClick}
+            icon={
+              isPilotOpen ? (
+                <ScreenFull className="w-4 h-4" />
+              ) : (
+                <ScreenDefault className="w-4 h-4" />
+              )
+            }
           >
-            <IconClose className="w-4 h-4" />
+            {/* {isPilotOpen ? (
+              <ScreenFull className="w-4 h-4" />
+            ) : (
+              <ScreenDefault className="w-4 h-4" />
+            )} */}
           </Button>
         </div>
       </div>
