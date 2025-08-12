@@ -1,7 +1,7 @@
 import { TokenUsageItem } from '@refly/openapi-schema';
 
 /**
- * Aggregate token usage items by model tier and name
+ * Aggregate token usage items by model name
  */
 export const aggregateTokenUsage = (usageItems: TokenUsageItem[]): TokenUsageItem[] => {
   const aggregatedUsage: Record<
@@ -15,7 +15,7 @@ export const aggregateTokenUsage = (usageItems: TokenUsageItem[]): TokenUsageIte
 
   for (const item of usageItems) {
     if (!item) continue;
-    const key = `${item.tier ?? ''}:${item.modelName}`;
+    const key = item.modelName;
     if (!aggregatedUsage[key]) {
       aggregatedUsage[key] = { inputTokens: 0, outputTokens: 0, modelProvider: item.modelProvider };
     }
@@ -23,21 +23,13 @@ export const aggregateTokenUsage = (usageItems: TokenUsageItem[]): TokenUsageIte
     aggregatedUsage[key].outputTokens += item.outputTokens;
   }
 
-  return Object.entries(aggregatedUsage)
-    .map(([key, value]) => {
-      const [tier, modelName] = key.split(':');
-      return {
-        modelName,
-        modelProvider: value.modelProvider,
-        inputTokens: value.inputTokens,
-        outputTokens: value.outputTokens,
-        ...(tier ? { tier } : {}),
-      };
-    })
-    .sort((a, b) => {
-      if (a.tier === b.tier) {
-        return a.modelName.localeCompare(b.modelName);
-      }
-      return a.tier.localeCompare(b.tier);
-    });
+  return Object.entries(aggregatedUsage).map(([key, value]) => {
+    const modelName = key;
+    return {
+      modelName,
+      modelProvider: value.modelProvider,
+      inputTokens: value.inputTokens,
+      outputTokens: value.outputTokens,
+    };
+  });
 };

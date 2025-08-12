@@ -9,7 +9,6 @@ import {
   SkillTemplateConfigDefinition,
   Source,
 } from '@refly/openapi-schema';
-import { createSkillTemplateInventory } from '../inventory';
 
 // types
 import { GraphState } from '../scheduler/types';
@@ -45,13 +44,6 @@ export class CommonQnA extends BaseSkill {
 
   graphState: StateGraphArgs<BaseSkillState>['channels'] = {
     ...baseStateGraphArgs,
-  };
-
-  // Default skills to be scheduled (they are actually templates!).
-  skills: BaseSkill[] = createSkillTemplateInventory(this.engine);
-
-  isValidSkillName = (name: string) => {
-    return this.skills.some((skill) => skill.name === name);
   };
 
   commonPreprocess = async (
