@@ -1766,7 +1766,7 @@ const translations = {
       tour: '查看教程',
       template: '模板',
       home: '首页',
-      systemTheme: '系统主题',
+      systemTheme: '外观',
     },
   },
   knowledgeLibrary: {

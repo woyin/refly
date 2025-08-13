@@ -1802,7 +1802,7 @@ const translations = {
       tour: 'View Tutorial',
       template: 'Template',
       home: 'Home',
-      systemTheme: 'System Theme',
+      systemTheme: 'Appearance',
     },
   },
   knowledgeLibrary: {

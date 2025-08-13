@@ -95,15 +95,17 @@ export const ContextItem = ({
         )}
         onClick={() => handleItemClick()}
       >
-        {type === 'image' ? (
-          <img
-            src={node?.data?.metadata?.imageUrl as string}
-            alt={title}
-            className="w-3 h-3 rounded-[3px] object-cover flex-shrink-0"
-          />
-        ) : (
-          <NodeIcon type={type} small iconColor={NODE_COLORS[type]} filled={false} />
-        )}
+        <NodeIcon
+          className="!w-4 !h-4"
+          type={type}
+          small
+          url={node?.data?.metadata?.imageUrl as string}
+          resourceType={node?.data?.metadata?.resourceType}
+          resourceMeta={node?.data?.metadata?.resourceMeta}
+          iconSize={16}
+          iconColor={NODE_COLORS[type]}
+          filled={false}
+        />
         <div
           className={cn('text-xs text-refly-text-0 max-w-[100px] truncate leading-4', {
             'text-refly-func-danger-default': isLimit,

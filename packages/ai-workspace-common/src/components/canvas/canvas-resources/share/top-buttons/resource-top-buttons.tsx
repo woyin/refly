@@ -45,7 +45,7 @@ export const ResourceTopButtons = () => {
             {
               key: 'delete',
               label: (
-                <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
+                <div className="flex items-center gap-2 text-refly-func-danger-default whitespace-nowrap">
                   <Delete size={16} color="var(--refly-func-danger-default)" />
                   {t('canvas.nodeActions.delete')}
                 </div>

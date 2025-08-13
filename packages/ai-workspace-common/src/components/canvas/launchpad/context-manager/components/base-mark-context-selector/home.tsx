@@ -35,7 +35,7 @@ export function Home({
             item?.onItemClick?.(item.data);
           }}
         >
-          <NodeIcon type={item?.type} small filled={false} />
+          <NodeIcon type={item?.type} small iconSize={16} filled={false} />
           <div className="search-res-container">
             <p
               className="search-res-title dark:!text-gray-200"
