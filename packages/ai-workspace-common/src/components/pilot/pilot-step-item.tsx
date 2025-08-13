@@ -69,7 +69,7 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
         <StepStatusIcon status={step.status} />
       </div>
 
-      <div className="flex items-center px-2 py-1 flex-grow min-w-0">
+      <div className="flex items-center py-1 flex-grow min-w-0">
         <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
       </div>
     </div>

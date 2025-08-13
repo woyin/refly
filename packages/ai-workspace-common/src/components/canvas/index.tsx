@@ -1000,7 +1000,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
               <SessionHeader
                 canvasId={canvasId}
                 session={session}
-                steps={[]}
+                steps={session?.steps ?? []}
                 onClick={handleClick}
                 onSessionClick={handleSessionClick}
               />
