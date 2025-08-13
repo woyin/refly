@@ -5,7 +5,6 @@ import { ResourceOverview } from './share/resource-overview';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
-import { RESULT_NODE_TYPES } from './result-list';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import './index.scss';
 
@@ -36,8 +35,15 @@ export const CanvasResources = memo(() => {
       if (activeNode.type === 'skillResponse') {
         setParentType('stepsRecord');
       }
-      if (RESULT_NODE_TYPES.includes(activeNode.type as CanvasNodeType)) {
+      if (
+        ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(
+          activeNode.type as CanvasNodeType,
+        )
+      ) {
         setParentType('resultsRecord');
+      }
+      if (activeNode.type === 'image' && !!activeNode.data?.metadata?.resultId) {
+        setParentType(activeNode.data?.metadata?.resultId ? 'resultsRecord' : 'myUpload');
       }
     }
   }, [activeNode]);

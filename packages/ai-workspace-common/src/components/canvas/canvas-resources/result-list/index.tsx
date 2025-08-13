@@ -10,16 +10,6 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import { ResourceItemAction } from '../share/resource-item-action';
 import { Image } from 'refly-icons';
 
-// Define the node types we want to display
-export const RESULT_NODE_TYPES: CanvasNodeType[] = [
-  'document',
-  'codeArtifact',
-  'website',
-  'image',
-  'video',
-  'audio',
-];
-
 const { Text } = Typography;
 
 export const ResultList = memo(() => {
@@ -39,8 +29,10 @@ export const ResultList = memo(() => {
       return [];
     }
 
-    let filteredNodes = nodes.filter((node) =>
-      RESULT_NODE_TYPES.includes(node.type as CanvasNodeType),
+    let filteredNodes = nodes.filter(
+      (node) =>
+        ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
+        (node.type === 'image' && !!node.data?.metadata?.resultId),
     );
 
     // Apply search keyword filtering if provided

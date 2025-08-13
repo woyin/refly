@@ -96,35 +96,37 @@ export const ImportResourceModal = memo(() => {
 
     setSaveLoading(true);
     try {
-      const batchCreateResourceData: UpsertResourceRequest[] = waitingList.map((item) => {
-        // For weblink items, use the link data if available
-        if (item.type === 'weblink' && item.link) {
+      const batchCreateResourceData: UpsertResourceRequest[] = waitingList
+        .filter((item) => item.file?.type !== 'image')
+        .map((item) => {
+          // For weblink items, use the link data if available
+          if (item.type === 'weblink' && item.link) {
+            return {
+              projectId: currentProjectId,
+              resourceType: 'weblink',
+              title: item.link.title || item.title || item.url || '',
+              data: {
+                url: item.url,
+                title: item.link.title || item.title || '',
+                description: item.link.description || '',
+                image: item.link.image || '',
+              },
+            };
+          }
+
+          // For other types, use the basic item data
           return {
             projectId: currentProjectId,
-            resourceType: 'weblink',
-            title: item.link.title || item.title || item.url || '',
+            resourceType: item.type,
+            title: item.title ?? '',
+            storageKey: item.file?.storageKey,
             data: {
               url: item.url,
-              title: item.link.title || item.title || '',
-              description: item.link.description || '',
-              image: item.link.image || '',
+              title: item.title,
+              content: item.content,
             },
           };
-        }
-
-        // For other types, use the basic item data
-        return {
-          projectId: currentProjectId,
-          resourceType: item.type,
-          title: item.title ?? '',
-          storageKey: item.file?.storageKey,
-          data: {
-            url: item.url,
-            title: item.title,
-            content: item.content,
-          },
-        };
-      });
+        });
 
       const { data } = await getClient().batchCreateResource({
         body: batchCreateResourceData,
@@ -137,15 +139,7 @@ export const ImportResourceModal = memo(() => {
       refetchUsage();
       message.success(t('common.putSuccess'));
 
-      const resources =
-        data && Array.isArray(data.data)
-          ? data.data.map((resource) => ({
-              id: resource.resourceId,
-              title: resource.title,
-              domain: 'resource',
-              contentPreview: resource.contentPreview,
-            }))
-          : [];
+      const resources = data && Array.isArray(data.data) ? data.data : [];
       resources.forEach((resource, index) => {
         const nodePosition = insertNodePosition
           ? {
@@ -159,13 +153,34 @@ export const ImportResourceModal = memo(() => {
             type: 'resource',
             data: {
               title: resource.title,
-              entityId: resource.id,
+              entityId: resource.resourceId,
               contentPreview: resource.contentPreview,
+              metadata: {
+                resourceType: resource.resourceType,
+                resourceMeta: resource.data,
+              },
             },
             position: nodePosition,
           },
         });
       });
+
+      const images = waitingList.filter((item) => item.file?.type === 'image');
+      for (const item of images) {
+        nodeOperationsEmitter.emit('addNode', {
+          node: {
+            type: 'image',
+            data: {
+              title: item.title,
+              entityId: item.file?.storageKey,
+              metadata: {
+                imageUrl: item.file?.url,
+                storageKey: item.file?.storageKey,
+              },
+            },
+          },
+        });
+      }
 
       // Update source list and clear waiting list after successful save
       updateSourceList(data && Array.isArray(data.data) ? data.data : [], currentProjectId);

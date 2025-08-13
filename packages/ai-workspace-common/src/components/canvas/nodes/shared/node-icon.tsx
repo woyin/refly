@@ -1,7 +1,7 @@
 import type { ComponentType, NamedExoticComponent } from 'react';
 import { memo } from 'react';
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
-import { CanvasNodeType, SelectionKey } from '@refly/openapi-schema';
+import { CanvasNodeType, ResourceMeta, ResourceType, SelectionKey } from '@refly/openapi-schema';
 import { AiChat, Group, Image, Video, Audio, Doc, Web1, Note, Media } from 'refly-icons';
 
 type IconComponent = ComponentType<{ size?: number | string; color?: string }>;
@@ -38,6 +38,8 @@ interface NodeIconProps {
   iconSize?: number;
   small?: boolean;
   filled?: boolean;
+  resourceType?: ResourceType;
+  resourceMeta?: ResourceMeta;
 }
 
 export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(

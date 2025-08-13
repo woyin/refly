@@ -1,9 +1,7 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Button, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { File } from 'refly-icons';
-import { CanvasNode } from '@refly/canvas-common';
-import type { IndexStatus } from '@refly/openapi-schema';
+import { CanvasNode, ResourceNodeMeta } from '@refly/canvas-common';
 import { cn } from '@refly/utils/cn';
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
@@ -11,6 +9,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { ResourceItemAction } from '../share/resource-item-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 
 const { Text } = Typography;
 
@@ -27,7 +26,8 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
   const { t } = useTranslation();
   const { readonly } = useCanvasContext();
   const [isReindexing, setIsReindexing] = useState(false);
-  const indexStatus = (node?.data?.metadata?.indexStatus ?? '') as IndexStatus | '';
+  const { indexStatus, resourceType, resourceMeta } = (node.data?.metadata ??
+    {}) as ResourceNodeMeta;
 
   const isParseFailed = indexStatus === 'parse_failed';
   const isIndexFailed = indexStatus === 'index_failed';
@@ -86,7 +86,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
           className={cn('rounded-lg flex items-center justify-center flex-shrink-0', 'w-5 h-5')}
           style={iconContainerStyle}
         >
-          <File size={14} color="white" />
+          <NodeIcon small type="resource" resourceType={resourceType} resourceMeta={resourceMeta} />
         </div>
         <Text
           ellipsis={{ tooltip: { placement: 'left' } }}

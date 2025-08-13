@@ -23,7 +23,10 @@ export const MyUploadList = memo(() => {
       return [];
     }
 
-    let filteredNodes = nodes.filter((node) => node.type === 'resource');
+    let filteredNodes = nodes.filter(
+      (node) =>
+        node.type === 'resource' || (node.type === 'image' && !node.data?.metadata?.resultId),
+    );
     if (searchKeyword?.trim()) {
       const keyword = searchKeyword.toLowerCase().trim();
       filteredNodes = filteredNodes.filter((node) => {
