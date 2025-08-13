@@ -1400,6 +1400,9 @@ const translations = {
       upgrade: 'Upgrade Plan',
       more: 'More Options',
       createAsDocument: 'Create as Document',
+      download: 'Download',
+      downloadSuccess: 'Download Success',
+      downloadError: 'Download Error',
     },
     nodeStatus: {
       isCreatingDocument: 'Creating Document...',

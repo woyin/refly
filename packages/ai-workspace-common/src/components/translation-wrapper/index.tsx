@@ -125,7 +125,7 @@ export const TranslationWrapper: React.FC<TranslationWrapperProps> = ({
   }
 
   return (
-    <div className={cn('w-full', className)}>
+    <div className={className}>
       {isLoading ? (
         <>
           <span className="original-text">{content}</span>

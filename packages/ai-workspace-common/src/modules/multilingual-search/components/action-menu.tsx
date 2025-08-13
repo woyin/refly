@@ -13,8 +13,6 @@ import { getAvailableFileCount } from '@refly/utils/quota';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { useUpdateSourceList } from '@refly-packages/ai-workspace-common/hooks/canvas/use-update-source-list';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { genUniqueId } from '@refly/utils/id';
-import { safeParseURL } from '@refly/utils/url';
 
 export enum ImportActionMode {
   CREATE_RESOURCE = 'createResource',
@@ -43,12 +41,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
 
   const { selectedItems, results, setSelectedItems } = useMultilingualSearchStore();
-  const { setImportResourceModalVisible, insertNodePosition, addToWaitingList } =
-    useImportResourceStoreShallow((state) => ({
+  const { setImportResourceModalVisible, insertNodePosition } = useImportResourceStoreShallow(
+    (state) => ({
       setImportResourceModalVisible: state.setImportResourceModalVisible,
       insertNodePosition: state.insertNodePosition,
-      addToWaitingList: state.addToWaitingList,
-    }));
+    }),
+  );
   const [saveLoading, setSaveLoading] = useState(false);
 
   const handleSelectAll = (checked: boolean) => {
@@ -62,37 +60,6 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
     if (props.sourceType === 'multilingualSearch') {
       setImportResourceModalVisible(false);
     }
-  };
-
-  const handleAddToWaitingList = () => {
-    if (selectedItems.length === 0) {
-      message.warning(t('resource.import.emptyLink'));
-      return;
-    }
-
-    // Add selected items to waiting list
-    for (const item of selectedItems) {
-      const waitingItemId = genUniqueId();
-      addToWaitingList({
-        id: waitingItemId,
-        type: 'weblink',
-        title: item.title ?? '',
-        url: item.url,
-        status: 'pending',
-        link: {
-          key: waitingItemId,
-          url: item.url,
-          title: item.title ?? '',
-          description: item.pageContent,
-          image: `https://www.google.com/s2/favicons?domain=${safeParseURL(item.url)}&sz=16`,
-          isHandled: true,
-          isError: false,
-        },
-      });
-    }
-
-    message.success(t('resource.import.addedToWaitingList', { count: selectedItems.length }));
-    setSelectedItems([]);
   };
 
   const handleSave = async () => {
@@ -208,9 +175,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
         </div>
         <div className="footer-action">
           <Button onClick={handleClose}>{t('common.cancel')}</Button>
-          <Button onClick={handleAddToWaitingList} disabled={selectedItems.length === 0}>
-            {t('resource.import.addToWaiting')}
-          </Button>
+
           <Button
             type="primary"
             onClick={handleSave}

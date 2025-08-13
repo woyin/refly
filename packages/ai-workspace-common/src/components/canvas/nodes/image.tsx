@@ -112,6 +112,52 @@ export const ImageNode = memo(
       setIsPreviewModalVisible(true);
     }, []);
 
+    const handleDownload = useCallback(async () => {
+      if (!imageUrl) return;
+
+      nodeActionEmitter.emit(createNodeEventName(id, 'download.started'));
+
+      const triggerDownload = (href: string) => {
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = data?.title ?? 'image';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      try {
+        const url = new URL(imageUrl);
+        url.searchParams.set('download', '1');
+
+        const response = await fetch(url.toString(), {
+          credentials: 'include',
+        });
+
+        if (!response?.ok) {
+          throw new Error(`Download failed: ${response?.status ?? 'unknown'}`);
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        triggerDownload(objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
+          success: true,
+          fileName: data?.title ?? 'image',
+        });
+      } catch (error) {
+        console.error('Download failed:', error);
+        // Fallback to original method if fetch fails
+        triggerDownload(imageUrl);
+        nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
+          success: true,
+          fileName: data?.title ?? 'image',
+        });
+      }
+    }, [imageUrl, data?.title, id]);
+
     const handleImageClick = useCallback(() => {
       if (selected || readonly) {
         handlePreview();
@@ -142,25 +188,25 @@ export const ImageNode = memo(
       const handleNodeAskAI = (event?: { dragCreateInfo?: NodeDragCreateInfo }) => {
         handleAskAI(event?.dragCreateInfo);
       };
-      const handleNodePreview = () => handlePreview();
+      const handleNodeDownload = () => handleDownload();
 
       // Register events with node ID
       nodeActionEmitter.on(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
       nodeActionEmitter.on(createNodeEventName(id, 'delete'), handleNodeDelete);
       nodeActionEmitter.on(createNodeEventName(id, 'askAI'), handleNodeAskAI);
-      nodeActionEmitter.on(createNodeEventName(id, 'preview'), handleNodePreview);
+      nodeActionEmitter.on(createNodeEventName(id, 'download'), handleNodeDownload);
 
       return () => {
         // Cleanup events when component unmounts
         nodeActionEmitter.off(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
         nodeActionEmitter.off(createNodeEventName(id, 'askAI'), handleNodeAskAI);
-        nodeActionEmitter.off(createNodeEventName(id, 'preview'), handleNodePreview);
+        nodeActionEmitter.off(createNodeEventName(id, 'download'), handleNodeDownload);
 
         // Clean up all node events
         cleanupNodeEvents(id);
       };
-    }, [id, handleAddToContext, handleDelete, handleAskAI, handlePreview]);
+    }, [id, handleAddToContext, handleDelete, handleAskAI, handleDownload]);
 
     const moveableRef = useRef<Moveable>(null);
 

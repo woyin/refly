@@ -74,6 +74,7 @@ import { IconPilot } from '@refly-packages/ai-workspace-common/components/common
 import { ChevronUp } from 'lucide-react';
 import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ResourceOverview } from './canvas-resources/share/resource-overview';
+import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 
 const GRID_SIZE = 10;
 
@@ -1044,6 +1045,17 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
         {/* Display the not found overlay when shareNotFound is true */}
         {readonly && shareNotFound && <NotFoundOverlay />}
+
+        <div
+          className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"
+          style={{
+            maxWidth: 'calc(100% - 12px)',
+          }}
+        >
+          <div className="relative h-full overflow-y-hidden">
+            <NodePreviewContainer canvasId={canvasId} />
+          </div>
+        </div>
 
         <MenuPopper open={menuOpen} position={menuPosition} setOpen={setMenuOpen} />
 

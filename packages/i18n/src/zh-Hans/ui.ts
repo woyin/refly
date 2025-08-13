@@ -1360,6 +1360,9 @@ const translations = {
       upgrade: '升级套餐',
       more: '更多选项',
       createAsDocument: '创建为文档',
+      download: '下载',
+      downloadSuccess: '下载成功',
+      downloadError: '下载失败',
     },
     nodeStatus: {
       isCreatingDocument: '创建中...',

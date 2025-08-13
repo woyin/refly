@@ -1,4 +1,4 @@
-import { FC, memo, useMemo, useState, useCallback, useRef } from 'react';
+import { FC, memo, useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { Tooltip, Button, message, Modal } from 'antd';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -8,9 +8,8 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import {
   IconDeleteFile,
   IconRun,
-  IconPreview,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { AiChat, Reload, Copy, Clone, More, Delete } from 'refly-icons';
+import { AiChat, Reload, Copy, Clone, More, Delete, Download } from 'refly-icons';
 import cn from 'classnames';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
@@ -71,6 +70,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
 
     const [cloneAskAIRunning, setCloneAskAIRunning] = useState(false);
     const [copyRunning, setCopyRunning] = useState(false);
+    const [downloadRunning, setDownloadRunning] = useState(false);
 
     const shouldShowButtons =
       !readonly && !isMultiSelected && (isNodeHovered || contextMenuOpenedCanvasId === nodeId);
@@ -149,6 +149,11 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       [nodeId, nodeType],
     );
 
+    const handleDownload = useCallback(() => {
+      setDownloadRunning(true);
+      nodeActionEmitter.emit(createNodeEventName(nodeId, 'download'));
+    }, [nodeId]);
+
     const actionButtons = useMemo(() => {
       const buttons: ActionButtonType[] = [];
 
@@ -193,10 +198,11 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
 
         case 'image':
           buttons.push({
-            key: 'preview',
-            icon: IconPreview,
-            tooltip: t('canvas.nodeActions.preview'),
-            onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'preview')),
+            key: 'download',
+            icon: Download,
+            tooltip: t('canvas.nodeActions.download'),
+            onClick: handleDownload,
+            loading: downloadRunning,
           });
           break;
       }
@@ -235,7 +241,41 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       }
 
       return buttons;
-    }, [nodeId, nodeType, t, handleCloneAskAI, cloneAskAIRunning, handleCopy, copyRunning]);
+    }, [
+      nodeId,
+      nodeType,
+      t,
+      handleCloneAskAI,
+      cloneAskAIRunning,
+      handleCopy,
+      copyRunning,
+      handleDownload,
+      downloadRunning,
+    ]);
+
+    // Listen download events to control loading state
+    useEffect(() => {
+      const onStarted = () => setDownloadRunning(true);
+      const onCompleted = (payload?: { success?: boolean; fileName?: string }) => {
+        setDownloadRunning(false);
+        if (payload?.success) {
+          message.success(t('canvas.nodeActions.downloadSuccess'));
+        } else {
+          message.error(t('canvas.nodeActions.downloadError'));
+        }
+      };
+
+      nodeActionEmitter.on(createNodeEventName(nodeId, 'download.started'), onStarted);
+      nodeActionEmitter.on(createNodeEventName(nodeId, 'download.completed'), onCompleted as any);
+
+      return () => {
+        nodeActionEmitter.off(createNodeEventName(nodeId, 'download.started'), onStarted);
+        nodeActionEmitter.off(
+          createNodeEventName(nodeId, 'download.completed'),
+          onCompleted as any,
+        );
+      };
+    }, [nodeId, t]);
 
     if (!shouldShowButtons) return null;
 
