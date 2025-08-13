@@ -282,9 +282,9 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
   return (
-    <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto">
+    <div className="flex flex-col gap-4 h-full max-w-[1024px] mx-auto overflow-hidden">
       {title && (
-        <>
+        <div className="px-4 pt-4">
           <EditChatInput
             enabled={editMode}
             resultId={resultId}
@@ -313,114 +313,120 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             actionMeta={actionMeta}
             setEditMode={setEditMode}
           />
-        </>
+        </div>
       )}
 
-      <Spin
-        spinning={!isStreaming && result?.status === 'executing'}
-        indicator={<IconLoading className="animate-spin" />}
-        size="large"
-        tip={t('canvas.skillResponse.generating')}
-      >
-        <div
-          className={cn('flex-grow transition-opacity duration-500', { 'opacity-30': editMode })}
-          onClick={() => {
-            if (editMode) {
-              setEditMode(false);
-            }
-          }}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4">
+        <Spin
+          spinning={!isStreaming && result?.status === 'executing'}
+          indicator={<IconLoading className="animate-spin" />}
+          size="large"
+          tip={t('canvas.skillResponse.generating')}
+          wrapperClassName="h-full w-full flex flex-col"
         >
-          {loading && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
-          {!outputStep && statusText && (
-            <div className="flex flex-col gap-2 animate-pulse">
-              <Divider dashed className="my-2" />
-              <div className="m-2 flex items-center gap-1 text-gray-500">
-                <Thinking size={16} />
-                <span className="text-sm">{statusText}</span>
+          <div
+            className={cn(
+              'h-full overflow-auto preview-container transition-opacity duration-500',
+              { 'opacity-30': editMode },
+            )}
+            onClick={() => {
+              if (editMode) {
+                setEditMode(false);
+              }
+            }}
+          >
+            {loading && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
+            {!outputStep && statusText && (
+              <div className="flex flex-col gap-2 animate-pulse">
+                <Divider dashed className="my-2" />
+                <div className="m-2 flex items-center gap-1 text-gray-500">
+                  <Thinking size={16} />
+                  <span className="text-sm">{statusText}</span>
+                </div>
               </div>
-            </div>
-          )}
-          {outputStep && (
-            <>
-              <Divider dashed className="my-2" />
-              <ActionStepCard
-                result={result}
-                step={outputStep}
-                status={result?.status}
-                query={title}
-              />
-            </>
-          )}
+            )}
+            {outputStep && (
+              <>
+                <Divider dashed className="my-2" />
+                <ActionStepCard
+                  result={result}
+                  step={outputStep}
+                  status={result?.status}
+                  query={title}
+                />
+              </>
+            )}
 
-          {result?.status === 'failed' && (
-            <div className="mt-2 flex flex-col gap-2 border border-solid border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-md">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1 min-w-0">
-                  <div className="font-medium text-sm flex items-center gap-2">
-                    <IconError className="flex items-center justify-center text-yellow-500 flex-shrink-0" />
-                    {t('canvas.skillResponse.error.defaultTitle')}
-                  </div>
-                  {errCode && (
-                    <div className="space-y-2">
-                      <p className="text-gray-700 dark:text-gray-200 text-xs break-words">
-                        {errDescription}
-                      </p>
-                      {traceId && (
-                        <p className="text-gray-500 dark:text-gray-400 text-xs break-all">
-                          Trace ID: {traceId}
-                        </p>
-                      )}
+            {result?.status === 'failed' && (
+              <div className="mt-2 flex flex-col gap-2 border border-solid border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-md">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      <IconError className="flex items-center justify-center text-yellow-500 flex-shrink-0" />
+                      {t('canvas.skillResponse.error.defaultTitle')}
                     </div>
+                    {errCode && (
+                      <div className="space-y-2">
+                        <p className="text-gray-700 dark:text-gray-200 text-xs break-words">
+                          {errDescription}
+                        </p>
+                        {traceId && (
+                          <p className="text-gray-500 dark:text-gray-400 text-xs break-all">
+                            Trace ID: {traceId}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    type="text"
+                    size="small"
+                    className="text-xs"
+                    onClick={() => {
+                      if (errCode) {
+                        navigator.clipboard.writeText(`${errDescription}\nTrace ID: ${traceId}`);
+                        message.success(t('components.markdown.copySuccess'));
+                      }
+                    }}
+                  >
+                    {t('common.copyRequestInfo')}
+                  </Button>
+                  {error instanceof ModelUsageQuotaExceeded &&
+                  creditBalance <= 0 &&
+                  isBalanceSuccess ? (
+                    <Button
+                      type="primary"
+                      size="small"
+                      className="text-xs flex items-center justify-center"
+                      icon={
+                        <Subscription
+                          size={13}
+                          className="text-[#1C1F23] dark:text-white text-xs flex items-center justify-center"
+                        />
+                      }
+                      onClick={handleSubscriptionClick}
+                    >
+                      {t('canvas.nodeActions.upgrade')}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="primary"
+                      size="small"
+                      className="text-xs"
+                      icon={<IconRerun className="text-xs flex items-center justify-center" />}
+                      onClick={handleRetry}
+                    >
+                      {t('canvas.nodeActions.rerun')}
+                    </Button>
                   )}
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  type="text"
-                  size="small"
-                  className="text-xs"
-                  onClick={() => {
-                    if (errCode) {
-                      navigator.clipboard.writeText(`${errDescription}\nTrace ID: ${traceId}`);
-                      message.success(t('components.markdown.copySuccess'));
-                    }
-                  }}
-                >
-                  {t('common.copyRequestInfo')}
-                </Button>
-                {error instanceof ModelUsageQuotaExceeded &&
-                creditBalance <= 0 &&
-                isBalanceSuccess ? (
-                  <Button
-                    type="primary"
-                    size="small"
-                    className="text-xs flex items-center justify-center"
-                    icon={
-                      <Subscription
-                        size={13}
-                        className="text-[#1C1F23] dark:text-white text-xs flex items-center justify-center"
-                      />
-                    }
-                    onClick={handleSubscriptionClick}
-                  >
-                    {t('canvas.nodeActions.upgrade')}
-                  </Button>
-                ) : (
-                  <Button
-                    type="primary"
-                    size="small"
-                    className="text-xs"
-                    icon={<IconRerun className="text-xs flex items-center justify-center" />}
-                    onClick={handleRetry}
-                  >
-                    {t('canvas.nodeActions.rerun')}
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </Spin>
+            )}
+          </div>
+        </Spin>
+      </div>
 
       {outputStep && <ActionContainer result={result} step={outputStep} nodeId={node.id} />}
 

@@ -7,8 +7,13 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import './index.scss';
+import cn from 'classnames';
 
-export const CanvasResources = memo(() => {
+interface CanvasResourcesProps {
+  className?: string;
+}
+
+export const CanvasResources = memo(({ className }: CanvasResourcesProps) => {
   const { showLeftOverview, activeNode, resetState, setParentType } =
     useCanvasResourcesPanelStoreShallow((state) => ({
       showLeftOverview: state.showLeftOverview,
@@ -50,9 +55,13 @@ export const CanvasResources = memo(() => {
 
   return (
     <div
-      className={`w-full h-full overflow-hidden flex flex-col bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m ${
-        showLeftOverview ? 'rounded-l-none' : ''
-      }`}
+      className={cn(
+        'w-full h-full overflow-hidden flex flex-col bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m',
+        {
+          'rounded-l-none': showLeftOverview,
+        },
+        className,
+      )}
     >
       <CanvasResourcesHeader />
       {activeNode ? <PreviewComponent node={activeNode} /> : <ResourceOverview />}
@@ -91,11 +100,11 @@ export const CanvasResourcesWidescreenModal = memo(() => {
       destroyOnHidden
     >
       <div className="flex w-full h-[99vh]">
-        <div className="w-[360px] h-full border-r border-refly-Card-Border">
+        <div className="w-[360px] flex h-full border-r border-refly-Card-Border">
           <ResourceOverview />
         </div>
         <div className="flex-1 h-full">
-          <CanvasResources />
+          <CanvasResources className="!rounded-l-none" />
         </div>
       </div>
     </Modal>

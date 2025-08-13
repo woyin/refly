@@ -407,7 +407,7 @@ export const EnhancedSkillResponse = memo(
     return (
       <div
         ref={containerRef}
-        className={cn('flex flex-col h-full w-full', className)}
+        className={cn('flex flex-col h-full w-full flex-grow overflow-hidden', className)}
         onClick={handleContainerClick}
       >
         <div className="flex flex-1 overflow-hidden flex-col w-full max-w-[1024px] mx-auto">

@@ -41,15 +41,15 @@ export const ResourceOverview = memo(() => {
   const segmentedOptions = useMemo(() => {
     return [
       {
-        label: t('canvas.resourceLibrary.stepsRecord'),
+        label: <div className="h-5">{t('canvas.resourceLibrary.stepsRecord')}</div>,
         value: 'stepsRecord',
       },
       {
-        label: t('canvas.resourceLibrary.resultsRecord'),
+        label: <div className="h-5">{t('canvas.resourceLibrary.resultsRecord')}</div>,
         value: 'resultsRecord',
       },
       {
-        label: t('canvas.resourceLibrary.myUpload'),
+        label: <div className="h-5">{t('canvas.resourceLibrary.myUpload')}</div>,
         value: 'myUpload',
       },
     ];
