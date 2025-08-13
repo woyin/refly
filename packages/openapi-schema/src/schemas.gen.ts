@@ -6752,6 +6752,10 @@ export const LLMModelConfigSchema = {
       type: 'number',
       description: 'Model max output length (in tokens)',
     },
+    disallowTemperature: {
+      type: 'boolean',
+      description: 'Whether the model disallow setting custom temperature',
+    },
     capabilities: {
       description: 'Model capabilities',
       $ref: '#/components/schemas/ModelCapabilities',
@@ -7599,4 +7603,62 @@ export const WorkflowVariableSchema = {
       example: '用户姓名',
     },
   },
+} as const;
+
+export const GetWorkflowVariablesResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'List of workflow variables',
+          items: {
+            $ref: '#/components/schemas/WorkflowVariable',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const UpdateWorkflowVariablesRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'variables'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    variables: {
+      type: 'array',
+      description: 'List of workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
+  },
+} as const;
+
+export const UpdateWorkflowVariablesResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Updated list of workflow variables',
+          items: {
+            $ref: '#/components/schemas/WorkflowVariable',
+          },
+        },
+      },
+    },
+  ],
 } as const;

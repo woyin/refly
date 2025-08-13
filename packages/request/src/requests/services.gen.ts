@@ -114,6 +114,12 @@ import type {
   CreateCanvasVersionData,
   CreateCanvasVersionError,
   CreateCanvasVersionResponse2,
+  GetWorkflowVariablesData,
+  GetWorkflowVariablesError,
+  GetWorkflowVariablesResponse2,
+  UpdateWorkflowVariablesData,
+  UpdateWorkflowVariablesError,
+  UpdateWorkflowVariablesResponse2,
   ListCanvasTemplatesData,
   ListCanvasTemplatesError,
   ListCanvasTemplatesResponse,
@@ -954,6 +960,40 @@ export const createCanvasVersion = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/canvas/createVersion',
+  });
+};
+
+/**
+ * Get workflow variables
+ * Get workflow variables for a canvas
+ */
+export const getWorkflowVariables = <ThrowOnError extends boolean = false>(
+  options: Options<GetWorkflowVariablesData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetWorkflowVariablesResponse2,
+    GetWorkflowVariablesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/workflow/variables',
+  });
+};
+
+/**
+ * Update workflow variables
+ * Update workflow variables for a canvas
+ */
+export const updateWorkflowVariables = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateWorkflowVariablesData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    UpdateWorkflowVariablesResponse2,
+    UpdateWorkflowVariablesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/canvas/workflow/variables',
   });
 };
 

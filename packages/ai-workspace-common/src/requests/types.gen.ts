@@ -4704,6 +4704,10 @@ export type LLMModelConfig = {
    */
   maxOutput?: number;
   /**
+   * Whether the model disallow setting custom temperature
+   */
+  disallowTemperature?: boolean;
+  /**
    * Model capabilities
    */
   capabilities?: ModelCapabilities;
@@ -5315,6 +5319,31 @@ export type WorkflowVariable = {
   description?: string;
 };
 
+export type GetWorkflowVariablesResponse = BaseResponse & {
+  /**
+   * List of workflow variables
+   */
+  data?: Array<WorkflowVariable>;
+};
+
+export type UpdateWorkflowVariablesRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * List of workflow variables
+   */
+  variables: Array<WorkflowVariable>;
+};
+
+export type UpdateWorkflowVariablesResponse = BaseResponse & {
+  /**
+   * Updated list of workflow variables
+   */
+  data?: Array<WorkflowVariable>;
+};
+
 export type ListMcpServersData2 = {
   query?: {
     /**
@@ -5707,6 +5736,27 @@ export type CreateCanvasVersionData = {
 export type CreateCanvasVersionResponse2 = CreateCanvasVersionResponse;
 
 export type CreateCanvasVersionError = unknown;
+
+export type GetWorkflowVariablesData = {
+  query: {
+    /**
+     * Canvas ID
+     */
+    canvasId: string;
+  };
+};
+
+export type GetWorkflowVariablesResponse2 = GetWorkflowVariablesResponse;
+
+export type GetWorkflowVariablesError = unknown;
+
+export type UpdateWorkflowVariablesData = {
+  body: UpdateWorkflowVariablesRequest;
+};
+
+export type UpdateWorkflowVariablesResponse2 = UpdateWorkflowVariablesResponse;
+
+export type UpdateWorkflowVariablesError = unknown;
 
 export type ListCanvasTemplatesData = {
   query?: {

@@ -848,6 +848,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateCanvasVersionResponse'
+  /canvas/workflow/variables:
+    get:
+      tags:
+        - canvas
+      summary: Get workflow variables
+      description: Get workflow variables for a canvas
+      operationId: getWorkflowVariables
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWorkflowVariablesResponse'
+    post:
+      tags:
+        - canvas
+      summary: Update workflow variables
+      description: Update workflow variables for a canvas
+      operationId: updateWorkflowVariables
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkflowVariablesRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateWorkflowVariablesResponse'
   /template/list:
     get:
       tags:
@@ -7890,6 +7930,9 @@ components:
         maxOutput:
           type: number
           description: Model max output length (in tokens)
+        disallowTemperature:
+          type: boolean
+          description: Whether the model disallow setting custom temperature
         capabilities:
           description: Model capabilities
           $ref: '#/components/schemas/ModelCapabilities'
@@ -8508,6 +8551,40 @@ components:
           type: string
           description: Variable description
           example: "用户姓名"
+    GetWorkflowVariablesResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: List of workflow variables
+              items:
+                $ref: '#/components/schemas/WorkflowVariable'
+    UpdateWorkflowVariablesRequest:
+      type: object
+      required:
+        - canvasId
+        - variables
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        variables:
+          type: array
+          description: List of workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
+    UpdateWorkflowVariablesResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: Updated list of workflow variables
+              items:
+                $ref: '#/components/schemas/WorkflowVariable'
   securitySchemes:
     api_key:
       type: apiKey

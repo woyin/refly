@@ -77,6 +77,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowVariables,
   importCanvas,
   initializeWorkflow,
   invokeSkill,
@@ -134,6 +135,7 @@ import {
   updateSettings,
   updateSkillInstance,
   updateSkillTrigger,
+  updateWorkflowVariables,
   upload,
   validateMcpServer,
 } from '../requests/services.gen';
@@ -261,6 +263,18 @@ export const UseGetCanvasTransactionsKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetCanvasTransactionsKey, ...(queryKey ?? [clientOptions])];
+export type GetWorkflowVariablesDefaultResponse = Awaited<
+  ReturnType<typeof getWorkflowVariables>
+>['data'];
+export type GetWorkflowVariablesQueryResult<
+  TData = GetWorkflowVariablesDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetWorkflowVariablesKey = 'GetWorkflowVariables';
+export const UseGetWorkflowVariablesKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetWorkflowVariablesKey, ...(queryKey ?? [clientOptions])];
 export type ListCanvasTemplatesDefaultResponse = Awaited<
   ReturnType<typeof listCanvasTemplates>
 >['data'];
@@ -755,6 +769,14 @@ export type CreateCanvasVersionMutationResult = Awaited<ReturnType<typeof create
 export const useCreateCanvasVersionKey = 'CreateCanvasVersion';
 export const UseCreateCanvasVersionKeyFn = (mutationKey?: Array<unknown>) => [
   useCreateCanvasVersionKey,
+  ...(mutationKey ?? []),
+];
+export type UpdateWorkflowVariablesMutationResult = Awaited<
+  ReturnType<typeof updateWorkflowVariables>
+>;
+export const useUpdateWorkflowVariablesKey = 'UpdateWorkflowVariables';
+export const UseUpdateWorkflowVariablesKeyFn = (mutationKey?: Array<unknown>) => [
+  useUpdateWorkflowVariablesKey,
   ...(mutationKey ?? []),
 ];
 export type CreateCanvasTemplateMutationResult = Awaited<ReturnType<typeof createCanvasTemplate>>;

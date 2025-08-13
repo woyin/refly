@@ -57,8 +57,19 @@ export class WorkflowService {
   ): Promise<string> {
     try {
       // Get canvas state to retrieve workflow variables
-      const canvasState = await this.canvasSyncService.getCanvasData(user, { canvasId });
-      const variables = (canvasState as any)?.workflow?.variables || [];
+      const canvasState = await this.canvasSyncService.getState(user, { canvasId });
+      let variables = (canvasState as any)?.workflow?.variables || [];
+
+      // If no variables found, use mock data
+      if (!variables || variables.length === 0) {
+        variables = [
+          {
+            name: 'car',
+            value: 'xpeng P7',
+            description: '车名',
+          },
+        ];
+      }
 
       // Process query with variables
       return this.workflowVariableService.processQuery(query, variables);
