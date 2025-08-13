@@ -2,95 +2,116 @@ import type { SkillInput } from '@refly/openapi-schema';
 
 /**
  * Build the SkillInput for Summary step.
- * The prompt itself is in English, while the required output language follows locale.
+ * Focus on summarizing current epoch subtasks and evaluating progress against user question.
  */
 export function buildSummarySkillInput(params: {
   userQuestion: string;
   currentEpoch: number;
   maxEpoch: number;
-  locale?: string;
   subtaskTitles?: string[];
 }): SkillInput {
-  const { userQuestion, currentEpoch, maxEpoch, locale, subtaskTitles = [] } = params;
-
-  // Normalize display locale; default to en-US if not provided
-  const displayLocale = locale ?? 'en-US';
+  const { userQuestion, currentEpoch, maxEpoch, subtaskTitles = [] } = params;
 
   // Optional section listing subtask titles to help the model focus
   const subtaskListSection = subtaskTitles?.length
     ? `\n- Subtasks in this epoch:\n${subtaskTitles.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`
     : '';
 
-  // English prompt with strict instructions to output in locale
-  const query = `ROLE:
-You are a world-class prompt engineer and agent engineer.
+  // Calculate progress ratio for stage-specific guidance
+  const progressRatio = currentEpoch / Math.max(maxEpoch, 1);
 
-OBJECTIVE:
-Given the runtime-provided context (context + resultHistory) and the original user goal, generate:
-1) A phase structured report in human-readable Markdown summarizing the current epoch outputs.
-2) A multi-dimensional gap analysis against the original goal and an actionable next-epoch plan (Next-Epoch Plan) with concrete, prioritized actions ready for direct execution.
+  // Generate stage-specific focus based on progress
+  let stageFocus = '';
+  if (progressRatio < 0.5) {
+    stageFocus = `
+## EARLY STAGE SUMMARY FOCUS
+- Evaluate the quality and coverage of information gathered so far
+- Identify critical gaps that may affect the final answer to: "${userQuestion}"
+- Assess if the research direction aligns with user's core question dependencies
+- Recommend specific areas for deeper investigation in subsequent epochs`;
+  } else if (progressRatio < 0.8) {
+    stageFocus = `
+## MID-STAGE ANALYSIS FOCUS  
+- Synthesize patterns, contradictions, and insights from gathered information
+- Evaluate information reliability and cross-reference findings
+- Identify the most promising approaches to answer: "${userQuestion}"
+- Plan the structure and key components for final deliverables`;
+  } else {
+    stageFocus = `
+## LATE-STAGE SYNTHESIS FOCUS
+- Organize findings into coherent frameworks ready for final output creation
+- Ensure all critical dependencies for "${userQuestion}" are adequately addressed
+- Draft comprehensive outlines for documents, reports, or deliverables
+- Validate that gathered evidence supports robust conclusions`;
+  }
 
-OUTPUT LANGUAGE:
-Write the entire output in ${displayLocale}. Do not use any other language.
+  // Optimized prompt for enhanced Agent with tool-driven analysis
+  const query = `Perform a comprehensive epoch analysis with strategic, dependency-first evaluation focused on the user's original question.
 
-INPUTS:
-- Original user goal (userQuestion): "${userQuestion}"
-- Current epoch: ${currentEpoch + 1}/${maxEpoch + 1}
-- Context usage policy: read from provided context (resources/documents/codeArtifacts/contentList) and resultHistory (previous skill responses). When citing evidence, include their IDs like [doc:ID], [res:ID], [artifact:ID], or [result:ID] for traceability.${subtaskListSection}
+**Context:**
+Original user goal: "${userQuestion}"
+Current epoch: ${currentEpoch + 1}/${maxEpoch + 1} (${Math.round(progressRatio * 100)}% complete)${subtaskListSection}
 
-REQUIRED OUTPUTS (Markdown):
-1) Phase Structured Report
-   - Title
-   - Executive Summary (3-6 bullet points)
-   - Key Findings & Conclusions (grouped by topic; each key statement must cite evidence IDs)
-   - Deliverables Produced (documents/code/intermediate results with their IDs)
-   - Risks & Uncertainties
-   - Open Questions & Pending Hypotheses
-2) Gap Analysis & Next-Epoch Plan
-   - Alignment with the original goal (coverage, depth, timeliness, reliability, contradictions, completeness)
-   - Missing Information List (e.g., missing topics/data/validation/comparisons/sources)
-   - Next-Epoch Action Plan (prioritized and execution-ready): for each action, provide
-     * Suggested tool (one of: webSearch, librarySearch, commonQnA, generateDoc, codeArtifacts, generateMedia)
-     * A focused query
-     * Expected context types/IDs to reference or collect
-     * Rationale and expected success criteria
-   - Decision: Are we ready to produce the final output? (Yes/No + rationale)
-   - Subtask-Summary loop optimizations (how to organize subtasks, parallel vs sequential, prompt parameters/model choices, evaluation criteria)
+${stageFocus}
 
-MACHINE-READABLE PLAN (Markdown fenced code block):
-Provide, at the end, a machine-readable block in Markdown using a fenced code block with json language tag.
-The structure must be exactly:
-\`\`\`json
-{
-  "readyForFinal": boolean,
-  "reason": string,
-  "nextEpochPlan": [
-    {
-      "priority": number,
-      "skillName": "webSearch" | "librarySearch" | "commonQnA" | "generateDoc" | "codeArtifacts" | "generateMedia",
-      "query": string,
-      "contextHints": string[],
-      "rationale": string
-    }
-  ]
-}
-\`\`\`
+## TOOL USAGE STRATEGY FOR SUMMARY ANALYSIS
 
-CONSTRAINTS:
-- Only infer from the available context/history; explicitly mark unknowns.
-- Every important conclusion must cite evidence IDs.
-- Use clear headings and subsections to maximize readability for humans.
+### Core Principle: Focused, Question-Aligned Analysis
+- REQUIRED: Use primarily commonQnA for comprehensive synthesis and analysis
+- STRATEGY: Focus on analyzing existing context rather than extensive new research
+- AVOID: Extensive information gathering unless absolutely necessary for answering the user's question
 
-QUALITY GUARD:
-- Include a "Quality Checklist" section confirming:
-  1) All key statements cite evidence IDs
-  2) Next-Epoch Plan actions are specific and feasible
-  3) Language exactly matches ${displayLocale}
-  4) Decision and rationale are consistent with evidence
-  5) No scope creep beyond the current goal
+## USER QUESTION ALIGNMENT ANALYSIS
 
-FINAL NOTE:
-End with a concise Decision Highlights section (3-5 bullets).`;
+**Target Question**: "${userQuestion}"
+
+### Critical Evaluation Framework:
+1. **Dependency Coverage**: Are all prerequisite facts needed to answer the user's question adequately covered?
+2. **Information Quality**: Is the gathered information reliable, current, and directly relevant to the user's specific needs?
+3. **Gap Assessment**: What specific information is still missing to provide a complete answer?
+4. **Answer Readiness**: Based on current findings, can we confidently address the user's original question?
+
+### Required Analysis Process:
+- Map each piece of gathered information to specific components of the user's question
+- Identify which aspects of the user's question remain unresolved or inadequately addressed
+- Prioritize remaining work based on criticality to delivering the final answer
+- Assess confidence levels for different aspects of the potential answer
+
+## STRUCTURED OUTPUT REQUIREMENTS
+
+Your analysis must include these sections in structured Markdown format:
+
+### 1. EPOCH ACHIEVEMENTS SUMMARY
+- Key findings and deliverables from completed subtasks with clear evidence
+- Achievement quality assessment with proper citations [doc:ID], [res:ID], [artifact:ID]
+- Documented risks, uncertainties, and open questions
+
+### 2. USER QUESTION ALIGNMENT ASSESSMENT  
+- Detailed evaluation of how current findings address the original question: "${userQuestion}"
+- Specific gaps that prevent complete answer delivery to the user
+- Confidence level assessment for different aspects of the potential final answer
+
+### 3. INFORMATION QUALITY AND RELIABILITY EVALUATION
+- Source credibility and reliability assessment
+- Cross-validation status of key facts and claims
+- Identified contradictions, uncertainties, or conflicting information
+
+### 4. STRATEGIC RECOMMENDATIONS FOR NEXT PHASE
+- Priority areas requiring attention in subsequent epochs (if applicable)
+- Specific research directions needed to close critical gaps affecting the user's question
+- Risk assessment for timeline and deliverable quality
+
+### 5. ACTIONABLE NEXT STEPS PLANNING
+- Concrete actions needed to progress toward answering the user's question
+- Resource allocation recommendations for optimal efficiency
+- Success criteria and milestones for subsequent work phases
+
+**Quality Standards:**
+- All analysis must be evidence-based with proper source citations
+- Maintain unwavering focus on the user's original question: "${userQuestion}"
+- Provide actionable, specific recommendations rather than generic suggestions
+- Ensure complete transparency in information gathering process and source reliability assessment
+- Prioritize information and analysis that directly serves the user's question dependencies`;
 
   return { query };
 }

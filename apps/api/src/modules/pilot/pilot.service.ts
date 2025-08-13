@@ -421,6 +421,15 @@ export class PilotService {
       );
       const resultId = genActionResultID();
 
+      // Prepare tplConfig based on skill type
+      let tplConfig = {};
+      if (skill.name === 'webSearch') {
+        // Force enable Deep Search for webSearch skill
+        tplConfig = {
+          enableDeepReasonWebSearch: { value: true, label: 'Deep Search', displayValue: 'true' },
+        };
+      }
+
       const actionResult = await this.prisma.actionResult.create({
         data: {
           uid: user.uid,
@@ -434,16 +443,8 @@ export class PilotService {
           input: JSON.stringify(
             buildSubtaskSkillInput({
               userQuestion,
-              locale,
-              summaryTitle:
-                latestSummarySteps?.[0]?.actionResult?.title || latestSummarySteps?.[0]?.step?.name,
-              plannedAction: {
-                priority: rawStep?.priority,
-                skillName: rawStep?.skillName as any,
-                query: rawStep?.query,
-                contextHints: (rawStep?.contextItemIds as string[]) ?? [],
-              },
-            }) as SkillInput,
+              query: rawStep?.query,
+            }),
           ),
           status: 'waiting',
           targetId,
@@ -456,7 +457,7 @@ export class PilotService {
           pilotStepId: stepId,
           pilotSessionId: sessionId,
           runtimeConfig: '{}',
-          tplConfig: '{}',
+          tplConfig: JSON.stringify(tplConfig),
           providerItemId: chatPi.itemId,
         },
       });
@@ -488,7 +489,7 @@ export class PilotService {
               metadata: {
                 status: 'executing',
                 contextItems,
-                tplConfig: '{}',
+                tplConfig: JSON.stringify(tplConfig),
                 runtimeConfig: '{}',
                 modelInfo: {
                   modelId: chatModelId,
@@ -504,15 +505,7 @@ export class PilotService {
         resultId,
         input: buildSubtaskSkillInput({
           userQuestion,
-          locale,
-          summaryTitle:
-            latestSummarySteps?.[0]?.actionResult?.title || latestSummarySteps?.[0]?.step?.name,
-          plannedAction: {
-            priority: rawStep?.priority,
-            skillName: rawStep?.skillName as any,
-            query: rawStep?.query,
-            contextHints: (rawStep?.contextItemIds as string[]) ?? [],
-          },
+          query: rawStep?.query,
         }),
         target: {
           entityId: targetId,
@@ -545,7 +538,7 @@ export class PilotService {
     user: User,
     sessionId: string,
     session?: PilotSession,
-    _mode?: 'subtask' | 'summary' | 'finalOutput',
+    _mode?: 'subtask' | 'summary',
   ) {
     const pilotSession =
       session ??
@@ -596,13 +589,6 @@ export class PilotService {
       );
     }
 
-    // Get user's output locale preference
-    const userPo = await this.prisma.user.findUnique({
-      select: { outputLocale: true },
-      where: { uid: user.uid },
-    });
-    const locale = userPo?.outputLocale;
-
     const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
     if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
       throw new ProviderItemNotFoundError(`provider item ${pilotSession.providerItemId} not valid`);
@@ -642,7 +628,7 @@ export class PilotService {
               userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
               currentEpoch,
               maxEpoch,
-              locale,
+
               subtaskTitles:
                 latestSubtaskSteps
                   ?.map(({ actionResult }) => actionResult?.title)
@@ -710,13 +696,6 @@ export class PilotService {
           userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
           currentEpoch,
           maxEpoch,
-          locale:
-            (
-              await this.prisma.user.findUnique({
-                select: { outputLocale: true },
-                where: { uid: user.uid },
-              })
-            )?.outputLocale ?? 'en-US',
           subtaskTitles:
             latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ??
             [],
@@ -786,7 +765,8 @@ export class PilotService {
         .filter((step) => step.mode === 'summary')
         .every((step) => step.status === 'finish');
 
-    const reachedMaxEpoch = step.epoch >= session.maxEpoch;
+    // 尽量不主动中断
+    const reachedMaxEpoch = step.epoch > session.maxEpoch + 1;
     this.logger.log(
       `Epoch (${session.currentEpoch}/${session.maxEpoch}) for session ${step.sessionId}: ` +
         `steps are ${isAllSummaryStepsFinished ? 'finished' : 'not finished'}`,
