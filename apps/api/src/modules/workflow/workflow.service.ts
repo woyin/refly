@@ -26,6 +26,7 @@ import { Queue } from 'bullmq';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { CanvasContentItem } from '../canvas/canvas.dto';
 import { SkillContext } from '@refly/openapi-schema';
+import { WorkflowVariableService } from './workflow-variable.service';
 
 @Injectable()
 export class WorkflowService {
@@ -37,9 +38,36 @@ export class WorkflowService {
     private readonly canvasService: CanvasService,
     private readonly mcpServerService: McpServerService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly workflowVariableService: WorkflowVariableService,
     @InjectQueue(QUEUE_SYNC_WORKFLOW) private readonly syncWorkflowQueue?: Queue,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
   ) {}
+
+  /**
+   * Process query with workflow variables
+   * @param query - Original query string
+   * @param canvasId - Canvas ID to get workflow variables from
+   * @param user - User object
+   * @returns Processed query string with variables replaced
+   */
+  private async processQueryWithVariables(
+    query: string,
+    canvasId: string,
+    user: User,
+  ): Promise<string> {
+    try {
+      // Get canvas state to retrieve workflow variables
+      const canvasState = await this.canvasSyncService.getCanvasData(user, { canvasId });
+      const variables = (canvasState as any)?.workflow?.variables || [];
+
+      // Process query with variables
+      return this.workflowVariableService.processQuery(query, variables);
+    } catch (error) {
+      this.logger.warn(`Failed to process query with variables: ${error.message}`);
+      // Return original query if processing fails
+      return query;
+    }
+  }
 
   /**
    * Get user's selected MCP servers
@@ -235,9 +263,11 @@ export class WorkflowService {
     // Extract required parameters from ResponseNodeMeta
     const { selectedSkill, tplConfig = {}, runtimeConfig = {}, modelInfo } = metadata;
 
-    // Get query from title
-    //data.metadata.structuredData?.query;
-    const query = data.title || '';
+    // Prefer to get query from data.metadata.structuredData?.query, fallback to data.title if not available
+    const originalQuery = String(data?.metadata?.structuredData?.query ?? data?.title ?? '');
+
+    // Process query with workflow variables
+    const query = await this.processQueryWithVariables(originalQuery, canvasId, user);
 
     // Get resultId from entityId
     const resultId = data.entityId;
@@ -341,6 +371,7 @@ export class WorkflowService {
           type: node.type as CanvasNodeType,
           data: {
             ...node.data,
+            title: query, // Update title to the new query
             entityId: resultId, // Use the same entityId for consistency
             metadata: {
               ...node.data?.metadata,
@@ -369,6 +400,7 @@ export class WorkflowService {
           ...canvasNode,
           data: {
             ...canvasNode.data,
+            title: query, // Update title to the new query
             contentPreview: '', // Clear content preview when starting execution
             metadata: {
               ...canvasNode.data?.metadata,

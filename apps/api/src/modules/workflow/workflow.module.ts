@@ -5,6 +5,7 @@ import { CanvasModule } from '../canvas/canvas.module';
 import { SkillModule } from '../skill/skill.module';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
 import { WorkflowService } from './workflow.service';
+import { WorkflowVariableService } from './workflow-variable.service';
 import { WorkflowController } from './workflow.controller';
 import { SyncWorkflowProcessor, RunWorkflowProcessor } from './workflow.processor';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
@@ -26,8 +27,9 @@ import { isDesktop } from '../../utils/runtime';
   controllers: [WorkflowController],
   providers: [
     WorkflowService,
+    WorkflowVariableService,
     ...(isDesktop() ? [] : [SyncWorkflowProcessor, RunWorkflowProcessor]),
   ],
-  exports: [WorkflowService],
+  exports: [WorkflowService, WorkflowVariableService],
 })
 export class WorkflowModule {}

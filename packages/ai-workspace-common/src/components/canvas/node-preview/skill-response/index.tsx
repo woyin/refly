@@ -94,6 +94,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const { t } = useTranslation();
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(!result);
+  const [currentQuery, setCurrentQuery] = useState<string | null>(null);
 
   const shareId = node.data?.metadata?.shareId;
   const { data: shareData } = useFetchShareData(shareId);
@@ -180,6 +181,15 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const modelInfo = result?.modelInfo ?? data?.metadata?.modelInfo;
   const tplConfig = result?.tplConfig ?? data?.metadata?.tplConfig;
   const runtimeConfig = result?.runtimeConfig ?? data?.metadata?.runtimeConfig;
+  const structuredData = data?.metadata?.structuredData;
+
+  // Use query from multiple sources in priority order:
+  // 1. currentQuery (real-time edited query)
+  // 2. structuredData.query (from node metadata)
+  // 3. result.input.query (from action result)
+  // 4. title (fallback)
+  const query =
+    currentQuery ?? (structuredData?.query as string) ?? (result?.input?.query as string) ?? title;
 
   const { errCode, errMsg, rawError } = useSkillError(result?.errors?.[0] ?? '');
 
@@ -284,14 +294,14 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
   return (
     <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto">
-      {title && (
+      {query && (
         <>
           <EditChatInput
             enabled={editMode}
             resultId={resultId}
             version={version}
             contextItems={contextItems}
-            query={title}
+            query={query}
             actionMeta={actionMeta}
             modelInfo={
               modelInfo ?? {
@@ -305,12 +315,13 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             setEditMode={setEditMode}
             tplConfig={tplConfig}
             runtimeConfig={runtimeConfig}
+            onQueryChange={setCurrentQuery}
           />
           <PreviewChatInput
             enabled={!editMode}
             readonly={readonly}
             contextItems={contextItems}
-            query={title}
+            query={query}
             actionMeta={actionMeta}
             setEditMode={setEditMode}
           />

@@ -3037,6 +3037,19 @@ export const CanvasStateSchema = {
           type: 'string',
           description: 'Canvas state hash (sha256), calculated from nodes and edges',
         },
+        workflow: {
+          type: 'object',
+          description: 'Workflow configuration',
+          properties: {
+            variables: {
+              type: 'array',
+              description: 'List of workflow variables',
+              items: {
+                $ref: '#/components/schemas/WorkflowVariable',
+              },
+            },
+          },
+        },
         transactions: {
           type: 'array',
           description: 'Canvas transaction list',
@@ -6715,10 +6728,6 @@ export const ProviderSchema = {
       type: 'string',
       description: 'Provider API key (this will never be exposed to the frontend)',
     },
-    extraParams: {
-      type: 'string',
-      description: 'Provider-specific extra params (JSON string)',
-    },
   },
 } as const;
 
@@ -6742,10 +6751,6 @@ export const LLMModelConfigSchema = {
     maxOutput: {
       type: 'number',
       description: 'Model max output length (in tokens)',
-    },
-    disallowTemperature: {
-      type: 'boolean',
-      description: 'Whether the model disallow setting custom temperature',
     },
     capabilities: {
       description: 'Model capabilities',
@@ -7571,4 +7576,27 @@ export const InitializeWorkflowResponseSchema = {
       },
     },
   ],
+} as const;
+
+export const WorkflowVariableSchema = {
+  type: 'object',
+  description: 'Workflow variable definition',
+  required: ['name', 'value'],
+  properties: {
+    name: {
+      type: 'string',
+      description: 'Variable name',
+      example: 'userName',
+    },
+    value: {
+      type: 'string',
+      description: 'Variable value',
+      example: '张三',
+    },
+    description: {
+      type: 'string',
+      description: 'Variable description',
+      example: '用户姓名',
+    },
+  },
 } as const;

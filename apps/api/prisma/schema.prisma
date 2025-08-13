@@ -311,6 +311,8 @@ model WorkflowNodeExecution {
   nodeType        String             @map("node_type")
   /// Node entity id
   entityId        String             @map("entity_id")
+  /// New node entity id
+  newEntityId     String?            @map("new_entity_id")
   /// Node title
   title           String             @map("title")
   /// Node status: waiting, executing, finish, failed
