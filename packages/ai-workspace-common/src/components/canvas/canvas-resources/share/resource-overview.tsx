@@ -12,10 +12,12 @@ import { StepList } from '../step-list';
 import { ResultList } from '../result-list';
 import { MyUploadList } from '../my-upload';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 
 export const ResourceOverview = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
+  const { createSingleDocumentInCanvas, isCreating: isCreatingDocument } = useCreateDocument();
 
   const { activeTab, searchKeyword, setActiveTab, setSearchKeyword } =
     useCanvasResourcesPanelStoreShallow((state) => ({
@@ -30,6 +32,10 @@ export const ResourceOverview = memo(() => {
 
   const handleNewResource = () => {
     setImportResourceModalVisible(true);
+  };
+
+  const handleNewDocument = () => {
+    createSingleDocumentInCanvas();
   };
 
   const segmentedOptions = useMemo(() => {
@@ -75,7 +81,14 @@ export const ResourceOverview = memo(() => {
             {t('canvas.resourceLibrary.empty')}
           </div>
           <div className="flex gap-2">
-            <Button type="default">{t('canvas.resourceLibrary.new.document')}</Button>
+            <Button
+              type="default"
+              onClick={handleNewDocument}
+              loading={isCreatingDocument}
+              disabled={isCreatingDocument}
+            >
+              {t('canvas.resourceLibrary.new.document')}
+            </Button>
             <Button type="primary" icon={<Add size={16} />} onClick={handleNewResource}>
               {t('canvas.resourceLibrary.new.resource')}
             </Button>
