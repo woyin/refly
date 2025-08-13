@@ -104,7 +104,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
               onOpenChange={(visible) => setSelectOpen(visible)}
               open={selectOpen}
               loading={loading}
-              className={`project-selector transition-all overflow-hidden ${projectSelectorClassName}`}
+              className={`nodrag nopan nowheel project-selector transition-all overflow-hidden ${projectSelectorClassName}`}
               placeholder={t('project.selectProject')}
               value={currentProjectId}
               onChange={handleProjectChange}

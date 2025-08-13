@@ -277,10 +277,8 @@ export const ImportResourceModal = memo(() => {
 
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-x-[8px]">
-              <p className="font-bold whitespace-nowrap text-md text-refly-primary-default">
-                {t('resource.import.fileCount', { count: waitingList?.length || 0 })}
-              </p>
               <StorageLimit
+                showProjectSelect={false}
                 resourceCount={waitingList?.length || 0}
                 projectId={currentProjectId}
                 onSelectProject={setCurrentProjectId}
