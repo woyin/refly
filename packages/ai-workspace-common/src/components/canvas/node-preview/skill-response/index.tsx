@@ -3,9 +3,9 @@ import { Button, Divider, message, Result, Skeleton, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useActionResultStoreShallow, useSubscriptionStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { ActionResult, ActionStep } from '@refly/openapi-schema';
+import { ActionResult } from '@refly/openapi-schema';
 import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
-import { Subscription } from 'refly-icons';
+import { Subscription, Thinking } from 'refly-icons';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { ActionStepCard } from './action-step';
 import { convertResultContextToItems, purgeContextItems } from '@refly/canvas-common';
@@ -33,42 +33,15 @@ import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { guessModelProviderError, ModelUsageQuotaExceeded } from '@refly/errors';
 import { useGetCreditBalance } from '@refly-packages/ai-workspace-common/queries';
+import { sortSteps } from '@refly/utils/step';
+import { ActionContainer } from './action-container';
 
 interface SkillResponseNodePreviewProps {
   node: CanvasNode<ResponseNodeMeta>;
   resultId: string;
 }
 
-const StepsList = memo(
-  ({
-    steps,
-    result,
-    title,
-    nodeId,
-  }: { steps: ActionStep[]; result: ActionResult; title: string; nodeId: string }) => {
-    return (
-      <>
-        {steps.map((step, index) => (
-          <div key={step.name}>
-            <Divider className="my-2" />
-            <ActionStepCard
-              result={result}
-              step={step}
-              stepStatus={
-                result?.status === 'executing' && index === steps?.length - 1
-                  ? 'executing'
-                  : 'finish'
-              }
-              index={index + 1}
-              query={title}
-              nodeId={nodeId}
-            />
-          </div>
-        ))}
-      </>
-    );
-  },
-);
+const OUTPUT_STEP_NAMES = ['answerQuestion', 'generateDocument', 'generateCodeArtifact'];
 
 const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNodePreviewProps) => {
   const { result, traceId, isStreaming, updateActionResult } = useActionResultStoreShallow(
@@ -97,6 +70,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
   const shareId = node.data?.metadata?.shareId;
   const { data: shareData } = useFetchShareData(shareId);
+
+  const [statusText, setStatusText] = useState('');
 
   useEffect(() => {
     if (shareData && !result) {
@@ -211,6 +186,29 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     return convertResultContextToItems(context ?? {}, history);
   }, [data, context, history]);
 
+  useEffect(() => {
+    const skillName = actionMeta?.name || 'commonQnA';
+    if (result?.status !== 'executing') return;
+
+    const sortedSteps = sortSteps(steps);
+
+    if (sortedSteps.length === 0) {
+      setStatusText(
+        t(`${skillName}.steps.analyzeQuery.description`, {
+          ns: 'skill',
+        }),
+      );
+      return;
+    }
+
+    const lastStep = sortedSteps[sortedSteps.length - 1];
+    setStatusText(
+      t(`${skillName}.steps.${lastStep.name}.description`, {
+        ns: 'skill',
+      }),
+    );
+  }, [result?.status, steps, t]);
+
   const handleDelete = useCallback(() => {
     deleteNode({
       id: node.id,
@@ -265,7 +263,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
   const error = guessModelProviderError(result?.errors?.[0] ?? '');
 
-  const isPending = result?.status === 'executing' || result?.status === 'waiting' || loading;
   const errDescription = useMemo(() => {
     return `${errCode} ${errMsg} ${rawError ? `: ${String(rawError)}` : ''}`;
   }, [errCode, errMsg, rawError]);
@@ -281,6 +278,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       </div>
     );
   }
+
+  const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
   return (
     <div className="flex flex-col space-y-4 p-4 h-full max-w-[1024px] mx-auto">
@@ -331,10 +330,27 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             }
           }}
         >
-          {steps.length === 0 && isPending && (
-            <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />
+          {loading && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
+          {!outputStep && statusText && (
+            <div className="flex flex-col gap-2 animate-pulse">
+              <Divider dashed className="my-2" />
+              <div className="m-2 flex items-center gap-1 text-gray-500">
+                <Thinking size={16} />
+                <span className="text-sm">{statusText}</span>
+              </div>
+            </div>
           )}
-          <StepsList steps={steps} result={result} title={title} nodeId={node.id} />
+          {outputStep && (
+            <>
+              <Divider dashed className="my-2" />
+              <ActionStepCard
+                result={result}
+                step={outputStep}
+                status={result?.status}
+                query={title}
+              />
+            </>
+          )}
 
           {result?.status === 'failed' && (
             <div className="mt-2 flex flex-col gap-2 border border-solid border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-md">
@@ -405,6 +421,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
           )}
         </div>
       </Spin>
+
+      {outputStep && <ActionContainer result={result} step={outputStep} nodeId={node.id} />}
 
       {knowledgeBaseStore?.sourceListDrawerVisible ? (
         <SourceListModal classNames="source-list-modal" />

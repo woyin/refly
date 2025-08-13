@@ -7,12 +7,15 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '查询分析',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
       answerQuestion: {
         name: '问题回答',
+        description: '生成答案中...',
       },
     },
   },
@@ -24,12 +27,15 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
       answerQuestion: {
         name: '问题回答',
+        description: '生成答案中...',
       },
     },
   },
@@ -41,12 +47,15 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
       answerQuestion: {
         name: '问题回答',
+        description: '生成答案中...',
       },
     },
   },
@@ -58,15 +67,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
       generateTitle: {
         name: '生成标题',
+        description: '确定小组件标题...',
       },
       generateCodeArtifact: {
         name: '生成小组件',
+        description: '生成小组件中...',
       },
     },
   },
@@ -78,15 +91,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
       generateTitle: {
         name: '生成标题',
+        description: '确定文档标题...',
       },
       generateDocument: {
         name: '生成文档',
+        description: '生成文档中...',
       },
     },
   },
@@ -97,9 +114,11 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
     },
   },
@@ -115,15 +134,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
       webSearch: {
         name: '网络搜索',
+        description: '搜索网络中...',
       },
       answerQuestion: {
         name: '生成答案',
+        description: '生成答案中...',
       },
     },
   },
@@ -135,15 +158,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       analyzeContext: {
         name: '上下文分析',
+        description: '处理上下文数据中...',
       },
       librarySearch: {
         name: '知识库搜索',
+        description: '搜索知识库中...',
       },
       answerQuestion: {
         name: '生成答案',
+        description: '生成答案中...',
       },
     },
   },
@@ -155,9 +182,11 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: '分析需求',
+        description: '分析需求中...',
       },
       recommendQuestions: {
         name: '生成推荐问题',
+        description: '生成推荐问题中...',
       },
     },
   },
@@ -169,6 +198,7 @@ const translations = {
     steps: {
       generateImage: {
         name: '生成图像',
+        description: '生成图像中...',
       },
     },
     config: {
@@ -213,6 +243,7 @@ const translations = {
     steps: {
       generateMedia: {
         name: '生成媒体',
+        description: '生成媒体中...',
       },
     },
     config: {

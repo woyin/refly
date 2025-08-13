@@ -1,15 +1,14 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Steps, Button } from 'antd';
-import { ActionResult, ActionStep, Source } from '@refly/openapi-schema';
+import { ActionResult, ActionStatus, ActionStep, Source } from '@refly/openapi-schema';
 import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@refly/utils/cn';
-import { IconCheck, IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { genUniqueId } from '@refly/utils/id';
 import { SelectionContext } from '@refly-packages/ai-workspace-common/modules/selection-menu/selection-context';
-import { ActionContainer } from './action-container';
 import { safeParseJSON } from '@refly/utils/parse';
 import { SourceViewer } from './source-viewer';
 import { getArtifactIcon } from '@refly-packages/ai-workspace-common/components/common/result-display';
@@ -105,26 +104,26 @@ const ReasoningContent = memo(
     sources,
     buildContextItem,
     step,
-    stepStatus,
+    status,
   }: {
     resultId: string;
     reasoningContent: string;
     sources: Source[];
     buildContextItem: (text: string) => IContextItem;
     step: ActionStep;
-    stepStatus: 'executing' | 'finish';
+    status: ActionStatus;
   }) => {
     const { t } = useTranslation();
-    const [collapsed, setCollapsed] = useState(stepStatus !== 'executing');
+    const [collapsed, setCollapsed] = useState(status !== 'executing');
 
     // Auto-collapse when step status changes from executing to finish
     useEffect(() => {
-      if (stepStatus === 'executing') {
+      if (status === 'executing') {
         setCollapsed(false);
       } else {
         setCollapsed(true);
       }
-    }, [stepStatus]);
+    }, [status]);
 
     const getSourceNode = useCallback(() => {
       return {
@@ -276,17 +275,13 @@ export const ActionStepCard = memo(
   ({
     result,
     step,
-    stepStatus,
-    index,
+    status,
     query,
-    nodeId,
   }: {
     result: ActionResult;
     step: ActionStep;
-    stepStatus: 'executing' | 'finish';
-    index: number;
+    status: ActionStatus;
     query: string;
-    nodeId?: string;
   }) => {
     const { t } = useTranslation();
     const { setSelectedNodeByEntity } = useNodeSelection();
@@ -331,7 +326,6 @@ export const ActionStepCard = memo(
     );
 
     const logs = step?.logs?.filter((log) => log?.key);
-    const skillName = result.actionMeta?.name || 'commonQnA';
 
     const handleArtifactSelect = useCallback(
       (artifact: any) => {
@@ -346,17 +340,7 @@ export const ActionStepCard = memo(
     if (!step) return null;
 
     return (
-      <div className="flex flex-col gap-1">
-        <div className="my-1 text-gray-600 text-sm flex items-center gap-2 font-medium dark:text-gray-300">
-          {stepStatus === 'executing' ? (
-            <IconLoading className="h-3 w-3 animate-spin text-green-500" />
-          ) : (
-            <IconCheck className="h-4 w-4 text-green-500" />
-          )}
-          {t('canvas.skillResponse.stepTitle', { index })}{' '}
-          {` · ${t(`${skillName}.steps.${step.name}.name`, { ns: 'skill', defaultValue: step.name })}`}
-        </div>
-
+      <div className="flex flex-col gap-1 mx-1">
         {logs && logs.length > 0 && (
           <LogBox
             logs={logs ?? []}
@@ -376,7 +360,7 @@ export const ActionStepCard = memo(
             sources={parsedData.sources}
             buildContextItem={buildContextItem}
             step={step}
-            stepStatus={stepStatus}
+            status={status}
           />
         )}
 
@@ -400,8 +384,6 @@ export const ActionStepCard = memo(
           ))}
 
         <RecommendQuestions relatedQuestions={parsedData.recommendedQuestions?.questions || []} />
-
-        <ActionContainer result={result} step={step} nodeId={nodeId} />
       </div>
     );
   },
