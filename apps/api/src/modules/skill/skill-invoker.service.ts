@@ -671,8 +671,6 @@ export class SkillInvokerService {
         `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms) for action: ${resultId}`,
       );
 
-      let eventCount = 0;
-
       // Create dedicated timeout for AI model network requests
       const createNetworkTimeout = () => {
         if (abortController.signal.aborted) {
@@ -708,22 +706,10 @@ export class SkillInvokerService {
       })) {
         // Reset network timeout on receiving data from AI model
         resetNetworkTimeout();
-        // Track network activity for monitoring
-        eventCount++;
-
-        if (eventCount === 1) {
-          this.logger.log(`🌐 First event received for action: ${resultId}`);
-        } else if (eventCount % 10 === 0) {
-          this.logger.log(
-            `🌐 Network activity: ${eventCount} events processed for action: ${resultId}`,
-          );
-        }
 
         if (abortController.signal.aborted) {
           const abortReason = abortController.signal.reason?.toString() ?? 'Request aborted';
-          this.logger.warn(
-            `🚨 Request aborted after ${eventCount} events for action: ${resultId}, reason: ${abortReason}`,
-          );
+          this.logger.warn(`🚨 Request aborted for action: ${resultId}, reason: ${abortReason}`);
           if (runMeta) {
             result.errors.push(abortReason);
           }
