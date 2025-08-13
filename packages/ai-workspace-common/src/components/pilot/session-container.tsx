@@ -240,8 +240,8 @@ export const SessionContainer = memo(
               <div className="flex flex-col h-full">
                 <div className="px-4">{query}</div>
                 <div className="flex flex-col h-full px-4 py-3">
-                  <div className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex gap-2 border border-gray-100 bg-[#F4F4F4]">
-                    <div className="pl-2">
+                  <div className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex items-center gap-2 border border-gray-100 bg-[#F4F4F4]">
+                    <div className="ml-2 w-5 h-5 flex items-center justify-center">
                       <Thinking color="#76787B" className="w-4 h-4" />
                     </div>
                     <div className="text-sm text-center text-gray-500 font-normal">

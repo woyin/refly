@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react';
 import { PilotSessionStatus, PilotStep } from '@refly/openapi-schema';
-import { ClockCircleOutlined, CloseCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
-import { Finished } from 'refly-icons';
+import { Finished, Running } from 'refly-icons';
 
 export interface SessionStatusTagProps {
   status: PilotSessionStatus;
@@ -11,29 +11,10 @@ export interface SessionStatusTagProps {
 }
 
 export const SessionStatusTag = memo(({ status, steps, className }: SessionStatusTagProps) => {
-  // const { t } = useTranslation();
-  console.log(steps);
-
-  // const color = useMemo(() => {
-  //   switch (status) {
-  //     case 'init':
-  //       return 'blue';
-  //     case 'executing':
-  //     case 'waiting':
-  //       return 'processing';
-  //     case 'finish':
-  //       return 'success';
-  //     case 'failed':
-  //       return 'error';
-  //     default:
-  //       return 'default';
-  //   }
-  // }, [status]);
-
   const icon = useMemo(() => {
     switch (status) {
       case 'executing':
-        return <SyncOutlined spin className="w-4 h-4" />;
+        return <Running className="w-4 h-4" />;
       case 'waiting':
         return <ClockCircleOutlined className="w-4 h-4" />;
       case 'finish':
