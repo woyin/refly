@@ -5,7 +5,6 @@ import {
   UseGuards,
   Get,
   Param,
-  StreamableFile,
   Res,
   UseInterceptors,
   UploadedFile,
@@ -90,9 +89,9 @@ export class MiscController {
     @LoginedUser() user: User,
     @Param('objectKey') objectKey: string,
     @Query('download') download: string,
-    @Res({ passthrough: true }) res: Response,
+    @Res() res: Response,
     @Req() req: Request,
-  ): Promise<StreamableFile> {
+  ): Promise<void> {
     const { data, contentType } = await this.miscService.getInternalFileStream(
       user,
       `static/${objectKey}`,
@@ -106,19 +105,20 @@ export class MiscController {
       'Access-Control-Allow-Origin': origin || '*',
       'Access-Control-Allow-Credentials': 'true',
       'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Content-Length': String(data.length),
       ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
     });
 
-    return new StreamableFile(data);
+    res.end(data);
   }
 
   @Get('public/:storageKey(*)')
   async servePublicStatic(
     @Param('storageKey') storageKey: string,
     @Query('download') download: string,
-    @Res({ passthrough: true }) res: Response,
+    @Res() res: Response,
     @Req() req: Request,
-  ): Promise<StreamableFile> {
+  ): Promise<void> {
     const { data, contentType } = await this.miscService.getExternalFileStream(storageKey);
     const filename = path.basename(storageKey);
 
@@ -129,9 +129,10 @@ export class MiscController {
       'Access-Control-Allow-Origin': origin || '*',
       'Access-Control-Allow-Credentials': 'true',
       'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Content-Length': String(data.length),
       ...(download ? { 'Content-Disposition': `attachment; filename="${filename}"` } : {}),
     });
 
-    return new StreamableFile(data);
+    res.end(data);
   }
 }

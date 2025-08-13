@@ -33,31 +33,37 @@ export const DuplicateCanvasModal = memo(() => {
   const { projectId } = useGetProjectCanvasId();
 
   const onSubmit = async () => {
-    form.validateFields().then(async (values) => {
-      if (loading) return;
-      setLoading(true);
-      const { title, duplicateEntities } = values;
-      const { data } = await getClient().duplicateCanvas({
-        body: {
-          projectId,
-          canvasId,
-          title,
-          duplicateEntities,
-        },
-      });
-      setLoading(false);
+    let values: { title: string; duplicateEntities: boolean } | undefined;
+    try {
+      values = await form.validateFields();
+    } catch (error) {
+      console.error('Error validating form fields', error);
+      return;
+    }
 
-      if (data?.success && data?.data?.canvasId) {
-        message.success(t('canvas.action.duplicateSuccess'));
-        reset();
-        getCanvasList();
-        const newCanvasId = data.data.canvasId;
-        const url = projectId
-          ? `/project/${projectId}?canvasId=${newCanvasId}`
-          : `/canvas/${newCanvasId}`;
-        navigate(url);
-      }
+    if (loading) return;
+    setLoading(true);
+    const { title, duplicateEntities } = values;
+    const { data } = await getClient().duplicateCanvas({
+      body: {
+        projectId,
+        canvasId,
+        title,
+        duplicateEntities,
+      },
     });
+    setLoading(false);
+
+    if (data?.success && data?.data?.canvasId) {
+      message.success(t('canvas.action.duplicateSuccess'));
+      reset();
+      getCanvasList();
+      const newCanvasId = data.data.canvasId;
+      const url = projectId
+        ? `/project/${projectId}?canvasId=${newCanvasId}`
+        : `/canvas/${newCanvasId}`;
+      navigate(url);
+    }
   };
 
   useEffect(() => {
