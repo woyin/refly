@@ -22,17 +22,52 @@ export const ImagePreview = ({
   imageUrl: string;
   imageTitle?: string;
 }) => {
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!imageUrl) return;
 
-    // Create a temporary link element
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.target = '_blank';
-    link.download = imageTitle ?? 'image';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const triggerDownload = (href: string) => {
+      const link = document.createElement('a');
+      link.href = href;
+      link.download = imageTitle ?? 'image';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    try {
+      // Add download=1 query parameter to the URL
+      const url = new URL(imageUrl);
+      url.searchParams.set('download', '1');
+
+      console.log('url', url.toString());
+
+      // Fetch the image with the download parameter
+      const response = await fetch(url.toString(), {
+        // Ensure cookies are sent for auth-protected endpoints
+        credentials: 'include',
+      });
+
+      if (!response?.ok) {
+        throw new Error(`Download failed: ${response?.status ?? 'unknown'}`);
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+
+      // Create a temporary object URL for download
+      const objectUrl = URL.createObjectURL(blob);
+
+      // Trigger download
+      triggerDownload(objectUrl);
+
+      // Clean up the object URL
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback to original method if fetch fails
+      triggerDownload(imageUrl);
+    }
   }, [imageUrl, imageTitle]);
 
   return (

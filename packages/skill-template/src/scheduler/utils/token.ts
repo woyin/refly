@@ -1,5 +1,5 @@
 import { IContext } from '../types';
-import { get_encoding } from '@dqbd/tiktoken';
+import { encode } from 'gpt-tokenizer';
 import { BaseMessage, MessageContent } from '@langchain/core/messages';
 import {
   SkillContextDocumentItem,
@@ -8,28 +8,11 @@ import {
   Source,
 } from '@refly/openapi-schema';
 
-// const enc_p50k_base = get_encoding('p50k_base');
-const enc_cl100k_base = get_encoding('cl100k_base');
-// openai embedding limit 8191
-// const EmbeddingTokensLimit = 1000;
-
-// https://github.com/niieani/gpt-tokenizer
-// type TokenizerType = 'chat' | 'text-only' | 'code' | 'edit' | 'embeddings' | 'turbo' | 'gpt3' | 'codex';
-
 export const countToken = (content: MessageContent) => {
-  if (typeof content === 'string') {
-    return enc_cl100k_base.encode(content || '').length;
-  }
-
-  if (Array.isArray(content)) {
-    return content.reduce((sum, item) => {
-      if (item.type === 'text') {
-        return sum + countToken(item.text);
-      }
-      return sum;
-    }, 0);
-  }
-  return 0;
+  const inputText = Array.isArray(content)
+    ? content.map((msg) => (msg.type === 'text' ? msg.text : '')).join('')
+    : String(content || '');
+  return encode(inputText).length;
 };
 
 export const countContentTokens = (contentList: SkillContextContentItem[] = []) => {

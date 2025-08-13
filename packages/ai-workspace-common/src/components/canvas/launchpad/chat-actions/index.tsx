@@ -122,6 +122,7 @@ export const ChatActions = memo(
           <ModelSelector
             model={model}
             setModel={setModel}
+            size="small"
             briefMode={false}
             trigger={['click']}
             contextItems={contextItems}

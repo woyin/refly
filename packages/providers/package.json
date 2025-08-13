@@ -12,7 +12,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dqbd/tiktoken": "^1.0.15",
     "@langchain/aws": "^0.1.13",
     "@langchain/community": "0.3.50",
     "@langchain/core": "0.3.68",
@@ -23,6 +22,7 @@
     "@refly/errors": "workspace:*",
     "@refly/observability": "workspace:*",
     "@refly/openapi-schema": "workspace:*",
+    "gpt-tokenizer": "^2.9.0",
     "langfuse": "^3.6.0",
     "langfuse-langchain": "^3.6.0",
     "uuid": "^9.0.0",
