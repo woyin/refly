@@ -221,7 +221,7 @@ export const ToolbarButtons = memo(
           <Popover
             open={searchOpen}
             onOpenChange={setSearchOpen}
-            overlayInnerStyle={{ padding: 0, boxShadow: 'none' }}
+            styles={{ body: { padding: 0, boxShadow: 'none' } }}
             trigger="click"
             placement="bottomRight"
             content={

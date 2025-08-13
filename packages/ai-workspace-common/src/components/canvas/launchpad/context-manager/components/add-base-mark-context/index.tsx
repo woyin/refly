@@ -49,7 +49,7 @@ export const AddBaseMarkContext = ({ contextItems, setContextItems }: AddBaseMar
       <Popover
         placement="bottom"
         trigger="click"
-        overlayInnerStyle={{ padding: 0, boxShadow: 'none' }}
+        styles={{ body: { padding: 0, boxShadow: 'none' } }}
         open={popoverVisible}
         onOpenChange={handleVisibleChange}
         content={

@@ -82,8 +82,8 @@ export const ContextItem = ({
       trigger="hover"
       mouseEnterDelay={0.5}
       mouseLeaveDelay={0.1}
-      overlayInnerStyle={{ padding: 0 }}
-      overlayClassName="context-preview-popover rounded-lg"
+      styles={{ body: { padding: 0 } }}
+      classNames={{ root: 'context-preview-popover rounded-lg' }}
     >
       <div
         className={cn(

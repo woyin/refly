@@ -505,7 +505,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
             placement="bottomRight"
             overlayClassName="min-w-[160px] w-max"
             getPopupContainer={(triggerNode) => triggerNode.parentNode as HTMLElement}
-            dropdownRender={(menu) => (
+            popupRender={(menu) => (
               <div className="min-w-[160px] bg-white rounded-lg border-[0.5px] border-[rgba(0,0,0,0.03)] shadow-lg">
                 {menu}
               </div>
