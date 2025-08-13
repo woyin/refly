@@ -1,5 +1,5 @@
 import { memo, useMemo, useCallback } from 'react';
-import { Avatar, Typography } from 'antd';
+import { Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
 import { CanvasNodeType } from '@refly/openapi-schema';
@@ -8,7 +8,6 @@ import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { ResourceItemAction } from '../share/resource-item-action';
-import { Image } from 'refly-icons';
 
 const { Text } = Typography;
 
@@ -83,16 +82,11 @@ export const ResultList = memo(() => {
             onClick={() => handleNodeSelect(node)}
           >
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              {node.type === 'image' ? (
-                <Avatar
-                  src={node.data?.metadata?.imageUrl as string}
-                  alt={node.data?.title}
-                  icon={<Image size={16} />}
-                  className="w-5 h-5 rounded-lg object-cover"
-                />
-              ) : (
-                <NodeIcon type={node.type as CanvasNodeType} small iconSize={20} filled={false} />
-              )}
+              <NodeIcon
+                type={node.type as CanvasNodeType}
+                small
+                url={node.data?.metadata?.imageUrl as string}
+              />
               <Text
                 ellipsis={{ tooltip: { placement: 'left' } }}
                 className={cn('block flex-1 min-w-0 truncate', {

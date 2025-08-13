@@ -2,7 +2,26 @@ import type { ComponentType, NamedExoticComponent } from 'react';
 import { memo } from 'react';
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { CanvasNodeType, ResourceMeta, ResourceType, SelectionKey } from '@refly/openapi-schema';
-import { AiChat, Group, Image, Video, Audio, Doc, Web1, Note, Media } from 'refly-icons';
+import {
+  AiChat,
+  Group,
+  Image,
+  Video,
+  Audio,
+  Web1,
+  Note,
+  Media,
+  Code1,
+  Pdf,
+  Doc1,
+  Markdown,
+  Text,
+  Excel,
+  CodeZip,
+  GeneralFile,
+} from 'refly-icons';
+import { Avatar } from 'antd';
+import weblink from '../../../../assets/weblink.png';
 
 type IconComponent = ComponentType<{ size?: number | string; color?: string }>;
 const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
@@ -10,9 +29,9 @@ const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
   image: Image,
   video: Video,
   audio: Audio,
-  document: Doc,
-  resource: Doc,
-  codeArtifact: Web1,
+  document: Doc1,
+  resource: Doc1,
+  codeArtifact: Code1,
   website: Web1,
   memo: Note,
   skillResponse: AiChat,
@@ -22,13 +41,22 @@ const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
   skill: AiChat,
   mediaSkill: Media,
   mediaSkillResponse: Media,
-  documentSelection: Doc,
-  resourceSelection: Doc,
+  documentSelection: Doc1,
+  resourceSelection: Doc1,
   skillResponseSelection: AiChat,
   extensionWeblinkSelection: Web1,
-  documentCursorSelection: Doc,
-  documentBeforeCursorSelection: Doc,
-  documentAfterCursorSelection: Doc,
+  documentCursorSelection: Doc1,
+  documentBeforeCursorSelection: Doc1,
+  documentAfterCursorSelection: Doc1,
+};
+
+const RESOURCE_ICONS: Record<string, IconComponent> = {
+  'application/pdf': Pdf,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': Doc1,
+  'text/markdown': Markdown,
+  'text/plain': Text,
+  'application/epub+zip': CodeZip,
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': Excel,
 };
 
 interface NodeIconProps {
@@ -38,6 +66,7 @@ interface NodeIconProps {
   iconSize?: number;
   small?: boolean;
   filled?: boolean;
+  url?: string;
   resourceType?: ResourceType;
   resourceMeta?: ResourceMeta;
 }
@@ -50,19 +79,60 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
     iconSize,
     small = false,
     filled = true,
+    url,
+    resourceType,
+    resourceMeta,
   }: NodeIconProps) => {
-    // Fallback to Doc icon if the type is not mapped
-    const Icon = ICONS[type] ?? Doc;
-    const size = small ? 14 : 16;
-    const resolvedColor = NODE_COLORS[type as CanvasNodeType] ?? NODE_COLORS.document;
+    const size = !filled ? 20 : small ? 14 : 16;
+
+    const isWeblink = type === 'resource' && resourceType === 'weblink';
+    const isResourceFile = type === 'resource' && resourceType === 'file' && resourceMeta;
+
+    const Icon =
+      (isResourceFile ? RESOURCE_ICONS[resourceMeta?.contentType ?? ''] : ICONS[type]) ??
+      GeneralFile;
+
+    const resolvedColor = isResourceFile
+      ? (NODE_COLORS[resourceMeta?.contentType ?? ''] ?? NODE_COLORS.resource)
+      : (NODE_COLORS[type] ?? NODE_COLORS.document);
+
+    if (url || isWeblink) {
+      return (
+        <div className="rounded-lg flex items-center justify-center flex-shrink-0">
+          <Avatar
+            src={isWeblink ? weblink : url}
+            alt={isWeblink ? 'Weblink' : type}
+            icon={<Image size={size} />}
+            className={`rounded-lg object-cover ${small ? 'w-5 h-5' : 'w-6 h-6'} ${
+              className ?? ''
+            }`}
+          />
+        </div>
+      );
+    }
+
+    if (!filled) {
+      return (
+        <div
+          className={`rounded-lg flex items-center justify-center flex-shrink-0 ${
+            small ? 'w-5 h-5' : 'w-6 h-6'
+          } ${className ?? ''}`}
+        >
+          <Icon size={iconSize || size} color={resolvedColor ?? iconColor} />
+        </div>
+      );
+    }
+
     return (
       <div
-        className={`rounded-lg flex items-center justify-center flex-shrink-0 ${small ? 'w-5 h-5' : 'w-6 h-6'} ${
-          type === 'image' && filled && 'bg-gradient-to-r from-pink-500 to-purple-500'
-        } ${className ?? ''}`}
-        style={{ backgroundColor: filled ? resolvedColor : 'transparent' }}
+        className={`rounded-lg flex items-center justify-center flex-shrink-0 ${
+          small ? 'w-5 h-5' : 'w-6 h-6'
+        } ${type === 'image' ? 'bg-gradient-to-r from-pink-500 to-purple-500' : ''} ${
+          className ?? ''
+        }`}
+        style={{ backgroundColor: resolvedColor }}
       >
-        <Icon size={iconSize || size} color={filled ? 'white' : (resolvedColor ?? iconColor)} />
+        <Icon size={iconSize || size} color="white" />
       </div>
     );
   },

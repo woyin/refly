@@ -7,7 +7,6 @@ import { getNodeCommonStyles } from './index';
 import { useTranslation } from 'react-i18next';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { HiOutlineDocumentText } from 'react-icons/hi2';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -277,8 +276,7 @@ export const DocumentNode = memo(
           <NodeHeader
             title={data.title || t('common.untitled')}
             fixedTitle={t('canvas.nodeTypes.document')}
-            Icon={HiOutlineDocumentText}
-            iconBgColor="#0E9F77"
+            type="document"
             canEdit={!readonly}
             updateTitle={updateTitle}
           />

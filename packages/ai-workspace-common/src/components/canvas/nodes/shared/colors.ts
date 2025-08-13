@@ -1,7 +1,18 @@
 import { CanvasNodeType, SelectionKey } from '@refly/openapi-schema';
 
+type ResourceType =
+  | 'application/pdf'
+  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  | 'text/markdown'
+  | 'text/plain'
+  | 'application/epub+zip';
+
 // Define background colors for different node types
-export const NODE_COLORS: Record<CanvasNodeType | 'threadHistory' | SelectionKey, string> = {
+export const NODE_COLORS: Record<
+  CanvasNodeType | 'threadHistory' | SelectionKey | ResourceType | ResourceType,
+  string
+> = {
   document: 'var(--refly-Colorful-Blue)',
   documentSelection: 'var(--refly-Colorful-Blue)',
   documentCursorSelection: 'var(--refly-Colorful-Blue)',
@@ -30,6 +41,13 @@ export const NODE_COLORS: Record<CanvasNodeType | 'threadHistory' | SelectionKey
   video: 'var(--refly-Colorful-red)',
   audio: 'var(--refly-Colorful-red)',
   extensionWeblinkSelection: '#17B26A',
+  'application/pdf': 'var(--refly-Colorful-red)',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+    'var(--refly-Colorful-Blue)',
+  'text/markdown': 'var(--refly-text-1)',
+  'text/plain': 'var(--refly-Colorful-Blue)',
+  'application/epub+zip': 'var(--refly-text-0)',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'var(--refly-Colorful-Blue)',
 };
 export const NODE_MINI_MAP_COLORS = {
   ...NODE_COLORS,

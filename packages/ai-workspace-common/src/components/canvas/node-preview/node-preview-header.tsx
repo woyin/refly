@@ -3,37 +3,25 @@ import { Button, Dropdown, Modal, message } from 'antd';
 import type { MenuProps } from 'antd';
 import { TFunction } from 'i18next';
 import {
-  FileText,
-  Sparkles,
-  Wrench,
   Maximize2,
   Minimize2,
   MoreHorizontal,
   X,
-  Cpu,
-  Code2,
-  Globe,
   FilePlus,
   Trash2,
   Target,
   GripVertical,
 } from 'lucide-react';
-import { NODE_COLORS } from '../nodes/shared/colors';
 import { CanvasNode } from '@refly/canvas-common';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import {
-  IconDocument,
   IconPin,
-  IconResponse,
   IconUnpin,
   IconDeleteFile,
   IconDownloadFile,
-  IconCodeArtifact,
-  IconWebsite,
   IconWideMode,
-  IconResource,
   IconExitWideMode,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
@@ -50,40 +38,6 @@ import { useExportDocument } from '@refly-packages/ai-workspace-common/hooks/use
 import { useDebouncedCallback } from 'use-debounce';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { CanvasNodeType } from '@refly/openapi-schema';
-
-// Get icon component based on node type and metadata
-const getNodeIcon = (node: CanvasNode<any>) => {
-  switch (node.type) {
-    case 'document':
-      return IconDocument;
-    case 'resource':
-      return IconResource;
-    case 'skillResponse':
-      return IconResponse;
-    case 'toolResponse':
-      return IconResponse;
-    case 'codeArtifact':
-      return IconCodeArtifact;
-    case 'website':
-      return IconWebsite;
-    case 'skill':
-      switch (node.data?.metadata?.skillType) {
-        case 'prompt':
-        case 'prompt-struct':
-          return Cpu;
-        case 'code':
-          return Code2;
-        case 'http':
-          return Globe;
-        default:
-          return Sparkles;
-      }
-    case 'tool':
-      return Wrench;
-    default:
-      return FileText;
-  }
-};
 
 // Get node title based on node type and metadata
 const getNodeFixedTitle = (node: CanvasNode<any>, t: TFunction) => {
@@ -156,9 +110,6 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
     });
 
     const currentNode = nodeFromStore || node;
-
-    const IconComponent = getNodeIcon(currentNode);
-    const nodeColor = NODE_COLORS[currentNode.type];
 
     const { addToContext } = useAddToContext();
 
@@ -459,8 +410,9 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
                 source="preview"
                 title={getNodeTitle(currentNode, t)}
                 fixedTitle={getNodeFixedTitle(currentNode, t)}
-                Icon={IconComponent}
-                iconBgColor={nodeColor}
+                type={currentNode.type as CanvasNodeType}
+                resourceType={currentNode.data?.metadata?.resourceType}
+                resourceMeta={currentNode.data?.metadata?.resourceMeta}
                 canEdit={currentNode.type !== 'document' && !readonly}
                 updateTitle={handleTitleUpdate}
               />

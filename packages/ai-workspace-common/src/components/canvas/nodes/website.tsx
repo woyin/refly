@@ -10,7 +10,6 @@ import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { FiCode, FiEye, FiExternalLink, FiCopy } from 'react-icons/fi';
 import { Button, Form, Input, message, Tooltip } from 'antd';
-import { IconWebsite } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {
   nodeActionEmitter,
   createNodeEventName,
@@ -571,7 +570,7 @@ export const WebsiteNode = memo(
             canEdit={!readonly}
             fixedTitle={t('canvas.nodeTypes.website')}
             title={data?.title}
-            Icon={IconWebsite}
+            type="website"
             updateTitle={updateTitle}
           />
           <div className="relative flex-grow overflow-y-auto pr-2 -mr-2">

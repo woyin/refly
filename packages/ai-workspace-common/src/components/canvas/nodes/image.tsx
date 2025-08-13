@@ -6,7 +6,6 @@ import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/ca
 import { CustomHandle } from './shared/custom-handle';
 import { ImageNodeProps } from './shared/types';
 import { NodeHeader } from './shared/node-header';
-import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import {
   nodeActionEmitter,
   createNodeEventName,
@@ -246,8 +245,7 @@ export const ImageNode = memo(
           >
             <NodeHeader
               title={data.title}
-              Icon={IconImage}
-              iconBgColor="#02b0c7"
+              type="image"
               canEdit={!readonly}
               updateTitle={onTitleChange}
             />

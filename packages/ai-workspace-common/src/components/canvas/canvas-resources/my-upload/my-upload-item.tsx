@@ -1,9 +1,8 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { Button, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode, ResourceNodeMeta } from '@refly/canvas-common';
 import { cn } from '@refly/utils/cn';
-import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
@@ -36,7 +35,6 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
   const isRunning = ['wait_parse', 'wait_index'].includes(indexStatus) || isReindexing;
   const isFinished = ['finish'].includes(indexStatus);
 
-  const iconContainerStyle = useMemo(() => ({ backgroundColor: NODE_COLORS.resource }), []);
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
   const handleReindexResource = useCallback(async () => {
@@ -82,12 +80,15 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
       onClick={() => onSelect(node, beforeParsed)}
     >
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <div
-          className={cn('rounded-lg flex items-center justify-center flex-shrink-0', 'w-5 h-5')}
-          style={iconContainerStyle}
-        >
-          <NodeIcon small type="resource" resourceType={resourceType} resourceMeta={resourceMeta} />
-        </div>
+        <NodeIcon
+          type="resource"
+          resourceType={resourceType}
+          resourceMeta={resourceMeta}
+          filled={false}
+          url={node.data?.metadata?.imageUrl as string}
+          small
+        />
+
         <Text
           ellipsis={{ tooltip: { placement: 'left' } }}
           className={cn('block flex-1 min-w-0 truncate', {
