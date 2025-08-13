@@ -13,6 +13,7 @@ export interface SessionStatusTagProps {
 export const SessionStatusTag = memo(({ status, steps, className }: SessionStatusTagProps) => {
   // const { t } = useTranslation();
   console.log(steps);
+
   // const color = useMemo(() => {
   //   switch (status) {
   //     case 'init':

@@ -239,9 +239,15 @@ export const SessionContainer = memo(
             ) : session?.status === 'executing' ? (
               <div className="flex flex-col h-full">
                 <div className="px-4">{query}</div>
-                <div className="w-full bg-refly-bg-content-z2 rounded-lg p-4 flex items-center gap-2 border-[12px] border-refly-bg-content-z2">
-                  <Thinking />
-                  <span>正在理解意图分析需求...</span>
+                <div className="flex flex-col h-full px-4 py-3">
+                  <div className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex gap-2 border border-gray-100 bg-[#F4F4F4]">
+                    <div className="pl-2">
+                      <Thinking color="#76787B" className="w-4 h-4" />
+                    </div>
+                    <div className="text-sm text-center text-gray-500 font-normal">
+                      正在理解意图分析需求...
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (

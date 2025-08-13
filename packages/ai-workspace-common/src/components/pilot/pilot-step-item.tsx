@@ -1,9 +1,7 @@
 import { memo, useMemo } from 'react';
-import { Divider } from 'antd';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { useTranslation } from 'react-i18next';
+// import { useTranslation } from 'react-i18next';
 import { Cancelled, Finished, Pending, Running } from 'refly-icons';
 
 // Status icon mapping for pilot steps
@@ -52,10 +50,10 @@ export interface PilotStepItemProps {
 }
 
 export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
-  const { t } = useTranslation();
-  const { actionMeta } = step?.actionResult ?? {};
-  const skillName = actionMeta?.name;
-  const skillDisplayName = skillName ? t(`${skillName}.name`, { ns: 'skill' }) : '';
+  // const { t } = useTranslation();
+  // const { actionMeta } = step?.actionResult ?? {};
+  // const skillName = actionMeta?.name;
+  // const skillDisplayName = skillName ? t(`${skillName}.name`, { ns: 'skill' }) : '';
 
   const handleClick = useMemo(() => {
     if (!onClick) return undefined;
@@ -64,7 +62,7 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
 
   return (
     <div
-      className="flex items-center p-1 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200  dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700"
       onClick={handleClick}
     >
       <div className="mr-2 flex-shrink-0">
@@ -73,16 +71,6 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
 
       <div className="flex items-center px-2 py-1 flex-grow min-w-0">
         <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
-
-        {step.actionResult && (
-          <>
-            <Divider type="vertical" className="h-3" />
-            <span className="flex items-center gap-1 text-xs opacity-70">
-              {getSkillIcon(skillName ?? '')}
-              {skillDisplayName}
-            </span>
-          </>
-        )}
       </div>
     </div>
   );
