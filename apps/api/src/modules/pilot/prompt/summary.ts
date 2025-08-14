@@ -1,9 +1,5 @@
-import type { SkillInput } from '@refly/openapi-schema';
+import { SkillInput } from '@refly/openapi-schema';
 
-/**
- * Build the SkillInput for Summary step.
- * Focus on summarizing current epoch subtasks and evaluating progress against user question.
- */
 export function buildSummarySkillInput(params: {
   userQuestion: string;
   currentEpoch: number;
@@ -12,106 +8,68 @@ export function buildSummarySkillInput(params: {
 }): SkillInput {
   const { userQuestion, currentEpoch, maxEpoch, subtaskTitles = [] } = params;
 
-  // Optional section listing subtask titles to help the model focus
   const subtaskListSection = subtaskTitles?.length
-    ? `\n- Subtasks in this epoch:\n${subtaskTitles.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}`
+    ? `\nCompleted subtasks: ${subtaskTitles.map((t, i) => `${i + 1}. ${t}`).join(', ')}`
     : '';
 
-  // Calculate progress ratio for stage-specific guidance
   const progressRatio = currentEpoch / Math.max(maxEpoch, 1);
 
-  // Generate stage-specific focus based on progress
   let stageFocus = '';
   if (progressRatio < 0.5) {
-    stageFocus = `
-## EARLY STAGE SUMMARY FOCUS
-- Evaluate the quality and coverage of information gathered so far
-- Identify critical gaps that may affect the final answer to: "${userQuestion}"
-- Assess if the research direction aligns with user's core question dependencies
-- Recommend specific areas for deeper investigation in subsequent epochs`;
+    stageFocus = `**EARLY STAGE**: Focus on answer completeness assessment for "${userQuestion}"`;
   } else if (progressRatio < 0.8) {
-    stageFocus = `
-## MID-STAGE ANALYSIS FOCUS  
-- Synthesize patterns, contradictions, and insights from gathered information
-- Evaluate information reliability and cross-reference findings
-- Identify the most promising approaches to answer: "${userQuestion}"
-- Plan the structure and key components for final deliverables`;
+    stageFocus = `**MID STAGE**: Synthesize findings and evaluate answer reliability for "${userQuestion}"`;
   } else {
-    stageFocus = `
-## LATE-STAGE SYNTHESIS FOCUS
-- Organize findings into coherent frameworks ready for final output creation
-- Ensure all critical dependencies for "${userQuestion}" are adequately addressed
-- Draft comprehensive outlines for documents, reports, or deliverables
-- Validate that gathered evidence supports robust conclusions`;
+    stageFocus = `**LATE STAGE**: Finalize answer quality and prepare comprehensive progress report for "${userQuestion}"`;
   }
 
-  // Optimized prompt for enhanced Agent with tool-driven analysis
-  const query = `Perform a comprehensive epoch analysis with strategic, dependency-first evaluation focused on the user's original question.
+  const query = `SUMMARY TASK: Three-step validation and progress report
 
-**Context:**
-Original user goal: "${userQuestion}"
-Current epoch: ${currentEpoch + 1}/${maxEpoch + 1} (${Math.round(progressRatio * 100)}% complete)${subtaskListSection}
-
+**TARGET**: "${userQuestion}"
+**PROGRESS**: Epoch ${currentEpoch + 1}/${maxEpoch + 1} (${Math.round(progressRatio * 100)}% complete)${subtaskListSection}
 ${stageFocus}
 
-## TOOL USAGE STRATEGY FOR SUMMARY ANALYSIS
+## EXECUTION PROTOCOL
 
-### Core Principle: Focused, Question-Aligned Analysis
-- REQUIRED: Use primarily commonQnA for comprehensive synthesis and analysis
-- STRATEGY: Focus on analyzing existing context rather than extensive new research
-- AVOID: Extensive information gathering unless absolutely necessary for answering the user's question
+**STEP 1: DIRECT ANSWER GENERATION**
+Using all available context, provide complete answer to: "${userQuestion}"
+- Synthesize all relevant information 
+- Include evidence citations [doc:ID], [res:ID], [artifact:ID]
+- Mark confidence levels for each component
 
-## USER QUESTION ALIGNMENT ANALYSIS
+**STEP 2: ANSWER QUALITY ASSESSMENT**
+Evaluate your Step 1 answer using these criteria:
+- **Completeness**: What % of "${userQuestion}" answered?
+- **Evidence Quality**: How reliable is supporting information?
+- **Information Gaps**: What specific data is missing?
+- **User Value**: How useful for user's actual needs?
 
-**Target Question**: "${userQuestion}"
+**STEP 3: HUMAN-READABLE PROGRESS REPORT**
+Generate clear status summary:
+- **Current Answer Status**: Where we stand on "${userQuestion}"
+- **Key Achievements**: What was accomplished this epoch
+- **Critical Needs**: What's required for answer improvement
+- **Realistic Timeline**: Expected completion outlook
 
-### Critical Evaluation Framework:
-1. **Dependency Coverage**: Are all prerequisite facts needed to answer the user's question adequately covered?
-2. **Information Quality**: Is the gathered information reliable, current, and directly relevant to the user's specific needs?
-3. **Gap Assessment**: What specific information is still missing to provide a complete answer?
-4. **Answer Readiness**: Based on current findings, can we confidently address the user's original question?
+## OUTPUT FORMAT
 
-### Required Analysis Process:
-- Map each piece of gathered information to specific components of the user's question
-- Identify which aspects of the user's question remain unresolved or inadequately addressed
-- Prioritize remaining work based on criticality to delivering the final answer
-- Assess confidence levels for different aspects of the potential answer
+### ANSWER TO USER QUESTION
+[Complete response to "${userQuestion}" with evidence citations]
 
-## STRUCTURED OUTPUT REQUIREMENTS
+### QUALITY ASSESSMENT
+- **Completeness**: X% - [Explanation]
+- **Evidence Strength**: [Strong/Mixed/Weak] - [Why]
+- **Missing Information**: [Specific gaps]
+- **Confidence Level**: [High/Medium/Low] - [Reasoning]
 
-Your analysis must include these sections in structured Markdown format:
+### EPOCH PROGRESS REPORT
+**Current Status**: [Clear summary of answer quality and completeness]
+**Achievements**: [Key findings with evidence citations]
+**Critical Gaps**: [Specific missing information preventing complete answer]
+**Next Priorities**: [What's needed to improve answer quality]
+**Timeline**: [Realistic expectations for full answer completion]
 
-### 1. EPOCH ACHIEVEMENTS SUMMARY
-- Key findings and deliverables from completed subtasks with clear evidence
-- Achievement quality assessment with proper citations [doc:ID], [res:ID], [artifact:ID]
-- Documented risks, uncertainties, and open questions
-
-### 2. USER QUESTION ALIGNMENT ASSESSMENT  
-- Detailed evaluation of how current findings address the original question: "${userQuestion}"
-- Specific gaps that prevent complete answer delivery to the user
-- Confidence level assessment for different aspects of the potential final answer
-
-### 3. INFORMATION QUALITY AND RELIABILITY EVALUATION
-- Source credibility and reliability assessment
-- Cross-validation status of key facts and claims
-- Identified contradictions, uncertainties, or conflicting information
-
-### 4. STRATEGIC RECOMMENDATIONS FOR NEXT PHASE
-- Priority areas requiring attention in subsequent epochs (if applicable)
-- Specific research directions needed to close critical gaps affecting the user's question
-- Risk assessment for timeline and deliverable quality
-
-### 5. ACTIONABLE NEXT STEPS PLANNING
-- Concrete actions needed to progress toward answering the user's question
-- Resource allocation recommendations for optimal efficiency
-- Success criteria and milestones for subsequent work phases
-
-**Quality Standards:**
-- All analysis must be evidence-based with proper source citations
-- Maintain unwavering focus on the user's original question: "${userQuestion}"
-- Provide actionable, specific recommendations rather than generic suggestions
-- Ensure complete transparency in information gathering process and source reliability assessment
-- Prioritize information and analysis that directly serves the user's question dependencies`;
+**CONSTRAINT**: Use commonQnA for synthesis. Maintain absolute focus on "${userQuestion}".`;
 
   return { query };
 }

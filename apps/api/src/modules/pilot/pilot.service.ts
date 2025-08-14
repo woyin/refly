@@ -347,7 +347,7 @@ export class PilotService {
     const latestSummarySteps =
       steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') || [];
 
-    if (currentEpoch >= maxEpoch) {
+    if (currentEpoch > maxEpoch - 1) {
       this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
 
       if (pilotSession.status !== 'finish') {
@@ -392,7 +392,7 @@ export class PilotService {
       pilotSessionPO2DTO(pilotSession),
       latestSummarySteps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     );
-    const rawSteps = await engine.run(canvasContentItems, 3, locale);
+    const rawSteps = await engine.run(canvasContentItems, 5, locale);
 
     if (rawSteps.length === 0) {
       await this.prisma.pilotSession.update({
@@ -564,7 +564,7 @@ export class PilotService {
     const latestSubtaskSteps =
       steps?.filter(({ step }) => step.epoch === currentEpoch && step.mode === 'subtask') || [];
 
-    if (currentEpoch >= maxEpoch) {
+    if (currentEpoch > maxEpoch - 1) {
       this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
 
       if (pilotSession.status !== 'finish') {
@@ -765,8 +765,8 @@ export class PilotService {
         .filter((step) => step.mode === 'summary')
         .every((step) => step.status === 'finish');
 
-    // 尽量不主动中断
-    const reachedMaxEpoch = step.epoch > session.maxEpoch + 1;
+    // 测试不主动中断
+    const reachedMaxEpoch = step.epoch > session.maxEpoch - 1;
     this.logger.log(
       `Epoch (${session.currentEpoch}/${session.maxEpoch}) for session ${step.sessionId}: ` +
         `steps are ${isAllSummaryStepsFinished ? 'finished' : 'not finished'}`,

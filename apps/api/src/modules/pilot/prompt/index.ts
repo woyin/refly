@@ -281,10 +281,10 @@ export function getRecommendedStageForEpoch(currentEpoch: number, totalEpochs: n
   const progress = normalizedCurrentEpoch / normalizedTotalEpochs;
 
   // Simplified two-stage workflow: research → creation
-  if (progress < 0.8) {
+  if (progress < 1) {
     return 'research'; // First 90% for comprehensive research
   } else {
-    return 'research'; // Last 10% for output creation
+    return 'creation'; // Last 10% for output creation
   }
 }
 
