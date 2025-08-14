@@ -1,16 +1,17 @@
-import { useEffect, useState, useMemo, useCallback, memo } from 'react';
+import { useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, message, Dropdown, Tooltip } from 'antd';
-import type { MenuProps } from 'antd';
+import { Button, message, Tooltip } from 'antd';
+import { Data } from 'refly-icons';
+import { ModelIcon } from '@lobehub/icons';
 import { ActionResult, ActionStep, Source } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow } from '@refly/stores';
+import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
-import { HiOutlineCircleStack } from 'react-icons/hi2';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 
 interface ActionContainerProps {
   step: ActionStep;
@@ -60,16 +61,6 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     [step.content, activeDocumentId, hasEditorSelection],
   );
 
-  const [tokenUsage, setTokenUsage] = useState(0);
-
-  useEffect(() => {
-    let total = 0;
-    for (const item of step?.tokenUsage || []) {
-      total += (item?.inputTokens || 0) + (item?.outputTokens || 0);
-    }
-    setTokenUsage(total);
-  }, [step?.tokenUsage]);
-
   const handleEditorOperation = useCallback(
     async (type: EditorOperation | 'createDocument', content: string) => {
       const parsedContent = parseMarkdownCitationsAndCanvasTags(content, sources);
@@ -95,41 +86,37 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     [sources, t],
   );
 
-  const tokenUsageDropdownList: MenuProps['items'] = useMemo(
-    () =>
-      step?.tokenUsage?.map((item: any) => ({
-        key: item?.modelName,
-        label: (
-          <div className="flex items-center">
-            <span>
-              {item?.modelName}:{' '}
-              {t('copilot.tokenUsage', {
-                inputCount: item?.inputTokens,
-                outputCount: item?.outputTokens,
-              })}
-            </span>
-          </div>
-        ),
-      })),
-    [step?.tokenUsage, t],
+  const { userProfile } = useUserStoreShallow((state) => ({
+    userProfile: state.userProfile,
+  }));
+
+  const { data: providerItemList } = useListProviderItems({
+    query: {
+      category: 'llm',
+      enabled: true,
+      isGlobal: userProfile?.preferences?.providerMode === 'global',
+    },
+  });
+
+  const tokenUsage = step?.tokenUsage?.[0];
+  const providerItem = providerItemList?.data?.find(
+    (item) => item.config?.modelId === tokenUsage?.modelName,
   );
 
   return (
     <div className="flex items-center justify-between border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border p-3">
-      <div className="-ml-1">
-        {step?.tokenUsage && step.tokenUsage.length > 0 && !isShareMode && (
-          <Dropdown menu={{ items: tokenUsageDropdownList }}>
-            <Button
-              type="text"
-              size="small"
-              icon={<HiOutlineCircleStack style={{ fontSize: 14 }} />}
-              className="text-gray-500 text-xs"
-            >
-              {tokenUsage} tokens
-            </Button>
-          </Dropdown>
-        )}
-      </div>
+      {tokenUsage && (
+        <div className="flex flex-row text-gray-500 text-sm gap-3">
+          <div className="flex items-center gap-1">
+            <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
+            {tokenUsage?.modelLabel || providerItem?.name}
+          </div>
+          <div className="flex items-center gap-1">
+            <Data size={16} />
+            {tokenUsage?.inputTokens + tokenUsage?.outputTokens}
+          </div>
+        </div>
+      )}
       {!isPending && step?.content && (
         <div className="flex flex-row justify-between items-center text-sm">
           <div className="-ml-1 text-sm flex flex-row items-center gap-1">
