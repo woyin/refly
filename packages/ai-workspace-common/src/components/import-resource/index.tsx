@@ -215,7 +215,7 @@ export const ImportResourceModal = memo(() => {
         maskClosable={!showSearchResults}
         style={{
           minWidth: '600px',
-          maxWidth: '780px',
+          maxWidth: '720px',
           maxHeight: '720px',
         }}
       >
