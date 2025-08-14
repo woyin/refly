@@ -314,7 +314,7 @@ export const SessionContainer = memo(
                           <Thinking color="#76787B" className="w-4 h-4" />
                         </div>
                         <div className="text-sm text-center text-gray-500 font-normal">
-                          正在理解意图分析需求...
+                          {t('pilot.status.understandingIntent')}
                         </div>
                       </motion.div>
                     </motion.div>

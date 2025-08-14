@@ -2923,6 +2923,11 @@ const translations = {
       waiting: 'Waiting',
       finish: 'Finish',
       failed: 'Failed',
+      planning: 'Planning tasks...',
+      executingSteps: 'Task execution {{current}} / {{total}} ...',
+      completedTasks: 'Completed {{count}} tasks ...',
+      taskFailed: 'Task failed',
+      understandingIntent: 'Understanding intent and analyzing requirements...',
     },
   },
   deck: {

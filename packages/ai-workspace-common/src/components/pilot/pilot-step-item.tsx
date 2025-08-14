@@ -3,7 +3,7 @@ import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { motion } from 'motion/react';
 // import { useTranslation } from 'react-i18next';
-import { Cancelled, Finished, Pending, Running } from 'refly-icons';
+import { Cancelled, Finished, Pending, Running1 } from 'refly-icons';
 
 // Status icon mapping for pilot steps
 export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) => {
@@ -19,7 +19,7 @@ export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) =>
     case 'executing':
       return (
         <div className="w-6 h-6 flex items-center justify-center">
-          <Running className="w-4 h-4" />
+          <Running1 className="w-4 h-4" />
         </div>
       );
     case 'finish':
