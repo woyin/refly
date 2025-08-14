@@ -1,10 +1,31 @@
 import { Button } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { TbBrowserPlus } from 'react-icons/tb';
 import { IconResourceFilled } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { EXTENSION_DOWNLOAD_LINK } from '@refly/utils/url';
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { useState } from 'react';
+import extensionBg from '../../../assets/browser-extension.png';
+
+const Title = () => {
+  const { i18n } = useTranslation();
+  const isZh = i18n.language === 'zh-CN';
+  return (
+    <div className="text-2xl font-semibold text-refly-text-0 leading-8 flex items-center gap-2.5">
+      {isZh ? (
+        <>
+          <div>通过</div>
+          <div className="text-refly-primary-default">Refly浏览器插件</div>
+          <div>剪存网页</div>
+        </>
+      ) : (
+        <>
+          <div>Save web pages with</div>
+          <div className="text-refly-primary-default">Refly Browser Extension</div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const SOCIAL_PLATFORMS = [
   {
@@ -244,16 +265,16 @@ const PlatformButton = ({ platform }: { platform: (typeof SOCIAL_PLATFORMS)[0] }
   return (
     <Button
       key={platform.name}
-      className="flex items-center gap-2 h-auto p-4"
+      className="flex items-center gap-2 h-auto p-4 font-normal"
       onClick={() => window.open(platform.url, '_blank')}
     >
       {showFallbackIcon ? (
-        <IconResourceFilled color={NODE_COLORS.resource} size={24} />
+        <IconResourceFilled color={NODE_COLORS.resource} size={20} />
       ) : (
         <img
           src={`https://www.google.com/s2/favicons?domain=${platform.url}&sz=32`}
           alt={platform.name}
-          className="w-6 h-6 rounded-sm object-contain"
+          className="w-4 h-4 rounded-sm object-contain"
           onError={() => setShowFallbackIcon(true)}
         />
       )}
@@ -267,70 +288,45 @@ export const ImportFromExtension = () => {
   const locale = i18n?.languages?.[0];
 
   return (
-    <div className="h-full flex flex-col min-w-[500px] box-border">
-      {/* header - fixed height */}
-      <div className="flex items-center gap-2 p-6 border-b border-gray-200">
-        <span className="flex items-center justify-center">
-          <TbBrowserPlus className="text-lg" />
-        </span>
-        <div className="text-base font-bold">{t('resource.import.fromExtension')}</div>
+    <div className="w-full flex-grow min-h-0 overflow-y-auto py-10 px-[60px] flex flex-col gap-4">
+      <div>
+        <Title />
+        <div className="text-sm text-refly-text-1 mt-1 leading-5">
+          {t('resource.import.extensionDescription')}
+        </div>
       </div>
 
-      {/* scrollable content area */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="px-6">
-          {/* Video Demo */}
-          <div className="mb-8">
-            <video
-              width="100%"
-              height="300"
-              src="https://static.refly.ai/extension/clip_and_save.mp4"
-              controls
-              controlsList="nodownload"
-              loop
-              playsInline
-              className="w-full h-[300px] object-cover rounded-lg bg-black"
-            >
-              <track kind="captions" label="English captions" src="" default />
-            </video>
-          </div>
+      <div className="flex gap-3">
+        <Button type="primary" onClick={() => window.open(EXTENSION_DOWNLOAD_LINK, '_blank')}>
+          {t('resource.import.downloadExtension')}
+        </Button>
+        <Button
+          onClick={() => {
+            const docsUrl =
+              locale === 'en'
+                ? 'https://docs.refly.ai/guide/chrome-extension'
+                : 'https://docs.refly.ai/zh/guide/chrome-extension';
+            window.open(docsUrl, '_blank');
+          }}
+        >
+          {t('resource.import.viewDocs')}
+        </Button>
+      </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-4 mb-8">
-            <Button
-              type="primary"
-              size="large"
-              className="flex-1"
-              onClick={() => window.open(EXTENSION_DOWNLOAD_LINK, '_blank')}
-            >
-              {t('resource.import.downloadExtension')}
-            </Button>
-            <Button
-              size="large"
-              className="flex-1"
-              onClick={() => {
-                const docsUrl =
-                  locale === 'en'
-                    ? 'https://docs.refly.ai/guide/chrome-extension'
-                    : 'https://docs.refly.ai/zh/guide/chrome-extension';
-                window.open(docsUrl, '_blank');
-              }}
-            >
-              {t('resource.import.viewDocs')}
-            </Button>
-          </div>
+      <img
+        src={extensionBg}
+        alt="extension-bg"
+        className="w-full border-solid border-[1px] rounded-2xl border-refly-semi-color-border"
+      />
 
-          {/* Platform List */}
-          <div className="mb-6">
-            <h3 className="text-base font-medium mb-4">
-              {t('resource.import.recommendedPlatforms')}
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {SOCIAL_PLATFORMS.map((platform) => (
-                <PlatformButton key={platform.name} platform={platform} />
-              ))}
-            </div>
-          </div>
+      <div>
+        <div className="text-sm font-semibold text-refly-text-0 mb-1 leading-5">
+          {t('resource.import.recommendedPlatforms')}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {SOCIAL_PLATFORMS.map((platform) => (
+            <PlatformButton key={platform.name} platform={platform} />
+          ))}
         </div>
       </div>
     </div>

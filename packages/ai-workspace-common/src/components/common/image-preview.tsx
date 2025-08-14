@@ -76,7 +76,7 @@ export const ImagePreview = ({
       preview={{
         visible: isPreviewModalVisible,
         src: imageUrl,
-        destroyOnClose: true,
+        destroyOnHidden: true,
         title: imageTitle,
         onVisibleChange: (value) => {
           setIsPreviewModalVisible(value);

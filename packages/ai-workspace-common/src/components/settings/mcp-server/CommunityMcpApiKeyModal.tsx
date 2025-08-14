@@ -87,7 +87,7 @@ export const CommunityMcpApiKeyModal: React.FC<CommunityMcpApiKeyModalProps> = m
         onCancel={handleClose}
         width={520}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
         maskClosable={!isLoading}
         closable={false}
       >

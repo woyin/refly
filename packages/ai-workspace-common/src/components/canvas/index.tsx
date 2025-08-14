@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useEffect, useState, useRef, memo } from 'react';
-import { Button, Modal, Result, message } from 'antd';
+import { Button, Modal, Result, message, Splitter, Popover } from 'antd';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -16,9 +16,7 @@ import {
 import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
 import { nodeTypes } from './nodes';
-import { CanvasToolbar } from './canvas-toolbar';
 import { TopToolbar } from './top-toolbar';
-import { NodePreviewContainer } from './node-preview';
 import { ContextMenu } from './context-menu';
 import { NodeContextMenu } from './node-context-menu';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
@@ -36,6 +34,7 @@ import {
   useUserStore,
   useUserStoreShallow,
   usePilotStoreShallow,
+  useCanvasResourcesPanelStoreShallow,
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
@@ -75,6 +74,9 @@ import {
 import { useCanvasInitialActions } from '@refly-packages/ai-workspace-common/hooks/use-canvas-initial-actions';
 import { Pilot } from '@refly-packages/ai-workspace-common/components/pilot';
 import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
+import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
+import { ResourceOverview } from './canvas-resources/share/resource-overview';
+import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 
 const GRID_SIZE = 10;
 
@@ -169,7 +171,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   useCanvasInitialActions(canvasId);
   // useFollowPilotSteps();
 
-  const previewContainerRef = useRef<HTMLDivElement>(null);
   const { addNode } = useAddNode();
   const { nodes, edges } = useStore(
     useShallow((state) => ({
@@ -231,7 +232,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     operatingNodeId,
     setOperatingNodeId,
     setInitialFitViewCompleted,
-    showPreview,
     setCanvasPage,
     showSlideshow,
     setShowSlideshow,
@@ -241,7 +241,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     operatingNodeId: state.operatingNodeId,
     setOperatingNodeId: state.setOperatingNodeId,
     setInitialFitViewCompleted: state.setInitialFitViewCompleted,
-    showPreview: state.showPreview,
     setCanvasPage: state.setCanvasPage,
     showSlideshow: state.showSlideshow,
     setShowSlideshow: state.setShowSlideshow,
@@ -384,11 +383,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     },
     [lastClickTime, setOperatingNodeId, reactFlowInstance, selectedEdgeId, cleanupTemporaryEdges],
   );
-
-  const handleToolSelect = (tool: string) => {
-    // Handle tool selection
-    console.log('Selected tool:', tool);
-  };
 
   // Add scroll position state and handler
   const [showLeftIndicator, setShowLeftIndicator] = useState(false);
@@ -1172,20 +1166,16 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         {/* Display the not found overlay when shareNotFound is true */}
         {readonly && shareNotFound && <NotFoundOverlay />}
 
-        {showPreview && (
-          <div
-            ref={previewContainerRef}
-            className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"
-            style={{
-              maxWidth: 'calc(100% - 12px)',
-            }}
-            onScroll={(e) => updateIndicators(e.currentTarget)}
-          >
-            <div className="relative h-full overflow-y-hidden">
-              <NodePreviewContainer canvasId={canvasId} nodes={nodes as unknown as CanvasNode[]} />
-            </div>
+        <div
+          className="absolute top-[64px] bottom-0 right-2 overflow-x-auto preview-container z-20"
+          style={{
+            maxWidth: 'calc(100% - 12px)',
+          }}
+        >
+          <div className="relative h-full overflow-y-hidden">
+            <NodePreviewContainer canvasId={canvasId} />
           </div>
-        )}
+        </div>
 
         <MenuPopper open={menuOpen} position={menuPosition} setOpen={setMenuOpen} />
 
@@ -1231,6 +1221,20 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const { canvasId, readonly } = props;
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
+  const {
+    sidePanelVisible,
+    resourcesPanelWidth,
+    setResourcesPanelWidth,
+    showLeftOverview,
+    setShowLeftOverview,
+  } = useCanvasResourcesPanelStoreShallow((state) => ({
+    sidePanelVisible: state.sidePanelVisible,
+    resourcesPanelWidth: state.panelWidth,
+    setResourcesPanelWidth: state.setPanelWidth,
+    showLeftOverview: state.showLeftOverview,
+    setShowLeftOverview: state.setShowLeftOverview,
+  }));
+
   useEffect(() => {
     if (readonly) {
       return;
@@ -1243,11 +1247,109 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     }
   }, [canvasId, setCurrentCanvasId]);
 
+  // Handle panel resize
+  const handlePanelResize = useCallback(
+    (sizes: number[]) => {
+      if (sizes.length >= 2) {
+        setResourcesPanelWidth(sizes[1]);
+      }
+    },
+    [setResourcesPanelWidth],
+  );
+
+  // Calculate max width as 50% of parent container
+  const [maxPanelWidth, setMaxPanelWidth] = useState(800);
+
+  useEffect(() => {
+    const updateMaxWidth = () => {
+      const canvasContainer = document.querySelector('.canvas-splitter');
+      if (canvasContainer) {
+        setMaxPanelWidth(Math.floor(canvasContainer.clientWidth * 0.5));
+      }
+    };
+
+    // Initial calculation
+    updateMaxWidth();
+
+    // Listen for window resize events
+    const resizeObserver = new ResizeObserver(updateMaxWidth);
+    const canvasContainer = document.querySelector('.canvas-splitter');
+    if (canvasContainer) {
+      resizeObserver.observe(canvasContainer);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // Close resources overview popover when clicking outside
+  const handleClickOutsideResourcesPopover = useCallback(
+    (event: MouseEvent) => {
+      if (!showLeftOverview) {
+        return;
+      }
+
+      const targetEl = event.target as HTMLElement | null;
+      const isInside = targetEl?.closest?.('[data-refly-resources-popover="true"]');
+      if (isInside) return;
+
+      setShowLeftOverview(false);
+    },
+    [showLeftOverview, setShowLeftOverview],
+  );
+
+  useEffect(() => {
+    if (!showLeftOverview) {
+      return;
+    }
+
+    // Use capture phase to ensure we catch early
+    document.addEventListener('mousedown', handleClickOutsideResourcesPopover, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideResourcesPopover, true);
+    };
+  }, [showLeftOverview, handleClickOutsideResourcesPopover]);
+
   return (
     <EditorPerformanceProvider>
       <ReactFlowProvider>
         <CanvasProvider readonly={readonly} canvasId={canvasId}>
-          <Flow canvasId={canvasId} />
+          <Splitter
+            className="canvas-splitter w-full h-[calc(100vh-16px)]"
+            onResize={handlePanelResize}
+          >
+            <Splitter.Panel>
+              <Flow canvasId={canvasId} />
+            </Splitter.Panel>
+
+            <Splitter.Panel
+              size={sidePanelVisible ? resourcesPanelWidth : 0}
+              min={480}
+              max={maxPanelWidth}
+            >
+              <Popover
+                classNames={{
+                  root: 'resources-panel-popover',
+                }}
+                open={showLeftOverview}
+                onOpenChange={setShowLeftOverview}
+                arrow={false}
+                content={
+                  <div className="flex w-[360px] h-full" data-refly-resources-popover="true">
+                    <ResourceOverview />
+                  </div>
+                }
+                placement="left"
+                align={{
+                  offset: [0, 0],
+                }}
+              >
+                <CanvasResources />
+              </Popover>
+            </Splitter.Panel>
+          </Splitter>
+          <CanvasResourcesWidescreenModal />
         </CanvasProvider>
       </ReactFlowProvider>
     </EditorPerformanceProvider>

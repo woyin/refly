@@ -8,13 +8,14 @@ import { ProjectSelect } from './project-select';
 import { logEvent } from '@refly/telemetry-web';
 
 interface StorageLimitProps {
+  showProjectSelect?: boolean;
   resourceCount: number;
   projectId?: string;
-  onSelectProject: (projectId: string) => void;
+  onSelectProject?: (projectId: string) => void;
 }
 
 export const StorageLimit: FC<StorageLimitProps> = memo(
-  ({ resourceCount, projectId, onSelectProject }) => {
+  ({ resourceCount, projectId, onSelectProject, showProjectSelect = true }) => {
     const { t } = useTranslation();
     const { setSubscribeModalVisible } = useSubscriptionStoreShallow((state) => ({
       setSubscribeModalVisible: state.setSubscribeModalVisible,
@@ -46,7 +47,7 @@ export const StorageLimit: FC<StorageLimitProps> = memo(
             <Button
               type="text"
               size="small"
-              className="text-green-500 ml-2 rounded-sm font-bold"
+              className="!text-refly-primary-default ml-2 font-bold"
               onClick={handleUpgrade}
             >
               {t('resource.import.upgrade')}
@@ -54,8 +55,8 @@ export const StorageLimit: FC<StorageLimitProps> = memo(
           }
         />
       </div>
-    ) : (
+    ) : showProjectSelect && onSelectProject ? (
       <ProjectSelect projectId={projectId} onSelect={onSelectProject} />
-    );
+    ) : null;
   },
 );

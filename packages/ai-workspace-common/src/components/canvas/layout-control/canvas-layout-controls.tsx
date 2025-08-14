@@ -212,7 +212,7 @@ export const CanvasLayoutControls = memo(() => {
       open={open}
       onOpenChange={setOpen}
       placement="bottomRight"
-      destroyPopupOnHide={false}
+      destroyOnHidden={false}
     >
       <Button
         color="default"

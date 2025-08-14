@@ -35,10 +35,7 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
       return {
         ...baseMetadata,
         resourceType: 'weblink', // Default to weblink
-        url: '',
-        description: '',
         lastAccessed: new Date().toISOString(),
-        contentPreview: '',
       } as ResourceNodeMeta;
 
     case 'skill':

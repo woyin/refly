@@ -96,7 +96,7 @@ export const SearchSelect = (props: SearchSelectProps) => {
         }
       }}
       onPopupScroll={handlePopupScroll}
-      dropdownRender={(menu) => (
+      popupRender={(menu) => (
         <div>
           {menu}
           {allowCreateNewEntity && (

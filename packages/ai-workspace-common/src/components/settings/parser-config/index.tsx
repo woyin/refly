@@ -45,7 +45,7 @@ const ConfigCard = memo(
           placeholder={t('settings.parserConfig.settingPlaceholder')}
           options={options}
           onChange={(value) => onSelect(value, type)}
-          dropdownRender={(menu) => renderDropdown(menu, type)}
+          popupRender={(menu) => renderDropdown(menu, type)}
           size="middle"
         />
       </div>

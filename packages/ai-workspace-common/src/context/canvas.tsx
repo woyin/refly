@@ -267,7 +267,6 @@ export const CanvasProvider = ({
 
     // If the number of transactions is greater than the threshold, create a new version
     if ((state.transactions ?? []).length > MAX_STATE_TX_COUNT) {
-      console.log('[syncWithRemote] create new version');
       const finalState = await handleCreateCanvasVersion(canvasId, state);
       if (finalState) {
         await set(`canvas-state:${canvasId}`, finalState);
@@ -281,8 +280,6 @@ export const CanvasProvider = ({
       return;
     }
 
-    console.log('[syncWithRemote] unsynced transactions', unsyncedTransactions);
-
     const { error, data } = await getClient().syncCanvasState({
       body: {
         canvasId,
@@ -292,7 +289,6 @@ export const CanvasProvider = ({
     });
 
     if (!error && data?.success) {
-      console.log('[syncWithRemote] synced successfully');
       setSyncFailureCount(0);
       await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
         ...state,
@@ -377,13 +373,6 @@ export const CanvasProvider = ({
       });
 
       if (diff) {
-        console.log('currentStateData', currentStateData);
-        console.log('dynamic data', {
-          nodes: purgedNodes,
-          edges,
-        });
-        console.log('diff', diff);
-
         await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
           ...state,
           nodes: state?.nodes ?? [],
@@ -475,7 +464,6 @@ export const CanvasProvider = ({
 
   const initialFetchCanvasState = useDebouncedCallback(async (canvasId: string) => {
     const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
-    console.log('localState', localState);
 
     // Only set loading when local state is not found
     let needLoading = false;
@@ -488,7 +476,6 @@ export const CanvasProvider = ({
     if (!remoteState) {
       return;
     }
-    console.log('remoteState', remoteState);
 
     let finalState: CanvasState;
     if (!localState) {
@@ -499,7 +486,6 @@ export const CanvasProvider = ({
       } catch (error) {
         if (error instanceof CanvasConflictException) {
           // Show conflict modal to user
-          console.log('show conflict modal');
           const userChoice = await handleConflictResolution(canvasId, {
             localState,
             remoteState,

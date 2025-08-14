@@ -19,7 +19,10 @@ export const Logo: React.FC<LogoProps> = ({ className = '', onClick, logoProps, 
   const { show: showText = true, className: textClassName } = textProps || { show: true };
 
   return (
-    <div className={`flex gap-1.5 items-center cursor-pointer ${className}`} onClick={onClick}>
+    <div
+      className={`flex gap-1.5 items-center ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      onClick={onClick}
+    >
       {showLogo && (
         <img
           src={logoIcon}

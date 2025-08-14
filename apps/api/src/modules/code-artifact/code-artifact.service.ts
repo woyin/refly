@@ -1,8 +1,13 @@
 import { Inject, Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
-import { ListCodeArtifactsData, UpsertCodeArtifactRequest, User } from '@refly/openapi-schema';
+import {
+  DuplicateCodeArtifactRequest,
+  ListCodeArtifactsData,
+  UpsertCodeArtifactRequest,
+  User,
+} from '@refly/openapi-schema';
 import { streamToString } from '../../utils';
-import { CodeArtifactNotFoundError, ParamsError } from '@refly/errors';
+import { CanvasNotFoundError, CodeArtifactNotFoundError, ParamsError } from '@refly/errors';
 import { genCodeArtifactID } from '@refly/utils';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { CodeArtifact as CodeArtifactModel } from '../../generated/client';
@@ -16,9 +21,19 @@ export class CodeArtifactService {
 
   async createCodeArtifact(user: User, body: UpsertCodeArtifactRequest) {
     const { uid } = user;
-    const { title, type, language, content } = body;
+    const { title, type, language, content, canvasId } = body;
     const artifactId = genCodeArtifactID();
     const storageKey = `code-artifact/${artifactId}`;
+
+    if (canvasId) {
+      const canvas = await this.prisma.canvas.findUnique({
+        select: { pk: true },
+        where: { canvasId, uid, deletedAt: null },
+      });
+      if (!canvas) {
+        throw new CanvasNotFoundError();
+      }
+    }
 
     const codeArtifact = await this.prisma.codeArtifact.create({
       data: {
@@ -28,6 +43,7 @@ export class CodeArtifactService {
         language,
         storageKey,
         uid,
+        canvasId,
       },
     });
 
@@ -50,6 +66,7 @@ export class CodeArtifactService {
       createIfNotExists,
       resultId,
       resultVersion,
+      canvasId,
     } = body;
 
     if (!artifactId) {
@@ -79,6 +96,7 @@ export class CodeArtifactService {
           resultId,
           resultVersion,
           uid,
+          canvasId,
         },
       });
     } else {
@@ -91,6 +109,7 @@ export class CodeArtifactService {
           previewStorageKey,
           resultId,
           resultVersion,
+          canvasId,
         },
       });
     }
@@ -123,12 +142,12 @@ export class CodeArtifactService {
 
   async listCodeArtifacts(user: User, query: ListCodeArtifactsData['query']) {
     const { uid } = user;
-    const { resultId, resultVersion, needContent, page = 1, pageSize = 10 } = query;
+    const { resultId, resultVersion, needContent, canvasId, page = 1, pageSize = 10 } = query;
 
     let artifacts: (CodeArtifactModel & { content?: string })[] = [];
 
     artifacts = await this.prisma.codeArtifact.findMany({
-      where: { uid, resultId, resultVersion, deletedAt: null },
+      where: { uid, resultId, resultVersion, deletedAt: null, canvasId },
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
@@ -144,8 +163,9 @@ export class CodeArtifactService {
     return artifacts;
   }
 
-  async duplicateCodeArtifact(user: User, artifactId: string) {
+  async duplicateCodeArtifact(user: User, param: DuplicateCodeArtifactRequest) {
     const { uid } = user;
+    const { artifactId, canvasId: targetCanvasId } = param;
     const artifact = await this.prisma.codeArtifact.findUnique({
       where: { artifactId, uid, deletedAt: null },
     });
@@ -161,6 +181,7 @@ export class CodeArtifactService {
         language: artifact.language,
         storageKey: newStorageKey,
         uid,
+        canvasId: targetCanvasId || artifact.canvasId,
       },
     });
 
