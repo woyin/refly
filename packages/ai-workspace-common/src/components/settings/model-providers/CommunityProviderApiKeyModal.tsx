@@ -69,7 +69,7 @@ export const CommunityProviderApiKeyModal: React.FC<CommunityProviderApiKeyModal
         width={520}
         title={null}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
         maskClosable={!isLoading}
         closable={false}
       >

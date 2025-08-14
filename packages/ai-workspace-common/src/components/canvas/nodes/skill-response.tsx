@@ -15,7 +15,6 @@ import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/can
 import {
   IconError,
   IconLoading,
-  IconResponse,
   IconToken,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
@@ -47,6 +46,7 @@ import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspac
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
+import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 
 const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
@@ -104,29 +104,7 @@ export const NodeHeader = memo(
           className={`flex-shrink-0 ${source === 'skillResponsePreview' ? 'mb-0' : 'mb-3'}`}
         >
           <div className="flex items-center gap-2">
-            {showIcon && (
-              <div
-                className={`w-6 h-6 rounded shadow-lg flex items-center justify-center flex-shrink-0 ${
-                  skillName === 'generateImage'
-                    ? 'bg-[#7C3AED]'
-                    : skillName === 'generateVideo'
-                      ? 'bg-[#DC2626]'
-                      : skillName === 'generateAudio'
-                        ? 'bg-[#059669]'
-                        : 'bg-[#F79009]'
-                }`}
-              >
-                {skillName === 'generateImage' ? (
-                  <span className="text-white text-sm">🖼️</span>
-                ) : skillName === 'generateVideo' ? (
-                  <span className="text-white text-sm">🎬</span>
-                ) : skillName === 'generateAudio' ? (
-                  <span className="text-white text-sm">🎵</span>
-                ) : (
-                  <IconResponse className="w-4 h-4 text-white" />
-                )}
-              </div>
-            )}
+            {showIcon && <NodeIcon type="skillResponse" />}
             {isEditing ? (
               <Input
                 ref={inputRef}

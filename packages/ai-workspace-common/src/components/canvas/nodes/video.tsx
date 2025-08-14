@@ -5,7 +5,6 @@ import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/ca
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
 import { NodeHeader } from './shared/node-header';
-import { HiOutlineFilm } from 'react-icons/hi2';
 import {
   nodeActionEmitter,
   createNodeEventName,
@@ -188,8 +187,7 @@ export const VideoNode = memo(
           >
             <NodeHeader
               title={data.title}
-              Icon={HiOutlineFilm}
-              iconBgColor="#FF6B6B"
+              type="video"
               canEdit={!readonly}
               updateTitle={onTitleChange}
             />

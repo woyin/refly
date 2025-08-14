@@ -103,7 +103,11 @@ const ArtifactGallery = memo(
             >
               <Card
                 className="group overflow-hidden transition-all duration-300 hover:shadow-refly-m cursor-pointer h-full relative"
-                bodyStyle={{ padding: 0 }}
+                styles={{
+                  body: {
+                    padding: 0,
+                  },
+                }}
                 cover={
                   <div className="relative h-48 w-full overflow-hidden">
                     <img

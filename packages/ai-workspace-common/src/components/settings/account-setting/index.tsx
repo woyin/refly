@@ -268,7 +268,7 @@ export const AccountSetting = () => {
           </Button>,
         ]}
         width={500}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" className="mt-4">
           <Form.Item label={t('settings.account.avatar')} name="avatar">

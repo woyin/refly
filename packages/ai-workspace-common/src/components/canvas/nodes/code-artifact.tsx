@@ -18,7 +18,6 @@ import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/ca
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { NodeHeader } from './shared/node-header';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { IconCodeArtifact } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { genSkillID } from '@refly/utils/id';
@@ -352,8 +351,7 @@ export const CodeArtifactNode = memo(
             title={data?.title}
             fixedTitle={t('canvas.nodeTypes.codeArtifact')}
             canEdit={!readonly}
-            Icon={IconCodeArtifact}
-            iconBgColor="#3E63DD"
+            type="codeArtifact"
             updateTitle={updateTitle}
           />
 
