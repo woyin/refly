@@ -114,13 +114,7 @@ const SessionHeader = memo(
                 <ScreenFull className="w-4 h-4" />
               )
             }
-          >
-            {/* {isPilotOpen ? (
-              <ScreenFull className="w-4 h-4" />
-            ) : (
-              <ScreenDefault className="w-4 h-4" />
-            )} */}
-          </Button>
+          />
         </div>
       </div>
     );

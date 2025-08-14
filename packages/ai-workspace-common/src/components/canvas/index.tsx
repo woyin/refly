@@ -486,7 +486,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     }
 
     if (isPilotOpen) {
-      // setIsPilotOpen(false);
       setActiveSessionId(null);
     }
 
@@ -937,11 +936,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       nodeOperationsEmitter.off('openNodeContextMenu', handleOpenContextMenu);
     };
   }, [onNodeContextMenu]);
-  const {
-    data: sessionData,
-    // isLoading,
-    // error,
-  } = useGetPilotSessionDetail(
+  const { data: sessionData } = useGetPilotSessionDetail(
     {
       query: { sessionId: activeSessionId },
     },
@@ -952,9 +947,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   );
   const session = useMemo(() => sessionData?.data, [sessionData]);
   const handleClick = useCallback(() => {
-    console.log('canvas', isPilotOpen);
     setIsPilotOpen(!isPilotOpen);
-  }, [setIsPilotOpen]);
+  }, [setIsPilotOpen, isPilotOpen]);
   const handleSessionClick = useCallback(
     (sessionId: string) => {
       setActiveSessionId(sessionId);

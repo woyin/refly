@@ -2,7 +2,6 @@ import { memo, useMemo } from 'react';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { motion } from 'motion/react';
-// import { useTranslation } from 'react-i18next';
 import { Cancelled, Finished, Pending, Running1 } from 'refly-icons';
 
 // Status icon mapping for pilot steps
@@ -51,11 +50,6 @@ export interface PilotStepItemProps {
 }
 
 export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
-  // const { t } = useTranslation();
-  // const { actionMeta } = step?.actionResult ?? {};
-  // const skillName = actionMeta?.name;
-  // const skillDisplayName = skillName ? t(`${skillName}.name`, { ns: 'skill' }) : '';
-
   const handleClick = useMemo(() => {
     if (!onClick) return undefined;
     return () => onClick(step);

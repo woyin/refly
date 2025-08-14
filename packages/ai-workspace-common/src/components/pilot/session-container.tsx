@@ -158,9 +158,8 @@ export const SessionContainer = memo(
     }, [sessionStatus]);
 
     const handleClick = useCallback(() => {
-      console.log('isPilotOpen', isPilotOpen);
       setIsPilotOpen(!isPilotOpen);
-    }, [setIsPilotOpen]);
+    }, [setIsPilotOpen, isPilotOpen]);
 
     const handleStepClick = useCallback(
       (step: PilotStep) => {
