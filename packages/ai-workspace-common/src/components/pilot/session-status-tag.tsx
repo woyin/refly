@@ -27,8 +27,8 @@ export const SessionStatusTag = memo(({ status, steps, className }: SessionStatu
         return null;
     }
   }, [status]);
-  const executingStepsLength = useMemo(() => {
-    return steps.filter((step) => step.status === 'executing').length;
+  const finishedStepsLength = useMemo(() => {
+    return steps.filter((step) => step.status === 'finish').length;
   }, [steps]);
   const text = useMemo(() => {
     switch (status) {
@@ -43,7 +43,7 @@ export const SessionStatusTag = memo(({ status, steps, className }: SessionStatu
           <div className="flex items-center gap-1">
             <span className="text-xs p-1">
               {t('pilot.status.executingSteps', {
-                current: executingStepsLength,
+                current: finishedStepsLength,
                 total: steps.length,
               })}
             </span>
@@ -60,7 +60,7 @@ export const SessionStatusTag = memo(({ status, steps, className }: SessionStatu
       case 'failed':
         return t('pilot.status.taskFailed');
     }
-  }, [status, executingStepsLength, steps.length, t]);
+  }, [status, finishedStepsLength, steps.length, t]);
   return (
     <div className={cn(className, 'flex items-center gap-0 px-3')}>
       {icon}
