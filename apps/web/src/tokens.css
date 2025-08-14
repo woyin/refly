@@ -62,7 +62,7 @@
   --refly-bg-glass-content: #000000cc;
   /* Gradient tokens */
   /* Use a subtle primary tint on top and blend into content background for dark theme */
-  --refly-gradient-modal-top: rgba(142, 225, 211, 0.16);
+  --refly-gradient-modal-top: rgb(36, 53, 50);
   --refly-gradient-modal-bottom: var(--refly-bg-content-z2);
   --refly-bg-canvas: #1e1d1d;
   --refly-modal-mask: rgba(0, 0, 0, 0.4);

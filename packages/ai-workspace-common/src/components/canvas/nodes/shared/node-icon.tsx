@@ -1,7 +1,11 @@
 import type { ComponentType, NamedExoticComponent } from 'react';
 import { memo } from 'react';
-import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
+import {
+  NODE_COLORS,
+  type ResourceFileType,
+} from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { CanvasNodeType, ResourceMeta, ResourceType, SelectionKey } from '@refly/openapi-schema';
+
 import {
   AiChat,
   Group,
@@ -19,6 +23,7 @@ import {
   Excel,
   CodeZip,
   GeneralFile,
+  Html,
 } from 'refly-icons';
 import { Avatar } from 'antd';
 import weblink from '../../../../assets/weblink.png';
@@ -50,13 +55,14 @@ const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
   documentAfterCursorSelection: Doc1,
 };
 
-const RESOURCE_ICONS: Record<string, IconComponent> = {
+const RESOURCE_ICONS: Record<ResourceFileType, IconComponent> = {
   'application/pdf': Pdf,
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': Doc1,
   'text/markdown': Markdown,
   'text/plain': Text,
   'application/epub+zip': CodeZip,
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': Excel,
+  'text/html': Html,
 };
 
 interface NodeIconProps {

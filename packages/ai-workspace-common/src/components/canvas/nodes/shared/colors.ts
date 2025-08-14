@@ -1,16 +1,17 @@
 import { CanvasNodeType, SelectionKey } from '@refly/openapi-schema';
 
-type ResourceType =
+export type ResourceFileType =
   | 'application/pdf'
   | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   | 'text/markdown'
   | 'text/plain'
-  | 'application/epub+zip';
+  | 'application/epub+zip'
+  | 'text/html';
 
 // Define background colors for different node types
 export const NODE_COLORS: Record<
-  CanvasNodeType | 'threadHistory' | SelectionKey | ResourceType | ResourceType,
+  CanvasNodeType | 'threadHistory' | SelectionKey | ResourceFileType,
   string
 > = {
   document: 'var(--refly-Colorful-Blue)',
@@ -48,6 +49,7 @@ export const NODE_COLORS: Record<
   'text/plain': 'var(--refly-Colorful-Blue)',
   'application/epub+zip': 'var(--refly-text-0)',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'var(--refly-Colorful-Blue)',
+  'text/html': 'var(--refly-Colorful-Blue)',
 };
 export const NODE_MINI_MAP_COLORS = {
   ...NODE_COLORS,

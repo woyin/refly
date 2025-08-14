@@ -15,7 +15,6 @@ import {
 import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
 import { nodeTypes } from './nodes';
-import { CanvasToolbar } from './canvas-toolbar';
 import { TopToolbar } from './top-toolbar';
 import { ContextMenu } from './context-menu';
 import { NodeContextMenu } from './node-context-menu';
@@ -378,11 +377,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     },
     [lastClickTime, setOperatingNodeId, reactFlowInstance, selectedEdgeId, cleanupTemporaryEdges],
   );
-
-  const handleToolSelect = (tool: string) => {
-    // Handle tool selection
-    console.log('Selected tool:', tool);
-  };
 
   // Add scroll position state and handler
   const [showLeftIndicator, setShowLeftIndicator] = useState(false);
@@ -960,9 +954,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         />
       </Modal>
       <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
-        {!readonly && (
-          <CanvasToolbar onToolSelect={handleToolSelect} nodeLength={nodes?.length || 0} />
-        )}
         {isPilotOpen ? (
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 shadow-sm rounded-lg w-[550px] h-[280px] border border-solid border-gray-100 dark:border-gray-800">
             <Pilot canvasId={canvasId} />
