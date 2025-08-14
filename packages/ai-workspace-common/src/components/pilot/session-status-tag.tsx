@@ -16,7 +16,7 @@ export const SessionStatusTag = memo(({ status, steps, className }: SessionStatu
   const icon = useMemo(() => {
     switch (status) {
       case 'executing':
-        return <Running1 className="w-4 h-4" />;
+        return <Running1 className="w-4 h-4 animate-spin" />;
       case 'waiting':
         return <ClockCircleOutlined className="w-4 h-4" />;
       case 'finish':

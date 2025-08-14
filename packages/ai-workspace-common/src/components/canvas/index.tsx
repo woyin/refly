@@ -486,7 +486,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     }
 
     if (isPilotOpen) {
-      setIsPilotOpen(false);
+      // setIsPilotOpen(false);
       setActiveSessionId(null);
     }
 
