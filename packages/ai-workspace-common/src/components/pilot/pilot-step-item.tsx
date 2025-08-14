@@ -1,15 +1,8 @@
 import { memo, useMemo } from 'react';
-import { Divider } from 'antd';
-import { useTranslation } from 'react-i18next';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
-import {
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  QuestionCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
-import { FaCheck } from 'react-icons/fa6';
-import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import { motion } from 'motion/react';
+import { Cancelled, Finished, Pending, Running1 } from 'refly-icons';
 
 // Status icon mapping for pilot steps
 export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) => {
@@ -19,25 +12,25 @@ export const StepStatusIcon = memo(({ status }: { status?: PilotStepStatus }) =>
     case 'init':
       return (
         <div className="w-5 h-5 flex items-center justify-center">
-          <ClockCircleOutlined className="text-gray-400 dark:text-gray-500" />
+          <Pending className="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </div>
       );
     case 'executing':
       return (
         <div className="w-6 h-6 flex items-center justify-center">
-          <SyncOutlined spin className="text-yellow-500" />
+          <Running1 className="w-4 h-4 animate-spin" />
         </div>
       );
     case 'finish':
       return (
         <div className="w-5 h-5 flex items-center justify-center">
-          <FaCheck className="w-4 h-4 text-green-500" />
+          <Finished className="w-4 h-4" color="var(--refly-primary-default)" />
         </div>
       );
     case 'failed':
       return (
         <div className="w-5 h-5 flex items-center justify-center">
-          <CloseCircleOutlined className="text-red-500" />
+          <Cancelled className="w-4 h-4" color="var(--refly-error-default)" />
         </div>
       );
     default:
@@ -57,39 +50,32 @@ export interface PilotStepItemProps {
 }
 
 export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
-  const { t } = useTranslation();
-  const { actionMeta } = step?.actionResult ?? {};
-  const skillName = actionMeta?.name;
-  const skillDisplayName = skillName ? t(`${skillName}.name`, { ns: 'skill' }) : '';
-
   const handleClick = useMemo(() => {
     if (!onClick) return undefined;
     return () => onClick(step);
   }, [onClick, step]);
 
   return (
-    <div
-      className="flex items-center p-1 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+    <motion.div
+      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700 dark:bg-refly-bg-content-z2"
       onClick={handleClick}
+      whileHover={{
+        scale: 1.02,
+      }}
+      whileTap={{
+        scale: 0.98,
+        transition: { duration: 0.1 },
+      }}
+      layout
     >
       <div className="mr-2 flex-shrink-0">
         <StepStatusIcon status={step.status} />
       </div>
 
-      <div className="flex items-center px-2 py-1 flex-grow min-w-0">
+      <div className="flex items-center py-1 flex-grow min-w-0">
         <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
-
-        {step.actionResult && (
-          <>
-            <Divider type="vertical" className="h-3" />
-            <span className="flex items-center gap-1 text-xs opacity-70">
-              {getSkillIcon(skillName ?? '')}
-              {skillDisplayName}
-            </span>
-          </>
-        )}
       </div>
-    </div>
+    </motion.div>
   );
 });
 

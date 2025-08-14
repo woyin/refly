@@ -1133,6 +1133,11 @@ const translations = {
       error: 'Failed to export image',
       noNodes: 'Canvas is empty, cannot export image',
     },
+    launchpad: {
+      placeholder: 'Describe needs...',
+      chatInputPlaceholder:
+        'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
+    },
     contextMenu: {
       createGroup: 'Create Group',
       enableClickPreview: 'Enable Click Preview',
@@ -2944,6 +2949,11 @@ const translations = {
       waiting: 'Waiting',
       finish: 'Finish',
       failed: 'Failed',
+      planning: 'Planning tasks...',
+      executingSteps: 'Task execution {{current}} / {{total}} ...',
+      completedTasks: 'Completed {{count}} tasks ...',
+      taskFailed: 'Task failed',
+      understandingIntent: 'Understanding intent and analyzing requirements...',
     },
   },
   deck: {
