@@ -1886,6 +1886,10 @@ export const TokenUsageItemSchema = {
       type: 'string',
       description: 'Model provider',
     },
+    modelLabel: {
+      type: 'string',
+      description: 'Model label',
+    },
     inputTokens: {
       type: 'number',
       description: 'Input tokens',
@@ -1893,6 +1897,10 @@ export const TokenUsageItemSchema = {
     outputTokens: {
       type: 'number',
       description: 'Output tokens',
+    },
+    providerItemId: {
+      type: 'string',
+      description: 'Provider item ID',
     },
     tier: {
       type: 'string',

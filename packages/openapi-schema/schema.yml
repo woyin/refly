@@ -4509,12 +4509,18 @@ components:
         modelProvider:
           type: string
           description: Model provider
+        modelLabel:
+          type: string
+          description: Model label
         inputTokens:
           type: number
           description: Input tokens
         outputTokens:
           type: number
           description: Output tokens
+        providerItemId:
+          type: string
+          description: Provider item ID
         tier:
           type: string
           description: Model tier

@@ -1423,6 +1423,10 @@ export type TokenUsageItem = {
    */
   modelProvider: string;
   /**
+   * Model label
+   */
+  modelLabel?: string;
+  /**
    * Input tokens
    */
   inputTokens: number;
@@ -1430,6 +1434,10 @@ export type TokenUsageItem = {
    * Output tokens
    */
   outputTokens: number;
+  /**
+   * Provider item ID
+   */
+  providerItemId?: string;
   /**
    * Model tier
    * @deprecated

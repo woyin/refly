@@ -99,9 +99,24 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   });
 
   const tokenUsage = step?.tokenUsage?.[0];
-  const providerItem = providerItemList?.data?.find(
-    (item) => item.config?.modelId === tokenUsage?.modelName,
-  );
+
+  const providerItem = useMemo(() => {
+    if (!tokenUsage || !providerItemList?.data) return null;
+
+    // If providerItemId is provided, use it to find the provider item
+    if (tokenUsage?.providerItemId) {
+      return providerItemList?.data?.find((item) => item.itemId === tokenUsage?.providerItemId);
+    }
+
+    // Fallback to modelName if providerItemId is not provided
+    return (
+      providerItemList?.data?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null
+    );
+  }, [providerItemList, tokenUsage]);
+
+  if (isPending) {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-between border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border p-3">

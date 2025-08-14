@@ -822,7 +822,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           }
           case 'on_chat_model_end':
             if (runMeta && chunk) {
-              this.logger.log(`is_model_name: ${String(runMeta.ls_model_name)}`);
+              this.logger.log(`ls_model_name: ${String(runMeta.ls_model_name)}`);
               const providerItem = await this.providerService.findLLMProviderItemByModelID(
                 user,
                 String(runMeta.ls_model_name),
@@ -834,6 +834,8 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 tier: providerItem?.tier,
                 modelProvider: providerItem?.provider?.name,
                 modelName: String(runMeta.ls_model_name),
+                modelLabel: providerItem?.name,
+                providerItemId: providerItem?.itemId,
                 inputTokens: chunk.usage_metadata?.input_tokens ?? 0,
                 outputTokens: chunk.usage_metadata?.output_tokens ?? 0,
               };
