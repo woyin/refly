@@ -4,6 +4,7 @@ import { useReactFlow } from '@xyflow/react';
 import { PilotStep } from '@refly/openapi-schema';
 import { CanvasNode } from '@refly/canvas-common';
 import { Empty } from 'antd';
+import { motion, AnimatePresence } from 'motion/react';
 import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
 import {
   useNodePosition,
@@ -224,41 +225,108 @@ export const SessionContainer = memo(
         </div>
         {/* )} */}
 
-        {!session ? (
-          <NoSession canvasId={canvasId} />
-        ) : (
-          <div className="px-2 pb-2 flex-1 h-full w-full">
-            {sortedSteps.length > 0 ? (
-              <>
-                <div className="pl-1">
-                  {sortedSteps.map((step) => (
-                    <PilotStepItem key={step.stepId} step={step} onClick={handleStepClick} />
-                  ))}
-                </div>
-              </>
-            ) : session?.status === 'executing' ? (
-              <div className="flex flex-col h-full">
-                <div className="px-4">{query}</div>
-                <div className="flex flex-col h-full px-4 py-3">
-                  <div className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex items-center gap-2 border border-gray-100 bg-[#F4F4F4]">
-                    <div className="ml-2 w-5 h-5 flex items-center justify-center">
-                      <Thinking color="#76787B" className="w-4 h-4" />
+        <AnimatePresence mode="wait">
+          {!session ? (
+            <motion.div
+              key="no-session"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <NoSession canvasId={canvasId} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="session-content"
+              className="px-2 pb-2 flex-1 h-full w-full"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <AnimatePresence mode="wait">
+                {sortedSteps.length > 0 ? (
+                  <motion.div
+                    key="steps-list"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  >
+                    <div className="pl-1">
+                      {sortedSteps.map((step, index) => (
+                        <motion.div
+                          key={step.stepId}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            duration: 0.2,
+                            delay: index * 0.05,
+                            ease: 'easeOut',
+                          }}
+                        >
+                          <PilotStepItem step={step} onClick={handleStepClick} />
+                        </motion.div>
+                      ))}
                     </div>
-                    <div className="text-sm text-center text-gray-500 font-normal">
-                      正在理解意图分析需求...
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <Empty
-                  description={t('pilot.noTasks', { defaultValue: 'No tasks available yet' })}
-                />
-              </div>
-            )}
-          </div>
-        )}
+                  </motion.div>
+                ) : session?.status === 'executing' ? (
+                  <motion.div
+                    key="executing-state"
+                    className="flex flex-col h-full"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  >
+                    <motion.div
+                      className="px-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                    >
+                      {query}
+                    </motion.div>
+                    <motion.div
+                      className="flex flex-col h-full px-4 py-3"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.2 }}
+                    >
+                      <motion.div
+                        className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex items-center gap-2 border border-gray-100 bg-[#F4F4F4]"
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.2, delay: 0.3 }}
+                      >
+                        <div className="ml-2 w-5 h-5 flex items-center justify-center">
+                          <Thinking color="#76787B" className="w-4 h-4" />
+                        </div>
+                        <div className="text-sm text-center text-gray-500 font-normal">
+                          正在理解意图分析需求...
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="empty-state"
+                    className="flex items-center justify-center h-full"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  >
+                    <Empty
+                      description={t('pilot.noTasks', { defaultValue: 'No tasks available yet' })}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   },

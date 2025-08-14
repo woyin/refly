@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { PilotStep, PilotStepStatus } from '@refly/openapi-schema';
 import { QuestionCircleOutlined } from '@ant-design/icons';
+import { motion } from 'motion/react';
 // import { useTranslation } from 'react-i18next';
 import { Cancelled, Finished, Pending, Running } from 'refly-icons';
 
@@ -61,9 +62,19 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
   }, [onClick, step]);
 
   return (
-    <div
-      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200  dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700"
+    <motion.div
+      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700"
       onClick={handleClick}
+      whileHover={{
+        scale: 1.02,
+        backgroundColor: '#f0f0f0',
+        transition: { duration: 0.2 },
+      }}
+      whileTap={{
+        scale: 0.98,
+        transition: { duration: 0.1 },
+      }}
+      layout
     >
       <div className="mr-2 flex-shrink-0">
         <StepStatusIcon status={step.status} />
@@ -72,7 +83,7 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
       <div className="flex items-center py-1 flex-grow min-w-0">
         <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
       </div>
-    </div>
+    </motion.div>
   );
 });
 
