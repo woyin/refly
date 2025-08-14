@@ -155,7 +155,7 @@ const AddSourcesMemo = React.memo(
         title={t('project.addSources.title')}
         width={600}
         className="add-sources-modal"
-        destroyOnClose={true}
+        destroyOnHidden
         footer={[
           <Button key="cancel" onClick={handleCancel}>
             {t('common.cancel')}

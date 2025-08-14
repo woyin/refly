@@ -1,28 +1,17 @@
-import { useEffect, useState, useMemo, useCallback, memo } from 'react';
+import { useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, message, Dropdown, Tooltip } from 'antd';
-import type { MenuProps } from 'antd';
+import { Button, message, Tooltip } from 'antd';
+import { Data } from 'refly-icons';
+import { ModelIcon } from '@lobehub/icons';
 import { ActionResult, ActionStep, Source } from '@refly/openapi-schema';
-import { FilePlus, MoreHorizontal, Target, Trash2 } from 'lucide-react';
-import {
-  CheckCircleOutlined,
-  CopyOutlined,
-  ImportOutlined,
-  ShareAltOutlined,
-} from '@ant-design/icons';
+import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow } from '@refly/stores';
+import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
-import { HiOutlineCircleStack, HiOutlineSquare3Stack3D } from 'react-icons/hi2';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
-import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
-import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
-import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { useCanvasStore } from '@refly/stores';
+import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 
 interface ActionContainerProps {
   step: ActionStep;
@@ -32,7 +21,7 @@ interface ActionContainerProps {
 
 const buttonClassName = 'text-xs flex justify-center items-center h-6 px-1 rounded-lg';
 
-const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps) => {
+const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
   const { readonly } = useCanvasContext();
@@ -41,16 +30,8 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
     activeDocumentId: state.activeDocumentId,
   }));
 
-  const { addToContext } = useAddToContext();
-  const { setNodeCenter } = useNodePosition();
-  const { deleteNode } = useDeleteNode();
-  const { removeLinearThreadMessageByNodeId } = useCanvasStore((state) => ({
-    removeLinearThreadMessageByNodeId: state.removeLinearThreadMessageByNodeId,
-  }));
-
   const { title } = result ?? {};
   const isPending = result?.status === 'executing';
-  const [isSharing, setIsSharing] = useState(false);
 
   // Check if we're in share mode by checking if resultId exists
   // This indicates a "proper" result vs a shared result that might be loaded from share data
@@ -76,24 +57,9 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
         key: 'replaceSelection',
         enabled: step.content && activeDocumentId && hasEditorSelection,
       },
-      {
-        icon: <FilePlus style={{ fontSize: 14, width: 14, height: 14 }} />,
-        key: 'createDocument',
-        enabled: step.content,
-      },
     ],
     [step.content, activeDocumentId, hasEditorSelection],
   );
-
-  const [tokenUsage, setTokenUsage] = useState(0);
-
-  useEffect(() => {
-    let total = 0;
-    for (const item of step?.tokenUsage || []) {
-      total += (item?.inputTokens || 0) + (item?.outputTokens || 0);
-    }
-    setTokenUsage(total);
-  }, [step?.tokenUsage]);
 
   const handleEditorOperation = useCallback(
     async (type: EditorOperation | 'createDocument', content: string) => {
@@ -120,186 +86,65 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
     [sources, t],
   );
 
-  const tokenUsageDropdownList: MenuProps['items'] = useMemo(
-    () =>
-      step?.tokenUsage?.map((item: any) => ({
-        key: item?.modelName,
-        label: (
-          <div className="flex items-center">
-            <span>
-              {item?.modelName}:{' '}
-              {t('copilot.tokenUsage', {
-                inputCount: item?.inputTokens,
-                outputCount: item?.outputTokens,
-              })}
-            </span>
-          </div>
-        ),
-      })),
-    [step?.tokenUsage, t],
-  );
+  const { userProfile } = useUserStoreShallow((state) => ({
+    userProfile: state.userProfile,
+  }));
 
-  const handleShare = useCallback(async () => {
-    setIsSharing(true);
-    const loadingMessage = message.loading(t('codeArtifact.sharing'), 0);
+  const { data: providerItemList } = useListProviderItems({
+    query: {
+      category: 'llm',
+      enabled: true,
+      isGlobal: userProfile?.preferences?.providerMode === 'global',
+    },
+  });
 
-    try {
-      // Create share using the API
-      const { data, error } = await getClient().createShare({
-        body: {
-          entityId: result.resultId,
-          entityType: 'skillResponse',
-          shareData: JSON.stringify(result),
-        },
-      });
+  const tokenUsage = step?.tokenUsage?.[0];
 
-      if (!data?.success || error) {
-        throw new Error(error ? String(error) : 'Failed to share skill response');
-      }
+  const providerItem = useMemo(() => {
+    if (!tokenUsage || !providerItemList?.data) return null;
 
-      // Generate share link
-      const shareLink = getShareLink('skillResponse', data.data?.shareId ?? '');
-
-      // Copy the sharing link to clipboard
-      copyToClipboard(shareLink);
-
-      // Clear loading message and show success
-      loadingMessage();
-      message.success(
-        t(
-          'canvas.skillResponse.shareSuccess',
-          'Skill response shared successfully! Link copied to clipboard.',
-        ),
-      );
-    } catch (err) {
-      console.error('Failed to share skill response:', err);
-      loadingMessage();
-      message.error(t('canvas.skillResponse.shareError', 'Failed to share skill response'));
-    } finally {
-      setIsSharing(false);
+    // If providerItemId is provided, use it to find the provider item
+    if (tokenUsage?.providerItemId) {
+      return providerItemList?.data?.find((item) => item.itemId === tokenUsage?.providerItemId);
     }
-  }, [result, t]);
 
-  const handleAddToContext = useCallback(() => {
-    if (!result.resultId) return;
+    // Fallback to modelName if providerItemId is not provided
+    return (
+      providerItemList?.data?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null
+    );
+  }, [providerItemList, tokenUsage]);
 
-    addToContext({
-      type: 'skillResponse',
-      title: result.title ?? '',
-      entityId: result.resultId,
-      // Safely pass metadata as any to avoid type errors
-      metadata: (result as any)?.metadata,
-    });
-  }, [result, addToContext]);
-
-  const handleLocateNode = useCallback(() => {
-    if (nodeId) {
-      setNodeCenter(nodeId, true);
-    }
-  }, [nodeId, setNodeCenter]);
-
-  const handleDeleteNode = useCallback(() => {
-    if (nodeId) {
-      // Remove the Refly Pilot message first
-      removeLinearThreadMessageByNodeId(nodeId);
-
-      // Then delete the node
-      deleteNode({
-        id: nodeId,
-        type: 'skillResponse',
-        position: { x: 0, y: 0 },
-        data: {
-          title: result.title ?? '',
-          entityId: result.resultId,
-        },
-      });
-    }
-  }, [nodeId, deleteNode, result, removeLinearThreadMessageByNodeId]);
-
-  // More menu items
-  const moreMenuItems: MenuProps['items'] = useMemo(() => {
-    if (!nodeId || isShareMode || readonly) return [];
-
-    return [
-      {
-        key: 'locateNode',
-        label: (
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <Target className="w-4 h-4 flex-shrink-0" />
-            {t('canvas.nodeActions.centerNode')}
-          </div>
-        ),
-        onClick: handleLocateNode,
-      },
-      {
-        key: 'addToContext',
-        label: (
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <HiOutlineSquare3Stack3D className="w-4 h-4 flex-shrink-0" />
-            {t('canvas.nodeActions.addToContext')}
-          </div>
-        ),
-        onClick: handleAddToContext,
-      },
-      {
-        type: 'divider',
-      },
-      {
-        key: 'delete',
-        label: (
-          <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
-            <Trash2 className="w-4 h-4 flex-shrink-0" />
-            {t('canvas.nodeActions.delete')}
-          </div>
-        ),
-        onClick: handleDeleteNode,
-        className: 'hover:bg-red-50',
-      },
-    ];
-  }, [nodeId, isShareMode, readonly, t, handleLocateNode, handleAddToContext, handleDeleteNode]);
+  if (isPending) {
+    return null;
+  }
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="-ml-1">
-        {step?.tokenUsage && step.tokenUsage.length > 0 && !isShareMode && (
-          <Dropdown menu={{ items: tokenUsageDropdownList }}>
-            <Button
-              type="text"
-              size="small"
-              icon={<HiOutlineCircleStack style={{ fontSize: 14 }} />}
-              className="text-gray-500 text-xs"
-            >
-              {tokenUsage} tokens
-            </Button>
-          </Dropdown>
-        )}
-      </div>
+    <div className="flex items-center justify-between border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border p-3">
+      {tokenUsage && (
+        <div className="flex flex-row text-gray-500 text-sm gap-3">
+          <div className="flex items-center gap-1">
+            <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
+            {tokenUsage?.modelLabel || providerItem?.name}
+          </div>
+          <div className="flex items-center gap-1">
+            <Data size={16} />
+            {tokenUsage?.inputTokens + tokenUsage?.outputTokens}
+          </div>
+        </div>
+      )}
       {!isPending && step?.content && (
         <div className="flex flex-row justify-between items-center text-sm">
           <div className="-ml-1 text-sm flex flex-row items-center gap-1">
             {!readonly && !isShareMode && step.content && (
-              <>
-                <Tooltip title={t('copilot.message.copy')}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CopyOutlined style={{ fontSize: 14 }} />}
-                    className={buttonClassName}
-                    onClick={() => handleCopyToClipboard(step.content ?? '')}
-                  />
-                </Tooltip>
-
-                <Tooltip title={t('common.share')}>
-                  <Button
-                    type="text"
-                    size="small"
-                    loading={isSharing}
-                    icon={<ShareAltOutlined style={{ fontSize: 14 }} />}
-                    className={buttonClassName}
-                    onClick={handleShare}
-                  />
-                </Tooltip>
-              </>
+              <Tooltip title={t('copilot.message.copy')}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CopyOutlined style={{ fontSize: 14 }} />}
+                  className={buttonClassName}
+                  onClick={() => handleCopyToClipboard(step.content ?? '')}
+                />
+              </Tooltip>
             )}
             {!readonly &&
               !isShareMode &&
@@ -323,21 +168,6 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
                   />
                 </Tooltip>
               ))}
-
-            {/* More actions dropdown button */}
-            {nodeId && moreMenuItems.length > 0 && (
-              <Dropdown
-                menu={{ items: moreMenuItems }}
-                trigger={['click']}
-                placement="bottomRight"
-                getPopupContainer={(triggerNode) => triggerNode.parentNode as HTMLElement}
-                overlayClassName="min-w-[160px] w-max"
-              >
-                <Button type="text" size="small" className={buttonClassName}>
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </Dropdown>
-            )}
           </div>
         </div>
       )}

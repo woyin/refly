@@ -3,6 +3,8 @@
 
 export const reflyColors = {
   'refly-Card-Border': 'var(--refly-Card-Border)',
+  'refly-semi-color-border': 'var(--refly-semi-color-border)',
+  'refly-semi-color-bg-0': 'var(--refly-semi-color-bg-0)',
   'refly-bg-body-z0': 'var(--refly-bg-body-z0)',
   'refly-bg-content-z2': 'var(--refly-bg-content-z2)',
   'refly-bg-control-z0': 'var(--refly-bg-control-z0)',
@@ -30,6 +32,11 @@ export const reflyColors = {
   'refly-primary-default-last': 'var(--refly-primary-default-last)',
   'refly-primary-disabled': 'var(--refly-primary-disabled)',
   'refly-primary-hover': 'var(--refly-primary-hover)',
+  'refly-Colorful-red-light': 'var(--refly-Colorful-red-light)',
+  'refly-Colorful-red': 'var(--refly-Colorful-red)',
+  'refly-Colorful-Blue': 'var(--refly-Colorful-Blue)',
+  'refly-Colorful-orange': 'var(--refly-Colorful-orange)',
+  'refly-Colorful-violet': 'var(--refly-Colorful-violet)',
   'refly-secondary-default': 'var(--refly-secondary-default)',
   'refly-secondary-hover': 'var(--refly-secondary-hover)',
   'refly-tertiary-default': 'var(--refly-tertiary-default)',

@@ -690,8 +690,6 @@ export class SkillInvokerService {
         `🌐 Starting AI model network request (model timeout: ${aiModelNetworkTimeout}ms) for action: ${resultId}`,
       );
 
-      let eventCount = 0;
-
       // Create dedicated timeout for AI model network requests
       const createNetworkTimeout = () => {
         if (abortController.signal.aborted) {
@@ -727,22 +725,10 @@ export class SkillInvokerService {
       })) {
         // Reset network timeout on receiving data from AI model
         resetNetworkTimeout();
-        // Track network activity for monitoring
-        eventCount++;
-
-        if (eventCount === 1) {
-          this.logger.log(`🌐 First event received for action: ${resultId}`);
-        } else if (eventCount % 10 === 0) {
-          this.logger.log(
-            `🌐 Network activity: ${eventCount} events processed for action: ${resultId}`,
-          );
-        }
 
         if (abortController.signal.aborted) {
           const abortReason = abortController.signal.reason?.toString() ?? 'Request aborted';
-          this.logger.warn(
-            `🚨 Request aborted after ${eventCount} events for action: ${resultId}, reason: ${abortReason}`,
-          );
+          this.logger.warn(`🚨 Request aborted for action: ${resultId}, reason: ${abortReason}`);
           if (runMeta) {
             result.errors.push(abortReason);
           }
@@ -855,7 +841,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           }
           case 'on_chat_model_end':
             if (runMeta && chunk) {
-              this.logger.log(`is_model_name: ${String(runMeta.ls_model_name)}`);
+              this.logger.log(`ls_model_name: ${String(runMeta.ls_model_name)}`);
               const providerItem = await this.providerService.findLLMProviderItemByModelID(
                 user,
                 String(runMeta.ls_model_name),
@@ -867,6 +853,8 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
                 tier: providerItem?.tier,
                 modelProvider: providerItem?.provider?.name,
                 modelName: String(runMeta.ls_model_name),
+                modelLabel: providerItem?.name,
+                providerItemId: providerItem?.itemId,
                 inputTokens: chunk.usage_metadata?.input_tokens ?? 0,
                 outputTokens: chunk.usage_metadata?.output_tokens ?? 0,
               };

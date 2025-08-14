@@ -3,25 +3,11 @@ import {
   CanvasNodeData,
   DocumentNodeMeta,
   ResourceNodeMeta,
-  SkillNodeMeta,
-  ToolNodeMeta,
   ResponseNodeMeta,
   ImageNodeMeta,
   CodeArtifactNodeMeta,
   WebsiteNodeMeta,
 } from '@refly/canvas-common';
-
-// Type mapping for node metadata
-export type NodeMetadataMap = {
-  document: DocumentNodeMeta;
-  resource: ResourceNodeMeta;
-  skill: SkillNodeMeta;
-  tool: ToolNodeMeta;
-  response: ResponseNodeMeta;
-  image: ImageNodeMeta;
-  codeArtifact: CodeArtifactNodeMeta;
-  website: WebsiteNodeMeta;
-} & Record<string, Record<string, unknown>>;
 
 // Add new common props interface
 export interface CommonNodeProps {

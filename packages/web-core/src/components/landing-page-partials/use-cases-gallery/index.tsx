@@ -70,7 +70,7 @@ const UseCasesGallery = memo(
         // Take one item from each category until we reach maxItems
         for (const [_, cases] of categoriesMap) {
           if (featured.length < maxItems && cases.length > 0) {
-            featured.push(cases[0]);
+            featured.push(cases[0]!);
           }
         }
 
@@ -161,7 +161,11 @@ const UseCasesGallery = memo(
             >
               <Card
                 className="group overflow-hidden transition-all duration-300 hover:shadow-refly-m cursor-pointer h-full"
-                bodyStyle={{ padding: 0 }}
+                styles={{
+                  body: {
+                    padding: 0,
+                  },
+                }}
                 cover={
                   <div className="relative h-48 w-full overflow-hidden">
                     <img

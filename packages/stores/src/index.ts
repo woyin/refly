@@ -57,6 +57,11 @@ export { useSiderStore, useSiderStoreShallow } from './stores/sider';
 export { useSkillStore, useSkillStoreShallow } from './stores/skill';
 export { useSubscriptionStore, useSubscriptionStoreShallow } from './stores/subscription';
 export {
+  useCanvasResourcesPanelStore,
+  useCanvasResourcesPanelStoreShallow,
+  type CanvasResourcesParentType,
+} from './stores/canvas-resources-panel';
+export {
   useMultilingualSearchStore,
   useMultilingualSearchStoreShallow,
 } from './stores/multilingual-search';

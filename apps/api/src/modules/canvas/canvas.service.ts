@@ -194,6 +194,7 @@ export class CanvasService {
                 const doc = await this.knowledgeService.duplicateDocument(user, {
                   docId: entityId,
                   title: node.data?.title,
+                  canvasId: newCanvasId,
                 });
                 if (doc) {
                   node.data.entityId = doc.docId;
@@ -205,6 +206,7 @@ export class CanvasService {
                 const resource = await this.knowledgeService.duplicateResource(user, {
                   resourceId: entityId,
                   title: node.data?.title,
+                  canvasId: newCanvasId,
                 });
                 if (resource) {
                   node.data.entityId = resource.resourceId;
@@ -213,10 +215,10 @@ export class CanvasService {
                 break;
               }
               case 'codeArtifact': {
-                const codeArtifact = await this.codeArtifactService.duplicateCodeArtifact(
-                  user,
-                  entityId,
-                );
+                const codeArtifact = await this.codeArtifactService.duplicateCodeArtifact(user, {
+                  artifactId: entityId,
+                  canvasId: newCanvasId,
+                });
                 if (codeArtifact) {
                   node.data.entityId = codeArtifact.artifactId;
                   replaceEntityMap[entityId] = codeArtifact.artifactId;

@@ -66,6 +66,7 @@ export const resourcePO2DTO = (resource: ResourceDetail): Resource => {
       'title',
       'content',
       'contentPreview',
+      'canvasId',
       'rawFileKey',
       'downloadURL',
     ]),
@@ -85,7 +86,7 @@ export const documentPO2DTO = (doc: DocumentDetail): Document => {
     return null;
   }
   const res: Document = {
-    ...pick(doc, ['docId', 'title', 'content', 'contentPreview', 'readOnly']),
+    ...pick(doc, ['docId', 'title', 'content', 'contentPreview', 'canvasId', 'readOnly']),
     createdAt: doc.createdAt.toJSON(),
     updatedAt: doc.updatedAt.toJSON(),
   };

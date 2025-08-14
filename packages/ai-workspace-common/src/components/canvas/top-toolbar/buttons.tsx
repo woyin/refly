@@ -6,7 +6,7 @@ import {
   IconAskAI,
   IconSlideshow,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Download, Search, Touchpad, Mouse, ArrowDown } from 'refly-icons';
+import { Download, Search, Touchpad, Mouse, ArrowDown, SideLeft } from 'refly-icons';
 import { NodeSelector } from '../common/node-selector';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { IContextItem } from '@refly/common-types';
@@ -14,7 +14,7 @@ import { useReactFlow } from '@xyflow/react';
 import { HoverCard } from '@refly-packages/ai-workspace-common/components/hover-card';
 import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
 import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
-import { useCanvasStoreShallow } from '@refly/stores';
+import { useCanvasStoreShallow, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { Help } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/help';
 import { logEvent } from '@refly/telemetry-web';
@@ -40,13 +40,15 @@ interface ModeSelectorProps {
 }
 
 // Update component definition
-export const TooltipButton = memo(({ tooltip, children, ...buttonProps }: TooltipButtonProps) => (
-  <Tooltip title={tooltip} arrow={false}>
-    <Button type="text" {...buttonProps}>
-      {children}
-    </Button>
-  </Tooltip>
-));
+export const TooltipButton = memo(
+  ({ tooltip, children, onClick, ...buttonProps }: TooltipButtonProps) => (
+    <Tooltip title={tooltip} arrow={false}>
+      <Button type="text" {...buttonProps} onClick={onClick}>
+        {children}
+      </Button>
+    </Tooltip>
+  ),
+);
 
 const ModeSelector = memo(({ mode, open, setOpen, items, onModeChange, t }: ModeSelectorProps) => (
   <Dropdown
@@ -91,6 +93,16 @@ export const ToolbarButtons = memo(
     const { getNodes } = useReactFlow();
     const { hoverCardEnabled } = useHoverCard();
     const { readonly, canvasId } = useCanvasContext();
+    const { sidePanelVisible, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow(
+      (state) => ({
+        sidePanelVisible: state.sidePanelVisible,
+        setSidePanelVisible: state.setSidePanelVisible,
+      }),
+    );
+
+    const handleResourcesPanelOpen = useCallback(() => {
+      setSidePanelVisible(true);
+    }, [setSidePanelVisible]);
 
     const { showSlideshow, showLinearThread, setShowSlideshow, setShowLinearThread } =
       useCanvasStoreShallow((state) => ({
@@ -209,7 +221,7 @@ export const ToolbarButtons = memo(
           <Popover
             open={searchOpen}
             onOpenChange={setSearchOpen}
-            overlayInnerStyle={{ padding: 0, boxShadow: 'none' }}
+            styles={{ body: { padding: 0, boxShadow: 'none' } }}
             trigger="click"
             placement="bottomRight"
             content={
@@ -219,7 +231,9 @@ export const ToolbarButtons = memo(
                 onClickOutside={() => setSearchOpen(false)}
               />
             }
-            overlayClassName="node-search-popover"
+            classNames={{
+              root: 'node-search-popover',
+            }}
           >
             <Tooltip title={t('canvas.toolbar.searchNode')}>
               <Button type="text" icon={<Search size={18} />} />
@@ -240,6 +254,20 @@ export const ToolbarButtons = memo(
           />
 
           <Help />
+
+          {!sidePanelVisible && (
+            <>
+              <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
+
+              <Tooltip title={t('canvas.toolbar.openResourcesPanel')} arrow={false}>
+                <Button
+                  type="text"
+                  icon={<SideLeft size={18} />}
+                  onClick={handleResourcesPanelOpen}
+                />
+              </Tooltip>
+            </>
+          )}
         </div>
       </>
     );

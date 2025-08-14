@@ -1087,7 +1087,14 @@ export class SubscriptionService implements OnModuleInit {
       this.prisma.tokenUsage.create({
         data: {
           ...pick(data, ['uid', 'resultId']),
-          ...pick(usage, ['modelProvider', 'modelName', 'inputTokens', 'outputTokens']),
+          ...pick(usage, [
+            'modelProvider',
+            'modelName',
+            'modelLabel',
+            'providerItemId',
+            'inputTokens',
+            'outputTokens',
+          ]),
           tier: usage.tier ?? '',
         },
       }),

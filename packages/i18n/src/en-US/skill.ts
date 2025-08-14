@@ -7,12 +7,15 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       analyzeContext: {
         name: 'Context Analysis',
+        description: 'Processing context data...',
       },
       answerQuestion: {
         name: 'Question Answering',
+        description: 'Generating answer...',
       },
     },
   },
@@ -24,12 +27,15 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       analyzeContext: {
         name: 'Context Analysis',
+        description: 'Processing context data...',
       },
       answerQuestion: {
         name: 'Question Answering',
+        description: 'Generating answer...',
       },
     },
   },
@@ -41,12 +47,15 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       analyzeContext: {
         name: 'Context Analysis',
+        description: 'Processing context data...',
       },
       answerQuestion: {
         name: 'Question Answering',
+        description: 'Generating answer...',
       },
     },
   },
@@ -58,15 +67,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       analyzeContext: {
         name: 'Context Analysis',
+        description: 'Processing context data...',
       },
       generateTitle: {
         name: 'Generate Title',
+        description: 'Determining code artifact title...',
       },
       generateCodeArtifact: {
         name: 'Generate Code Artifact',
+        description: 'Generating code artifact...',
       },
     },
   },
@@ -78,15 +91,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       analyzeContext: {
         name: 'Context Analysis',
+        description: 'Processing context data...',
       },
       generateTitle: {
         name: 'Generate Title',
+        description: 'Determining document title...',
       },
       generateDocument: {
         name: 'Generate Document',
+        description: 'Generating document...',
       },
     },
   },
@@ -108,15 +125,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       analyzeContext: {
         name: 'Context Analysis',
+        description: 'Processing context data...',
       },
       webSearch: {
         name: 'Web Search',
+        description: 'Searching the web...',
       },
       answerQuestion: {
         name: 'Answer Generation',
+        description: 'Generating answer...',
       },
     },
   },
@@ -128,15 +149,19 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       analyzeContext: {
         name: 'Context Analysis',
+        description: 'Processing context data...',
       },
       librarySearch: {
         name: 'Library Search',
+        description: 'Searching the library...',
       },
       answerQuestion: {
         name: 'Answer Generation',
+        description: 'Generating answer...',
       },
     },
   },
@@ -148,9 +173,11 @@ const translations = {
     steps: {
       analyzeQuery: {
         name: 'Query Analysis',
+        description: 'Analyzing requirements...',
       },
       recommendQuestions: {
         name: 'Generate Recommended Questions',
+        description: 'Generating recommended questions...',
       },
     },
   },
@@ -161,6 +188,7 @@ const translations = {
     steps: {
       generateImage: {
         name: 'Generate Image',
+        description: 'Generating image...',
       },
     },
     config: {
@@ -205,6 +233,7 @@ const translations = {
     steps: {
       generateMedia: {
         name: 'Generate Media',
+        description: 'Generating media...',
       },
     },
     config: {

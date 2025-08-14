@@ -9,6 +9,8 @@
     .ant-select-selection-item {
       height: 32px !important;
       padding-left: 0 !important;
+      display: flex;
+      align-items: center;
     }
   }
 

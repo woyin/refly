@@ -7,16 +7,17 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useAddNode } from './use-add-node';
-import { CanvasNode, CanvasNodeFilter } from '@refly/canvas-common';
+import { CanvasNode, CanvasNodeFilter, MediaSkillResponseNodeMeta } from '@refly/canvas-common';
 import { CodeArtifactNodeMeta } from '@refly/canvas-common';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import { CanvasNodeType } from '@refly-packages/ai-workspace-common/requests';
 import { useReactFlow } from '@xyflow/react';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
-import { genMediaSkillResponseID } from '@refly/utils/id';
-import { useChatStoreShallow } from '@refly/stores';
+import { genMediaSkillResponseID, genMediaSkillID } from '@refly/utils/id';
+import { useChatStore, useChatStoreShallow } from '@refly/stores';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { omit } from '@refly/utils/typesafe';
 
 export const useListenNodeOperationEvents = () => {
   const { readonly, canvasId } = useCanvasContext();
@@ -161,11 +162,11 @@ export const useListenNodeOperationEvents = () => {
       if (readonly) return;
 
       let targetNodeId = nodeId;
+      const { mediaSelectedModel } = useChatStore.getState();
 
       try {
         // If nodeId is empty, create a mediaSkill node first
         if (!targetNodeId) {
-          const { genMediaSkillID } = await import('@refly/utils/id');
           const mediaSkillEntityId = genMediaSkillID();
 
           const mediaSkillNode = {
@@ -175,7 +176,7 @@ export const useListenNodeOperationEvents = () => {
               entityId: mediaSkillEntityId,
               metadata: {
                 query,
-                selectedModel: mediaSelectedModel, // Use store's mediaSelectedModel as default
+                selectedModel: omit(mediaSelectedModel, ['creditBilling', 'provider']),
               },
             },
           };
@@ -207,7 +208,7 @@ export const useListenNodeOperationEvents = () => {
           const resultId = data.resultId;
           const entityId = genMediaSkillResponseID();
 
-          const newNode = {
+          const newNode: Partial<CanvasNode<MediaSkillResponseNodeMeta>> = {
             type: 'mediaSkillResponse' as const,
             data: {
               title: query,
@@ -216,9 +217,8 @@ export const useListenNodeOperationEvents = () => {
                 status: 'waiting' as const,
                 mediaType,
                 prompt: query,
-                model,
                 resultId,
-                providerItemId,
+                selectedModel: omit(mediaSelectedModel, ['creditBilling', 'provider']),
               },
             },
           };

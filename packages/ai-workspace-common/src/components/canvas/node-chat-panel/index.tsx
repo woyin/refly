@@ -4,7 +4,6 @@ import type { MenuProps } from 'antd';
 import { SwapOutlined } from '@ant-design/icons';
 
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { ModelInfo, Skill, SkillRuntimeConfig, SkillTemplateConfig } from '@refly/openapi-schema';
 import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
@@ -24,6 +23,7 @@ import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/comp
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
+import { NodeIcon } from '../nodes/shared/node-icon';
 
 import './index.scss';
 import { logEvent } from '@refly/telemetry-web';
@@ -136,9 +136,7 @@ const NodeHeader = memo(
     return (
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-[#6172F3] shadow-lg flex items-center justify-center flex-shrink-0">
-            {getSkillIcon(selectedSkillName ?? '', 'w-4 h-4 text-white')}
-          </div>
+          <NodeIcon type="skill" />
 
           <Tooltip
             title={

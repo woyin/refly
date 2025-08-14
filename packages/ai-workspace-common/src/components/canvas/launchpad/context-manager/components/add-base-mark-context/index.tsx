@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Badge, Button, Popover, Tooltip } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { AddContext } from 'refly-icons';
 import { BaseMarkContextSelector } from '../base-mark-context-selector';
 import { useTranslation } from 'react-i18next';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
@@ -49,7 +49,7 @@ export const AddBaseMarkContext = ({ contextItems, setContextItems }: AddBaseMar
       <Popover
         placement="bottom"
         trigger="click"
-        overlayInnerStyle={{ padding: 0, boxShadow: 'none' }}
+        styles={{ body: { padding: 0, boxShadow: 'none' } }}
         open={popoverVisible}
         onOpenChange={handleVisibleChange}
         content={
@@ -66,12 +66,12 @@ export const AddBaseMarkContext = ({ contextItems, setContextItems }: AddBaseMar
           getPopupContainer={getPopupContainer}
         >
           <Button
-            icon={<PlusOutlined className="w-3 h-3" />}
             size="small"
             type="default"
-            className="text-xs h-6 rounded border text-gray-500 gap-1"
+            className="text-xs h-5 gap-1 flex items-center justify-center px-1 box-border rounded-[4px] font-normal"
           >
-            {contextItems?.length === 0 ? t('copilot.addContext') : null}
+            <AddContext size={16} color="var(--refly-text-0)" />
+            {contextItems?.length === 0 ? t('knowledgeBase.context.addContext') : null}
           </Button>
         </Tooltip>
       </Popover>

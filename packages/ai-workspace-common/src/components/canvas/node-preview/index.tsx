@@ -8,6 +8,9 @@ import { useState, useMemo, useCallback, useRef, memo, useEffect } from 'react';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { CodeArtifactNodePreview } from './code-artifact';
 import { WebsiteNodePreview } from './website';
+import { ImageNodePreview } from './image';
+import { AudioNodePreview } from './audio';
+import { VideoNodePreview } from './video';
 import { fullscreenEmitter } from '@refly-packages/ai-workspace-common/events/fullscreen';
 import {
   nodeActionEmitter,
@@ -16,14 +19,11 @@ import {
 import { useDrag, useDrop, DndProvider, XYCoord } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import withScrolling, { createHorizontalStrength } from 'react-dnd-scrolling';
-import { getFreshNodePreviews } from '@refly-packages/ai-workspace-common/utils/canvas';
 import { Slideshow } from '@refly-packages/ai-workspace-common/components/canvas/slideshow';
 import { EnhancedSkillResponse } from './skill-response/enhanced-skill-response';
-import { useReactFlow } from '@xyflow/react';
 import { useSearchParams } from 'react-router-dom';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
-import { LinearThreadContainer } from '@refly-packages/ai-workspace-common/components/canvas/linear-thread';
 
 // DnD item type constant
 const ITEM_TYPE = 'node-preview';
@@ -38,7 +38,7 @@ interface DragItem {
   index: number;
 }
 
-const PreviewComponent = memo(
+export const PreviewComponent = memo(
   ({ node }: { node: CanvasNode<any> }) => {
     if (!node?.type) return null;
 
@@ -59,6 +59,12 @@ const PreviewComponent = memo(
           return <CodeArtifactNodePreview nodeId={node.id} />;
         case 'website':
           return <WebsiteNodePreview nodeId={node.id} />;
+        case 'video':
+          return <VideoNodePreview node={node} />;
+        case 'audio':
+          return <AudioNodePreview node={node} />;
+        case 'image':
+          return <ImageNodePreview node={node} />;
         default:
           return null;
       }
@@ -359,54 +365,17 @@ export const DraggableNodePreview = memo(
 export const NodePreviewContainer = memo(
   ({
     canvasId,
-    nodes,
   }: {
     canvasId: string;
-    nodes: CanvasNode<any>[];
   }) => {
     const { readonly } = useCanvasContext();
-    const { getNodes } = useReactFlow<CanvasNode<any>>();
-    const { showLinearThread, rawNodePreviews, reorderNodePreviews, showSlideshow } =
-      useCanvasStoreShallow((state) => ({
-        showLinearThread: state.showLinearThread,
-        rawNodePreviews: state.config[canvasId]?.nodePreviews ?? [],
-        reorderNodePreviews: state.reorderNodePreviews,
-        showSlideshow: state.showSlideshow,
-      }));
+    const { showSlideshow } = useCanvasStoreShallow((state) => ({
+      showSlideshow: state.showSlideshow,
+    }));
 
     useEffect(() => {
       preloadMonacoEditor();
     }, []);
-
-    // Compute fresh node previews using the utility function
-    const nodePreviews = useMemo(() => {
-      // Prefer flowNodes from ReactFlow but fall back to canvas store nodes
-      const nodesSource = nodes?.length > 0 ? nodes : getNodes();
-
-      return getFreshNodePreviews(nodesSource, rawNodePreviews);
-    }, [nodes, rawNodePreviews, canvasId]);
-
-    const moveCard = useCallback(
-      (dragIndex: number, hoverIndex: number) => {
-        reorderNodePreviews(canvasId, dragIndex, hoverIndex);
-      },
-      [canvasId, reorderNodePreviews],
-    );
-
-    // Memoize rendering of node previews
-    const nodePreviewsRendered = useMemo(() => {
-      return nodePreviews
-        ?.filter(Boolean)
-        ?.map((node, index) => (
-          <DraggableNodePreview
-            key={node?.id}
-            node={node}
-            canvasId={canvasId}
-            index={index}
-            moveCard={moveCard}
-          />
-        ));
-    }, [nodePreviews, canvasId, moveCard]);
 
     // Memoize ScrollingComponent props
     const scrollingComponentProps = useMemo(
@@ -423,8 +392,6 @@ export const NodePreviewContainer = memo(
         <div className="flex h-full w-full">
           <ScrollingComponent {...scrollingComponentProps}>
             {showSlideshow && !readonly && <Slideshow canvasId={canvasId} />}
-            {showLinearThread && <LinearThreadContainer />}
-            {nodePreviewsRendered}
           </ScrollingComponent>
         </div>
       </DndProvider>
