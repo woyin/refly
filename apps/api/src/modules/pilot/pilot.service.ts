@@ -392,7 +392,7 @@ export class PilotService {
       pilotSessionPO2DTO(pilotSession),
       latestSummarySteps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     );
-    const rawSteps = await engine.run(canvasContentItems, 5, locale);
+    const rawSteps = await engine.run(canvasContentItems, 3, locale);
 
     if (rawSteps.length === 0) {
       await this.prisma.pilotSession.update({

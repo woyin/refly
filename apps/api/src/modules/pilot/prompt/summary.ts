@@ -23,53 +23,46 @@ export function buildSummarySkillInput(params: {
     stageFocus = `**LATE STAGE**: Finalize answer quality and prepare comprehensive progress report for "${userQuestion}"`;
   }
 
-  const query = `SUMMARY TASK: Three-step validation and progress report
+  const query = `SUMMARY TASK: Context organization and direct answer generation
 
 **TARGET**: "${userQuestion}"
 **PROGRESS**: Epoch ${currentEpoch + 1}/${maxEpoch + 1} (${Math.round(progressRatio * 100)}% complete)${subtaskListSection}
 ${stageFocus}
 
-## EXECUTION PROTOCOL
+## WORKFLOW
 
-**STEP 1: DIRECT ANSWER GENERATION**
-Using all available context, provide complete answer to: "${userQuestion}"
-- Synthesize all relevant information 
-- Include evidence citations [doc:ID], [res:ID], [artifact:ID]
-- Mark confidence levels for each component
+**PHASE 1: CONTEXT SYNTHESIS**
+- Gather and organize all available information from sources
+- Identify key themes, patterns, and relationships
+- Structure information into logical categories
+- Prepare comprehensive context foundation
 
-**STEP 2: ANSWER QUALITY ASSESSMENT**
-Evaluate your Step 1 answer using these criteria:
-- **Completeness**: What % of "${userQuestion}" answered?
-- **Evidence Quality**: How reliable is supporting information?
-- **Information Gaps**: What specific data is missing?
-- **User Value**: How useful for user's actual needs?
+**PHASE 2: ANSWER GENERATION**
+Generate complete answer to: "${userQuestion}"
+- Provide comprehensive coverage of all question aspects
+- Structure with clear sections and logical flow
+- Include relevant examples, data points, and evidence
+- Address potential counterarguments or alternatives
+- Use clear, professional language
+- Include source citations [doc:ID], [res:ID], [artifact:ID]
+- Integrate appropriate charts, diagrams, or visual elements where beneficial
+- Ensure visual elements enhance understanding without overwhelming text content
 
-**STEP 3: HUMAN-READABLE PROGRESS REPORT**
-Generate clear status summary:
-- **Current Answer Status**: Where we stand on "${userQuestion}"
-- **Key Achievements**: What was accomplished this epoch
-- **Critical Needs**: What's required for answer improvement
-- **Realistic Timeline**: Expected completion outlook
+**PHASE 3: QUALITY EVALUATION**
+Assess answer quality on two dimensions:
+- **Completeness**: Percentage of "${userQuestion}" answered
+- **Evidence Quality**: Reliability of supporting information
 
 ## OUTPUT FORMAT
 
-### ANSWER TO USER QUESTION
-[Complete response to "${userQuestion}" with evidence citations]
+### COMPLETE ANSWER
+[Structured response to "${userQuestion}" with evidence citations]
 
 ### QUALITY ASSESSMENT
 - **Completeness**: X% - [Explanation]
-- **Evidence Strength**: [Strong/Mixed/Weak] - [Why]
-- **Missing Information**: [Specific gaps]
-- **Confidence Level**: [High/Medium/Low] - [Reasoning]
+- **Evidence Quality**: [Strong/Mixed/Weak] - [Reasoning]
 
-### EPOCH PROGRESS REPORT
-**Current Status**: [Clear summary of answer quality and completeness]
-**Achievements**: [Key findings with evidence citations]
-**Critical Gaps**: [Specific missing information preventing complete answer]
-**Next Priorities**: [What's needed to improve answer quality]
-**Timeline**: [Realistic expectations for full answer completion]
-
-**CONSTRAINT**: Use commonQnA for synthesis. Maintain absolute focus on "${userQuestion}".`;
+**CONSTRAINT**: Maintain absolute focus on "${userQuestion}". Use commonQnA for synthesis.`;
 
   return { query };
 }
