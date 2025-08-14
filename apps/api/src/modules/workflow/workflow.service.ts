@@ -278,7 +278,7 @@ export class WorkflowService {
     const originalQuery = String(data?.metadata?.structuredData?.query ?? data?.title ?? '');
 
     // Process query with workflow variables
-    const query = await this.processQueryWithVariables(originalQuery, canvasId, user);
+    const processedQuery = await this.processQueryWithVariables(originalQuery, canvasId, user);
 
     // Get resultId from entityId
     const resultId = data.entityId;
@@ -382,11 +382,14 @@ export class WorkflowService {
           type: node.type as CanvasNodeType,
           data: {
             ...node.data,
-            title: query, // Update title to the new query
+            title: processedQuery,
             entityId: resultId, // Use the same entityId for consistency
             metadata: {
               ...node.data?.metadata,
               contextItems: filteredContextItems,
+              structuredData: {
+                query: originalQuery, // Store original query in canvas node structuredData
+              },
             },
           },
         },
@@ -411,11 +414,14 @@ export class WorkflowService {
           ...canvasNode,
           data: {
             ...canvasNode.data,
-            title: query, // Update title to the new query
+            title: processedQuery,
             contentPreview: '', // Clear content preview when starting execution
             metadata: {
               ...canvasNode.data?.metadata,
               status: 'executing',
+              structuredData: {
+                query: originalQuery, // Store original query in canvas node structuredData
+              },
             },
           },
         };
@@ -446,7 +452,8 @@ export class WorkflowService {
     const invokeRequest: InvokeSkillRequest = {
       resultId,
       input: {
-        query,
+        query: processedQuery, // Use processed query for skill execution
+        originalQuery, // Pass original query separately
         images,
       },
       target,

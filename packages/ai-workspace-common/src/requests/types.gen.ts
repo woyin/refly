@@ -3440,6 +3440,10 @@ export type SkillInput = {
    */
   query?: string;
   /**
+   * Original user query
+   */
+  originalQuery?: string;
+  /**
    * Image list (storage keys)
    */
   images?: Array<string>;

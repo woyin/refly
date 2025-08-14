@@ -405,6 +405,20 @@ export class SkillInvokerService {
 
     const resultAggregator = new ResultAggregator();
 
+    // Initialize structuredData with original query if available
+    const originalQuery = data.input?.originalQuery;
+    if (originalQuery) {
+      resultAggregator.addSkillEvent({
+        event: 'structured_data',
+        resultId,
+        step: { name: 'start' },
+        structuredData: {
+          query: originalQuery, // Store original query in structuredData
+          processedQuery: data.input?.query, // Store processed query for reference
+        },
+      });
+    }
+
     // NOTE: Artifacts include both code artifacts and documents
     type ArtifactOutput = Artifact & {
       nodeCreated: boolean; // Whether the canvas node is created

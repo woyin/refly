@@ -4933,6 +4933,10 @@ export const SkillInputSchema = {
       type: 'string',
       description: 'User query',
     },
+    originalQuery: {
+      type: 'string',
+      description: 'Original user query',
+    },
     images: {
       type: 'array',
       description: 'Image list (storage keys)',
