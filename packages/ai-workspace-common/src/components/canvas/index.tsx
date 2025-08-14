@@ -983,9 +983,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         />
       </Modal>
       <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
-        {!readonly && (
-          <CanvasToolbar onToolSelect={handleToolSelect} nodeLength={nodes?.length || 0} />
-        )}
         <AnimatePresence mode="wait">
           {isPilotOpen ? (
             <motion.div
