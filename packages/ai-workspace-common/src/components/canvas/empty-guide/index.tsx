@@ -1,25 +1,17 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from 'antd';
 import {
-  IconAskAI,
   IconTemplate,
   IconImportResource,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { TemplatesGuide } from './templates-guide';
-import { useCanvasTemplateModal } from '@refly/stores';
-import { useCanvasStoreShallow } from '@refly/stores';
-import { useImportResourceStoreShallow } from '@refly/stores';
+import { useCanvasTemplateModal, useImportResourceStoreShallow } from '@refly/stores';
 import { canvasTemplateEnabled } from '@refly/ui-kit';
 
 export const EmptyGuide = ({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
   const { setVisible } = useCanvasTemplateModal((state) => ({
     setVisible: state.setVisible,
-  }));
-
-  const { setShowLinearThread, showLinearThread } = useCanvasStoreShallow((state) => ({
-    setShowLinearThread: state.setShowLinearThread,
-    showLinearThread: state.showLinearThread,
   }));
 
   const { setImportResourceModalVisible } = useImportResourceStoreShallow((state) => ({
@@ -48,17 +40,6 @@ export const EmptyGuide = ({ canvasId }: { canvasId: string }) => {
             style={{ pointerEvents: 'auto' }}
           >
             {t('canvas.toolbar.importResource')}
-          </Button>
-
-          <Button
-            type="text"
-            icon={<IconAskAI className="-mr-1 flex items-center justify-center" />}
-            className="text-[20px] text-[#0E9F77] py-[4px] px-[8px]"
-            onClick={() => setShowLinearThread(!showLinearThread)}
-            data-cy="canvas-ask-ai-button"
-            style={{ pointerEvents: 'auto' }}
-          >
-            {t('canvas.reflyPilot.title')}
           </Button>
 
           {canvasTemplateEnabled && (
