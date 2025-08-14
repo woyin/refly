@@ -14,7 +14,6 @@ import {
   UseCasesGalleryPage,
   ProjectPage,
 } from '@refly/web-core';
-import { PilotTestPage } from '../pages/pilot-test';
 
 import type { RouteObject } from 'react-router-dom';
 
@@ -26,10 +25,6 @@ export const RoutesList: RouteObject[] = [
   {
     path: '/pricing',
     element: <Pricing />,
-  },
-  {
-    path: '/pilot-test',
-    element: <PilotTestPage />,
   },
   {
     path: '/share/canvas/:canvasId',
