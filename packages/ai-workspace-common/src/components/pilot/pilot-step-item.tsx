@@ -63,12 +63,10 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
 
   return (
     <motion.div
-      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700"
+      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700 dark:bg-refly-bg-content-z2"
       onClick={handleClick}
       whileHover={{
         scale: 1.02,
-        backgroundColor: '#f0f0f0',
-        transition: { duration: 0.2 },
       }}
       whileTap={{
         scale: 0.98,

@@ -958,6 +958,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   );
   const session = useMemo(() => sessionData?.data, [sessionData]);
   const handleClick = useCallback(() => {
+    console.log('canvas', isPilotOpen);
     setIsPilotOpen(!isPilotOpen);
   }, [setIsPilotOpen]);
   const handleSessionClick = useCallback(
@@ -1094,7 +1095,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.2, delay: 0.2 }}
                   >
-                    描述你的需求...
+                    {t('canvas.launchpad.placeholder', 'Describe needs...')}
                   </motion.span>
                 </Button>
               </motion.div>

@@ -11,6 +11,7 @@ import { logEvent } from '@refly/telemetry-web';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
 import { Send } from 'refly-icons';
+import { useTranslation } from 'react-i18next';
 
 /**
  * NoSession
@@ -18,7 +19,7 @@ import { Send } from 'refly-icons';
  * Layout and styling are referenced from `canvas/front-page/index.tsx`.
  */
 export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
-  // const { t } = useTranslation();
+  const { t } = useTranslation();
   const { debouncedCreateCanvas, isCreating } = useCreateCanvas({
     projectId: undefined,
     afterCreateSuccess: () => {
@@ -76,7 +77,10 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
                 <>
                   <div className="px-4 h-[76px]">
                     <ChatInput
-                      placeholder="给 Refly 一个任务，它会智能分析和规划，并帮你完成任务..."
+                      placeholder={t(
+                        'canvas.launchpad.chatInputPlaceholder',
+                        'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
+                      )}
                       readonly={false}
                       query={query}
                       setQuery={setQuery}

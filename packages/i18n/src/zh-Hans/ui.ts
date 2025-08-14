@@ -1119,6 +1119,10 @@ const translations = {
       error: '导出图片失败',
       noNodes: '画布为空，无法导出图片',
     },
+    launchpad: {
+      placeholder: '描述你的需求...',
+      chatInputPlaceholder: '给 Refly 一个任务，它会智能分析和规划，并帮你完成任务...',
+    },
     contextMenu: {
       createGroup: '创建分组',
       enableClickPreview: '启用点击预览',

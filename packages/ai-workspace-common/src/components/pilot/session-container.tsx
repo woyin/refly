@@ -123,6 +123,7 @@ export const SessionContainer = memo(
           'flex-shrink-0',
           'bg-white dark:bg-gray-900',
           'border',
+          'dark:bg-refly-bg-content-z2',
           'border-gray-200 dark:border-gray-700',
           'flex',
           'flex-col',
@@ -157,6 +158,7 @@ export const SessionContainer = memo(
     }, [sessionStatus]);
 
     const handleClick = useCallback(() => {
+      console.log('isPilotOpen', isPilotOpen);
       setIsPilotOpen(!isPilotOpen);
     }, [setIsPilotOpen]);
 
@@ -254,7 +256,15 @@ export const SessionContainer = memo(
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ duration: 0.25, ease: 'easeInOut' }}
                   >
-                    <div className="pl-1">
+                    <motion.div
+                      className="px-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                    >
+                      {query}
+                    </motion.div>
+                    <div className="pl-1 max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
                       {sortedSteps.map((step, index) => (
                         <motion.div
                           key={step.stepId}
@@ -295,7 +305,7 @@ export const SessionContainer = memo(
                       transition={{ duration: 0.2, delay: 0.2 }}
                     >
                       <motion.div
-                        className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex items-center gap-2 border border-gray-100 bg-[#F4F4F4]"
+                        className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex items-center gap-2 border border-gray-100 bg-[#F4F4F4] dark:bg-gray-800"
                         initial={{ scale: 0.95 }}
                         animate={{ scale: 1 }}
                         transition={{ duration: 0.2, delay: 0.3 }}

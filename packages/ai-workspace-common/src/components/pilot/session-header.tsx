@@ -109,9 +109,9 @@ const SessionHeader = memo(
             onClick={onClick}
             icon={
               isPilotOpen ? (
-                <ScreenFull className="w-4 h-4" />
-              ) : (
                 <ScreenDefault className="w-4 h-4" />
+              ) : (
+                <ScreenFull className="w-4 h-4" />
               )
             }
           >
