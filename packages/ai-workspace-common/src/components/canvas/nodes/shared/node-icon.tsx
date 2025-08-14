@@ -5,6 +5,7 @@ import {
   type ResourceFileType,
 } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { CanvasNodeType, ResourceMeta, ResourceType, SelectionKey } from '@refly/openapi-schema';
+import { GrResources } from 'react-icons/gr';
 
 import {
   AiChat,
@@ -26,7 +27,7 @@ import {
   Html,
 } from 'refly-icons';
 import { Avatar } from 'antd';
-import weblink from '../../../../assets/weblink.png';
+import { Favicon } from '../../../common/favicon';
 
 type IconComponent = ComponentType<{ size?: number | string; color?: string }>;
 const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
@@ -35,7 +36,7 @@ const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
   video: Video,
   audio: Audio,
   document: Doc1,
-  resource: Doc1,
+  resource: GrResources,
   codeArtifact: Code1,
   website: Web1,
   memo: Note,
@@ -102,12 +103,20 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
       ? (NODE_COLORS[resourceMeta?.contentType ?? ''] ?? NODE_COLORS.resource)
       : (NODE_COLORS[type] ?? NODE_COLORS.document);
 
-    if (url || isWeblink) {
+    if (isWeblink && resourceMeta?.url) {
+      return (
+        <div className="rounded-lg flex items-center justify-center flex-shrink-0">
+          <Favicon url={resourceMeta.url} size={iconSize || size} />
+        </div>
+      );
+    }
+
+    if (url) {
       return (
         <div className="rounded-lg flex items-center justify-center flex-shrink-0">
           <Avatar
-            src={isWeblink ? weblink : url}
-            alt={isWeblink ? 'Weblink' : type}
+            src={url}
+            alt={type}
             icon={<Image size={size} />}
             className={`rounded-lg object-cover ${small ? 'w-5 h-5' : 'w-6 h-6'} ${
               className ?? ''
