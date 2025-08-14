@@ -38,7 +38,7 @@
 }
 
 .ant-btn-variant-solid:disabled {
-  background: var(--refly-primary-disabled)
+  background: var(--refly-primary-disabled);
 }
 
 /* Dropdown menu styling */
