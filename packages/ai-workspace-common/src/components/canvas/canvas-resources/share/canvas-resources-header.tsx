@@ -1,6 +1,6 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Tooltip, Typography } from 'antd';
+import { Button, Tooltip, Typography, Input, InputRef } from 'antd';
 import { Add, ScreenFull, ScreenDefault, SideRight } from 'refly-icons';
 import {
   useActiveNode,
@@ -10,12 +10,18 @@ import {
 import { TopButtons } from './top-buttons';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import cn from 'classnames';
+import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 const { Text } = Typography;
 
 export const CanvasResourcesHeader = memo(() => {
   const { t } = useTranslation();
   const { canvasId } = useCanvasContext();
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+  const titleInputRef = useRef<InputRef>(null);
+
   const {
     parentType,
     setParentType,
@@ -39,6 +45,14 @@ export const CanvasResourcesHeader = memo(() => {
   const { setImportResourceModalVisible } = useImportResourceStoreShallow((state) => ({
     setImportResourceModalVisible: state.setImportResourceModalVisible,
   }));
+  const updateNodeTitle = useUpdateNodeTitle();
+
+  // Update editing title when activeNode changes
+  useEffect(() => {
+    if (activeNode?.data?.title) {
+      setEditingTitle(activeNode.data.title);
+    }
+  }, [activeNode?.data?.title]);
 
   const handleClose = useCallback(() => {
     setSidePanelVisible(false);
@@ -81,8 +95,57 @@ export const CanvasResourcesHeader = memo(() => {
     setWideScreenVisible(false);
   }, [setWideScreenVisible]);
 
+  // Handle title click to start editing
+  const handleTitleClick = useCallback(() => {
+    if (!activeNode?.data?.entityId || !activeNode?.type) return;
+
+    setIsEditingTitle(true);
+    setEditingTitle(activeNode.data.title || '');
+
+    // Focus the input after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }, 100);
+  }, [activeNode?.data?.entityId, activeNode?.type, activeNode?.data?.title]);
+
+  // Handle title save
+  const handleTitleSave = useCallback(() => {
+    if (!activeNode?.data?.entityId || !activeNode?.type) return;
+
+    const newTitle = editingTitle.trim();
+    if (newTitle && newTitle !== activeNode.data.title) {
+      updateNodeTitle(
+        newTitle,
+        activeNode.data.entityId,
+        activeNode.id,
+        activeNode.type as CanvasNodeType,
+      );
+    }
+
+    setIsEditingTitle(false);
+  }, [activeNode, editingTitle, setActiveNode, updateNodeTitle]);
+
+  // Handle title cancel
+  const handleTitleCancel = useCallback(() => {
+    setIsEditingTitle(false);
+    setEditingTitle(activeNode?.data?.title || '');
+  }, [activeNode?.data?.title]);
+
+  // Handle key press in title input
+  const handleTitleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleTitleSave();
+      } else if (e.key === 'Escape') {
+        handleTitleCancel();
+      }
+    },
+    [handleTitleSave, handleTitleCancel],
+  );
+
   return (
-    <div className="w-full h-[65px] flex items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
+    <div className="w-full h-[65px] flex gap-2 items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
       <div className="flex items-center gap-2 min-w-0 flex-1">
         {sidePanelVisible && (
           <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>
@@ -106,9 +169,26 @@ export const CanvasResourcesHeader = memo(() => {
               </a>
             </Button>
             <div className="text-refly-text-2">/</div>
-            <Text ellipsis={{ tooltip: true }} className="min-w-0 flex-1 !max-w-[400px]">
-              {activeNode?.data?.title || t('common.untitled')}
-            </Text>
+            {isEditingTitle ? (
+              <Input
+                ref={titleInputRef}
+                value={editingTitle}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={handleTitleKeyPress}
+                className="min-w-0 flex-1 !max-w-[400px]"
+                size="small"
+                autoFocus
+              />
+            ) : (
+              <Text
+                ellipsis={{ tooltip: true }}
+                className="min-w-0 flex-1 !max-w-[400px] leading-5 cursor-pointer hover:text-refly-primary hover:bg-refly-tertiary-hover rounded-lg px-1 py-0.5"
+                onClick={handleTitleClick}
+              >
+                {activeNode?.data?.title || t('common.untitled')}
+              </Text>
+            )}
           </div>
         ) : (
           <div className="text-refly-text-0 text-base font-semibold leading-[26px] min-w-0 flex-1">
@@ -116,10 +196,11 @@ export const CanvasResourcesHeader = memo(() => {
           </div>
         )}
       </div>
+
       <div className="flex items-center gap-3 flex-shrink-0">
         {!parentType && (
           <Tooltip title={t('canvas.toolbar.addResource')} arrow={false}>
-            <Button size="small" type="text" icon={<Add size={18} />} onClick={handleAddResource} />
+            <Button size="small" type="text" icon={<Add size={16} />} onClick={handleAddResource} />
           </Tooltip>
         )}
 

@@ -84,7 +84,7 @@
 }
 
 .ant-segmented .ant-segmented-item-selected:hover {
-  background-color: var(--refly-bg-control-z1) !important
+  background-color: var(--refly-bg-control-z1) !important;
 }
 
 .ant-segmented .ant-segmented-item-label {

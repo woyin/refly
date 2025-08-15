@@ -108,6 +108,20 @@ export const CodeArtifactTopButtons = () => {
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [
+      ...(readonly
+        ? []
+        : [
+            {
+              key: 'share',
+              label: (
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Share size={16} color="var(--refly-text-0)" />
+                  {t('codeArtifact.buttons.share')}
+                </div>
+              ),
+              onClick: handleShare,
+            },
+          ]),
       {
         key: 'locateNode',
         label: (
@@ -138,18 +152,6 @@ export const CodeArtifactTopButtons = () => {
 
   return (
     <div className="flex items-center gap-3">
-      {!readonly && (
-        <Tooltip title={t('codeArtifact.buttons.share')}>
-          <Button
-            className="!h-5 !w-5 p-0"
-            size="small"
-            type="text"
-            onClick={handleShare}
-            icon={<Share size={16} />}
-          />
-        </Tooltip>
-      )}
-
       <Tooltip title={t('codeArtifact.buttons.download', { fileName })}>
         <Button
           className="!h-5 !w-5 p-0"
@@ -160,11 +162,10 @@ export const CodeArtifactTopButtons = () => {
         />
       </Tooltip>
 
-      <Divider type="vertical" className="h-4 bg-refly-Card-Border m-0" />
-
       <Dropdown menu={{ items: moreMenuItems }} trigger={['click']} placement="bottomRight">
         <Button className="!h-5 !w-5 p-0" size="small" type="text" icon={<More size={16} />} />
       </Dropdown>
+      <Divider type="vertical" className="h-4 bg-refly-Card-Border m-0" />
     </div>
   );
 };

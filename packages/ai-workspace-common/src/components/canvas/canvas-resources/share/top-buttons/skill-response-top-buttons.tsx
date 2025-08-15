@@ -1,5 +1,5 @@
 import { Reload, More, Share } from 'refly-icons';
-import { Button, Divider, Dropdown, Tooltip } from 'antd';
+import { Button, Dropdown, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import { CanvasNode } from '@refly/canvas-common';
 import { useTranslation } from 'react-i18next';
@@ -207,18 +207,15 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   return (
     <div className="flex items-center gap-3">
       {!readonly && (
-        <>
-          <Tooltip title={t('canvas.nodeActions.rerun')}>
-            <Button
-              className="!h-5 !w-5 p-0"
-              size="small"
-              type="text"
-              icon={<Reload size={16} />}
-              onClick={handleReRun}
-            />
-          </Tooltip>
-          <Divider type="vertical" className="m-0 h-4 bg-refly-Card-Border" />
-        </>
+        <Tooltip title={t('canvas.nodeActions.rerun')}>
+          <Button
+            className="!h-5 !w-5 p-0"
+            size="small"
+            type="text"
+            icon={<Reload size={16} />}
+            onClick={handleReRun}
+          />
+        </Tooltip>
       )}
 
       <Dropdown
