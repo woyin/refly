@@ -14,9 +14,13 @@ export const DocumentTopButtons = () => {
   const { t } = useTranslation();
   const { setNodeCenter } = useNodePosition();
   const { deleteNode } = useDeleteNode();
-  const { activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    activeNode: state.activeNode,
-  }));
+  const { activeNode, setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
+      activeNode: state.activeNode,
+      setWideScreenVisible: state.setWideScreenVisible,
+      setParentType: state.setParentType,
+    }),
+  );
   const [isSharing, setIsSharing] = useState(false);
   const { readonly } = useCanvasContext();
   const docId = activeNode?.data?.entityId ?? '';
@@ -131,7 +135,9 @@ export const DocumentTopButtons = () => {
   const handleDeleteNode = useCallback(() => {
     if (!activeNode) return;
     deleteNode(activeNode as any);
-  }, [activeNode, deleteNode]);
+    setWideScreenVisible(false);
+    setParentType(null);
+  }, [activeNode, deleteNode, setWideScreenVisible, setParentType]);
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [

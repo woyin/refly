@@ -39,10 +39,12 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   const { removeLinearThreadMessageByNodeId } = useCanvasStore((state) => ({
     removeLinearThreadMessageByNodeId: state.removeLinearThreadMessageByNodeId,
   }));
-  const { setActiveNode, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setActiveNode: state.setActiveNode,
-    setParentType: state.setParentType,
-  }));
+  const { setActiveNode, setParentType, setWideScreenVisible } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
+      setActiveNode: state.setActiveNode,
+      setParentType: state.setParentType,
+      setWideScreenVisible: state.setWideScreenVisible,
+    }));
   const [isSharing, setIsSharing] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -73,7 +75,7 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   const handleShare = useCallback(async () => {
     if (!result) return;
     setIsSharing(true);
-    const loadingMessage = message.loading(t('codeArtifact.sharing'), 0);
+    const loadingMessage = message.loading(t('common.sharing'), 0);
     try {
       const { data, error } = await getClient().createShare({
         body: {
@@ -120,8 +122,8 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
         entityId: node?.data?.entityId ?? resultId,
       },
     });
-    setActiveNode(null);
-    setParentType('stepsRecord');
+    setWideScreenVisible(false);
+    setParentType(null);
   }, [
     deleteNode,
     node,
@@ -130,6 +132,7 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
     resultId,
     setActiveNode,
     setParentType,
+    setWideScreenVisible,
   ]);
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {

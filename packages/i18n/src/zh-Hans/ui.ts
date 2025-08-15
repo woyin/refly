@@ -302,6 +302,7 @@ const translations = {
     generating: '生成中...',
     yes: '是',
     no: '否',
+    sharing: '分享中...',
   },
   mode: {
     ask: '提问',

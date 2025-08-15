@@ -142,6 +142,7 @@ const translations = {
     generating: 'Generating...',
     yes: 'Yes',
     no: 'No',
+    sharing: 'Sharing...',
   },
   mode: {
     ask: 'Ask',

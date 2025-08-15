@@ -1,4 +1,4 @@
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useEffect } from 'react';
 import {
   useCanvasResourcesPanelStoreShallow,
   useImportResourceStoreShallow,
@@ -19,12 +19,13 @@ export const ResourceOverview = memo(() => {
   const { nodes } = useRealtimeCanvasData();
   const { createSingleDocumentInCanvas, isCreating: isCreatingDocument } = useCreateDocument();
 
-  const { activeTab, searchKeyword, setActiveTab, setSearchKeyword } =
+  const { activeTab, searchKeyword, setActiveTab, setSearchKeyword, parentType } =
     useCanvasResourcesPanelStoreShallow((state) => ({
       activeTab: state.activeTab,
       searchKeyword: state.searchKeyword,
       setActiveTab: state.setActiveTab,
       setSearchKeyword: state.setSearchKeyword,
+      parentType: state.parentType,
     }));
   const { setImportResourceModalVisible } = useImportResourceStoreShallow((state) => ({
     setImportResourceModalVisible: state.setImportResourceModalVisible,
@@ -71,6 +72,12 @@ export const ResourceOverview = memo(() => {
       ).length > 0
     );
   }, [nodes]);
+
+  useEffect(() => {
+    if (parentType) {
+      setActiveTab(parentType);
+    }
+  }, [parentType, setActiveTab]);
 
   return (
     <div className="p-4 flex-grow flex flex-col gap-4 overflow-hidden">

@@ -39,7 +39,8 @@ export const CanvasResourcesHeader = memo(() => {
   const handleClose = useCallback(() => {
     setSidePanelVisible(false);
     setShowLeftOverview(false);
-  }, [setSidePanelVisible, setShowLeftOverview]);
+    setWideScreenVisible(false);
+  }, [setSidePanelVisible, setShowLeftOverview, setWideScreenVisible]);
 
   const handleShowLeftOverview = useCallback(() => {
     if (sidePanelVisible && !wideScreenVisible) {
@@ -86,7 +87,10 @@ export const CanvasResourcesHeader = memo(() => {
         )}
         {parentType ? (
           <Breadcrumb>
-            <Breadcrumb.Item onClick={handleParentClick}>
+            <Breadcrumb.Item
+              onClick={handleParentClick}
+              className={wideScreenVisible ? 'pointer-events-none' : ''}
+            >
               <a onMouseEnter={handleShowLeftOverview}>
                 {t(`canvas.resourceLibrary.${parentType}`)}
               </a>
@@ -111,6 +115,12 @@ export const CanvasResourcesHeader = memo(() => {
         )}
 
         <TopButtons />
+
+        {parentType && (
+          <Tooltip title={t('canvas.toolbar.addResource')} arrow={false}>
+            <Button size="small" type="text" icon={<Add size={16} />} onClick={handleAddResource} />
+          </Tooltip>
+        )}
 
         {activeNode && (
           <Tooltip

@@ -16,9 +16,13 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 export const CodeArtifactTopButtons = () => {
   const { t } = useTranslation();
   const { readonly } = useCanvasContext();
-  const { activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    activeNode: state.activeNode,
-  }));
+  const { activeNode, setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
+      activeNode: state.activeNode,
+      setWideScreenVisible: state.setWideScreenVisible,
+      setParentType: state.setParentType,
+    }),
+  );
 
   const entityId = activeNode?.data?.entityId ?? '';
   const title = activeNode?.data?.title ?? 'Code Artifact';
@@ -100,7 +104,9 @@ export const CodeArtifactTopButtons = () => {
       position: activeNode.position as any,
       data: activeNode.data as any,
     });
-  }, [activeNode, deleteNode]);
+    setWideScreenVisible(false);
+    setParentType(null);
+  }, [activeNode, deleteNode, setWideScreenVisible, setParentType]);
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [

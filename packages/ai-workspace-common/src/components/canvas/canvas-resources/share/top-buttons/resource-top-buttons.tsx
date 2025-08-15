@@ -16,7 +16,10 @@ export const ResourceTopButtons = () => {
   }));
   const { setNodeCenter } = useNodePosition();
   const { deleteNode } = useDeleteNode();
-
+  const { setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setWideScreenVisible: state.setWideScreenVisible,
+    setParentType: state.setParentType,
+  }));
   const handleLocateNode = useCallback(() => {
     if (activeNode?.id) setNodeCenter(activeNode.id, true);
   }, [activeNode?.id, setNodeCenter]);
@@ -24,7 +27,9 @@ export const ResourceTopButtons = () => {
   const handleDeleteNode = useCallback(() => {
     if (!activeNode) return;
     deleteNode(activeNode as any);
-  }, [activeNode, deleteNode]);
+    setWideScreenVisible(false);
+    setParentType(null);
+  }, [activeNode, deleteNode, setWideScreenVisible, setParentType]);
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [

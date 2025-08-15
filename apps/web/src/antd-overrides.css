@@ -83,6 +83,10 @@
   background-color: var(--refly-tertiary-hover) !important;
 }
 
+.ant-segmented .ant-segmented-item-selected:hover {
+  background-color: var(--refly-bg-control-z1) !important
+}
+
 .ant-segmented .ant-segmented-item-label {
   color: var(--text-refly-text-0) !important;
   text-align: center;
