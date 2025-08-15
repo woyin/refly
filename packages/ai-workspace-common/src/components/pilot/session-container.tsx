@@ -105,7 +105,7 @@ export const SessionContainer = memo(
       setActiveSessionId: state.setActiveSessionId,
     }));
     const { query } = useFrontPageStoreShallow((state) => ({
-      query: state.query,
+      query: state.getQuery?.(canvasId) || '',
     }));
 
     const handleSessionClick = useCallback(

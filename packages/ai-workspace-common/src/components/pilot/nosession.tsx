@@ -1,20 +1,27 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 // import { useTranslation } from 'react-i18next';
 import cn from 'classnames';
-import { useChatStoreShallow, useFrontPageStoreShallow, useUserStoreShallow } from '@refly/stores';
+import {
+  useChatStoreShallow,
+  useFrontPageStoreShallow,
+  useUserStoreShallow,
+  usePilotStoreShallow,
+} from '@refly/stores';
 import { MediaChatInput } from '@refly-packages/ai-workspace-common/components/canvas/nodes/media/media-input';
 import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { McpSelectorPopover } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/mcp-selector-panel';
-import { Button } from 'antd';
+import { Button, message } from 'antd';
 import { logEvent } from '@refly/telemetry-web';
-import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
+
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
 import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { genActionResultID } from '@refly/utils/id';
+import { CreatePilotSessionRequest } from '@refly/openapi-schema';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 /**
  * NoSession
@@ -23,17 +30,12 @@ import { genActionResultID } from '@refly/utils/id';
  */
 export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
-  const { debouncedCreateCanvas, isCreating } = useCreateCanvas({
-    projectId: undefined,
-    afterCreateSuccess: () => {
-      // When canvas is created successfully, data is already in the store
-      // No need to use localStorage anymore
-    },
-  });
-  const [_isExecuting, setIsExecuting] = useState<boolean>(false);
-  const { query, setQuery } = useFrontPageStoreShallow((state) => ({
-    query: state.query,
+
+  const [isExecuting, setIsExecuting] = useState<boolean>(false);
+  const { query, setQuery, clearCanvasQuery } = useFrontPageStoreShallow((state) => ({
+    query: state.getQuery?.(canvasId) || '',
     setQuery: state.setQuery,
+    clearCanvasQuery: state.clearCanvasQuery,
   }));
   const { chatMode, setChatMode, skillSelectedModel, setSkillSelectedModel } = useChatStoreShallow(
     (state) => ({
@@ -46,9 +48,54 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
   const userStore = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
+  const { setActiveSessionId, setIsPilotOpen } = usePilotStoreShallow((state) => ({
+    setActiveSessionId: state.setActiveSessionId,
+    setIsPilotOpen: state.setIsPilotOpen,
+  }));
   const isPilotActivated = useMemo(() => chatMode === 'agent', [chatMode]);
   const { addNode } = useAddNode();
   const { invokeAction } = useInvokeAction({ source: 'nosession-ask' });
+
+  // Create wrapper function for setting query with canvasId
+  const setCanvasQuery = useCallback(
+    (newQuery: string) => {
+      setQuery?.(newQuery, canvasId);
+    },
+    [setQuery, canvasId],
+  );
+
+  const handleCreatePilotSession = useCallback(
+    async (param: CreatePilotSessionRequest) => {
+      setIsExecuting(true);
+      const { data, error } = await getClient().createPilotSession({
+        body: param,
+      });
+      if (error) {
+        message.error(
+          t('pilot.createPilotSessionFailed', {
+            defaultValue: 'Failed to create pilot session',
+          }),
+        );
+        setIsExecuting(false);
+        return;
+      }
+
+      const sessionId = data?.data?.sessionId;
+      if (sessionId) {
+        setActiveSessionId(sessionId);
+        setIsPilotOpen(true);
+        // clearCanvasQuery?.(canvasId); // Clear canvas query after successful pilot session creation
+      } else {
+        message.error(
+          t('pilot.createPilotSessionFailed', {
+            defaultValue: 'Failed to create pilot session',
+          }),
+        );
+      }
+      setIsExecuting(false);
+    },
+    [t, setActiveSessionId, setIsPilotOpen, canvasId],
+  );
 
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
@@ -92,23 +139,30 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
           },
         },
       });
-      setQuery('');
+      clearCanvasQuery?.(canvasId); // Clear canvas query after ask action
       setIsExecuting(false);
-    } else {
-      debouncedCreateCanvas('front-page', {
-        isPilotActivated: chatMode === 'agent',
-        isAsk: chatMode === 'ask',
+    } else if (chatMode === 'agent' && canvasId) {
+      // Create pilot session for agent mode
+      handleCreatePilotSession({
+        targetId: canvasId,
+        targetType: 'canvas',
+        title: query,
+        input: { query },
+        maxEpoch: 3,
+        providerItemId: skillSelectedModel?.providerItemId,
       });
+    } else {
+      setIsExecuting(false);
     }
   }, [
     query,
-    debouncedCreateCanvas,
     chatMode,
     canvasId,
     addNode,
     invokeAction,
     skillSelectedModel,
-    setQuery,
+    //clearCanvasQuery,
+    handleCreatePilotSession,
   ]);
 
   return (
@@ -122,7 +176,7 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
                   <MediaChatInput
                     readonly={false}
                     query={query}
-                    setQuery={setQuery}
+                    setQuery={setCanvasQuery}
                     showChatModeSelector
                   />
                 </div>
@@ -136,7 +190,7 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
                       )}
                       readonly={false}
                       query={query}
-                      setQuery={setQuery}
+                      setQuery={setCanvasQuery}
                       handleSendMessage={handleSendMessage}
                       maxRows={6}
                       inputClassName="px-3 pt-5 pb-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -163,8 +217,8 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
                           type="primary"
                           icon={<Send size={20} />}
                           onClick={handleSendMessage}
-                          disabled={isCreating || !query?.trim()}
-                          loading={isCreating}
+                          disabled={isExecuting || !query?.trim()}
+                          loading={isExecuting}
                         />
                       </div>
                     </div>
