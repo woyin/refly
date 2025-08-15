@@ -2,20 +2,20 @@ import { memo, useCallback, useMemo } from 'react';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { MyUploadItem } from './my-upload-item';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const MyUploadList = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
-  const { setParentType, setActiveNode, activeNode, searchKeyword } =
-    useCanvasResourcesPanelStoreShallow((state) => ({
-      setParentType: state.setParentType,
-      setActiveNode: state.setActiveNode,
-      activeNode: state.activeNode,
-      searchKeyword: state.searchKeyword,
-    }));
+  const { canvasId } = useCanvasContext();
+  const { setParentType, searchKeyword } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setParentType: state.setParentType,
+    searchKeyword: state.searchKeyword,
+  }));
+  const { activeNode, setActiveNode } = useActiveNode(canvasId);
 
   // Filter nodes by resource type
   const resourceNodes = useMemo(() => {

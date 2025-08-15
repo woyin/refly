@@ -21,15 +21,10 @@ export const TemplatesGuide = ({ canvasId }: { canvasId: string }) => {
     setShowTemplates: state.setShowTemplates,
   }));
   const { data, refetch } = useListCanvasTemplates({
-    // TODO: add search
-    query: { page: 1, pageSize: 3 },
+    query: { page: 1, pageSize: 2 },
   });
 
   const debouncedRefetch = useDebouncedCallback(() => refetch(), 300);
-
-  // const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   setSearch(e.target.value);
-  // };
 
   useEffect(() => {
     debouncedRefetch();
@@ -42,15 +37,9 @@ export const TemplatesGuide = ({ canvasId }: { canvasId: string }) => {
   return (
     showTemplates &&
     canvasTemplateEnabled && (
-      <div className="mt-20" style={{ pointerEvents: 'none' }}>
+      <div className="mt-10" style={{ pointerEvents: 'none' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* <Input
-              placeholder={t('template.searchPlaceholder')}
-              value={search}
-              onChange={handleSearchChange}
-              className="w-80"
-            /> */}
             {data?.data?.length === 0 && (
               <div className="text-gray-500 text-[14px]">{t('template.noRelatedTemplates')}</div>
             )}
@@ -66,7 +55,7 @@ export const TemplatesGuide = ({ canvasId }: { canvasId: string }) => {
         </div>
         <Divider className="mt-4 mb-2" />
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-1">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-1">
           {(data?.data?.length ?? 0) > 0 &&
             data?.data?.map((template) => (
               <div key={template.templateId} style={{ pointerEvents: 'auto' }}>

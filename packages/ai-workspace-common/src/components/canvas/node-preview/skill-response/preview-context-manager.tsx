@@ -27,7 +27,7 @@ const PreviewContextManagerComponent = (props: PreviewContextManagerProps) => {
   );
 
   return (
-    <div className="pb-2 flex flex-wrap content-start gap-1 w-full">{renderedContextItems}</div>
+    <div className="py-2 flex flex-wrap content-start gap-1 w-full">{renderedContextItems}</div>
   );
 };
 

@@ -694,7 +694,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       <MemoizedMiniMap
         position="bottom-left"
         style={miniMapStyles}
-        className="bg-white/80 dark:bg-gray-900/80 w-[140px] h-[92px] !mb-[46px] !ml-[10px] rounded-lg shadow-refly-m p-2 [&>svg]:w-full [&>svg]:h-full"
+        className="bg-white/80 dark:bg-gray-900/80 w-[140px] h-[92px] !mb-2 !ml-2 rounded-lg shadow-refly-m p-2 [&>svg]:w-full [&>svg]:h-full"
         zoomable={false}
         pannable={false}
         nodeComponent={MiniMapNode}
