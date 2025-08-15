@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useReactFlow } from '@xyflow/react';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const ResourceItemAction = ({
@@ -18,14 +18,11 @@ export const ResourceItemAction = ({
   className?: string;
 }) => {
   const { t } = useTranslation();
-  const { readonly } = useCanvasContext();
+  const { readonly, canvasId } = useCanvasContext();
   const { setNodeCenter } = useNodePosition();
   const { getNodes } = useReactFlow();
   const { deleteNode } = useDeleteNode();
-  const { activeNode, setActiveNode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    activeNode: state.activeNode,
-    setActiveNode: state.setActiveNode,
-  }));
+  const { activeNode, setActiveNode } = useActiveNode(canvasId);
   const handleLocateNode = (node: CanvasNode) => {
     if (node?.type === 'group') {
       return;

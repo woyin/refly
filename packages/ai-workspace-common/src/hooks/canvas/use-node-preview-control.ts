@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import {
   useCanvasResourcesPanelStoreShallow,
+  useActiveNode,
   useCanvasStore,
   useCanvasStoreShallow,
 } from '@refly/stores';
@@ -49,8 +50,8 @@ export const useNodePreviewControl = ({
     nodePreviews: state.config[canvasId]?.nodePreviews || [],
     canvasInitialized: state.canvasInitialized[canvasId],
   }));
-  const { setActiveNode, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setActiveNode: state.setActiveNode,
+  const { setActiveNode } = useActiveNode(canvasId);
+  const { setSidePanelVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
     setSidePanelVisible: state.setSidePanelVisible,
   }));
 

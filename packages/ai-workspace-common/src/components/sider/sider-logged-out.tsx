@@ -59,7 +59,7 @@ export const SiderLoggedOut = (props: { source: 'sider' | 'popover' }) => {
         <div className="p-4 pt-6">
           <SiderLogo
             source={source}
-            navigate={source === 'sider' ? (path) => navigate(path) : undefined}
+            navigate={(path) => navigate(path)}
             collapse={collapse}
             setCollapse={setCollapse}
           />
