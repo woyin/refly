@@ -139,6 +139,7 @@ export class ProviderService implements OnModuleInit {
         providerId: {
           in: providers.map((provider) => provider.providerId),
         },
+        enabled: true,
         uid: null,
         deletedAt: null,
       },
@@ -533,10 +534,13 @@ export class ProviderService implements OnModuleInit {
     // Get global items once instead of calling cache multiple times
     const { items: globalItems } = await this.globalProviderCache.get();
 
+    const globalProviderIds = new Set<string>();
+
     // Create a lookup map for global items to avoid O(n) search for each item
     const globalItemsMap = new Map<string, ProviderItemModel>();
 
     for (const globalItem of globalItems) {
+      globalProviderIds.add(globalItem.providerId);
       try {
         const config = JSON.parse(globalItem.config || '{}');
         const key = `${globalItem.providerId}:${config.modelId}`;
@@ -552,17 +556,20 @@ export class ProviderService implements OnModuleInit {
 
     // Process all items in a single pass
     for (const item of items) {
-      try {
-        const config = JSON.parse(item.config || '{}');
-        const key = `${item.providerId}:${config.modelId}`;
-        const sourceGlobalProviderItem = globalItemsMap.get(key);
-
-        if (sourceGlobalProviderItem) {
-          creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
-        }
-      } catch (error) {
-        this.logger.warn(`Failed to parse config for item ${item.itemId}: ${error?.message}`);
+      // Skip items that are not from global providers
+      if (!globalProviderIds.has(item.providerId)) {
+        continue;
       }
+
+      const config = safeParseJSON(item.config || '{}');
+      const key = `${item.providerId}:${config.modelId}`;
+      const sourceGlobalProviderItem = globalItemsMap.get(key);
+
+      if (!sourceGlobalProviderItem?.creditBilling) {
+        throw new Error(`No valid credit billing config found for global item ${item.itemId}`);
+      }
+
+      creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
     }
 
     return creditBillingMap;
@@ -938,7 +945,7 @@ export class ProviderService implements OnModuleInit {
     // If found in user preferences, try to use it
     if (itemId) {
       const providerItem = await this.prisma.providerItem.findUnique({
-        where: { itemId, deletedAt: null },
+        where: { itemId, enabled: true, deletedAt: null },
       });
       if (providerItem && (providerItem.uid === user.uid || !providerItem.uid)) {
         return providerItem;
