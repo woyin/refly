@@ -4,7 +4,10 @@ import { useMemo, memo, useState, useCallback, useEffect, useRef } from 'react';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
+import {
+  ChatActions,
+  CustomAction,
+} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import {
   ModelInfo,
   Skill,
@@ -23,6 +26,7 @@ import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { useUpdateNodeQuery } from '@refly-packages/ai-workspace-common/hooks/use-update-node-query';
 import { useActionResultStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { Undo } from 'refly-icons';
 
 interface EditChatInputProps {
   enabled: boolean;
@@ -307,10 +311,10 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     }
   };
 
-  const _customActions: CustomAction[] = useMemo(
+  const customActions: CustomAction[] = useMemo(
     () => [
       {
-        icon: <GrRevert className="flex items-center" />,
+        icon: <Undo className="flex items-center" />,
         title: t('copilot.chatActions.discard'),
         onClick: async () => {
           setEditMode(false);
@@ -420,6 +424,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         onUploadImage={handleImageUpload}
         contextItems={editContextItems}
         form={form}
+        customActions={customActions}
       />
     </div>
   );
