@@ -561,8 +561,12 @@ export class ProviderService implements OnModuleInit {
         continue;
       }
 
-      const config = safeParseJSON(item.config || '{}');
-      const key = `${item.providerId}:${config.modelId}`;
+      const config = safeParseJSON(item.config || '{}') ?? {};
+      const modelId = (config as any).modelId;
+      if (!modelId) {
+        throw new Error(`Missing modelId in config for global item ${item.itemId}`);
+      }
+      const key = `${item.providerId}:${modelId}`;
       const sourceGlobalProviderItem = globalItemsMap.get(key);
 
       if (!sourceGlobalProviderItem?.creditBilling) {
