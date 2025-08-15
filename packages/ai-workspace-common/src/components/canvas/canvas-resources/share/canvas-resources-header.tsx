@@ -146,10 +146,10 @@ export const CanvasResourcesHeader = memo(() => {
 
   return (
     <div className="w-full h-[65px] flex gap-2 items-center justify-between p-3 border-solid border-refly-Card-Border border-[1px] border-x-0 border-t-0">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center gap-1 min-w-0 flex-1">
         {sidePanelVisible && (
           <Tooltip title={t('canvas.toolbar.closeResourcesPanel')} arrow={false}>
-            <Button type="text" icon={<SideRight size={16} />} onClick={handleClose} />
+            <Button type="text" icon={<SideRight size={18} />} onClick={handleClose} />
           </Tooltip>
         )}
 
