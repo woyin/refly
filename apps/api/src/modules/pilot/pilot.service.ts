@@ -314,7 +314,7 @@ export class PilotService {
     user: User,
     sessionId: string,
     session?: PilotSession,
-    mode?: 'subtask' | 'summary' | 'finalOutput',
+    mode?: 'subtask' | 'summary',
   ) {
     if (mode === 'summary') {
       return this.runPilotSummary(user, sessionId, session, mode);
@@ -343,21 +343,6 @@ export class PilotService {
     );
 
     const { steps } = await this.getPilotSessionDetail(user, sessionId);
-    const latestSummarySteps =
-      steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') || [];
-
-    if (currentEpoch > maxEpoch - 1) {
-      this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
-
-      if (pilotSession.status !== 'finish') {
-        await this.prisma.pilotSession.update({
-          where: { sessionId },
-          data: { status: 'finish' },
-        });
-      }
-
-      return;
-    }
 
     this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
 
@@ -389,7 +374,7 @@ export class PilotService {
     const engine = new PilotEngine(
       agentModel,
       pilotSessionPO2DTO(pilotSession),
-      latestSummarySteps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
+      steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     );
     const rawSteps = await engine.run(canvasContentItems, 3, locale);
 
@@ -404,7 +389,13 @@ export class PilotService {
 
     const skills = this.skillService.listSkills(true);
 
+    const latestSummarySteps =
+      steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') || [];
     const contextEntityIds = latestSummarySteps.map(({ step }) => step.entityId);
+    const { context, history } = await this.buildContextAndHistory(
+      canvasContentItems,
+      contextEntityIds,
+    );
 
     for (const rawStep of rawSteps) {
       const stepId = genPilotStepID();
@@ -414,10 +405,11 @@ export class PilotService {
         continue;
       }
 
-      const { context, history } = await this.buildContextAndHistory(
+      const recommendedContext = await this.buildContextAndHistory(
         canvasContentItems,
-        contextEntityIds,
+        rawStep.contextItemIds,
       );
+
       const resultId = genActionResultID();
 
       // Prepare tplConfig based on skill type
@@ -512,8 +504,8 @@ export class PilotService {
         },
         modelName: chatModelId,
         modelItemId: chatPi.itemId,
-        context,
-        resultHistory: history,
+        context: recommendedContext.context,
+        resultHistory: recommendedContext.history,
         skillName: skill.name,
         selectedMcpServers: [],
       });
@@ -559,11 +551,7 @@ export class PilotService {
       true,
     );
 
-    const { steps } = await this.getPilotSessionDetail(user, sessionId);
-    const latestSubtaskSteps =
-      steps?.filter(({ step }) => step.epoch === currentEpoch && step.mode === 'subtask') || [];
-
-    if (currentEpoch > maxEpoch - 1) {
+    if (currentEpoch >= maxEpoch) {
       this.logger.log(`Pilot session ${sessionId} finished due to max epoch`);
 
       if (pilotSession.status !== 'finish') {
@@ -596,7 +584,12 @@ export class PilotService {
 
     const skills = this.skillService.listSkills(true);
 
-    const contextEntityIds = latestSubtaskSteps.map(({ step }) => step.entityId);
+    const { steps } = await this.getPilotSessionDetail(user, sessionId);
+
+    const recommendedContext = await this.buildContextAndHistory(
+      canvasContentItems,
+      steps.map(({ step }) => step.entityId),
+    );
 
     {
       const stepId = genPilotStepID();
@@ -605,6 +598,12 @@ export class PilotService {
         this.logger.warn('Skill commonQnA not found, skip this step');
         return;
       }
+
+      const { steps } = await this.getPilotSessionDetail(user, sessionId);
+      const latestSubtaskSteps =
+        steps?.filter(({ step }) => step.epoch === currentEpoch && step.mode === 'subtask') || [];
+
+      const contextEntityIds = latestSubtaskSteps.map(({ step }) => step.entityId);
 
       const { context, history } = await this.buildContextAndHistory(
         canvasContentItems,
@@ -695,8 +694,8 @@ export class PilotService {
         },
         modelName: chatModelId,
         modelItemId: chatPi.itemId,
-        context,
-        resultHistory: history,
+        context: recommendedContext.context,
+        resultHistory: recommendedContext.history,
         skillName: skill.name,
         selectedMcpServers: [],
       });

@@ -17,7 +17,7 @@ export function buildSummarySkillInput(params: {
   let stageFocus = '';
   if (progressRatio < 0.5) {
     stageFocus = `**EARLY STAGE**: Focus on answer completeness assessment for "${userQuestion}"`;
-  } else if (progressRatio < 0.8) {
+  } else if (progressRatio < 0.75) {
     stageFocus = `**MID STAGE**: Synthesize findings and evaluate answer reliability for "${userQuestion}"`;
   } else {
     stageFocus = `**LATE STAGE**: Finalize answer quality and prepare comprehensive progress report for "${userQuestion}"`;
@@ -26,7 +26,7 @@ export function buildSummarySkillInput(params: {
   const query = `SUMMARY TASK: Context organization and direct answer generation
 
 **TARGET**: "${userQuestion}"
-**PROGRESS**: Epoch ${currentEpoch + 1}/${maxEpoch + 1} (${Math.round(progressRatio * 100)}% complete)${subtaskListSection}
+**PROGRESS**: Epoch ${currentEpoch}/${maxEpoch} (${Math.round(progressRatio * 100)}% complete)${subtaskListSection}
 ${stageFocus}
 
 ## WORKFLOW

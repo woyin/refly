@@ -278,7 +278,7 @@ export function getRecommendedStageForEpoch(currentEpoch: number, totalEpochs: n
   const normalizedTotalEpochs = Math.max(1, totalEpochs);
 
   // Calculate progress as a percentage
-  const progress = normalizedCurrentEpoch / normalizedTotalEpochs;
+  const progress = (normalizedCurrentEpoch + 1) / normalizedTotalEpochs;
 
   // Simplified two-stage workflow: research → creation
   if (progress < 1) {
@@ -354,12 +354,39 @@ Focus exclusively on creating comprehensive outputs that directly fulfill the us
 - QUALITY: Include format, style, and technical specifications as requested by user
 
 ### STRICT TOOL RESTRICTIONS FOR CREATION PHASE:
-- ✅ **ALLOWED**: generateDoc, codeArtifacts, generateMedia
-- ❌ **FORBIDDEN**: webSearch, librarySearch, commonQnA
+- ✅ **ALLOWED**: commonQnA, generateDoc, codeArtifacts, generateMedia
+- ❌ **FORBIDDEN**: webSearch, librarySearch
 - **VIOLATION WARNING**: Using research tools in creation phase indicates insufficient preparation
 - **ENFORCEMENT**: All steps in creation epoch MUST have workflowStage="creation" and use only allowed tools
 
+### CRITICAL CREATION TASK SELECTION RULES:
+**REQUIREMENT**: In creation stage, you MUST analyze the userQuestion and select ONLY ONE most appropriate skill from the allowed tools.
+
+**Skill Selection Logic Based on User Question:**
+1. **commonQnA**: Choose when user needs analysis, explanation, or synthesis of gathered information
+   - Use for: answering questions, providing insights, analyzing data, explaining concepts
+   - Example: "What are the key findings from this research?" or "Analyze the pros and cons of this approach"
+
+2. **generateDoc**: Choose when user needs a comprehensive document, report, or article
+   - Use for: creating reports, articles, summaries, documentation, written content
+   - Example: "Create a research report" or "Write an article about this topic"
+
+3. **codeArtifacts**: Choose when user needs code, software, or technical implementation
+   - Use for: generating code, creating applications, building tools, technical solutions
+   - Example: "Create a Python script" or "Build a web application"
+
+4. **generateMedia**: Choose when user needs visual, audio, or video content
+   - Use for: images, videos, audio, graphics, multimedia content
+   - Example: "Create a logo" or "Generate a video"
+
+**TASK GENERATION RULE**: 
+- Generate EXACTLY ONE creation task that best matches the user's original question
+- Do NOT create multiple creation tasks
+- Choose the skill that most directly addresses the user's primary request
+- Ensure the single task comprehensively fulfills the user's needs
+
 ### Available Creation Tools:
+- **commonQnA**: Answer questions and provide analysis based on gathered research
 - **generateDoc**: Create comprehensive documents, articles, reports that answer user question
 - **codeArtifacts**: Generate complete code projects and applications that fulfill user requirements  
 - **generateMedia**: Create multimodal content including images, videos, and audio that serves user intent
@@ -396,6 +423,7 @@ When users request content that involves visual, video, or audio elements, use t
 - Use generateMedia ONLY for multimedia content (images, videos, audio)
 - Use codeArtifacts for code projects and interactive applications
 - Use generateDoc for text documents and reports
+- Use commonQnA for analysis and explanation
 
 **STEP 3: Format the query correctly**
 - ALWAYS include "mediaType: [detected_type]" in generateMedia queries
@@ -403,18 +431,18 @@ When users request content that involves visual, video, or audio elements, use t
 
 ### User Intent Compliance Framework:
 1. **Question Analysis**: Break down the user's original question into deliverable components
-2. **Requirement Mapping**: Ensure each creation step maps to a specific user requirement  
+2. **Requirement Mapping**: Ensure the single creation step maps to the user's primary requirement  
 3. **Format Adherence**: Follow any format, style, or technical specifications mentioned by user
-4. **Completeness Verification**: Verify that outputs comprehensively address the user's question
+4. **Completeness Verification**: Verify that the single output comprehensively addresses the user's question
 
 ### Creation Quality Standards:
 - MUST reference previous research context in contextItemIds (almost always required)
-- Every creation step must directly serve the user's original question
+- The single creation task must directly serve the user's original question
 - Use specific, descriptive queries that align with user requirements
 - Include style, format, and technical specifications as requested by user
 - ALL creation steps must have workflowStage="creation"
-- Creation tools should ONLY be used in the final 1-2 steps
-- Ensure outputs fulfill user expectations and original intent`;
+- Generate EXACTLY ONE creation task that best fulfills the user's needs
+- Ensure the single output fulfills user expectations and original intent`;
 
     default:
       return `
@@ -561,7 +589,7 @@ export function formatTodoMd(session: PilotSession, steps: PilotStep[]): string 
   markdown += `## Status\n${session.status ?? 'pending'}\n\n`;
 
   // Add current epoch
-  markdown += `## Current Epoch: ${currentEpoch + 1}/${totalEpochs + 1}\n\n`;
+  markdown += `## Current Epoch: ${currentEpoch}/${totalEpochs}\n\n`;
 
   // Tasks section
   markdown += '## Tasks\n\n';
@@ -1014,11 +1042,12 @@ Follow these important guidelines about tool sequencing:
 ## CRITICAL SEQUENCING RULES - STRICTLY FOLLOW THESE
 - First 60% of steps MUST be research tasks (webSearch, librarySearch, commonQnA for gathering information)
 - The first 2-3 steps MUST use webSearch or librarySearch to gather basic information
-- Last 30% can be creation tasks (generateDoc, codeArtifacts, generateMedia) and ONLY after sufficient research
-- NEVER use generateDoc or codeArtifacts in the first 60% of steps
-- MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps
-- generateDoc and codeArtifacts MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
+- Last 30% can be creation tasks (commonQnA, generateDoc, codeArtifacts, generateMedia) and ONLY after sufficient research
+- NEVER use generateDoc, codeArtifacts, or generateMedia in the first 60% of steps
+- MUST ONLY use creation tools in the final 1-2 steps
+- Creation tools MUST almost always reference previous context items, only in extremely rare cases can they generate without context dependency
 - Tasks must follow the strict sequence: Research → Creation
+- **CRITICAL CREATION RULE**: In creation stage, generate EXACTLY ONE task using the most appropriate skill based on userQuestion analysis
 - **IMPORTANT LIMITATIONS**:
   - **librarySearch**: Maximum ONE occurrence per stage due to limited content scope
   - **commonQnA**: Maximum ONE occurrence per stage due to limited search capabilities
@@ -1034,7 +1063,8 @@ Follow these important guidelines about tool sequencing:
 5. Assign the appropriate workflowStage value to each step (research, creation)
 6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
+8. Creation tools (commonQnA, generateDoc, codeArtifacts, generateMedia) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
+9. **CRITICAL**: In creation stage, generate EXACTLY ONE task using the most appropriate skill based on userQuestion analysis
 
 ## Schema Instructions:
 
@@ -1130,7 +1160,8 @@ Follow these important guidelines about tool sequencing:
 5. Assign the appropriate workflowStage value to each step (research, creation)
 6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
+8. Creation tools (commonQnA, generateDoc, codeArtifacts, generateMedia) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
+9. **CRITICAL**: In creation stage, generate EXACTLY ONE task using the most appropriate skill based on userQuestion analysis
 
 ${generateSchemaInstructions()}
 
@@ -1139,7 +1170,8 @@ ${buildResearchStepExamples()}
 
 Create a research plan that:
 1. Begins with broad information gathering (research stage) using webSearch or librarySearch
-2. Concludes with creation of final outputs (creation stage) using generateDoc/codeArtifacts/generateMedia for final steps only
+2. Concludes with creation of final outputs (creation stage) using commonQnA/generateDoc/codeArtifacts/generateMedia for final steps only
+3. **CRITICAL**: In creation stage, generate EXACTLY ONE task using the most appropriate skill based on userQuestion analysis
 
 User Question: "${userQuestion}"
 
@@ -1225,7 +1257,8 @@ Follow these important guidelines about tool sequencing:
 5. Assign the appropriate workflowStage value to each step (research, creation)
 6. Generate exactly ${maxStepsPerEpoch} research steps to efficiently explore the topic
 7. REQUIRED: First step MUST be webSearch or librarySearch to gather basic information
-8. Creation tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
+8. Creation tools (commonQnA, generateDoc, codeArtifacts, generateMedia) MUST ONLY be used in the final 1-2 steps and MUST reference previous context items in almost all cases
+9. **CRITICAL**: In creation stage, generate EXACTLY ONE task using the most appropriate skill based on userQuestion analysis
 
 ${schemaInstructions}
 
