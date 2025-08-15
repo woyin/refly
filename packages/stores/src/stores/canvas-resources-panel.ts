@@ -1,4 +1,5 @@
 import { CanvasNode } from '@refly/canvas-common';
+import { useCallback, useMemo } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
@@ -98,10 +99,14 @@ export const useCanvasResourcesPanelStoreShallow = <T>(
   return useCanvasResourcesPanelStore(useShallow(selector));
 };
 
-// Custom hook to get activeNode for a specific canvas
 export const useActiveNode = (canvasId: string) => {
-  return useCanvasResourcesPanelStoreShallow((state) => ({
-    activeNode: state.activeNodes[canvasId] ?? null,
-    setActiveNode: (node: CanvasNode | null) => state.setActiveNode(canvasId, node),
-  }));
+  const activeNode = useCanvasResourcesPanelStore((state) => state.activeNodes[canvasId] ?? null);
+  const setActiveNodeImpl = useCanvasResourcesPanelStore((state) => state.setActiveNode);
+
+  const setActiveNode = useCallback(
+    (node: CanvasNode | null) => setActiveNodeImpl(canvasId, node),
+    [canvasId, setActiveNodeImpl],
+  );
+
+  return useMemo(() => ({ activeNode, setActiveNode }), [activeNode, setActiveNode]);
 };

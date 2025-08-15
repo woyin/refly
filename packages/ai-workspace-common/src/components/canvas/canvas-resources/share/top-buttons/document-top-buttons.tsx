@@ -3,7 +3,7 @@ import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Share, Download, More, Location, Delete, Markdown, Doc1, Pdf } from 'refly-icons';
-import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode } from '@refly/stores';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { editorEmitter } from '@refly/utils/event-emitter/editor';
@@ -15,10 +15,7 @@ export const DocumentTopButtons = () => {
   const { canvasId } = useCanvasContext();
   const { setNodeCenter } = useNodePosition();
   const { deleteNode } = useDeleteNode();
-  const { setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setWideScreenVisible: state.setWideScreenVisible,
-    setParentType: state.setParentType,
-  }));
+
   const { activeNode } = useActiveNode(canvasId);
   const [isSharing, setIsSharing] = useState(false);
   const { readonly } = useCanvasContext();
@@ -134,9 +131,7 @@ export const DocumentTopButtons = () => {
   const handleDeleteNode = useCallback(() => {
     if (!activeNode) return;
     deleteNode(activeNode as any);
-    setWideScreenVisible(false);
-    setParentType(null);
-  }, [activeNode, deleteNode, setWideScreenVisible, setParentType]);
+  }, [activeNode, deleteNode]);
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [
@@ -182,7 +177,7 @@ export const DocumentTopButtons = () => {
             },
           ]),
     ];
-  }, [handleDeleteNode, handleLocateNode, t]);
+  }, [handleDeleteNode, handleLocateNode, handleShare, readonly, isSharing, t]);
 
   const DownloadMenu = (
     <Dropdown menu={{ items: exportMenuItems }} trigger={['click']} placement="bottomRight">

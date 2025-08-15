@@ -3,7 +3,7 @@ import type { MenuProps } from 'antd';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { More, Location, Delete } from 'refly-icons';
-import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode } from '@refly/stores';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -14,10 +14,7 @@ export const ResourceTopButtons = () => {
   const { activeNode } = useActiveNode(canvasId);
   const { setNodeCenter } = useNodePosition();
   const { deleteNode } = useDeleteNode();
-  const { setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setWideScreenVisible: state.setWideScreenVisible,
-    setParentType: state.setParentType,
-  }));
+
   const handleLocateNode = useCallback(() => {
     if (activeNode?.id) setNodeCenter(activeNode.id, true);
   }, [activeNode?.id, setNodeCenter]);
@@ -25,9 +22,7 @@ export const ResourceTopButtons = () => {
   const handleDeleteNode = useCallback(() => {
     if (!activeNode) return;
     deleteNode(activeNode as any);
-    setWideScreenVisible(false);
-    setParentType(null);
-  }, [activeNode, deleteNode, setWideScreenVisible, setParentType]);
+  }, [activeNode, deleteNode]);
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [

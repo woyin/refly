@@ -61,7 +61,16 @@ export const useDeleteNode = () => {
 
       return true;
     },
-    [setNodes, setEdges, t, activeNode?.id, setActiveNode],
+    [
+      setNodes,
+      setEdges,
+      t,
+      activeNode?.id,
+      setActiveNode,
+      wideScreenVisible,
+      setWideScreenVisible,
+      setParentType,
+    ],
   );
 
   const deleteNodes = useCallback(
