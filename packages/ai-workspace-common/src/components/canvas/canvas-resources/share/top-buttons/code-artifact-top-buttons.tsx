@@ -2,7 +2,7 @@ import { Button, Tooltip, message, Dropdown, Divider } from 'antd';
 import { Download, Share, More, Location, Delete } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo } from 'react';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
@@ -15,14 +15,12 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 
 export const CodeArtifactTopButtons = () => {
   const { t } = useTranslation();
-  const { readonly } = useCanvasContext();
-  const { activeNode, setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
-      activeNode: state.activeNode,
-      setWideScreenVisible: state.setWideScreenVisible,
-      setParentType: state.setParentType,
-    }),
-  );
+  const { readonly, canvasId } = useCanvasContext();
+  const { setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setWideScreenVisible: state.setWideScreenVisible,
+    setParentType: state.setParentType,
+  }));
+  const { activeNode } = useActiveNode(canvasId);
 
   const entityId = activeNode?.data?.entityId ?? '';
   const title = activeNode?.data?.title ?? 'Code Artifact';

@@ -3,17 +3,15 @@ import type { MenuProps } from 'antd';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { More, Location, Delete } from 'refly-icons';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const ResourceTopButtons = () => {
   const { t } = useTranslation();
-  const { readonly } = useCanvasContext();
-  const { activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    activeNode: state.activeNode,
-  }));
+  const { readonly, canvasId } = useCanvasContext();
+  const { activeNode } = useActiveNode(canvasId);
   const { setNodeCenter } = useNodePosition();
   const { deleteNode } = useDeleteNode();
   const { setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({

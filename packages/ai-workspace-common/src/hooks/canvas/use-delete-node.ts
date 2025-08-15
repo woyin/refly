@@ -4,19 +4,18 @@ import { useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
 import DeleteNodeMessageContent from '../../components/message/delete-node-message';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode } from '@refly/stores';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 interface DeleteNodeOptions {
   showMessage?: boolean;
 }
 
 export const useDeleteNode = () => {
+  const { canvasId } = useCanvasContext();
   const { setNodes, setEdges } = useReactFlow();
   const { t } = useTranslation();
-  const { setActiveNode, activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setActiveNode: state.setActiveNode,
-    activeNode: state.activeNode,
-  }));
+  const { setActiveNode, activeNode } = useActiveNode(canvasId);
 
   const deleteSingleNode = useCallback(
     (node: CanvasNode<any>, options: DeleteNodeOptions = {}) => {

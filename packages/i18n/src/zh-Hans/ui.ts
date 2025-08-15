@@ -1071,7 +1071,7 @@ const translations = {
     file: '文件',
   },
   canvas: {
-    emptyText: '双击画布打开菜单或选择',
+    emptyText: '双击画布打开菜单',
     shareNotFound: '画布不存在',
     shareNotFoundHint: '你尝试访问的共享画布无法找到。它可能已被删除，或者链接可能有误。',
     frontPageWelcome: '今天我能为您完成什么工作？',

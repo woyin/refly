@@ -4,7 +4,7 @@ import { CanvasNode } from '@refly/canvas-common';
 import { useTranslation } from 'react-i18next';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { EventDataNode } from 'antd/es/tree';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { Location, Delete } from 'refly-icons';
 import { useReactFlow } from '@xyflow/react';
@@ -83,13 +83,12 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
 export const StepList = memo(() => {
   const { t } = useTranslation();
   const { nodes, nodesSignature } = useRealtimeCanvasData();
-  const { setParentType, setActiveNode, activeNode, searchKeyword } =
-    useCanvasResourcesPanelStoreShallow((state) => ({
-      setParentType: state.setParentType,
-      setActiveNode: state.setActiveNode,
-      activeNode: state.activeNode,
-      searchKeyword: state.searchKeyword,
-    }));
+  const { canvasId } = useCanvasContext();
+  const { setParentType, searchKeyword } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setParentType: state.setParentType,
+    searchKeyword: state.searchKeyword,
+  }));
+  const { activeNode, setActiveNode } = useActiveNode(canvasId);
   const { setNodeCenter } = useNodePosition();
   const { getNodes } = useReactFlow();
   const { deleteNode } = useDeleteNode();

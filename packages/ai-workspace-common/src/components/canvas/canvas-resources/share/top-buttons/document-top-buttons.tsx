@@ -3,7 +3,7 @@ import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Share, Download, More, Location, Delete, Markdown, Doc1, Pdf } from 'refly-icons';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { editorEmitter } from '@refly/utils/event-emitter/editor';
@@ -12,15 +12,14 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 
 export const DocumentTopButtons = () => {
   const { t } = useTranslation();
+  const { canvasId } = useCanvasContext();
   const { setNodeCenter } = useNodePosition();
   const { deleteNode } = useDeleteNode();
-  const { activeNode, setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow(
-    (state) => ({
-      activeNode: state.activeNode,
-      setWideScreenVisible: state.setWideScreenVisible,
-      setParentType: state.setParentType,
-    }),
-  );
+  const { setWideScreenVisible, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setWideScreenVisible: state.setWideScreenVisible,
+    setParentType: state.setParentType,
+  }));
+  const { activeNode } = useActiveNode(canvasId);
   const [isSharing, setIsSharing] = useState(false);
   const { readonly } = useCanvasContext();
   const docId = activeNode?.data?.entityId ?? '';

@@ -15,7 +15,8 @@ interface CanvasResourcesPanelState {
   showLeftOverview: boolean;
   parentType: CanvasResourcesParentType | null;
   activeTab: CanvasResourcesParentType;
-  activeNode: CanvasNode | null;
+  // Change from single activeNode to map of canvasId to activeNode
+  activeNodes: Record<string, CanvasNode | null>;
   searchKeyword: string;
 
   // Methods
@@ -25,29 +26,32 @@ interface CanvasResourcesPanelState {
   setShowLeftOverview: (show: boolean) => void;
   setParentType: (type: CanvasResourcesParentType | null) => void;
   setActiveTab: (tab: CanvasResourcesParentType) => void;
-  setActiveNode: (node: CanvasNode | null) => void;
+  // Update setActiveNode to accept canvasId parameter
+  setActiveNode: (canvasId: string, node: CanvasNode | null) => void;
+  // Add helper method to get activeNode for a specific canvas
+  getActiveNode: (canvasId: string) => CanvasNode | null;
   setSearchKeyword: (keyword: string) => void;
 
   resetState: () => void;
 }
 
 const DEFAULT_PANEL_WIDTH = 480;
-
 const defaultState = {
-  panelWidth: DEFAULT_PANEL_WIDTH,
-  sidePanelVisible: false,
+  sidePanelVisible: true,
   wideScreenVisible: false,
   showLeftOverview: false,
   parentType: null,
   activeTab: 'stepsRecord' as const,
-  activeNode: null,
+  // Initialize activeNodes as empty object
   searchKeyword: '',
 };
 
 export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Default state
+      panelWidth: DEFAULT_PANEL_WIDTH,
+      activeNodes: {},
       ...defaultState,
 
       // Methods
@@ -57,7 +61,19 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
       setShowLeftOverview: (show: boolean) => set({ showLeftOverview: show }),
       setParentType: (type: CanvasResourcesParentType | null) => set({ parentType: type }),
       setActiveTab: (tab: CanvasResourcesParentType) => set({ activeTab: tab }),
-      setActiveNode: (node: CanvasNode | null) => set({ activeNode: node }),
+      // Update setActiveNode to handle canvasId
+      setActiveNode: (canvasId: string, node: CanvasNode | null) =>
+        set((state) => ({
+          activeNodes: {
+            ...state.activeNodes,
+            [canvasId]: node,
+          },
+        })),
+      // Add helper method to get activeNode for a specific canvas
+      getActiveNode: (canvasId: string) => {
+        const state = get();
+        return state.activeNodes[canvasId] ?? null;
+      },
       setSearchKeyword: (keyword: string) => set({ searchKeyword: keyword }),
       resetState: () => set(defaultState),
     }),
@@ -65,7 +81,8 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
       name: 'canvas-resources-panel-storage',
       partialize: (state) => ({
         activeTab: state.activeTab,
-        activeNode: state.activeNode,
+        // Persist activeNodes for all canvases
+        activeNodes: state.activeNodes,
         parentType: state.parentType,
         panelWidth: state.panelWidth,
         sidePanelVisible: state.sidePanelVisible,
@@ -79,4 +96,12 @@ export const useCanvasResourcesPanelStoreShallow = <T>(
   selector: (state: CanvasResourcesPanelState) => T,
 ) => {
   return useCanvasResourcesPanelStore(useShallow(selector));
+};
+
+// Custom hook to get activeNode for a specific canvas
+export const useActiveNode = (canvasId: string) => {
+  return useCanvasResourcesPanelStoreShallow((state) => ({
+    activeNode: state.activeNodes[canvasId] ?? null,
+    setActiveNode: (node: CanvasNode | null) => state.setActiveNode(canvasId, node),
+  }));
 };

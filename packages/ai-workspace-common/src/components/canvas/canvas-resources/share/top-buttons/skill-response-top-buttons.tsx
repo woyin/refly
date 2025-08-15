@@ -9,7 +9,7 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useMemo, useCallback, useState } from 'react';
 import { Delete, Doc, Location } from 'refly-icons';
-import { useActionResultStoreShallow } from '@refly/stores';
+import { useActiveNode, useActionResultStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { parseMarkdownCitationsAndCanvasTags } from '@refly/utils/parse';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
@@ -27,7 +27,7 @@ interface SkillResponseTopButtonsProps {
 }
 export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) => {
   const { t } = useTranslation();
-  const { readonly } = useCanvasContext();
+  const { readonly, canvasId } = useCanvasContext();
 
   const resultId = node?.data?.entityId ?? '';
   const { result } = useActionResultStoreShallow((state) => ({
@@ -39,12 +39,11 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   const { removeLinearThreadMessageByNodeId } = useCanvasStore((state) => ({
     removeLinearThreadMessageByNodeId: state.removeLinearThreadMessageByNodeId,
   }));
-  const { setActiveNode, setParentType, setWideScreenVisible } =
-    useCanvasResourcesPanelStoreShallow((state) => ({
-      setActiveNode: state.setActiveNode,
-      setParentType: state.setParentType,
-      setWideScreenVisible: state.setWideScreenVisible,
-    }));
+  const { setParentType, setWideScreenVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setParentType: state.setParentType,
+    setWideScreenVisible: state.setWideScreenVisible,
+  }));
+  const { setActiveNode } = useActiveNode(canvasId);
   const [isSharing, setIsSharing] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
