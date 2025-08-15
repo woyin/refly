@@ -134,6 +134,7 @@ export class CanvasSyncService {
       const state = initEmptyCanvasState();
       state.nodes = doc?.getArray('nodes').toJSON() ?? [];
       state.edges = doc?.getArray('edges').toJSON() ?? [];
+      state.workflow = doc?.getMap('workflow').toJSON() ?? { variables: [] };
 
       const stateStorageKey = await this.saveState(canvasId, state);
 
@@ -428,6 +429,8 @@ export class CanvasSyncService {
 
       const lastTransaction = getLastTransaction(finalState);
 
+      const workflowVariables = await this.getWorkflowVariables(user, { canvasId });
+
       const canvasData = getCanvasDataFromState(state);
       const newState: CanvasState = {
         ...canvasData,
@@ -441,6 +444,9 @@ export class CanvasSyncService {
             hash: hash(state),
           },
         ],
+        workflow: {
+          variables: workflowVariables,
+        },
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };

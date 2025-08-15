@@ -158,6 +158,8 @@ export class CanvasService {
 
     const { nodes, edges } = await this.canvasSyncService.getCanvasData(user, { canvasId }, canvas);
 
+    const workflowVariables = await this.canvasSyncService.getWorkflowVariables(user, { canvasId });
+
     const libEntityNodes = nodes.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
     );
@@ -275,6 +277,9 @@ export class CanvasService {
       ...initEmptyCanvasState(),
       nodes,
       edges,
+      workflow: {
+        variables: workflowVariables,
+      },
     };
     const stateStorageKey = await this.canvasSyncService.saveState(newCanvasId, newState);
 
