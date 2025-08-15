@@ -30,6 +30,10 @@
     font-size: 12px !important;
     color: var(--refly-text-3) !important;
   }
+
+  .ant-select-selection-item-content {
+    margin-inline-end: 0 !important;
+  }
 }
 
 .show-language-select {
