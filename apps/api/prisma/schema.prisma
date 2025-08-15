@@ -254,7 +254,7 @@ model PilotStep {
   /// Raw step output from LLM
   rawOutput  String?  @map("raw_output")
   /// Divergent node fields
-  mode             String?  @default("subtask") @map("mode")
+  mode       String?  @default("subtask") @map("mode")
   /// Create timestamp
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -885,8 +885,6 @@ model Provider {
   apiKey      String?        @map("api_key")
   /// Provider base URL
   baseUrl     String?        @map("base_url")
-  /// Extra parameters (JSON)
-  extraParams String?        @map("extra_params")
   /// Whether the provider is enabled
   enabled     Boolean        @default(true) @map("enabled")
   /// Create timestamp

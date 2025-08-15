@@ -3,7 +3,6 @@ import { PrismaService } from '../common/prisma.service';
 import {
   ActionResult,
   SkillContext,
-  SkillInput,
   User,
   CreatePilotSessionRequest,
   UpdatePilotSessionRequest,
@@ -613,28 +612,25 @@ export class PilotService {
       );
       const resultId = genActionResultID();
 
+      const input = buildSummarySkillInput({
+        userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
+        currentEpoch,
+        maxEpoch,
+        subtaskTitles:
+          latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ?? [],
+      });
+
       const actionResult = await this.prisma.actionResult.create({
         data: {
           uid: user.uid,
           resultId,
-          title: 'Summary',
+          title: input.query,
           actionMeta: JSON.stringify({
             type: 'skill',
             name: skill.name,
             icon: skill.icon,
           } as ActionMeta),
-          input: JSON.stringify(
-            buildSummarySkillInput({
-              userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
-              currentEpoch,
-              maxEpoch,
-
-              subtaskTitles:
-                latestSubtaskSteps
-                  ?.map(({ actionResult }) => actionResult?.title)
-                  ?.filter(Boolean) ?? [],
-            }) as SkillInput,
-          ),
+          input: JSON.stringify(input),
           status: 'waiting',
           targetId,
           targetType,
@@ -653,7 +649,7 @@ export class PilotService {
       await this.prisma.pilotStep.create({
         data: {
           stepId,
-          name: 'Summary',
+          name: input.query,
           sessionId,
           epoch: currentEpoch,
           entityId: actionResult.resultId,
@@ -673,7 +669,7 @@ export class PilotService {
           {
             type: 'skillResponse',
             data: {
-              title: 'Summary',
+              title: input.query,
               entityId: resultId,
               metadata: {
                 status: 'executing',
@@ -692,14 +688,7 @@ export class PilotService {
 
       await this.skillService.sendInvokeSkillTask(user, {
         resultId,
-        input: buildSummarySkillInput({
-          userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
-          currentEpoch,
-          maxEpoch,
-          subtaskTitles:
-            latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ??
-            [],
-        }),
+        input: input,
         target: {
           entityId: targetId,
           entityType: targetType as EntityType,
