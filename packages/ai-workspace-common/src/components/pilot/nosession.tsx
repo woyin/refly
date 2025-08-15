@@ -12,6 +12,9 @@ import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canva
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
 import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
+import { genActionResultID } from '@refly/utils/id';
 
 /**
  * NoSession
@@ -44,6 +47,9 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
     isLogin: state.isLogin,
   }));
   const isPilotActivated = useMemo(() => chatMode === 'agent', [chatMode]);
+  const { addNode } = useAddNode();
+  const { invokeAction } = useInvokeAction({ source: 'nosession-ask' });
+
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
 
@@ -52,12 +58,59 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
     });
 
     setIsExecuting(true);
-    debouncedCreateCanvas('front-page', {
-      isPilotActivated: chatMode === 'agent',
-      isAsk: chatMode === 'ask',
-    });
-  }, [query, debouncedCreateCanvas, chatMode]);
-  console.log('canvasId', canvasId);
+
+    if (chatMode === 'ask' && canvasId) {
+      const resultId = genActionResultID();
+      invokeAction(
+        {
+          query,
+          resultId,
+          selectedSkill: undefined,
+          modelInfo: skillSelectedModel,
+          tplConfig: {},
+          runtimeConfig: {},
+        },
+        {
+          entityId: canvasId,
+          entityType: 'canvas',
+        },
+      );
+      addNode({
+        type: 'skillResponse',
+        data: {
+          title: query,
+          entityId: resultId,
+          metadata: {
+            status: 'executing',
+            selectedSkill: undefined,
+            modelInfo: skillSelectedModel,
+            runtimeConfig: {},
+            tplConfig: {},
+            structuredData: {
+              query,
+            },
+          },
+        },
+      });
+      setQuery('');
+      setIsExecuting(false);
+    } else {
+      debouncedCreateCanvas('front-page', {
+        isPilotActivated: chatMode === 'agent',
+        isAsk: chatMode === 'ask',
+      });
+    }
+  }, [
+    query,
+    debouncedCreateCanvas,
+    chatMode,
+    canvasId,
+    addNode,
+    invokeAction,
+    skillSelectedModel,
+    setQuery,
+  ]);
+
   return (
     <div className={cn('flex bg-refly-bg-content-z2 overflow-y-auto rounded-lg')}>
       <div className={cn('relative w-full max-w-4xl mx-auto z-10', 'flex flex-col justify-center')}>
