@@ -6,7 +6,6 @@ import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
 import { NodeHeader } from './shared/node-header';
 import { HiExclamationTriangle } from 'react-icons/hi2';
-import { Audio } from 'refly-icons';
 import {
   nodeActionEmitter,
   createNodeEventName,
@@ -258,8 +257,7 @@ export const AudioNode = memo(
             {showTitle && (
               <NodeHeader
                 title={data.title}
-                Icon={Audio}
-                iconBgColor="#F93920"
+                type="audio"
                 canEdit={!readonly}
                 updateTitle={onTitleChange}
               />

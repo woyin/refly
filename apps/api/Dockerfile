@@ -9,6 +9,9 @@ RUN npm install -g pnpm
 ENV npm_config_gyp_ignore=true
 ENV CYPRESS_INSTALL_BINARY=0
 
+# Set node options to increase memory limit
+ENV NODE_OPTIONS='--max_old_space_size=8192'
+
 # Copy all necessary files in one layer
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json ./
 COPY apps/api/package.json ./apps/api/

@@ -667,9 +667,17 @@ export function SlideshowEdit(props: PageEditProps) {
         onCancel={togglePreviewMode}
         width="100%"
         style={{ top: 0, padding: 0, maxWidth: '100vw' }}
-        bodyStyle={{ height: '100vh', padding: 0, overflow: 'hidden' }}
+        styles={{
+          body: {
+            height: '100vh',
+            padding: 0,
+            overflow: 'hidden',
+          },
+          mask: {
+            background: 'rgba(0, 0, 0, 0.85)',
+          },
+        }}
         className="preview-modal"
-        maskStyle={{ background: 'rgba(0, 0, 0, 0.85)' }}
         wrapClassName="preview-modal-wrap"
       >
         <div className="bg-black h-full w-full flex flex-col">
@@ -786,17 +794,19 @@ export function SlideshowEdit(props: PageEditProps) {
         onCancel={handleCloseEmptyContentModal}
         footer={null}
         width={680}
-        bodyStyle={{
-          padding: 0,
-          maxHeight: '75vh',
-          overflow: 'hidden',
-          borderRadius: '0 0 8px 8px',
+        styles={{
+          body: {
+            padding: 0,
+            maxHeight: '75vh',
+            overflow: 'hidden',
+            borderRadius: '0 0 8px 8px',
+          },
         }}
         style={{ top: 20 }}
         className="empty-content-modal"
         maskClosable={true}
         centered={false}
-        destroyOnClose={true}
+        destroyOnHidden
         closeIcon={
           <CloseCircleOutlined className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" />
         }
@@ -904,11 +914,13 @@ export function SlideshowEdit(props: PageEditProps) {
         onCancel={handleCloseWideMode}
         width="85%"
         style={{ top: 20 }}
-        bodyStyle={{
-          maxHeight: 'calc(100vh - 100px)',
-          padding: 0,
-          overflow: 'hidden',
-          borderRadius: '8px',
+        styles={{
+          body: {
+            maxHeight: 'calc(100vh - 100px)',
+            padding: 0,
+            overflow: 'hidden',
+            borderRadius: '8px',
+          },
         }}
         className="wide-mode-modal"
         maskStyle={{ background: 'rgba(0, 0, 0, 0.65)' }}

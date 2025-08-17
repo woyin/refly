@@ -992,6 +992,10 @@ export const ResourceSchema = {
       description: 'Raw file storage key (used to download the file)',
       deprecated: true,
     },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to bind with',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',
@@ -1048,6 +1052,10 @@ export const DocumentSchema = {
     readOnly: {
       type: 'boolean',
       description: 'Whether this document is read-only',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to bind with',
     },
     createdAt: {
       type: 'string',
@@ -1878,6 +1886,10 @@ export const TokenUsageItemSchema = {
       type: 'string',
       description: 'Model provider',
     },
+    modelLabel: {
+      type: 'string',
+      description: 'Model label',
+    },
     inputTokens: {
       type: 'number',
       description: 'Input tokens',
@@ -1886,9 +1898,14 @@ export const TokenUsageItemSchema = {
       type: 'number',
       description: 'Output tokens',
     },
+    providerItemId: {
+      type: 'string',
+      description: 'Provider item ID',
+    },
     tier: {
       type: 'string',
       description: 'Model tier',
+      deprecated: true,
     },
   },
 } as const;
@@ -2082,6 +2099,10 @@ export const CodeArtifactSchema = {
     resultVersion: {
       type: 'number',
       description: 'Action result version',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to bind with',
     },
     createdAt: {
       type: 'string',
@@ -3136,6 +3157,10 @@ export const DuplicateDocumentRequestSchema = {
       type: 'string',
       description: 'Custom document title for the duplicate',
     },
+    canvasId: {
+      type: 'string',
+      description: 'Target canvas ID',
+    },
   },
 } as const;
 
@@ -3150,6 +3175,10 @@ export const DuplicateResourceRequestSchema = {
     title: {
       type: 'string',
       description: 'Custom resource title for the duplicate',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Target canvas ID',
     },
   },
 } as const;
@@ -3664,6 +3693,10 @@ export const UpsertResourceRequestSchema = {
       type: 'string',
       description: 'Project ID to bind with',
     },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to bind with',
+    },
     data: {
       description: 'Resource metadata',
       $ref: '#/components/schemas/ResourceMeta',
@@ -3853,6 +3886,10 @@ export const UpsertDocumentRequestSchema = {
     projectId: {
       type: 'string',
       description: 'Project ID to bind with',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to bind with',
     },
     readOnly: {
       type: 'boolean',
@@ -4298,6 +4335,10 @@ export const UpsertCodeArtifactRequestSchema = {
       type: 'number',
       description: 'Action result version',
     },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to bind with',
+    },
     previewStorageKey: {
       type: 'string',
       description: 'Code artifact preview storage key',
@@ -4360,6 +4401,21 @@ export const GetCodeArtifactDetailResponseSchema = {
       },
     },
   ],
+} as const;
+
+export const DuplicateCodeArtifactRequestSchema = {
+  type: 'object',
+  required: ['artifactId'],
+  properties: {
+    artifactId: {
+      type: 'string',
+      description: 'Code artifact ID to duplicate',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Target canvas ID',
+    },
+  },
 } as const;
 
 export const CreateShareRequestSchema = {
@@ -4461,6 +4517,10 @@ export const DuplicateShareRequestSchema = {
     projectId: {
       type: 'string',
       description: 'Project ID to duplicate the share to',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Target canvas ID',
     },
   },
 } as const;
@@ -6698,6 +6758,10 @@ export const ProviderSchema = {
       type: 'string',
       description: 'Provider API key (this will never be exposed to the frontend)',
     },
+    extraParams: {
+      type: 'string',
+      description: 'Provider-specific extra params (JSON string)',
+    },
   },
 } as const;
 
@@ -6721,6 +6785,10 @@ export const LLMModelConfigSchema = {
     maxOutput: {
       type: 'number',
       description: 'Model max output length (in tokens)',
+    },
+    disallowTemperature: {
+      type: 'boolean',
+      description: 'Whether the model disallow setting custom temperature',
     },
     capabilities: {
       description: 'Model capabilities',

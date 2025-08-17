@@ -36,16 +36,23 @@ async function bootstrap() {
     rawBody: true,
     bufferLogs: false,
   });
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
 
   const configService = app.get(ConfigService);
 
   process.on('uncaughtException', (err) => {
+    const stack = (err as Error)?.stack ?? String(err);
+    logger.error(`main process uncaughtException: ${stack}`);
     Sentry.captureException(err);
+    // Do not exit; keep the process alive. Investigate recurring errors via Sentry logs.
   });
 
   process.on('unhandledRejection', (err) => {
-    Sentry.captureException(err);
+    const message = (err as Error)?.stack ?? String(err);
+    logger.error(`main process unhandledRejection: ${message}`);
+    Sentry.captureException(err as any);
+    // Do not exit; keep the process alive. Investigate recurring errors via Sentry logs.
   });
 
   app.useBodyParser('json', { limit: '10mb' });

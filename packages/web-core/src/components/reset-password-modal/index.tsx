@@ -28,23 +28,32 @@ export const ResetPasswordModal = (props: {
   const { t } = useTranslation();
 
   const handleResetPassword = async () => {
-    const values = await form.validateFields();
+    let values: FormValues;
+    try {
+      values = await form.validateFields();
+    } catch (error) {
+      console.error('Error validating form fields', error);
+      return;
+    }
 
     setLoading(true);
-    const { data } = await getClient().createVerification({
-      body: {
-        email: values.email,
-        purpose: 'resetPassword',
-        password: values.password,
-      },
-    });
-    setLoading(false);
+    try {
+      const { data } = await getClient().createVerification({
+        body: {
+          email: values.email,
+          purpose: 'resetPassword',
+          password: values.password,
+        },
+      });
 
-    if (data?.success) {
-      authStore.setResetPasswordModalOpen(false);
-      authStore.setVerificationModalOpen(true);
-      authStore.setEmail(values.email);
-      authStore.setSessionId(data.data?.sessionId ?? null);
+      if (data?.success) {
+        authStore.setResetPasswordModalOpen(false);
+        authStore.setVerificationModalOpen(true);
+        authStore.setEmail(values.email);
+        authStore.setSessionId(data.data?.sessionId ?? null);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 

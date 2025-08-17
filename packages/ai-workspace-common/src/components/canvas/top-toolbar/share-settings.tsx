@@ -346,7 +346,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         onOpenChange={setOpen}
         trigger="click"
         placement="bottomLeft"
-        overlayInnerStyle={{ padding: 0, borderRadius: '12px', background: 'transparent' }}
+        styles={{ body: { padding: 0, borderRadius: '12px', background: 'transparent' } }}
         content={content}
         arrow={false}
       >

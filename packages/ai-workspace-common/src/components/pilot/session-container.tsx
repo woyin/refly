@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReactFlow } from '@xyflow/react';
-import { PilotSession, PilotStep } from '@refly/openapi-schema';
+import { PilotStep } from '@refly/openapi-schema';
 import { CanvasNode } from '@refly/canvas-common';
-import { Button, Skeleton, Tooltip, Popover, Empty, Divider, Progress } from 'antd';
+import { Empty } from 'antd';
+import { motion, AnimatePresence } from 'motion/react';
 import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
 import {
   useNodePosition,
@@ -11,146 +12,12 @@ import {
 } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { cn } from '@refly/utils/cn';
 import { PilotStepItem } from './pilot-step-item';
-import { SessionStatusTag } from './session-status-tag';
-import { PilotList } from './pilot-list';
-import {
-  IconClose,
-  IconPilot,
-  IconThreadHistory,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
-import { RiChatNewLine } from 'react-icons/ri';
-import { usePilotStoreShallow } from '@refly/stores';
-import { SessionChat } from './session-chat';
-
-const SessionHeader = memo(
-  ({
-    canvasId,
-    session,
-    steps,
-    onClose,
-    onSessionClick,
-  }: {
-    canvasId: string;
-    session: PilotSession;
-    steps: PilotStep[];
-    onClose: () => void;
-    onSessionClick: (sessionId: string) => void;
-  }) => {
-    const { t } = useTranslation();
-    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
-    const handleSessionClick = useCallback(
-      (sessionId: string) => {
-        onSessionClick(sessionId);
-        setIsHistoryOpen(false);
-      },
-      [onSessionClick],
-    );
-
-    return (
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-[#0078FF] shadow-lg flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-medium flex items-center justify-center">
-              <IconPilot className="w-4 h-4" />
-            </span>
-          </div>
-          <span className="text-sm font-medium leading-normal max-w-[220px] truncate">
-            {session?.title || t('pilot.newSession')}
-          </span>
-          {session?.status && (
-            <SessionStatusTag status={session?.status} className="h-5 flex items-center" />
-          )}
-        </div>
-
-        <div className="flex items-center gap-1">
-          {steps.length > 0 && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <Progress
-                type="circle"
-                percent={Math.round(
-                  (steps.filter((step) => step.status === 'finish').length / steps.length) * 100,
-                )}
-                size={14}
-                strokeColor="#0E9F77"
-              />
-              <div className="text-xs font-medium flex items-center">
-                {steps.filter((step) => step.status === 'finish').length} / {steps.length}
-              </div>
-              <Divider type="vertical" className="h-5 mx-1" />
-            </div>
-          )}
-          <Tooltip title={t('pilot.newSession')}>
-            <Button
-              type="text"
-              size="small"
-              className="flex items-center justify-center p-0 !w-7 h-7 text-gray-500 hover:text-gray-600 min-w-0"
-              icon={<RiChatNewLine className="w-4 h-4" />}
-              onClick={() => handleSessionClick('')}
-            />
-          </Tooltip>
-          <Popover
-            open={isHistoryOpen}
-            onOpenChange={setIsHistoryOpen}
-            placement="bottomRight"
-            trigger="click"
-            getPopupContainer={() => document.body}
-            arrow={false}
-            content={
-              <PilotList
-                show={isHistoryOpen}
-                limit={10}
-                targetId={canvasId}
-                targetType="canvas"
-                onSessionClick={(session) => handleSessionClick(session.sessionId)}
-              />
-            }
-          >
-            <Tooltip title={t('pilot.sessionHistory', { defaultValue: 'Session History' })}>
-              <Button
-                type="text"
-                size="small"
-                className={`flex items-center justify-center p-0 !w-7 h-7 ${isHistoryOpen ? 'text-primary-600' : 'text-gray-500 hover:text-gray-600'} min-w-0`}
-                icon={<IconThreadHistory className="w-4 h-4" />}
-                onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-              />
-            </Tooltip>
-          </Popover>
-          <Button
-            type="text"
-            size="small"
-            className="flex items-center justify-center p-0 w-7 h-7 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 min-w-0"
-            onClick={onClose}
-          >
-            <IconClose className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  },
-);
-
-SessionHeader.displayName = 'SessionHeader';
-
-export const NoSession = memo(
-  ({ loading, error, canvasId }: { loading: boolean; error: boolean; canvasId: string }) => {
-    const { t } = useTranslation();
-    return (
-      <div className="p-4 bg-white dark:bg-gray-900 shadow h-full">
-        {loading && <Skeleton active paragraph={{ rows: 4 }} />}
-        {error && (
-          <p>{t('pilot.loadFailed', { defaultValue: 'Failed to load session details' })}</p>
-        )}
-        {!loading && !error && (
-          <div className="h-full">
-            <SessionChat canvasId={canvasId} />
-          </div>
-        )}
-      </div>
-    );
-  },
-);
-NoSession.displayName = 'NoSession';
+import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { useFrontPageStoreShallow, usePilotStoreShallow } from '@refly/stores';
+// import { SessionChat } from './session-chat';
+import { NoSession } from '@refly-packages/ai-workspace-common/components/pilot/nosession';
+import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
+import { Thinking } from 'refly-icons';
 
 // Define the active statuses that require polling
 const ACTIVE_STATUSES = ['executing', 'waiting'];
@@ -232,9 +99,13 @@ export const SessionContainer = memo(
     const [sessionStatus, setSessionStatus] = useState<string | null>(null);
     const { getNodes } = useReactFlow<CanvasNode<any>>();
 
-    const { setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
+    const { isPilotOpen, setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
+      isPilotOpen: state.isPilotOpen,
       setIsPilotOpen: state.setIsPilotOpen,
       setActiveSessionId: state.setActiveSessionId,
+    }));
+    const { query } = useFrontPageStoreShallow((state) => ({
+      query: state.query,
     }));
 
     const handleSessionClick = useCallback(
@@ -252,10 +123,11 @@ export const SessionContainer = memo(
           'flex-shrink-0',
           'bg-white dark:bg-gray-900',
           'border',
+          'dark:bg-refly-bg-content-z2',
           'border-gray-200 dark:border-gray-700',
           'flex',
           'flex-col',
-          'w-full h-full',
+          'w-full',
           'rounded-lg',
           className,
         ),
@@ -265,13 +137,13 @@ export const SessionContainer = memo(
     // Fetch the pilot session details
     const {
       data: sessionData,
-      isLoading,
-      error,
+      // isLoading,
+      // error,
     } = useGetPilotSessionDetail(
       {
         query: { sessionId },
       },
-      [],
+      undefined,
       {
         enabled: !!sessionId,
         refetchInterval: isPolling ? POLLING_INTERVAL : false,
@@ -285,9 +157,9 @@ export const SessionContainer = memo(
       return ACTIVE_STATUSES.includes(sessionStatus ?? '');
     }, [sessionStatus]);
 
-    const handleClose = useCallback(() => {
-      setIsPilotOpen(false);
-    }, [setIsPilotOpen]);
+    const handleClick = useCallback(() => {
+      setIsPilotOpen(!isPilotOpen);
+    }, [setIsPilotOpen, isPilotOpen]);
 
     const handleStepClick = useCallback(
       (step: PilotStep) => {
@@ -339,51 +211,131 @@ export const SessionContainer = memo(
         setIsPolling(false);
       }
     }, [shouldPoll, isPolling]);
-
     return (
       <div className={containerClassName}>
         {/* Header */}
-        {session && (
+        {/* {session && ( */}
+        <div className="pb-4">
           <SessionHeader
             canvasId={canvasId}
             session={session}
             steps={sortedSteps}
-            onClose={handleClose}
+            onClick={handleClick}
             onSessionClick={handleSessionClick}
           />
-        )}
+        </div>
+        {/* )} */}
 
-        {!session ? (
-          <NoSession loading={isLoading} error={!!error} canvasId={canvasId} />
-        ) : (
-          <div className="px-2 pb-2 flex-1 overflow-y-auto">
-            {sortedSteps.length > 0 ? (
-              <>
-                <div className="pl-1">
-                  {sortedSteps.map((step) => (
-                    <PilotStepItem key={step.stepId} step={step} onClick={handleStepClick} />
-                  ))}
-                </div>
-              </>
-            ) : session?.status === 'executing' ? (
-              <div className="mt-8 text-center py-4 text-gray-500 dark:text-gray-400">
-                <div className="flex justify-center items-center">
-                  <AnimatedPilotIcon className="w-12 h-12 mb-2" />
-                </div>
-                <p>
-                  {t('pilot.thinking')}
-                  <AnimatedEllipsis />
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <Empty
-                  description={t('pilot.noTasks', { defaultValue: 'No tasks available yet' })}
-                />
-              </div>
-            )}
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {!session ? (
+            <motion.div
+              key="no-session"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <NoSession canvasId={canvasId} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="session-content"
+              className="px-2 pb-2 flex-1 h-full w-full  max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            >
+              <AnimatePresence mode="wait">
+                {sortedSteps.length > 0 ? (
+                  <motion.div
+                    key="steps-list"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  >
+                    <motion.div
+                      className="px-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                    >
+                      {query}
+                    </motion.div>
+                    <div className="pl-1">
+                      {sortedSteps.map((step, index) => (
+                        <motion.div
+                          key={step.stepId}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            duration: 0.2,
+                            delay: index * 0.05,
+                            ease: 'easeOut',
+                          }}
+                        >
+                          <PilotStepItem step={step} onClick={handleStepClick} />
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : session?.status === 'executing' ? (
+                  <motion.div
+                    key="executing-state"
+                    className="flex flex-col h-full"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  >
+                    <motion.div
+                      className="px-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                    >
+                      {query}
+                    </motion.div>
+                    <motion.div
+                      className="flex flex-col h-full px-4 py-3"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.2 }}
+                    >
+                      <motion.div
+                        className="w-full bg-refly-bg-content-z2 rounded-lg py-3 flex items-center gap-2 border border-gray-100 bg-[#F4F4F4] dark:bg-gray-800"
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.2, delay: 0.3 }}
+                      >
+                        <div className="ml-2 w-5 h-5 flex items-center justify-center">
+                          <Thinking color="#76787B" className="w-4 h-4" />
+                        </div>
+                        <div className="text-sm text-center text-gray-500 font-normal">
+                          {t('pilot.status.understandingIntent')}
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="empty-state"
+                    className="flex items-center justify-center h-full"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  >
+                    <Empty
+                      description={t('pilot.noTasks', { defaultValue: 'No tasks available yet' })}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   },

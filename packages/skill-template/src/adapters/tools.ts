@@ -31,6 +31,23 @@ function getDebugLog() {
   return debugLog;
 }
 
+// Ensure Zod object schema marks all fields as required for stricter tool schema consumers (e.g., Azure OpenAI)
+function makeAllObjectFieldsRequired(schema: z.ZodTypeAny): z.ZodTypeAny {
+  if (schema instanceof z.ZodObject) {
+    const shape = (schema as z.ZodObject<Record<string, z.ZodTypeAny>>).shape;
+    const newShape: Record<string, z.ZodTypeAny> = {};
+    for (const key of Object.keys(shape)) {
+      const field = (shape as Record<string, z.ZodTypeAny>)[key];
+      // Unwrap optional fields to make them required
+      newShape[key] =
+        field instanceof z.ZodOptional ? (field as z.ZodOptional<any>).unwrap() : field;
+    }
+    // Use strict to reject unknown keys and align with tool invocation expectations
+    return z.object(newShape).strict();
+  }
+  return schema;
+}
+
 export type CallToolResultContentType = CallToolResult['content'][number]['type'];
 export type CallToolResultContent = TextContent | ImageContent | EmbeddedResource;
 
@@ -250,10 +267,16 @@ export async function loadMcpTools(
           try {
             const ss = JSONSchemaToZod.convert(tool.inputSchema) as any;
 
+            // Force all properties to be required for compatibility with providers enforcing full required lists
+            const requiredSchema = makeAllObjectFieldsRequired(ss as z.ZodTypeAny) as any;
+
             const dst = new DynamicStructuredTool({
               name: `${toolNamePrefix}${tool.name}`,
               description: tool.description || '',
-              schema: ss instanceof z.ZodObject || !!ss.strip ? ss.strip() : ss,
+              schema:
+                requiredSchema instanceof z.ZodObject || !!requiredSchema.strip
+                  ? (requiredSchema.strip?.() ?? requiredSchema)
+                  : requiredSchema,
               responseFormat: 'content_and_artifact',
               func: _callTool.bind(
                 null,

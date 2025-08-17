@@ -157,7 +157,7 @@ function PortalModal<T>({
         width={'100%'}
         open={visible}
         closable={false}
-        destroyOnClose
+        destroyOnHidden
         afterClose={afterClose}
         afterOpenChange={(v) => {
           if (!v) {
@@ -196,7 +196,7 @@ function PortalModal<T>({
         className={classNames(containerClassName)}
         autoFocus={false}
         open={visible}
-        destroyOnClose
+        destroyOnHidden
         title={renderSlot<T>(Title, slotProps)}
         afterClose={afterClose}
         placement="right"

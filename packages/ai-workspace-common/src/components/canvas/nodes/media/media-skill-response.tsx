@@ -153,8 +153,9 @@ const MediaSkillResponseNode = memo(
           // Get current node position before deletion
           const currentNode = getNode(id);
           const nodePosition = currentNode?.position || { x: 0, y: 0 };
+          const nodeMeta = currentNode?.data?.metadata as Record<string, unknown>;
 
-          const newNode = {
+          const newNode: Partial<CanvasNode<any>> = {
             type: mediaType as CanvasNodeType,
             data: {
               title: prompt,
@@ -162,6 +163,9 @@ const MediaSkillResponseNode = memo(
               metadata: {
                 [urlKey]: outputUrl,
                 storageKey,
+                prompt: nodeMeta?.prompt,
+                resultId: nodeMeta?.resultId,
+                selectedModel: nodeMeta?.selectedModel,
               },
             },
             position: nodePosition,

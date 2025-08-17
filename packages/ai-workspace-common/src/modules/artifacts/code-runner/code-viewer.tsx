@@ -1,27 +1,20 @@
-import { FiRefreshCw, FiDownload, FiCopy, FiCode, FiEye, FiShare2 } from 'react-icons/fi';
+import { Code, Treemenu, Copy, Reload } from 'refly-icons';
 
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Button, Tooltip, Divider, message, Select } from 'antd';
+import type { ReactNode } from 'react';
+import { Button, Tooltip, Divider, message, Select, Segmented } from 'antd';
 import Renderer from './render';
 import MonacoEditor from './monaco-editor';
 import { useTranslation } from 'react-i18next';
 import { CodeArtifactType } from '@refly/openapi-schema';
-import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
-import {
-  getFileExtensionFromType,
-  getArtifactTypeOptions,
-  getSimpleTypeDescription,
-} from '@refly/utils';
-import { GoColumns } from 'react-icons/go';
+import { getArtifactTypeOptions, getSimpleTypeDescription } from '@refly/utils';
 
 export default memo(
   function CodeViewer({
     code,
     language,
     title,
-    entityId,
+    entityId: _entityId,
     isGenerating,
     activeTab,
     onTabChange,
@@ -54,8 +47,7 @@ export default memo(
     const [refresh, setRefresh] = useState(0);
     // Track editor content for controlled updates
     const [editorContent, setEditorContent] = useState(code);
-    // Layout mode: 'tabs' (default) or 'split'
-    const [layoutMode, setLayoutMode] = useState<'tabs' | 'split'>('tabs');
+    // Removed layout mode. Always render single-view with tab switching
 
     // Update editor content when code prop changes
     useEffect(() => {
@@ -78,29 +70,7 @@ export default memo(
       [editorContent, t],
     );
 
-    const handleDownload = useCallback(
-      (event: React.MouseEvent) => {
-        event.stopPropagation();
-        const fileExtension = getFileExtensionFromType(type);
-        const fileName = `${title}.${fileExtension}`;
-        try {
-          const blob = new Blob([editorContent], { type: 'text/plain' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          message.success(t('codeArtifact.downloadSuccess', { fileName }));
-        } catch (error) {
-          console.error('Failed to download file:', error);
-          message.error(t('codeArtifact.downloadError'));
-        }
-      },
-      [type, editorContent, title, t],
-    );
+    // Download and Share actions are moved to CodeArtifactTopButtons
 
     // Handle content changes from editor
     const handleEditorChange = useCallback(
@@ -122,317 +92,124 @@ export default memo(
       [t],
     );
 
-    const getFileExtensionForLanguage = useMemo(
-      () =>
-        (lang: string): string => {
-          // First check if we have a type-specific extension
-          const typeExtension = getFileExtensionFromType(type);
-          if (typeExtension) {
-            return typeExtension;
-          }
-
-          // Fall back to language-based extension
-          const extensionMap: Record<string, string> = {
-            javascript: 'js',
-            typescript: 'ts',
-            python: 'py',
-            html: 'html',
-            css: 'css',
-            java: 'java',
-            csharp: 'cs',
-            php: 'php',
-            go: 'go',
-            ruby: 'rb',
-            rust: 'rs',
-            jsx: 'jsx',
-            tsx: 'tsx',
-            markdown: 'md',
-            xml: 'xml',
-          };
-
-          return extensionMap[lang.toLowerCase()] || 'txt';
-        },
-      [type],
-    );
-
-    const handleShare = useCallback(
-      async (event: React.MouseEvent) => {
-        event.stopPropagation();
-        const loadingMessage = message.loading(t('codeArtifact.sharing'), 0);
-
-        try {
-          // Create the share
-          const { data, error } = await getClient().createShare({
-            body: {
-              entityId,
-              entityType: 'codeArtifact',
-            },
-          });
-
-          if (!data?.success || error) {
-            throw new Error(typeof error === 'string' ? error : 'Failed to create share');
-          }
-
-          // Generate and copy the share link
-          const shareId = data.data?.shareId ?? '';
-          const shareLink = getShareLink('codeArtifact', shareId);
-
-          // Copy the sharing link to clipboard
-          copyToClipboard(shareLink);
-
-          // Clear loading message and show success
-          loadingMessage();
-          message.success(t('codeArtifact.shareSuccess'));
-        } catch (error) {
-          // Handle any errors that occurred during the process
-          loadingMessage();
-          console.error('Failed to share code:', error);
-          message.error(t('codeArtifact.shareError'));
-        }
-      },
-      [editorContent, type, title, language, t, entityId],
-    );
-
-    // Toggle layout mode between tabs and split
-    const toggleLayoutMode = useCallback(
-      (event: React.MouseEvent) => {
-        event.stopPropagation();
-        setLayoutMode((current) => (current === 'tabs' ? 'split' : 'tabs'));
-        message.info(
-          t(
-            layoutMode === 'tabs'
-              ? 'codeArtifact.layoutChanged.split'
-              : 'codeArtifact.layoutChanged.tabs',
+    // Memoize the segmented tabs for switching between preview and code
+    const segmentedOptions: { label: ReactNode; value: 'preview' | 'code' }[] = useMemo(
+      () => [
+        {
+          label: (
+            <Tooltip title={t('codeArtifact.tabs.preview')}>
+              <div className="flex items-center justify-center h-4">
+                <Treemenu size={16} color="var(--refly-text-0)" />
+              </div>
+            </Tooltip>
           ),
-        );
+          value: 'preview',
+        },
+        {
+          label: (
+            <Tooltip title={t('codeArtifact.tabs.code')}>
+              <div className="flex items-center justify-center h-4">
+                <Code size={16} color="var(--refly-text-0)" />
+              </div>
+            </Tooltip>
+          ),
+          value: 'code',
+        },
+      ],
+      [],
+    );
+
+    const handleSegmentChange = useCallback(
+      (value: string | number) => {
+        onTabChange?.(value as 'code' | 'preview');
       },
-      [layoutMode, t],
-    );
-
-    // Memoize the render tabs
-    const renderTabs = useMemo(
-      () => (
-        <div className="flex items-center space-x-3" onClick={(e) => e.stopPropagation()}>
-          {layoutMode === 'tabs' && (
-            <>
-              <Button
-                type={activeTab === 'preview' ? 'primary' : 'text'}
-                icon={<FiEye className="size-4 mr-1" />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTabChange?.('preview');
-                }}
-                className={`${activeTab === 'preview' ? 'bg-green-600 dark:bg-green-500' : 'text-gray-600 dark:text-gray-300'}`}
-                size="small"
-              >
-                {t('codeArtifact.tabs.preview')}
-              </Button>
-
-              <Button
-                type={activeTab === 'code' ? 'primary' : 'text'}
-                icon={<FiCode className="size-4 mr-1" />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTabChange?.('code');
-                }}
-                className={`${activeTab === 'code' ? 'bg-green-600 dark:bg-green-500' : 'text-gray-600 dark:text-gray-300'}`}
-                size="small"
-              >
-                {t('codeArtifact.tabs.code')}
-              </Button>
-            </>
-          )}
-
-          <Tooltip
-            title={
-              layoutMode === 'tabs' ? t('codeArtifact.layout.split') : t('codeArtifact.layout.tabs')
-            }
-          >
-            <Button
-              type="text"
-              icon={
-                <GoColumns
-                  className={`size-4 ${
-                    layoutMode === 'split'
-                      ? 'text-green-600 dark:text-green-300'
-                      : 'text-gray-600 dark:text-gray-300'
-                  }`}
-                />
-              }
-              onClick={toggleLayoutMode}
-              size="small"
-              className="hover:text-blue-600"
-            />
-          </Tooltip>
-        </div>
-      ),
-      [activeTab, onTabChange, t, layoutMode, toggleLayoutMode],
-    );
-
-    // Memoize action buttons
-    const actionButtons = useMemo(
-      () => (
-        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
-          <Tooltip title={t('codeArtifact.buttons.copy')}>
-            <Button
-              type="text"
-              icon={<FiCopy className="size-4" />}
-              onClick={handleCopyCode}
-              size="small"
-              className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-300"
-            />
-          </Tooltip>
-
-          <Tooltip
-            title={t('codeArtifact.buttons.download', {
-              fileName: `${title}.${getFileExtensionForLanguage(language)}`,
-            })}
-          >
-            <Button
-              type="text"
-              icon={<FiDownload className="size-4" />}
-              onClick={handleDownload}
-              size="small"
-              className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-300"
-            />
-          </Tooltip>
-        </div>
-      ),
-      [handleCopyCode, handleDownload, title, getFileExtensionForLanguage, language, t],
+      [onTabChange],
     );
 
     return (
       <div className="flex flex-col h-full border border-gray-200">
         {/* Top header with main tab navigation */}
-        <div className="flex items-center justify-between h-12 border-b border-gray-200 py-2 dark:bg-gray-900 dark:border-gray-700">
-          {renderTabs}
-
-          <div className="flex items-center space-x-2">
-            {!canvasReadOnly && (
-              <Tooltip title={t('codeArtifact.buttons.share')}>
-                <Button
-                  type="text"
-                  disabled={canvasReadOnly}
-                  icon={<FiShare2 className="size-4 text-green-600" />}
-                  onClick={handleShare}
-                  size="small"
-                  className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-300"
-                />
-              </Tooltip>
-            )}
-
-            <Tooltip title={t('codeArtifact.buttons.refresh')}>
-              <Button
-                type="text"
-                icon={<FiRefreshCw className="size-4" />}
-                onClick={handleRefresh}
-                disabled={isGenerating}
-                size="small"
-                className="text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-300"
-              />
-            </Tooltip>
-          </div>
-        </div>
-
-        <Divider className="my-0" style={{ margin: 0, height: '1px' }} />
-
-        {/* Breadcrumb and action buttons */}
-        <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between h-12 py-2 px-3 border-x-0 border-t-0 border-b-[1px] border-solid border-refly-Card-Border">
+          <div className="flex items-center gap-3">
+            <Segmented
+              shape="round"
+              size="small"
+              value={activeTab}
+              onChange={handleSegmentChange}
+              options={segmentedOptions}
+            />
+            <Divider type="vertical" className="h-4 bg-refly-Card-Border m-0" />
             {onTypeChange ? (
               <Select
                 value={type}
                 onChange={onTypeChange}
                 options={getArtifactTypeOptions()}
                 size="small"
-                className="w-32"
+                className="max-w-32"
                 popupMatchSelectWidth={false}
+                bordered={false}
               />
             ) : (
-              <span className="text-sm text-gray-500">{getSimpleTypeDescription(type)}</span>
+              <span className="text-sm text-refly-text-0">{getSimpleTypeDescription(type)}</span>
             )}
           </div>
 
-          {actionButtons}
+          <div className="flex items-center gap-2">
+            <Tooltip title={t('codeArtifact.buttons.copy')}>
+              <Button
+                type="text"
+                icon={<Copy size={16} color="var(--refly-text-0)" />}
+                onClick={handleCopyCode}
+                size="small"
+              />
+            </Tooltip>
+
+            <Tooltip title={t('codeArtifact.buttons.refresh')}>
+              <Button
+                type="text"
+                icon={<Reload size={16} color="var(--refly-text-0)" />}
+                onClick={handleRefresh}
+                disabled={isGenerating}
+                size="small"
+              />
+            </Tooltip>
+          </div>
         </div>
 
         {/* Content area */}
-        <div
-          className={`flex flex-grow overflow-auto ${layoutMode === 'split' ? 'flex-row' : 'flex-col'} rounded-md`}
-        >
-          {layoutMode === 'tabs' ? (
-            <>
-              {/* Tabs layout */}
-              {activeTab === 'code' ? (
-                <MonacoEditor
-                  content={editorContent}
-                  language={language}
-                  type={type as CodeArtifactType}
-                  readOnly={readOnly || isGenerating || canvasReadOnly}
-                  isGenerating={isGenerating}
-                  canvasReadOnly={canvasReadOnly}
-                  onChange={handleEditorChange}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  {language && (
-                    <div className="w-full h-full">
-                      <Renderer
-                        content={editorContent}
-                        type={type}
-                        key={refresh}
-                        title={title}
-                        language={language}
-                        onRequestFix={onRequestFix}
-                        onChange={
-                          type === 'application/refly.artifacts.mindmap'
-                            ? (newContent, _type) => handleEditorChange(newContent)
-                            : undefined
-                        }
-                        readonly={readOnly || canvasReadOnly}
-                        showActions={showActions}
-                      />
-                    </div>
-                  )}
+        <div className={'flex flex-grow overflow-auto flex-col rounded-md m-4'}>
+          {activeTab === 'code' ? (
+            <MonacoEditor
+              content={editorContent}
+              language={language}
+              type={type as CodeArtifactType}
+              readOnly={readOnly || isGenerating || canvasReadOnly}
+              isGenerating={isGenerating}
+              canvasReadOnly={canvasReadOnly}
+              onChange={handleEditorChange}
+            />
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              {language && (
+                <div className="w-full h-full">
+                  <Renderer
+                    content={editorContent}
+                    type={type}
+                    key={refresh}
+                    title={title}
+                    language={language}
+                    onRequestFix={onRequestFix}
+                    onChange={
+                      type === 'application/refly.artifacts.mindmap'
+                        ? (newContent, _type) => handleEditorChange(newContent)
+                        : undefined
+                    }
+                    readonly={readOnly || canvasReadOnly}
+                    showActions={showActions}
+                  />
                 </div>
               )}
-            </>
-          ) : (
-            <>
-              {/* Split layout */}
-              <div className="w-1/2 h-full border-r border-gray-200">
-                <MonacoEditor
-                  content={editorContent}
-                  language={language}
-                  type={type as CodeArtifactType}
-                  readOnly={readOnly || isGenerating || canvasReadOnly}
-                  isGenerating={isGenerating}
-                  canvasReadOnly={canvasReadOnly}
-                  onChange={handleEditorChange}
-                />
-              </div>
-              <div className="w-1/2 h-full overflow-auto">
-                {language && (
-                  <div className="w-full h-full">
-                    <Renderer
-                      content={editorContent}
-                      type={type}
-                      key={refresh}
-                      title={title}
-                      language={language}
-                      onRequestFix={onRequestFix}
-                      onChange={
-                        type === 'application/refly.artifacts.mindmap'
-                          ? (newContent, _type) => handleEditorChange(newContent)
-                          : undefined
-                      }
-                      readonly={readOnly || canvasReadOnly}
-                      showActions={showActions}
-                    />
-                  </div>
-                )}
-              </div>
-            </>
+            </div>
           )}
         </div>
       </div>

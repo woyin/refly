@@ -47,11 +47,13 @@ export const CreateTemplateModal = ({
     }
   };
 
-  const onSubmit = () => {
-    form.validateFields().then((values) => {
-      console.log(values);
-      createTemplate(values);
-    });
+  const onSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      await createTemplate(values);
+    } catch (error) {
+      console.error('Error validating form fields', error);
+    }
   };
 
   useEffect(() => {

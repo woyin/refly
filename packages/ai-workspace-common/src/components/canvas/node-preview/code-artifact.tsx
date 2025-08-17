@@ -53,7 +53,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
         artifactId,
       },
     },
-    [],
+    undefined,
     { enabled: Boolean(isLogin && !shareId && artifactId) },
   );
   const { data: shareData, loading: isShareLoading } = useFetchShareData<CodeArtifact>(shareId);
@@ -260,7 +260,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
   }
 
   return (
-    <div className="h-full bg-white rounded px-4 dark:bg-gray-900">
+    <div className="h-full rounded">
       <CodeViewerLayout isShowing={isShowingCodeViewer}>
         {isShowingCodeViewer && (
           <CodeViewer

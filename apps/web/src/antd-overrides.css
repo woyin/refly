@@ -1,5 +1,25 @@
 /* Ant Design Component Overrides */
 
+/* Direct CSS overrides for default button */
+.ant-btn-default {
+  color: var(--refly-text-0);
+  background-color: var(--refly-bg-control-z0);
+  border: solid 0.5px var(--refly-Card-Border);
+  font-weight: 600;
+}
+
+.ant-btn-default:hover {
+  color: var(--refly-text-0) !important;
+  background-color: var(--refly-tertiary-hover) !important;
+  border-color: var(--refly-Card-Border) !important;
+}
+
+.ant-btn-default:disabled {
+  color: var(--refly-text-3) !important;
+  background-color: var(--refly-bg-control-z0) !important;
+  border-color: var(--refly-Card-Border) !important;
+}
+
 /* Global styles to remove Ant Design button shadows */
 .ant-btn,
 .ant-btn:hover,
@@ -15,6 +35,10 @@
 .ant-btn-link,
 .ant-btn-text {
   box-shadow: none !important;
+}
+
+.ant-btn-variant-solid:disabled {
+  background: var(--refly-primary-disabled);
 }
 
 /* Dropdown menu styling */
@@ -59,15 +83,22 @@
   background-color: var(--refly-tertiary-hover) !important;
 }
 
+.ant-segmented .ant-segmented-item-selected:hover {
+  background-color: var(--refly-bg-control-z1) !important;
+}
+
 .ant-segmented .ant-segmented-item-label {
   color: var(--text-refly-text-0) !important;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
-  padding: 2px 8px;
+  padding: 4px 8px;
   min-height: unset;
   line-height: unset;
   border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ant-segmented .ant-segmented-item-selected {
@@ -78,7 +109,7 @@
 .ant-segmented .ant-segmented-item-selected .ant-segmented-item-label {
   color: var(--text-refly-text-0) !important;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   border-radius: 16px;
 }

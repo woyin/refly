@@ -112,7 +112,10 @@ export class ResultAggregator {
     const step = this.getOrInitData(meta.step?.name);
 
     step.content += content;
-    step.reasoningContent += reasoningContent;
+
+    if (reasoningContent) {
+      step.reasoningContent += reasoningContent;
+    }
 
     this.data[step.name] = step;
   }

@@ -1,13 +1,16 @@
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
-import { IconType } from 'react-icons';
 import { Input, Typography } from 'antd';
 import type { InputRef } from 'antd';
 import cn from 'classnames';
+import { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
+import { NodeIcon } from './node-icon';
+
 interface NodeHeaderProps {
   fixedTitle?: string;
   title: string;
-  Icon?: IconType | React.ComponentType<{ className?: string }>;
-  iconBgColor?: string;
+  type?: CanvasNodeType;
+  resourceType?: ResourceType;
+  resourceMeta?: ResourceMeta;
   canEdit?: boolean;
   source?: 'preview' | 'node';
   updateTitle?: (title: string) => void;
@@ -17,8 +20,9 @@ export const NodeHeader = memo(
   ({
     fixedTitle,
     title,
-    Icon,
-    iconBgColor = '#17B26A',
+    type,
+    resourceType,
+    resourceMeta,
     canEdit = false,
     updateTitle,
     source = 'node',
@@ -52,12 +56,7 @@ export const NodeHeader = memo(
     return (
       <div className={cn('flex-shrink-0', { 'mb-3': source === 'node' })}>
         <div className="flex items-center gap-2">
-          <div
-            className="w-6 h-6 rounded shadow-[0px_2px_4px_-2px_rgba(16,24,60,0.06),0px_4px_8px_-2px_rgba(16,24,60,0.1)] flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: iconBgColor }}
-          >
-            <Icon className="w-4 h-4 text-white" color="white" />
-          </div>
+          <NodeIcon type={type} resourceType={resourceType} resourceMeta={resourceMeta} />
           {canEdit && isEditing ? (
             <Input
               ref={inputRef}

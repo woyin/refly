@@ -49,6 +49,7 @@ import {
   MediaGenerateRequest,
   MediaGenerateResponse,
   GetActionResultData,
+  LLMModelConfig,
 } from '@refly/openapi-schema';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { getChatModel } from '@refly/providers';
@@ -190,7 +191,7 @@ export class SkillEngine {
   }
 
   setOptions(options: SkillEngineOptions) {
-    this.options = options;
+    this.options = { ...this.options, ...options };
   }
 
   configure(config: SkillRunnableConfig) {
@@ -199,6 +200,7 @@ export class SkillEngine {
 
   getConfig(key?: string) {
     if (!this.options?.config) {
+      this.logger.warn('No config found in skill engine, returning null');
       return null;
     }
 
@@ -233,14 +235,11 @@ export class SkillEngine {
 
     const config = this.config?.configurable;
     const provider = config?.provider;
-    const model = config.modelConfigMap?.[finalScene]?.modelId || this.options.defaultModel;
+    const model = config.modelConfigMap?.[finalScene] as LLMModelConfig;
 
     return getChatModel(
       provider,
-      {
-        modelId: model,
-        modelName: model,
-      },
+      model ?? { modelId: this.options.defaultModel, modelName: this.options.defaultModel },
       params,
     );
   }

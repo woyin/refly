@@ -1,53 +1,12 @@
 import React, { memo, useCallback } from 'react';
 import { Button, Dropdown, Popconfirm } from 'antd';
 import type { MenuProps } from 'antd';
-import {
-  MoreHorizontal,
-  X,
-  Maximize2,
-  Minimize2,
-  FileText,
-  Sparkles,
-  Wrench,
-  Trash2,
-} from 'lucide-react';
-import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
+import { MoreHorizontal, X, Maximize2, Minimize2, Trash2 } from 'lucide-react';
 import { NodeHeader } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-header';
 import { type NodeRelation } from './ArtifactRenderer';
-import {
-  IconWideMode,
-  IconDocument,
-  IconResource,
-  IconResponse,
-  IconCodeArtifact,
-  IconWebsite,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconWideMode } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
-
-// Get node icon component
-const getNodeIcon = (nodeType: string) => {
-  switch (nodeType) {
-    case 'document':
-      return IconDocument;
-    case 'resource':
-      return IconResource;
-    case 'skillResponse':
-      return IconResponse;
-    case 'toolResponse':
-      return IconResponse;
-    case 'codeArtifact':
-      return IconCodeArtifact;
-    case 'website':
-      return IconWebsite;
-    case 'skill':
-      // We can return different icons based on skillType, but we simplify it for now
-      return Sparkles;
-    case 'tool':
-      return Wrench;
-    default:
-      return FileText;
-  }
-};
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 // Get node title
 const getNodeTitle = (node: NodeRelation) => {
@@ -78,8 +37,6 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
     onDelete,
   }) => {
     const { t } = useTranslation();
-    const IconComponent = getNodeIcon(node.nodeType);
-    const nodeColor = NODE_COLORS[node.nodeType as keyof typeof NODE_COLORS] || '#17B26A';
     const title = getNodeTitle(node);
 
     // Handle title update
@@ -123,10 +80,10 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
         <div className="flex items-center gap-2 flex-grow overflow-hidden">
           <div className="flex-grow overflow-hidden">
             <NodeHeader
-              source="node"
+              source="preview"
               title={title}
-              Icon={IconComponent}
-              iconBgColor={nodeColor}
+              type={node.nodeType as CanvasNodeType}
+              resourceType={node.nodeData?.metadata?.resourceType as any}
               canEdit={false}
               updateTitle={handleTitleUpdate}
             />
@@ -163,7 +120,7 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
               placement="bottomRight"
               overlayClassName="min-w-[160px] w-max"
               getPopupContainer={(triggerNode) => triggerNode.parentNode as HTMLElement}
-              dropdownRender={(menu) => (
+              popupRender={(menu) => (
                 <div className="min-w-[160px] bg-white rounded-lg border-[0.5px] border-[rgba(0,0,0,0.03)] shadow-lg">
                   {menu}
                 </div>

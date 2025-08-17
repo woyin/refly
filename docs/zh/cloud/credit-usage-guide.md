@@ -40,18 +40,22 @@ Refly 积分是一种通用计费单位，可用于调用平台上的各种 AI �
 - 保留"无限模型使用权"
 - 核心模型支持无限调用，不消耗积分，无需切换套餐
 
-**早鸟用户可无限使用的模型如下：**
+**早鸟 Pro/Max 用户可无限使用的模型如下：**
 1. Claude Sonnet 4
-2. Claude 3.7 Sonnet (thinking)
+2. Claude 4 Sonnet (thinking)
 3. Kimi K2
 4. GPT-4o
 5. GPT-4.1
-6. Gemini 2.5 Pro
-7. Gemini 2.5 Flash
-8. DeepSeek V3
-9. DeepSeek R1
-10. Grok 4
-11. Qwen3 Coder
+6. GPT-5
+7. GPT-5 chat
+8. GPT-o3
+9. GPT-OSS-120B
+10. Gemini 2.5 Pro
+11. Gemini 2.5 Flash
+12. DeepSeek V3
+13. DeepSeek R1
+14. Grok 4
+15. Qwen3 Coder
 
 ## 📊 如何查看积分余额与消耗情况？
 
@@ -67,12 +71,14 @@ Refly 积分是一种通用计费单位，可用于调用平台上的各种 AI �
 | 模型 | 积分消耗 |
 |------|----------|
 | Claude Sonnet 4 | 约11积分 |
-| Claude Opus 4 | 约53积分 |
 | Claude Opus 4.1 | 约53积分 |
-| Claude 3.7 Sonnet (thinking) | 约11积分 |
+| Claude 4 Sonnet (thinking) | 约11积分 |
 | Kimi K2 | 约2积分 |
 | GPT-4o | 约7积分 |
 | GPT-4.1 | 约6积分 |
+| GPT-5 | 约7积分 |
+| GPT-5 chat | 约7积分 |
+| GPT-o3 | 约6积分 |
 | GPT-OSS-120B | 约1积分 |
 | Gemini 2.5 Pro | 约7积分 |
 | Gemini 2.5 Flash | 约2积分 |
@@ -156,12 +162,11 @@ Refly 积分是一种通用计费单位，可用于调用平台上的各种 AI �
 
 ### Q5：我是早鸟无限会员，还需要关心积分吗？
 
-**A：** 您拥有 Refly 的"文本模型无限绿卡"：
+**A：** 早鸟 Pro/Max 用户拥有 Refly 的"文本模型无限绿卡"：
 - 主力模型永久免费无限使用
-- 不受新系统影响，也无需考虑积分消耗
 - 您的权限将被特别标注，我们还会在后续上线「特别纪念墙」
 
-### Q6：能不能免费试试？有没有新人福利？
+### Q6：能不能免费试试,有没有新人福利？
 
 **当然可以！** 我们为每位新注册用户准备了：
 

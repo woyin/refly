@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
-import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
+import { useActiveNode } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { editorEmitter } from '@refly/utils/event-emitter/editor';
@@ -10,23 +10,22 @@ import { useSiderStoreShallow } from '@refly/stores';
 export const useUpdateNodeTitle = () => {
   const { projectId } = useGetProjectCanvasId();
   const { canvasId } = useCanvasContext();
-  const { updateNodePreview } = useCanvasStoreShallow((state) => ({
-    updateNodePreview: state.updateNodePreview,
-  }));
+
   const { sourceList, setSourceList } = useSiderStoreShallow((state) => ({
     sourceList: state.sourceList,
     setSourceList: state.setSourceList,
   }));
 
+  const { activeNode, setActiveNode } = useActiveNode(canvasId);
+
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
   const handleTitleUpdate = useCallback(
     (newTitle: string, entityId: string, nodeId: string, nodeType: CanvasNodeType) => {
-      const latestNodePreviews = useCanvasStore.getState().config[canvasId]?.nodePreviews || [];
-      const preview = latestNodePreviews.find((p) => p?.id === nodeId);
+      const preview = activeNode?.id === nodeId ? activeNode : null;
 
       if (preview) {
-        updateNodePreview(canvasId, {
+        setActiveNode({
           ...preview,
           data: {
             ...preview.data,
@@ -56,7 +55,15 @@ export const useUpdateNodeTitle = () => {
         }
       }
     },
-    [setNodeDataByEntity, updateNodePreview, canvasId, sourceList, setSourceList, projectId],
+    [
+      setNodeDataByEntity,
+      canvasId,
+      sourceList,
+      setSourceList,
+      projectId,
+      activeNode,
+      setActiveNode,
+    ],
   );
 
   return handleTitleUpdate;

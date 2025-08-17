@@ -20,6 +20,7 @@ const { Paragraph } = Typography;
 
 interface ModelSelectorProps {
   model: ModelInfo | null;
+  size?: 'small' | 'medium';
   setModel: (model: ModelInfo | null) => void;
   briefMode?: boolean;
   placement?: DropdownProps['placement'];
@@ -32,10 +33,12 @@ const SelectedModelDisplay = memo(
   ({
     open,
     model,
+    size = 'medium',
     handleOpenSettingModal,
   }: {
     open: boolean;
     model: ModelInfo | null;
+    size?: 'small' | 'medium';
     handleOpenSettingModal: () => void;
   }) => {
     const { t } = useTranslation();
@@ -46,7 +49,7 @@ const SelectedModelDisplay = memo(
           type="text"
           size="small"
           className={cn(
-            'h-7text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
+            'h-7 text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
             open && 'border-refly-Card-Border',
           )}
           style={{ color: '#f59e0b' }}
@@ -69,7 +72,10 @@ const SelectedModelDisplay = memo(
       >
         <ModelIcon model={model.name} type={'color'} size={16} />
         <Paragraph
-          className="truncate leading-5 max-w-28 !mb-0 text-sm"
+          className={cn(
+            'truncate leading-5 !mb-0',
+            size === 'small' ? 'text-xs max-w-28' : 'text-sm max-w-48',
+          )}
           ellipsis={{ rows: 1, tooltip: true }}
         >
           {model.label}
@@ -150,6 +156,7 @@ export const ModelSelector = memo(
     placement = 'bottomLeft',
     trigger = ['click'],
     briefMode = false,
+    size = 'medium',
     model,
     setModel,
     contextItems,
@@ -174,7 +181,7 @@ export const ModelSelector = memo(
           isGlobal: userProfile?.preferences?.providerMode === 'global',
         },
       },
-      [],
+      undefined,
       {
         refetchOnWindowFocus: true,
         refetchOnMount: true,
@@ -238,7 +245,7 @@ export const ModelSelector = memo(
 
     const handleMenuClick = useCallback(
       ({ key }: { key: string }) => {
-        const selectedModel = modelList?.find((model) => model.name === key);
+        const selectedModel = modelList?.find((model) => model.providerItemId === key);
         if (selectedModel) {
           setModel(selectedModel);
           setDropdownOpen(false);
@@ -250,9 +257,9 @@ export const ModelSelector = memo(
     const droplist: MenuProps['items'] = useMemo(() => {
       if (providerMode === 'global') {
         return modelList
-          .sort((a, b) => a.name.localeCompare(b.name))
+          .sort((a, b) => a.label.localeCompare(b.label))
           .map((model) => ({
-            key: model.name,
+            key: model.providerItemId,
             label: <ModelLabel model={model} isContextIncludeImage={isContextIncludeImage} />,
             icon: <ModelIcon model={model.name} size={16} type={'color'} />,
           }));
@@ -273,7 +280,7 @@ export const ModelSelector = memo(
             ),
           };
           const items = group.models.map((model) => ({
-            key: model.name,
+            key: model.providerItemId,
             label: <ModelLabel model={model} isContextIncludeImage={isContextIncludeImage} />,
             icon: <ModelIcon model={model.name} size={16} type={'color'} />,
           }));
@@ -361,6 +368,7 @@ export const ModelSelector = memo(
             <SelectedModelDisplay
               open={dropdownOpen}
               model={model}
+              size={size}
               handleOpenSettingModal={handleOpenSettingModal}
             />
 
@@ -381,6 +389,7 @@ export const ModelSelector = memo(
       prevProps.placement === nextProps.placement &&
       prevProps.briefMode === nextProps.briefMode &&
       prevProps.model === nextProps.model &&
+      prevProps.size === nextProps.size &&
       prevProps.contextItems === nextProps.contextItems &&
       JSON.stringify(prevProps.trigger) === JSON.stringify(nextProps.trigger)
     );

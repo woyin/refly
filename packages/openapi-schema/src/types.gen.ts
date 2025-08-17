@@ -676,6 +676,10 @@ export type Resource = {
    */
   rawFileKey?: string;
   /**
+   * Canvas ID to bind with
+   */
+  canvasId?: string;
+  /**
    * Resource creation time
    */
   createdAt?: string;
@@ -723,6 +727,10 @@ export type Document = {
    * Whether this document is read-only
    */
   readOnly?: boolean;
+  /**
+   * Canvas ID to bind with
+   */
+  canvasId?: string;
   /**
    * Document creation time
    */
@@ -1415,6 +1423,10 @@ export type TokenUsageItem = {
    */
   modelProvider: string;
   /**
+   * Model label
+   */
+  modelLabel?: string;
+  /**
    * Input tokens
    */
   inputTokens: number;
@@ -1423,7 +1435,12 @@ export type TokenUsageItem = {
    */
   outputTokens: number;
   /**
+   * Provider item ID
+   */
+  providerItemId?: string;
+  /**
    * Model tier
+   * @deprecated
    */
   tier?: string;
 };
@@ -1595,6 +1612,10 @@ export type CodeArtifact = {
    * Action result version
    */
   resultVersion?: number;
+  /**
+   * Canvas ID to bind with
+   */
+  canvasId?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -2360,6 +2381,10 @@ export type DuplicateDocumentRequest = {
    * Custom document title for the duplicate
    */
   title?: string;
+  /**
+   * Target canvas ID
+   */
+  canvasId?: string;
 };
 
 export type DuplicateResourceRequest = {
@@ -2371,6 +2396,10 @@ export type DuplicateResourceRequest = {
    * Custom resource title for the duplicate
    */
   title?: string;
+  /**
+   * Target canvas ID
+   */
+  canvasId?: string;
 };
 
 export type UpsertCanvasRequest = {
@@ -2688,6 +2717,10 @@ export type UpsertResourceRequest = {
    */
   projectId?: string;
   /**
+   * Canvas ID to bind with
+   */
+  canvasId?: string;
+  /**
    * Resource metadata
    */
   data?: ResourceMeta;
@@ -2774,6 +2807,10 @@ export type UpsertDocumentRequest = {
    * Project ID to bind with
    */
   projectId?: string;
+  /**
+   * Canvas ID to bind with
+   */
+  canvasId?: string;
   /**
    * Whether this document is read-only
    */
@@ -3077,6 +3114,10 @@ export type UpsertCodeArtifactRequest = {
    */
   resultVersion?: number;
   /**
+   * Canvas ID to bind with
+   */
+  canvasId?: string;
+  /**
    * Code artifact preview storage key
    */
   previewStorageKey?: string;
@@ -3099,6 +3140,17 @@ export type ListCodeArtifactResponse = BaseResponse & {
 
 export type GetCodeArtifactDetailResponse = BaseResponse & {
   data?: CodeArtifact;
+};
+
+export type DuplicateCodeArtifactRequest = {
+  /**
+   * Code artifact ID to duplicate
+   */
+  artifactId: string;
+  /**
+   * Target canvas ID
+   */
+  canvasId?: string;
 };
 
 export type CreateShareRequest = {
@@ -3166,6 +3218,10 @@ export type DuplicateShareRequest = {
    * Project ID to duplicate the share to
    */
   projectId?: string;
+  /**
+   * Target canvas ID
+   */
+  canvasId?: string;
 };
 
 export type DuplicateShareResponse = BaseResponse & {
@@ -4655,6 +4711,10 @@ export type Provider = {
    * Provider API key (this will never be exposed to the frontend)
    */
   apiKey?: string;
+  /**
+   * Provider-specific extra params (JSON string)
+   */
+  extraParams?: string;
 };
 
 /**
@@ -4677,6 +4737,10 @@ export type LLMModelConfig = {
    * Model max output length (in tokens)
    */
   maxOutput?: number;
+  /**
+   * Whether the model disallow setting custom temperature
+   */
+  disallowTemperature?: boolean;
   /**
    * Model capabilities
    */
@@ -5696,6 +5760,10 @@ export type ListCanvasTemplateCategoriesError = unknown;
 export type ListResourcesData = {
   query?: {
     /**
+     * Related canvas ID
+     */
+    canvasId?: string;
+    /**
      * Order
      */
     order?: ListOrder;
@@ -5819,6 +5887,10 @@ export type DeleteResourceError = unknown;
 
 export type ListDocumentsData = {
   query?: {
+    /**
+     * Related canvas ID
+     */
+    canvasId?: string;
     /**
      * Order by
      */
@@ -6010,6 +6082,10 @@ export type DeleteProjectItemsError = unknown;
 
 export type ListCodeArtifactsData = {
   query?: {
+    /**
+     * Related canvas ID
+     */
+    canvasId?: string;
     /**
      * Whether to include content
      */

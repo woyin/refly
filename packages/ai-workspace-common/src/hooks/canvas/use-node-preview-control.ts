@@ -1,5 +1,10 @@
 import { useCallback, useEffect } from 'react';
-import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
+import {
+  useCanvasResourcesPanelStoreShallow,
+  useActiveNode,
+  useCanvasStore,
+  useCanvasStoreShallow,
+} from '@refly/stores';
 import { CanvasNode } from '@refly/canvas-common';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
 import { useReactFlow } from '@xyflow/react';
@@ -45,6 +50,10 @@ export const useNodePreviewControl = ({
     nodePreviews: state.config[canvasId]?.nodePreviews || [],
     canvasInitialized: state.canvasInitialized[canvasId],
   }));
+  const { setActiveNode } = useActiveNode(canvasId);
+  const { setSidePanelVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setSidePanelVisible: state.setSidePanelVisible,
+  }));
 
   // Cleanup non-existent node previews
   useEffect(() => {
@@ -76,8 +85,10 @@ export const useNodePreviewControl = ({
     (node: CanvasNode) => {
       addNodePreview(canvasId, node);
       setSelectedNode(node);
+      setActiveNode(node);
+      setSidePanelVisible(true);
     },
-    [canvasId, addNodePreview, setSelectedNode],
+    [canvasId, addNodePreview, setSelectedNode, setActiveNode, setSidePanelVisible],
   );
 
   const closeNodePreview = useCallback(
@@ -146,11 +157,13 @@ export const useNodePreviewControl = ({
         return false;
       }
       addNodePreview(canvasId, node);
+      setActiveNode(node);
+      setSidePanelVisible(true);
       setSelectedNode(node);
       locateToNodePreviewEmitter.emit('locateToNodePreview', { canvasId, id: node.id });
       return true;
     },
-    [canvasId, clickToPreview, addNodePreview, setSelectedNode],
+    [canvasId, clickToPreview, addNodePreview, setSelectedNode, setActiveNode, setSidePanelVisible],
   );
 
   return {

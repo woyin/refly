@@ -8,7 +8,6 @@ import { getNodeCommonStyles } from './index';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { HiOutlineSquare3Stack3D } from 'react-icons/hi2';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useGetResourceDetail } from '@refly-packages/ai-workspace-common/queries';
@@ -30,7 +29,6 @@ import { message, Result } from 'antd';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
@@ -86,8 +84,6 @@ export const ResourceNode = memo(
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
     const { setNodeStyle } = useNodeData();
     const { resourceType, indexStatus } = data?.metadata ?? {};
-    const ResourceIcon =
-      resourceType === 'weblink' ? HiOutlineSquare3Stack3D : HiOutlineSquare3Stack3D;
 
     const { i18n, t } = useTranslation();
     const language = i18n.languages?.[0];
@@ -365,8 +361,9 @@ export const ResourceNode = memo(
           <NodeHeader
             title={data?.title}
             fixedTitle={t('canvas.nodeTypes.resource')}
-            Icon={ResourceIcon}
-            iconBgColor={NODE_COLORS.resource}
+            type="resource"
+            resourceType={resourceType}
+            resourceMeta={data?.metadata?.resourceMeta}
             canEdit={!readonly}
             updateTitle={updateTitle}
           />

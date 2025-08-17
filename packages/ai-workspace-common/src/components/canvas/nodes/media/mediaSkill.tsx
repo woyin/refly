@@ -22,10 +22,10 @@ import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/ed
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from '../shared/node-action-buttons';
 import { useTranslation } from 'react-i18next';
-import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { MediaChatInput } from './media-input';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { useChatStoreShallow } from '@refly/stores';
+import { NodeIcon } from '../shared/node-icon';
 
 const { Text } = Typography;
 
@@ -239,9 +239,7 @@ export const MediaSkillNode = memo(
         >
           {/* Node Type Header */}
           <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700 mb-3">
-            <div className="w-6 h-6 rounded bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center">
-              <IconImage className="w-3 h-3 text-white" />
-            </div>
+            <NodeIcon type="mediaSkill" />
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-200">
               {t('canvas.nodes.mediaSkill.mediaGenerate', 'Media Generator')}
             </Text>
@@ -258,6 +256,7 @@ export const MediaSkillNode = memo(
               query={localQuery || ''}
               setQuery={setQuery}
               nodeId={id}
+              size="small"
               defaultModel={localSelectedModel}
               onModelChange={setSelectedModel}
             />
