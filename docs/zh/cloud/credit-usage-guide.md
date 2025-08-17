@@ -77,7 +77,7 @@ Refly 积分是一种通用计费单位，可用于调用平台上的各种 AI �
 | GPT-4o | 约7积分 |
 | GPT-4.1 | 约6积分 |
 | GPT-5 | 约7积分 |
-| GPT-5 chat | ~7 credits |
+| GPT-5 chat | 约7积分 |
 | GPT-o3 | 约6积分 |
 | GPT-OSS-120B | 约1积分 |
 | Gemini 2.5 Pro | 约7积分 |
