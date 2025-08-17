@@ -240,7 +240,7 @@ export const SessionContainer = memo(
           ) : (
             <motion.div
               key="session-content"
-              className="px-2 pb-2 flex-1 h-full w-full"
+              className="px-2 pb-2 flex-1 h-full w-full  max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -263,7 +263,7 @@ export const SessionContainer = memo(
                     >
                       {query}
                     </motion.div>
-                    <div className="pl-1 max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+                    <div className="pl-1">
                       {sortedSteps.map((step, index) => (
                         <motion.div
                           key={step.stepId}
