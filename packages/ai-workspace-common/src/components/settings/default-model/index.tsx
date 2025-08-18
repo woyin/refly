@@ -33,7 +33,7 @@ const ModelSelect = React.memo(
     );
 
     let finalOptions = options;
-    if (!options?.find((option) => option?.itemId === value?.itemId)) {
+    if (value?.itemId && !options?.find((option) => option?.itemId === value?.itemId)) {
       finalOptions = [value, ...options];
     }
 
