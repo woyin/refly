@@ -174,6 +174,13 @@ function sortNodesByParent(nodes: CanvasNode[]): CanvasNode[] {
  * @returns The canvas data
  */
 export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
+  if (!state) {
+    return {
+      nodes: [],
+      edges: [],
+    };
+  }
+
   let currentData = {
     nodes: state.nodes,
     edges: state.edges,
