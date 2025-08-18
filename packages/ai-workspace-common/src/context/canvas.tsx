@@ -28,6 +28,7 @@ import {
   purgeContextItems,
   calculateCanvasStateDiff,
   getLastTransaction,
+  shouldCreateNewVersion,
 } from '@refly/canvas-common';
 import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
@@ -48,14 +49,6 @@ const SYNC_REMOTE_INTERVAL = 2000;
 
 // Poll remote interval
 const POLL_TX_INTERVAL = 3000;
-
-// Max number of transactions in a state
-// If the number of transactions is greater than this threshold, a new version will be created
-const MAX_STATE_TX_COUNT = 100;
-
-// Max version age (1 hour) in milliseconds
-// If the last transaction is older than this threshold, a new version will be created
-const MAX_VERSION_AGE = 1000 * 60 * 60;
 
 // Max number of sync failures before showing the blocking modal
 const CANVAS_SYNC_FAILURE_COUNT_THRESHOLD = 5;
@@ -269,7 +262,7 @@ export const CanvasProvider = ({
     }
 
     // If the number of transactions is greater than the threshold, create a new version
-    if ((state.transactions ?? []).length > MAX_STATE_TX_COUNT) {
+    if (shouldCreateNewVersion(state)) {
       const finalState = await handleCreateCanvasVersion(canvasId, state);
       if (finalState) {
         await set(`canvas-state:${canvasId}`, finalState);
@@ -522,11 +515,7 @@ export const CanvasProvider = ({
       }
     }
 
-    const lastTransaction = getLastTransaction(finalState);
-    if (
-      (finalState.transactions ?? []).length > MAX_STATE_TX_COUNT ||
-      (lastTransaction?.createdAt ?? 0) < Date.now() - MAX_VERSION_AGE
-    ) {
+    if (shouldCreateNewVersion(finalState)) {
       const newState = await handleCreateCanvasVersion(canvasId, finalState);
       if (newState) {
         finalState = newState;

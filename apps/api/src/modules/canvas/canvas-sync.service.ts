@@ -22,6 +22,7 @@ import {
   CanvasConflictException,
   purgeContextItems,
   calculateCanvasStateDiff,
+  shouldCreateNewVersion,
 } from '@refly/canvas-common';
 import {
   CanvasNotFoundError,
@@ -378,6 +379,17 @@ export class CanvasSyncService {
     const canvas = await this.prisma.canvas.findFirst({ where: { canvasId, uid: user.uid } });
     if (!canvas) {
       throw new CanvasNotFoundError();
+    }
+
+    // If no need to create new version, return the current state
+    if (!shouldCreateNewVersion(state)) {
+      this.logger.log(
+        `[createCanvasVersion] no need to create version for canvas ${canvasId}, current version: ${canvas.version}`,
+      );
+      return {
+        canvasId,
+        newState: state,
+      };
     }
 
     this.logger.log(

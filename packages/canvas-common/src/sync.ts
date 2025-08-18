@@ -8,6 +8,7 @@ import {
 import { genCanvasVersionId } from '@refly/utils';
 import deepmerge from 'deepmerge';
 import { deduplicateNodes, deduplicateEdges } from './utils';
+import { MAX_STATE_TX_COUNT, MAX_VERSION_AGE } from './constants';
 
 export const initEmptyCanvasState = (): CanvasState => {
   return {
@@ -19,6 +20,26 @@ export const initEmptyCanvasState = (): CanvasState => {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
+};
+
+/**
+ * Check if a new version should be created for a canvas state
+ * @param state - The canvas state
+ * @returns True if a new version should be created, false otherwise
+ */
+export const shouldCreateNewVersion = (state: CanvasState): boolean => {
+  const lastTransaction = getLastTransaction(state);
+  if (!lastTransaction) {
+    return false;
+  }
+
+  const lastTransactionTs = lastTransaction.createdAt;
+  const now = Date.now();
+
+  return (
+    (state.transactions?.length ?? 0) > MAX_STATE_TX_COUNT ||
+    lastTransactionTs < now - MAX_VERSION_AGE
+  );
 };
 
 export const applyCanvasTransaction = (

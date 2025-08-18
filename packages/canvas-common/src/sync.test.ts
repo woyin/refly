@@ -6,6 +6,7 @@ import {
   updateCanvasState,
   mergeCanvasStates,
   CanvasConflictException,
+  shouldCreateNewVersion,
 } from './sync';
 import type {
   CanvasState,
@@ -363,5 +364,147 @@ describe('CanvasConflictException', () => {
     expect(err.state2Item).toBe(node);
     expect(err.message).toContain('Canvas conflict detected');
     expect(err.name).toBe('CanvasConflictException');
+  });
+});
+
+describe('shouldCreateNewVersion', () => {
+  it('should return false when no transactions exist', () => {
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions: [],
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(false);
+  });
+
+  it('should return false when transactions array is undefined', () => {
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions: undefined,
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(false);
+  });
+
+  it('should return true when transaction count exceeds MAX_STATE_TX_COUNT', () => {
+    const transactions = Array.from({ length: 101 }, (_, i) =>
+      createTx(`tx${i}`, [], [], { createdAt: Date.now() - i * 1000 }),
+    );
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions,
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(true);
+  });
+
+  it('should return false when transaction count is exactly MAX_STATE_TX_COUNT', () => {
+    const transactions = Array.from({ length: 100 }, (_, i) =>
+      createTx(`tx${i}`, [], [], { createdAt: Date.now() - i * 1000 }),
+    );
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions,
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(false);
+  });
+
+  it('should return true when last transaction is older than MAX_VERSION_AGE', () => {
+    const oldTimestamp = Date.now() - (1000 * 60 * 60 + 1000); // 1 hour + 1 second ago
+    const transactions = [createTx('tx1', [], [], { createdAt: oldTimestamp })];
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions,
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(true);
+  });
+
+  it('should return false when last transaction is exactly MAX_VERSION_AGE old', () => {
+    const exactTimestamp = Date.now() - 1000 * 60 * 60; // Exactly 1 hour ago
+    const transactions = [createTx('tx1', [], [], { createdAt: exactTimestamp })];
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions,
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(false);
+  });
+
+  it('should return false when last transaction is newer than MAX_VERSION_AGE', () => {
+    const recentTimestamp = Date.now() - 1000 * 60 * 30; // 30 minutes ago
+    const transactions = [createTx('tx1', [], [], { createdAt: recentTimestamp })];
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions,
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(false);
+  });
+
+  it('should return true when both conditions are met (count and age)', () => {
+    const oldTimestamp = Date.now() - (1000 * 60 * 60 + 1000); // 1 hour + 1 second ago
+    const transactions = Array.from({ length: 101 }, (_, i) =>
+      createTx(`tx${i}`, [], [], { createdAt: oldTimestamp }),
+    );
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions,
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    expect(shouldCreateNewVersion(state)).toBe(true);
+  });
+
+  it('should handle transactions with different timestamps correctly', () => {
+    const now = Date.now();
+    const transactions = [
+      createTx('tx1', [], [], { createdAt: now - 1000 }), // 1 second ago
+      createTx('tx2', [], [], { createdAt: now - 2000 }), // 2 seconds ago
+      createTx('tx3', [], [], { createdAt: now - 3000 }), // 3 seconds ago
+    ];
+    const state: CanvasState = {
+      version: 'v1',
+      nodes: [],
+      edges: [],
+      transactions,
+      history: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    // Should check the last transaction (tx3) which is 3 seconds ago
+    expect(shouldCreateNewVersion(state)).toBe(false);
   });
 });
