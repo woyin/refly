@@ -118,17 +118,7 @@ export const SessionContainer = memo(
     const { handleNodePreview } = useNodePreviewControl({ canvasId });
 
     const containerClassName = useMemo(
-      () =>
-        cn(
-          'flex-shrink-0',
-          'bg-white dark:bg-refly-bg-content-z2',
-          'border border-gray-200 dark:border-gray-700',
-          'flex',
-          'flex-col',
-          'w-full',
-          'rounded-lg',
-          className,
-        ),
+      () => cn('flex-shrink-0', 'flex', 'flex-col', 'w-full', 'rounded-lg', className),
       [className],
     );
 
