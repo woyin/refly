@@ -30,6 +30,8 @@ import { buildSummarySkillInput } from './prompt/summary';
 import { buildSubtaskSkillInput } from './prompt/subtask';
 import { findBestMatch } from '../../utils/similarity';
 
+const MAX_STEPS_PER_EPOCH = 3;
+
 @Injectable()
 export class PilotService {
   private logger = new Logger(PilotService.name);
@@ -381,7 +383,7 @@ export class PilotService {
         pilotSessionPO2DTO(pilotSession),
         steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
       );
-      const rawSteps = await engine.run(canvasContentItems, 3, locale);
+      const rawSteps = await engine.run(canvasContentItems, MAX_STEPS_PER_EPOCH, locale);
 
       if (rawSteps.length === 0) {
         await this.prisma.pilotSession.update({
@@ -783,17 +785,18 @@ export class PilotService {
         return;
       }
 
+      const epochSubtaskSteps = epochSteps.filter((step) => step.mode === 'subtask');
+      const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
+
+      if (epochSubtaskSteps.length >= MAX_STEPS_PER_EPOCH || epochSummarySteps.length >= 1) {
+        return;
+      }
+
       const isAllSubtaskStepsFinished =
-        epochSteps.filter((step) => step.mode === 'subtask').length > 0 &&
-        epochSteps
-          .filter((step) => step.mode === 'subtask')
-          .every((step) => step.status === 'finish');
+        epochSubtaskSteps.length > 0 && epochSubtaskSteps.every((step) => step.status === 'finish');
 
       const isAllSummaryStepsFinished =
-        epochSteps.filter((step) => step.mode === 'summary').length > 0 &&
-        epochSteps
-          .filter((step) => step.mode === 'summary')
-          .every((step) => step.status === 'finish');
+        epochSummarySteps.length > 0 && epochSummarySteps.every((step) => step.status === 'finish');
 
       // 测试不主动中断
       const reachedMaxEpoch = step.epoch > session.maxEpoch - 1;
@@ -851,7 +854,7 @@ export class PilotService {
           // Update session status to failed when an error occurs in sync
           await this.prisma.pilotSession.update({
             where: { sessionId: errorStep.sessionId },
-            data: { status: 'failed' },
+            data: { status: 'finish' },
           });
           this.logger.log(
             `Pilot session ${errorStep.sessionId} status set to failed due to sync error`,
