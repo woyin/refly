@@ -24,7 +24,7 @@ const ACTIVE_STATUSES = ['executing', 'waiting'];
 const POLLING_INTERVAL = 2000; // 2 seconds
 
 export interface SessionContainerProps {
-  sessionId: string;
+  sessionId: string | null;
   canvasId: string;
   className?: string;
   onStepClick?: (step: PilotStep) => void;
@@ -93,22 +93,16 @@ const AnimatedEllipsis = memo(() => {
 AnimatedEllipsis.displayName = 'AnimatedEllipsis';
 
 // Component for new task button when session is completed
-const NewTaskButton = memo(({ canvasId }: { canvasId: string }) => {
+const NewTaskButton = memo(() => {
   const { t } = useTranslation();
-  const { setQuery } = useFrontPageStoreShallow((state) => ({
-    setQuery: state.setQuery,
-  }));
   const { setActiveSessionId } = usePilotStoreShallow((state) => ({
     setActiveSessionId: state.setActiveSessionId,
   }));
 
   const handleNewTask = useCallback(() => {
     // Clear the current session to show NoSession component
-    setQuery?.('', canvasId);
-
-    // Clear the active session ID to trigger NoSession view
-    setActiveSessionId('');
-  }, [setQuery, setActiveSessionId, canvasId]);
+    setActiveSessionId(null);
+  }, [setActiveSessionId]);
 
   return (
     <motion.div
@@ -365,7 +359,7 @@ export const SessionContainer = memo(
                   )}
                 </AnimatePresence>
               </motion.div>
-              {session?.status === 'finish' && <NewTaskButton canvasId={canvasId} />}
+              {session?.status === 'finish' && <NewTaskButton />}
             </div>
           )}
         </AnimatePresence>
