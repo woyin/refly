@@ -85,7 +85,7 @@ export class PilotService {
   /**
    * Update a pilot session
    * @param user - The user updating the session
-   * @param request - The update request
+   * @param request - The update requestf
    * @returns The updated session
    */
   async updatePilotSession(user: User, request: UpdatePilotSessionRequest) {
@@ -309,13 +309,18 @@ export class PilotService {
    * Run the pilot for a given session
    * @param user - The user to run the pilot for
    * @param sessionId - The ID of the session to run the pilot for
+   * @param options - Options for running the pilot
    */
   async runPilot(
     user: User,
     sessionId: string,
-    session?: PilotSession,
-    mode?: 'subtask' | 'summary',
+    options: {
+      session?: PilotSession;
+      mode?: 'subtask' | 'summary';
+    } = {},
   ) {
+    const { session, mode } = options;
+
     if (mode === 'summary') {
       return this.runPilotSummary(user, sessionId, session, mode);
     }

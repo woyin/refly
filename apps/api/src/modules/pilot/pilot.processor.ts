@@ -33,7 +33,9 @@ export class RunPilotProcessor extends WorkerHost {
     );
 
     try {
-      await this.pilotService.runPilot(job.data.user, job.data.sessionId, undefined, job.data.mode);
+      await this.pilotService.runPilot(job.data.user, job.data.sessionId, {
+        mode: job.data.mode,
+      });
       this.logger.log(
         `[${QUEUE_RUN_PILOT}] Completed job: ${job.id} for session: ${job.data.sessionId}`,
       );
