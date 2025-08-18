@@ -580,11 +580,13 @@ export class ProviderService implements OnModuleInit {
       const key = `${item.providerId}:${modelId}`;
       const sourceGlobalProviderItem = globalItemsMap.get(key);
 
-      if (!sourceGlobalProviderItem?.creditBilling) {
-        throw new Error(`No valid credit billing config found for global item ${item.itemId}`);
+      if (sourceGlobalProviderItem?.creditBilling) {
+        creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
+      } else {
+        this.logger.warn(
+          `No valid credit billing config found for item ${item.itemId}, billing will be skipped`,
+        );
       }
-
-      creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
     }
 
     return creditBillingMap;
@@ -757,30 +759,6 @@ export class ProviderService implements OnModuleInit {
     return globalItemsByCategory;
   }
 
-  async findGlobalProviderItemByModelID(modelId: string) {
-    if (!modelId) {
-      return null;
-    }
-
-    const { items: globalItems } = await this.globalProviderCache.get();
-    const item = globalItems.find((item) => {
-      try {
-        const config: LLMModelConfig = JSON.parse(item.config);
-        return config.modelId === modelId;
-      } catch (error) {
-        this.logger.warn(
-          `Failed to parse config for global item ${item.itemId}: ${error?.message}`,
-        );
-        return false;
-      }
-    });
-
-    if (!item) {
-      return null;
-    }
-    return providerItemPO2DTO(item);
-  }
-
   async findLLMProviderItemByModelID(user: User, modelId: string) {
     if (!modelId) {
       return null;
@@ -823,8 +801,8 @@ export class ProviderService implements OnModuleInit {
     return null;
   }
 
-  async prepareChatModel(user: User, modelId: string): Promise<BaseChatModel> {
-    const item = await this.findLLMProviderItemByModelID(user, modelId);
+  async prepareChatModel(user: User, itemId: string): Promise<BaseChatModel> {
+    const item = await this.findProviderItemById(user, itemId);
     if (!item) {
       throw new ChatModelNotConfiguredError();
     }

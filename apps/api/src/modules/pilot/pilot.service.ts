@@ -365,8 +365,7 @@ export class PilotService {
           `provider item ${pilotSession.providerItemId} not valid for agent`,
         );
       }
-      const agentModelId = JSON.parse(agentPi.config).modelId;
-      const agentModel = await this.providerService.prepareChatModel(user, agentModelId);
+      const agentModel = await this.providerService.prepareChatModel(user, agentPi.itemId);
 
       const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
       if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
