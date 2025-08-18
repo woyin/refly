@@ -32,8 +32,6 @@ const SessionHeader = memo(
       },
       [onSessionClick],
     );
-    console.log('session', session);
-    console.log('steps', steps);
     const { t } = useTranslation();
     return (
       <div className="flex items-center justify-between w-full px-4 pt-4">
