@@ -2931,6 +2931,7 @@ const translations = {
   },
   pilot: {
     name: 'Agent',
+    newTask: 'New Task',
     description:
       'Refly Agent is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
     thinking: 'Agent is thinking',

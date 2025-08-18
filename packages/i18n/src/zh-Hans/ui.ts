@@ -2905,6 +2905,7 @@ const translations = {
   },
   pilot: {
     name: 'Agent',
+    newTask: '新任务',
     description: 'Refly Agent 是一个自主 Agent，它通过在自由画布中显示思维步骤来解决您的问题。',
     thinking: 'Agent 正在思考',
     noSessions: '暂无会话',
