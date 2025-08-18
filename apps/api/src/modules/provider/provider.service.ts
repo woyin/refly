@@ -188,10 +188,21 @@ export class ProviderService implements OnModuleInit {
   }
 
   async listProviders(user: User, param: ListProvidersData['query']) {
-    const { enabled, providerKey, category } = param;
+    const { enabled, providerKey, category, isGlobal } = param;
+
+    if (isGlobal) {
+      const { providers } = await this.globalProviderCache.get();
+      return providers.filter(
+        (provider) =>
+          (!providerKey || provider.providerKey === providerKey) &&
+          (!category || provider.categories.includes(category)) &&
+          (enabled === undefined || provider.enabled === enabled),
+      );
+    }
+
     const providers = await this.prisma.provider.findMany({
       where: {
-        uid: user.uid,
+        ...(isGlobal === false ? { uid: user.uid } : {}),
         enabled,
         providerKey,
         deletedAt: null,
@@ -504,7 +515,7 @@ export class ProviderService implements OnModuleInit {
     // Fetch user's provider items
     return this.prisma.providerItem.findMany({
       where: {
-        ...(isGlobal ? { isGlobal: true } : { uid: user.uid }),
+        ...(isGlobal === false ? { uid: user.uid } : {}),
         providerId,
         category,
         enabled,
