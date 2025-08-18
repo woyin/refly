@@ -224,34 +224,52 @@ export const CanvasProvider = ({
   }, [readonly, canvasData, canvasDetail, canvasId]);
 
   const handleCreateCanvasVersion = async (canvasId: string, state: CanvasState) => {
-    const result = await createCanvasVersion(canvasId, state);
-    if (!result) {
+    try {
+      const result = await createCanvasVersion(canvasId, state);
+      if (!result) {
+        // Fallback: verify if server already created the new version
+        const remoteState = await getCanvasState(canvasId);
+        if (remoteState && remoteState.version !== state.version) {
+          return remoteState;
+        }
+        return;
+      }
+
+      const { conflict, newState } = result;
+
+      let finalState: CanvasState | undefined;
+
+      if (conflict) {
+        const userChoice = await handleConflictResolution(canvasId, conflict);
+        logEvent('canvas::conflict_version', userChoice, {
+          canvasId,
+          source: 'create_new_version',
+          localVersion: conflict.localState.version,
+          remoteVersion: conflict.remoteState.version,
+        });
+
+        if (userChoice === 'local') {
+          finalState = conflict.localState;
+        } else {
+          finalState = conflict.remoteState;
+        }
+      } else if (newState) {
+        finalState = newState;
+      }
+
+      return finalState;
+    } catch {
+      // Network error may occur while server actually succeeded; verify by fetching remote state
+      try {
+        const remoteState = await getCanvasState(canvasId);
+        if (remoteState && remoteState.version !== state.version) {
+          return remoteState;
+        }
+      } catch (_) {
+        // Intentionally ignore; will retry on next sync tick
+      }
       return;
     }
-
-    const { conflict, newState } = result;
-
-    let finalState: CanvasState | undefined;
-
-    if (conflict) {
-      const userChoice = await handleConflictResolution(canvasId, conflict);
-      logEvent('canvas::conflict_version', userChoice, {
-        canvasId,
-        source: 'create_new_version',
-        localVersion: conflict.localState.version,
-        remoteVersion: conflict.remoteState.version,
-      });
-
-      if (userChoice === 'local') {
-        finalState = conflict.localState;
-      } else {
-        finalState = conflict.remoteState;
-      }
-    } else if (newState) {
-      finalState = newState;
-    }
-
-    return finalState;
   };
 
   // Sync canvas state with remote
@@ -512,13 +530,6 @@ export const CanvasProvider = ({
           console.error('Failed to merge canvas states:', error);
           finalState = remoteState;
         }
-      }
-    }
-
-    if (shouldCreateNewVersion(finalState)) {
-      const newState = await handleCreateCanvasVersion(canvasId, finalState);
-      if (newState) {
-        finalState = newState;
       }
     }
 
