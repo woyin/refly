@@ -40,6 +40,9 @@ import { logEvent } from '@refly/telemetry-web';
 // Wait time for syncCanvasData to be called
 const SYNC_CANVAS_LOCAL_WAIT_TIME = 200;
 
+// Wait time for syncCanvasData to be called after canvas is initialized
+const SYNC_CANVAS_WAIT_INIT_TIME = 300;
+
 // Remote sync interval
 const SYNC_REMOTE_INTERVAL = 2000;
 
@@ -312,8 +315,11 @@ export const CanvasProvider = ({
       // Prevent multiple instances from running simultaneously
       if (isSyncingRemoteRef.current) return;
 
-      const { canvasInitialized } = useCanvasStore.getState();
-      if (!canvasInitialized[canvasId]) {
+      const { canvasInitializedAt } = useCanvasStore.getState();
+      const initTs = canvasInitializedAt[canvasId];
+
+      // Only sync canvas data after canvas is ready for some time
+      if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
         return;
       }
 
@@ -341,8 +347,11 @@ export const CanvasProvider = ({
       return;
     }
 
-    const { canvasInitialized } = useCanvasStore.getState();
-    if (!canvasInitialized[canvasId]) {
+    const { canvasInitializedAt } = useCanvasStore.getState();
+    const initTs = canvasInitializedAt[canvasId];
+
+    // Only sync canvas data after canvas is ready for some time
+    if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
       return;
     }
 
@@ -470,6 +479,8 @@ export const CanvasProvider = ({
     if (!localState) {
       needLoading = true;
       setLoading(true);
+    } else {
+      updateCanvasDataFromState(localState);
     }
 
     const remoteState = await getCanvasState(canvasId);
