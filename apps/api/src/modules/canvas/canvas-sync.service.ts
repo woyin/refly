@@ -380,6 +380,9 @@ export class CanvasSyncService {
       throw new CanvasNotFoundError();
     }
 
+    this.logger.log(
+      `[createCanvasVersion] create version for canvas ${canvasId}, current version: ${canvas.version}`,
+    );
     const releaseLock = await this.lockState(canvasId);
 
     try {
@@ -443,6 +446,10 @@ export class CanvasSyncService {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
+      this.logger.log(
+        `[createCanvasVersion] create version for canvas ${canvasId}, new version: ${newState.version}`,
+      );
+
       const stateStorageKey = await this.saveState(canvasId, newState);
 
       await this.prisma.$transaction([
