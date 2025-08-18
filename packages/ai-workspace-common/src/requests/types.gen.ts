@@ -5138,6 +5138,10 @@ export type UpsertProviderItemRequest = {
    */
   providerId?: string;
   /**
+   * Global provider item ID
+   */
+  globalItemId?: string;
+  /**
    * Provider item name
    */
   name?: string;

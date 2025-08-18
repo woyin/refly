@@ -1074,8 +1074,42 @@ export class ProviderService implements OnModuleInit {
     return null;
   }
 
+  async createProviderItemFromGlobal(
+    user: User,
+    param: UpsertProviderItemRequest,
+    item: ProviderItemModel,
+  ) {
+    return this.prisma.providerItem.create({
+      data: {
+        itemId: genProviderItemID(),
+        category: item.category,
+        name: param.name ?? item.name,
+        providerId: item.providerId,
+        enabled: param.enabled ?? item.enabled,
+        order: param.order,
+        groupName: param.group,
+        uid: user.uid,
+        tier: item.tier,
+        config: item.config,
+        creditBilling: item.creditBilling,
+        globalItemId: item.itemId,
+      },
+    });
+  }
+
   async createProviderItem(user: User, param: UpsertProviderItemRequest) {
-    const { providerId, name, category, enabled, config, order, group } = param;
+    const { providerId, name, category, enabled, config, order, group, globalItemId } = param;
+
+    // Create from global provider item
+    if (globalItemId) {
+      const { items: globalItems } = await this.globalProviderCache.get();
+      const globalItem = globalItems.find((item) => item.itemId === globalItemId);
+      if (!globalItem || !globalItem.enabled) {
+        throw new ParamsError('Invalid global provider item ID');
+      }
+
+      return this.createProviderItemFromGlobal(user, param, globalItem);
+    }
 
     if (!providerId || !category || !name) {
       throw new ParamsError('Invalid model item parameters');
@@ -1093,14 +1127,8 @@ export class ProviderService implements OnModuleInit {
       throw new ProviderNotFoundError();
     }
 
-    // Validate config if provider is global
-    let option: ProviderItemOption | null = null;
     if (provider.isGlobal) {
-      const options = await this.listProviderItemOptions(user, { providerId, category });
-      option = options.find((option) => option.config?.modelId === config?.modelId);
-      if (!option) {
-        throw new ParamsError(`Unknown provider item modelId: ${config?.modelId}`);
-      }
+      throw new ParamsError('Global models can only be added via globalItemId');
     }
 
     const itemId = genProviderItemID();
@@ -1115,8 +1143,7 @@ export class ProviderService implements OnModuleInit {
         order,
         groupName: group,
         uid: user.uid,
-        tier: option?.tier,
-        config: JSON.stringify(option?.config ?? config),
+        config: JSON.stringify(config),
       },
     });
   }

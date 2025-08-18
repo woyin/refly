@@ -7322,6 +7322,10 @@ export const UpsertProviderItemRequestSchema = {
       type: 'string',
       description: 'Provider ID',
     },
+    globalItemId: {
+      type: 'string',
+      description: 'Global provider item ID',
+    },
     name: {
       type: 'string',
       description: 'Provider item name',
