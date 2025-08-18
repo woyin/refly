@@ -301,7 +301,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const getProviderItems = useCallback(async () => {
     setIsLoading(true);
     const res = await getClient().listProviderItems({
-      query: providerMode === 'global' ? { isGlobal: true, enabled: true } : {},
+      query: providerMode === 'global' ? { isGlobal: true, enabled: true } : { isGlobal: false },
     });
     setIsLoading(false);
     if (res?.data?.success) {
