@@ -339,6 +339,10 @@ export const ModelSelector = memo(
     // 2. Current model is disabled
     // 3. Current model is not present in the model list
     useEffect(() => {
+      if (modelList?.length === 0) {
+        return;
+      }
+
       if (
         !model ||
         isModelDisabled(tokenUsage!, model) ||
