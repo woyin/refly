@@ -244,7 +244,9 @@ const MyProviders: React.FC<{
   const { t } = useTranslation();
   const [editProvider, setEditProvider] = useState<Provider | null>(null);
 
-  const { data, isLoading, refetch } = useListProviders();
+  const { data, isLoading, refetch } = useListProviders({
+    query: { isGlobal: false },
+  });
 
   const handleSettingsClick = useCallback((provider: Provider) => {
     setEditProvider(provider);
