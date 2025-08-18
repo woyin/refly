@@ -6682,6 +6682,10 @@ export const ModelInfoSchema = {
       type: 'string',
       description: 'Model group',
     },
+    creditBilling: {
+      $ref: '#/components/schemas/CreditBilling',
+      description: 'Credit billing info',
+    },
   },
 } as const;
 

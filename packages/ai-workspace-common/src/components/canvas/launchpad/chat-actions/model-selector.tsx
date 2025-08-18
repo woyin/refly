@@ -16,6 +16,8 @@ import './index.scss';
 import { useUserStoreShallow } from '@refly/stores';
 import { ArrowDown, Settings } from 'refly-icons';
 import cn from 'classnames';
+import { CreditBillingInfo } from '@refly-packages/ai-workspace-common/components/common/credit-billing-info';
+
 const { Paragraph } = Typography;
 
 interface ModelSelectorProps {
@@ -231,6 +233,7 @@ export const ModelSelector = memo(
             contextLimit: config.contextLimit!,
             maxOutput: config.maxOutput!,
             capabilities: config.capabilities,
+            creditBilling: item.creditBilling,
             group: item.group,
           };
         }) || []
@@ -294,25 +297,33 @@ export const ModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
+        <div className="w-[260px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {droplist
               .filter((item) => !!item)
-              .map((item) => (
-                <div key={item.key} className="model-list-item">
-                  {item.type === 'group' ? (
-                    item.label
-                  ) : item.type !== 'divider' ? (
-                    <div
-                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
-                      onClick={() => handleMenuClick({ key: item.key as string })}
-                    >
-                      <div className="flex-shrink-0 flex items-center">{item.icon}</div>
-                      <div className="min-w-0 flex-1">{item.label}</div>
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+              .map((item) => {
+                const model = modelList.find((m) => m.providerItemId === item.key);
+                return (
+                  <div key={item.key} className="model-list-item">
+                    {item.type === 'group' ? (
+                      item.label
+                    ) : item.type !== 'divider' ? (
+                      <div
+                        className="flex justify-between items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                        onClick={() => handleMenuClick({ key: item.key as string })}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex-shrink-0 flex items-center">{item.icon}</div>
+                          <div className="min-w-0 flex-1">{item.label}</div>
+                        </div>
+                        {model?.creditBilling && (
+                          <CreditBillingInfo creditBilling={model.creditBilling} />
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
           </div>
           <SettingsButton
             handleOpenSettingModal={handleOpenSettingModal}
@@ -320,7 +331,7 @@ export const ModelSelector = memo(
           />
         </div>
       ),
-      [droplist, handleMenuClick, handleOpenSettingModal, setDropdownOpen],
+      [t, droplist, handleMenuClick, handleOpenSettingModal, setDropdownOpen],
     );
 
     // Automatically select available model when:

@@ -4657,6 +4657,10 @@ export type ModelInfo = {
    * Model group
    */
   group?: string;
+  /**
+   * Credit billing info
+   */
+  creditBilling?: CreditBilling;
 };
 
 export type ListModelsResponse = BaseResponse & {

@@ -3012,6 +3012,12 @@ const translations = {
       gotIt: 'Got it',
       learnMore: 'Learn about my unlimited privileges',
     },
+    creditBilling: {
+      description: {
+        '5k_tokens': '{{cost}} credit(s) per 5k tokens',
+        product: '{{cost}} credit(s) per product',
+      },
+    },
     plans: {
       priceMonthly: '{{price}}/month',
       priceYearly: '{{price}}/month',

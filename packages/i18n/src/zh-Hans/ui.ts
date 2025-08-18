@@ -78,6 +78,12 @@ const translations = {
         '您的存储空间已达到上限。升级您的订阅计划以获得更大的存储空间，继续使用我们的服务。',
       upgrade: '立即升级',
     },
+    creditBilling: {
+      description: {
+        '5k_tokens': '每 5k token 消耗 {{cost}} 积分',
+        product: '每个产物消耗 {{cost}} 积分',
+      },
+    },
     plans: {
       free: {
         title: 'Free',
