@@ -708,10 +708,10 @@ export class PagesService {
       const existingNodeIds = await this.getExistingNodeRelations(tx, page.pageId);
 
       // 7. Filter out node IDs that already exist and those that need to be added
-      const newNodeIds = addNodesDto.nodeIds.filter((nodeId) => !existingNodeIds.has(nodeId));
-      const existingNodeIdsToUpdate = addNodesDto.nodeIds.filter((nodeId) =>
-        existingNodeIds.has(nodeId),
-      );
+      const newNodeIds =
+        addNodesDto.nodeIds?.filter((nodeId) => !existingNodeIds.has(nodeId)) ?? [];
+      const existingNodeIdsToUpdate =
+        addNodesDto.nodeIds?.filter((nodeId) => existingNodeIds.has(nodeId)) ?? [];
 
       // 8. If there are no new nodes to add and no existing nodes to update, directly return the current page and node relations
       if (newNodeIds.length === 0 && existingNodeIdsToUpdate.length === 0) {
