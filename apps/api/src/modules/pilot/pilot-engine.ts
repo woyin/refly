@@ -11,7 +11,7 @@ import {
   PilotStepRawOutput,
   getRecommendedStageForEpoch,
 } from './prompt';
-import { MAX_EPOCH, MAX_STEPS_PER_EPOCH } from 'src/modules/pilot/pilot.service';
+import { MAX_EPOCH, MAX_STEPS_PER_EPOCH } from './pilot.service';
 
 export class PilotEngine {
   private logger = new Logger(PilotEngine.name);
