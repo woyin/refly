@@ -69,13 +69,15 @@ export class PilotEngine {
         this.logger.log(`Generated research plan: ${JSON.stringify(steps)}`);
 
         if (recommendedStage === 'creation') {
-          return steps.filter(
-            (step) =>
-              step.skill === 'generateDoc' ||
-              step.skill === 'codeArtifacts' ||
-              step.skill === 'generateMedia' ||
-              step.skill === 'commonQnA',
-          )?.actionResult;
+          return (
+            steps.filter(
+              (step) =>
+                step.skill === 'generateDoc' ||
+                step.skill === 'codeArtifacts' ||
+                step.skill === 'generateMedia' ||
+                step.skill === 'commonQnA',
+            ) || []
+          );
         }
 
         return steps;
