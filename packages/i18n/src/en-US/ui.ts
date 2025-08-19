@@ -2405,7 +2405,9 @@ const translations = {
       name: 'Model Name',
       namePlaceholder: 'Please enter the name of the model',
       modelId: 'Model ID',
-      modelIdPlaceholder: 'Please  the model ID',
+      modelIdPlaceholder: 'Please input or select the model ID',
+      providerItem: 'Model',
+      providerItemPlaceholder: 'Please select the model',
       enable: 'Enable',
       enabled: 'Enabled',
       disable: 'Disable',
@@ -3009,6 +3011,12 @@ const translations = {
         'Thank you for your trust, may we journey together towards broader creative horizons!',
       gotIt: 'Got it',
       learnMore: 'Learn about my unlimited privileges',
+    },
+    creditBilling: {
+      description: {
+        '5k_tokens': '{{cost}} credit(s) per 5k tokens',
+        product: '{{cost}} credit(s) per product',
+      },
     },
     plans: {
       priceMonthly: '{{price}}/month',

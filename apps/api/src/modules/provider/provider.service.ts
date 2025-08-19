@@ -188,10 +188,23 @@ export class ProviderService implements OnModuleInit {
   }
 
   async listProviders(user: User, param: ListProvidersData['query']) {
-    const { enabled, providerKey, category } = param;
+    const { enabled, providerKey, category, isGlobal } = param;
+
+    if (isGlobal) {
+      const { providers } = await this.globalProviderCache.get();
+      return providers.filter(
+        (provider) =>
+          (!providerKey || provider.providerKey === providerKey) &&
+          (!category || provider.categories.includes(category)) &&
+          (enabled === undefined || provider.enabled === enabled),
+      );
+    }
+
     const providers = await this.prisma.provider.findMany({
       where: {
-        uid: user.uid,
+        ...(isGlobal === false
+          ? { uid: user.uid }
+          : { OR: [{ uid: user.uid }, { isGlobal: true }] }),
         enabled,
         providerKey,
         deletedAt: null,
@@ -504,7 +517,7 @@ export class ProviderService implements OnModuleInit {
     // Fetch user's provider items
     return this.prisma.providerItem.findMany({
       where: {
-        ...(isGlobal ? { isGlobal: true } : { uid: user.uid }),
+        ...(isGlobal === false ? { uid: user.uid } : { OR: [{ uid: user.uid }, { uid: null }] }),
         providerId,
         category,
         enabled,
@@ -569,11 +582,13 @@ export class ProviderService implements OnModuleInit {
       const key = `${item.providerId}:${modelId}`;
       const sourceGlobalProviderItem = globalItemsMap.get(key);
 
-      if (!sourceGlobalProviderItem?.creditBilling) {
-        throw new Error(`No valid credit billing config found for global item ${item.itemId}`);
+      if (sourceGlobalProviderItem?.creditBilling) {
+        creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
+      } else {
+        this.logger.warn(
+          `No valid credit billing config found for item ${item.itemId}, billing will be skipped`,
+        );
       }
-
-      creditBillingMap[item.itemId] = sourceGlobalProviderItem.creditBilling;
     }
 
     return creditBillingMap;
@@ -746,30 +761,6 @@ export class ProviderService implements OnModuleInit {
     return globalItemsByCategory;
   }
 
-  async findGlobalProviderItemByModelID(modelId: string) {
-    if (!modelId) {
-      return null;
-    }
-
-    const { items: globalItems } = await this.globalProviderCache.get();
-    const item = globalItems.find((item) => {
-      try {
-        const config: LLMModelConfig = JSON.parse(item.config);
-        return config.modelId === modelId;
-      } catch (error) {
-        this.logger.warn(
-          `Failed to parse config for global item ${item.itemId}: ${error?.message}`,
-        );
-        return false;
-      }
-    });
-
-    if (!item) {
-      return null;
-    }
-    return providerItemPO2DTO(item);
-  }
-
   async findLLMProviderItemByModelID(user: User, modelId: string) {
     if (!modelId) {
       return null;
@@ -812,8 +803,8 @@ export class ProviderService implements OnModuleInit {
     return null;
   }
 
-  async prepareChatModel(user: User, modelId: string): Promise<BaseChatModel> {
-    const item = await this.findLLMProviderItemByModelID(user, modelId);
+  async prepareChatModel(user: User, itemId: string): Promise<BaseChatModel> {
+    const item = await this.findProviderItemById(user, itemId);
     if (!item) {
       throw new ChatModelNotConfiguredError();
     }
@@ -1063,8 +1054,42 @@ export class ProviderService implements OnModuleInit {
     return null;
   }
 
+  async createProviderItemFromGlobal(
+    user: User,
+    param: UpsertProviderItemRequest,
+    item: ProviderItemModel,
+  ) {
+    return this.prisma.providerItem.create({
+      data: {
+        itemId: genProviderItemID(),
+        category: item.category,
+        name: param.name ?? item.name,
+        providerId: item.providerId,
+        enabled: param.enabled ?? item.enabled,
+        order: param.order,
+        groupName: param.group,
+        uid: user.uid,
+        tier: item.tier,
+        config: item.config,
+        creditBilling: item.creditBilling,
+        globalItemId: item.itemId,
+      },
+    });
+  }
+
   async createProviderItem(user: User, param: UpsertProviderItemRequest) {
-    const { providerId, name, category, enabled, config, order, group } = param;
+    const { providerId, name, category, enabled, config, order, group, globalItemId } = param;
+
+    // Create from global provider item
+    if (globalItemId) {
+      const { items: globalItems } = await this.globalProviderCache.get();
+      const globalItem = globalItems.find((item) => item.itemId === globalItemId);
+      if (!globalItem || !globalItem.enabled) {
+        throw new ParamsError('Invalid global provider item ID');
+      }
+
+      return this.createProviderItemFromGlobal(user, param, globalItem);
+    }
 
     if (!providerId || !category || !name) {
       throw new ParamsError('Invalid model item parameters');
@@ -1082,14 +1107,8 @@ export class ProviderService implements OnModuleInit {
       throw new ProviderNotFoundError();
     }
 
-    // Validate config if provider is global
-    let option: ProviderItemOption | null = null;
     if (provider.isGlobal) {
-      const options = await this.listProviderItemOptions(user, { providerId, category });
-      option = options.find((option) => option.config?.modelId === config?.modelId);
-      if (!option) {
-        throw new ParamsError(`Unknown provider item modelId: ${config?.modelId}`);
-      }
+      throw new ParamsError('Global models can only be added via globalItemId');
     }
 
     const itemId = genProviderItemID();
@@ -1104,8 +1123,7 @@ export class ProviderService implements OnModuleInit {
         order,
         groupName: group,
         uid: user.uid,
-        tier: option?.tier,
-        config: JSON.stringify(option?.config ?? config),
+        config: JSON.stringify(config),
       },
     });
   }

@@ -7,6 +7,7 @@ import { ProviderItem } from '@refly/openapi-schema';
 import { LuInfo } from 'react-icons/lu';
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { SettingsButton } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
+import { CreditBillingInfo } from '@refly-packages/ai-workspace-common/components/common/credit-billing-info';
 import { useChatStoreShallow } from '@refly/stores';
 import { ArrowDown } from 'refly-icons';
 import cn from 'classnames';
@@ -200,7 +201,7 @@ export const MediaModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-xl border border-solid border-refly-Card-Border">
+        <div className="w-[260px] bg-refly-bg-content-z2 rounded-xl border border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {groupedModels.map((group) => (
               <div key={group.mediaType}>
@@ -214,15 +215,20 @@ export const MediaModelSelector = memo(
                   .map((model) => (
                     <div
                       key={model.itemId}
-                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                      className="flex justify-between items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
                       onClick={() => handleMenuClick({ key: model.itemId })}
                     >
-                      <div className="flex-shrink-0 flex items-center">
-                        <ModelIcon model={model.name} size={16} type={'color'} />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0 flex items-center">
+                          <ModelIcon model={model.name} size={16} type={'color'} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <MediaModelLabel model={model} />
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <MediaModelLabel model={model} />
-                      </div>
+                      {model.creditBilling && (
+                        <CreditBillingInfo creditBilling={model.creditBilling} />
+                      )}
                     </div>
                   ))}
               </div>

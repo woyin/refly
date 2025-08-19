@@ -6682,6 +6682,10 @@ export const ModelInfoSchema = {
       type: 'string',
       description: 'Model group',
     },
+    creditBilling: {
+      $ref: '#/components/schemas/CreditBilling',
+      description: 'Credit billing info',
+    },
   },
 } as const;
 
@@ -7321,6 +7325,10 @@ export const UpsertProviderItemRequestSchema = {
     providerId: {
       type: 'string',
       description: 'Provider ID',
+    },
+    globalItemId: {
+      type: 'string',
+      description: 'Global provider item ID',
     },
     name: {
       type: 'string',

@@ -836,8 +836,7 @@ export class CanvasService {
       user,
       'titleGeneration',
     );
-    const modelConfig = JSON.parse(defaultModel.config);
-    const model = await this.providerService.prepareChatModel(user, modelConfig.modelId);
+    const model = await this.providerService.prepareChatModel(user, defaultModel.itemId);
     this.logger.log(`Using default model for auto naming: ${model.name}`);
 
     // Use the new structured title generation approach

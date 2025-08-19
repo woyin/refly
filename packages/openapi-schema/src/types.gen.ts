@@ -4657,6 +4657,10 @@ export type ModelInfo = {
    * Model group
    */
   group?: string;
+  /**
+   * Credit billing info
+   */
+  creditBilling?: CreditBilling;
 };
 
 export type ListModelsResponse = BaseResponse & {
@@ -5137,6 +5141,10 @@ export type UpsertProviderItemRequest = {
    * Provider ID
    */
   providerId?: string;
+  /**
+   * Global provider item ID
+   */
+  globalItemId?: string;
   /**
    * Provider item name
    */

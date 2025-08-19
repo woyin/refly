@@ -21,6 +21,7 @@ type ModelSelectProps = {
 
 const ModelSelect = React.memo(
   ({ value, onChange, options, placeholder, description, title, isUpdating }: ModelSelectProps) => {
+    const { t } = useTranslation();
     const handleModelChange = useCallback(
       (itemId: string) => {
         const selectedModel = options?.find((model) => model?.itemId === itemId);
@@ -31,6 +32,11 @@ const ModelSelect = React.memo(
       [onChange, options],
     );
 
+    let finalOptions = options;
+    if (value?.itemId && !options?.find((option) => option?.itemId === value?.itemId)) {
+      finalOptions = [value, ...options];
+    }
+
     return (
       <div className="mb-6 flex flex-col gap-2">
         <div className="text-sm font-semibold text-refly-text-0 leading-5">{title}</div>
@@ -40,8 +46,8 @@ const ModelSelect = React.memo(
           value={value?.itemId}
           loading={isUpdating}
           onChange={handleModelChange}
-          options={options?.map((model) => ({
-            label: model?.name ?? '',
+          options={finalOptions?.map((model) => ({
+            label: `${model?.name ?? ''} (${model?.provider?.name ?? t('common.unknown')})`,
             value: model?.itemId ?? '',
           }))}
         />
@@ -64,6 +70,7 @@ export const DefaultModel = React.memo(({ visible }: { visible: boolean }) => {
     query: {
       enabled: true,
       category: 'llm',
+      isGlobal: userProfile?.preferences?.providerMode === 'global',
     },
   });
 
