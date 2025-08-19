@@ -87,7 +87,7 @@ export const ContextItem = ({
     >
       <div
         className={cn(
-          'flex items-center py-0.5 px-1 gap-1 bg-refly-tertiary-default hover:bg-refly-tertiary-hover border-[1px] border-solid border-refly-Card-Border rounded-[4px] box-border h-5',
+          'flex items-center py-0.5 px-1 gap-1 bg-refly-tertiary-default hover:bg-refly-tertiary-hover border-[0.5px] border-solid border-refly-Card-Border rounded-[4px] box-border h-5',
           {
             'border-refly-primary-default': isActive,
             'bg-refly-Colorful-red-light': isLimit,
