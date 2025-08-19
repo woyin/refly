@@ -5373,10 +5373,32 @@ export type WorkflowVariable = {
    */
   value: string;
   /**
+   * Variable default value
+   */
+  defaultValue?: string;
+  /**
    * Variable description
    */
   description?: string;
+  /**
+   * Variable source
+   */
+  source?: 'startNode' | 'resourceLibrary';
+  /**
+   * Variable type
+   */
+  variableType?: 'string' | 'option' | 'resource';
 };
+
+/**
+ * Variable source
+ */
+export type source2 = 'startNode' | 'resourceLibrary';
+
+/**
+ * Variable type
+ */
+export type variableType = 'string' | 'option' | 'resource';
 
 export type GetWorkflowVariablesResponse = BaseResponse & {
   /**

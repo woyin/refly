@@ -7660,10 +7660,25 @@ export const WorkflowVariableSchema = {
       description: 'Variable value',
       example: '张三',
     },
+    defaultValue: {
+      type: 'string',
+      description: 'Variable default value',
+      example: '张三',
+    },
     description: {
       type: 'string',
       description: 'Variable description',
       example: '用户姓名',
+    },
+    source: {
+      type: 'string',
+      description: 'Variable source',
+      enum: ['startNode', 'resourceLibrary'],
+    },
+    variableType: {
+      type: 'string',
+      description: 'Variable type',
+      enum: ['string', 'option', 'resource'],
     },
   },
 } as const;

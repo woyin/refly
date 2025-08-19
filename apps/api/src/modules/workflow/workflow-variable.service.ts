@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Handlebars from 'handlebars';
+import type { WorkflowVariable as WorkflowVariableType } from '@refly/openapi-schema';
 
 export interface WorkflowVariable {
   name: string;
@@ -39,6 +40,52 @@ export class WorkflowVariableService {
       this.logger.warn('Failed to process query template:', error);
       return query;
     }
+  }
+
+  /**
+   * Enhanced process query with workflow variables
+   * - string: as before
+   * - resource: return special marker for resource injection
+   * - option: use defaultValue array first if value missing
+   */
+  processQueryWithTypes(
+    query: string,
+    variables: WorkflowVariableType[] = [],
+  ): { query: string; resourceVars: WorkflowVariableType[] } {
+    if (!query || !variables.length) {
+      return { query, resourceVars: [] };
+    }
+
+    let processedQuery = query;
+    const resourceVars: WorkflowVariableType[] = [];
+
+    for (const variable of variables) {
+      let value = variable.value;
+      // fallback to defaultValue
+      if (
+        (value === undefined || value === null || value === '') &&
+        variable.defaultValue !== undefined
+      ) {
+        if (variable.variableType === 'option' && Array.isArray(variable.defaultValue)) {
+          value = variable.defaultValue[0] ?? '';
+        } else {
+          value = variable.defaultValue;
+        }
+      }
+      if (variable.variableType === 'resource') {
+        // Mark for resource injection, remove from query
+        resourceVars.push({ ...variable, value });
+        // Remove {{name}} from query
+        processedQuery = processedQuery.replace(new RegExp(`{{\s*${variable.name}\s*}}`, 'g'), '');
+      } else {
+        // string/option: replace as before
+        processedQuery = processedQuery.replace(
+          new RegExp(`{{\s*${variable.name}\s*}}`, 'g'),
+          value ?? '',
+        );
+      }
+    }
+    return { query: processedQuery, resourceVars };
   }
 
   /**

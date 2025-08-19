@@ -27,6 +27,7 @@ import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { CanvasContentItem } from '../canvas/canvas.dto';
 import { SkillContext } from '@refly/openapi-schema';
 import { WorkflowVariableService } from './workflow-variable.service';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 
 @Injectable()
 export class WorkflowService {
@@ -39,40 +40,62 @@ export class WorkflowService {
     private readonly mcpServerService: McpServerService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly workflowVariableService: WorkflowVariableService,
+    private readonly knowledgeService: KnowledgeService, // 新增依赖
     @InjectQueue(QUEUE_SYNC_WORKFLOW) private readonly syncWorkflowQueue?: Queue,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
   ) {}
 
   /**
-   * Process query with workflow variables
+   * Enhanced: Process query with workflow variables, inject resource variables into context
    * @param query - Original query string
    * @param canvasId - Canvas ID to get workflow variables from
    * @param user - User object
+   * @param context - SkillContext to inject resources into
    * @returns Processed query string with variables replaced
    */
   private async processQueryWithVariables(
     query: string,
     canvasId: string,
     user: User,
+    context?: SkillContext,
   ): Promise<string> {
     try {
       // Get canvas state to retrieve workflow variables
       const canvasState = await this.canvasSyncService.getState(user, { canvasId });
-      let variables = (canvasState as any)?.workflow?.variables || [];
-
-      // If no variables found, use mock data
-      if (!variables || variables.length === 0) {
-        variables = [
-          {
-            name: 'car',
-            value: 'xpeng P7',
-            description: '车名',
-          },
-        ];
+      const variables = (canvasState as any)?.workflow?.variables || [];
+      // 新方法，返回处理后的 query 和 resource 类型变量
+      const { query: processedQuery, resourceVars } =
+        this.workflowVariableService.processQueryWithTypes(query, variables);
+      // 处理 resource 类型变量，查 resource 并注入 context.resources
+      if (resourceVars.length && context) {
+        for (const variable of resourceVars) {
+          const storageKey = variable.value;
+          if (!storageKey) continue;
+          // 查找 resource
+          const resource = await this.knowledgeService.getResourceByStorageKey(user, storageKey);
+          if (resource) {
+            // 绑定 entityId/canvasId
+            if (!resource.canvasId || resource.canvasId !== canvasId) {
+              await this.knowledgeService.bindResourceToCanvas(resource.resourceId, canvasId);
+            }
+            // 组装 SkillContextResourceItem
+            context.resources = context.resources ?? [];
+            context.resources.push({
+              resourceId: resource.resourceId,
+              resource: {
+                resourceId: resource.resourceId,
+                title: resource.title ?? '',
+                resourceType: (resource.resourceType as any) ?? 'text',
+                content: resource.contentPreview ?? '',
+                contentPreview: resource.contentPreview ?? '',
+              },
+              isCurrent: true,
+              metadata: { fromWorkflowVariable: variable.name },
+            });
+          }
+        }
       }
-
-      // Process query with variables
-      return this.workflowVariableService.processQuery(query, variables);
+      return processedQuery;
     } catch (error) {
       this.logger.warn(`Failed to process query with variables: ${error.message}`);
       // Return original query if processing fails
@@ -274,11 +297,19 @@ export class WorkflowService {
     // Extract required parameters from ResponseNodeMeta
     const { selectedSkill, tplConfig = {}, runtimeConfig = {}, modelInfo } = metadata;
 
+    // Initialize context and history
+    let context: SkillContext = { resources: [], documents: [], codeArtifacts: [] };
+
     // Prefer to get query from data.metadata.structuredData?.query, fallback to data.title if not available
     const originalQuery = String(data?.metadata?.structuredData?.query ?? data?.title ?? '');
 
     // Process query with workflow variables
-    const processedQuery = await this.processQueryWithVariables(originalQuery, canvasId, user);
+    const processedQuery = await this.processQueryWithVariables(
+      originalQuery,
+      canvasId,
+      user,
+      context,
+    );
 
     // Get resultId from entityId
     const resultId = data.entityId;
@@ -295,8 +326,6 @@ export class WorkflowService {
       true,
     );
 
-    // Initialize context and history
-    let context: SkillContext = { resources: [], documents: [], codeArtifacts: [] };
     let resultHistory: ActionResult[] = [];
     let images: string[] = [];
 

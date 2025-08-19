@@ -472,19 +472,28 @@ export class CanvasSyncService {
   }
 
   /**
-   * Get workflow variables from canvas state
+   * Get workflow variables from Canvas DB field
    * @param user - The user
    * @param param - The get workflow variables request
    * @returns The workflow variables
    */
   async getWorkflowVariables(user: User, param: { canvasId: string }): Promise<WorkflowVariable[]> {
     const { canvasId } = param;
-    const state = await this.getState(user, { canvasId });
-    return state.workflow?.variables ?? [];
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { workflow: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    if (!canvas) return [];
+    try {
+      const workflow = canvas.workflow ? JSON.parse(canvas.workflow) : undefined;
+      return workflow?.variables ?? [];
+    } catch {
+      return [];
+    }
   }
 
   /**
-   * Update workflow variables in canvas state
+   * Update workflow variables in Canvas DB field
    * @param user - The user
    * @param param - The update workflow variables request
    * @returns The updated workflow variables
@@ -494,25 +503,22 @@ export class CanvasSyncService {
     param: { canvasId: string; variables: WorkflowVariable[] },
   ): Promise<WorkflowVariable[]> {
     const { canvasId, variables } = param;
-    const releaseLock = await this.lockState(canvasId);
-
-    try {
-      const state = await this.getState(user, { canvasId });
-
-      // Initialize workflow object if it doesn't exist
-      if (!state.workflow) {
-        state.workflow = { variables: [] };
-      }
-
-      // Update variables
-      state.workflow.variables = variables;
-      state.updatedAt = Date.now();
-
-      await this.saveState(canvasId, state);
-
-      return variables;
-    } finally {
-      await releaseLock();
+    // 先查出原有 workflow
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { workflow: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    let workflowObj: any = {};
+    if (canvas?.workflow) {
+      try {
+        workflowObj = JSON.parse(canvas.workflow) ?? {};
+      } catch {}
     }
+    workflowObj.variables = variables;
+    await this.prisma.canvas.update({
+      where: { canvasId, uid: user.uid, deletedAt: null },
+      data: { workflow: JSON.stringify(workflowObj) },
+    });
+    return variables;
   }
 }
