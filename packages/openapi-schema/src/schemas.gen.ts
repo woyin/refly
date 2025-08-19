@@ -2222,6 +2222,14 @@ export const ActionResultSchema = {
       type: 'string',
       description: 'Pilot session ID',
     },
+    workflowExecutionId: {
+      type: 'string',
+      description: 'Workflow execution ID for workflow context',
+    },
+    workflowNodeExecutionId: {
+      type: 'string',
+      description: 'Workflow node execution ID for workflow context',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',
@@ -3048,6 +3056,19 @@ export const CanvasStateSchema = {
         hash: {
           type: 'string',
           description: 'Canvas state hash (sha256), calculated from nodes and edges',
+        },
+        workflow: {
+          type: 'object',
+          description: 'Workflow configuration',
+          properties: {
+            variables: {
+              type: 'array',
+              description: 'List of workflow variables',
+              items: {
+                $ref: '#/components/schemas/WorkflowVariable',
+              },
+            },
+          },
         },
         transactions: {
           type: 'array',
@@ -4971,6 +4992,10 @@ export const SkillInputSchema = {
       type: 'string',
       description: 'User query',
     },
+    originalQuery: {
+      type: 'string',
+      description: 'Original user query',
+    },
     images: {
       type: 'array',
       description: 'Image list (storage keys)',
@@ -5333,6 +5358,14 @@ export const InvokeSkillRequestSchema = {
       items: {
         type: 'string',
       },
+    },
+    workflowExecutionId: {
+      type: 'string',
+      description: 'Workflow execution ID for workflow context',
+    },
+    workflowNodeExecutionId: {
+      type: 'string',
+      description: 'Workflow node execution ID for workflow context',
     },
   },
 } as const;
@@ -6762,10 +6795,6 @@ export const ProviderSchema = {
       type: 'string',
       description: 'Provider API key (this will never be exposed to the frontend)',
     },
-    extraParams: {
-      type: 'string',
-      description: 'Provider-specific extra params (JSON string)',
-    },
   },
 } as const;
 
@@ -7581,4 +7610,141 @@ export const CanvasEdgeSchema = {
       description: 'Edge type',
     },
   },
+} as const;
+
+export const InitializeWorkflowRequestSchema = {
+  type: 'object',
+  required: ['canvasId'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to initialize workflow for',
+      example: 'canvas-123',
+    },
+    newCanvasId: {
+      type: 'string',
+      description: 'New canvas ID',
+      example: 'canvas-456',
+    },
+  },
+} as const;
+
+export const InitializeWorkflowResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          required: ['workflowExecutionId'],
+          properties: {
+            workflowExecutionId: {
+              type: 'string',
+              description: 'Workflow execution ID',
+              example: 'we-abc123',
+            },
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const WorkflowVariableSchema = {
+  type: 'object',
+  description: 'Workflow variable definition',
+  required: ['name', 'value'],
+  properties: {
+    name: {
+      type: 'string',
+      description: 'Variable name',
+      example: 'userName',
+    },
+    value: {
+      type: 'string',
+      description: 'Variable value',
+      example: '张三',
+    },
+    defaultValue: {
+      type: 'string',
+      description: 'Variable default value',
+      example: '张三',
+    },
+    description: {
+      type: 'string',
+      description: 'Variable description',
+      example: '用户姓名',
+    },
+    source: {
+      type: 'string',
+      description: 'Variable source',
+      enum: ['startNode', 'resourceLibrary'],
+    },
+    variableType: {
+      type: 'string',
+      description: 'Variable type',
+      enum: ['string', 'option', 'resource'],
+    },
+  },
+} as const;
+
+export const GetWorkflowVariablesResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'List of workflow variables',
+          items: {
+            $ref: '#/components/schemas/WorkflowVariable',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const UpdateWorkflowVariablesRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'variables'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    variables: {
+      type: 'array',
+      description: 'List of workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
+  },
+} as const;
+
+export const UpdateWorkflowVariablesResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'Updated list of workflow variables',
+          items: {
+            $ref: '#/components/schemas/WorkflowVariable',
+          },
+        },
+      },
+    },
+  ],
 } as const;
