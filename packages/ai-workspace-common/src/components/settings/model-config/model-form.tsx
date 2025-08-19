@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, memo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useListProviders,
+  useListProviderItems,
   useListProviderItemOptions,
 } from '@refly-packages/ai-workspace-common/queries';
 import {
@@ -30,6 +31,7 @@ import { ProviderModal } from '@refly-packages/ai-workspace-common/components/se
 import { Provider } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import mediaConfig from './media-config.json';
+import { useUserStoreShallow } from '@refly/stores';
 
 // Type definition for media config
 interface MediaModelConfig {
@@ -81,6 +83,8 @@ export const ModelFormModal = memo(
     const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
     const [selectedProviderId, setSelectedProviderId] = useState<any>(null);
 
+    const userProfile = useUserStoreShallow((state) => state.userProfile);
+
     const modelIdOptionsCache = useRef<Record<string, any[]>>({});
 
     // Generate a cache key combining providerId and category
@@ -111,7 +115,9 @@ export const ModelFormModal = memo(
       data: providersResponse,
       isLoading: isProvidersLoading,
       refetch,
-    } = useListProviders({ query: { enabled: true } });
+    } = useListProviders({
+      query: { enabled: true, isGlobal: userProfile?.preferences?.providerMode === 'global' },
+    });
 
     const presetProviders = useMemo(() => {
       return providerInfoList.filter((provider) => {
@@ -126,7 +132,16 @@ export const ModelFormModal = memo(
 
     const getProviderByProviderId = useCallback(
       (providerId: string) => {
-        return providersResponse?.data?.find((provider) => provider.providerId === providerId);
+        return providerId === 'global'
+          ? {
+              providerId: 'global',
+              providerKey: 'global',
+              categories: [],
+              enabled: true,
+              name: t('settings.modelConfig.global'),
+              isGlobal: true,
+            }
+          : providersResponse?.data?.find((provider) => provider.providerId === providerId);
       },
       [providersResponse],
     );
@@ -195,6 +210,20 @@ export const ModelFormModal = memo(
       return capabilitiesArray;
     };
 
+    const { data: globalProviderItems, isLoading: loadingGlobalProviderItems } =
+      useListProviderItems(
+        {
+          query: {
+            category: filterProviderCategory as ProviderCategory,
+            isGlobal: true,
+          },
+        },
+        undefined,
+        {
+          enabled: Boolean(selectedProviderId && selectedProviderId === 'global'),
+        },
+      );
+
     const {
       data: providerItemOptions,
       refetch: refetchProviderItemOptions,
@@ -208,7 +237,9 @@ export const ModelFormModal = memo(
       },
       undefined,
       {
-        enabled: !!selectedProviderId && filterProviderCategory !== 'mediaGeneration',
+        enabled: Boolean(
+          selectedProviderId && selectedProviderId !== 'global' && filterProviderCategory === 'llm',
+        ),
       },
     );
 
@@ -329,7 +360,7 @@ export const ModelFormModal = memo(
     }, [form, updateModelMutation, createModelMutation, disableDefaultModelConfirm]);
 
     const providerOptions = useMemo(() => {
-      return (
+      const remoteProviders = (
         providersResponse?.data?.map((provider) => ({
           isGlobal: provider?.isGlobal,
           categories: provider?.categories,
@@ -340,11 +371,11 @@ export const ModelFormModal = memo(
       ).filter((provider) => {
         return provider.categories?.includes(filterProviderCategory as ProviderCategory);
       });
-    }, [providersResponse, filterProviderCategory]);
-
-    const currentProvider = useMemo(() => {
-      return providerOptions.find((p) => p.value === selectedProviderId);
-    }, [selectedProviderId, providerOptions]);
+      return [
+        { label: t('settings.modelConfig.global'), value: 'global', providerKey: 'global' },
+        ...remoteProviders,
+      ];
+    }, [t, providersResponse, filterProviderCategory]);
 
     // Get current model options based on the selected provider
     const modelIdOptions = useMemo(() => {
@@ -406,6 +437,14 @@ export const ModelFormModal = memo(
       providerOptions,
     ]);
 
+    const globalModelOptions = useMemo(() => {
+      return globalProviderItems?.data?.map((item) => ({
+        label: item.name,
+        value: item.itemId,
+        ...item,
+      }));
+    }, [globalProviderItems]);
+
     if (!selectedProviderId && providerOptions?.[0]?.value) {
       setSelectedProviderId(providerOptions?.[0]?.value);
       form.setFieldsValue({ providerId: providerOptions?.[0]?.value });
@@ -448,6 +487,46 @@ export const ModelFormModal = memo(
 
         const formValues: any = {
           name: option?.name ?? '',
+          enabled: true,
+        };
+
+        if (filterProviderCategory === 'llm') {
+          formValues.contextLimit = (option?.config as LLMModelConfig)?.contextLimit;
+          formValues.maxOutput = (option?.config as LLMModelConfig)?.maxOutput;
+          formValues.capabilities = capabilities;
+        } else if (filterProviderCategory === 'mediaGeneration') {
+          formValues.capabilities = capabilities;
+          // Handle description for media generation models
+          if ((option?.config as any)?.description) {
+            const currentLang = i18n.language?.startsWith('zh') ? 'zh' : 'en';
+            const description = (option.config as any).description;
+            formValues.description = description[currentLang] || description.en;
+          }
+        }
+
+        form.setFieldsValue(formValues);
+      },
+      [
+        form,
+        resetFormExcludeField,
+        getCapabilitiesFromObject,
+        filterProviderCategory,
+        i18n.language,
+      ],
+    );
+
+    const handleGlobalModelChange = useCallback(
+      (_value: string, option: ProviderItem | undefined) => {
+        if (!option) return;
+
+        resetFormExcludeField(['providerId', 'modelId']);
+
+        const capabilities = getCapabilitiesFromObject(
+          (option?.config as LLMModelConfig)?.capabilities as ModelCapabilities,
+        );
+
+        const formValues: any = {
+          globalItemId: option?.itemId ?? '',
           enabled: true,
         };
 
@@ -573,6 +652,7 @@ export const ModelFormModal = memo(
                 placeholder={t('settings.modelConfig.contextLimitPlaceholder')}
                 className="w-full"
                 min={0}
+                disabled={selectedProviderId === 'global'}
               />
             </Form.Item>
 
@@ -585,6 +665,7 @@ export const ModelFormModal = memo(
                 placeholder={t('settings.modelConfig.maxOutputPlaceholder')}
                 className="w-full"
                 min={0}
+                disabled={selectedProviderId === 'global'}
               />
             </Form.Item>
 
@@ -592,6 +673,7 @@ export const ModelFormModal = memo(
               <Checkbox.Group
                 className="w-full"
                 key={`capabilities-${JSON.stringify(form.getFieldValue('capabilities'))}`}
+                disabled={selectedProviderId === 'global'}
               >
                 <div className="grid grid-cols-2 gap-2">
                   <Checkbox value="functionCall">{t('settings.modelConfig.functionCall')}</Checkbox>
@@ -628,6 +710,7 @@ export const ModelFormModal = memo(
                     form.setFieldsValue({ capabilities: [latestValue] });
                   }
                 }}
+                disabled={selectedProviderId === 'global'}
               >
                 <div className="grid grid-cols-3 gap-1">
                   <Checkbox value="image">{t('settings.modelConfig.image')}</Checkbox>
@@ -652,6 +735,7 @@ export const ModelFormModal = memo(
                 placeholder={t('settings.modelConfig.dimensionsPlaceholder')}
                 className="w-full"
                 min={1}
+                disabled={selectedProviderId === 'global'}
               />
             </Form.Item>
             <Form.Item
@@ -663,6 +747,7 @@ export const ModelFormModal = memo(
                 placeholder={t('settings.modelConfig.batchSizePlaceholder')}
                 className="w-full"
                 min={1}
+                disabled={selectedProviderId === 'global'}
               />
             </Form.Item>
           </>
@@ -681,6 +766,7 @@ export const ModelFormModal = memo(
                 placeholder={t('settings.modelConfig.topNPlaceholder')}
                 className="w-full"
                 min={1}
+                disabled={selectedProviderId === 'global'}
               />
             </Form.Item>
 
@@ -695,6 +781,7 @@ export const ModelFormModal = memo(
                 min={0}
                 max={1}
                 step={0.01}
+                disabled={selectedProviderId === 'global'}
               />
             </Form.Item>
           </>
@@ -702,7 +789,7 @@ export const ModelFormModal = memo(
       }
 
       return null;
-    }, [filterProviderCategory, t]);
+    }, [filterProviderCategory, selectedProviderId, t]);
 
     return (
       <Modal
@@ -755,53 +842,54 @@ export const ModelFormModal = memo(
               />
             </Form.Item>
 
-            <Form.Item
-              name="modelId"
-              label={t('settings.modelConfig.modelId')}
-              rules={[{ required: true, message: t('settings.modelConfig.modelIdPlaceholder') }]}
-            >
-              {currentProvider?.isGlobal ? (
+            {selectedProviderId === 'global' ? (
+              <Form.Item
+                name="globalItemId"
+                label={t('settings.modelConfig.providerItem')}
+                rules={[
+                  { required: true, message: t('settings.modelConfig.providerItemPlaceholder') },
+                ]}
+              >
                 <Select
-                  placeholder={t('settings.modelConfig.modelIdPlaceholder')}
+                  placeholder={t('settings.modelConfig.providerItemPlaceholder')}
                   showSearch
-                  optionFilterProp="value"
-                  options={modelIdOptions}
+                  optionFilterProp="label"
+                  options={globalModelOptions}
                   notFoundContent={
-                    loadingItemOptions &&
-                    selectedProviderId &&
-                    !getCachedOptions(selectedProviderId) ? (
+                    loadingGlobalProviderItems && selectedProviderId === 'global' ? (
                       <Loading />
                     ) : null
                   }
-                  loading={
-                    loadingItemOptions &&
-                    selectedProviderId &&
-                    !getCachedOptions(selectedProviderId)
-                  }
-                  onChange={handleModelIdChange}
-                  disabled={
-                    loadingItemOptions &&
-                    selectedProviderId &&
-                    !getCachedOptions(selectedProviderId)
-                  }
+                  loading={loadingGlobalProviderItems}
+                  onChange={handleGlobalModelChange}
                 />
-              ) : (
-                <AutoComplete
-                  placeholder={t('settings.modelConfig.modelIdPlaceholder')}
-                  options={modelIdOptions}
-                  filterOption={true}
-                  onSelect={handleModelIdChange}
-                />
-              )}
-            </Form.Item>
+              </Form.Item>
+            ) : (
+              <>
+                <Form.Item
+                  name="modelId"
+                  label={t('settings.modelConfig.modelId')}
+                  rules={[
+                    { required: true, message: t('settings.modelConfig.modelIdPlaceholder') },
+                  ]}
+                >
+                  <AutoComplete
+                    placeholder={t('settings.modelConfig.modelIdPlaceholder')}
+                    options={modelIdOptions}
+                    filterOption={true}
+                    onSelect={handleModelIdChange}
+                  />
+                </Form.Item>
 
-            <Form.Item
-              name="name"
-              label={t('settings.modelConfig.name')}
-              rules={[{ required: true, message: t('settings.modelConfig.namePlaceholder') }]}
-            >
-              <Input placeholder={t('settings.modelConfig.namePlaceholder')} />
-            </Form.Item>
+                <Form.Item
+                  name="name"
+                  label={t('settings.modelConfig.name')}
+                  rules={[{ required: true, message: t('settings.modelConfig.namePlaceholder') }]}
+                >
+                  <Input placeholder={t('settings.modelConfig.namePlaceholder')} />
+                </Form.Item>
+              </>
+            )}
 
             <Form.Item name="group" label={t('settings.modelConfig.group')}>
               <Input placeholder={t('settings.modelConfig.groupPlaceholder')} />

@@ -1,9 +1,9 @@
-import { Button, Dropdown, Tooltip, message } from 'antd';
+import { Button, Dropdown, message } from 'antd';
 import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Share, Download, More, Location, Delete, Markdown, Doc1, Pdf } from 'refly-icons';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode } from '@refly/stores';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { editorEmitter } from '@refly/utils/event-emitter/editor';
@@ -12,11 +12,11 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 
 export const DocumentTopButtons = () => {
   const { t } = useTranslation();
+  const { canvasId } = useCanvasContext();
   const { setNodeCenter } = useNodePosition();
   const { deleteNode } = useDeleteNode();
-  const { activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    activeNode: state.activeNode,
-  }));
+
+  const { activeNode } = useActiveNode(canvasId);
   const [isSharing, setIsSharing] = useState(false);
   const { readonly } = useCanvasContext();
   const docId = activeNode?.data?.entityId ?? '';
@@ -135,6 +135,22 @@ export const DocumentTopButtons = () => {
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
     return [
+      ...(readonly
+        ? []
+        : [
+            {
+              key: 'share',
+              disabled: isSharing,
+              loading: isSharing,
+              label: (
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Share size={16} color="var(--refly-text-0)" />
+                  {t('document.share')}
+                </div>
+              ),
+              onClick: handleShare,
+            },
+          ]),
       {
         key: 'locateNode',
         label: (
@@ -161,7 +177,7 @@ export const DocumentTopButtons = () => {
             },
           ]),
     ];
-  }, [handleDeleteNode, handleLocateNode, t]);
+  }, [handleDeleteNode, handleLocateNode, handleShare, readonly, isSharing, t]);
 
   const DownloadMenu = (
     <Dropdown menu={{ items: exportMenuItems }} trigger={['click']} placement="bottomRight">
@@ -171,22 +187,7 @@ export const DocumentTopButtons = () => {
 
   return (
     <div className="flex items-center gap-3">
-      {!readonly && (
-        <>
-          <Tooltip title={t('document.share', 'Share document')}>
-            <Button
-              className="!h-5 !w-5 p-0"
-              disabled={isSharing}
-              loading={isSharing}
-              size="small"
-              type="text"
-              onClick={handleShare}
-              icon={<Share size={16} />}
-            />
-          </Tooltip>
-          {DownloadMenu}
-        </>
-      )}
+      {!readonly && DownloadMenu}
 
       <Dropdown menu={{ items: moreMenuItems }} trigger={['click']} placement="bottomRight">
         <Button className="!h-5 !w-5 p-0" size="small" type="text" icon={<More size={16} />} />

@@ -402,7 +402,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
           <SiderLogo
             source={source}
-            navigate={source === 'sider' ? (path) => navigate(path) : undefined}
+            navigate={(path) => navigate(path)}
             collapse={collapse}
             setCollapse={setCollapse}
           />

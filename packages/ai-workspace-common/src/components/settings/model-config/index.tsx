@@ -30,6 +30,7 @@ import { useUserStoreShallow, useChatStoreShallow } from '@refly/stores';
 import { More, Settings, Back, Chat, Media, AIModel } from 'refly-icons';
 import { ContentHeader } from '../contentHeader';
 import { DefaultModel } from '../default-model';
+import { CreditBillingInfo } from '@refly-packages/ai-workspace-common/components/common/credit-billing-info';
 
 const ActionDropdown = ({
   model,
@@ -139,6 +140,12 @@ const ModelItem = memo(
               type={'color'}
             />
             <div className="text-refly-text-0">{model.name}</div>
+            {model.creditBilling && (
+              <>
+                <Divider type="vertical" className="bg-refly-Card-Border mx-1 h-4" />
+                <CreditBillingInfo creditBilling={model.creditBilling} />
+              </>
+            )}
           </div>
 
           {editable && (
@@ -301,7 +308,7 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
   const getProviderItems = useCallback(async () => {
     setIsLoading(true);
     const res = await getClient().listProviderItems({
-      query: providerMode === 'global' ? { isGlobal: true, enabled: true } : {},
+      query: providerMode === 'global' ? { isGlobal: true, enabled: true } : { isGlobal: false },
     });
     setIsLoading(false);
     if (res?.data?.success) {

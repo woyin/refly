@@ -1,13 +1,13 @@
 import { SkillResponseTopButtons } from './skill-response-top-buttons';
 import { CodeArtifactTopButtons } from './code-artifact-top-buttons';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode } from '@refly/stores';
 import { DocumentTopButtons } from './document-top-buttons';
 import { ResourceTopButtons } from './resource-top-buttons';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const TopButtons = () => {
-  const { activeNode } = useCanvasResourcesPanelStoreShallow((state) => ({
-    activeNode: state.activeNode,
-  }));
+  const { canvasId } = useCanvasContext();
+  const { activeNode } = useActiveNode(canvasId);
 
   switch (activeNode?.type) {
     case 'skillResponse':

@@ -23,6 +23,7 @@ import {
   CanvasConflictException,
   purgeContextItems,
   calculateCanvasStateDiff,
+  shouldCreateNewVersion,
 } from '@refly/canvas-common';
 import {
   CanvasNotFoundError,
@@ -382,6 +383,20 @@ export class CanvasSyncService {
       throw new CanvasNotFoundError();
     }
 
+    // If no need to create new version, return the current state
+    if (!shouldCreateNewVersion(state)) {
+      this.logger.log(
+        `[createCanvasVersion] no need to create version for canvas ${canvasId}, current version: ${canvas.version}`,
+      );
+      return {
+        canvasId,
+        newState: state,
+      };
+    }
+
+    this.logger.log(
+      `[createCanvasVersion] create version for canvas ${canvasId}, current version: ${canvas.version}`,
+    );
     const releaseLock = await this.lockState(canvasId);
 
     try {
@@ -450,6 +465,10 @@ export class CanvasSyncService {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
+      this.logger.log(
+        `[createCanvasVersion] create version for canvas ${canvasId}, new version: ${newState.version}`,
+      );
+
       const stateStorageKey = await this.saveState(canvasId, newState);
 
       await this.prisma.$transaction([

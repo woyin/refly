@@ -1,16 +1,13 @@
 import { useState, useCallback, memo, useMemo } from 'react';
-import { Button, Tooltip, Popover, Dropdown, Divider } from 'antd';
+import { Button, Tooltip, Dropdown, Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next';
 import {
   IconAskAI,
   IconSlideshow,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Download, Search, Touchpad, Mouse, ArrowDown, SideLeft } from 'refly-icons';
-import { NodeSelector } from '../common/node-selector';
-import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
-import { IContextItem } from '@refly/common-types';
-import { useReactFlow } from '@xyflow/react';
+import { Download, Touchpad, Mouse, ArrowDown, SideLeft } from 'refly-icons';
+
 import { HoverCard } from '@refly-packages/ai-workspace-common/components/hover-card';
 import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
 import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
@@ -87,10 +84,7 @@ export const ToolbarButtons = memo(
   }) => {
     const { t } = useTranslation();
     const { exportCanvasAsImage, isLoading } = useExportCanvasAsImage();
-    const [searchOpen, setSearchOpen] = useState(false);
     const [modeOpen, setModeOpen] = useState(false);
-    const { setNodeCenter } = useNodePosition();
-    const { getNodes } = useReactFlow();
     const { hoverCardEnabled } = useHoverCard();
     const { readonly, canvasId } = useCanvasContext();
     const { sidePanelVisible, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow(
@@ -111,17 +105,6 @@ export const ToolbarButtons = memo(
         setShowSlideshow: state.setShowSlideshow,
         setShowLinearThread: state.setShowLinearThread,
       }));
-
-    const handleNodeSelect = useCallback(
-      (item: IContextItem) => {
-        const nodes = getNodes();
-        const node = nodes.find((n) => n.data?.entityId === item.entityId);
-        if (node) {
-          setNodeCenter(node.id, true);
-        }
-      },
-      [getNodes, setNodeCenter],
-    );
 
     // Memoize static configurations for mode selector
     const modeItems = useMemo(
@@ -217,28 +200,6 @@ export const ToolbarButtons = memo(
 
         <div className="flex items-center">
           {!readonly && <Tooltip title={t('canvas.toolbar.slideshow')}>{slideshowButton}</Tooltip>}
-
-          <Popover
-            open={searchOpen}
-            onOpenChange={setSearchOpen}
-            styles={{ body: { padding: 0, boxShadow: 'none' } }}
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <NodeSelector
-                onSelect={handleNodeSelect}
-                showFooterActions={true}
-                onClickOutside={() => setSearchOpen(false)}
-              />
-            }
-            classNames={{
-              root: 'node-search-popover',
-            }}
-          >
-            <Tooltip title={t('canvas.toolbar.searchNode')}>
-              <Button type="text" icon={<Search size={18} />} />
-            </Tooltip>
-          </Popover>
 
           <Tooltip title={t('canvas.toolbar.exportImage')}>{exportImageButton}</Tooltip>
 

@@ -257,6 +257,8 @@ model PilotStep {
   status     String   @default("init") @map("status")
   /// Raw step output from LLM
   rawOutput  String?  @map("raw_output")
+  /// Divergent node fields
+  mode       String?  @default("subtask") @map("mode")
   /// Create timestamp
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -1031,6 +1033,8 @@ model ProviderItem {
   order         Int       @default(0) @map("order")
   /// Group name
   groupName     String    @default("") @map("group_name")
+  /// Related global provider item ID
+  globalItemId  String?   @map("global_item_id")
   /// Create timestamp
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -1042,6 +1046,7 @@ model ProviderItem {
 
   @@index([providerId])
   @@index([uid, deletedAt])
+  @@index([globalItemId])
   @@map("provider_items")
 }
 

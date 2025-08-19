@@ -4,23 +4,23 @@ import { useTranslation } from 'react-i18next';
 import { CanvasNode } from '@refly/canvas-common';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { cn } from '@refly/utils/cn';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { ResourceItemAction } from '../share/resource-item-action';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const { Text } = Typography;
 
 export const ResultList = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
-  const { setParentType, setActiveNode, activeNode, searchKeyword } =
-    useCanvasResourcesPanelStoreShallow((state) => ({
-      setParentType: state.setParentType,
-      setActiveNode: state.setActiveNode,
-      activeNode: state.activeNode,
-      searchKeyword: state.searchKeyword,
-    }));
+  const { canvasId } = useCanvasContext();
+  const { setParentType, searchKeyword } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setParentType: state.setParentType,
+    searchKeyword: state.searchKeyword,
+  }));
+  const { activeNode, setActiveNode } = useActiveNode(canvasId);
 
   // Filter nodes by the specified types and search keyword
   const resultNodes = useMemo(() => {

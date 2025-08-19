@@ -78,6 +78,12 @@ const translations = {
         '您的存储空间已达到上限。升级您的订阅计划以获得更大的存储空间，继续使用我们的服务。',
       upgrade: '立即升级',
     },
+    creditBilling: {
+      description: {
+        '5k_tokens': '每 5k token 消耗 {{cost}} 积分',
+        product: '每个产物消耗 {{cost}} 积分',
+      },
+    },
     plans: {
       free: {
         title: 'Free',
@@ -302,6 +308,7 @@ const translations = {
     generating: '生成中...',
     yes: '是',
     no: '否',
+    sharing: '分享中...',
   },
   mode: {
     ask: '提问',
@@ -1070,7 +1077,7 @@ const translations = {
     file: '文件',
   },
   canvas: {
-    emptyText: '双击画布打开菜单或选择',
+    emptyText: '双击画布打开菜单',
     shareNotFound: '画布不存在',
     shareNotFoundHint: '你尝试访问的共享画布无法找到。它可能已被删除，或者链接可能有误。',
     frontPageWelcome: '今天我能为您完成什么工作？',
@@ -2367,6 +2374,8 @@ const translations = {
       namePlaceholder: '请输入模型名称',
       modelId: '模型ID',
       modelIdPlaceholder: '请设置模型ID',
+      providerItem: '模型',
+      providerItemPlaceholder: '请选择模型',
       enable: '启用',
       enabled: '是否启用',
       disable: '禁用',

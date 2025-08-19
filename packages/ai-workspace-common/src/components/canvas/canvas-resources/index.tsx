@@ -2,7 +2,7 @@ import { memo, useEffect, useRef } from 'react';
 import { Modal } from 'antd';
 import { CanvasResourcesHeader } from './share/canvas-resources-header';
 import { ResourceOverview } from './share/resource-overview';
-import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { PreviewComponent } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { CanvasNodeType } from '@refly/openapi-schema';
@@ -14,15 +14,16 @@ interface CanvasResourcesProps {
 }
 
 export const CanvasResources = memo(({ className }: CanvasResourcesProps) => {
-  const { showLeftOverview, activeNode, resetState, setParentType } =
-    useCanvasResourcesPanelStoreShallow((state) => ({
+  const { canvasId } = useCanvasContext();
+  const { showLeftOverview, resetState, setParentType } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
       showLeftOverview: state.showLeftOverview,
-      activeNode: state.activeNode,
       resetState: state.resetState,
       setParentType: state.setParentType,
-    }));
+    }),
+  );
+  const { activeNode } = useActiveNode(canvasId);
 
-  const { canvasId } = useCanvasContext();
   const prevCanvasIdRef = useRef<string | null>(canvasId);
 
   useEffect(() => {

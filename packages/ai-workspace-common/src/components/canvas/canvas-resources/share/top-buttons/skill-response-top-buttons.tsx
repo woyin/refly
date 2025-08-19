@@ -1,5 +1,5 @@
 import { Reload, More, Share } from 'refly-icons';
-import { Button, Divider, Dropdown, Tooltip } from 'antd';
+import { Button, Dropdown, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import { CanvasNode } from '@refly/canvas-common';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { useMemo, useCallback, useState } from 'react';
 import { Delete, Doc, Location } from 'refly-icons';
-import { useActionResultStoreShallow } from '@refly/stores';
+import { useActiveNode, useActionResultStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { parseMarkdownCitationsAndCanvasTags } from '@refly/utils/parse';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
@@ -27,7 +27,7 @@ interface SkillResponseTopButtonsProps {
 }
 export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) => {
   const { t } = useTranslation();
-  const { readonly } = useCanvasContext();
+  const { readonly, canvasId } = useCanvasContext();
 
   const resultId = node?.data?.entityId ?? '';
   const { result } = useActionResultStoreShallow((state) => ({
@@ -39,10 +39,11 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   const { removeLinearThreadMessageByNodeId } = useCanvasStore((state) => ({
     removeLinearThreadMessageByNodeId: state.removeLinearThreadMessageByNodeId,
   }));
-  const { setActiveNode, setParentType } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setActiveNode: state.setActiveNode,
+  const { setParentType, setWideScreenVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
     setParentType: state.setParentType,
+    setWideScreenVisible: state.setWideScreenVisible,
   }));
+  const { setActiveNode } = useActiveNode(canvasId);
   const [isSharing, setIsSharing] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -73,7 +74,7 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   const handleShare = useCallback(async () => {
     if (!result) return;
     setIsSharing(true);
-    const loadingMessage = message.loading(t('codeArtifact.sharing'), 0);
+    const loadingMessage = message.loading(t('common.sharing'), 0);
     try {
       const { data, error } = await getClient().createShare({
         body: {
@@ -120,8 +121,8 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
         entityId: node?.data?.entityId ?? resultId,
       },
     });
-    setActiveNode(null);
-    setParentType('stepsRecord');
+    setWideScreenVisible(false);
+    setParentType(null);
   }, [
     deleteNode,
     node,
@@ -130,6 +131,7 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
     resultId,
     setActiveNode,
     setParentType,
+    setWideScreenVisible,
   ]);
 
   const moreMenuItems: MenuProps['items'] = useMemo(() => {
@@ -205,18 +207,15 @@ export const SkillResponseTopButtons = ({ node }: SkillResponseTopButtonsProps) 
   return (
     <div className="flex items-center gap-3">
       {!readonly && (
-        <>
-          <Tooltip title={t('canvas.nodeActions.rerun')}>
-            <Button
-              className="!h-5 !w-5 p-0"
-              size="small"
-              type="text"
-              icon={<Reload size={16} />}
-              onClick={handleReRun}
-            />
-          </Tooltip>
-          <Divider type="vertical" className="m-0 h-4 bg-refly-Card-Border" />
-        </>
+        <Tooltip title={t('canvas.nodeActions.rerun')}>
+          <Button
+            className="!h-5 !w-5 p-0"
+            size="small"
+            type="text"
+            icon={<Reload size={16} />}
+            onClick={handleReRun}
+          />
+        </Tooltip>
       )}
 
       <Dropdown
