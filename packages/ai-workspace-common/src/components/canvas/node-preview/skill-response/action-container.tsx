@@ -1,7 +1,7 @@
 import { useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, message, Tooltip } from 'antd';
-import { Data } from 'refly-icons';
+import { AiChat, Data } from 'refly-icons';
 import { ModelIcon } from '@lobehub/icons';
 import { ActionResult, ActionStep, Source } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
@@ -119,58 +119,68 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   }
 
   return (
-    <div className="flex items-center justify-between border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border p-3">
-      {tokenUsage && (
-        <div className="flex flex-row text-gray-500 text-sm gap-3">
-          <div className="flex items-center gap-1">
-            <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
-            {tokenUsage?.modelLabel || providerItem?.name}
-          </div>
-          <div className="flex items-center gap-1">
-            <Data size={16} />
-            {tokenUsage?.inputTokens + tokenUsage?.outputTokens}
-          </div>
+    <div className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3">
+      <div className="flex flex-row items-center justify-between bg-refly-tertiary-default px-3 py-2 rounded-xl mx-3">
+        <div className="flex flex-row items-center gap-1 px-2">
+          <span className="font-[600]">下一步建议</span>
+          <Button type="text" size="small" icon={<AiChat size={16} />} className="mx-4">
+            <span>追问</span>
+          </Button>
         </div>
-      )}
-      {!isPending && step?.content && (
-        <div className="flex flex-row justify-between items-center text-sm">
-          <div className="-ml-1 text-sm flex flex-row items-center gap-1">
-            {!readonly && !isShareMode && step.content && (
-              <Tooltip title={t('copilot.message.copy')}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CopyOutlined style={{ fontSize: 14 }} />}
-                  className={buttonClassName}
-                  onClick={() => handleCopyToClipboard(step.content ?? '')}
-                />
-              </Tooltip>
-            )}
-            {!readonly &&
-              !isShareMode &&
-              editorActionList.map((item) => (
-                <Tooltip key={item.key} title={t(`copilot.message.${item.key}`)}>
+      </div>
+      <div className="flex items-center justify-between p-3 rounded-b-xl">
+        {tokenUsage && (
+          <div className="flex flex-row text-gray-500 text-sm gap-3">
+            <div className="flex items-center gap-1">
+              <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
+              {tokenUsage?.modelLabel || providerItem?.name}
+            </div>
+            <div className="flex items-center gap-1">
+              <Data size={16} />
+              {tokenUsage?.inputTokens + tokenUsage?.outputTokens}
+            </div>
+          </div>
+        )}
+        {!isPending && step?.content && (
+          <div className="flex flex-row justify-between items-center text-sm">
+            <div className="-ml-1 text-sm flex flex-row items-center gap-1">
+              {!readonly && !isShareMode && step.content && (
+                <Tooltip title={t('copilot.message.copy')}>
                   <Button
-                    key={item.key}
-                    size="small"
                     type="text"
+                    size="small"
+                    icon={<CopyOutlined style={{ fontSize: 14 }} />}
                     className={buttonClassName}
-                    icon={item.icon}
-                    disabled={!item.enabled}
-                    loading={isCreating}
-                    onClick={() => {
-                      const parsedText = parseMarkdownCitationsAndCanvasTags(
-                        step.content ?? '',
-                        sources,
-                      );
-                      handleEditorOperation(item.key as EditorOperation, parsedText || '');
-                    }}
+                    onClick={() => handleCopyToClipboard(step.content ?? '')}
                   />
                 </Tooltip>
-              ))}
+              )}
+              {!readonly &&
+                !isShareMode &&
+                editorActionList.map((item) => (
+                  <Tooltip key={item.key} title={t(`copilot.message.${item.key}`)}>
+                    <Button
+                      key={item.key}
+                      size="small"
+                      type="text"
+                      className={buttonClassName}
+                      icon={item.icon}
+                      disabled={!item.enabled}
+                      loading={isCreating}
+                      onClick={() => {
+                        const parsedText = parseMarkdownCitationsAndCanvasTags(
+                          step.content ?? '',
+                          sources,
+                        );
+                        handleEditorOperation(item.key as EditorOperation, parsedText || '');
+                      }}
+                    />
+                  </Tooltip>
+                ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
