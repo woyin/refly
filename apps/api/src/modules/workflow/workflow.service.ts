@@ -61,24 +61,23 @@ export class WorkflowService {
   ): Promise<string> {
     try {
       // Get canvas state to retrieve workflow variables
-      const canvasState = await this.canvasSyncService.getState(user, { canvasId });
-      const variables = (canvasState as any)?.workflow?.variables || [];
-      // 新方法，返回处理后的 query 和 resource 类型变量
+      const variables = await this.canvasSyncService.getWorkflowVariables(user, { canvasId });
+      // New method: returns the processed query and resource type variables
       const { query: processedQuery, resourceVars } =
         this.workflowVariableService.processQueryWithTypes(query, variables);
-      // 处理 resource 类型变量，查 resource 并注入 context.resources
+      // Process resource type variables: fetch resource and inject into context.resources
       if (resourceVars.length && context) {
         for (const variable of resourceVars) {
           const storageKey = variable.value;
           if (!storageKey) continue;
-          // 查找 resource
+          // Find resource by storage key
           const resource = await this.knowledgeService.getResourceByStorageKey(user, storageKey);
           if (resource) {
-            // 绑定 entityId/canvasId
+            // Bind entityId/canvasId if not already bound
             if (!resource.canvasId || resource.canvasId !== canvasId) {
               await this.knowledgeService.bindResourceToCanvas(resource.resourceId, canvasId);
             }
-            // 组装 SkillContextResourceItem
+            // Assemble SkillContextResourceItem
             context.resources = context.resources ?? [];
             context.resources.push({
               resourceId: resource.resourceId,
