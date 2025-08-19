@@ -30,7 +30,10 @@ import { buildSummarySkillInput } from './prompt/summary';
 import { buildSubtaskSkillInput } from './prompt/subtask';
 import { findBestMatch } from '../../utils/similarity';
 
-const MAX_STEPS_PER_EPOCH = 3;
+export const MAX_STEPS_PER_EPOCH = 3;
+export const MAX_SUMMARY_STEPS_PER_EPOCH = 1;
+
+export const MAX_EPOCH = 3;
 
 @Injectable()
 export class PilotService {
@@ -64,7 +67,7 @@ export class PilotService {
       data: {
         sessionId,
         uid: user.uid,
-        maxEpoch: request.maxEpoch ?? 3,
+        maxEpoch: request.maxEpoch ?? MAX_EPOCH,
         title: request.title || request.input?.query || 'New Pilot Session',
         input: JSON.stringify(request.input),
         targetType: request.targetType,
@@ -788,7 +791,10 @@ export class PilotService {
       const epochSubtaskSteps = epochSteps.filter((step) => step.mode === 'subtask');
       const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
 
-      if (epochSubtaskSteps.length >= MAX_STEPS_PER_EPOCH || epochSummarySteps.length >= 1) {
+      if (
+        epochSubtaskSteps.length >= MAX_STEPS_PER_EPOCH ||
+        epochSummarySteps.length >= MAX_SUMMARY_STEPS_PER_EPOCH
+      ) {
         return;
       }
 
