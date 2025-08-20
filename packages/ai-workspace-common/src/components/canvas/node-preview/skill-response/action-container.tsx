@@ -155,7 +155,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
       const currentNodeContext: IContextItem = {
         type: 'skillResponse',
         entityId: result.resultId,
-        title: result.title || '相关内容',
+        title: result.title || t('ui.title'),
       };
       setFollowUpContextItems([currentNodeContext]);
     }
@@ -308,13 +308,13 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     <div className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3">
       <div className="flex flex-row items-center justify-between bg-refly-tertiary-default px-3 py-2 rounded-xl mx-3">
         <div className="flex flex-row items-center px-2">
-          <span className="font-[600] pr-4">下一步建议</span>
+          <span className="font-[600] pr-4">{t('ui.nextStepSuggestions')}</span>
           <div
             className="bg-[#CDFFF1] border-[1px] border-solid border-refly-Card-Border hover:bg-[#CDFFF1] hover:border-refly-Card-Border px-2 py-1 rounded-lg flex items-center justify-center cursor-pointer"
             onClick={initializeFollowUpInput}
           >
             <AiChat className="w-4 h-4 mr-[2px]" color="#0E9F77" />
-            <span className="text-[#0E9F77] font-[600] text-xs">追问</span>
+            <span className="text-[#0E9F77] font-[600] text-xs">{t('ui.followUpQuestion')}</span>
           </div>
         </div>
       </div>
@@ -375,7 +375,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
                   handleSendMessage={handleFollowUpSend}
                   onUploadImage={handleFollowUpImageUpload}
                   onUploadMultipleImages={handleFollowUpMultipleImagesUpload}
-                  placeholder="请输入你的追问..."
+                  placeholder={t('ui.nextStepSuggestionsDescription')}
                 />
               </motion.div>
 

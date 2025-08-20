@@ -1366,6 +1366,11 @@ const translations = {
         'Integrate the node content into the document, supporting iterative writing',
       askFollowUp: 'Ask Follow-up',
       askFollowUpDescription: 'Continue to ask based on the current node content',
+      nextStepSuggestions: 'Next Step Suggestions',
+      nextStepSuggestionsDescription:
+        'Based on the current node content, AI provides suggestions for the next steps.',
+      title: 'Title',
+      followUpQuestion: 'Follow-up',
       moreOptions: 'More Options',
       delete: 'Delete Node',
       deleteDescription: 'Delete the selected node',
