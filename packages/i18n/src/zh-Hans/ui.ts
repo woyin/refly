@@ -1490,6 +1490,10 @@ const translations = {
         document: '新建文档',
         resource: '添加资源',
       },
+      importResource: '导入资源',
+      createDocument: '新建文档',
+      importFromKnowledgeBase: '从知识库导入',
+      importFromExtension: '插件剪存',
     },
   },
   resource: {

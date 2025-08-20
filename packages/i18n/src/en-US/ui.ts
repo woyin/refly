@@ -1525,6 +1525,10 @@ const translations = {
         document: 'New Document',
         resource: 'Add Resource',
       },
+      importResource: 'Import Resource',
+      createDocument: 'Create Document',
+      importFromKnowledgeBase: 'Import from Knowledge Base',
+      importFromExtension: 'Import from Extension',
     },
   },
   resource: {
