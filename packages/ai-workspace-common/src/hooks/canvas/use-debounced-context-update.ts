@@ -93,6 +93,7 @@ export const useContextUpdateByEdges = ({
             type: sourceNode.type as CanvasNodeType,
             title: sourceNode.data.title || '',
           });
+          existingEntityIds.add(entityId);
         }
       }
       // Only update if the context items have actually changed
