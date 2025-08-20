@@ -1,10 +1,17 @@
-import { useMemo, useCallback, memo } from 'react';
+import { useMemo, useCallback, memo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, message, Tooltip } from 'antd';
+import { Button, message, Tooltip, Form } from 'antd';
 import { AiChat, Data } from 'refly-icons';
 import { ModelIcon } from '@lobehub/icons';
-import { ActionResult, ActionStep, Source } from '@refly/openapi-schema';
+import {
+  ActionResult,
+  ActionStep,
+  Source,
+  ModelInfo,
+  SkillRuntimeConfig,
+} from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
+import { motion, AnimatePresence } from 'motion/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
 import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
@@ -12,6 +19,15 @@ import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/can
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
+import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { genActionResultID } from '@refly/utils';
+import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
+import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
+import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
+import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
+import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
+import { IContextItem } from '@refly/common-types';
 
 interface ActionContainerProps {
   step: ActionStep;
@@ -24,11 +40,30 @@ const buttonClassName = 'text-xs flex justify-center items-center h-6 px-1 round
 const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
-  const { readonly } = useCanvasContext();
+  const { readonly, canvasId } = useCanvasContext();
   const { hasEditorSelection, activeDocumentId } = useDocumentStoreShallow((state) => ({
     hasEditorSelection: state.hasEditorSelection,
     activeDocumentId: state.activeDocumentId,
   }));
+
+  // Add state for follow-up question input with full functionality
+  const [showFollowUpInput, setShowFollowUpInput] = useState(false);
+  const [followUpQuery, setFollowUpQuery] = useState('');
+  const [followUpContextItems, setFollowUpContextItems] = useState<IContextItem[]>([]);
+  const [followUpModelInfo, setFollowUpModelInfo] = useState<ModelInfo | null>(null);
+  const [followUpRuntimeConfig, setFollowUpRuntimeConfig] = useState<SkillRuntimeConfig>({});
+
+  // Add hooks for AI functionality
+  const { invokeAction } = useInvokeAction();
+  const { addNode } = useAddNode();
+  const { getFinalProjectId } = useAskProject();
+  const {
+    handleUploadImage: uploadImageHook,
+    handleUploadMultipleImages: uploadMultipleImagesHook,
+  } = useUploadImage();
+
+  const textareaRef = useRef<HTMLDivElement>(null);
+  const [form] = Form.useForm();
 
   const { title } = result ?? {};
   const isPending = result?.status === 'executing';
@@ -114,6 +149,157 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     );
   }, [providerItemList, tokenUsage]);
 
+  // Initialize context items with current node when showing input
+  const initializeFollowUpInput = useCallback(() => {
+    if (result?.resultId) {
+      const currentNodeContext: IContextItem = {
+        type: 'skillResponse',
+        entityId: result.resultId,
+        title: result.title || '相关内容',
+      };
+      setFollowUpContextItems([currentNodeContext]);
+    }
+
+    // Set default model if available
+    if (providerItem && providerItem.category === 'llm') {
+      const modelInfo: ModelInfo = {
+        name: (providerItem.config as any)?.modelId || providerItem.name,
+        label: providerItem.name,
+        provider: providerItem.provider?.name || '',
+        providerItemId: providerItem.itemId,
+        contextLimit: (providerItem.config as any)?.contextLimit || 0,
+        maxOutput: (providerItem.config as any)?.maxOutput || 0,
+        capabilities: (providerItem.config as any)?.capabilities || {},
+      };
+      setFollowUpModelInfo(modelInfo);
+    }
+
+    setShowFollowUpInput(!showFollowUpInput);
+  }, [result, providerItem, showFollowUpInput]);
+
+  // Add handler for follow-up question
+  const handleFollowUpSend = useCallback(() => {
+    if (!followUpQuery?.trim() || !canvasId) return;
+
+    const resultId = genActionResultID();
+    const finalProjectId = getFinalProjectId();
+
+    // Use selected model or fallback to default
+    const modelInfo =
+      followUpModelInfo ||
+      (providerItem && providerItem.category === 'llm'
+        ? {
+            name: (providerItem.config as any)?.modelId || providerItem.name,
+            label: providerItem.name,
+            provider: providerItem.provider?.name || '',
+            providerItemId: providerItem.itemId,
+            contextLimit: (providerItem.config as any)?.contextLimit || 0,
+            maxOutput: (providerItem.config as any)?.maxOutput || 0,
+            capabilities: (providerItem.config as any)?.capabilities || {},
+          }
+        : undefined);
+
+    // Invoke the action
+    invokeAction(
+      {
+        query: followUpQuery,
+        resultId,
+        selectedSkill: undefined,
+        modelInfo,
+        tplConfig: {},
+        runtimeConfig: followUpRuntimeConfig,
+        contextItems: followUpContextItems,
+        projectId: finalProjectId,
+      },
+      {
+        entityId: canvasId,
+        entityType: 'canvas',
+      },
+    );
+
+    // Add node to canvas with connection to the current node
+    const connectTo = result?.resultId
+      ? [
+          {
+            type: 'skillResponse' as const,
+            entityId: result.resultId,
+            handleType: 'source' as const,
+          },
+        ]
+      : undefined;
+
+    addNode(
+      {
+        type: 'skillResponse',
+        data: {
+          title: followUpQuery,
+          entityId: resultId,
+          metadata: {
+            status: 'executing',
+            selectedSkill: undefined,
+            modelInfo,
+            runtimeConfig: followUpRuntimeConfig,
+            tplConfig: {},
+            structuredData: {
+              query: followUpQuery,
+            },
+            projectId: finalProjectId,
+          },
+        },
+      },
+      connectTo,
+    );
+
+    // Clear input and hide input box
+    setFollowUpQuery('');
+    setFollowUpContextItems([]);
+    setFollowUpModelInfo(null);
+    setFollowUpRuntimeConfig({});
+    setShowFollowUpInput(false);
+  }, [
+    followUpQuery,
+    canvasId,
+    result?.resultId,
+    followUpModelInfo,
+    followUpRuntimeConfig,
+    followUpContextItems,
+    invokeAction,
+    addNode,
+    providerItem,
+    getFinalProjectId,
+  ]);
+
+  // Image upload handlers for follow-up
+  const handleFollowUpImageUpload = useCallback(
+    async (file: File) => {
+      const nodeData = await uploadImageHook(file, canvasId);
+      if (nodeData) {
+        setFollowUpContextItems((prev) => [
+          ...prev,
+          {
+            type: 'image',
+            ...nodeData,
+          },
+        ]);
+      }
+    },
+    [uploadImageHook, canvasId],
+  );
+
+  const handleFollowUpMultipleImagesUpload = useCallback(
+    async (files: File[]) => {
+      const nodesData = await uploadMultipleImagesHook(files, canvasId);
+      if (nodesData?.length) {
+        const newContextItems = nodesData.map((nodeData) => ({
+          type: 'image' as const,
+          ...nodeData,
+        }));
+        setFollowUpContextItems((prev) => [...prev, ...newContextItems]);
+      }
+    },
+    [uploadMultipleImagesHook, canvasId],
+  );
+
   if (isPending) {
     return null;
   }
@@ -121,13 +307,100 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   return (
     <div className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3">
       <div className="flex flex-row items-center justify-between bg-refly-tertiary-default px-3 py-2 rounded-xl mx-3">
-        <div className="flex flex-row items-center gap-1 px-2">
-          <span className="font-[600]">下一步建议</span>
-          <Button type="text" size="small" icon={<AiChat size={16} />} className="mx-4">
-            <span>追问</span>
-          </Button>
+        <div className="flex flex-row items-center px-2">
+          <span className="font-[600] pr-4">下一步建议</span>
+          <div
+            className="bg-[#CDFFF1] border-[1px] border-solid border-refly-Card-Border hover:bg-[#CDFFF1] hover:border-refly-Card-Border px-2 py-1 rounded-lg flex items-center justify-center cursor-pointer"
+            onClick={initializeFollowUpInput}
+          >
+            <AiChat className="w-4 h-4 mr-[2px]" color="#0E9F77" />
+            <span className="text-[#0E9F77] font-[600] text-xs">追问</span>
+          </div>
         </div>
       </div>
+
+      {/* Follow-up question input with full functionality and animation */}
+      <AnimatePresence>
+        {showFollowUpInput && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              height: 0,
+              scale: 0.95,
+              y: -10,
+            }}
+            animate={{
+              opacity: 1,
+              height: 'auto',
+              scale: 1,
+              y: 0,
+            }}
+            exit={{
+              opacity: 0,
+              height: 0,
+              scale: 0.95,
+              y: -10,
+            }}
+            transition={{
+              duration: 0.3,
+              ease: [0.4, 0, 0.2, 1], // easeOutCubic
+              height: {
+                duration: 0.3,
+              },
+            }}
+            className="mx-3 mt-2 overflow-hidden"
+          >
+            <div className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px] flex flex-col gap-2">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                <ContextManager
+                  contextItems={followUpContextItems}
+                  setContextItems={setFollowUpContextItems}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.2 }}
+              >
+                <ChatInput
+                  ref={textareaRef}
+                  readonly={readonly}
+                  query={followUpQuery}
+                  setQuery={setFollowUpQuery}
+                  handleSendMessage={handleFollowUpSend}
+                  onUploadImage={handleFollowUpImageUpload}
+                  onUploadMultipleImages={handleFollowUpMultipleImagesUpload}
+                  placeholder="请输入你的追问..."
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.2 }}
+              >
+                <ChatActions
+                  query={followUpQuery}
+                  model={followUpModelInfo}
+                  setModel={setFollowUpModelInfo}
+                  runtimeConfig={followUpRuntimeConfig}
+                  setRuntimeConfig={setFollowUpRuntimeConfig}
+                  handleSendMessage={handleFollowUpSend}
+                  handleAbort={() => {}}
+                  onUploadImage={handleFollowUpImageUpload}
+                  contextItems={followUpContextItems}
+                  form={form}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex items-center justify-between p-3 rounded-b-xl">
         {tokenUsage && (
           <div className="flex flex-row text-gray-500 text-sm gap-3">
