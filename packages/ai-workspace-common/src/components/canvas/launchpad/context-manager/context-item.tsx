@@ -117,7 +117,7 @@ export const ContextItem = ({
           <Close
             size={14}
             color={isLimit ? 'var(--refly-func-danger-default)' : 'var(--refly-text-1)'}
-            className="cursor-pointer flex-shrink-0"
+            className="cursor-pointer flex-shrink-0 hover:text-refly-text-0"
             onClick={(e) => {
               e.stopPropagation();
               onRemove?.(item);
