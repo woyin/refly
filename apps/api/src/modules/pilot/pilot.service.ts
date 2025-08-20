@@ -519,6 +519,7 @@ export class PilotService {
               },
             },
             convertContextItemsToNodeFilters(contextItems),
+            { autoLayout: true }, // Enable auto layout for Agent mode
           );
         }
 
