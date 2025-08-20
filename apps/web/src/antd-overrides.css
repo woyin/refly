@@ -84,7 +84,7 @@
 }
 
 .ant-segmented .ant-segmented-item:hover {
-  background-color: var(--refly-fill-hover)
+  background-color: var(--refly-fill-hover);
 }
 
 .ant-segmented .ant-segmented-item-selected:hover {
