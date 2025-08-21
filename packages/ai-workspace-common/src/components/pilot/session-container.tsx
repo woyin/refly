@@ -299,7 +299,7 @@ export const SessionContainer = memo(
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                     >
                       <motion.div
-                        className="px-4"
+                        className="px-1"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, delay: 0.1 }}

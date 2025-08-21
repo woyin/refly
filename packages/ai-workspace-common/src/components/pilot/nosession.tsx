@@ -48,9 +48,10 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
   const userStore = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
-  const { setActiveSessionId, setIsPilotOpen } = usePilotStoreShallow((state) => ({
+  const { setActiveSessionId, setIsPilotOpen, setIsNewTask } = usePilotStoreShallow((state) => ({
     setActiveSessionId: state.setActiveSessionId,
     setIsPilotOpen: state.setIsPilotOpen,
+    setIsNewTask: state.setIsNewTask,
   }));
   const isPilotActivated = useMemo(() => chatMode === 'agent', [chatMode]);
   const { addNode } = useAddNode();
@@ -139,6 +140,7 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
           },
         },
       });
+      setIsNewTask(false);
       clearCanvasQuery?.(canvasId); // Clear canvas query after ask action
       setIsExecuting(false);
     } else if (chatMode === 'agent' && canvasId) {
@@ -151,6 +153,7 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
         maxEpoch: 3,
         providerItemId: skillSelectedModel?.providerItemId,
       });
+      setIsNewTask(false);
     } else {
       setIsExecuting(false);
     }
