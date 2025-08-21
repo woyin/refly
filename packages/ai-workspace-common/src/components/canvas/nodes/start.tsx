@@ -16,7 +16,7 @@ import { Attachment, List } from 'refly-icons';
 import SVGX from '../../../assets/x.svg';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
-const variableTypeIconMap = {
+export const VARIABLE_TYPE_ICON_MAP = {
   string: BiText,
   option: List,
   resource: Attachment,
@@ -28,14 +28,16 @@ const InputParameterRow = memo(
     variableType,
     label,
     isRequired = false,
+    isSingle = false,
   }: {
     variableType: 'string' | 'option' | 'resource';
     label: string;
     isRequired?: boolean;
+    isSingle?: boolean;
   }) => {
     const { t } = useTranslation();
     const Icon = useMemo(() => {
-      return variableTypeIconMap[variableType];
+      return VARIABLE_TYPE_ICON_MAP[variableType];
     }, [variableType]);
 
     return (
@@ -47,6 +49,11 @@ const InputParameterRow = memo(
           {isRequired && (
             <div className="h-4 px-1 flex items-center justify-center text-refly-text-2 text-[10px] leading-[14px] border-[1px] border-solid border-refly-Card-Border rounded-[4px] flex-shrink-0">
               {t('canvas.workflow.variables.required')}
+            </div>
+          )}
+          {['option', 'resource'].includes(variableType) && (
+            <div className="h-4 px-1 flex items-center justify-center text-refly-text-2 text-[10px] leading-[14px] border-[1px] border-solid border-refly-Card-Border rounded-[4px] flex-shrink-0">
+              {t(`canvas.workflow.variables.${isSingle ? 'singleSelect' : 'multipleSelect'}`)}
             </div>
           )}
         </div>
@@ -138,6 +145,7 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
                 label={variable.name}
                 isRequired={variable.required}
                 variableType={variable.variableType}
+                isSingle={variable.isSingle}
               />
             ))}
           </div>
