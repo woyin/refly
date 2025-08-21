@@ -8612,13 +8612,17 @@ components:
           description: Variable name
           example: "userName"
         value:
-          type: string
-          description: Variable value
-          example: "张三"
-        defaultValue:
-          type: string
-          description: Variable default value
-          example: "张三"
+          type: array
+          items:
+            type: string
+          description: Variable values
+          example: ["张三"]
+        options:
+          type: array
+          items:
+            type: string
+          description: Variable options
+          example: ["张三", "李四"]
         description:
           type: string
           description: Variable description
@@ -8636,6 +8640,14 @@ components:
             - string
             - option
             - resource
+        required:
+          type: boolean
+          description: Whether the variable is required
+          example: true
+        isSingle:
+          type: boolean
+          description: Whether the variable value is single (not multiple)
+          example: true
     GetWorkflowVariablesResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
