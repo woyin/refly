@@ -68,29 +68,35 @@ export class WorkflowService {
       // Process resource type variables: fetch resource and inject into context.resources
       if (resourceVars.length && context) {
         for (const variable of resourceVars) {
-          const storageKey = variable.value;
-          if (!storageKey) continue;
-          // Find resource by storage key
-          const resource = await this.knowledgeService.getResourceByStorageKey(user, storageKey);
-          if (resource) {
-            // Bind entityId/canvasId if not already bound
-            if (!resource.canvasId || resource.canvasId !== canvasId) {
-              await this.knowledgeService.bindResourceToCanvas(resource.resourceId, canvasId);
-            }
-            // Assemble SkillContextResourceItem
-            context.resources = context.resources ?? [];
-            context.resources.push({
-              resourceId: resource.resourceId,
-              resource: {
+          const storageKeys = variable.value;
+          if (!storageKeys?.length) continue;
+
+          // Process each storage key in the array
+          for (const storageKey of storageKeys) {
+            if (!storageKey) continue;
+
+            // Find resource by storage key
+            const resource = await this.knowledgeService.getResourceByStorageKey(user, storageKey);
+            if (resource) {
+              // Bind entityId/canvasId if not already bound
+              if (!resource.canvasId || resource.canvasId !== canvasId) {
+                await this.knowledgeService.bindResourceToCanvas(resource.resourceId, canvasId);
+              }
+              // Assemble SkillContextResourceItem
+              context.resources = context.resources ?? [];
+              context.resources.push({
                 resourceId: resource.resourceId,
-                title: resource.title ?? '',
-                resourceType: (resource.resourceType as any) ?? 'text',
-                content: resource.contentPreview ?? '',
-                contentPreview: resource.contentPreview ?? '',
-              },
-              isCurrent: true,
-              metadata: { fromWorkflowVariable: variable.name },
-            });
+                resource: {
+                  resourceId: resource.resourceId,
+                  title: resource.title ?? '',
+                  resourceType: (resource.resourceType as any) ?? 'text',
+                  content: resource.contentPreview ?? '',
+                  contentPreview: resource.contentPreview ?? '',
+                },
+                isCurrent: true,
+                metadata: { fromWorkflowVariable: variable.name },
+              });
+            }
           }
         }
       }

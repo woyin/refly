@@ -60,28 +60,19 @@ export class WorkflowVariableService {
     const resourceVars: WorkflowVariableType[] = [];
 
     for (const variable of variables) {
-      let value = variable.value;
-      // fallback to defaultValue
-      if (
-        (value === undefined || value === null || value === '') &&
-        variable.defaultValue !== undefined
-      ) {
-        if (variable.variableType === 'option' && Array.isArray(variable.defaultValue)) {
-          value = variable.defaultValue[0] ?? '';
-        } else {
-          value = variable.defaultValue;
-        }
-      }
+      const value = variable.value;
+
       if (variable.variableType === 'resource') {
         // Mark for resource injection, remove from query
         resourceVars.push({ ...variable, value });
         // Remove {{name}} from query
         processedQuery = processedQuery.replace(new RegExp(`{{\s*${variable.name}\s*}}`, 'g'), '');
       } else {
-        // string/option: replace as before
+        // string/option: convert array to string for template processing
+        const stringValue = Array.isArray(value) ? value.join(', ') : (value ?? '');
         processedQuery = processedQuery.replace(
           new RegExp(`{{\s*${variable.name}\s*}}`, 'g'),
-          value ?? '',
+          stringValue,
         );
       }
     }
