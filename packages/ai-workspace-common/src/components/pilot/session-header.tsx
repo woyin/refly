@@ -74,7 +74,7 @@ const SessionHeader = memo(
         {/* Header Right */}
         <div className="flex items-center gap-2">
           {!isPilotOpen && session?.status === 'finish' && (
-            <NewTaskButton className="p-0 mr-1" setIsNewTask={setIsNewTask} />
+            <NewTaskButton className="p-0 mr-1" setIsNewTask={setIsNewTask} canvasId={canvasId} />
           )}
           <Popover
             open={isHistoryOpen}

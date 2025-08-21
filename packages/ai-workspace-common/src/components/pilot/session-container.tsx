@@ -97,21 +97,22 @@ export const NewTaskButton = memo(
   ({
     className,
     setIsNewTask,
-  }: { className?: string; setIsNewTask: (isNewTask: boolean) => void }) => {
+    canvasId,
+  }: { className?: string; setIsNewTask: (isNewTask: boolean) => void; canvasId: string }) => {
     const { t } = useTranslation();
     const { setActiveSessionId, setIsPilotOpen } = usePilotStoreShallow((state) => ({
       setActiveSessionId: state.setActiveSessionId,
       setIsPilotOpen: state.setIsPilotOpen,
     }));
-    const { setQuery } = useFrontPageStoreShallow((state) => ({
-      setQuery: state.setQuery,
+    const { clearCanvasQuery } = useFrontPageStoreShallow((state) => ({
+      clearCanvasQuery: state.clearCanvasQuery,
     }));
     const handleNewTask = useCallback(() => {
       setIsNewTask(true);
       setIsPilotOpen(true);
       setActiveSessionId(null);
-      setQuery('');
-    }, [setActiveSessionId, setIsPilotOpen]);
+      clearCanvasQuery?.(canvasId);
+    }, [setIsNewTask, setIsPilotOpen, setActiveSessionId, clearCanvasQuery, canvasId]);
 
     return (
       <motion.div
@@ -379,7 +380,9 @@ export const SessionContainer = memo(
                   )}
                 </AnimatePresence>
               </motion.div>
-              {session?.status === 'finish' && <NewTaskButton setIsNewTask={setIsNewTask} />}
+              {session?.status === 'finish' && (
+                <NewTaskButton setIsNewTask={setIsNewTask} canvasId={canvasId} />
+              )}
             </div>
           )}
         </AnimatePresence>
