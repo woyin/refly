@@ -1112,6 +1112,7 @@ const translations = {
       mediaSkillResponse: 'Media Skill Response',
       video: 'Video',
       audio: 'Audio',
+      start: 'Start',
     },
     presetScenarios: {
       title: 'Preset Scenarios',
@@ -1277,6 +1278,13 @@ const translations = {
         saveSuccess: 'Variables saved successfully',
         deleteConfirm: 'Delete this variable?',
         empty: 'No variables defined',
+        addVariable: 'Add',
+        variableType: 'Variable Type',
+        variableTypeOptions: {
+          string: 'Text',
+          resource: 'Resource',
+          option: 'Option',
+        },
       },
     },
     connectionTimeout: {

@@ -38,7 +38,7 @@ export const CanvasResources = memo(({ className }: CanvasResourcesProps) => {
       if (activeNode.type === 'resource') {
         setParentType('myUpload');
       }
-      if (activeNode.type === 'skillResponse') {
+      if (['skillResponse', 'start'].includes(activeNode.type)) {
         setParentType('stepsRecord');
       }
       if (

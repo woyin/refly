@@ -1,6 +1,7 @@
 import { memo, useEffect, useState, useCallback } from 'react';
 import { NodeProps, Position } from '@xyflow/react';
 import { NodeIcon } from './shared/node-icon';
+import { Button } from 'antd';
 import { BiText } from 'react-icons/bi';
 import { HiPaperClip } from 'react-icons/hi2';
 import { HiOutlineViewList } from 'react-icons/hi';
@@ -11,6 +12,9 @@ import { CustomHandle } from './shared/custom-handle';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
+import { useTranslation } from 'react-i18next';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { CreateVariablesModal } from '../workflow-variables/create-variables-modal';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
 
@@ -56,12 +60,23 @@ type StartNodeProps = NodeProps & {
 };
 
 export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) => {
+  const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
   const { edges } = useCanvasData();
   const { setNodeStyle } = useNodeData();
   useSelectedNodeZIndex(id, selected);
   const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
+  const { workflow, readonly } = useCanvasContext();
+  const [showCreateVariablesModal, setShowCreateVariablesModal] = useState(false);
+  const { workflowVariables, refetchWorkflowVariables, workflowVariablesLoading } = workflow;
 
+  console.log(
+    'workflowVariables',
+    readonly,
+    workflowVariables,
+    workflowVariablesLoading,
+    refetchWorkflowVariables,
+  );
   // Check if node has any connections
   const isSourceConnected = edges?.some((edge) => edge.source === id);
 
@@ -103,18 +118,45 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
       >
         {/* Header section */}
         <div className="flex items-center gap-2 mb-4">
-          <NodeIcon type="start" filled={true} iconSize={24} />
-          <span className="text-lg font-bold text-gray-800">Start</span>
+          <NodeIcon type="start" filled={true} />
+          <span className="text-sm font-semibold leading-6 text-refly-text-0">
+            {t('canvas.nodeTypes.start')}
+          </span>
         </div>
 
         {/* Input parameters section */}
-        <div className="space-y-2">
-          <InputParameterRow label="userInput" isRequired={true} icon={BiText} />
-          <InputParameterRow label="query" isRequired={true} icon={BiText} />
-          <InputParameterRow label="files" icon={HiPaperClip} />
-          <InputParameterRow label="audience" icon={HiOutlineViewList} />
-        </div>
+        {workflowVariables.length > 0 ? (
+          <div className="space-y-2">
+            <InputParameterRow label="userInput" isRequired={true} icon={BiText} />
+            <InputParameterRow label="query" isRequired={true} icon={BiText} />
+            <InputParameterRow label="files" icon={HiPaperClip} />
+            <InputParameterRow label="audience" icon={HiOutlineViewList} />
+          </div>
+        ) : (
+          <div className="px-3 py-6 gap-0.5 flex items-center justify-center bg-refly-bg-control-z0 rounded-lg">
+            <div className="text-xs text-refly-text-1 leading-4">
+              {t('canvas.workflow.variables.empty') || 'No variables defined'}
+            </div>
+            <Button
+              type="text"
+              size="small"
+              className="text-xs leading-4 font-semibold !text-refly-primary-default p-0.5 !h-5 box-border hover:bg-refly-tertiary-hover"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowCreateVariablesModal(true);
+              }}
+            >
+              {t('canvas.workflow.variables.addVariable') || 'Add'}
+            </Button>
+          </div>
+        )}
       </div>
+
+      <CreateVariablesModal
+        visible={showCreateVariablesModal}
+        onCancel={setShowCreateVariablesModal}
+      />
     </div>
   );
 });

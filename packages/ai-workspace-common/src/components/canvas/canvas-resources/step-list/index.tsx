@@ -18,7 +18,7 @@ interface TreeNode {
   key: string;
   title: React.ReactNode;
   children?: TreeNode[];
-  nodeType: 'skillResponse' | 'group';
+  nodeType: 'skillResponse' | 'group' | 'start';
   nodeData: CanvasNode;
   icon?: React.ReactNode;
 }
@@ -42,13 +42,22 @@ interface StepRowTitleProps {
 const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleProps) => {
   const { t } = useTranslation();
   const { readonly } = useCanvasContext();
+
+  // Get the appropriate title for the node
+  const getNodeTitle = () => {
+    if (node?.type === 'start') {
+      return t('canvas.nodeTypes.start');
+    }
+    return node?.data?.title || t('common.untitled');
+  };
+
   return (
     <div className="w-full flex items-center justify-between gap-2">
       <Text
         ellipsis={{ tooltip: { placement: 'right' } }}
         className={`block flex-1 min-w-0 truncate ${isActive ? 'font-semibold' : ''}`}
       >
-        {node?.data?.title || t('common.untitled')}{' '}
+        {getNodeTitle()}{' '}
       </Text>
       <div className="steps-row-actions flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0">
         <Tooltip title={t('canvas.nodeActions.centerNode')} arrow={false}>
@@ -62,7 +71,7 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
             }}
           />
         </Tooltip>
-        {!readonly && (
+        {!readonly && node?.type !== 'start' && (
           <Tooltip title={t('common.delete')} arrow={false}>
             <Button
               type="text"
@@ -109,6 +118,12 @@ export const StepList = memo(() => {
       if (!node?.id) {
         return;
       }
+
+      // Prevent deletion of start nodes as they are essential for workflow
+      if (node?.type === 'start') {
+        return;
+      }
+
       deleteNode({
         id: node.id,
         type: node.type,
@@ -129,6 +144,7 @@ export const StepList = memo(() => {
     }
 
     // Filter nodes by type
+    const startNodes = nodes.filter((node) => node.type === 'start');
     const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
     const groupNodes = nodes.filter((node) => node.type === 'group');
 
@@ -143,12 +159,48 @@ export const StepList = memo(() => {
       if (!searchKeyword?.trim()) {
         return true;
       }
+
+      const searchTerm = searchKeyword.toLowerCase();
+
+      // Check node title
       const title = node?.data?.title ?? '';
-      return title.toLowerCase().includes(searchKeyword.toLowerCase());
+      if (title.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+
+      // For start nodes, also check the translated title
+      if (node?.type === 'start') {
+        const startTitle = t('canvas.nodeTypes.start').toLowerCase();
+        if (startTitle.includes(searchTerm)) {
+          return true;
+        }
+      }
+
+      return false;
     };
 
     // Build tree structure
     const treeNodes: TreeNode[] = [];
+
+    // Add start nodes first (they should always be at the top)
+    for (const startNode of startNodes) {
+      if (nodeMatchesSearch(startNode)) {
+        treeNodes.push({
+          key: startNode.id,
+          title: (
+            <StepRowTitle
+              node={startNode}
+              isActive={activeNode?.id === startNode.id}
+              onLocate={handleLocateNode}
+              onDelete={handleDeleteNode}
+            />
+          ),
+          nodeType: 'start',
+          nodeData: startNode,
+          icon: <NodeIcon type="start" small />,
+        });
+      }
+    }
 
     // Helper to check if a node is a (direct or indirect) child of a group
     const isDescendantOfGroup = (node: CanvasNode, groupId: string): boolean => {
@@ -164,7 +216,7 @@ export const StepList = memo(() => {
       return false;
     };
 
-    // Process group nodes first
+    // Process group nodes
     for (const groupNode of groupNodes) {
       const groupTreeNode: TreeNode = {
         key: groupNode.id,

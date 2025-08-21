@@ -1096,6 +1096,7 @@ const translations = {
       mediaSkillResponse: '媒体技能响应',
       video: '视频',
       audio: '音频',
+      start: '开始',
     },
     presetScenarios: {
       title: '预设场景',
@@ -1237,7 +1238,7 @@ const translations = {
       variables: {
         title: '工作流变量',
         tooltip: '工作流变量',
-        addTitle: '添加变量',
+        addTitle: '新建变量',
         editTitle: '编辑变量',
         name: '变量名称',
         value: '变量值',
@@ -1253,7 +1254,14 @@ const translations = {
         saveError: '保存变量失败',
         saveSuccess: '变量保存成功',
         deleteConfirm: '确定要删除这个变量吗？',
-        empty: '暂未定义变量',
+        empty: '暂无变量',
+        addVariable: '新建',
+        variableType: '变量类型',
+        variableTypeOptions: {
+          string: '文本',
+          resource: '资源',
+          option: '选项列表',
+        },
       },
     },
     connectionTimeout: {
