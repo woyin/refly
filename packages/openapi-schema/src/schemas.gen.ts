@@ -7504,6 +7504,7 @@ export const CanvasNodeTypeSchema = {
     'audio',
     'mediaSkill',
     'mediaSkillResponse',
+    'start',
   ],
 } as const;
 

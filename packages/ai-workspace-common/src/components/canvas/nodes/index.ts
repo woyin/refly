@@ -14,6 +14,7 @@ import { AudioNode } from './audio';
 import { CodeArtifactNode } from './code-artifact';
 import { WebsiteNode } from './website';
 import { GhostNode } from './ghost';
+import { StartNode } from './start';
 
 // Export all components and types
 export * from './document';
@@ -30,6 +31,7 @@ export * from './video';
 export * from './audio';
 export * from './code-artifact';
 export * from './website';
+export * from './start';
 
 // Node types mapping
 export const nodeTypes: NodeTypes = {
@@ -48,6 +50,7 @@ export const nodeTypes: NodeTypes = {
   codeArtifact: CodeArtifactNode,
   website: WebsiteNode,
   ghost: GhostNode,
+  start: StartNode,
 };
 
 // Add this helper function to share common styles

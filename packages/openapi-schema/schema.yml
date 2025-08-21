@@ -8487,6 +8487,7 @@ components:
         - audio
         - mediaSkill
         - mediaSkillResponse
+        - start
     CanvasNodeData:
       type: object
       required:

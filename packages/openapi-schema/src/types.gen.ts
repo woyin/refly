@@ -5257,7 +5257,8 @@ export type CanvasNodeType =
   | 'video'
   | 'audio'
   | 'mediaSkill'
-  | 'mediaSkillResponse';
+  | 'mediaSkillResponse'
+  | 'start';
 
 export type CanvasNodeData = {
   /**
