@@ -97,8 +97,10 @@ export const CreditWelcomeModal = () => {
         closable={false}
         centered
         width={600}
-        bodyStyle={{
-          padding: '20px 16px',
+        styles={{
+          body: {
+            padding: '20px 16px',
+          },
         }}
         maskClosable={false}
         className="glassmorphism-modal"

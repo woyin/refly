@@ -3,6 +3,7 @@ import { genImageID } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useMemo } from 'react';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { CanvasNodeData, ImageNodeMeta } from '@refly/canvas-common';
 
 export const useUploadImage = () => {
   const { addNode } = useAddNode();
@@ -28,7 +29,7 @@ export const useUploadImage = () => {
         metadata: {
           imageUrl: data.url,
           storageKey: data.storageKey,
-        },
+        } as ImageNodeMeta,
       };
       addNode({
         type: 'image',
@@ -50,8 +51,8 @@ export const useUploadImage = () => {
       const { data, success } = result ?? {};
 
       if (success && data) {
-        const nodeData = {
-          title: imageFile.name,
+        const nodeData: CanvasNodeData<ImageNodeMeta> = {
+          title: imageFile.name ?? '',
           entityId: genImageID(),
           metadata: {
             imageUrl: data.url,
@@ -64,7 +65,7 @@ export const useUploadImage = () => {
           nodeOperationsEmitter.emit('addNode', {
             node: {
               type: 'image',
-              data: { ...nodeData },
+              data: nodeData,
               position: referencePosition
                 ? {
                     x: referencePosition.x,

@@ -11,6 +11,7 @@ import {
   PilotStepRawOutput,
   getRecommendedStageForEpoch,
 } from './prompt';
+import { MAX_EPOCH, MAX_STEPS_PER_EPOCH } from './pilot.service';
 
 export class PilotEngine {
   private logger = new Logger(PilotEngine.name);
@@ -23,7 +24,7 @@ export class PilotEngine {
 
   async run(
     contentItems: CanvasContentItem[],
-    maxStepsPerEpoch = 3,
+    maxStepsPerEpoch = MAX_STEPS_PER_EPOCH,
     locale?: string,
   ): Promise<PilotStepRawOutput[]> {
     const sessionInput = this.session.input;
@@ -37,8 +38,13 @@ export class PilotEngine {
 
       // Get the current epoch information
       const currentEpoch = this.session?.currentEpoch ?? 0;
-      const totalEpochs = this.session?.maxEpoch ?? 3;
+      const totalEpochs = this.session?.maxEpoch ?? MAX_EPOCH;
       const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
+
+      if (currentEpoch > totalEpochs) {
+        this.logger.warn('Current epoch exceeds total epochs');
+        return [];
+      }
 
       this.logger.log(
         `Planning research steps for "${userQuestion}" with ${contentItems.length} content items. Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}. Note: Creation tools (generateDoc, codeArtifacts) must ONLY be used in the final 1-2 steps and MUST reference previous context`,
@@ -62,7 +68,30 @@ export class PilotEngine {
 
         this.logger.log(`Generated research plan: ${JSON.stringify(steps)}`);
 
-        return steps;
+        if (recommendedStage === 'creation') {
+          return (
+            steps
+              .filter(
+                (step) =>
+                  step.skillName === 'generateDoc' ||
+                  step.skillName === 'codeArtifacts' ||
+                  step.skillName === 'generateMedia' ||
+                  step.skillName === 'commonQnA',
+              )
+              .slice(0, 1) || []
+          );
+        } else {
+          return (
+            steps
+              .filter(
+                (step) =>
+                  step.skillName !== 'generateDoc' &&
+                  step.skillName !== 'codeArtifacts' &&
+                  step.skillName !== 'generateMedia',
+              )
+              .slice(0, MAX_STEPS_PER_EPOCH) || []
+          );
+        }
       } catch (structuredError) {
         this.logger.warn(
           `Structured output failed: ${structuredError.message}, trying fallback approach`,

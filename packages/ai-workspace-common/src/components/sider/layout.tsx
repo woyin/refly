@@ -264,7 +264,7 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
       }}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer">
           <IconCanvas />
           <div className="w-32 truncate">{canvas?.name || t('common.untitled')}</div>
         </div>
@@ -402,7 +402,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
           <SiderLogo
             source={source}
-            navigate={source === 'sider' ? (path) => navigate(path) : undefined}
+            navigate={(path) => navigate(path)}
             collapse={collapse}
             setCollapse={setCollapse}
           />

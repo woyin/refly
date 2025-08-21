@@ -101,22 +101,24 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
           {/* Project Selector Dropdown */}
           {enableProjectSelector ? (
             <Select
-              onDropdownVisibleChange={(visible) => setSelectOpen(visible)}
+              onOpenChange={(visible) => setSelectOpen(visible)}
               open={selectOpen}
               loading={loading}
-              className={`project-selector transition-all overflow-hidden ${projectSelectorClassName}`}
+              className={`nodrag nopan nowheel project-selector transition-all overflow-hidden ${projectSelectorClassName}`}
               placeholder={t('project.selectProject')}
               value={currentProjectId}
               onChange={handleProjectChange}
               variant="borderless"
-              dropdownStyle={{ minWidth: '250px' }}
+              styles={{
+                popup: { root: { minWidth: '250px' } },
+              }}
               optionLabelProp="label"
               suffixIcon={!enableSelectProject ? null : <IconDown size={12} />}
               disabled={!enableSelectProject}
               style={{
                 padding: 0,
               }}
-              dropdownRender={(menu) => (
+              popupRender={(menu) => (
                 <div className="rounded-md overflow-hidden shadow-lg">
                   <div className="px-3 py-2 text-xs text-gray-600 border-b border-gray-100 bg-gray-50 dark:text-gray-300 dark:border-gray-800 dark:bg-gray-950">
                     {t('project.switchProject')}
@@ -211,7 +213,7 @@ export const ProjectKnowledgeToggle: React.FC<ProjectKnowledgeToggleProps> = ({
             open={tooltipVisible}
             onOpenChange={setTooltipVisible}
             placement="top"
-            overlayInnerStyle={{ padding: '8px', borderRadius: '6px' }}
+            styles={{ body: { padding: '8px', borderRadius: '6px' } }}
           >
             <div className="cursor-pointer flex items-center">
               <FiHelpCircle

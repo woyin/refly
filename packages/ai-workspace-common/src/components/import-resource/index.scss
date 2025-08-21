@@ -1,5 +1,4 @@
 .import-resource-modal {
-  border-radius: 8px;
 
   .ant-modal-content {
     width: 100%;
@@ -234,12 +233,43 @@
 }
 
 .file-upload-container {
-  overflow: hidden;
-  .ant-upload-drag {
-    height: 160px;
+  .ant-upload {
+    padding: 32px 24px;
   }
-  .ant-upload-list {
-    max-height: 180px;
-    overflow-y: auto;
+}
+
+.weblink-input {
+  background-color: var(--refly-bg-control-z0)!important;
+  border-radius: 8px;
+  padding: 6px 12px;
+  &::placeholder {
+    color: var(--refly-text-2);
+    font-size: 12px;
+    line-height: 20px;
+  }
+}
+
+.file-item-container {
+  .ant-spin-container {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.extension-modal {
+  .ant-modal-content {
+    /* Use theme tokens to support dark mode */
+    background: linear-gradient(
+      180deg,
+      var(--refly-gradient-modal-top) 0%,
+      var(--refly-gradient-modal-bottom) 25.19%
+    );
+    padding: 0;
+    .ant-modal-body {
+      padding: 0;
+      width: 740px;
+      height: 800px;
+      overflow: hidden;
+    }
   }
 }

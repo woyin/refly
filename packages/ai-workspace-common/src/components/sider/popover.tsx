@@ -35,8 +35,8 @@ export const SiderPopover = (props: SiderPopoverProps) => {
       <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} className="relative">
         <Popover
           zIndex={11}
-          overlayInnerStyle={{ padding: 0, boxShadow: 'none', border: 'none' }}
-          overlayClassName="sider-popover-animation"
+          styles={{ body: { padding: 0, boxShadow: 'none', border: 'none' } }}
+          classNames={{ root: 'sider-popover-animation' }}
           arrow={false}
           placement="bottom"
           align={align}

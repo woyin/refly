@@ -175,6 +175,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = (props) => {
         </div>
         <div className="footer-action">
           <Button onClick={handleClose}>{t('common.cancel')}</Button>
+
           <Button
             type="primary"
             onClick={handleSave}

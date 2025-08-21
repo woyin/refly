@@ -62,7 +62,7 @@ export const CanvasDeleteModal = memo(() => {
       okText={t('common.confirm')}
       cancelText={t('common.cancel')}
       okButtonProps={{ danger: true, loading: isLoading }}
-      destroyOnClose
+      destroyOnHidden
       closeIcon={null}
       confirmLoading={isLoading}
     >

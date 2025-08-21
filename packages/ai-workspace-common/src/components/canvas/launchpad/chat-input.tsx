@@ -16,7 +16,8 @@ interface ChatInputProps {
   readonly: boolean;
   query: string;
   setQuery: (text: string) => void;
-  selectedSkillName: string | null;
+  selectedSkillName?: string | null;
+  placeholder?: string;
   inputClassName?: string;
   maxRows?: number;
   minRows?: number;
@@ -31,6 +32,7 @@ interface ChatInputProps {
 const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
   (
     {
+      placeholder,
       readonly,
       query,
       setQuery,
@@ -388,7 +390,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
                 readonly && 'cursor-not-allowed',
                 isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
               )}
-              placeholder={getPlaceholder(selectedSkillName)}
+              placeholder={placeholder ?? getPlaceholder(selectedSkillName)}
               autoSize={{
                 minRows: 1,
                 maxRows: 6,
@@ -419,7 +421,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
               readonly && 'cursor-not-allowed',
               isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
             )}
-            placeholder={getPlaceholder(selectedSkillName)}
+            placeholder={placeholder ?? getPlaceholder(selectedSkillName)}
             autoSize={{
               minRows: minRows ?? 1,
               maxRows: maxRows ?? 6,

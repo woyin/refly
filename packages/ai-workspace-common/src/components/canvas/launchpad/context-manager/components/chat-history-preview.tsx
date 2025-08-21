@@ -62,7 +62,7 @@ export const ChatHistoryPreview: React.FC<ChatHistoryProps> = ({ item }) => {
   }, [findThreadHistory, item?.entityId]);
 
   return (
-    <div className="w-72 p-3 pb-0 rounded-lg max-h-[400px] overflow-y-auto">
+    <div className="w-72 p-3 pb-0 rounded-lg max-h-[400px] overflow-y-auto bg-refly-bg-content-z2 border-solid border-refly-Card-Border border-[1px] shadow-refly-m">
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded bg-slate-500 shadow-lg flex items-center justify-center flex-shrink-0">
           <IconThreadHistory className="w-4 h-4 text-white" />

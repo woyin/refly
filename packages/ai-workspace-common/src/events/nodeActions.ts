@@ -4,6 +4,9 @@ export type NodeActionEvents = {
   [key: `node:${string}:rerun`]: undefined;
   [key: `node:${string}:delete`]: undefined;
   [key: `node:${string}:addToContext`]: undefined;
+  [key: `node:${string}:download`]: undefined;
+  [key: `node:${string}:download.started`]: undefined;
+  [key: `node:${string}:download.completed`]: { success?: boolean; fileName?: string } | undefined;
   [key: `node:${string}:createDocument`]: {
     dragCreateInfo?: NodeDragCreateInfo;
   };

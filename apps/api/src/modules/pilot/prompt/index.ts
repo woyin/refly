@@ -279,13 +279,14 @@ export function getRecommendedStageForEpoch(currentEpoch: number, totalEpochs: n
 
   // Calculate progress as a percentage
   const progress = normalizedCurrentEpoch / normalizedTotalEpochs;
+  const span = 1 / normalizedTotalEpochs;
 
   // Assign stages based on progress
-  if (progress < 0.4) {
+  if (progress < span) {
     return 'research';
-  } else if (progress < 0.7) {
+  } else if (progress < span * 2) {
     return 'analysis';
-  } else if (progress < 0.85) {
+  } else if (progress < span * 3) {
     return 'synthesis';
   } else {
     return 'creation';

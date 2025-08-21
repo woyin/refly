@@ -132,6 +132,7 @@ export const PilotList = memo(
                     <div className="flex items-center">
                       <span className="text-xs font-medium">{session.title}</span>
                       <SessionStatusTag
+                        steps={session.steps ?? []}
                         status={session.status}
                         className="ml-2 h-5 flex items-center"
                       />

@@ -412,7 +412,7 @@ export const McpSelectorPopover: React.FC<McpSelectorPopoverProps> = ({
       align={align}
       trigger="click"
       arrow={false}
-      overlayInnerStyle={{ padding: 0, boxShadow: 'none' }}
+      styles={{ body: { padding: 0, boxShadow: 'none' } }}
       content={
         <div className="w-[240px] max-h-[320px] overflow-y-auto border-[1px] border-solid border-refly-Card-Border rounded-lg bg-refly-bg-content-z2 shadow-[0_8px_40px_0px_rgba(0,0,0,0.08)]">
           {renderContent()}

@@ -25,7 +25,6 @@ export const LibraryModal = (props: LibraryModalProps) => {
   const { visible, setVisible } = props;
   const { t } = useTranslation();
   const { projectId } = useGetProjectCanvasId();
-  console.log('projectId', projectId);
 
   const activeKey = useKnowledgeBaseStoreShallow((state) => state.libraryModalActiveKey);
   const updateLibraryModalActiveKey = useKnowledgeBaseStoreShallow(

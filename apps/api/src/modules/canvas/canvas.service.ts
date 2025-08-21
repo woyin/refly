@@ -194,6 +194,7 @@ export class CanvasService {
                 const doc = await this.knowledgeService.duplicateDocument(user, {
                   docId: entityId,
                   title: node.data?.title,
+                  canvasId: newCanvasId,
                 });
                 if (doc) {
                   node.data.entityId = doc.docId;
@@ -205,6 +206,7 @@ export class CanvasService {
                 const resource = await this.knowledgeService.duplicateResource(user, {
                   resourceId: entityId,
                   title: node.data?.title,
+                  canvasId: newCanvasId,
                 });
                 if (resource) {
                   node.data.entityId = resource.resourceId;
@@ -213,10 +215,10 @@ export class CanvasService {
                 break;
               }
               case 'codeArtifact': {
-                const codeArtifact = await this.codeArtifactService.duplicateCodeArtifact(
-                  user,
-                  entityId,
-                );
+                const codeArtifact = await this.codeArtifactService.duplicateCodeArtifact(user, {
+                  artifactId: entityId,
+                  canvasId: newCanvasId,
+                });
                 if (codeArtifact) {
                   node.data.entityId = codeArtifact.artifactId;
                   replaceEntityMap[entityId] = codeArtifact.artifactId;
@@ -357,24 +359,27 @@ export class CanvasService {
    * @param canvasId - The id of the canvas to add the node to
    * @param node - The node to add
    * @param connectTo - The nodes to connect to
+   * @param options - Additional options including autoLayout
    */
   async addNodeToCanvas(
     user: User,
     canvasId: string,
     node: Pick<CanvasNode, 'type' | 'data'>,
     connectTo?: CanvasNodeFilter[],
+    options?: { autoLayout?: boolean },
   ) {
     const releaseLock = await this.canvasSyncService.lockState(canvasId);
     const { nodes, edges } = await this.canvasSyncService.getCanvasData(user, { canvasId });
 
     this.logger.log(
-      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, nodes: ${JSON.stringify(nodes)}, edges: ${JSON.stringify(edges)}`,
+      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, autoLayout: ${options?.autoLayout}`,
     );
     const { newNode, newEdges } = prepareAddNode({
       node,
       nodes,
       edges,
       connectTo,
+      autoLayout: options?.autoLayout, // Pass autoLayout parameter
     });
 
     await this.canvasSyncService.syncState(
@@ -834,8 +839,7 @@ export class CanvasService {
       user,
       'titleGeneration',
     );
-    const modelConfig = JSON.parse(defaultModel.config);
-    const model = await this.providerService.prepareChatModel(user, modelConfig.modelId);
+    const model = await this.providerService.prepareChatModel(user, defaultModel.itemId);
     this.logger.log(`Using default model for auto naming: ${model.name}`);
 
     // Use the new structured title generation approach

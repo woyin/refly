@@ -46,6 +46,7 @@ export interface CanvasState {
   contextMenuOpenedCanvasId: string | null;
   canvasTitle: Record<string, string>;
   canvasInitialized: Record<string, boolean>;
+  canvasInitializedAt: Record<string, number | undefined>;
 
   setInitialFitViewCompleted: (completed: boolean) => void;
   deleteCanvasData: (canvasId: string) => void;
@@ -103,6 +104,7 @@ const defaultCanvasState = () => ({
   contextMenuOpenedCanvasId: null,
   canvasTitle: {},
   canvasInitialized: {},
+  canvasInitializedAt: {},
 });
 
 // Create our custom storage with appropriate configuration
@@ -444,6 +446,10 @@ export const useCanvasStore = create<CanvasState>()(
           canvasInitialized: {
             ...state.canvasInitialized,
             [canvasId]: initialized,
+          },
+          canvasInitializedAt: {
+            ...state.canvasInitializedAt,
+            [canvasId]: initialized ? Date.now() : undefined,
           },
         })),
     }),

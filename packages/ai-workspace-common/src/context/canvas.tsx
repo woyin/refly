@@ -28,6 +28,7 @@ import {
   purgeContextItems,
   calculateCanvasStateDiff,
   getLastTransaction,
+  shouldCreateNewVersion,
 } from '@refly/canvas-common';
 import { useCanvasStore, useCanvasStoreShallow } from '@refly/stores';
 import { useDebouncedCallback } from 'use-debounce';
@@ -40,19 +41,14 @@ import { logEvent } from '@refly/telemetry-web';
 // Wait time for syncCanvasData to be called
 const SYNC_CANVAS_LOCAL_WAIT_TIME = 200;
 
+// Wait time for syncCanvasData to be called after canvas is initialized
+const SYNC_CANVAS_WAIT_INIT_TIME = 300;
+
 // Remote sync interval
 const SYNC_REMOTE_INTERVAL = 2000;
 
 // Poll remote interval
 const POLL_TX_INTERVAL = 3000;
-
-// Max number of transactions in a state
-// If the number of transactions is greater than this threshold, a new version will be created
-const MAX_STATE_TX_COUNT = 100;
-
-// Max version age (1 hour) in milliseconds
-// If the last transaction is older than this threshold, a new version will be created
-const MAX_VERSION_AGE = 1000 * 60 * 60;
 
 // Max number of sync failures before showing the blocking modal
 const CANVAS_SYNC_FAILURE_COUNT_THRESHOLD = 5;
@@ -228,34 +224,52 @@ export const CanvasProvider = ({
   }, [readonly, canvasData, canvasDetail, canvasId]);
 
   const handleCreateCanvasVersion = async (canvasId: string, state: CanvasState) => {
-    const result = await createCanvasVersion(canvasId, state);
-    if (!result) {
+    try {
+      const result = await createCanvasVersion(canvasId, state);
+      if (!result) {
+        // Fallback: verify if server already created the new version
+        const remoteState = await getCanvasState(canvasId);
+        if (remoteState && remoteState.version !== state.version) {
+          return remoteState;
+        }
+        return;
+      }
+
+      const { conflict, newState } = result;
+
+      let finalState: CanvasState | undefined;
+
+      if (conflict) {
+        const userChoice = await handleConflictResolution(canvasId, conflict);
+        logEvent('canvas::conflict_version', userChoice, {
+          canvasId,
+          source: 'create_new_version',
+          localVersion: conflict.localState.version,
+          remoteVersion: conflict.remoteState.version,
+        });
+
+        if (userChoice === 'local') {
+          finalState = conflict.localState;
+        } else {
+          finalState = conflict.remoteState;
+        }
+      } else if (newState) {
+        finalState = newState;
+      }
+
+      return finalState;
+    } catch {
+      // Network error may occur while server actually succeeded; verify by fetching remote state
+      try {
+        const remoteState = await getCanvasState(canvasId);
+        if (remoteState && remoteState.version !== state.version) {
+          return remoteState;
+        }
+      } catch (_) {
+        // Intentionally ignore; will retry on next sync tick
+      }
       return;
     }
-
-    const { conflict, newState } = result;
-
-    let finalState: CanvasState | undefined;
-
-    if (conflict) {
-      const userChoice = await handleConflictResolution(canvasId, conflict);
-      logEvent('canvas::conflict_version', userChoice, {
-        canvasId,
-        source: 'create_new_version',
-        localVersion: conflict.localState.version,
-        remoteVersion: conflict.remoteState.version,
-      });
-
-      if (userChoice === 'local') {
-        finalState = conflict.localState;
-      } else {
-        finalState = conflict.remoteState;
-      }
-    } else if (newState) {
-      finalState = newState;
-    }
-
-    return finalState;
   };
 
   // Sync canvas state with remote
@@ -266,8 +280,7 @@ export const CanvasProvider = ({
     }
 
     // If the number of transactions is greater than the threshold, create a new version
-    if ((state.transactions ?? []).length > MAX_STATE_TX_COUNT) {
-      console.log('[syncWithRemote] create new version');
+    if (shouldCreateNewVersion(state)) {
       const finalState = await handleCreateCanvasVersion(canvasId, state);
       if (finalState) {
         await set(`canvas-state:${canvasId}`, finalState);
@@ -281,8 +294,6 @@ export const CanvasProvider = ({
       return;
     }
 
-    console.log('[syncWithRemote] unsynced transactions', unsyncedTransactions);
-
     const { error, data } = await getClient().syncCanvasState({
       body: {
         canvasId,
@@ -292,7 +303,6 @@ export const CanvasProvider = ({
     });
 
     if (!error && data?.success) {
-      console.log('[syncWithRemote] synced successfully');
       setSyncFailureCount(0);
       await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
         ...state,
@@ -316,8 +326,11 @@ export const CanvasProvider = ({
       // Prevent multiple instances from running simultaneously
       if (isSyncingRemoteRef.current) return;
 
-      const { canvasInitialized } = useCanvasStore.getState();
-      if (!canvasInitialized[canvasId]) {
+      const { canvasInitializedAt } = useCanvasStore.getState();
+      const initTs = canvasInitializedAt[canvasId];
+
+      // Only sync canvas data after canvas is ready for some time
+      if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
         return;
       }
 
@@ -345,8 +358,11 @@ export const CanvasProvider = ({
       return;
     }
 
-    const { canvasInitialized } = useCanvasStore.getState();
-    if (!canvasInitialized[canvasId]) {
+    const { canvasInitializedAt } = useCanvasStore.getState();
+    const initTs = canvasInitializedAt[canvasId];
+
+    // Only sync canvas data after canvas is ready for some time
+    if (!initTs || Date.now() - initTs < SYNC_CANVAS_WAIT_INIT_TIME) {
       return;
     }
 
@@ -377,13 +393,6 @@ export const CanvasProvider = ({
       });
 
       if (diff) {
-        console.log('currentStateData', currentStateData);
-        console.log('dynamic data', {
-          nodes: purgedNodes,
-          edges,
-        });
-        console.log('diff', diff);
-
         await update<CanvasState>(`canvas-state:${canvasId}`, (state) => ({
           ...state,
           nodes: state?.nodes ?? [],
@@ -475,20 +484,20 @@ export const CanvasProvider = ({
 
   const initialFetchCanvasState = useDebouncedCallback(async (canvasId: string) => {
     const localState = await get<CanvasState>(`canvas-state:${canvasId}`);
-    console.log('localState', localState);
 
     // Only set loading when local state is not found
     let needLoading = false;
     if (!localState) {
       needLoading = true;
       setLoading(true);
+    } else {
+      updateCanvasDataFromState(localState);
     }
 
     const remoteState = await getCanvasState(canvasId);
     if (!remoteState) {
       return;
     }
-    console.log('remoteState', remoteState);
 
     let finalState: CanvasState;
     if (!localState) {
@@ -499,7 +508,6 @@ export const CanvasProvider = ({
       } catch (error) {
         if (error instanceof CanvasConflictException) {
           // Show conflict modal to user
-          console.log('show conflict modal');
           const userChoice = await handleConflictResolution(canvasId, {
             localState,
             remoteState,
@@ -522,17 +530,6 @@ export const CanvasProvider = ({
           console.error('Failed to merge canvas states:', error);
           finalState = remoteState;
         }
-      }
-    }
-
-    const lastTransaction = getLastTransaction(finalState);
-    if (
-      (finalState.transactions ?? []).length > MAX_STATE_TX_COUNT ||
-      (lastTransaction?.createdAt ?? 0) < Date.now() - MAX_VERSION_AGE
-    ) {
-      const newState = await handleCreateCanvasVersion(canvasId, finalState);
-      if (newState) {
-        finalState = newState;
       }
     }
 

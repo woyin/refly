@@ -39,7 +39,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
     title,
     status,
     shareId,
-    activeTab = 'code',
+    activeTab = 'preview',
     type = 'text/html',
     language = 'html',
   } = data?.metadata || {};
@@ -260,7 +260,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
   }
 
   return (
-    <div className="h-full bg-white rounded px-4 dark:bg-gray-900">
+    <div className="h-full rounded">
       <CodeViewerLayout isShowing={isShowingCodeViewer}>
         {isShowingCodeViewer && (
           <CodeViewer

@@ -202,7 +202,7 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
 
           {(isGithubEnabled || isGoogleEnabled) && isEmailEnabled && (
             <Divider className="!mb-3 !mt-8 !h-4">
-              <span className="text-refly-text-0 text-xs font-normal leading-none">
+              <span className="text-refly-text-2 text-xs font-normal leading-none">
                 {t('landingPage.loginModal.or')}
               </span>
             </Divider>
@@ -241,12 +241,11 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
                 <Form.Item
                   className="mb-3"
                   name="password"
-                  label={
-                    <div className="flex w-96 flex-row items-center justify-between">
-                      <span className="font-medium">
-                        {t('landingPage.loginModal.passwordLabel')}
-                      </span>
-                      {!authStore.isSignUpMode && (
+                  label={t('landingPage.loginModal.passwordLabel')}
+                  labelCol={{ style: { fontWeight: 500 } }}
+                  extra={
+                    !authStore.isSignUpMode && (
+                      <div className="flex justify-start mt-1 mb-1">
                         <Button
                           type="link"
                           className="p-0 !text-refly-text-2"
@@ -256,8 +255,8 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
                             {t('landingPage.loginModal.passwordForget')}
                           </span>
                         </Button>
-                      )}
-                    </div>
+                      </div>
+                    )
                   }
                   validateTrigger={['onBlur']}
                   hasFeedback
@@ -288,7 +287,7 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
                     type="primary"
                     onClick={handleEmailAuth}
                     loading={authStore.loginInProgress && authStore.loginProvider === 'email'}
-                    className="h-10 w-full text-base"
+                    className="h-10 w-full text-base shadow-md"
                     data-cy="continue-button"
                   >
                     {t('landingPage.loginModal.continue')}

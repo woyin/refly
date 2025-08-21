@@ -73,6 +73,8 @@ import {
   ReferenceNotFoundError,
   ReferenceObjectMissingError,
   DocumentNotFoundError,
+  CanvasNotFoundError,
+  ProjectNotFoundError,
 } from '@refly/errors';
 import { DeleteCanvasNodesJobData } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
@@ -129,6 +131,7 @@ export class KnowledgeService {
       resourceId,
       resourceType,
       projectId,
+      canvasId,
       page = 1,
       pageSize = 10,
       order = 'creationDesc',
@@ -143,6 +146,7 @@ export class KnowledgeService {
         uid: user.uid,
         deletedAt: null,
         projectId,
+        canvasId,
       },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -282,6 +286,14 @@ export class KnowledgeService {
       }
     }
 
+    if (param.canvasId) {
+      await this.checkCanvasExists(user, param.canvasId);
+    }
+
+    if (param.projectId) {
+      await this.checkProjectExists(user, param.projectId);
+    }
+
     param.resourceId = genResourceID();
     if (param.content) {
       param.content = param.content.replace(/x00/g, '');
@@ -318,6 +330,7 @@ export class KnowledgeService {
         storageSize,
         rawFileKey: staticFile?.storageKey,
         projectId: param.projectId,
+        canvasId: param.canvasId,
         uid: user.uid,
         title: param.title || '',
         indexStatus,
@@ -329,6 +342,7 @@ export class KnowledgeService {
         storageSize,
         rawFileKey: staticFile?.storageKey,
         projectId: param.projectId,
+        canvasId: param.canvasId,
         title: param.title || '',
         indexStatus,
       },
@@ -491,6 +505,32 @@ export class KnowledgeService {
     modifiedContent += content.slice(lastIndex);
 
     return modifiedContent;
+  }
+
+  /**
+   * Check if the canvas exists
+   */
+  async checkCanvasExists(user: User, canvasId: string) {
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { pk: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    if (!canvas) {
+      throw new CanvasNotFoundError();
+    }
+  }
+
+  /**
+   * Check if the project exists
+   */
+  async checkProjectExists(user: User, projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      select: { pk: true },
+      where: { projectId, uid: user.uid, deletedAt: null },
+    });
+    if (!project) {
+      throw new ProjectNotFoundError();
+    }
   }
 
   /**
@@ -827,7 +867,7 @@ export class KnowledgeService {
   }
 
   async listDocuments(user: User, param: ListDocumentsData['query']) {
-    const { page = 1, pageSize = 10, order = 'creationDesc', projectId } = param;
+    const { page = 1, pageSize = 10, order = 'creationDesc', projectId, canvasId } = param;
 
     const orderBy: Prisma.DocumentOrderByWithRelationInput = {};
     if (order === 'creationAsc') {
@@ -841,6 +881,7 @@ export class KnowledgeService {
         uid: user.uid,
         deletedAt: null,
         projectId,
+        canvasId,
       },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -951,12 +992,22 @@ export class KnowledgeService {
     param.title ||= '';
     param.initialContent ||= '';
 
+    if (param.canvasId) {
+      await this.checkCanvasExists(user, param.canvasId);
+    }
+
+    if (param.projectId) {
+      await this.checkProjectExists(user, param.projectId);
+    }
+
     const createInput: Prisma.DocumentCreateInput = {
       docId: param.docId,
       title: param.title,
       uid: user.uid,
       readOnly: param.readOnly ?? false,
       contentPreview: param.initialContent?.slice(0, 500),
+      ...(param.canvasId ? { canvas: { connect: { canvasId: param.canvasId } } } : {}),
+      ...(param.projectId ? { project: { connect: { projectId: param.projectId } } } : {}),
     };
 
     createInput.storageKey = `doc/${param.docId}.txt`;
@@ -1099,7 +1150,7 @@ export class KnowledgeService {
    * @returns The newly created document
    */
   async duplicateDocument(user: User, param: DuplicateDocumentRequest) {
-    const { docId: sourceDocId, title: newTitle } = param;
+    const { docId: sourceDocId, title: newTitle, canvasId } = param;
 
     // Check storage quota
     const usageResult = await this.subscriptionService.checkStorageUsage(user);
@@ -1130,12 +1181,14 @@ export class KnowledgeService {
           'storageSize',
           'vectorSize',
           'readOnly',
+          'canvasId',
         ]),
         docId: newDocId,
         title: newTitle ?? sourceDoc.title,
         uid: user.uid,
         storageKey: newStorageKey,
         stateStorageKey: newStateStorageKey,
+        canvasId,
       },
     });
 
@@ -1201,7 +1254,7 @@ export class KnowledgeService {
    * @returns The newly created resource
    */
   async duplicateResource(user: User, param: DuplicateResourceRequest) {
-    const { resourceId: sourceResourceId, title: newTitle } = param;
+    const { resourceId: sourceResourceId, title: newTitle, canvasId } = param;
 
     // Check storage quota
     const usageResult = await this.subscriptionService.checkStorageUsage(user);
@@ -1233,6 +1286,7 @@ export class KnowledgeService {
           'indexStatus',
           'indexError',
           'identifier',
+          'canvasId',
           'meta',
           'rawFileKey',
         ]),
@@ -1240,6 +1294,7 @@ export class KnowledgeService {
         title: newTitle,
         uid: user.uid,
         storageKey: newStorageKey,
+        canvasId,
       },
     });
     const dupRecord = await this.prisma.duplicateRecord.create({
