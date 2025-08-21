@@ -25,6 +25,7 @@ interface MediaChatInputProps {
   onSend?: () => void;
   defaultModel?: ProviderItem | null;
   onModelChange?: (model: ProviderItem | null) => void;
+  size?: 'small' | 'medium';
 }
 
 const MediaChatInput = memo(
@@ -37,20 +38,11 @@ const MediaChatInput = memo(
     showChatModeSelector,
     defaultModel,
     onModelChange,
+    size = 'medium',
   }: MediaChatInputProps) => {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
-    const [selectedModel, setSelectedModel] = useState<ProviderItem | null>(defaultModel || null);
     const [isFocused, setIsFocused] = useState(false);
-
-    // Update parent when model changes
-    const handleModelChange = useCallback(
-      (model: ProviderItem | null) => {
-        setSelectedModel(model);
-        onModelChange?.(model);
-      },
-      [onModelChange],
-    );
 
     const { projectId, isCanvasOpen, canvasId } = useGetProjectCanvasId();
     const { debouncedCreateCanvas } = useCreateCanvas({
@@ -60,13 +52,29 @@ const MediaChatInput = memo(
       },
     });
 
-    const { chatMode, setChatMode, mediaModelList, mediaModelListLoading } = useChatStoreShallow(
-      (state) => ({
-        chatMode: state.chatMode,
-        setChatMode: state.setChatMode,
-        mediaModelList: state.mediaModelList,
-        mediaModelListLoading: state.mediaModelListLoading,
-      }),
+    const {
+      chatMode,
+      setChatMode,
+      mediaSelectedModel: selectedModel,
+      setMediaSelectedModel: setSelectedModel,
+      mediaModelList,
+      mediaModelListLoading,
+    } = useChatStoreShallow((state) => ({
+      chatMode: state.chatMode,
+      setChatMode: state.setChatMode,
+      mediaSelectedModel: state.mediaSelectedModel,
+      setMediaSelectedModel: state.setMediaSelectedModel,
+      mediaModelList: state.mediaModelList,
+      mediaModelListLoading: state.mediaModelListLoading,
+    }));
+
+    // Update parent when model changes
+    const handleModelChange = useCallback(
+      (model: ProviderItem | null) => {
+        setSelectedModel(model);
+        onModelChange?.(model);
+      },
+      [onModelChange, setSelectedModel],
     );
 
     // Get current media type based on selected model capabilities
@@ -208,7 +216,7 @@ const MediaChatInput = memo(
           className={cn(
             'flex-1 flex-shrink-0 !m-0 bg-transparent outline-none box-border border-none focus:outline-none focus:shadow-none focus:border-none focus:ring-0',
             readonly && 'cursor-not-allowed !text-black !bg-transparent',
-            'dark:hover:bg-transparent dark:hover:!bg-none dark:focus:bg-transparent dark:active:bg-transparent dark:bg-transparent dark:!bg-transparent',
+            'dark:hover:bg-transparent dark:hover:!bg-none dark:focus:bg-transparent dark:active:bg-transparent dark:!bg-transparent',
             isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
           )}
           value={query}
@@ -234,7 +242,7 @@ const MediaChatInput = memo(
 
               {/* Media Model Selector */}
               <MediaModelSelector
-                maxWidth={120}
+                size={size}
                 model={selectedModel}
                 setModel={handleModelChange}
                 readonly={readonly}
@@ -249,7 +257,7 @@ const MediaChatInput = memo(
                 className="flex items-center !h-9 !w-9 rounded-full border-none"
                 size="small"
                 type="primary"
-                icon={<Send size={20} />}
+                icon={<Send size={20} color="white" />}
                 onClick={() => {
                   logEvent('canvas::node_execute', Date.now(), {
                     node_type: 'mediaGenerate',

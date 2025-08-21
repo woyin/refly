@@ -1,24 +1,24 @@
-import { Button, Popover } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
+import { Popover } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useReactFlow } from '@xyflow/react';
-import { getContextItemIcon } from './utils/icon';
 import { IContextItem } from '@refly/common-types';
 import cn from 'classnames';
 import { ContextPreview } from './context-preview';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { message } from 'antd';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { CanvasNode } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import './index.scss';
+import { Close } from 'refly-icons';
+import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 
 export const ContextItem = ({
   item,
   isLimit,
   isActive,
-  disabled,
   onRemove,
   canNotRemove,
 }: {
@@ -26,21 +26,21 @@ export const ContextItem = ({
   item: IContextItem;
   isActive: boolean;
   isLimit?: boolean;
-  disabled?: boolean;
   onRemove?: (item: IContextItem) => void;
 }) => {
   const { t } = useTranslation();
   const { readonly } = useCanvasContext();
-  const { title, entityId, selection, metadata, type } = item ?? {};
-  const icon = getContextItemIcon(item.type, undefined, { withHistory: metadata?.withHistory });
+  const { title, entityId, selection, type } = item ?? {};
   const { setSelectedNode } = useNodeSelection();
   const { getNodes } = useReactFlow();
   const { setNodeCenter } = useNodePosition();
+  const nodes = getNodes();
+
+  const node = useMemo(() => {
+    return nodes.find((node) => node.data?.entityId === entityId) as CanvasNode<any>;
+  }, [nodes, entityId]);
 
   const handleItemClick = useCallback(async () => {
-    const nodes = getNodes();
-    const node = nodes.find((node) => node.data?.entityId === entityId);
-
     if (!node) {
       return;
     }
@@ -82,47 +82,49 @@ export const ContextItem = ({
       trigger="hover"
       mouseEnterDelay={0.5}
       mouseLeaveDelay={0.1}
-      overlayInnerStyle={{ padding: 0 }}
-      overlayClassName="context-preview-popover rounded-lg"
+      styles={{ body: { padding: 0 } }}
+      classNames={{ root: 'context-preview-popover rounded-lg' }}
     >
-      <Button
+      <div
         className={cn(
-          'max-w-40 h-6 px-1 flex items-center border border-gray-200 dark:border-gray-700 rounded transition-all duration-300',
+          'flex items-center py-0.5 px-1 gap-1 bg-refly-tertiary-default hover:bg-refly-tertiary-hover border-[0.5px] border-solid border-refly-Card-Border rounded-[4px] box-border h-5',
           {
-            'border-green-500': isActive,
-            'border-red-300 bg-red-50 text-red-500': isLimit,
-            'bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700': disabled,
+            'border-refly-primary-default': isActive,
+            'bg-refly-Colorful-red-light': isLimit,
           },
         )}
         onClick={() => handleItemClick()}
       >
-        <div className="h-[18px] flex items-center w-full text-xs">
-          <span className="flex items-center flex-shrink-0 mr-1">{icon}</span>
-          <span
-            className={cn(
-              'flex-1 whitespace-nowrap overflow-hidden text-ellipsis min-w-0 mr-1 text-gray-600 hover:text-green-600 dark:text-gray-300 dark:hover:text-green-300',
-              {
-                'text-gray-300': disabled,
-                'text-red-500': isLimit,
-              },
-            )}
-          >
-            {title || t(`canvas.nodeTypes.${type}`)}
-          </span>
-          {!canNotRemove && !readonly && (
-            <CloseOutlined
-              className={cn('flex-shrink-0 text-xs cursor-pointer', {
-                'text-gray-300': disabled,
-                'text-red-500': isLimit,
-              })}
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove?.(item);
-              }}
-            />
-          )}
+        <NodeIcon
+          className="!w-4 !h-4"
+          type={type}
+          small
+          url={node?.data?.metadata?.imageUrl as string}
+          resourceType={node?.data?.metadata?.resourceType}
+          resourceMeta={node?.data?.metadata?.resourceMeta}
+          iconSize={16}
+          iconColor={NODE_COLORS[type]}
+          filled={false}
+        />
+        <div
+          className={cn('text-xs text-refly-text-0 max-w-[100px] truncate leading-4', {
+            'text-refly-func-danger-default': isLimit,
+          })}
+        >
+          {title || t(`canvas.nodeTypes.${type}`)}
         </div>
-      </Button>
+        {!canNotRemove && !readonly && (
+          <Close
+            size={14}
+            color={isLimit ? 'var(--refly-func-danger-default)' : 'var(--refly-text-1)'}
+            className="cursor-pointer flex-shrink-0 hover:text-refly-text-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove?.(item);
+            }}
+          />
+        )}
+      </div>
     </Popover>
   );
 };

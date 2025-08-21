@@ -35,6 +35,8 @@ export type Events = {
   editorSynced: undefined;
   exitFullScreen: undefined;
   syncDocumentTitle: { docId: string; title: string };
+  shareDocument: undefined;
+  shareDocumentCompleted: undefined;
 };
 
 export type EditorOperation =
@@ -46,6 +48,8 @@ export type EditorOperation =
   | 'activeAskAI'
   | 'editorSynced'
   | 'exitFullScreen'
-  | 'syncDocumentTitle';
+  | 'syncDocumentTitle'
+  | 'shareDocument'
+  | 'shareDocumentCompleted';
 
 export const editorEmitter = mitt<Events>();

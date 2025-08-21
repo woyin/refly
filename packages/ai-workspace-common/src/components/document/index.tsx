@@ -9,7 +9,6 @@ import {
   IconCopy,
   IconLock,
   IconUnlock,
-  IconShare,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
 import { useDocumentStoreShallow } from '@refly/stores';
@@ -143,7 +142,6 @@ const StatusBar = memo(
 
     const [unsyncedChanges, setUnsyncedChanges] = useState(provider?.unsyncedChanges || 0);
     const [debouncedUnsyncedChanges] = useDebounce(unsyncedChanges, 500);
-    const [isSharing, setIsSharing] = useState(false);
 
     const handleUnsyncedChanges = useCallback((data: number) => {
       setUnsyncedChanges(data);
@@ -217,70 +215,8 @@ const StatusBar = memo(
       message.success({ content: t('contentDetail.item.copySuccess') });
     };
 
-    const handleShare = useCallback(async () => {
-      if (!ydoc) return;
-
-      setIsSharing(true);
-      const loadingMessage = message.loading(t('document.sharing', 'Sharing document...'), 0);
-
-      try {
-        const title = ydoc.getText('title').toJSON();
-        const content = ydoc2Markdown(ydoc);
-        const documentData = {
-          title,
-          content,
-        };
-
-        // Create share using the API
-        const { data, error } = await getClient().createShare({
-          body: {
-            entityId: docId,
-            entityType: 'document',
-            shareData: JSON.stringify(documentData),
-          },
-        });
-
-        if (!data?.success || error) {
-          throw new Error(error ? String(error) : 'Failed to share document');
-        }
-
-        // Generate share link
-        const shareLink = getShareLink('document', data.data?.shareId ?? '');
-
-        // Copy the sharing link to clipboard
-        copyToClipboard(shareLink);
-
-        // Clear loading message and show success
-        loadingMessage();
-        message.success(
-          t('document.shareSuccess', 'Document shared successfully! Link copied to clipboard.'),
-        );
-      } catch (err) {
-        console.error('Failed to share document:', err);
-        loadingMessage();
-        message.error(t('document.shareError', 'Failed to share document'));
-      } finally {
-        setIsSharing(false);
-      }
-    }, [ydoc, docId, t]);
-
     return (
-      <div className="w-full h-10 p-3 border-x-0 border-t-0 border-b border-solid border-gray-100 dark:border-gray-700 flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div
-            className={`
-                  relative w-2.5 h-2.5 rounded-full
-                  transition-colors duration-700 ease-in-out
-                  ${debouncedUnsyncedChanges > 0 ? 'bg-yellow-500 animate-pulse' : 'bg-green-400'}
-                `}
-          />
-          <div className="text-sm text-gray-500">
-            {debouncedUnsyncedChanges > 0
-              ? t('canvas.toolbar.syncingChanges')
-              : t('canvas.toolbar.synced', { time: time(new Date(), language)?.utc()?.fromNow() })}
-          </div>
-        </div>
-
+      <div className="w-full h-10 p-3 border-x-0 border-b-0 border-t-[1px] border-solid border-refly-Card-Border flex flex-row items-center justify-between">
         <div className="flex items-center gap-1">
           <Tooltip
             placement="bottom"
@@ -310,15 +246,21 @@ const StatusBar = memo(
               title={t('common.copy.title')}
             />
           </Tooltip>
-          <Tooltip placement="bottom" title={t('document.share', 'Share document')}>
-            <Button
-              type="text"
-              icon={<IconShare className="text-gray-500" />}
-              onClick={handleShare}
-              loading={isSharing}
-              title={t('document.share', 'Share document')}
-            />
-          </Tooltip>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div
+            className={`
+                  relative w-2.5 h-2.5 rounded-full
+                  transition-colors duration-700 ease-in-out
+                  ${debouncedUnsyncedChanges > 0 ? 'bg-yellow-500 animate-pulse' : 'bg-green-400'}
+                `}
+          />
+          <div className="text-xs text-refly-text-1">
+            {debouncedUnsyncedChanges > 0
+              ? t('canvas.toolbar.syncingChanges')
+              : t('canvas.toolbar.synced', { time: time(new Date(), language)?.utc()?.fromNow() })}
+          </div>
         </div>
       </div>
     );
@@ -411,7 +353,7 @@ const DocumentEditorHeader = memo(
 const DocumentBody = memo(
   ({ docId }: { docId: string }) => {
     const { t } = useTranslation();
-    const { readonly, isLoading, isShareDocumentLoading, provider } = useDocumentContext();
+    const { readonly, isLoading, isShareDocumentLoading, provider, ydoc } = useDocumentContext();
     const [searchParams] = useSearchParams();
     const isMaximized = searchParams.get('isMaximized') === 'true';
 
@@ -420,6 +362,45 @@ const DocumentBody = memo(
     }));
     const hasDocumentSynced = config?.remoteSyncedAt > 0 && config?.localSyncedAt > 0;
     const isStillLoading = (isLoading && !hasDocumentSynced) || provider?.status !== 'connected';
+
+    useEffect(() => {
+      const onShare = async () => {
+        if (!ydoc) return;
+        const loadingMessage = message.loading(t('document.sharing', 'Sharing document...'), 0);
+        try {
+          const title = ydoc.getText('title').toJSON();
+          const content = ydoc2Markdown(ydoc);
+          const documentData = { title, content };
+          const { data, error } = await getClient().createShare({
+            body: {
+              entityId: docId,
+              entityType: 'document',
+              shareData: JSON.stringify(documentData),
+            },
+          });
+          if (!data?.success || error) {
+            throw new Error(error ? String(error) : 'Failed to share document');
+          }
+          const shareLink = getShareLink('document', data.data?.shareId ?? '');
+          copyToClipboard(shareLink);
+          loadingMessage();
+          message.success(
+            t('document.shareSuccess', 'Document shared successfully! Link copied to clipboard.'),
+          );
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to share document:', err);
+          loadingMessage();
+          message.error(t('document.shareError', 'Failed to share document'));
+        } finally {
+          editorEmitter.emit('shareDocumentCompleted');
+        }
+      };
+      editorEmitter.on('shareDocument', onShare);
+      return () => {
+        editorEmitter.off('shareDocument', onShare);
+      };
+    }, [docId, t, ydoc]);
 
     return (
       <div className="overflow-auto flex-grow">
@@ -472,8 +453,8 @@ export const DocumentEditor = memo(
     return (
       <DocumentProvider docId={docId} shareId={shareId} readonly={readonly}>
         <div className="flex flex-col ai-note-container">
-          {!canvasReadOnly && <StatusBar docId={docId} />}
           <DocumentBody docId={docId} />
+          {!canvasReadOnly && <StatusBar docId={docId} />}
         </div>
       </DocumentProvider>
     );

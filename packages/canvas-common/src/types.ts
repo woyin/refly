@@ -8,8 +8,10 @@ import {
   CodeArtifactType,
   IndexError,
   IndexStatus,
+  MediaType,
   ModelInfo,
   ProviderItem,
+  ResourceMeta,
   ResourceType,
   Skill,
   SkillRuntimeConfig,
@@ -55,6 +57,7 @@ export interface DocumentNodeMeta {
 
 export interface ResourceNodeMeta {
   resourceType?: ResourceType;
+  resourceMeta?: ResourceMeta;
   indexStatus?: IndexStatus;
   indexError?: IndexError;
   sizeMode?: 'compact' | 'adaptive';
@@ -107,6 +110,14 @@ export type MediaSkillNodeMeta = {
   projectId?: string;
 };
 
+export type MediaSkillResponseNodeMeta = {
+  prompt: string;
+  status: ActionStatus;
+  mediaType?: MediaType;
+  resultId?: string;
+  selectedModel?: ProviderItem | null;
+};
+
 export type ToolNodeMeta = {
   toolType: string;
   sizeMode?: 'compact' | 'adaptive';
@@ -139,11 +150,12 @@ export type ResponseNodeMeta = {
 };
 
 export type ImageNodeMeta = {
-  imageType: string;
   imageUrl: string;
   storageKey: string;
   showBorder?: boolean;
   showTitle?: boolean;
+  resultId?: string;
+  selectedModel?: ModelInfo | null;
   sizeMode?: 'compact' | 'adaptive';
   style?: React.CSSProperties;
   originalWidth?: number;

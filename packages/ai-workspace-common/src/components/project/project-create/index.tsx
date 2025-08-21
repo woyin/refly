@@ -92,10 +92,13 @@ export const CreateProjectModal = ({
     }
   };
 
-  const onSubmit = () => {
-    form.validateFields().then((values) => {
-      submitProject(values);
-    });
+  const onSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      await submitProject(values);
+    } catch (error) {
+      console.error('Error validating form fields', error);
+    }
   };
 
   const uploadCoverPicture = async (file: File) => {

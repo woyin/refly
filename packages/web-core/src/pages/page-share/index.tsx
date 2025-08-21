@@ -351,14 +351,18 @@ const SharePage = () => {
           onCancel={handleCloseWideMode}
           width="85%"
           style={{ top: 20 }}
-          bodyStyle={{
-            maxHeight: 'calc(100vh - 100px)',
-            padding: 0,
-            overflow: 'hidden',
+          styles={{
+            body: {
+              maxHeight: 'calc(100vh - 100px)',
+              padding: 0,
+              overflow: 'hidden',
+            },
+            mask: {
+              background: 'rgba(0, 0, 0, 0.65)',
+            },
           }}
           className="wide-mode-modal"
           closeIcon={<CloseCircleOutlined className="text-gray-500 hover:text-red-500" />}
-          maskStyle={{ background: 'rgba(0, 0, 0, 0.65)' }}
         >
           <div className="bg-white h-full w-full flex flex-col rounded-lg overflow-hidden">
             {/* Wide mode content */}

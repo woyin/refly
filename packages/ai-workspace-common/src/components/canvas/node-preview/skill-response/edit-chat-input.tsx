@@ -1,14 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { IContextItem } from '@refly/common-types';
 import { useMemo, memo, useState, useCallback, useEffect, useRef } from 'react';
-import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import {
-  ChatActions,
-  CustomAction,
-} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
+import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import {
   ModelInfo,
   Skill,
@@ -19,7 +15,6 @@ import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canva
 import { convertContextItemsToEdges } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useReactFlow } from '@xyflow/react';
-import { GrRevert } from 'react-icons/gr';
 import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { notification, Form } from 'antd';
@@ -259,119 +254,85 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     }
   };
 
-  const customActions: CustomAction[] = useMemo(
-    () => [
-      {
-        icon: <GrRevert className="flex items-center" />,
-        title: t('copilot.chatActions.discard'),
-        onClick: () => {
-          setEditMode(false);
-          setEditQuery(query);
-          setEditContextItems(contextItems);
-          setEditModelInfo(modelInfo);
-          setEditRuntimeConfig(runtimeConfig);
-
-          // Reset form values
-          if (initialTplConfig) {
-            form.setFieldValue('tplConfig', initialTplConfig);
-          }
-        },
-      },
-    ],
-    [t, setEditMode, contextItems, query, modelInfo, t, form, initialTplConfig],
-  );
-
   if (!enabled) {
     return null;
   }
 
   return (
-    <div className="ai-copilot-chat-container">
-      <div className={cn('border border-solid border-gray-200 dark:border-gray-700 rounded-lg')}>
-        {!hideSelectedSkillHeader && (
-          <SelectedSkillHeader
-            readonly={readonly}
-            skill={{
-              icon: localActionMeta?.icon,
-              name: localActionMeta?.name,
-            }}
-            className="rounded-t-[7px]"
-            onClose={() => {
-              setLocalActionMeta(null);
-            }}
-          />
-        )}
-        <ContextManager
-          className="p-2 px-3"
-          contextItems={editContextItems}
-          setContextItems={setEditContextItems}
+    <div className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px] flex flex-col gap-2">
+      {!hideSelectedSkillHeader && (
+        <SelectedSkillHeader
+          readonly={readonly}
+          skill={{
+            icon: localActionMeta?.icon,
+            name: localActionMeta?.name,
+          }}
+          className="rounded-t-[7px]"
+          onClose={() => {
+            setLocalActionMeta(null);
+          }}
         />
-        <div className="px-3">
-          <ChatInput
-            ref={textareaRef}
-            readonly={canvasReadonly}
-            query={editQuery}
-            setQuery={setEditQuery}
-            selectedSkillName={localActionMeta?.name}
-            handleSendMessage={handleSendMessage}
-            handleSelectSkill={(skill) => {
-              setEditQuery(editQuery?.slice(0, -1));
-              handleSelectSkill(skill);
-            }}
-            onUploadImage={handleImageUpload}
-            onUploadMultipleImages={handleMultipleImagesUpload}
-          />
-        </div>
+      )}
+      <ContextManager contextItems={editContextItems} setContextItems={setEditContextItems} />
+      <ChatInput
+        ref={textareaRef}
+        readonly={canvasReadonly}
+        query={editQuery}
+        setQuery={setEditQuery}
+        selectedSkillName={localActionMeta?.name}
+        handleSendMessage={handleSendMessage}
+        handleSelectSkill={(skill) => {
+          setEditQuery(editQuery?.slice(0, -1));
+          handleSelectSkill(skill);
+        }}
+        onUploadImage={handleImageUpload}
+        onUploadMultipleImages={handleMultipleImagesUpload}
+      />
 
-        {skill?.configSchema?.items?.length > 0 && (
-          <div className="px-3">
-            <ConfigManager
-              readonly={canvasReadonly}
-              key={skill?.name}
-              form={form}
-              formErrors={formErrors}
-              setFormErrors={setFormErrors}
-              schema={skill?.configSchema}
-              tplConfig={initialTplConfig}
-              fieldPrefix="tplConfig"
-              configScope="runtime"
-              resetConfig={() => {
-                // Reset to skill's tplConfig if available, otherwise create a new default config
-                if (skill?.tplConfig) {
-                  form.setFieldValue('tplConfig', skill.tplConfig);
-                } else {
-                  const defaultConfig = {};
-                  for (const item of skill?.configSchema?.items || []) {
-                    if (item.defaultValue !== undefined) {
-                      defaultConfig[item.key] = {
-                        value: item.defaultValue,
-                        label: item.labelDict?.en ?? item.key,
-                        displayValue: String(item.defaultValue),
-                      };
-                    }
-                  }
-                  form.setFieldValue('tplConfig', defaultConfig);
-                }
-              }}
-            />
-          </div>
-        )}
-
-        <ChatActions
-          className="p-2 px-3"
-          query={editQuery}
-          model={editModelInfo}
-          setModel={setEditModelInfo}
-          runtimeConfig={editRuntimeConfig}
-          setRuntimeConfig={setEditRuntimeConfig}
-          handleSendMessage={handleSendMessage}
-          handleAbort={() => {}}
-          customActions={customActions}
-          onUploadImage={handleImageUpload}
-          contextItems={editContextItems}
+      {skill?.configSchema?.items?.length > 0 && (
+        <ConfigManager
+          readonly={canvasReadonly}
+          key={skill?.name}
           form={form}
+          formErrors={formErrors}
+          setFormErrors={setFormErrors}
+          schema={skill?.configSchema}
+          tplConfig={initialTplConfig}
+          fieldPrefix="tplConfig"
+          configScope="runtime"
+          resetConfig={() => {
+            // Reset to skill's tplConfig if available, otherwise create a new default config
+            if (skill?.tplConfig) {
+              form.setFieldValue('tplConfig', skill.tplConfig);
+            } else {
+              const defaultConfig = {};
+              for (const item of skill?.configSchema?.items || []) {
+                if (item.defaultValue !== undefined) {
+                  defaultConfig[item.key] = {
+                    value: item.defaultValue,
+                    label: item.labelDict?.en ?? item.key,
+                    displayValue: String(item.defaultValue),
+                  };
+                }
+              }
+              form.setFieldValue('tplConfig', defaultConfig);
+            }
+          }}
         />
-      </div>
+      )}
+
+      <ChatActions
+        query={editQuery}
+        model={editModelInfo}
+        setModel={setEditModelInfo}
+        runtimeConfig={editRuntimeConfig}
+        setRuntimeConfig={setEditRuntimeConfig}
+        handleSendMessage={handleSendMessage}
+        handleAbort={() => {}}
+        onUploadImage={handleImageUpload}
+        contextItems={editContextItems}
+        form={form}
+      />
     </div>
   );
 };

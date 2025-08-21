@@ -1,28 +1,38 @@
-import { useEffect, useState, useMemo, useCallback, memo } from 'react';
+import { useMemo, useCallback, memo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, message, Dropdown, Tooltip } from 'antd';
-import type { MenuProps } from 'antd';
-import { ActionResult, ActionStep, Source } from '@refly/openapi-schema';
-import { FilePlus, MoreHorizontal, Target, Trash2 } from 'lucide-react';
+import { Button, message, Tooltip, Form } from 'antd';
+import { AiChat, Data } from 'refly-icons';
+import { ModelIcon } from '@lobehub/icons';
 import {
-  CheckCircleOutlined,
-  CopyOutlined,
-  ImportOutlined,
-  ShareAltOutlined,
-} from '@ant-design/icons';
+  ActionResult,
+  ActionStep,
+  Source,
+  ModelInfo,
+  SkillRuntimeConfig,
+  SkillTemplateConfig,
+  Skill,
+} from '@refly/openapi-schema';
+import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
+import { motion, AnimatePresence } from 'motion/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow } from '@refly/stores';
+import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
-import { HiOutlineCircleStack, HiOutlineSquare3Stack3D } from 'react-icons/hi2';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
-import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
-import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
-import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { useCanvasStore } from '@refly/stores';
+import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
+import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { genActionResultID } from '@refly/utils';
+import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
+import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
+import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
+import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
+import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
+import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
+import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
+import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
+import { IContextItem } from '@refly/common-types';
 
 interface ActionContainerProps {
   step: ActionStep;
@@ -32,25 +42,51 @@ interface ActionContainerProps {
 
 const buttonClassName = 'text-xs flex justify-center items-center h-6 px-1 rounded-lg';
 
-const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps) => {
+const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   const { t } = useTranslation();
   const { debouncedCreateDocument, isCreating } = useCreateDocument();
-  const { readonly } = useCanvasContext();
+  const { readonly, canvasId } = useCanvasContext();
   const { hasEditorSelection, activeDocumentId } = useDocumentStoreShallow((state) => ({
     hasEditorSelection: state.hasEditorSelection,
     activeDocumentId: state.activeDocumentId,
   }));
 
-  const { addToContext } = useAddToContext();
-  const { setNodeCenter } = useNodePosition();
-  const { deleteNode } = useDeleteNode();
-  const { removeLinearThreadMessageByNodeId } = useCanvasStore((state) => ({
-    removeLinearThreadMessageByNodeId: state.removeLinearThreadMessageByNodeId,
-  }));
+  // Add state for follow-up question input with full functionality
+  const [showFollowUpInput, setShowFollowUpInput] = useState(false);
+  const [followUpQuery, setFollowUpQuery] = useState('');
+  const [followUpContextItems, setFollowUpContextItems] = useState<IContextItem[]>([]);
+  const [followUpModelInfo, setFollowUpModelInfo] = useState<ModelInfo | null>(null);
+  const [followUpRuntimeConfig, setFollowUpRuntimeConfig] = useState<SkillRuntimeConfig>({});
+  const [followUpTplConfig, setFollowUpTplConfig] = useState<SkillTemplateConfig>({});
+  const [followUpActionMeta, setFollowUpActionMeta] = useState<{
+    name?: string;
+    icon?: any;
+  } | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Add hooks for AI functionality
+  const { invokeAction } = useInvokeAction();
+  const { addNode } = useAddNode();
+  const { getFinalProjectId } = useAskProject();
+  const {
+    handleUploadImage: uploadImageHook,
+    handleUploadMultipleImages: uploadMultipleImagesHook,
+  } = useUploadImage();
+
+  const textareaRef = useRef<HTMLDivElement>(null);
+  const [form] = Form.useForm();
+
+  // Add skill finding functionality
+  const followUpSkill = useFindSkill(followUpActionMeta?.name);
+
+  const hideSelectedSkillHeader = useMemo(
+    () =>
+      !followUpActionMeta || followUpActionMeta?.name === 'commonQnA' || !followUpActionMeta?.name,
+    [followUpActionMeta],
+  );
 
   const { title } = result ?? {};
   const isPending = result?.status === 'executing';
-  const [isSharing, setIsSharing] = useState(false);
 
   // Check if we're in share mode by checking if resultId exists
   // This indicates a "proper" result vs a shared result that might be loaded from share data
@@ -76,24 +112,9 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
         key: 'replaceSelection',
         enabled: step.content && activeDocumentId && hasEditorSelection,
       },
-      {
-        icon: <FilePlus style={{ fontSize: 14, width: 14, height: 14 }} />,
-        key: 'createDocument',
-        enabled: step.content,
-      },
     ],
     [step.content, activeDocumentId, hasEditorSelection],
   );
-
-  const [tokenUsage, setTokenUsage] = useState(0);
-
-  useEffect(() => {
-    let total = 0;
-    for (const item of step?.tokenUsage || []) {
-      total += (item?.inputTokens || 0) + (item?.outputTokens || 0);
-    }
-    setTokenUsage(total);
-  }, [step?.tokenUsage]);
 
   const handleEditorOperation = useCallback(
     async (type: EditorOperation | 'createDocument', content: string) => {
@@ -120,165 +141,422 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
     [sources, t],
   );
 
-  const tokenUsageDropdownList: MenuProps['items'] = useMemo(
-    () =>
-      step?.tokenUsage?.map((item: any) => ({
-        key: item?.modelName,
-        label: (
-          <div className="flex items-center">
-            <span>
-              {item?.modelName}:{' '}
-              {t('copilot.tokenUsage', {
-                inputCount: item?.inputTokens,
-                outputCount: item?.outputTokens,
-              })}
-            </span>
-          </div>
-        ),
-      })),
-    [step?.tokenUsage, t],
+  const { userProfile } = useUserStoreShallow((state) => ({
+    userProfile: state.userProfile,
+  }));
+
+  const { data: providerItemList } = useListProviderItems({
+    query: {
+      category: 'llm',
+      enabled: true,
+      isGlobal: userProfile?.preferences?.providerMode === 'global',
+    },
+  });
+
+  const tokenUsage = step?.tokenUsage?.[0];
+
+  const providerItem = useMemo(() => {
+    if (!tokenUsage || !providerItemList?.data) return null;
+
+    // If providerItemId is provided, use it to find the provider item
+    if (tokenUsage?.providerItemId) {
+      return providerItemList?.data?.find((item) => item.itemId === tokenUsage?.providerItemId);
+    }
+
+    // Fallback to modelName if providerItemId is not provided
+    return (
+      providerItemList?.data?.find((item) => item.config?.modelId === tokenUsage?.modelName) || null
+    );
+  }, [providerItemList, tokenUsage]);
+
+  // Initialize context items with current node when showing input
+  const initializeFollowUpInput = useCallback(() => {
+    if (result?.resultId) {
+      const currentNodeContext: IContextItem = {
+        type: 'skillResponse',
+        entityId: result.resultId,
+        title: result.title || '',
+      };
+      setFollowUpContextItems([currentNodeContext]);
+    }
+
+    // Set default model if available
+    if (providerItem && providerItem.category === 'llm') {
+      const modelInfo: ModelInfo = {
+        name: (providerItem.config as any)?.modelId || providerItem.name,
+        label: providerItem.name,
+        provider: providerItem.provider?.name || '',
+        providerItemId: providerItem.itemId,
+        contextLimit: (providerItem.config as any)?.contextLimit || 0,
+        maxOutput: (providerItem.config as any)?.maxOutput || 0,
+        capabilities: (providerItem.config as any)?.capabilities || {},
+      };
+      setFollowUpModelInfo(modelInfo);
+    }
+
+    setShowFollowUpInput(!showFollowUpInput);
+  }, [result, providerItem, showFollowUpInput]);
+
+  // Add skill selection handler
+  const handleFollowUpSelectSkill = useCallback(
+    (skill: Skill) => {
+      setFollowUpActionMeta({
+        icon: skill.icon,
+        name: skill.name,
+      });
+
+      // Reset form when skill changes
+      if (skill.configSchema?.items?.length > 0) {
+        const newConfig = {};
+
+        // Process each item in the schema to create default values
+        for (const item of skill.configSchema.items) {
+          if (item.defaultValue !== undefined) {
+            newConfig[item.key] = {
+              value: item.defaultValue,
+              label: item.labelDict?.en ?? item.key,
+              displayValue: String(item.defaultValue),
+            };
+          }
+        }
+
+        form.setFieldValue('tplConfig', newConfig);
+        setFollowUpTplConfig(newConfig);
+      } else {
+        form.setFieldValue('tplConfig', undefined);
+        setFollowUpTplConfig({});
+      }
+    },
+    [form],
   );
 
-  const handleShare = useCallback(async () => {
-    setIsSharing(true);
-    const loadingMessage = message.loading(t('codeArtifact.sharing'), 0);
+  // Add handler for follow-up question
+  const handleFollowUpSend = useCallback(() => {
+    if (!followUpQuery?.trim() || !canvasId) return;
 
-    try {
-      // Create share using the API
-      const { data, error } = await getClient().createShare({
-        body: {
-          entityId: result.resultId,
-          entityType: 'skillResponse',
-          shareData: JSON.stringify(result),
-        },
-      });
-
-      if (!data?.success || error) {
-        throw new Error(error ? String(error) : 'Failed to share skill response');
-      }
-
-      // Generate share link
-      const shareLink = getShareLink('skillResponse', data.data?.shareId ?? '');
-
-      // Copy the sharing link to clipboard
-      copyToClipboard(shareLink);
-
-      // Clear loading message and show success
-      loadingMessage();
-      message.success(
-        t(
-          'canvas.skillResponse.shareSuccess',
-          'Skill response shared successfully! Link copied to clipboard.',
-        ),
-      );
-    } catch (err) {
-      console.error('Failed to share skill response:', err);
-      loadingMessage();
-      message.error(t('canvas.skillResponse.shareError', 'Failed to share skill response'));
-    } finally {
-      setIsSharing(false);
+    // Check for form errors
+    if (formErrors && Object.keys(formErrors).length > 0) {
+      message.error(t('copilot.configManager.errorTip'));
+      return;
     }
-  }, [result, t]);
 
-  const handleAddToContext = useCallback(() => {
-    if (!result.resultId) return;
+    const resultId = genActionResultID();
+    const finalProjectId = getFinalProjectId();
 
-    addToContext({
-      type: 'skillResponse',
-      title: result.title ?? '',
-      entityId: result.resultId,
-      // Safely pass metadata as any to avoid type errors
-      metadata: (result as any)?.metadata,
-    });
-  }, [result, addToContext]);
+    // Get tplConfig from form
+    const tplConfig = form?.getFieldValue('tplConfig') || followUpTplConfig;
 
-  const handleLocateNode = useCallback(() => {
-    if (nodeId) {
-      setNodeCenter(nodeId, true);
-    }
-  }, [nodeId, setNodeCenter]);
+    // Use selected model or fallback to default
+    const modelInfo =
+      followUpModelInfo ||
+      (providerItem && providerItem.category === 'llm'
+        ? {
+            name: (providerItem.config as any)?.modelId || providerItem.name,
+            label: providerItem.name,
+            provider: providerItem.provider?.name || '',
+            providerItemId: providerItem.itemId,
+            contextLimit: (providerItem.config as any)?.contextLimit || 0,
+            maxOutput: (providerItem.config as any)?.maxOutput || 0,
+            capabilities: (providerItem.config as any)?.capabilities || {},
+          }
+        : undefined);
 
-  const handleDeleteNode = useCallback(() => {
-    if (nodeId) {
-      // Remove the Refly Pilot message first
-      removeLinearThreadMessageByNodeId(nodeId);
+    // Invoke the action
+    invokeAction(
+      {
+        query: followUpQuery,
+        resultId,
+        selectedSkill: followUpSkill,
+        modelInfo,
+        tplConfig,
+        runtimeConfig: followUpRuntimeConfig,
+        contextItems: followUpContextItems,
+        projectId: finalProjectId,
+      },
+      {
+        entityId: canvasId,
+        entityType: 'canvas',
+      },
+    );
 
-      // Then delete the node
-      deleteNode({
-        id: nodeId,
+    // Add node to canvas with connection to the current node
+    const connectTo = result?.resultId
+      ? [
+          {
+            type: 'skillResponse' as const,
+            entityId: result.resultId,
+            handleType: 'source' as const,
+          },
+        ]
+      : undefined;
+
+    addNode(
+      {
         type: 'skillResponse',
-        position: { x: 0, y: 0 },
         data: {
-          title: result.title ?? '',
-          entityId: result.resultId,
+          title: followUpQuery,
+          entityId: resultId,
+          metadata: {
+            status: 'executing',
+            selectedSkill: followUpSkill,
+            modelInfo,
+            runtimeConfig: followUpRuntimeConfig,
+            tplConfig,
+            structuredData: {
+              query: followUpQuery,
+            },
+            projectId: finalProjectId,
+          },
         },
-      });
-    }
-  }, [nodeId, deleteNode, result, removeLinearThreadMessageByNodeId]);
+      },
+      connectTo,
+    );
 
-  // More menu items
-  const moreMenuItems: MenuProps['items'] = useMemo(() => {
-    if (!nodeId || isShareMode || readonly) return [];
+    // Clear input and hide input box
+    setFollowUpQuery('');
+    setFollowUpContextItems([]);
+    setFollowUpModelInfo(null);
+    setFollowUpRuntimeConfig({});
+    setFollowUpTplConfig({});
+    setFollowUpActionMeta(null);
+    setFormErrors({});
+    setShowFollowUpInput(false);
+  }, [
+    followUpQuery,
+    canvasId,
+    result?.resultId,
+    followUpModelInfo,
+    followUpRuntimeConfig,
+    followUpContextItems,
+    followUpSkill,
+    followUpTplConfig,
+    formErrors,
+    invokeAction,
+    addNode,
+    providerItem,
+    getFinalProjectId,
+    form,
+    t,
+  ]);
 
-    return [
-      {
-        key: 'locateNode',
-        label: (
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <Target className="w-4 h-4 flex-shrink-0" />
-            {t('canvas.nodeActions.centerNode')}
-          </div>
-        ),
-        onClick: handleLocateNode,
-      },
-      {
-        key: 'addToContext',
-        label: (
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <HiOutlineSquare3Stack3D className="w-4 h-4 flex-shrink-0" />
-            {t('canvas.nodeActions.addToContext')}
-          </div>
-        ),
-        onClick: handleAddToContext,
-      },
-      {
-        type: 'divider',
-      },
-      {
-        key: 'delete',
-        label: (
-          <div className="flex items-center gap-2 text-red-600 whitespace-nowrap">
-            <Trash2 className="w-4 h-4 flex-shrink-0" />
-            {t('canvas.nodeActions.delete')}
-          </div>
-        ),
-        onClick: handleDeleteNode,
-        className: 'hover:bg-red-50',
-      },
-    ];
-  }, [nodeId, isShareMode, readonly, t, handleLocateNode, handleAddToContext, handleDeleteNode]);
+  // Image upload handlers for follow-up
+  const handleFollowUpImageUpload = useCallback(
+    async (file: File) => {
+      const nodeData = await uploadImageHook(file, canvasId);
+      if (nodeData) {
+        setFollowUpContextItems((prev) => [
+          ...prev,
+          {
+            type: 'image',
+            ...nodeData,
+          },
+        ]);
+      }
+    },
+    [uploadImageHook, canvasId],
+  );
+
+  const handleFollowUpMultipleImagesUpload = useCallback(
+    async (files: File[]) => {
+      const nodesData = await uploadMultipleImagesHook(files, canvasId);
+      if (nodesData?.length) {
+        const newContextItems = nodesData.map((nodeData) => ({
+          type: 'image' as const,
+          ...nodeData,
+        }));
+        setFollowUpContextItems((prev) => [...prev, ...newContextItems]);
+      }
+    },
+    [uploadMultipleImagesHook, canvasId],
+  );
+
+  if (isPending) {
+    return null;
+  }
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="-ml-1">
-        {step?.tokenUsage && step.tokenUsage.length > 0 && !isShareMode && (
-          <Dropdown menu={{ items: tokenUsageDropdownList }}>
-            <Button
-              type="text"
-              size="small"
-              icon={<HiOutlineCircleStack style={{ fontSize: 14 }} />}
-              className="text-gray-500 text-xs"
-            >
-              {tokenUsage} tokens
-            </Button>
-          </Dropdown>
-        )}
+    <div className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3">
+      <div className="flex flex-row items-center justify-between bg-refly-tertiary-default px-3 py-2 rounded-xl mx-3">
+        <div className="flex flex-row items-center px-2">
+          <span className="font-[600] pr-4">{t('canvas.nodeActions.nextStepSuggestions')}</span>
+          <div
+            className="bg-[#CDFFF1] border-[1px] border-solid border-refly-Card-Border hover:bg-[#CDFFF1] hover:border-refly-Card-Border px-2 py-1 rounded-lg flex items-center justify-center cursor-pointer"
+            onClick={initializeFollowUpInput}
+          >
+            <AiChat className="w-4 h-4 mr-[2px]" color="#0E9F77" />
+            <span className="text-[#0E9F77] font-[600] text-xs">
+              {t('canvas.nodeActions.followUpQuestion')}
+            </span>
+          </div>
+        </div>
       </div>
-      {!isPending && step?.content && (
-        <div className="flex flex-row justify-between items-center text-sm">
-          <div className="-ml-1 text-sm flex flex-row items-center gap-1">
-            {!readonly && !isShareMode && step.content && (
-              <>
+
+      {/* Follow-up question input with full functionality and animation */}
+      <AnimatePresence>
+        {showFollowUpInput && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              height: 0,
+              scale: 0.95,
+              y: -10,
+            }}
+            animate={{
+              opacity: 1,
+              height: 'auto',
+              scale: 1,
+              y: 0,
+            }}
+            exit={{
+              opacity: 0,
+              height: 0,
+              scale: 0.95,
+              y: -10,
+            }}
+            transition={{
+              duration: 0.3,
+              ease: [0.4, 0, 0.2, 1], // easeOutCubic
+              height: {
+                duration: 0.3,
+              },
+            }}
+            className="mx-3 mt-2 overflow-hidden"
+          >
+            <div className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px] flex flex-col gap-2">
+              {!hideSelectedSkillHeader && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05, duration: 0.2 }}
+                >
+                  <SelectedSkillHeader
+                    readonly={readonly}
+                    skill={{
+                      icon: followUpActionMeta?.icon,
+                      name: followUpActionMeta?.name,
+                    }}
+                    className="rounded-t-[7px]"
+                    onClose={() => {
+                      setFollowUpActionMeta(null);
+                      form.setFieldValue('tplConfig', undefined);
+                      setFollowUpTplConfig({});
+                    }}
+                  />
+                </motion.div>
+              )}
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                <ContextManager
+                  contextItems={followUpContextItems}
+                  setContextItems={setFollowUpContextItems}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.2 }}
+              >
+                <ChatInput
+                  ref={textareaRef}
+                  readonly={readonly}
+                  query={followUpQuery}
+                  setQuery={setFollowUpQuery}
+                  selectedSkillName={followUpActionMeta?.name}
+                  handleSendMessage={handleFollowUpSend}
+                  handleSelectSkill={(skill) => {
+                    setFollowUpQuery(followUpQuery?.slice(0, -1));
+                    handleFollowUpSelectSkill(skill);
+                  }}
+                  onUploadImage={handleFollowUpImageUpload}
+                  onUploadMultipleImages={handleFollowUpMultipleImagesUpload}
+                  placeholder={t('canvas.nodeActions.nextStepSuggestionsDescription')}
+                />
+              </motion.div>
+
+              {followUpSkill?.configSchema?.items?.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.175, duration: 0.2 }}
+                >
+                  <ConfigManager
+                    readonly={readonly}
+                    key={followUpSkill?.name}
+                    form={form}
+                    formErrors={formErrors}
+                    setFormErrors={setFormErrors}
+                    schema={followUpSkill?.configSchema}
+                    tplConfig={followUpTplConfig}
+                    fieldPrefix="tplConfig"
+                    configScope="runtime"
+                    resetConfig={() => {
+                      // Reset to skill's tplConfig if available, otherwise create a new default config
+                      if (followUpSkill?.tplConfig) {
+                        form.setFieldValue('tplConfig', followUpSkill.tplConfig);
+                        setFollowUpTplConfig(followUpSkill.tplConfig);
+                      } else {
+                        const defaultConfig = {};
+                        for (const item of followUpSkill?.configSchema?.items || []) {
+                          if (item.defaultValue !== undefined) {
+                            defaultConfig[item.key] = {
+                              value: item.defaultValue,
+                              label: item.labelDict?.en ?? item.key,
+                              displayValue: String(item.defaultValue),
+                            };
+                          }
+                        }
+                        form.setFieldValue('tplConfig', defaultConfig);
+                        setFollowUpTplConfig(defaultConfig);
+                      }
+                    }}
+                  />
+                </motion.div>
+              )}
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.2 }}
+              >
+                <ChatActions
+                  query={followUpQuery}
+                  model={followUpModelInfo}
+                  setModel={setFollowUpModelInfo}
+                  runtimeConfig={followUpRuntimeConfig}
+                  setRuntimeConfig={setFollowUpRuntimeConfig}
+                  handleSendMessage={handleFollowUpSend}
+                  handleAbort={() => {}}
+                  onUploadImage={handleFollowUpImageUpload}
+                  contextItems={followUpContextItems}
+                  form={form}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="flex items-center justify-between p-3 rounded-b-xl">
+        {tokenUsage && (
+          <div className="flex flex-row text-gray-500 text-sm gap-3">
+            <div className="flex items-center gap-1">
+              <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
+              {tokenUsage?.modelLabel || providerItem?.name}
+            </div>
+            <div className="flex items-center gap-1">
+              <Data size={16} />
+              {tokenUsage?.inputTokens + tokenUsage?.outputTokens}
+            </div>
+          </div>
+        )}
+        {!isPending && step?.content && (
+          <div className="flex flex-row justify-between items-center text-sm">
+            <div className="-ml-1 text-sm flex flex-row items-center gap-1">
+              {!readonly && !isShareMode && step.content && (
                 <Tooltip title={t('copilot.message.copy')}>
                   <Button
                     type="text"
@@ -288,59 +566,33 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
                     onClick={() => handleCopyToClipboard(step.content ?? '')}
                   />
                 </Tooltip>
-
-                <Tooltip title={t('common.share')}>
-                  <Button
-                    type="text"
-                    size="small"
-                    loading={isSharing}
-                    icon={<ShareAltOutlined style={{ fontSize: 14 }} />}
-                    className={buttonClassName}
-                    onClick={handleShare}
-                  />
-                </Tooltip>
-              </>
-            )}
-            {!readonly &&
-              !isShareMode &&
-              editorActionList.map((item) => (
-                <Tooltip key={item.key} title={t(`copilot.message.${item.key}`)}>
-                  <Button
-                    key={item.key}
-                    size="small"
-                    type="text"
-                    className={buttonClassName}
-                    icon={item.icon}
-                    disabled={!item.enabled}
-                    loading={isCreating}
-                    onClick={() => {
-                      const parsedText = parseMarkdownCitationsAndCanvasTags(
-                        step.content ?? '',
-                        sources,
-                      );
-                      handleEditorOperation(item.key as EditorOperation, parsedText || '');
-                    }}
-                  />
-                </Tooltip>
-              ))}
-
-            {/* More actions dropdown button */}
-            {nodeId && moreMenuItems.length > 0 && (
-              <Dropdown
-                menu={{ items: moreMenuItems }}
-                trigger={['click']}
-                placement="bottomRight"
-                getPopupContainer={(triggerNode) => triggerNode.parentNode as HTMLElement}
-                overlayClassName="min-w-[160px] w-max"
-              >
-                <Button type="text" size="small" className={buttonClassName}>
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </Dropdown>
-            )}
+              )}
+              {!readonly &&
+                !isShareMode &&
+                editorActionList.map((item) => (
+                  <Tooltip key={item.key} title={t(`copilot.message.${item.key}`)}>
+                    <Button
+                      key={item.key}
+                      size="small"
+                      type="text"
+                      className={buttonClassName}
+                      icon={item.icon}
+                      disabled={!item.enabled}
+                      loading={isCreating}
+                      onClick={() => {
+                        const parsedText = parseMarkdownCitationsAndCanvasTags(
+                          step.content ?? '',
+                          sources,
+                        );
+                        handleEditorOperation(item.key as EditorOperation, parsedText || '');
+                      }}
+                    />
+                  </Tooltip>
+                ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

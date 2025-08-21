@@ -451,7 +451,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
         onCancel={() => setIsFormVisible(false)}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <McpServerForm
           initialData={editingServer || undefined}

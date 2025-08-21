@@ -108,14 +108,22 @@ export const AccountSetting = () => {
 
   const debouncedValidateField = useDebouncedCallback(validateField, 300);
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (nameStatus === 'error') {
       return;
     }
-    form.validateFields().then(async (values) => {
-      const { name, nickname } = values;
-      if (loading) return;
-      setLoading(true);
+    let values: { name: string; nickname: string };
+    try {
+      values = await form.validateFields();
+    } catch (error) {
+      console.error('Error validating form fields', error);
+      return;
+    }
+
+    const { name, nickname } = values;
+    if (loading) return;
+    setLoading(true);
+    try {
       const { error } = await getClient().updateSettings({
         body: {
           name,
@@ -124,14 +132,15 @@ export const AccountSetting = () => {
         },
       });
       if (error) {
-        console.log(error);
+        console.error(error);
         return;
       }
-      setLoading(false);
       message.success(t('settings.account.updateSuccess'));
       userStore.setUserProfile({ ...userStore.userProfile!, name, nickname, avatar: avatarUrl });
       setIsEditModalVisible(false);
-    });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditClick = () => {
@@ -259,7 +268,7 @@ export const AccountSetting = () => {
           </Button>,
         ]}
         width={500}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" className="mt-4">
           <Form.Item label={t('settings.account.avatar')} name="avatar">

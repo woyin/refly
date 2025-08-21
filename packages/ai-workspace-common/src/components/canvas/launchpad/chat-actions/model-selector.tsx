@@ -16,10 +16,13 @@ import './index.scss';
 import { useUserStoreShallow } from '@refly/stores';
 import { ArrowDown, Settings } from 'refly-icons';
 import cn from 'classnames';
+import { CreditBillingInfo } from '@refly-packages/ai-workspace-common/components/common/credit-billing-info';
+
 const { Paragraph } = Typography;
 
 interface ModelSelectorProps {
   model: ModelInfo | null;
+  size?: 'small' | 'medium';
   setModel: (model: ModelInfo | null) => void;
   briefMode?: boolean;
   placement?: DropdownProps['placement'];
@@ -32,10 +35,12 @@ const SelectedModelDisplay = memo(
   ({
     open,
     model,
+    size = 'medium',
     handleOpenSettingModal,
   }: {
     open: boolean;
     model: ModelInfo | null;
+    size?: 'small' | 'medium';
     handleOpenSettingModal: () => void;
   }) => {
     const { t } = useTranslation();
@@ -46,7 +51,7 @@ const SelectedModelDisplay = memo(
           type="text"
           size="small"
           className={cn(
-            'h-7text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
+            'h-7 text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
             open && 'border-refly-Card-Border',
           )}
           style={{ color: '#f59e0b' }}
@@ -69,7 +74,10 @@ const SelectedModelDisplay = memo(
       >
         <ModelIcon model={model.name} type={'color'} size={16} />
         <Paragraph
-          className="truncate leading-5 max-w-28 !mb-0 text-sm"
+          className={cn(
+            'truncate leading-5 !mb-0',
+            size === 'small' ? 'text-xs max-w-28' : 'text-sm max-w-48',
+          )}
           ellipsis={{ rows: 1, tooltip: true }}
         >
           {model.label}
@@ -150,6 +158,7 @@ export const ModelSelector = memo(
     placement = 'bottomLeft',
     trigger = ['click'],
     briefMode = false,
+    size = 'medium',
     model,
     setModel,
     contextItems,
@@ -224,6 +233,7 @@ export const ModelSelector = memo(
             contextLimit: config.contextLimit!,
             maxOutput: config.maxOutput!,
             capabilities: config.capabilities,
+            creditBilling: item.creditBilling,
             group: item.group,
           };
         }) || []
@@ -238,7 +248,7 @@ export const ModelSelector = memo(
 
     const handleMenuClick = useCallback(
       ({ key }: { key: string }) => {
-        const selectedModel = modelList?.find((model) => model.name === key);
+        const selectedModel = modelList?.find((model) => model.providerItemId === key);
         if (selectedModel) {
           setModel(selectedModel);
           setDropdownOpen(false);
@@ -250,9 +260,9 @@ export const ModelSelector = memo(
     const droplist: MenuProps['items'] = useMemo(() => {
       if (providerMode === 'global') {
         return modelList
-          .sort((a, b) => a.name.localeCompare(b.name))
+          .sort((a, b) => a.label.localeCompare(b.label))
           .map((model) => ({
-            key: model.name,
+            key: model.providerItemId,
             label: <ModelLabel model={model} isContextIncludeImage={isContextIncludeImage} />,
             icon: <ModelIcon model={model.name} size={16} type={'color'} />,
           }));
@@ -273,7 +283,7 @@ export const ModelSelector = memo(
             ),
           };
           const items = group.models.map((model) => ({
-            key: model.name,
+            key: model.providerItemId,
             label: <ModelLabel model={model} isContextIncludeImage={isContextIncludeImage} />,
             icon: <ModelIcon model={model.name} size={16} type={'color'} />,
           }));
@@ -287,25 +297,33 @@ export const ModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
+        <div className="w-[260px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {droplist
               .filter((item) => !!item)
-              .map((item) => (
-                <div key={item.key} className="model-list-item">
-                  {item.type === 'group' ? (
-                    item.label
-                  ) : item.type !== 'divider' ? (
-                    <div
-                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
-                      onClick={() => handleMenuClick({ key: item.key as string })}
-                    >
-                      <div className="flex-shrink-0 flex items-center">{item.icon}</div>
-                      <div className="min-w-0 flex-1">{item.label}</div>
-                    </div>
-                  ) : null}
-                </div>
-              ))}
+              .map((item) => {
+                const model = modelList.find((m) => m.providerItemId === item.key);
+                return (
+                  <div key={item.key} className="model-list-item">
+                    {item.type === 'group' ? (
+                      item.label
+                    ) : item.type !== 'divider' ? (
+                      <div
+                        className="flex justify-between items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                        onClick={() => handleMenuClick({ key: item.key as string })}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex-shrink-0 flex items-center">{item.icon}</div>
+                          <div className="min-w-0 flex-1">{item.label}</div>
+                        </div>
+                        {model?.creditBilling && (
+                          <CreditBillingInfo creditBilling={model.creditBilling} />
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
           </div>
           <SettingsButton
             handleOpenSettingModal={handleOpenSettingModal}
@@ -313,7 +331,7 @@ export const ModelSelector = memo(
           />
         </div>
       ),
-      [droplist, handleMenuClick, handleOpenSettingModal, setDropdownOpen],
+      [t, droplist, handleMenuClick, handleOpenSettingModal, setDropdownOpen],
     );
 
     // Automatically select available model when:
@@ -321,6 +339,10 @@ export const ModelSelector = memo(
     // 2. Current model is disabled
     // 3. Current model is not present in the model list
     useEffect(() => {
+      if (modelList?.length === 0) {
+        return;
+      }
+
       if (
         !model ||
         isModelDisabled(tokenUsage!, model) ||
@@ -361,6 +383,7 @@ export const ModelSelector = memo(
             <SelectedModelDisplay
               open={dropdownOpen}
               model={model}
+              size={size}
               handleOpenSettingModal={handleOpenSettingModal}
             />
 
@@ -381,6 +404,7 @@ export const ModelSelector = memo(
       prevProps.placement === nextProps.placement &&
       prevProps.briefMode === nextProps.briefMode &&
       prevProps.model === nextProps.model &&
+      prevProps.size === nextProps.size &&
       prevProps.contextItems === nextProps.contextItems &&
       JSON.stringify(prevProps.trigger) === JSON.stringify(nextProps.trigger)
     );

@@ -1,61 +1,74 @@
 import { memo, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import { PilotSessionStatus } from '@refly/openapi-schema';
-import { Tag } from 'antd';
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined,
-} from '@ant-design/icons';
+import { PilotSessionStatus, PilotStep } from '@refly/openapi-schema';
+import { ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
+import { Finished, Running1 } from 'refly-icons';
+import { useTranslation } from 'react-i18next';
 
 export interface SessionStatusTagProps {
   status: PilotSessionStatus;
+  steps: PilotStep[];
   className?: string;
 }
 
-export const SessionStatusTag = memo(({ status, className }: SessionStatusTagProps) => {
+export const SessionStatusTag = memo(({ status, steps, className }: SessionStatusTagProps) => {
   const { t } = useTranslation();
-
-  const color = useMemo(() => {
-    switch (status) {
-      case 'init':
-        return 'blue';
-      case 'executing':
-      case 'waiting':
-        return 'processing';
-      case 'finish':
-        return 'success';
-      case 'failed':
-        return 'error';
-      default:
-        return 'default';
-    }
-  }, [status]);
-
   const icon = useMemo(() => {
     switch (status) {
       case 'executing':
-        return <SyncOutlined spin className="w-3 h-3" />;
+        return <Running1 className="w-4 h-4 animate-spin" />;
       case 'waiting':
-        return <ClockCircleOutlined className="w-3 h-3" />;
+        return <ClockCircleOutlined className="w-4 h-4" />;
       case 'finish':
-        return <CheckCircleOutlined className="w-3 h-3" />;
+        return <Finished className="w-4 h-4" color="var(--refly-primary-default)" />;
       case 'failed':
-        return <CloseCircleOutlined className="w-3 h-3" />;
+        return <CloseCircleOutlined className="w-4 h-4" />;
       default:
         return null;
     }
   }, [status]);
-
+  const finishedStepsLength = useMemo(() => {
+    return steps.filter((step) => step.status === 'finish').length;
+  }, [steps]);
+  const text = useMemo(() => {
+    switch (status) {
+      case 'executing':
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs p-1">{t('pilot.status.planning')}</span>
+          </div>
+        );
+      case 'waiting':
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs p-1">
+              {t('pilot.status.executingSteps', {
+                current: finishedStepsLength,
+                total: steps.length,
+              })}
+            </span>
+          </div>
+        );
+      case 'finish':
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs p-1">
+              {t('pilot.status.completedTasks', { count: steps.length })}
+            </span>
+          </div>
+        );
+      case 'failed':
+        return t('pilot.status.taskFailed');
+    }
+  }, [status, finishedStepsLength, steps.length, t]);
   return (
-    <Tag color={color} className={cn(className, 'flex items-center gap-0')}>
+    <div className={cn(className, 'flex items-center gap-0 px-3')}>
       {icon}
-      <span className="text-[10px] m-0 p-0">
+      {text}
+      {/* <span className="text-[10px] m-0 p-0">
         {t(`pilot.status.${status}`, { defaultValue: status })}
-      </span>
-    </Tag>
+      </span> */}
+    </div>
   );
 });
 

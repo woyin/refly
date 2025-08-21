@@ -49,7 +49,7 @@ const ContextManagerComponent = ({
 
   return (
     <div className={cn('flex flex-col', className)}>
-      <div className="flex flex-wrap content-start gap-1 w-full">
+      <div className="flex flex-wrap content-start gap-2 w-full items-center">
         {!readonly && (
           <AddBaseMarkContext contextItems={contextItems} setContextItems={setContextItems} />
         )}

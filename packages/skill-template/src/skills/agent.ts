@@ -262,7 +262,7 @@ export class Agent extends BaseSkill {
       this.engine.logger.log('Using real JWT token generated via AuthService');
 
       // Get port from configuration, fallback to default 5800
-      const serverPort = this.engine.getConfig('port') || 5800;
+      const serverPort = this.engine.getConfig('port');
       const serverOrigin = `http://localhost:${serverPort}`;
       const mcpUrl = `${serverOrigin}/mcp`;
 
@@ -353,8 +353,7 @@ export class Agent extends BaseSkill {
           }
         } catch (mcpError) {
           this.engine.logger.error(
-            'Error during MCP client operation (initializeConnections or getTools):',
-            mcpError,
+            `Error during MCP client operation (initializeConnections or getTools): ${mcpError?.stack}`,
           );
           if (tempMcpClient) {
             await tempMcpClient
@@ -441,7 +440,6 @@ export class Agent extends BaseSkill {
         mcpServerList: mcpServerList,
       };
 
-      // disable userAgentComponentsCache
       // this.userAgentComponentsCache.set(userId, components);
 
       this.engine.logger.log(`Agent components initialized and cached for user ${userId}`);
@@ -549,7 +547,7 @@ export class Agent extends BaseSkill {
       return { messages: result.messages };
     } finally {
       this.engine.logger.log('agentNode execution finished.');
-      this.dispose();
+      // Intentionally do not dispose globally here to preserve MCP connections.
     }
   };
 

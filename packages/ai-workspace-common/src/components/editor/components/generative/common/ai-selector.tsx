@@ -333,7 +333,11 @@ export const AISelector = memo(({ onOpenChange, inPlaceEditType }: AISelectorPro
       {!isLoading && (
         <div className="flex relative flex-row items-center" cmdk-input-wrapper="">
           <div className="flex flex-1 items-center pl-4 border-b" cmdk-input-wrapper="">
-            <Button size="small" type="default" className="rounded border text-gray-500 mr-1">
+            <Button
+              size="small"
+              type="default"
+              className="h-5 px-1 rounded border text-gray-500 mr-1"
+            >
               <ModelSelector
                 model={selectedModel}
                 setModel={setSelectedModel}

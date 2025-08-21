@@ -37,6 +37,7 @@ export const getChatModel = (
         configuration: {
           baseURL: provider.baseUrl,
         },
+        maxTokens: config?.maxOutput,
         reasoning: config?.capabilities?.reasoning ? { effort: 'medium' } : undefined,
         ...commonParams,
       });
@@ -52,6 +53,7 @@ export const getChatModel = (
       model = new ChatFireworks({
         model: config.modelId,
         apiKey: provider.apiKey,
+        maxTokens: config?.maxOutput,
         ...commonParams,
       });
       break;
@@ -59,6 +61,7 @@ export const getChatModel = (
       model = new AzureChatOpenAI({
         model: config.modelId,
         azureOpenAIApiKey: provider.apiKey,
+        maxTokens: config?.maxOutput,
         reasoningEffort: config?.capabilities?.reasoning ? 'medium' : undefined,
         ...commonParams,
       });
@@ -74,6 +77,7 @@ export const getChatModel = (
           model: config.modelId,
           region: extraParams.region,
           credentials: apiKeyConfig,
+          maxTokens: config?.maxOutput,
           ...commonParams,
           ...(config?.capabilities?.reasoning
             ? {

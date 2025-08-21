@@ -278,7 +278,7 @@ function HeroHome() {
               width="80%"
               centered
               className="video-modal"
-              destroyOnClose
+              destroyOnHidden
             >
               <div className="relative pb-[56.25%]">
                 <iframe

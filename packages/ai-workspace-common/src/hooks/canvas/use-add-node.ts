@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { useReactFlow, useStoreApi, XYPosition } from '@xyflow/react';
-import { CanvasNode } from '@refly/openapi-schema';
+import { CanvasNode as SchemaCanvasNode } from '@refly/openapi-schema';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { CanvasNodeFilter, prepareAddNode } from '@refly/canvas-common';
+import { CanvasNode, CanvasNodeFilter, prepareAddNode } from '@refly/canvas-common';
 import { useEdgeStyles } from '../../components/canvas/constants';
 import { useNodeSelection } from './use-node-selection';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -133,7 +133,7 @@ export const useAddNode = () => {
       }
 
       const { newNode, newEdges } = prepareAddNode({
-        node,
+        node: node as SchemaCanvasNode,
         connectTo,
         nodes,
         edges,

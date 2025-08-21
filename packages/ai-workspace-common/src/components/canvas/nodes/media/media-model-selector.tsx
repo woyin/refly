@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Button, Dropdown, DropdownProps, Skeleton } from 'antd';
+import { Button, Dropdown, DropdownProps, Skeleton, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { ModelIcon } from '@lobehub/icons';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
@@ -7,13 +7,16 @@ import { ProviderItem } from '@refly/openapi-schema';
 import { LuInfo } from 'react-icons/lu';
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { SettingsButton } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
+import { CreditBillingInfo } from '@refly-packages/ai-workspace-common/components/common/credit-billing-info';
 import { useChatStoreShallow } from '@refly/stores';
 import { ArrowDown } from 'refly-icons';
 import cn from 'classnames';
 import './index.scss';
 
+const { Paragraph } = Typography;
+
 interface MediaModelSelectorProps {
-  maxWidth?: number;
+  size?: 'small' | 'medium';
   model: ProviderItem | null;
   setModel: (model: ProviderItem | null) => void;
   readonly?: boolean;
@@ -27,12 +30,12 @@ interface MediaModelSelectorProps {
 // Memoize the selected model display
 const SelectedMediaModelDisplay = memo(
   ({
-    maxWidth,
+    size = 'medium',
     open,
     model,
     handleOpenSettingModal,
   }: {
-    maxWidth?: number;
+    size?: 'small' | 'medium';
     open: boolean;
     model: ProviderItem | null;
     handleOpenSettingModal: () => void;
@@ -52,9 +55,15 @@ const SelectedMediaModelDisplay = memo(
           icon={<LuInfo className="flex items-center" />}
           onClick={handleOpenSettingModal}
         >
-          <div className={`${maxWidth ? `max-w-[${maxWidth}px]` : ''} truncate`}>
+          <Paragraph
+            className={cn(
+              'truncate leading-5 !mb-0',
+              size === 'small' ? 'text-xs max-w-28' : 'text-sm max-w-48',
+            )}
+            ellipsis={{ rows: 1, tooltip: true }}
+          >
             {t('copilot.modelSelector.configureModel')}
-          </div>
+          </Paragraph>
         </Button>
       );
     }
@@ -64,12 +73,21 @@ const SelectedMediaModelDisplay = memo(
         type="text"
         size="small"
         className={cn(
-          'h-7 text-sm gap-1.5 p-1 hover:border-refly-Card-Border min-w-0',
+          'h-7 gap-1.5 p-1 hover:border-refly-Card-Border min-w-0',
           open && 'border-refly-Card-Border',
+          size === 'small' ? 'text-xs max-w-28' : 'text-sm max-w-48',
         )}
       >
         <ModelIcon className="flex items-center" model={model.name} size={16} type={'color'} />
-        <div className={`${maxWidth ? `max-w-[${maxWidth}px]` : ''} truncate`}>{model.name}</div>
+        <Paragraph
+          className={cn(
+            'truncate leading-5 !mb-0',
+            size === 'small' ? 'text-xs max-w-28' : 'text-sm max-w-48',
+          )}
+          ellipsis={{ rows: 1, tooltip: true }}
+        >
+          {model.name}
+        </Paragraph>
         <ArrowDown size={12} color="var(--refly-text-0)" className="flex-shrink-0" />
       </Button>
     );
@@ -116,7 +134,7 @@ const getMediaTypeLabel = (mediaType: string, t: any): string => {
 
 export const MediaModelSelector = memo(
   ({
-    maxWidth,
+    size = 'medium',
     placement = 'bottomLeft',
     trigger = ['click'],
     setModel,
@@ -183,7 +201,7 @@ export const MediaModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[240px] bg-refly-bg-content-z2 rounded-xl border border-solid border-refly-Card-Border">
+        <div className="w-[260px] bg-refly-bg-content-z2 rounded-xl border border-solid border-refly-Card-Border">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {groupedModels.map((group) => (
               <div key={group.mediaType}>
@@ -197,15 +215,20 @@ export const MediaModelSelector = memo(
                   .map((model) => (
                     <div
                       key={model.itemId}
-                      className="flex items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
+                      className="flex justify-between items-center gap-1.5 rounded-[6px] p-2 hover:bg-refly-tertiary-hover cursor-pointer min-w-0"
                       onClick={() => handleMenuClick({ key: model.itemId })}
                     >
-                      <div className="flex-shrink-0 flex items-center">
-                        <ModelIcon model={model.name} size={16} type={'color'} />
+                      <div className="flex items-center gap-2">
+                        <div className="flex-shrink-0 flex items-center">
+                          <ModelIcon model={model.name} size={16} type={'color'} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <MediaModelLabel model={model} />
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <MediaModelLabel model={model} />
-                      </div>
+                      {model.creditBilling && (
+                        <CreditBillingInfo creditBilling={model.creditBilling} />
+                      )}
                     </div>
                   ))}
               </div>
@@ -251,7 +274,7 @@ export const MediaModelSelector = memo(
       >
         <span className="text-xs flex items-center gap-1.5 cursor-pointer transition-all duration-300">
           <SelectedMediaModelDisplay
-            maxWidth={maxWidth}
+            size={size}
             open={dropdownOpen}
             model={model}
             handleOpenSettingModal={handleOpenSettingModal}
@@ -265,6 +288,7 @@ export const MediaModelSelector = memo(
       prevProps.placement === nextProps.placement &&
       prevProps.readonly === nextProps.readonly &&
       prevProps.model === nextProps.model &&
+      prevProps.size === nextProps.size &&
       prevProps.defaultModel === nextProps.defaultModel &&
       JSON.stringify(prevProps.trigger) === JSON.stringify(nextProps.trigger) &&
       JSON.stringify(prevProps.mediaModelList) === JSON.stringify(nextProps.mediaModelList)

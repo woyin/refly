@@ -119,7 +119,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   return (
     <div
       className={cn(
-        'h-full flex bg-refly-bg-content-z2 overflow-y-auto rounded-lg border-[1px] border border-solid border-refly-Card-Border shadow-sm',
+        'h-full flex bg-refly-bg-content-z2 overflow-y-auto rounded-lg border border-solid border-refly-Card-Border shadow-sm',
       )}
       id="front-page-scrollable-div"
     >
@@ -131,7 +131,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       >
         <Title />
 
-        <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border-[1px] border border-solid border-refly-primary-default">
+        <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border border-solid border-refly-primary-default">
           <div className="p-4">
             {selectedSkill && (
               <div className="flex w-full justify-between">
@@ -162,6 +162,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
                 readonly={false}
                 query={query}
                 setQuery={setQuery}
+                size="medium"
                 showChatModeSelector
               />
             ) : (

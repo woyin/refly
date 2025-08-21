@@ -46,7 +46,7 @@ export const CanvasTitle = memo(
             `}
             />
           </Tooltip>
-          {canvasLoading ? (
+          {canvasLoading && !canvasTitle ? (
             <Skeleton className="w-32" active paragraph={false} />
           ) : (
             <Typography.Text className="!max-w-72 text-refly-text-0" ellipsis={{ tooltip: true }}>

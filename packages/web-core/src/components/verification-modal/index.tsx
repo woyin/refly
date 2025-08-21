@@ -85,7 +85,7 @@ export const VerificationModal = () => {
       open={authStore.verificationModalOpen}
       onCancel={() => authStore.setVerificationModalOpen(false)}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
       title={t('emailVerification.title')}
     >
       <div className="flex flex-col gap-4 py-1">

@@ -1,6 +1,6 @@
 import { memo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Divider } from 'antd';
+import { Avatar } from 'antd';
 import { SkillResponseNodePreview } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response';
 import { LinearThreadMessage } from '@refly/stores';
 import { useUserStoreShallow } from '@refly/stores';
@@ -59,15 +59,12 @@ export const EmptyThreadWelcome = memo(() => {
 EmptyThreadWelcome.displayName = 'EmptyThreadWelcome';
 
 export const LinearThreadContent = memo(
-  ({ messages, contentHeight, className = '', source }: LinearThreadContentProps) => {
+  ({ messages, className = '' }: LinearThreadContentProps) => {
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const lastMessageRef = useRef<HTMLDivElement>(null);
 
     // Filter messages based on source
-    const displayMessages =
-      source === 'skillResponse' && messages.length > 0
-        ? [messages[messages.length - 1]]
-        : messages;
+    const displayMessages = messages.length > 0 ? [messages[messages.length - 1]] : [];
 
     // Scroll to the start of the last message
     useEffect(() => {
@@ -96,19 +93,19 @@ export const LinearThreadContent = memo(
       <div
         ref={messagesContainerRef}
         className={`flex-grow overflow-auto message-container ${className}`}
-        style={{ height: contentHeight, width: '100%' }}
       >
         {displayMessages.length === 0 ? (
           <EmptyThreadWelcome key={'empty-thread-welcome'} />
         ) : (
-          <div className="flex flex-col divide-y max-w-[1024px] mx-auto">
+          <div className="h-full max-w-[1024px] mx-auto">
             {displayMessages.map((message, index) => (
               <div
+                className="h-full"
                 key={`message-wrapper-${message.id}-${index}`}
                 id={`message-wrapper-${message.id}-${index}`}
                 ref={index === displayMessages.length - 1 ? lastMessageRef : null}
               >
-                <div key={`message-content-${message.id}`}>
+                <div key={`message-content-${message.id}`} className="h-full">
                   <MemoizedSkillResponseNodePreview
                     node={{
                       id: message.nodeId,
@@ -119,9 +116,6 @@ export const LinearThreadContent = memo(
                     resultId={message.resultId}
                   />
                 </div>
-                {index !== displayMessages.length - 1 && (
-                  <Divider key={`divider-${message.id}`} className="max-w-[1024px] mx-auto" />
-                )}
               </div>
             ))}
           </div>

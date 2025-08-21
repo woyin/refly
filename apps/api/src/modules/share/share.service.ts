@@ -69,6 +69,11 @@ interface ShareExtraData {
   vectorStorageKey: string;
 }
 
+interface DuplicateOptions {
+  skipCanvasCheck?: boolean;
+  skipProjectCheck?: boolean;
+}
+
 @Injectable()
 export class ShareService {
   private logger = new Logger(ShareService.name);
@@ -1038,8 +1043,20 @@ export class ShareService {
     );
   }
 
-  async duplicateSharedDocument(user: User, param: DuplicateShareRequest): Promise<Entity> {
-    const { shareId, projectId } = param;
+  async duplicateSharedDocument(
+    user: User,
+    param: DuplicateShareRequest,
+    options?: DuplicateOptions,
+  ): Promise<Entity> {
+    const { shareId, projectId, canvasId } = param;
+
+    if (canvasId && !options?.skipCanvasCheck) {
+      await this.knowledgeService.checkCanvasExists(user, canvasId);
+    }
+
+    if (projectId && !options?.skipProjectCheck) {
+      await this.knowledgeService.checkProjectExists(user, projectId);
+    }
 
     // Check storage quota
     const usageResult = await this.subscriptionService.checkStorageUsage(user);
@@ -1052,6 +1069,16 @@ export class ShareService {
     });
     if (!record) {
       throw new ShareNotFoundError();
+    }
+
+    // Check if the canvas exists
+    if (canvasId) {
+      const canvas = await this.prisma.canvas.findUnique({
+        where: { canvasId, uid: user.uid, deletedAt: null },
+      });
+      if (!canvas) {
+        throw new ParamsError('Canvas not found');
+      }
     }
 
     // Generate a new document ID
@@ -1069,6 +1096,7 @@ export class ShareService {
       ).toString(),
     );
 
+    const targetCanvasId = canvasId || documentDetail.canvasId;
     const extraData: ShareExtraData = safeParseJSON(record.extraData);
 
     const newDoc = await this.prisma.document.create({
@@ -1081,6 +1109,7 @@ export class ShareService {
         storageKey: newStorageKey,
         stateStorageKey: newStateStorageKey,
         projectId,
+        canvasId: targetCanvasId,
       },
     });
     const state = markdown2StateUpdate(documentDetail.content ?? '');
@@ -1126,8 +1155,20 @@ export class ShareService {
     return { entityId: newDocId, entityType: 'document' };
   }
 
-  async duplicateSharedResource(user: User, param: DuplicateShareRequest): Promise<Entity> {
-    const { shareId, projectId } = param;
+  async duplicateSharedResource(
+    user: User,
+    param: DuplicateShareRequest,
+    options?: DuplicateOptions,
+  ): Promise<Entity> {
+    const { shareId, projectId, canvasId } = param;
+
+    if (canvasId && !options?.skipCanvasCheck) {
+      await this.knowledgeService.checkCanvasExists(user, canvasId);
+    }
+
+    if (projectId && !options?.skipProjectCheck) {
+      await this.knowledgeService.checkProjectExists(user, projectId);
+    }
 
     // Check storage quota
     const usageResult = await this.subscriptionService.checkStorageUsage(user);
@@ -1157,6 +1198,7 @@ export class ShareService {
       ).toString(),
     );
 
+    const targetCanvasId = canvasId || resourceDetail.canvasId;
     const extraData: ShareExtraData = safeParseJSON(record.extraData);
 
     const newResource = await this.prisma.resource.create({
@@ -1175,6 +1217,7 @@ export class ShareService {
         uid: user.uid,
         storageKey: newStorageKey,
         projectId,
+        canvasId: targetCanvasId,
       },
     });
 
@@ -1225,8 +1268,16 @@ export class ShareService {
     return { entityId: newResourceId, entityType: 'resource' };
   }
 
-  async duplicateSharedCodeArtifact(user: User, param: DuplicateShareRequest): Promise<Entity> {
-    const { shareId } = param;
+  async duplicateSharedCodeArtifact(
+    user: User,
+    param: DuplicateShareRequest,
+    options?: DuplicateOptions,
+  ): Promise<Entity> {
+    const { shareId, canvasId } = param;
+
+    if (canvasId && !options?.skipCanvasCheck) {
+      await this.knowledgeService.checkCanvasExists(user, canvasId);
+    }
 
     // Find the source record
     const record = await this.prisma.shareRecord.findFirst({
@@ -1253,6 +1304,8 @@ export class ShareService {
       throw new ShareNotFoundError();
     }
 
+    const targetCanvasId = canvasId || codeArtifactDetail.canvasId;
+
     const newStorageKey = `code-artifact/${newCodeArtifactId}`;
     await this.oss.putObject(newStorageKey, codeArtifactDetail.content);
 
@@ -1266,6 +1319,7 @@ export class ShareService {
         language: codeArtifactDetail.language,
         title: codeArtifactDetail.title,
         type: codeArtifactDetail.type,
+        canvasId: targetCanvasId,
       },
     });
 
@@ -1431,11 +1485,19 @@ export class ShareService {
 
           if (!shareId) return;
 
-          // Create new entity based on type
-          const nodeDupParam = { shareId, projectId };
+          const nodeDupParam: DuplicateShareRequest = {
+            shareId,
+            projectId,
+            canvasId: newCanvasId,
+          };
+          const nodeDupOptions: DuplicateOptions = {
+            skipCanvasCheck: true,
+            skipProjectCheck: true,
+          };
+
           switch (entityType) {
             case 'document': {
-              const doc = await this.duplicateSharedDocument(user, nodeDupParam);
+              const doc = await this.duplicateSharedDocument(user, nodeDupParam, nodeDupOptions);
               if (doc) {
                 node.data.entityId = doc.entityId;
                 replaceEntityMap[entityId] = doc.entityId;
@@ -1443,7 +1505,11 @@ export class ShareService {
               break;
             }
             case 'resource': {
-              const resource = await this.duplicateSharedResource(user, nodeDupParam);
+              const resource = await this.duplicateSharedResource(
+                user,
+                nodeDupParam,
+                nodeDupOptions,
+              );
               if (resource) {
                 node.data.entityId = resource.entityId;
                 replaceEntityMap[entityId] = resource.entityId;
@@ -1451,7 +1517,11 @@ export class ShareService {
               break;
             }
             case 'codeArtifact': {
-              const codeArtifact = await this.duplicateSharedCodeArtifact(user, nodeDupParam);
+              const codeArtifact = await this.duplicateSharedCodeArtifact(
+                user,
+                nodeDupParam,
+                nodeDupOptions,
+              );
               if (codeArtifact) {
                 node.data.entityId = codeArtifact.entityId;
                 replaceEntityMap[entityId] = codeArtifact.entityId;
@@ -1692,9 +1762,9 @@ export class ShareService {
   }
 
   /**
-   * 获取分享数据的通用方法
-   * @param storageKey 存储键
-   * @returns 分享内容对象
+   * Common method to get shared data
+   * @param storageKey object storage key
+   * @returns shared data object
    */
   async getSharedData(storageKey: string): Promise<any> {
     try {
@@ -1706,7 +1776,7 @@ export class ShareService {
       return JSON.parse(contentBuffer.toString());
     } catch (error) {
       this.logger.error(`Error reading shared content from ${storageKey}:`, error);
-      throw new Error('无法读取分享内容');
+      throw new Error('Failed to read shared content');
     }
   }
 }

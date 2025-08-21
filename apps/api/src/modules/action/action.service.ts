@@ -39,7 +39,14 @@ export class ActionService {
       throw new ActionResultNotFoundError();
     }
 
-    const item = await this.providerService.findLLMProviderItemByModelID(user, result.modelName);
+    const item =
+      (result.providerItemId
+        ? await this.providerService.findProviderItemById(user, result.providerItemId)
+        : null) ||
+      (result.modelName
+        ? (await this.providerService.findLLMProviderItemByModelID(user, result.modelName)) ||
+          (await this.providerService.findMediaProviderItemByModelID(user, result.modelName))
+        : null);
     const modelInfo = item ? providerItem2ModelInfo(item) : null;
 
     const steps = await this.prisma.actionStep.findMany({
