@@ -39,7 +39,7 @@ const CodeArtifactNodePreviewComponent = ({ nodeId }: CodeArtifactNodePreviewPro
     title,
     status,
     shareId,
-    activeTab = 'code',
+    activeTab = 'preview',
     type = 'text/html',
     language = 'html',
   } = data?.metadata || {};
