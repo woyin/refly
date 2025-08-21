@@ -7665,14 +7665,20 @@ export const WorkflowVariableSchema = {
       example: 'userName',
     },
     value: {
-      type: 'string',
-      description: 'Variable value',
-      example: '张三',
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      description: 'Variable values',
+      example: ['张三'],
     },
-    defaultValue: {
-      type: 'string',
-      description: 'Variable default value',
-      example: '张三',
+    options: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      description: 'Variable options',
+      example: ['张三', '李四'],
     },
     description: {
       type: 'string',
@@ -7688,6 +7694,16 @@ export const WorkflowVariableSchema = {
       type: 'string',
       description: 'Variable type',
       enum: ['string', 'option', 'resource'],
+    },
+    required: {
+      type: 'boolean',
+      description: 'Whether the variable is required',
+      example: true,
+    },
+    isSingle: {
+      type: 'boolean',
+      description: 'Whether the variable value is single (not multiple)',
+      example: true,
     },
   },
 } as const;

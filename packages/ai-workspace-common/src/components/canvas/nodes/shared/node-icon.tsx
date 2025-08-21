@@ -107,7 +107,7 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
 
     if (isWeblink && resourceMeta?.url) {
       return (
-        <div className="rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className="rounded-md flex items-center justify-center flex-shrink-0">
           <Favicon url={resourceMeta.url} size={iconSize || size} />
         </div>
       );
@@ -115,12 +115,12 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
 
     if (url) {
       return (
-        <div className="rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className="rounded-md flex items-center justify-center flex-shrink-0">
           <Avatar
             src={url}
             alt={type}
             icon={<Image size={size} />}
-            className={`rounded-lg object-cover ${small ? 'w-5 h-5' : 'w-6 h-6'} ${
+            className={`rounded-md object-cover ${small ? 'w-5 h-5' : 'w-6 h-6'} ${
               className ?? ''
             }`}
           />
@@ -131,7 +131,7 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
     if (!filled) {
       return (
         <div
-          className={`rounded-lg flex items-center justify-center flex-shrink-0 ${
+          className={`rounded-md flex items-center justify-center flex-shrink-0 ${
             small ? 'w-5 h-5' : 'w-6 h-6'
           } ${className ?? ''}`}
         >
@@ -142,7 +142,7 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
 
     return (
       <div
-        className={`rounded-lg flex items-center justify-center flex-shrink-0 ${
+        className={`rounded-md flex items-center justify-center flex-shrink-0 ${
           small ? 'w-5 h-5' : 'w-6 h-6'
         } ${type === 'image' ? 'bg-gradient-to-r from-pink-500 to-purple-500' : ''} ${
           className ?? ''

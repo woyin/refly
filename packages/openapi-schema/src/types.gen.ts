@@ -5378,13 +5378,13 @@ export type WorkflowVariable = {
    */
   name: string;
   /**
-   * Variable value
+   * Variable values
    */
-  value: string;
+  value: Array<string>;
   /**
-   * Variable default value
+   * Variable options
    */
-  defaultValue?: string;
+  options?: Array<string>;
   /**
    * Variable description
    */
@@ -5397,6 +5397,14 @@ export type WorkflowVariable = {
    * Variable type
    */
   variableType?: 'string' | 'option' | 'resource';
+  /**
+   * Whether the variable is required
+   */
+  required?: boolean;
+  /**
+   * Whether the variable value is single (not multiple)
+   */
+  isSingle?: boolean;
 };
 
 /**
