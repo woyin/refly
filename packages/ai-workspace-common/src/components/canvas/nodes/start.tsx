@@ -1,11 +1,8 @@
-import { memo, useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback, useMemo } from 'react';
 import { NodeProps, Position } from '@xyflow/react';
 import { NodeIcon } from './shared/node-icon';
-import { Button } from 'antd';
+import { Button, Divider } from 'antd';
 import { BiText } from 'react-icons/bi';
-import { HiPaperClip } from 'react-icons/hi2';
-import { HiOutlineViewList } from 'react-icons/hi';
-import { LuX } from 'react-icons/lu';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { getNodeCommonStyles } from './index';
 import { CustomHandle } from './shared/custom-handle';
@@ -15,38 +12,46 @@ import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/ca
 import { useTranslation } from 'react-i18next';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CreateVariablesModal } from '../workflow-variables/create-variables-modal';
+import { Attachment, List } from 'refly-icons';
+import SVGX from '../../../assets/x.svg';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
+const variableTypeIconMap = {
+  string: BiText,
+  option: List,
+  resource: Attachment,
+};
 
 // Input parameter row component
 const InputParameterRow = memo(
   ({
+    variableType,
     label,
     isRequired = false,
-    icon: Icon,
   }: {
+    variableType: 'string' | 'option' | 'resource';
     label: string;
     isRequired?: boolean;
-    icon: React.ComponentType<{ size?: number; color?: string }>;
   }) => {
+    const { t } = useTranslation();
+    const Icon = useMemo(() => {
+      return variableTypeIconMap[variableType];
+    }, [variableType]);
+
     return (
-      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-        {/* Left indicator with X icon and separator */}
-        <div className="flex items-center gap-1">
-          <LuX size={12} className="text-green-600" />
-          <div className="w-px h-4 bg-gray-300" />
+      <div className="flex gap-2 items-center justify-between py-1.5 px-3 bg-refly-bg-control-z0 rounded-lg">
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
+          <Divider type="vertical" className="bg-refly-Card-Border mx-2 my-0 flex-shrink-0" />
+          <div className="text-xs font-medium text-refly-text-1 truncate max-w-full">{label}</div>
+          {isRequired && (
+            <div className="h-4 px-1 flex items-center justify-center text-refly-text-2 text-[10px] leading-[14px] border-[1px] border-solid border-refly-Card-Border rounded-[4px] flex-shrink-0">
+              {t('canvas.workflow.variables.required')}
+            </div>
+          )}
         </div>
 
-        {/* Field label */}
-        <span className="text-sm font-medium text-gray-700 flex-1">{label}</span>
-
-        {/* Required tag */}
-        {isRequired && (
-          <span className="px-2 py-1 text-xs text-gray-500 bg-gray-200 rounded-full">必填</span>
-        )}
-
-        {/* Right icon */}
-        <Icon size={16} color="#9CA3AF" />
+        <Icon size={14} color="var(--refly-text-3)" className="flex-shrink-0" />
       </div>
     );
   },
@@ -127,10 +132,14 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
         {/* Input parameters section */}
         {workflowVariables.length > 0 ? (
           <div className="space-y-2">
-            <InputParameterRow label="userInput" isRequired={true} icon={BiText} />
-            <InputParameterRow label="query" isRequired={true} icon={BiText} />
-            <InputParameterRow label="files" icon={HiPaperClip} />
-            <InputParameterRow label="audience" icon={HiOutlineViewList} />
+            {workflowVariables.slice(0, 6).map((variable) => (
+              <InputParameterRow
+                key={variable.name}
+                label={variable.name}
+                isRequired={variable.required}
+                variableType={variable.variableType}
+              />
+            ))}
           </div>
         ) : (
           <div className="px-3 py-6 gap-0.5 flex items-center justify-center bg-refly-bg-control-z0 rounded-lg">
