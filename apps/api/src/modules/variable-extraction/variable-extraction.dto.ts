@@ -54,7 +54,7 @@ export interface CanvasData {
 export interface CanvasNode {
   id: string;
   type: string;
-  data?: any;
+  data?: Record<string, unknown>;
   position?: { x: number; y: number };
 }
 
@@ -69,8 +69,8 @@ export interface CanvasEdge {
 // 工作流数据
 export interface WorkflowData {
   variables?: WorkflowVariable[];
-  nodes?: any[];
-  edges?: any[];
+  nodes?: CanvasNode[];
+  edges?: CanvasEdge[];
 }
 
 // 使用Canvas服务的CanvasContentItem类型
@@ -156,4 +156,25 @@ export interface QualityMetrics {
   promptClarity: number; // 提示清晰度
   contextRelevance: number; // 上下文相关性
   suggestions: string[]; // 改进建议
+}
+
+// 历史数据接口
+export interface HistoricalData {
+  extractionHistory: ExtractionHistoryRecord[];
+  canvasPatterns: string[];
+}
+
+// 提取历史记录
+export interface ExtractionHistoryRecord {
+  extractedVariables: string;
+  status: string;
+  createdAt: Date;
+}
+
+// 内容项类型
+export interface CanvasContentItemWithType {
+  id: string;
+  type: string;
+  title: string;
+  content?: string;
 }

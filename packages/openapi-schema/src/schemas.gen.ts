@@ -7794,6 +7794,16 @@ export const WorkflowVariableSchema = {
       description: 'Variable description',
       example: '用户姓名',
     },
+    createdAt: {
+      type: 'string',
+      description: 'Variable created at',
+      example: '2021-01-01T00:00:00.000Z',
+    },
+    updatedAt: {
+      type: 'string',
+      description: 'Variable updated at',
+      example: '2021-01-01T00:00:00.000Z',
+    },
     source: {
       type: 'string',
       description: 'Variable source',

@@ -5472,6 +5472,14 @@ export type WorkflowVariable = {
    */
   description?: string;
   /**
+   * Variable created at
+   */
+  createdAt?: string;
+  /**
+   * Variable updated at
+   */
+  updatedAt?: string;
+  /**
    * Variable source
    */
   source?: 'startNode' | 'resourceLibrary';

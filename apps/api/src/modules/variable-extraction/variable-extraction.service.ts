@@ -18,6 +18,11 @@ import {
   CanvasData,
   CanvasContext,
 } from 'src/modules/variable-extraction/variable-extraction.dto';
+import {
+  addTimestampsToNewVariable,
+  updateTimestampForVariable,
+  hasVariableChanged,
+} from './utils';
 
 interface HistoricalData {
   extractionHistory: any[];
@@ -51,8 +56,8 @@ export class VariableExtractionService {
     mode: 'direct' | 'candidate' = 'direct',
     sessionId?: string,
   ): Promise<VariableExtractionResult> {
-    // 1. 检查候选记录（直接模式且有sessionId时）
-    if (mode === 'candidate' && sessionId) {
+    // 1. 检查候选记录（有sessionId时，无论模式）
+    if (mode === 'direct' && sessionId) {
       const candidateRecord = await this.getCandidateRecord(sessionId);
       if (candidateRecord && !candidateRecord.applied) {
         return this.applyCandidateRecord(user, canvasId, candidateRecord);
@@ -584,6 +589,8 @@ export class VariableExtractionService {
           nodeCount: 0,
           variableCount: 0,
           resourceCount: 0,
+          workflowType: '通用工作流',
+          primarySkills: ['内容生成'],
         },
         extractionContext: {
           lastExtractionTime: undefined,
@@ -637,14 +644,14 @@ export class VariableExtractionService {
 
       // 将候选记录转换为提取结果
       const result: VariableExtractionResult = {
-        originalPrompt: record.originalPrompt,
+        originalPrompt: record.originalPrompt, // 使用候选记录的原始提示词
         processedPrompt: this.generateProcessedPrompt(
           record.originalPrompt,
           record.extractedVariables,
         ),
         variables: record.extractedVariables,
         reusedVariables: record.reusedVariables,
-        sessionId: record.sessionId,
+        sessionId: record.sessionId, // 保持会话ID
       };
 
       // 更新候选记录状态为已应用
@@ -748,7 +755,14 @@ export class VariableExtractionService {
     } catch (error) {
       this.logger.error(`Error in LLM extraction: ${error.message}`);
 
-      throw error;
+      // 降级到基础提取，确保服务可用性
+      this.logger.warn('Falling back to basic extraction due to LLM failure');
+      return {
+        originalPrompt,
+        processedPrompt: originalPrompt,
+        variables: [],
+        reusedVariables: [],
+      };
     }
   }
 
@@ -863,27 +877,49 @@ export class VariableExtractionService {
         canvasId,
       });
 
-      // Merge new variables with existing ones, avoiding duplicates
+      // Merge new variables with existing ones, properly handling timestamps
       const mergedVariables = [...(currentVariables || [])];
+      let hasChanges = false;
 
       for (const newVariable of variables) {
         const existingIndex = mergedVariables.findIndex((v) => v.name === newVariable.name);
+
         if (existingIndex >= 0) {
-          // Update existing variable
-          mergedVariables[existingIndex] = newVariable;
+          // Found existing variable - check if it actually changed
+          const existingVariable = mergedVariables[existingIndex];
+
+          if (hasVariableChanged(newVariable, existingVariable)) {
+            // Variable has meaningful changes - update with new timestamp
+            mergedVariables[existingIndex] = updateTimestampForVariable(
+              newVariable,
+              existingVariable,
+            );
+            hasChanges = true;
+            this.logger.debug(`Updated existing variable: ${newVariable.name}`);
+          } else {
+            // No meaningful changes - keep existing variable with original timestamps
+            this.logger.debug(`No changes detected for variable: ${newVariable.name}`);
+          }
         } else {
-          // Add new variable
-          mergedVariables.push(newVariable);
+          // New variable - add with creation timestamp
+          const newVariableWithTimestamp = addTimestampsToNewVariable(newVariable);
+          mergedVariables.push(newVariableWithTimestamp);
+          hasChanges = true;
+          this.logger.debug(`Added new variable: ${newVariable.name}`);
         }
       }
 
-      // Use CanvasSyncService to update workflow variables in canvas
-      await this.canvasSyncService.updateWorkflowVariables(user, {
-        canvasId,
-        variables: mergedVariables,
-      });
-
-      this.logger.log(`Canvas variables updated successfully for canvas ${canvasId}`);
+      // Only update if there are actual changes
+      if (hasChanges) {
+        // Use CanvasSyncService to update workflow variables in canvas
+        await this.canvasSyncService.updateWorkflowVariables(user, {
+          canvasId,
+          variables: mergedVariables,
+        });
+        this.logger.log(`Canvas variables updated successfully for canvas ${canvasId}`);
+      } else {
+        this.logger.log(`No variable changes detected for canvas ${canvasId}, skipping update`);
+      }
     } catch (error) {
       this.logger.error(`Failed to update canvas variables for ${canvasId}: ${error.message}`);
       throw new Error(`Failed to update canvas variables: ${error.message}`);

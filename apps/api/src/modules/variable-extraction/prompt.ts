@@ -25,6 +25,13 @@ export function buildEnhancedPrompt(
   userPrompt: string,
   existingVariables: WorkflowVariable[],
   canvasContext: CanvasContext,
+  /**
+   * 变量提取模式，控制提示词的生成策略和侧重点
+   * - standard: 标准模式 - 平衡准确性和完整性，适用于首次变量提取
+   * - validation: 验证模式 - 重点关注变量准确性和合理性，用于双路径验证
+   * - historical: 历史模式 - 基于历史数据学习，优化变量命名和分类策略
+   * - consensus: 共识模式 - 对比多个提取结果，生成最优的融合方案
+   */
   mode: 'standard' | 'validation' | 'historical' | 'consensus' = 'standard',
 ): string {
   const existingVarsText = buildExistingVariablesText(existingVariables);
