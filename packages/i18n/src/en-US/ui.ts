@@ -1393,6 +1393,11 @@ const translations = {
         'Integrate the node content into the document, supporting iterative writing',
       askFollowUp: 'Ask Follow-up',
       askFollowUpDescription: 'Continue to ask based on the current node content',
+      nextStepSuggestions: 'Next Step Suggestions',
+      nextStepSuggestionsDescription:
+        'Based on the current node content, AI provides suggestions for the next steps.',
+      title: 'Title',
+      followUpQuestion: 'Follow-up',
       moreOptions: 'More Options',
       delete: 'Delete Node',
       deleteDescription: 'Delete the selected node',
@@ -1552,6 +1557,10 @@ const translations = {
         document: 'New Document',
         resource: 'Add Resource',
       },
+      importResource: 'Import Resource',
+      createDocument: 'Create Document',
+      importFromKnowledgeBase: 'Import from Knowledge Base',
+      importFromExtension: 'Import from Extension',
     },
   },
   resource: {
@@ -2960,6 +2969,7 @@ const translations = {
   },
   pilot: {
     name: 'Agent',
+    newTask: 'New Task',
     description:
       'Refly Agent is an autonomous agent that solves your problems with thinking steps displayed in our free-form canvas.',
     thinking: 'Agent is thinking',
