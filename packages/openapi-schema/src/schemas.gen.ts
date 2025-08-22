@@ -7654,6 +7654,49 @@ export const InitializeWorkflowResponseSchema = {
   ],
 } as const;
 
+export const VariableTypeSchema = {
+  type: 'string',
+  enum: ['text', 'resource'],
+} as const;
+
+export const ResourceValueSchema = {
+  type: 'object',
+  required: ['name', 'fileType', 'storageKey'],
+  properties: {
+    name: {
+      type: 'string',
+      description: 'Resource name',
+    },
+    fileType: {
+      type: 'string',
+      description: 'Resource file type',
+    },
+    storageKey: {
+      type: 'string',
+      description: 'Resource storage key',
+    },
+  },
+} as const;
+
+export const VariableValueSchema = {
+  type: 'object',
+  required: ['type'],
+  properties: {
+    type: {
+      description: 'Variable type',
+      $ref: '#/components/schemas/VariableType',
+    },
+    text: {
+      type: 'string',
+      description: 'Variable text value (for text type)',
+    },
+    resource: {
+      description: 'Variable resource value (for resource type)',
+      $ref: '#/components/schemas/ResourceValue',
+    },
+  },
+} as const;
+
 export const WorkflowVariableSchema = {
   type: 'object',
   description: 'Workflow variable definition',

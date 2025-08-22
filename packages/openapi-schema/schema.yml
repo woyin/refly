@@ -8601,6 +8601,41 @@ components:
                   type: string
                   description: Workflow execution ID
                   example: "we-abc123"
+    VariableType:
+      type: string
+      enum:
+        - text
+        - resource
+    ResourceValue:
+      type: object
+      required:
+        - name
+        - fileType
+        - storageKey
+      properties:
+        name:
+          type: string
+          description: Resource name
+        fileType:
+          type: string
+          description: Resource file type
+        storageKey:
+          type: string
+          description: Resource storage key
+    VariableValue:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          description: Variable type
+          $ref: '#/components/schemas/VariableType'
+        text:
+          type: string
+          description: Variable text value (for text type)
+        resource:
+          description: Variable resource value (for resource type)
+          $ref: '#/components/schemas/ResourceValue'
     WorkflowVariable:
       type: object
       description: Workflow variable definition

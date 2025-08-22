@@ -5369,6 +5369,38 @@ export type InitializeWorkflowResponse = BaseResponse & {
   };
 };
 
+export type VariableType = 'text' | 'resource';
+
+export type ResourceValue = {
+  /**
+   * Resource name
+   */
+  name: string;
+  /**
+   * Resource file type
+   */
+  fileType: string;
+  /**
+   * Resource storage key
+   */
+  storageKey: string;
+};
+
+export type VariableValue = {
+  /**
+   * Variable type
+   */
+  type: VariableType;
+  /**
+   * Variable text value (for text type)
+   */
+  text?: string;
+  /**
+   * Variable resource value (for resource type)
+   */
+  resource?: ResourceValue;
+};
+
 /**
  * Workflow variable definition
  */
