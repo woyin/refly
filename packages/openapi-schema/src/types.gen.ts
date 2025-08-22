@@ -3888,6 +3888,18 @@ export type MediaGenerateRequest = {
    * Text prompt for content generation
    */
   prompt: string;
+  /**
+   * Media generation result ID
+   */
+  resultId?: string;
+  /**
+   * API key for the provider
+   */
+  apiKey?: string;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<ModelParameter>;
 };
 
 export type MediaGenerateResponse = BaseResponse & {
@@ -3895,6 +3907,14 @@ export type MediaGenerateResponse = BaseResponse & {
    * Media generation result ID
    */
   resultId?: string;
+  /**
+   * Media generation output URL
+   */
+  outputUrl?: string;
+  /**
+   * Media generation output storage key
+   */
+  storageKey?: string;
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
@@ -4752,6 +4772,42 @@ export type LLMModelConfig = {
 };
 
 /**
+ * Media generation parameter configuration
+ */
+export type ModelParameter = {
+  /**
+   * Parameter name
+   */
+  name: string;
+  /**
+   * Parameter type
+   */
+  type: 'url' | 'text' | 'option';
+  value?: string | Array<string> | number | boolean;
+  /**
+   * Available options for option type
+   */
+  options?: Array<string | number | boolean>;
+  /**
+   * Parameter description
+   */
+  description?: string;
+  /**
+   * Whether this parameter is required
+   */
+  required: boolean;
+  /**
+   * Whether this parameter should be displayed in UI
+   */
+  visible: boolean;
+};
+
+/**
+ * Parameter type
+ */
+export type type3 = 'url' | 'text' | 'option';
+
+/**
  * Provider config for media generation
  */
 export type MediaGenerationModelConfig = {
@@ -4771,6 +4827,18 @@ export type MediaGenerationModelConfig = {
    * Model description
    */
   description?: string;
+  /**
+   * Supported languages for translation
+   */
+  supportedLanguages?: Array<string>;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<ModelParameter>;
+  /**
+   * Output parameter configurations
+   */
+  outputParameters?: Array<ModelParameter>;
 };
 
 /**

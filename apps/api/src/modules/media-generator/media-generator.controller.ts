@@ -13,6 +13,6 @@ export class MediaGeneratorController {
     @LoginedUser() user: User,
     @Body() request: MediaGenerateRequest,
   ): Promise<MediaGenerateResponse> {
-    return this.mediaGeneratorService.generateMedia(user, request);
+    return this.mediaGeneratorService.generate(user, request);
   }
 }
