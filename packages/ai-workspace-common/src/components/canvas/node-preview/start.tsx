@@ -37,7 +37,7 @@ const VariableItem = memo(
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDeleteVariable = async (variable: WorkflowVariable) => {
-      const newVariables = totalVariables.filter((v) => v.name !== variable.name);
+      const newVariables = totalVariables.filter((v) => v.variableId !== variable.variableId);
       try {
         setIsDeleting(true);
         const { data } = await getClient().updateWorkflowVariables({

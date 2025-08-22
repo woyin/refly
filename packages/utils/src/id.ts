@@ -40,6 +40,7 @@ export enum IDPrefix {
   CREDIT_DEBT = 'cd-',
   NODE = 'node-',
   START = 'start-',
+  VARIABLE = 'var-',
 }
 
 export function genUID(): string {
@@ -164,6 +165,10 @@ export function genProjectID(): string {
 
 export function genMcpServerID(): string {
   return IDPrefix.MCP_SERVER + createId();
+}
+
+export function genVariableID(): string {
+  return IDPrefix.VARIABLE + createId();
 }
 
 export const genUniqueId = () => {

@@ -10,6 +10,7 @@ import cn from 'classnames';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import './index.scss';
+import { genVariableID } from '@refly/utils';
 
 const MAX_OPTIONS = 20;
 
@@ -28,6 +29,7 @@ interface VariableFormData {
   required: boolean;
   isSingle?: boolean;
   options?: string[];
+  currentOption?: string;
 }
 
 // Separate form data interfaces for each variable type
@@ -44,7 +46,6 @@ interface ResourceTypeFormData {
   description?: string;
   required: boolean;
   isSingle: boolean;
-  options: string[];
 }
 
 interface OptionTypeFormData {
@@ -109,6 +110,7 @@ export const CreateVariablesModal = ({
   });
   const [options, setOptions] = useState<string[]>(defaultValue?.options || []);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [currentOption, setCurrentOption] = useState<string>('');
 
   const variableTypeOptions = useMemo(() => {
     return [
@@ -144,6 +146,7 @@ export const CreateVariablesModal = ({
     });
     setOptions([]);
     setEditingIndex(null);
+    setCurrentOption('');
     form.resetFields();
   }, [
     form,
@@ -153,6 +156,7 @@ export const CreateVariablesModal = ({
     setOptionFormData,
     setOptions,
     setEditingIndex,
+    setCurrentOption,
   ]);
 
   useEffect(() => {
@@ -177,7 +181,6 @@ export const CreateVariablesModal = ({
             description: defaultValue.description || '',
             required: defaultValue.required ?? true,
             isSingle: defaultValue.isSingle ?? true,
-            options: defaultValue.options || [],
           };
           setResourceFormData(resourceData);
           form.setFieldsValue(resourceData);
@@ -204,6 +207,7 @@ export const CreateVariablesModal = ({
           setOptionFormData(optionData);
           setOptions(defaultValue.options || []);
           form.setFieldsValue(optionData);
+          setCurrentOption('');
         }
       }
     } else {
@@ -350,18 +354,16 @@ export const CreateVariablesModal = ({
   const setOptionsValue = useCallback(
     (options: string[]) => {
       setOptions(options);
-      form.setFieldValue('options', options);
       if (variableType === 'option') {
         setOptionFormData((prev) => ({ ...prev, options, value: options[0] ? [options[0]] : [] }));
       }
     },
-    [form, variableType],
+    [variableType],
   );
 
   // Option management handlers with form data sync
   const handleAddOption = useCallback(() => {
     if (options.length < MAX_OPTIONS) {
-      // Filter out empty options before adding new one
       const filteredOptions = options.filter((option) => option && option.trim().length > 0);
       const newOptions = [...filteredOptions, ''];
       setOptionsValue(newOptions);
@@ -369,8 +371,10 @@ export const CreateVariablesModal = ({
       // Auto focus the new input field
       const newIndex = newOptions.length - 1;
       setEditingIndex(newIndex);
+      setCurrentOption('');
+      form.setFieldValue('currentOption', '');
     }
-  }, [options, setOptionsValue]);
+  }, [options, setOptionsValue, form]);
 
   const handleRemoveOption = useCallback(
     (index: number) => {
@@ -394,8 +398,11 @@ export const CreateVariablesModal = ({
   const handleEditStart = useCallback(
     (index: number) => {
       setEditingIndex(index);
+      const value = options?.[index] ?? '';
+      setCurrentOption(value);
+      form.setFieldValue('currentOption', value);
     },
-    [setEditingIndex],
+    [setEditingIndex, options, form],
   );
 
   const handleEditSave = useCallback(
@@ -413,10 +420,22 @@ export const CreateVariablesModal = ({
 
   const saveVariable = useCallback(
     async (variable: WorkflowVariable) => {
+      const existingIndex = workflowVariables.findIndex(
+        (v) => v.variableId === variable.variableId,
+      );
+
+      let newWorkflowVariables: WorkflowVariable[];
+      if (existingIndex !== -1) {
+        newWorkflowVariables = [...workflowVariables];
+        newWorkflowVariables[existingIndex] = variable;
+      } else {
+        newWorkflowVariables = [...workflowVariables, variable];
+      }
+
       const { data, error } = await getClient().updateWorkflowVariables({
         body: {
           canvasId: canvasId,
-          variables: [...workflowVariables, variable],
+          variables: newWorkflowVariables,
         },
       });
 
@@ -433,7 +452,7 @@ export const CreateVariablesModal = ({
   const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
-      console.log('values', values);
+      console.log('values', values, options);
 
       // Additional validation for resource type
       if (variableType === 'resource' && fileList.length === 0) {
@@ -457,6 +476,7 @@ export const CreateVariablesModal = ({
       }
 
       const variable: WorkflowVariable = {
+        variableId: defaultValue?.variableId || genVariableID(),
         name: values.name,
         value: finalValue,
         description: values.description,
@@ -468,19 +488,18 @@ export const CreateVariablesModal = ({
         }),
         ...(variableType === 'option' && {
           isSingle: values.isSingle,
-          options: values.options || [],
+          options: options || [],
         }),
       };
 
       console.log('variable', variable);
-
       await saveVariable(variable);
       refetchWorkflowVariables();
       onCancel(false);
     } catch (error) {
       console.error('Form validation failed:', error);
     }
-  }, [form, variableType, fileList, onCancel, t, saveVariable, refetchWorkflowVariables]);
+  }, [form, variableType, fileList, onCancel, t, saveVariable, refetchWorkflowVariables, options]);
 
   const handleModalClose = useCallback(() => {
     onCancel(false);
@@ -559,7 +578,7 @@ export const CreateVariablesModal = ({
 
         <Form.Item
           label={t('canvas.workflow.variables.options') || 'Options'}
-          name="options"
+          name="currentOption"
           rules={[
             {
               validator: async (_, _value) => {
@@ -587,11 +606,15 @@ export const CreateVariablesModal = ({
               <div key={index} className="flex items-center gap-2">
                 {editingIndex === index ? (
                   <Input
-                    value={option}
+                    value={currentOption}
                     onChange={(e) => {
-                      handleEditSave(e.target.value, index);
+                      const val = e.target.value;
+                      setCurrentOption(val);
+                      handleOptionChange(index, val);
+                      form.setFieldValue('currentOption', val ?? '');
                     }}
                     onBlur={() => {
+                      handleEditSave(currentOption ?? '', index);
                       setEditingIndex(null);
                     }}
                     autoFocus
@@ -707,7 +730,7 @@ export const CreateVariablesModal = ({
               required: true,
               isSingle: true,
               value: [],
-              options: [],
+              currentOption: '',
             }}
           >
             <Form.Item
