@@ -42,10 +42,6 @@
   background: var(--refly-tertiary-hover) !important;
 }
 
-.ant-btn-text:focus {
-  background: var(--refly-tertiary-hover) !important;
-}
-
 .ant-btn-text {
   color: var(--refly-text-0);
 }

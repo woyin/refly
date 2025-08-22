@@ -10,6 +10,7 @@ import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 interface CreateVariablesModalProps {
+  variableType?: 'string' | 'option' | 'resource';
   defaultValue?: WorkflowVariable;
   visible: boolean;
   onCancel: (val: boolean) => void;
@@ -72,10 +73,13 @@ export const CreateVariablesModal = ({
   visible,
   onCancel,
   defaultValue,
+  variableType: initialVariableType,
 }: CreateVariablesModalProps) => {
   const { t } = useTranslation();
   const [form] = Form.useForm<VariableFormData>();
-  const [variableType, setVariableType] = useState<string>(defaultValue?.variableType || 'string');
+  const [variableType, setVariableType] = useState<string>(
+    defaultValue?.variableType || initialVariableType || 'string',
+  );
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [selectMode, setSelectMode] = useState<'multiple' | undefined>('multiple');

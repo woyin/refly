@@ -1270,6 +1270,9 @@ const translations = {
           resource: '资源',
           option: '选项列表',
         },
+        string: '文本类型',
+        resource: '资源类型',
+        option: '选项类型',
         selectMode: '选择模式',
         options: '可选项',
         optionsRequired: '至少需要一个可选项',
@@ -1278,6 +1281,7 @@ const translations = {
         maxOptions: '最多可添加10个可选项',
         selectOptions: '选择可选项',
         clickToEdit: '点击编辑',
+        deleteSuccess: '变量删除成功',
       },
     },
     connectionTimeout: {

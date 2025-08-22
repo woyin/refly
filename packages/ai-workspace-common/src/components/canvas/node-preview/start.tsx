@@ -1,61 +1,75 @@
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { memo, useMemo } from 'react';
-import { Empty, Divider } from 'antd';
-import { HiPlus } from 'react-icons/hi2';
-import { LuList, LuFileStack } from 'react-icons/lu';
-import { BiText } from 'react-icons/bi';
+import { memo, useMemo, useState } from 'react';
+import { Divider, Button, Popconfirm, message } from 'antd';
+import { Add, Edit, Delete } from 'refly-icons';
 import type { WorkflowVariable } from '@refly/openapi-schema';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { VARIABLE_TYPE_ICON_MAP } from '../nodes/start';
 import { useTranslation } from 'react-i18next';
 import SVGX from '../../../assets/x.svg';
+import { CreateVariablesModal } from '../workflow-variables/create-variables-modal';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
-// Variable type configuration
-const VARIABLE_TYPE_CONFIG = {
-  string: {
-    label: 'Text Type',
-    icon: BiText,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-  },
-  resource: {
-    label: 'Resource Type',
-    icon: LuFileStack,
-    color: 'text-green-600',
-    bgColor: 'bg-green-50',
-  },
-  option: {
-    label: 'Option Type',
-    icon: LuList,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-  },
-} as const;
+type VariableType = 'string' | 'option' | 'resource';
+const MAX_VARIABLE_LENGTH = {
+  string: 10,
+  option: 10,
+  resource: 30,
+};
 
 const VariableItem = memo(
   ({
-    variableType,
-    label,
-    isRequired = false,
-    isSingle = false,
+    canvasId,
+    totalVariables,
+    refetchWorkflowVariables,
+    variable,
+    onEdit,
   }: {
-    variableType: 'string' | 'option' | 'resource';
-    label: string;
-    isRequired?: boolean;
-    isSingle?: boolean;
+    canvasId: string;
+    totalVariables: WorkflowVariable[];
+    refetchWorkflowVariables: () => void;
+    variable: WorkflowVariable;
+    onEdit?: (variable: WorkflowVariable) => void;
   }) => {
+    const { name, variableType, required, isSingle } = variable;
     const { t } = useTranslation();
-    const Icon = useMemo(() => {
-      return VARIABLE_TYPE_ICON_MAP[variableType];
-    }, [variableType]);
+    const [isPopconfirmOpen, setIsPopconfirmOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteVariable = async (variable: WorkflowVariable) => {
+      const newVariables = totalVariables.filter((v) => v.name !== variable.name);
+      try {
+        setIsDeleting(true);
+        const { data } = await getClient().updateWorkflowVariables({
+          body: {
+            canvasId: canvasId,
+            variables: newVariables,
+          },
+        });
+        if (data?.success) {
+          message.success(
+            t('canvas.workflow.variables.deleteSuccess') || 'Variable deleted successfully',
+          );
+          refetchWorkflowVariables();
+        }
+      } catch (error) {
+        console.error('Failed to delete variable:', error);
+      } finally {
+        setIsDeleting(false);
+      }
+    };
 
     return (
-      <div className="flex gap-2 items-center justify-between py-1.5 px-3 bg-refly-bg-control-z0 rounded-lg">
+      <div
+        className={`group flex h-9 box-border gap-2 items-center justify-between py-1.5 px-3 bg-refly-bg-body-z0 rounded-xl border-[1px] border-solid border-refly-Card-Border cursor-pointer ${
+          isPopconfirmOpen ? 'bg-refly-tertiary-hover' : 'hover:bg-refly-tertiary-hover'
+        }`}
+      >
         <div className="flex items-center gap-1 flex-1 min-w-0">
           <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
           <Divider type="vertical" className="bg-refly-Card-Border mx-2 my-0 flex-shrink-0" />
-          <div className="text-xs font-medium text-refly-text-1 truncate max-w-full">{label}</div>
-          {isRequired && (
+          <div className="text-sm font-medium text-refly-text-1 truncate max-w-full">{name}</div>
+          {required && (
             <div className="h-4 px-1 flex items-center justify-center text-refly-text-2 text-[10px] leading-[14px] border-[1px] border-solid border-refly-Card-Border rounded-[4px] flex-shrink-0">
               {t('canvas.workflow.variables.required')}
             </div>
@@ -67,7 +81,33 @@ const VariableItem = memo(
           )}
         </div>
 
-        <Icon size={14} color="var(--refly-text-3)" className="flex-shrink-0" />
+        <div
+          className={`items-center gap-1 flex-shrik-0 ${
+            isPopconfirmOpen ? 'flex' : 'hidden group-hover:flex'
+          }`}
+        >
+          <Button
+            type="text"
+            size="small"
+            icon={<Edit size={16} />}
+            onClick={() => onEdit?.(variable)}
+          />
+          <Popconfirm
+            title={t('canvas.workflow.variables.deleteConfirm') || 'Delete this variable?'}
+            onConfirm={() => handleDeleteVariable(variable)}
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
+            onOpenChange={setIsPopconfirmOpen}
+            okButtonProps={{ loading: isDeleting }}
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<Delete size={16} />}
+              className={isPopconfirmOpen ? 'bg-refly-tertiary-hover' : ''}
+            />
+          </Popconfirm>
+        </div>
       </div>
     );
   },
@@ -75,36 +115,56 @@ const VariableItem = memo(
 
 // Variable type section component
 const VariableTypeSection = ({
+  canvasId,
   type,
   variables,
-  onAdd,
+  totalVariables,
+  refetchWorkflowVariables,
 }: {
-  type: keyof typeof VARIABLE_TYPE_CONFIG;
+  canvasId: string;
+  type: VariableType;
   variables: WorkflowVariable[];
-  onAdd?: () => void;
-  onEdit?: (variable: WorkflowVariable) => void;
-  onDelete?: (variable: WorkflowVariable) => void;
+  totalVariables: WorkflowVariable[];
+  refetchWorkflowVariables: () => void;
 }) => {
-  const config = VARIABLE_TYPE_CONFIG[type];
+  const { t } = useTranslation();
   const Icon = VARIABLE_TYPE_ICON_MAP[type];
+  const [showCreateVariablesModal, setShowCreateVariablesModal] = useState(false);
+  const [currentVariable, setCurrentVariable] = useState<WorkflowVariable | null>(null);
+
+  const handleCloseModal = () => {
+    setShowCreateVariablesModal(false);
+    setCurrentVariable(null);
+  };
+
+  const handleAddVariable = () => {
+    setCurrentVariable(null);
+    setShowCreateVariablesModal(true);
+  };
+
+  const handleEditVariable = (variable: WorkflowVariable) => {
+    setCurrentVariable(variable);
+    setShowCreateVariablesModal(true);
+  };
 
   return (
     <div className="space-y-3">
-      {/* Section header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-refly-text-0">
-          <Icon size={16} color="var(--refly-text-0)" className="flex-shrink-0" />
-          <div className="text-sm font-semibold leading-6">{config.label}</div>
+          <Icon size={18} color="var(--refly-text-0)" className="flex-shrink-0" />
+          <div className="text-sm font-semibold leading-6">
+            {t(`canvas.workflow.variables.${type}`)}
+          </div>
         </div>
 
-        {onAdd && (
-          <button
-            type="button"
-            onClick={onAdd}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
-          >
-            <HiPlus className="w-4 h-4 text-gray-500" />
-          </button>
+        {variables.length > 0 && variables.length < MAX_VARIABLE_LENGTH[type] && (
+          <Button
+            type="text"
+            size="small"
+            onClick={handleAddVariable}
+            disabled={variables.length >= MAX_VARIABLE_LENGTH[type]}
+            icon={<Add size={16} />}
+          />
         )}
       </div>
 
@@ -114,23 +174,43 @@ const VariableTypeSection = ({
           {variables.map((variable) => (
             <VariableItem
               key={variable.name}
-              label={variable.name}
-              isRequired={variable.required}
-              variableType={variable.variableType}
-              isSingle={variable.isSingle}
+              canvasId={canvasId}
+              totalVariables={totalVariables}
+              variable={variable}
+              refetchWorkflowVariables={refetchWorkflowVariables}
+              onEdit={handleEditVariable}
             />
           ))}
         </div>
       ) : (
-        <Empty description="No variables" image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-8" />
+        <div className="px-3 py-6 gap-0.5 flex items-center justify-center bg-refly-bg-control-z0 rounded-lg">
+          <div className="text-xs text-refly-text-1 leading-4">
+            {t('canvas.workflow.variables.empty') || 'No variables defined'}
+          </div>
+          <Button
+            type="text"
+            size="small"
+            className="text-xs leading-4 font-semibold !text-refly-primary-default p-0.5 !h-5 box-border hover:bg-refly-tertiary-hover"
+            onClick={handleAddVariable}
+          >
+            {t('canvas.workflow.variables.addVariable') || 'Add'}
+          </Button>
+        </div>
       )}
+
+      <CreateVariablesModal
+        visible={showCreateVariablesModal}
+        onCancel={handleCloseModal}
+        variableType={type}
+        defaultValue={currentVariable}
+      />
     </div>
   );
 };
 
 export const StartNodePreview = () => {
-  const { workflow } = useCanvasContext();
-  const { workflowVariables, workflowVariablesLoading } = workflow;
+  const { workflow, canvasId } = useCanvasContext();
+  const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
 
   // Group variables by type
   const groupedVariables = useMemo(() => {
@@ -152,21 +232,6 @@ export const StartNodePreview = () => {
     return groups;
   }, [workflowVariables]);
 
-  const handleAddVariable = (type: keyof typeof VARIABLE_TYPE_CONFIG) => {
-    // TODO: Implement add variable logic
-    console.log('Add variable of type:', type);
-  };
-
-  const handleEditVariable = (variable: WorkflowVariable) => {
-    // TODO: Implement edit variable logic
-    console.log('Edit variable:', variable);
-  };
-
-  const handleDeleteVariable = (variable: WorkflowVariable) => {
-    // TODO: Implement delete variable logic
-    console.log('Delete variable:', variable);
-  };
-
   if (workflowVariablesLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center">
@@ -179,27 +244,27 @@ export const StartNodePreview = () => {
     <div className="w-full h-full overflow-y-auto p-4">
       <div className="space-y-6">
         <VariableTypeSection
+          canvasId={canvasId}
           type="string"
           variables={groupedVariables.string}
-          onAdd={() => handleAddVariable('string')}
-          onEdit={handleEditVariable}
-          onDelete={handleDeleteVariable}
+          totalVariables={workflowVariables}
+          refetchWorkflowVariables={refetchWorkflowVariables}
         />
 
         <VariableTypeSection
+          canvasId={canvasId}
           type="resource"
           variables={groupedVariables.resource}
-          onAdd={() => handleAddVariable('resource')}
-          onEdit={handleEditVariable}
-          onDelete={handleDeleteVariable}
+          totalVariables={workflowVariables}
+          refetchWorkflowVariables={refetchWorkflowVariables}
         />
 
         <VariableTypeSection
+          canvasId={canvasId}
           type="option"
           variables={groupedVariables.option}
-          onAdd={() => handleAddVariable('option')}
-          onEdit={handleEditVariable}
-          onDelete={handleDeleteVariable}
+          totalVariables={workflowVariables}
+          refetchWorkflowVariables={refetchWorkflowVariables}
         />
       </div>
     </div>

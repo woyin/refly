@@ -1293,6 +1293,9 @@ const translations = {
           resource: 'Resource',
           option: 'Option',
         },
+        string: 'Text Type',
+        resource: 'Resource Type',
+        option: 'Option Type',
         selectMode: 'Selection Mode',
         options: 'Options',
         optionsRequired: 'At least one option is required',
@@ -1301,6 +1304,7 @@ const translations = {
         maxOptions: 'Maximum 10 options allowed',
         selectOptions: 'Select options',
         clickToEdit: 'Click to edit',
+        deleteSuccess: 'Variable deleted successfully',
       },
     },
     connectionTimeout: {
