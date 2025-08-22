@@ -1,13 +1,17 @@
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { WorkflowVariable } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, Form, Input, Switch, Upload, message, Radio, Select } from 'antd';
-import { Close, Attachment, List } from 'refly-icons';
+import { Button, Modal, Form, Input, Checkbox, Upload, message, Radio } from 'antd';
+import { Close, Attachment, List, Add, Delete } from 'refly-icons';
+import { MdOutlineDragIndicator } from 'react-icons/md';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { BiText } from 'react-icons/bi';
 import cn from 'classnames';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import './index.scss';
+
+const MAX_OPTIONS = 20;
 
 interface CreateVariablesModalProps {
   variableType?: 'string' | 'option' | 'resource';
@@ -52,7 +56,14 @@ interface OptionTypeFormData {
   options: string[];
 }
 
-const defaultStringData = { name: '', value: [], description: '', required: true };
+const defaultStringData = {
+  name: '',
+  value: [],
+  description: '',
+  required: true,
+  isSingle: true,
+  options: [],
+};
 const defaultResourceData = {
   name: '',
   value: [],
@@ -67,7 +78,7 @@ const defaultOptionData = {
   description: '',
   required: true,
   isSingle: true,
-  options: [''],
+  options: [],
 };
 export const CreateVariablesModal = ({
   visible,
@@ -82,7 +93,6 @@ export const CreateVariablesModal = ({
   );
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [selectMode, setSelectMode] = useState<'multiple' | undefined>('multiple');
   const { workflow, canvasId } = useCanvasContext();
   const { workflowVariables, refetchWorkflowVariables } = workflow;
 
@@ -99,7 +109,6 @@ export const CreateVariablesModal = ({
   });
   const [options, setOptions] = useState<string[]>(defaultValue?.options || []);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editingValue, setEditingValue] = useState<string>('');
 
   const variableTypeOptions = useMemo(() => {
     return [
@@ -135,7 +144,6 @@ export const CreateVariablesModal = ({
     });
     setOptions([]);
     setEditingIndex(null);
-    setEditingValue('');
     form.resetFields();
   }, [
     form,
@@ -145,7 +153,6 @@ export const CreateVariablesModal = ({
     setOptionFormData,
     setOptions,
     setEditingIndex,
-    setEditingValue,
   ]);
 
   useEffect(() => {
@@ -192,10 +199,10 @@ export const CreateVariablesModal = ({
             description: defaultValue.description || '',
             required: defaultValue.required ?? true,
             isSingle: defaultValue.isSingle ?? true,
-            options: defaultValue.options || [''],
+            options: defaultValue.options || [],
           };
           setOptionFormData(optionData);
-          setOptions(defaultValue.options || ['']);
+          setOptions(defaultValue.options || []);
           form.setFieldsValue(optionData);
         }
       }
@@ -203,11 +210,6 @@ export const CreateVariablesModal = ({
       resetState();
     }
   }, [visible]);
-
-  useEffect(() => {
-    const isSingle = form.getFieldValue('isSingle');
-    setSelectMode(isSingle ? undefined : 'multiple');
-  }, [form]);
 
   useEffect(() => {
     if (variableType === 'option') {
@@ -225,9 +227,6 @@ export const CreateVariablesModal = ({
   const handleFormValuesChange = useCallback(
     (changedValues: Partial<VariableFormData>) => {
       console.log('Form values changed:', { variableType, changedValues });
-      if ('isSingle' in changedValues) {
-        setSelectMode(changedValues.isSingle ? undefined : 'multiple');
-      }
 
       // Store form data based on current variable type
       const currentFormValues = form.getFieldsValue();
@@ -286,7 +285,6 @@ export const CreateVariablesModal = ({
 
     // Reset editing states
     setEditingIndex(null);
-    setEditingValue('');
   };
 
   // Update file list and sync with resource form data
@@ -349,94 +347,68 @@ export const CreateVariablesModal = ({
     [fileList, handleFileListChange],
   );
 
+  const setOptionsValue = useCallback(
+    (options: string[]) => {
+      setOptions(options);
+      form.setFieldValue('options', options);
+      if (variableType === 'option') {
+        setOptionFormData((prev) => ({ ...prev, options, value: options[0] ? [options[0]] : [] }));
+      }
+    },
+    [form, variableType],
+  );
+
   // Option management handlers with form data sync
   const handleAddOption = useCallback(() => {
-    if (options.length < 10) {
-      const newOptions = [...options, ''];
-      setOptions(newOptions);
-      form.setFieldValue('options', newOptions);
+    if (options.length < MAX_OPTIONS) {
+      // Filter out empty options before adding new one
+      const filteredOptions = options.filter((option) => option && option.trim().length > 0);
+      const newOptions = [...filteredOptions, ''];
+      setOptionsValue(newOptions);
 
-      // Sync with option form data
-      if (variableType === 'option') {
-        setOptionFormData((prev) => ({
-          ...prev,
-          options: newOptions,
-        }));
-      }
+      // Auto focus the new input field
+      const newIndex = newOptions.length - 1;
+      setEditingIndex(newIndex);
     }
-  }, [options, form, variableType]);
+  }, [options, setOptionsValue]);
 
   const handleRemoveOption = useCallback(
     (index: number) => {
       const newOptions = options.filter((_, i) => i !== index);
-      setOptions(newOptions);
-      form.setFieldValue('options', newOptions);
-
-      // Update value field if it contains the removed option
-      const currentValue = form.getFieldValue('value') || [];
-      const filteredValue = currentValue.filter((v: string) => v !== options[index]);
-      form.setFieldValue('value', filteredValue);
-
-      // Sync with option form data
-      if (variableType === 'option') {
-        setOptionFormData((prev) => ({
-          ...prev,
-          options: newOptions,
-          value: filteredValue,
-        }));
-      }
+      setOptionsValue(newOptions);
     },
-    [options, form, variableType],
+    [options, setOptionsValue],
   );
 
   const handleOptionChange = useCallback(
     (index: number, value: string) => {
       const newOptions = [...options];
       newOptions[index] = value;
-      setOptions(newOptions);
-      form.setFieldValue('options', newOptions);
 
-      // Sync with option form data
-      if (variableType === 'option') {
-        setOptionFormData((prev) => ({
-          ...prev,
-          options: newOptions,
-        }));
-      }
+      const cleanedOptions = newOptions.filter((option) => option && option.trim().length > 0);
+      setOptionsValue(cleanedOptions);
     },
-    [options, form, variableType],
+    [options, setOptionsValue],
   );
 
-  const handleEditStart = useCallback((index: number, value: string) => {
-    setEditingIndex(index);
-    setEditingValue(value);
-  }, []);
+  const handleEditStart = useCallback(
+    (index: number) => {
+      setEditingIndex(index);
+    },
+    [setEditingIndex],
+  );
 
   const handleEditSave = useCallback(
-    (index: number) => {
-      if (editingValue.trim()) {
-        handleOptionChange(index, editingValue.trim());
-      }
-      setEditingIndex(null);
-      setEditingValue('');
-    },
-    [editingValue, handleOptionChange],
-  );
+    (value: string, index: number) => {
+      const trimmedValue = value.trim();
 
-  const handleEditCancel = useCallback(() => {
-    setEditingIndex(null);
-    setEditingValue('');
-  }, []);
-
-  const handleKeyPress = useCallback(
-    (e: React.KeyboardEvent, index: number) => {
-      if (e.key === 'Enter') {
-        handleEditSave(index);
-      } else if (e.key === 'Escape') {
-        handleEditCancel();
+      if (trimmedValue) {
+        handleOptionChange(index, trimmedValue);
+      } else {
+        handleRemoveOption(index);
       }
     },
-    [handleEditSave, handleEditCancel],
+    [handleOptionChange, handleRemoveOption],
   );
 
   const saveVariable = useCallback(
@@ -461,6 +433,7 @@ export const CreateVariablesModal = ({
   const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
+      console.log('values', values);
 
       // Additional validation for resource type
       if (variableType === 'resource' && fileList.length === 0) {
@@ -477,6 +450,12 @@ export const CreateVariablesModal = ({
         finalValue = fileList.map((file) => file.url || '').filter((url) => url);
       }
 
+      // For option type, set default value to first option if no value is selected
+      if (variableType === 'option') {
+        const firstOption = values.options?.[0];
+        finalValue = [firstOption];
+      }
+
       const variable: WorkflowVariable = {
         name: values.name,
         value: finalValue,
@@ -485,17 +464,15 @@ export const CreateVariablesModal = ({
         required: values.required,
         ...(variableType === 'resource' && {
           isSingle: values.isSingle,
-          options: values.isSingle
-            ? values.options?.[0]
-              ? [values.options[0]]
-              : []
-            : values.options || [],
+          options: [],
         }),
         ...(variableType === 'option' && {
           isSingle: values.isSingle,
           options: values.options || [],
         }),
       };
+
+      console.log('variable', variable);
 
       await saveVariable(variable);
       refetchWorkflowVariables();
@@ -510,78 +487,17 @@ export const CreateVariablesModal = ({
   }, [onCancel]);
 
   const renderStringTypeForm = () => (
-    <>
-      <Form.Item
-        label={t('canvas.workflow.variables.name') || 'Variable Name'}
-        name="name"
-        rules={[
-          {
-            required: true,
-            message: t('canvas.workflow.variables.nameRequired') || 'Variable name is required',
-          },
-          {
-            pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
-            message: t('canvas.workflow.variables.nameInvalid') || 'Invalid variable name format',
-          },
-        ]}
-      >
-        <Input
-          placeholder={t('canvas.workflow.variables.namePlaceholder') || 'Enter variable name'}
-        />
-      </Form.Item>
-
-      <Form.Item
-        label={t('canvas.workflow.variables.value') || 'Variable Value'}
-        name="value"
-        rules={[
-          {
-            required: true,
-            message: t('canvas.workflow.variables.valueRequired') || 'Variable value is required',
-          },
-        ]}
-      >
-        <Input.TextArea
-          placeholder={t('canvas.workflow.variables.valuePlaceholder') || 'Enter variable value'}
-          rows={3}
-          onChange={(e) => {
-            // Convert text to array format
-            const textValue = e.target.value;
-            form.setFieldValue('value', textValue ? [textValue] : []);
-          }}
-        />
-      </Form.Item>
-
-      <Form.Item
-        label={t('canvas.workflow.variables.required') || 'Required'}
-        name="required"
-        valuePropName="checked"
-      >
-        <Switch />
-      </Form.Item>
-    </>
+    <Form.Item label={t('canvas.workflow.variables.value') || 'Variable Value'} name="value">
+      <Input
+        placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
+        maxLength={200}
+        showCount
+      />
+    </Form.Item>
   );
 
   const renderResourceTypeForm = () => (
     <>
-      <Form.Item
-        label={t('canvas.workflow.variables.name') || 'Variable Name'}
-        name="name"
-        rules={[
-          {
-            required: true,
-            message: t('canvas.workflow.variables.nameRequired') || 'Variable name is required',
-          },
-          {
-            pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
-            message: t('canvas.workflow.variables.nameInvalid') || 'Invalid variable name format',
-          },
-        ]}
-      >
-        <Input
-          placeholder={t('canvas.workflow.variables.namePlaceholder') || 'Enter variable name'}
-        />
-      </Form.Item>
-
       <Form.Item
         label={t('canvas.workflow.variables.multiple') || 'Select Settings'}
         name="isSingle"
@@ -621,61 +537,12 @@ export const CreateVariablesModal = ({
           </Button>
         </Upload>
       </Form.Item>
-
-      <Form.Item
-        label={t('canvas.workflow.variables.value') || 'Value'}
-        name="value"
-        required
-        help={
-          fileList.length === 0
-            ? t('canvas.workflow.variables.uploadFileFirst') || 'Please upload files first'
-            : ''
-        }
-        validateStatus={fileList.length === 0 ? 'error' : 'success'}
-      >
-        <Select
-          mode={selectMode}
-          placeholder={t('canvas.workflow.variables.resourceValuePlaceholder') || 'Select files'}
-          disabled={fileList.length === 0}
-          options={fileList.map((file, index) => ({
-            label: file.name || `File ${index + 1}`,
-            value: file.url || `file-${index}`,
-          }))}
-        />
-      </Form.Item>
-
-      <Form.Item
-        label={t('canvas.workflow.variables.required') || 'Required'}
-        name="required"
-        valuePropName="checked"
-      >
-        <Switch />
-      </Form.Item>
     </>
   );
 
   const renderOptionTypeForm = () => {
     return (
       <>
-        <Form.Item
-          label={t('canvas.workflow.variables.name') || 'Variable Name'}
-          name="name"
-          rules={[
-            {
-              required: true,
-              message: t('canvas.workflow.variables.nameRequired') || 'Variable name is required',
-            },
-            {
-              pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
-              message: t('canvas.workflow.variables.nameInvalid') || 'Invalid variable name format',
-            },
-          ]}
-        >
-          <Input
-            placeholder={t('canvas.workflow.variables.namePlaceholder') || 'Enter variable name'}
-          />
-        </Form.Item>
-
         <Form.Item
           label={t('canvas.workflow.variables.selectMode') || 'Selection Mode'}
           name="isSingle"
@@ -695,38 +562,21 @@ export const CreateVariablesModal = ({
           name="options"
           rules={[
             {
-              required: true,
-              message:
-                t('canvas.workflow.variables.optionsRequired') || 'At least one option is required',
-            },
-            {
-              validator: (_, value) => {
-                // Ensure value is an array
-                if (!Array.isArray(value)) {
-                  return Promise.reject(
-                    new Error(
-                      t('canvas.workflow.variables.optionsRequired') ||
-                        'At least one option is required',
-                    ),
+              validator: async (_, _value) => {
+                if (options.length < 1) {
+                  throw new Error(
+                    t('canvas.workflow.variables.optionsRequired') ||
+                      'At least one option is required',
+                  );
+                }
+                const uniqueOptions = new Set(options);
+                if (uniqueOptions.size !== options.length) {
+                  throw new Error(
+                    t('canvas.workflow.variables.duplicateOption') ||
+                      'Duplicate option value is not allowed',
                   );
                 }
 
-                if (value.length === 0) {
-                  return Promise.reject(
-                    new Error(
-                      t('canvas.workflow.variables.optionsRequired') ||
-                        'At least one option is required',
-                    ),
-                  );
-                }
-
-                if (value.some((opt: string) => !opt || !opt.trim())) {
-                  return Promise.reject(
-                    new Error(
-                      t('canvas.workflow.variables.optionsEmpty') || 'Options cannot be empty',
-                    ),
-                  );
-                }
                 return Promise.resolve();
               },
             },
@@ -735,88 +585,59 @@ export const CreateVariablesModal = ({
           <div className="space-y-2">
             {options.map((option, index) => (
               <div key={index} className="flex items-center gap-2">
-                <div className="flex items-center justify-center w-6 h-6 text-gray-400 cursor-move">
-                  <div className="w-1.5 h-1.5 bg-gray-300 rounded-full mx-0.5" />
-                  <div className="w-1.5 h-1.5 bg-gray-300 rounded-full mx-0.5" />
-                  <div className="w-1.5 h-1.5 bg-gray-300 rounded-full mx-0.5" />
-                </div>
-
                 {editingIndex === index ? (
                   <Input
-                    value={editingValue}
-                    onChange={(e) => setEditingValue(e.target.value)}
-                    onPressEnter={() => handleEditSave(index)}
-                    onKeyDown={(e) => handleKeyPress(e, index)}
-                    onBlur={() => handleEditSave(index)}
+                    value={option}
+                    onChange={(e) => {
+                      handleEditSave(e.target.value, index);
+                    }}
+                    onBlur={() => {
+                      setEditingIndex(null);
+                    }}
                     autoFocus
                     className="flex-1"
+                    data-option-index={index}
                   />
                 ) : (
                   <div
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md cursor-text hover:border-gray-300"
-                    onClick={() => handleEditStart(index, option)}
+                    className="group w-full h-8 p-2 flex items-center gap-2 box-border border-[1px] border-solid border-refly-Card-Border rounded-lg hover:bg-refly-tertiary-hover cursor-pointer"
+                    onClick={() => handleEditStart(index)}
                   >
-                    {option || t('canvas.workflow.variables.clickToEdit') || 'Click to edit'}
+                    <MdOutlineDragIndicator className="text-refly-text-3 cursor-move" size={16} />
+                    <div
+                      className={cn('flex-1 text-sm leading-5 truncate', {
+                        'text-refly-text-3': !option,
+                      })}
+                    >
+                      {option || t('canvas.workflow.variables.clickToEdit') || 'Click to edit'}
+                    </div>
+                    <Button
+                      className="hidden group-hover:block"
+                      type="text"
+                      size="small"
+                      icon={<Delete size={16} color="var(--refly-text-1)" />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        handleRemoveOption(index);
+                      }}
+                    />
                   </div>
                 )}
-
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<Close size={16} />}
-                  onClick={() => handleRemoveOption(index)}
-                  className="text-gray-400 hover:text-red-500"
-                  disabled={options.length === 1}
-                />
               </div>
             ))}
 
-            {options.length < 10 && (
+            {options.length < MAX_OPTIONS && (
               <Button
-                type="dashed"
+                type="default"
                 onClick={handleAddOption}
-                className="w-full"
-                icon={<span className="text-lg">+</span>}
+                className="w-full border-none bg-refly-bg-control-z0"
+                icon={<Add size={16} />}
               >
                 {t('canvas.workflow.variables.addOption') || 'Add Option'}
               </Button>
             )}
-
-            <div className="text-xs text-gray-500">
-              {t('canvas.workflow.variables.maxOptions') || 'Maximum 10 options allowed'}
-            </div>
           </div>
-        </Form.Item>
-
-        <Form.Item
-          label={t('canvas.workflow.variables.value') || 'Variable Value'}
-          name="value"
-          rules={[
-            {
-              required: form.getFieldValue('required'),
-              message: t('canvas.workflow.variables.valueRequired') || 'Variable value is required',
-            },
-          ]}
-        >
-          <Select
-            mode={form.getFieldValue('isSingle') ? undefined : 'multiple'}
-            placeholder={t('canvas.workflow.variables.selectOptions') || 'Select options'}
-            options={options
-              .filter((opt) => opt.trim())
-              .map((option) => ({
-                label: option,
-                value: option,
-              }))}
-            disabled={options.length === 0 || options.every((opt) => !opt.trim())}
-          />
-        </Form.Item>
-
-        <Form.Item
-          label={t('canvas.workflow.variables.required') || 'Required'}
-          name="required"
-          valuePropName="checked"
-        >
-          <Switch />
         </Form.Item>
       </>
     );
@@ -845,7 +666,7 @@ export const CreateVariablesModal = ({
       footer={null}
       width={600}
     >
-      <div className="flex flex-col gap-4">
+      <div className="create-variables-modal flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="text-refly-text-0 text-lg font-semibold leading-6">
             {t(`canvas.workflow.variables.${defaultValue ? 'editTitle' : 'addTitle'}`) ||
@@ -889,13 +710,39 @@ export const CreateVariablesModal = ({
               options: [],
             }}
           >
+            <Form.Item
+              label={t('canvas.workflow.variables.name') || 'Variable Name'}
+              name="name"
+              rules={[
+                {
+                  required: true,
+                  message:
+                    t('canvas.workflow.variables.nameRequired') || 'Variable name is required',
+                },
+              ]}
+            >
+              <Input
+                placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
+                maxLength={50}
+                showCount
+              />
+            </Form.Item>
             {renderForm()}
+            <Form.Item name="required" valuePropName="checked">
+              <Checkbox className="required-checkbox">
+                <span className="text-refly-text-0 text-sm font-semibold">
+                  {t('canvas.workflow.variables.required')}
+                </span>
+              </Checkbox>
+            </Form.Item>
           </Form>
         </div>
 
         <div className="flex items-center justify-end gap-3">
-          <Button onClick={handleModalClose}>{t('common.cancel') || 'Cancel'}</Button>
-          <Button type="primary" onClick={handleSubmit}>
+          <Button className="w-[80px]" onClick={handleModalClose}>
+            {t('common.cancel') || 'Cancel'}
+          </Button>
+          <Button className="w-[80px]" type="primary" onClick={handleSubmit}>
             {t('common.save') || 'Save'}
           </Button>
         </div>

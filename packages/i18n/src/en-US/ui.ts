@@ -1290,7 +1290,7 @@ const translations = {
         resourceValuePlaceholder: 'Select resource',
         variableTypeOptions: {
           string: 'Text',
-          resource: 'Resource',
+          resource: 'File',
           option: 'Option',
         },
         string: 'Text Type',
@@ -1305,6 +1305,9 @@ const translations = {
         selectOptions: 'Select options',
         clickToEdit: 'Click to edit',
         deleteSuccess: 'Variable deleted successfully',
+        inputPlaceholder: 'Please enter',
+        selectPlaceholder: 'Please select',
+        duplicateOption: 'Option values cannot be duplicated',
       },
     },
     connectionTimeout: {
