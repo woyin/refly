@@ -7657,8 +7657,12 @@ export const InitializeWorkflowResponseSchema = {
 export const WorkflowVariableSchema = {
   type: 'object',
   description: 'Workflow variable definition',
-  required: ['name', 'value'],
+  required: ['name', 'value', 'variableId'],
   properties: {
+    variableId: {
+      type: 'string',
+      description: 'Variable ID, unique and readonly',
+    },
     name: {
       type: 'string',
       description: 'Variable name',

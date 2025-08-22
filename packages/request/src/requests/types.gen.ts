@@ -5257,7 +5257,8 @@ export type CanvasNodeType =
   | 'video'
   | 'audio'
   | 'mediaSkill'
-  | 'mediaSkillResponse';
+  | 'mediaSkillResponse'
+  | 'start';
 
 export type CanvasNodeData = {
   /**
@@ -5372,6 +5373,10 @@ export type InitializeWorkflowResponse = BaseResponse & {
  * Workflow variable definition
  */
 export type WorkflowVariable = {
+  /**
+   * Variable ID, unique and readonly
+   */
+  variableId: string;
   /**
    * Variable name
    */

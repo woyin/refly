@@ -5374,6 +5374,10 @@ export type InitializeWorkflowResponse = BaseResponse & {
  */
 export type WorkflowVariable = {
   /**
+   * Variable ID, unique and readonly
+   */
+  variableId: string;
+  /**
    * Variable name
    */
   name: string;
