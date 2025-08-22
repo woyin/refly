@@ -79,18 +79,28 @@ export { CanvasContentItem } from '../canvas/canvas.dto';
 // 画布分析结果
 export interface CanvasAnalysis {
   complexity: number; // 复杂度评分 0-100
-  workflowType: string; // 工作流类型
-  primarySkills: string[]; // 主要技能类型
   nodeCount: number; // 节点数量
   variableCount: number; // 变量数量
   resourceCount: number; // 资源数量
+  workflowType?: string; // 工作流类型
+  primarySkills?: string[]; // 主要技能
+}
+
+// 画布上下文信息 - 用于提示词构建
+export interface CanvasContext {
+  nodeCount: number; // 画布节点数量
+  complexity: number; // 复杂度评分 0-100
+  resourceCount: number; // 资源数量
+  workflowType?: string; // 工作流类型
+  primarySkills?: string[]; // 主要技能
+  lastExtractionTime?: Date; // 上次提取时间
+  recentVariablePatterns?: string[]; // 最近的变量模式
 }
 
 // 提取上下文元数据
 export interface ExtractionContextMetadata {
   lastExtractionTime?: Date; // 上次提取时间
   recentVariablePatterns: string[]; // 最近的变量模式
-  userWorkflowPreferences: UserWorkflowPreferences; // 用户工作流偏好
 }
 
 // 用户工作流偏好

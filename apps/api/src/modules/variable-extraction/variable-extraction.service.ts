@@ -4,18 +4,25 @@ import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
-import { buildVariableExtractionPrompt } from './prompt';
+import {
+  buildVariableExtractionPrompt,
+  buildValidationPrompt,
+  buildHistoricalPrompt,
+  buildConsensusPrompt,
+} from './prompt';
 import {
   ExtractionContext,
   VariableExtractionResult,
-  VariableReuse,
   WorkflowVariable,
   CandidateRecord,
-  QualityMetrics,
   CanvasData,
-  CanvasContentItem,
-  UserWorkflowPreferences,
+  CanvasContext,
 } from 'src/modules/variable-extraction/variable-extraction.dto';
+
+interface HistoricalData {
+  extractionHistory: any[];
+  canvasPatterns: string[];
+}
 
 @Injectable()
 export class VariableExtractionService {
@@ -27,8 +34,15 @@ export class VariableExtractionService {
     private readonly canvasSyncService: CanvasSyncService,
     private readonly providerService: ProviderService,
   ) {}
+
   /**
-   * 核心变量提取方法（集成上下文分析）
+   * 核心变量提取方法（集成简化门控机制）
+   *
+   * 使用场景:
+   * - direct模式: 直接更新Canvas变量，适用于用户确认的变量提取
+   * - candidate模式: 返回候选方案，适用于需要用户确认的场景
+   *
+   * 作用: 根据用户输入和画布上下文，智能提取工作流变量，支持双路径验证和降级策略
    */
   async extractVariables(
     user: User,
@@ -38,7 +52,7 @@ export class VariableExtractionService {
     sessionId?: string,
   ): Promise<VariableExtractionResult> {
     // 1. 检查候选记录（直接模式且有sessionId时）
-    if (mode === 'direct' && sessionId) {
+    if (mode === 'candidate' && sessionId) {
       const candidateRecord = await this.getCandidateRecord(sessionId);
       if (candidateRecord && !candidateRecord.applied) {
         return this.applyCandidateRecord(user, canvasId, candidateRecord);
@@ -48,31 +62,476 @@ export class VariableExtractionService {
     // 2. 构建上下文（多维度分析）
     const context = await this.buildEnhancedContext(canvasId, user);
 
-    // 3. 基于上下文进行智能提取
-    const extractionResult = await this.performLLMExtraction(prompt, context, user);
+    let extractionResult: VariableExtractionResult;
 
-    // 4. 智能变量复用检测
-    await this.detectAdvancedVariableReuse(prompt, context.variables, context);
+    // 3. 根据门控决策执行相应模式
+    if (mode === 'direct') {
+      // 增强直接模式：使用双路径验证
+      extractionResult = await this.performEnhancedDirectExtraction(
+        prompt,
+        context,
+        user,
+        canvasId,
+      );
+    } else {
+      // 候选模式：使用原有的完整实现
+      extractionResult = await this.performCandidateModeExtraction(
+        prompt,
+        context,
+        user,
+        canvasId,
+        sessionId,
+      );
+    }
 
-    // 5. 结果质量评估和优化
-    await this.validateExtractionQuality(extractionResult, context);
-
-    // 6. 根据模式处理结果
+    // 4. 根据模式处理结果（保持原有逻辑）
     if (mode === 'direct') {
       await this.updateCanvasVariables(user, canvasId, extractionResult.variables);
       await this.saveExtractionHistory(user, canvasId, extractionResult, 'direct');
     } else {
-      const sessionId = await this.saveCandidateRecord(user, canvasId, extractionResult);
-      extractionResult.sessionId = sessionId;
+      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult);
+      extractionResult.sessionId = finalSessionId;
     }
 
     return extractionResult;
   }
 
   /**
-   * 构建上下文 - 多维度Canvas分析
+   * 增强直接模式：双路径验证处理
+   *
+   * 使用场景: 直接模式下的高质量变量提取，需要双重验证保证准确性
+   *
+   * 作用:
+   * - 并行执行主路径和验证路径的LLM提取
+   * - 生成共识结果并进行质量检查
+   * - 质量不达标时自动降级到候选模式
    */
-  private async buildEnhancedContext(canvasId: string, user: User): Promise<ExtractionContext> {
+  private async performEnhancedDirectExtraction(
+    prompt: string,
+    context: ExtractionContext,
+    user: User,
+    _canvasId: string,
+  ): Promise<VariableExtractionResult> {
+    try {
+      this.logger.log('Performing enhanced direct mode extraction with dual-path validation');
+
+      // 1. 并行双路径处理
+      const [primaryResult, validationResult] = await Promise.all([
+        this.performLLMExtraction(prompt, context, user),
+        this.performValidationLLMExtraction(prompt, context, user),
+      ]);
+
+      // 2. 生成共识结果
+      const consensusResult = await this.generateConsensusResult(primaryResult, validationResult);
+
+      // 3. 基础质量检查
+      const qualityScore = await this.performBasicQualityCheck(consensusResult, context);
+
+      if (qualityScore >= 0.8) {
+        this.logger.log('Enhanced direct mode quality check passed');
+        return consensusResult;
+      } else {
+        this.logger.warn(
+          `Enhanced direct mode quality below threshold: ${qualityScore}, falling back to candidate mode`,
+        );
+        // 降级到候选模式
+        return await this.performCandidateModeExtraction(prompt, context, user, '', undefined);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Enhanced direct mode failed: ${error.message}, falling back to candidate mode`,
+      );
+      // 降级到候选模式
+      return await this.performCandidateModeExtraction(prompt, context, user, '', undefined);
+    }
+  }
+
+  /**
+   * 候选模式：使用原有的完整实现
+   *
+   * 使用场景: 需要用户确认的变量提取，或者作为直接模式的降级策略
+   *
+   * 作用:
+   * - 获取完整的历史数据进行分析
+   * - 构建增强的历史学习提示词
+   * - 执行多轮LLM处理提升质量
+   * - 保存候选记录供用户确认
+   */
+  private async performCandidateModeExtraction(
+    prompt: string,
+    context: ExtractionContext,
+    user: User,
+    canvasId: string,
+    sessionId?: string,
+  ): Promise<VariableExtractionResult> {
+    this.logger.log('Performing candidate mode extraction with full features');
+
+    // 1. 获取完整的历史数据
+    const historicalData = await this.getComprehensiveHistoricalData(user.uid, canvasId);
+
+    // 2. 构建增强提示词
+    const enhancedPrompt = this.buildAdvancedHistoryPrompt(prompt, context, historicalData);
+
+    // 3. 执行多轮LLM处理
+    const extractionResult = await this.performMultiRoundLLMExtraction(
+      enhancedPrompt,
+      context,
+      user,
+      prompt,
+    );
+
+    // 4. 保存候选记录（使用原有的完整逻辑）
+    if (!sessionId) {
+      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult);
+      extractionResult.sessionId = finalSessionId;
+    }
+
+    return extractionResult;
+  }
+
+  /**
+   * 验证LLM提取（用于增强直接模式的双路径验证）
+   *
+   * 使用场景: 增强直接模式下的验证路径，提供第二意见验证主路径结果
+   *
+   * 作用:
+   * - 使用验证导向的提示词进行变量提取
+   * - 重点关注变量的准确性和合理性
+   * - 为主路径结果提供验证和补充
+   */
+  private async performValidationLLMExtraction(
+    prompt: string,
+    context: ExtractionContext,
+    user: User,
+  ): Promise<VariableExtractionResult> {
+    try {
+      // 使用验证模式的提示词
+      const validationPrompt = buildValidationPrompt(prompt, context.variables, {
+        nodeCount: context.analysis.nodeCount,
+        complexity: context.analysis.complexity,
+        resourceCount: context.analysis.resourceCount,
+        lastExtractionTime: context.extractionContext.lastExtractionTime,
+        recentVariablePatterns: context.extractionContext.recentVariablePatterns,
+        workflowType: context.analysis.workflowType,
+        primarySkills: context.analysis.primarySkills,
+      } as CanvasContext);
+
+      const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
+      if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
+        throw new Error('No valid LLM provider found for validation');
+      }
+
+      const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
+      const response = await model.invoke(validationPrompt);
+      const responseText = response.content.toString();
+
+      return this.parseLLMResponse(responseText, prompt);
+    } catch (error) {
+      this.logger.error(`Validation LLM extraction failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 生成共识结果（用于增强直接模式）
+   */
+  private async generateConsensusResult(
+    primaryResult: VariableExtractionResult,
+    validationResult: VariableExtractionResult,
+  ): Promise<VariableExtractionResult> {
+    try {
+      // 使用共识生成提示词
+      const consensusPrompt = buildConsensusPrompt(primaryResult, validationResult);
+
+      // 使用LLM生成共识结果
+      const chatPi = await this.providerService.findDefaultProviderItem(
+        { uid: 'system' } as User,
+        'chat',
+      );
+      if (chatPi?.category === 'llm' && chatPi.enabled) {
+        const model = await this.providerService.prepareChatModel(
+          { uid: 'system' } as User,
+          chatPi.itemId,
+        );
+        const response = await model.invoke(consensusPrompt);
+        const responseText = response.content.toString();
+
+        try {
+          const consensusData = JSON.parse(responseText);
+          if (consensusData.variables && Array.isArray(consensusData.variables)) {
+            return {
+              ...primaryResult,
+              variables: consensusData.variables,
+              reusedVariables: consensusData.reusedVariables || primaryResult.reusedVariables,
+            };
+          }
+        } catch (parseError) {
+          this.logger.warn(
+            `Failed to parse consensus LLM response, using primary result: ${parseError}`,
+          );
+        }
+      }
+
+      // 如果LLM共识生成失败，使用智能合并逻辑
+      return this.mergeResultsIntelligently(primaryResult, validationResult);
+    } catch (error) {
+      this.logger.error(`Consensus generation failed: ${error.message}`);
+      // 返回智能合并结果作为后备
+      return this.mergeResultsIntelligently(primaryResult, validationResult);
+    }
+  }
+
+  /**
+   * 智能合并两个提取结果
+   */
+  private mergeResultsIntelligently(
+    primaryResult: VariableExtractionResult,
+    validationResult: VariableExtractionResult,
+  ): VariableExtractionResult {
+    const mergedVariables = [...primaryResult.variables];
+    const mergedReusedVariables = [...primaryResult.reusedVariables];
+
+    // 合并验证结果中的新变量
+    for (const validationVar of validationResult.variables) {
+      const existingIndex = mergedVariables.findIndex((v) => v.name === validationVar.name);
+      if (existingIndex >= 0) {
+        // 如果变量已存在，选择质量更高的版本
+        const existingVar = mergedVariables[existingIndex];
+        if (
+          this.calculateVariableQuality(validationVar) > this.calculateVariableQuality(existingVar)
+        ) {
+          mergedVariables[existingIndex] = validationVar;
+        }
+      } else {
+        // 添加新变量
+        mergedVariables.push(validationVar);
+      }
+    }
+
+    // 合并复用变量
+    for (const reuseVar of validationResult.reusedVariables) {
+      const existingIndex = mergedReusedVariables.findIndex(
+        (v) => v.reusedVariableName === reuseVar.reusedVariableName,
+      );
+      if (existingIndex < 0) {
+        mergedReusedVariables.push(reuseVar);
+      }
+    }
+
+    return {
+      ...primaryResult,
+      variables: mergedVariables,
+      reusedVariables: mergedReusedVariables,
+    };
+  }
+
+  /**
+   * 计算变量质量分数
+   */
+  private calculateVariableQuality(variable: WorkflowVariable): number {
+    let score = 0;
+
+    // 基于变量名称质量
+    if (variable.name && variable.name.length > 0) score += 0.3;
+
+    // 基于描述质量
+    if (variable.description && variable.description.length > 10) score += 0.3;
+
+    // 基于变量类型
+    if (variable.variableType) score += 0.2;
+
+    // 基于值的存在性
+    if (variable.value && Array.isArray(variable.value) && variable.value.length > 0) score += 0.2;
+
+    return score;
+  }
+
+  /**
+   * 基础质量检查（用于增强直接模式）
+   */
+  private async performBasicQualityCheck(
+    result: VariableExtractionResult,
+    context: ExtractionContext,
+  ): Promise<number> {
+    try {
+      // 1. 语法验证
+      const syntaxValid = this.validateSyntax(result);
+
+      // 2. 上下文相关性检查
+      const contextRelevant = this.checkContextRelevance(result, context);
+
+      // 3. 变量完整性检查
+      const variableCompleteness = this.checkVariableCompleteness(result);
+
+      // 4. 计算总体评分
+      const overallScore = this.calculateOverallScore(
+        syntaxValid,
+        contextRelevant,
+        variableCompleteness,
+      );
+
+      return overallScore;
+    } catch (error) {
+      this.logger.error(`Basic quality check failed: ${error.message}`);
+      return 0.5; // 返回中等评分作为后备
+    }
+  }
+
+  /**
+   * 语法验证
+   */
+  private validateSyntax(result: VariableExtractionResult): boolean {
+    return result.variables.every(
+      (v) => v.name && v.name.length > 0 && v.variableType && Array.isArray(v.value),
+    );
+  }
+
+  /**
+   * 上下文相关性检查
+   */
+  private checkContextRelevance(
+    result: VariableExtractionResult,
+    context: ExtractionContext,
+  ): boolean {
+    // 如果没有现有变量，认为相关
+    if (context.variables.length === 0) {
+      return true;
+    }
+
+    // 检查提取的变量是否与现有变量有重叠
+    const existingNames = new Set(context.variables.map((v) => v.name));
+    const extractedNames = new Set(result.variables.map((v) => v.name));
+
+    const overlap = Array.from(existingNames).filter((name) => extractedNames.has(name));
+    return overlap.length > 0 || result.variables.length > 0;
+  }
+
+  /**
+   * 变量完整性检查
+   */
+  private checkVariableCompleteness(result: VariableExtractionResult): boolean {
+    if (result.variables.length === 0) return false;
+
+    // 检查每个变量是否有必要的字段
+    const completeVariables = result.variables.filter(
+      (v) => v.name && v.variableType && v.description,
+    );
+
+    return completeVariables.length / result.variables.length >= 0.8;
+  }
+
+  /**
+   * 计算总体评分
+   */
+  private calculateOverallScore(
+    syntaxValid: boolean,
+    contextRelevant: boolean,
+    variableCompleteness: boolean,
+  ): number {
+    let score = 0;
+
+    if (syntaxValid) score += 0.4;
+    if (contextRelevant) score += 0.3;
+    if (variableCompleteness) score += 0.3;
+
+    return score;
+  }
+
+  /**
+   * 获取完整的历史数据（用于候选模式）
+   */
+  private async getComprehensiveHistoricalData(
+    uid: string,
+    canvasId: string,
+  ): Promise<HistoricalData> {
+    try {
+      const [extractionHistory, canvasPatterns] = await Promise.all([
+        this.prisma.variableExtractionHistory.findMany({
+          where: { uid, status: 'applied' },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        }),
+        this.getRecentVariablePatterns(canvasId),
+      ]);
+
+      return {
+        extractionHistory,
+        canvasPatterns,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to get comprehensive historical data: ${error.message}`);
+      // 返回空数据作为后备
+      return {
+        extractionHistory: [],
+        canvasPatterns: [],
+      };
+    }
+  }
+
+  /**
+   * 构建高级历史提示词（用于候选模式）
+   */
+  private buildAdvancedHistoryPrompt(
+    prompt: string,
+    context: ExtractionContext,
+    historicalData: HistoricalData,
+  ): string {
+    return buildHistoricalPrompt(
+      prompt,
+      context.variables,
+      {
+        nodeCount: context.analysis.nodeCount,
+        complexity: context.analysis.complexity,
+        resourceCount: context.analysis.resourceCount,
+        lastExtractionTime: context.extractionContext.lastExtractionTime,
+        recentVariablePatterns: context.extractionContext.recentVariablePatterns,
+        workflowType: context.analysis.workflowType,
+        primarySkills: context.analysis.primarySkills,
+      } as CanvasContext,
+      historicalData,
+    );
+  }
+
+  /**
+   * 执行多轮LLM处理（用于候选模式）
+   */
+  private async performMultiRoundLLMExtraction(
+    enhancedPrompt: string,
+    context: ExtractionContext,
+    user: User,
+    prompt: string,
+  ): Promise<VariableExtractionResult> {
+    try {
+      // 使用增强的提示词进行LLM提取
+      const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
+      if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
+        throw new Error('No valid LLM provider found for multi-round extraction');
+      }
+
+      const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
+      const response = await model.invoke(enhancedPrompt);
+      const responseText = response.content.toString();
+
+      return this.parseLLMResponse(responseText, prompt);
+    } catch (error) {
+      this.logger.error(`Multi-round LLM extraction failed: ${error.message}`);
+      // 降级到基础提取
+      return this.performLLMExtraction(enhancedPrompt, context, user);
+    }
+  }
+
+  /**
+   * 构建上下文 - 多维度Canvas分析
+   *
+   * 使用场景: 变量提取前的上下文准备，需要分析画布状态和历史信息
+   *
+   * 作用:
+   * - 获取Canvas数据和内容项
+   * - 分析工作流复杂度和特征
+   * - 检测工作流类型和主要技能
+   * - 构建完整的提取上下文信息
+   */
+  public async buildEnhancedContext(canvasId: string, user: User): Promise<ExtractionContext> {
     try {
       // 1. 获取Canvas数据和内容项
       const contentItems = await this.canvasService.getCanvasContentItems(user, canvasId, true);
@@ -88,20 +547,18 @@ export class VariableExtractionService {
         // 计算工作流复杂度（节点数、连接数、嵌套层级）
         complexity: this.calculateComplexityScore(canvasData),
 
-        // 检测工作流类型（内容处理、数据分析、文档生成等）
-        workflowType: this.detectWorkflowPattern(canvasData, contentItems),
-
-        // 提取主要技能类型（影响变量提取策略）
-        primarySkills: this.extractPrimarySkills(canvasData),
-
         // 基础统计信息
         nodeCount: canvasData.nodes?.length || 0,
         variableCount: variables.length,
         resourceCount: contentItems.filter((item) => item.type === 'resource').length,
+
+        // 工作流类型和技能分析
+        workflowType: this.detectWorkflowType(contentItems, variables),
+        primarySkills: this.detectPrimarySkills(contentItems, variables),
       };
 
       this.logger.log(
-        `Built context for canvas ${canvasId}: ${analysis.nodeCount} nodes, ${analysis.variableCount} variables, workflow type: ${analysis.workflowType}`,
+        `Built context for canvas ${canvasId}: ${analysis.nodeCount} nodes, ${analysis.variableCount} variables`,
       );
 
       return {
@@ -113,7 +570,6 @@ export class VariableExtractionService {
         extractionContext: {
           lastExtractionTime: await this.getLastExtractionTime(canvasId),
           recentVariablePatterns: await this.getRecentVariablePatterns(canvasId),
-          userWorkflowPreferences: await this.getUserWorkflowPreferences(user.uid),
         },
       };
     } catch (error) {
@@ -125,8 +581,6 @@ export class VariableExtractionService {
         contentItems: [],
         analysis: {
           complexity: 0,
-          workflowType: '通用工作流',
-          primarySkills: ['内容生成'],
           nodeCount: 0,
           variableCount: 0,
           resourceCount: 0,
@@ -134,56 +588,11 @@ export class VariableExtractionService {
         extractionContext: {
           lastExtractionTime: undefined,
           recentVariablePatterns: [],
-          userWorkflowPreferences: await this.getUserWorkflowPreferences(user.uid),
         },
       };
     }
   }
 
-  /**
-   * 智能变量复用检测 - 多层匹配策略
-   */
-  private async detectAdvancedVariableReuse(
-    prompt: string,
-    existingVariables: WorkflowVariable[],
-    _context: ExtractionContext,
-  ): Promise<VariableReuse[]> {
-    const reuses: VariableReuse[] = [];
-
-    for (const variable of existingVariables) {
-      // 1. 语义相似度匹配（基于文本embedding）
-      const semanticScore = await this.calculateSemanticSimilarity(
-        prompt,
-        variable.description || variable.name,
-      );
-
-      // 2. 上下文关联性分析
-      const contextualScore = this.analyzeContextualRelevance(
-        variable,
-        _context.analysis.workflowType,
-        _context.analysis.primarySkills,
-      );
-
-      // 3. 指代词检测（"这个"、"刚才的"、"上面的"）
-      const referenceScore = this.detectReferencePatterns(prompt, variable);
-
-      // 4. 综合评分
-      const totalScore = semanticScore * 0.5 + contextualScore * 0.3 + referenceScore * 0.2;
-
-      if (totalScore > 0.75) {
-        reuses.push({
-          detectedText: this.extractReferencedText(prompt, variable),
-          reusedVariableName: variable.name,
-          confidence: totalScore,
-          reason: this.generateReuseReason(semanticScore, contextualScore, referenceScore),
-        });
-      }
-    }
-
-    return reuses;
-  }
-
-  // TODO: Implement missing methods
   private async getCandidateRecord(sessionId: string): Promise<CandidateRecord | null> {
     try {
       const record = await this.prisma.variableExtractionHistory.findUnique({
@@ -201,7 +610,6 @@ export class VariableExtractionService {
         return null;
       }
 
-      // 转换数据库记录为CandidateRecord格式
       return {
         sessionId: record.sessionId!,
         canvasId: record.canvasId,
@@ -285,8 +693,19 @@ export class VariableExtractionService {
     return processedPrompt;
   }
 
-  private async performLLMExtraction(
-    prompt: string,
+  /**
+   * 执行LLM变量提取
+   *
+   * 使用场景: 核心的变量提取逻辑，需要调用LLM进行智能分析
+   *
+   * 作用:
+   * - 获取LLM模型实例
+   * - 构建增强的变量提取提示词
+   * - 调用LLM进行变量提取
+   * - 解析和验证LLM响应
+   */
+  public async performLLMExtraction(
+    originalPrompt: string,
     context: ExtractionContext,
     user: User,
   ): Promise<VariableExtractionResult> {
@@ -299,23 +718,27 @@ export class VariableExtractionService {
 
       const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
 
-      // 2. 构建变量提取提示词
-      const extractionPrompt = buildVariableExtractionPrompt(prompt, context.variables, {
+      // 2. 构建变量提取提示词（使用增强版本）
+      const extractionPrompt = buildVariableExtractionPrompt(originalPrompt, context.variables, {
         nodeCount: context.analysis.nodeCount,
-        primarySkills: context.analysis.primarySkills,
-        workflowType: context.analysis.workflowType,
         complexity: context.analysis.complexity,
         resourceCount: context.analysis.resourceCount,
-      });
+        lastExtractionTime: context.extractionContext.lastExtractionTime,
+        recentVariablePatterns: context.extractionContext.recentVariablePatterns,
+        workflowType: context.analysis.workflowType,
+        primarySkills: context.analysis.primarySkills,
+      } as CanvasContext);
 
-      this.logger.log(`Performing LLM extraction for prompt: "${prompt.substring(0, 100)}..."`);
+      this.logger.log(
+        `Performing LLM extraction for prompt: "${originalPrompt.substring(0, 100)}..."`,
+      );
 
       // 3. 调用LLM进行变量提取
       const response = await model.invoke(extractionPrompt);
       const responseText = response.content.toString();
 
       // 4. 解析LLM响应
-      const extractionResult = this.parseLLMResponse(responseText, prompt);
+      const extractionResult = this.parseLLMResponse(responseText, originalPrompt);
 
       this.logger.log(
         `LLM extraction completed with ${extractionResult.variables.length} variables`,
@@ -325,8 +748,7 @@ export class VariableExtractionService {
     } catch (error) {
       this.logger.error(`Error in LLM extraction: ${error.message}`);
 
-      // 降级到基础模式，确保服务可用性
-      return this.performBasicExtraction(prompt, context);
+      throw error;
     }
   }
 
@@ -424,92 +846,6 @@ export class VariableExtractionService {
         reusedVariables: [],
       };
     }
-  }
-
-  /**
-   * 基础变量提取（降级模式）
-   */
-  private performBasicExtraction(
-    prompt: string,
-    context: ExtractionContext,
-  ): VariableExtractionResult {
-    this.logger.log('Performing basic extraction as fallback');
-
-    // 简单的关键词匹配提取
-    const variables: WorkflowVariable[] = [];
-
-    // 基于工作流类型预设一些通用变量
-    if (context.analysis.workflowType.includes('文档')) {
-      variables.push({
-        name: 'document_title',
-        value: [''],
-        description: '文档标题',
-        variableType: 'string',
-        source: 'startNode',
-      });
-    }
-
-    if (context.analysis.workflowType.includes('项目')) {
-      variables.push({
-        name: 'project_name',
-        value: [''],
-        description: '项目名称',
-        variableType: 'string',
-        source: 'startNode',
-      });
-    }
-
-    return {
-      originalPrompt: prompt,
-      processedPrompt: prompt,
-      variables,
-      reusedVariables: [],
-    };
-  }
-
-  private async validateExtractionQuality(
-    result: VariableExtractionResult,
-    context: ExtractionContext,
-  ): Promise<QualityMetrics> {
-    // TODO: 实际实现时进行更复杂的质量评估
-    // Mock 质量评估逻辑
-
-    // 计算变量完整性评分
-    const variableCompleteness = Math.min(100, result.variables.length * 20);
-
-    // 计算提示清晰度评分（基于原始prompt长度和变量数量）
-    const promptClarity = Math.min(
-      100,
-      Math.max(0, 100 - result.variables.length * 10 + result.originalPrompt.length / 2),
-    );
-
-    // 计算上下文相关性评分
-    const contextRelevance = context.variables.length > 0 ? 85 : 70;
-
-    // 总体评分
-    const overallScore = Math.round((variableCompleteness + promptClarity + contextRelevance) / 3);
-
-    // 生成改进建议
-    const suggestions: string[] = [];
-    if (result.variables.length < 2) {
-      suggestions.push('建议提供更多具体的变量信息');
-    }
-    if (result.originalPrompt.length < 20) {
-      suggestions.push('提示信息可以更详细一些');
-    }
-    if (context.variables.length === 0) {
-      suggestions.push('可以考虑复用画布中已有的变量');
-    }
-
-    const qualityMetrics: QualityMetrics = {
-      overallScore,
-      variableCompleteness,
-      promptClarity,
-      contextRelevance,
-      suggestions,
-    };
-
-    return qualityMetrics;
   }
 
   private async updateCanvasVariables(
@@ -630,8 +966,6 @@ export class VariableExtractionService {
   }
 
   private calculateComplexityScore(canvasData: CanvasData): number {
-    // TODO: Mocked for now. Implement more complex calculation based on actual canvas structure.
-
     let score = 0;
 
     // 基于节点数量计算基础分数
@@ -657,89 +991,6 @@ export class VariableExtractionService {
     score += Math.min(25, nodeTypes.size * 5);
 
     return Math.min(100, score);
-  }
-
-  private detectWorkflowPattern(canvasData: CanvasData, contentItems: CanvasContentItem[]): string {
-    // TODO: Mocked for now. Implement more intelligent workflow pattern recognition.
-
-    const nodeTypes = canvasData.nodes?.map((n) => n.type) || [];
-    const resourceCount = contentItems.filter((item) => item.type === 'resource').length;
-    const skillCount = contentItems.filter((item) => item.type === 'skillResponse').length;
-
-    // 基于节点类型和内容项判断工作流类型
-    if (nodeTypes.includes('document') || nodeTypes.includes('text')) {
-      return '文档生成';
-    }
-
-    if (nodeTypes.includes('image') || nodeTypes.includes('media')) {
-      return '媒体处理';
-    }
-
-    if (resourceCount > 2) {
-      return '内容分析';
-    }
-
-    if (skillCount > 1) {
-      return '技能编排';
-    }
-
-    if (nodeTypes.includes('api') || nodeTypes.includes('http')) {
-      return 'API集成';
-    }
-
-    if (nodeTypes.includes('database') || nodeTypes.includes('query')) {
-      return '数据处理';
-    }
-
-    return '通用工作流';
-  }
-
-  private extractPrimarySkills(canvasData: CanvasData): string[] {
-    // TODO: Mocked for now. Implement more intelligent skill extraction.
-
-    const skills: string[] = [];
-    const nodeTypes = canvasData.nodes?.map((n) => n.type) || [];
-
-    // 基于节点类型识别技能
-    if (nodeTypes.includes('llm') || nodeTypes.includes('gpt')) {
-      skills.push('AI对话');
-    }
-
-    if (nodeTypes.includes('embedding') || nodeTypes.includes('vector')) {
-      skills.push('向量检索');
-    }
-
-    if (nodeTypes.includes('document') || nodeTypes.includes('pdf')) {
-      skills.push('文档处理');
-    }
-
-    if (nodeTypes.includes('image') || nodeTypes.includes('vision')) {
-      skills.push('图像识别');
-    }
-
-    if (nodeTypes.includes('api') || nodeTypes.includes('http')) {
-      skills.push('API调用');
-    }
-
-    if (nodeTypes.includes('database') || nodeTypes.includes('sql')) {
-      skills.push('数据查询');
-    }
-
-    if (nodeTypes.includes('email') || nodeTypes.includes('notification')) {
-      skills.push('消息通知');
-    }
-
-    if (nodeTypes.includes('workflow') || nodeTypes.includes('condition')) {
-      skills.push('流程控制');
-    }
-
-    // 如果没有识别到具体技能，返回通用技能
-    if (skills.length === 0) {
-      skills.push('内容生成');
-      skills.push('信息处理');
-    }
-
-    return skills;
   }
 
   private async getLastExtractionTime(canvasId: string): Promise<Date | undefined> {
@@ -802,255 +1053,6 @@ export class VariableExtractionService {
       // 返回默认模式
       return ['项目名称', '目标用户', '功能范围', '时间要求', '质量标准'];
     }
-  }
-
-  private async getUserWorkflowPreferences(_uid: string): Promise<UserWorkflowPreferences> {
-    // TODO: Mocked for now. Implement actual database query for user workflow preferences.
-
-    // 模拟从数据库查询
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    // 返回模拟的用户偏好
-    return {
-      preferredVariableTypes: ['string', 'option', 'resource'],
-      commonWorkflowPatterns: ['内容生成', '数据分析', '文档处理', 'API集成'],
-      extractionHistory: [
-        {
-          timestamp: new Date(Date.now() - 3600000),
-          prompt: '帮我创建一个项目计划',
-          extractedVariables: ['project_name', 'time_requirement', 'quality_standard'],
-          confidence: 0.92,
-        },
-        {
-          timestamp: new Date(Date.now() - 7200000),
-          prompt: '生成一份技术报告',
-          extractedVariables: ['report_topic', 'target_audience', 'technical_depth'],
-          confidence: 0.88,
-        },
-      ],
-    };
-  }
-
-  private async calculateSemanticSimilarity(
-    _prompt: string,
-    _variableText: string,
-  ): Promise<number> {
-    // TODO: Mocked for now. Implement using an embedding model for true semantic similarity.
-
-    // 模拟异步计算
-    await new Promise((resolve) => setTimeout(resolve, 20));
-
-    // 简单的关键词匹配评分
-    const promptWords = _prompt.toLowerCase().split(/\s+/);
-    const variableWords = _variableText.toLowerCase().split(/\s+/);
-
-    let matchCount = 0;
-    for (const promptWord of promptWords) {
-      for (const variableWord of variableWords) {
-        if (promptWord.includes(variableWord) || variableWord.includes(promptWord)) {
-          matchCount++;
-        }
-      }
-    }
-
-    // 计算相似度分数 (0-1)
-    const similarity = Math.min(1, matchCount / Math.max(promptWords.length, variableWords.length));
-
-    // 添加一些随机性模拟真实情况
-    return Math.min(1, similarity + (Math.random() - 0.5) * 0.2);
-  }
-
-  private analyzeContextualRelevance(
-    _variable: WorkflowVariable,
-    _workflowType: string,
-    _primarySkills: string[],
-  ): number {
-    // TODO: Mocked for now. Implement more complex contextual relevance analysis.
-
-    let relevanceScore = 0.5; // 基础分数
-
-    // 基于工作流类型调整相关性
-    if (_workflowType.includes('文档') && _variable.variableType === 'string') {
-      relevanceScore += 0.2;
-    }
-
-    if (_workflowType.includes('数据') && _variable.variableType === 'resource') {
-      relevanceScore += 0.2;
-    }
-
-    if (_workflowType.includes('API') && _variable.variableType === 'option') {
-      relevanceScore += 0.15;
-    }
-
-    // 基于技能类型调整相关性
-    if (
-      _primarySkills.some((skill) => skill.includes('AI')) &&
-      _variable.description?.includes('主题')
-    ) {
-      relevanceScore += 0.1;
-    }
-
-    if (
-      _primarySkills.some((skill) => skill.includes('处理')) &&
-      _variable.description?.includes('内容')
-    ) {
-      relevanceScore += 0.1;
-    }
-
-    // 添加一些随机性模拟真实情况
-    relevanceScore += (Math.random() - 0.5) * 0.1;
-
-    return Math.max(0, Math.min(1, relevanceScore));
-  }
-
-  private detectReferencePatterns(_prompt: string, _variable: WorkflowVariable): number {
-    // TODO: Mocked for now. Implement more intelligent anaphora/reference detection.
-
-    const prompt = _prompt.toLowerCase();
-    const variableName = _variable.name.toLowerCase();
-    const variableDescription = _variable.description?.toLowerCase() || '';
-
-    let referenceScore = 0;
-
-    // 检测常见的指代词
-    const referencePatterns = [
-      '这个',
-      '那个',
-      '刚才的',
-      '上面的',
-      '下面的',
-      '之前提到的',
-      '前面说的',
-      '后面要用的',
-      '它',
-      '它们',
-      '这个项目',
-      '那个功能',
-    ];
-
-    // 检查是否包含指代词
-    for (const pattern of referencePatterns) {
-      if (prompt.includes(pattern)) {
-        referenceScore += 0.3;
-        break;
-      }
-    }
-
-    // 检查是否包含变量名或描述的变体
-    if (prompt.includes(variableName) || prompt.includes(variableDescription)) {
-      referenceScore += 0.4;
-    }
-
-    // 检查是否包含相关的同义词
-    const synonyms: { [key: string]: string[] } = {
-      项目: ['project', 'program', 'initiative'],
-      用户: ['user', 'audience', 'customer', 'client'],
-      功能: ['feature', 'function', 'capability'],
-      内容: ['content', 'material', 'information'],
-      时间: ['time', 'duration', 'period', 'deadline'],
-    };
-
-    for (const [chinese, english] of Object.entries(synonyms)) {
-      if (variableDescription.includes(chinese) || variableDescription.includes(english[0])) {
-        if (prompt.includes(chinese) || english.some((word) => prompt.includes(word))) {
-          referenceScore += 0.2;
-          break;
-        }
-      }
-    }
-
-    return Math.min(1, referenceScore);
-  }
-
-  private extractReferencedText(_prompt: string, _variable: WorkflowVariable): string {
-    // TODO: Mocked for now. Implement more intelligent extraction of referenced text.
-
-    const prompt = _prompt;
-    const variableName = _variable.name;
-    const variableDescription = _variable.description || '';
-
-    // 尝试从prompt中提取包含变量名或描述的文本片段
-    const words = prompt.split(/\s+/);
-
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-
-      // 检查是否包含变量名
-      if (word.toLowerCase().includes(variableName.toLowerCase())) {
-        // 返回包含该词的上下文（前后各2个词）
-        const start = Math.max(0, i - 2);
-        const end = Math.min(words.length, i + 3);
-        return words.slice(start, end).join(' ');
-      }
-
-      // 检查是否包含变量描述
-      if (variableDescription && word.toLowerCase().includes(variableDescription.toLowerCase())) {
-        const start = Math.max(0, i - 2);
-        const end = Math.min(words.length, i + 3);
-        return words.slice(start, end).join(' ');
-      }
-    }
-
-    // 如果没有找到具体匹配，返回包含变量名的相关文本
-    const sentences = prompt.split(/[。！？；]/);
-    for (const sentence of sentences) {
-      if (
-        sentence.toLowerCase().includes(variableName.toLowerCase()) ||
-        (variableDescription && sentence.toLowerCase().includes(variableDescription.toLowerCase()))
-      ) {
-        return sentence.trim();
-      }
-    }
-
-    // 最后的后备方案
-    return `包含"${variableName}"的相关内容`;
-  }
-
-  private generateReuseReason(
-    _semanticScore: number,
-    _contextualScore: number,
-    _referenceScore: number,
-  ): string {
-    // TODO: Mocked for now. Implement more intelligent reuse reason generation.
-
-    const reasons: string[] = [];
-
-    // 基于语义相似度生成原因
-    if (_semanticScore > 0.8) {
-      reasons.push('语义高度相似');
-    } else if (_semanticScore > 0.6) {
-      reasons.push('语义较为相似');
-    } else if (_semanticScore > 0.4) {
-      reasons.push('语义部分相似');
-    }
-
-    // 基于上下文相关性生成原因
-    if (_contextualScore > 0.8) {
-      reasons.push('上下文高度相关');
-    } else if (_contextualScore > 0.6) {
-      reasons.push('上下文较为相关');
-    }
-
-    // 基于指代模式生成原因
-    if (_referenceScore > 0.7) {
-      reasons.push('检测到明确的指代关系');
-    } else if (_referenceScore > 0.5) {
-      reasons.push('存在潜在的指代关系');
-    }
-
-    // 如果没有具体原因，生成通用原因
-    if (reasons.length === 0) {
-      const totalScore = (_semanticScore + _contextualScore + _referenceScore) / 3;
-      if (totalScore > 0.7) {
-        reasons.push('综合评分较高，建议复用');
-      } else if (totalScore > 0.5) {
-        reasons.push('综合评分中等，可考虑复用');
-      } else {
-        reasons.push('基于多维度分析建议复用');
-      }
-    }
-
-    return reasons.join('，');
   }
 
   /**
@@ -1123,5 +1125,51 @@ export class VariableExtractionService {
     const reuseBonus = result.reusedVariables.length > 0 ? 0.05 : 0;
 
     return Math.min(1, baseConfidence + processedPromptBonus + reuseBonus);
+  }
+
+  /**
+   * 检测工作流类型
+   */
+  private detectWorkflowType(contentItems: any[], variables: WorkflowVariable[]): string {
+    // 基于内容项类型检测工作流类型
+    const itemTypes = contentItems.map((item) => item.type);
+
+    if (itemTypes.includes('resource') && itemTypes.includes('text')) {
+      return '内容生成工作流';
+    } else if (
+      itemTypes.includes('resource') &&
+      variables.some((v) => v.variableType === 'resource')
+    ) {
+      return '文件处理工作流';
+    } else if (variables.some((v) => v.variableType === 'option')) {
+      return '配置选择工作流';
+    } else {
+      return '通用工作流';
+    }
+  }
+
+  /**
+   * 检测主要技能
+   */
+  private detectPrimarySkills(contentItems: any[], variables: WorkflowVariable[]): string[] {
+    const skills = new Set<string>();
+
+    // 基于内容项类型推断技能
+    const itemTypes = contentItems.map((item) => item.type);
+
+    if (itemTypes.includes('text')) {
+      skills.add('内容生成');
+    }
+    if (itemTypes.includes('resource')) {
+      skills.add('文件处理');
+    }
+    if (variables.some((v) => v.variableType === 'option')) {
+      skills.add('配置管理');
+    }
+    if (variables.some((v) => v.variableType === 'string')) {
+      skills.add('参数化处理');
+    }
+
+    return Array.from(skills).length > 0 ? Array.from(skills) : ['内容生成'];
   }
 }
