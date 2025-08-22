@@ -5416,7 +5416,7 @@ export type WorkflowVariable = {
   /**
    * Variable values
    */
-  value: Array<string>;
+  value: Array<VariableValue>;
   /**
    * Variable options
    */

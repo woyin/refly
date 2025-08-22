@@ -7714,10 +7714,9 @@ export const WorkflowVariableSchema = {
     value: {
       type: 'array',
       items: {
-        type: 'string',
+        $ref: '#/components/schemas/VariableValue',
       },
       description: 'Variable values',
-      example: ['张三'],
     },
     options: {
       type: 'array',
