@@ -1,5 +1,5 @@
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { WorkflowVariable } from '@refly/openapi-schema';
+import { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { Button, Modal, Form, Input, Checkbox, Upload, message, Radio } from 'antd';
 import { Close, Attachment, List, Add, Delete } from 'refly-icons';
@@ -24,7 +24,7 @@ interface CreateVariablesModalProps {
 
 interface VariableFormData {
   name: string;
-  value: string[];
+  value: VariableValue[];
   description?: string;
   required: boolean;
   isSingle?: boolean;
@@ -32,32 +32,7 @@ interface VariableFormData {
   currentOption?: string;
 }
 
-// Separate form data interfaces for each variable type
-interface StringTypeFormData {
-  name: string;
-  value: string[];
-  description?: string;
-  required: boolean;
-}
-
-interface ResourceTypeFormData {
-  name: string;
-  value: string[];
-  description?: string;
-  required: boolean;
-  isSingle: boolean;
-}
-
-interface OptionTypeFormData {
-  name: string;
-  value: string[];
-  description?: string;
-  required: boolean;
-  isSingle: boolean;
-  options: string[];
-}
-
-const defaultStringData = {
+const initialData: VariableFormData = {
   name: '',
   value: [],
   description: '',
@@ -65,22 +40,22 @@ const defaultStringData = {
   isSingle: true,
   options: [],
 };
-const defaultResourceData = {
-  name: '',
-  value: [],
-  description: '',
-  required: true,
-  isSingle: true,
-  options: [],
+
+const defaultStringData: VariableFormData = {
+  ...initialData,
+  value: [{ type: 'text', text: '' }],
 };
-const defaultOptionData = {
-  name: '',
-  value: [],
-  description: '',
-  required: true,
-  isSingle: true,
-  options: [],
+
+const defaultResourceData: VariableFormData = {
+  ...initialData,
+  value: [{ type: 'resource', resource: { name: '', storageKey: '', fileType: 'image' } }],
 };
+
+const defaultOptionData: VariableFormData = {
+  ...initialData,
+  value: [{ type: 'text', text: '' }],
+};
+
 export const CreateVariablesModal = ({
   visible,
   onCancel,
@@ -97,15 +72,15 @@ export const CreateVariablesModal = ({
   const { workflow, canvasId } = useCanvasContext();
   const { workflowVariables, refetchWorkflowVariables } = workflow;
 
-  const [stringFormData, setStringFormData] = useState<StringTypeFormData>({
+  const [stringFormData, setStringFormData] = useState<VariableFormData>({
     ...defaultStringData,
   });
 
-  const [resourceFormData, setResourceFormData] = useState<ResourceTypeFormData>({
+  const [resourceFormData, setResourceFormData] = useState<VariableFormData>({
     ...defaultResourceData,
   });
 
-  const [optionFormData, setOptionFormData] = useState<OptionTypeFormData>({
+  const [optionFormData, setOptionFormData] = useState<VariableFormData>({
     ...defaultOptionData,
   });
   const [options, setOptions] = useState<string[]>(defaultValue?.options || []);
@@ -166,47 +141,48 @@ export const CreateVariablesModal = ({
 
         // Initialize form data based on variable type
         if (defaultValue.variableType === 'string') {
-          const stringData: StringTypeFormData = {
+          setStringFormData({
+            ...defaultStringData,
             name: defaultValue.name || '',
             value: defaultValue.value || [],
             description: defaultValue.description || '',
             required: defaultValue.required ?? true,
-          };
-          setStringFormData(stringData);
-          form.setFieldsValue(stringData);
+          });
+          form.setFieldsValue(stringFormData);
         } else if (defaultValue.variableType === 'resource') {
-          const resourceData: ResourceTypeFormData = {
+          setResourceFormData({
+            ...defaultResourceData,
             name: defaultValue.name || '',
             value: defaultValue.value || [],
             description: defaultValue.description || '',
             required: defaultValue.required ?? true,
-            isSingle: defaultValue.isSingle ?? true,
-          };
-          setResourceFormData(resourceData);
-          form.setFieldsValue(resourceData);
+          });
+          form.setFieldsValue(resourceFormData);
 
           // Set file list for resource type
-          if (defaultValue.value?.length) {
-            const files: UploadFile[] = defaultValue.value.map((url, index) => ({
+          if (resourceFormData.value.length) {
+            const files: UploadFile[] = resourceFormData.value.map((value, index) => ({
               uid: `file-${index}`,
-              name: `File ${index + 1}`,
+              name: value.resource?.name || '',
               status: 'done',
-              url,
+              url: value.resource?.storageKey || '',
             }));
             setFileList(files);
           }
         } else if (defaultValue.variableType === 'option') {
-          const optionData: OptionTypeFormData = {
+          setOptionFormData({
+            ...defaultOptionData,
             name: defaultValue.name || '',
             value: defaultValue.value || [],
             description: defaultValue.description || '',
             required: defaultValue.required ?? true,
             isSingle: defaultValue.isSingle ?? true,
             options: defaultValue.options || [],
-          };
-          setOptionFormData(optionData);
+          });
+
+          setOptionFormData(optionFormData);
+          form.setFieldsValue(optionFormData);
           setOptions(defaultValue.options || []);
-          form.setFieldsValue(optionData);
           setCurrentOption('');
         }
       }
@@ -225,7 +201,7 @@ export const CreateVariablesModal = ({
     if (variableType === 'string') {
       form.setFieldsValue(stringFormData);
     }
-  }, [form, variableType, optionFormData]);
+  }, [form, variableType, optionFormData, resourceFormData, stringFormData]);
 
   // Handle form values change and store in corresponding form data
   const handleFormValuesChange = useCallback(
@@ -238,7 +214,10 @@ export const CreateVariablesModal = ({
 
       if (variableType === 'string') {
         setStringFormData((prev) => {
-          const newData = { ...prev, ...currentFormValues };
+          const newData = {
+            ...prev,
+            ...currentFormValues,
+          };
           console.log('Updated stringFormData:', newData);
           return newData;
         });
@@ -297,12 +276,12 @@ export const CreateVariablesModal = ({
       setFileList(newFileList);
 
       // Update resource form data with current file list
-      if (variableType === 'resource') {
-        setResourceFormData((prev) => ({
-          ...prev,
-          value: newFileList.map((file) => file.url || '').filter((url) => url),
-        }));
-      }
+      // if (variableType === 'resource') {
+      //   setResourceFormData((prev) => ({
+      //     ...prev,
+      //     value: newFileList.map((file) => file.url || '').filter((url) => url),
+      //   }));
+      // }
     },
     [variableType],
   );
@@ -355,7 +334,11 @@ export const CreateVariablesModal = ({
     (options: string[]) => {
       setOptions(options);
       if (variableType === 'option') {
-        setOptionFormData((prev) => ({ ...prev, options, value: options[0] ? [options[0]] : [] }));
+        setOptionFormData((prev) => ({
+          ...prev,
+          options,
+          value: options[0] ? [{ type: 'text', text: options[0] }] : [],
+        }));
       }
     },
     [variableType],
@@ -452,7 +435,7 @@ export const CreateVariablesModal = ({
   const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
-      console.log('values', values, options);
+      console.log('values', values, options, stringFormData, resourceFormData, optionFormData);
 
       // Additional validation for resource type
       if (variableType === 'resource' && fileList.length === 0) {
@@ -462,17 +445,13 @@ export const CreateVariablesModal = ({
         return;
       }
 
-      let finalValue: string[] = values.value;
-
-      // For resource type, get URLs from fileList
-      if (variableType === 'resource') {
-        finalValue = fileList.map((file) => file.url || '').filter((url) => url);
-      }
-
-      // For option type, set default value to first option if no value is selected
-      if (variableType === 'option') {
-        const firstOption = values.options?.[0];
-        finalValue = [firstOption];
+      // For string type, construct the value array from the form data
+      let finalValue: VariableValue[];
+      if (variableType === 'string') {
+        const textValue = values.value?.[0]?.text ?? '';
+        finalValue = textValue ? [{ type: 'text', text: textValue }] : [];
+      } else {
+        finalValue = values.value;
       }
 
       const variable: WorkflowVariable = {
@@ -493,6 +472,7 @@ export const CreateVariablesModal = ({
       };
 
       console.log('variable', variable);
+      // return;
       await saveVariable(variable);
       refetchWorkflowVariables();
       onCancel(false);
@@ -506,7 +486,10 @@ export const CreateVariablesModal = ({
   }, [onCancel]);
 
   const renderStringTypeForm = () => (
-    <Form.Item label={t('canvas.workflow.variables.value') || 'Variable Value'} name="value">
+    <Form.Item
+      label={t('canvas.workflow.variables.value') || 'Variable Value'}
+      name={['value', 0, 'text']}
+    >
       <Input
         placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
         maxLength={200}
@@ -729,7 +712,7 @@ export const CreateVariablesModal = ({
             initialValues={{
               required: true,
               isSingle: true,
-              value: [],
+              value: [{ type: 'text', text: '' }],
               currentOption: '',
             }}
           >
