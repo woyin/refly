@@ -9,6 +9,7 @@ import { BiText } from 'react-icons/bi';
 import cn from 'classnames';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import './index.scss';
 import { genVariableID } from '@refly/utils';
 import {
@@ -667,6 +668,33 @@ export const CreateVariablesModal = ({
     [handleOptionChange, handleRemoveOption],
   );
 
+  // Handle drag and drop for reordering options
+  const handleDragEnd = useCallback(
+    (result: DropResult) => {
+      if (!result.destination) {
+        return;
+      }
+
+      const sourceIndex = result.source.index;
+      const destinationIndex = result.destination.index;
+
+      if (sourceIndex === destinationIndex) {
+        return;
+      }
+
+      const newOptions = Array.from(options);
+      const [removed] = newOptions.splice(sourceIndex, 1);
+      newOptions.splice(destinationIndex, 0, removed);
+
+      setOptionsValue(newOptions);
+    },
+    [options, setOptionsValue],
+  );
+
+  const handleDragStart = useCallback(() => {
+    setEditingIndex(null);
+  }, [setEditingIndex]);
+
   const saveVariable = useCallback(
     async (variable: WorkflowVariable) => {
       const existingIndex = workflowVariables.findIndex(
@@ -906,68 +934,102 @@ export const CreateVariablesModal = ({
             },
           ]}
         >
-          <div className="space-y-2">
-            {options.map((option, index) => (
-              <div key={index} className="flex items-center gap-2">
-                {editingIndex === index ? (
-                  <Input
-                    value={currentOption}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setCurrentOption(val);
-                      handleOptionChange(index, val);
-                      form.setFieldValue('currentOption', val ?? '');
-                    }}
-                    onBlur={() => {
-                      handleEditSave(currentOption ?? '', index);
-                      setEditingIndex(null);
-                    }}
-                    autoFocus
-                    className="flex-1"
-                    data-option-index={index}
-                    maxLength={200}
-                    showCount
-                  />
-                ) : (
-                  <div
-                    className="group w-full h-8 p-2 flex items-center gap-2 box-border border-[1px] border-solid border-refly-Card-Border rounded-lg hover:bg-refly-tertiary-hover cursor-pointer"
-                    onClick={() => handleEditStart(index)}
-                  >
-                    <MdOutlineDragIndicator className="text-refly-text-3 cursor-move" size={16} />
-                    <div
-                      className={cn('flex-1 text-sm leading-5 truncate', {
-                        'text-refly-text-3': !option,
-                      })}
+          <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+            <Droppable droppableId="options-list">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                  {options.map((option, index) => (
+                    <Draggable
+                      key={`option-${index}`}
+                      draggableId={`option-${index}`}
+                      index={index}
                     >
-                      {option || t('canvas.workflow.variables.clickToEdit') || 'Click to edit'}
-                    </div>
-                    <Button
-                      className="hidden group-hover:block"
-                      type="text"
-                      size="small"
-                      icon={<Delete size={16} color="var(--refly-text-1)" />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleRemoveOption(index);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className="flex items-center gap-2"
+                        >
+                          {editingIndex === index ? (
+                            <Input
+                              value={currentOption}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setCurrentOption(val);
+                                handleOptionChange(index, val);
+                                form.setFieldValue('currentOption', val ?? '');
+                              }}
+                              onBlur={() => {
+                                handleEditSave(currentOption ?? '', index);
+                                setEditingIndex(null);
+                              }}
+                              autoFocus
+                              className="flex-1"
+                              data-option-index={index}
+                              maxLength={200}
+                              showCount
+                            />
+                          ) : (
+                            <div
+                              className={cn(
+                                'group w-full h-8 p-2 flex items-center gap-2 box-border border-[1px] border-solid border-refly-Card-Border rounded-lg hover:bg-refly-tertiary-hover cursor-pointer',
+                                {
+                                  'shadow-lg': snapshot.isDragging,
+                                },
+                              )}
+                              onClick={() => handleEditStart(index)}
+                            >
+                              <div
+                                {...provided.dragHandleProps}
+                                className="flex items-center justify-center"
+                              >
+                                <MdOutlineDragIndicator
+                                  className="text-refly-text-3 cursor-move"
+                                  size={16}
+                                />
+                              </div>
+                              <div
+                                className={cn('flex-1 text-sm leading-5 truncate', {
+                                  'text-refly-text-3': !option,
+                                })}
+                              >
+                                {option ||
+                                  t('canvas.workflow.variables.clickToEdit') ||
+                                  'Click to edit'}
+                              </div>
+                              <Button
+                                className="hidden group-hover:block"
+                                type="text"
+                                size="small"
+                                icon={<Delete size={16} color="var(--refly-text-1)" />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  handleRemoveOption(index);
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
 
-            {options.length < MAX_OPTIONS && (
-              <Button
-                type="default"
-                onClick={handleAddOption}
-                className="w-full border-none bg-refly-bg-control-z0"
-                icon={<Add size={16} />}
-              >
-                {t('canvas.workflow.variables.addOption') || 'Add Option'}
-              </Button>
-            )}
-          </div>
+          {options.length < MAX_OPTIONS && (
+            <Button
+              type="default"
+              onClick={handleAddOption}
+              className="w-full border-none bg-refly-bg-control-z0 mt-2"
+              icon={<Add size={16} />}
+            >
+              {t('canvas.workflow.variables.addOption') || 'Add Option'}
+            </Button>
+          )}
         </Form.Item>
       </>
     );
