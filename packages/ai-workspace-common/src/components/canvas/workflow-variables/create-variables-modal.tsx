@@ -182,33 +182,6 @@ export const CreateVariablesModal = ({
     ];
   }, [t]);
 
-  const resetState = useCallback(() => {
-    setStringFormData({
-      ...defaultStringData,
-    });
-    setResourceFormData({
-      ...defaultResourceData,
-    });
-    setFileList([]);
-
-    setOptionFormData({
-      ...defaultOptionData,
-    });
-    setOptions([]);
-    setEditingIndex(null);
-    setCurrentOption('');
-    form.resetFields();
-  }, [
-    form,
-    setStringFormData,
-    setResourceFormData,
-    setFileList,
-    setOptionFormData,
-    setOptions,
-    setEditingIndex,
-    setCurrentOption,
-  ]);
-
   useEffect(() => {
     if (visible) {
       if (defaultValue) {
@@ -216,23 +189,25 @@ export const CreateVariablesModal = ({
 
         // Initialize form data based on variable type
         if (defaultValue.variableType === 'string') {
-          setStringFormData({
+          const newStringFormData = {
             ...defaultStringData,
             name: defaultValue.name || '',
             value: defaultValue.value || [],
             description: defaultValue.description || '',
             required: defaultValue.required ?? true,
-          });
-          form.setFieldsValue(stringFormData);
+          };
+          setStringFormData(newStringFormData);
+          form.setFieldsValue(newStringFormData);
         } else if (defaultValue.variableType === 'resource') {
-          setResourceFormData({
+          const newResourceFormData = {
             ...defaultResourceData,
             name: defaultValue.name || '',
             value: defaultValue.value || [],
             description: defaultValue.description || '',
             required: defaultValue.required ?? true,
-          });
-          form.setFieldsValue(resourceFormData);
+          };
+          setResourceFormData(newResourceFormData);
+          form.setFieldsValue(newResourceFormData);
 
           // Set file list for resource type
           if (defaultValue.value?.length) {
@@ -245,7 +220,7 @@ export const CreateVariablesModal = ({
             setFileList(files);
           }
         } else if (defaultValue.variableType === 'option') {
-          setOptionFormData({
+          const newOptionFormData = {
             ...defaultOptionData,
             name: defaultValue.name || '',
             value: defaultValue.value || [],
@@ -253,11 +228,11 @@ export const CreateVariablesModal = ({
             required: defaultValue.required ?? true,
             isSingle: defaultValue.isSingle ?? true,
             options: defaultValue.options || [],
-          });
+          };
 
-          setOptionFormData(optionFormData);
-          form.setFieldsValue(optionFormData);
-          setOptions(defaultValue.options || []);
+          setOptionFormData(newOptionFormData);
+          form.setFieldsValue(newOptionFormData);
+          setOptionsValue(defaultValue.options || []);
           setCurrentOption('');
         }
       }
@@ -597,34 +572,101 @@ export const CreateVariablesModal = ({
     [fileList, handleFileListChange],
   );
 
+  // Helper function to ensure options uniqueness
+  const ensureUniqueOptions = useCallback((options: string[]) => {
+    const validOptions = options.filter((option) => option && option.trim().length > 0);
+    const uniqueOptions: string[] = [];
+    const seen = new Set<string>();
+
+    for (const option of validOptions) {
+      if (!seen.has(option)) {
+        seen.add(option);
+        uniqueOptions.push(option);
+      }
+    }
+
+    return uniqueOptions;
+  }, []);
+
   const setOptionsValue = useCallback(
     (options: string[]) => {
-      setOptions(options);
+      // Ensure uniqueness when setting options
+      const uniqueOptions = ensureUniqueOptions(options);
+      setOptions(uniqueOptions);
+
       if (variableType === 'option') {
         setOptionFormData((prev) => ({
           ...prev,
-          options,
-          value: options[0] ? [{ type: 'text', text: options[0] }] : [],
+          options: uniqueOptions,
+          value: uniqueOptions[0] ? [{ type: 'text', text: uniqueOptions[0] }] : [],
+        }));
+      }
+    },
+    [variableType, ensureUniqueOptions],
+  );
+
+  // Function to add new options without filtering (for adding empty options)
+  const addNewOption = useCallback(
+    (newOptions: string[]) => {
+      setOptions(newOptions);
+
+      if (variableType === 'option') {
+        setOptionFormData((prev) => ({
+          ...prev,
+          options: newOptions,
+          value: newOptions[0] ? [{ type: 'text', text: newOptions[0] }] : [],
         }));
       }
     },
     [variableType],
   );
 
+  const resetState = useCallback(() => {
+    setStringFormData({
+      ...defaultStringData,
+    });
+    setResourceFormData({
+      ...defaultResourceData,
+    });
+    setFileList([]);
+
+    setOptionFormData({
+      ...defaultOptionData,
+    });
+    setOptionsValue([]);
+    setEditingIndex(null);
+    setCurrentOption('');
+    form.resetFields();
+  }, [
+    form,
+    setStringFormData,
+    setResourceFormData,
+    setFileList,
+    setOptionFormData,
+    setOptionsValue,
+    setEditingIndex,
+    setCurrentOption,
+  ]);
+
   // Option management handlers with form data sync
   const handleAddOption = useCallback(() => {
     if (options.length < MAX_OPTIONS) {
-      const filteredOptions = options.filter((option) => option && option.trim().length > 0);
-      const newOptions = [...filteredOptions, ''];
-      setOptionsValue(newOptions);
+      // Add empty option directly without filtering
+      const newOptions = [...options, ''];
+      addNewOption(newOptions);
 
       // Auto focus the new input field
       const newIndex = newOptions.length - 1;
       setEditingIndex(newIndex);
       setCurrentOption('');
       form.setFieldValue('currentOption', '');
+    } else {
+      message.warning(
+        t('canvas.workflow.variables.maxOptionsReached') ||
+          `Maximum ${MAX_OPTIONS} options allowed`,
+      );
     }
-  }, [options, setOptionsValue, form]);
+  }, [options, addNewOption, form, t]);
 
   const handleRemoveOption = useCallback(
     (index: number) => {
@@ -639,10 +681,27 @@ export const CreateVariablesModal = ({
       const newOptions = [...options];
       newOptions[index] = value;
 
-      const cleanedOptions = newOptions.filter((option) => option && option.trim().length > 0);
-      setOptionsValue(cleanedOptions);
+      // During editing, allow empty values and don't filter
+      // Only check for duplicates among non-empty values
+      if (value.trim()) {
+        // Check for duplicates only if the value is not empty
+        const duplicateIndex = newOptions.findIndex(
+          (option, i) => i !== index && option.trim() && option === value,
+        );
+
+        if (duplicateIndex !== -1) {
+          message.error(
+            t('canvas.workflow.variables.duplicateOption') ||
+              'Duplicate option value is not allowed',
+          );
+          return; // Don't update if duplicate found
+        }
+      }
+
+      // Update options without filtering (allow empty values during editing)
+      addNewOption(newOptions);
     },
-    [options, setOptionsValue],
+    [options, addNewOption, t],
   );
 
   const handleEditStart = useCallback(
@@ -660,12 +719,15 @@ export const CreateVariablesModal = ({
       const trimmedValue = value.trim();
 
       if (trimmedValue) {
-        handleOptionChange(index, trimmedValue);
+        // When saving, use setOptionsValue to ensure uniqueness and filter empty values
+        const newOptions = [...options];
+        newOptions[index] = trimmedValue;
+        setOptionsValue(newOptions);
       } else {
         handleRemoveOption(index);
       }
     },
-    [handleOptionChange, handleRemoveOption],
+    [options, setOptionsValue, handleRemoveOption],
   );
 
   // Handle drag and drop for reordering options
@@ -686,6 +748,7 @@ export const CreateVariablesModal = ({
       const [removed] = newOptions.splice(sourceIndex, 1);
       newOptions.splice(destinationIndex, 0, removed);
 
+      // After reordering, use setOptionsValue to ensure uniqueness and filter empty values
       setOptionsValue(newOptions);
     },
     [options, setOptionsValue],
@@ -915,14 +978,25 @@ export const CreateVariablesModal = ({
           rules={[
             {
               validator: async (_, _value) => {
-                if (options.length < 1) {
+                if (!options?.length || options.length < 1) {
                   throw new Error(
                     t('canvas.workflow.variables.optionsRequired') ||
                       'At least one option is required',
                   );
                 }
-                const uniqueOptions = new Set(options);
-                if (uniqueOptions.size !== options.length) {
+
+                // Filter out empty options
+                const validOptions = options.filter((option) => option && option.trim().length > 0);
+                if (validOptions.length < 1) {
+                  throw new Error(
+                    t('canvas.workflow.variables.optionsRequired') ||
+                      'At least one valid option is required',
+                  );
+                }
+
+                // Check for duplicate values (case-insensitive)
+                const uniqueOptions = new Set(validOptions.map((option) => option.toLowerCase()));
+                if (uniqueOptions.size !== validOptions.length) {
                   throw new Error(
                     t('canvas.workflow.variables.duplicateOption') ||
                       'Duplicate option value is not allowed',
@@ -937,7 +1011,11 @@ export const CreateVariablesModal = ({
           <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
             <Droppable droppableId="options-list">
               {(provided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-2 max-h-[200px] overflow-y-auto"
+                >
                   {options.map((option, index) => (
                     <Draggable
                       key={`option-${index}`}
@@ -948,8 +1026,17 @@ export const CreateVariablesModal = ({
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className="flex items-center gap-2"
+                          className="flex items-center"
                         >
+                          {/* Hidden drag handle for editing state to satisfy react-beautiful-dnd */}
+                          {editingIndex === index && (
+                            <div
+                              {...provided.dragHandleProps}
+                              className="invisible w-0 h-0"
+                              aria-hidden="true"
+                            />
+                          )}
+
                           {editingIndex === index ? (
                             <Input
                               value={currentOption}
@@ -1026,6 +1113,7 @@ export const CreateVariablesModal = ({
               onClick={handleAddOption}
               className="w-full border-none bg-refly-bg-control-z0 mt-2"
               icon={<Add size={16} />}
+              disabled={editingIndex && !currentOption}
             >
               {t('canvas.workflow.variables.addOption') || 'Add Option'}
             </Button>
@@ -1050,6 +1138,7 @@ export const CreateVariablesModal = ({
 
   return (
     <Modal
+      className="create-variables-modal"
       centered
       open={visible}
       onCancel={handleModalClose}
@@ -1058,7 +1147,7 @@ export const CreateVariablesModal = ({
       footer={null}
       width={600}
     >
-      <div className="create-variables-modal flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div className="text-refly-text-0 text-lg font-semibold leading-6">
             {t(`canvas.workflow.variables.${defaultValue ? 'editTitle' : 'addTitle'}`) ||
