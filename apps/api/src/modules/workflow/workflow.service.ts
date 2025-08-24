@@ -68,15 +68,18 @@ export class WorkflowService {
       // Process resource type variables: fetch resource and inject into context.resources
       if (resourceVars.length && context) {
         for (const variable of resourceVars) {
-          const storageKeys = variable.value;
-          if (!storageKeys?.length) continue;
+          const values = variable.value;
+          if (!values?.length) continue;
 
           // Process each storage key in the array
-          for (const storageKey of storageKeys) {
-            if (!storageKey) continue;
+          for (const value of values) {
+            if (!value?.resource?.storageKey) continue;
 
             // Find resource by storage key
-            const resource = await this.knowledgeService.getResourceByStorageKey(user, storageKey);
+            const resource = await this.knowledgeService.getResourceByStorageKey(
+              user,
+              value.resource.storageKey,
+            );
             if (resource) {
               // Bind entityId/canvasId if not already bound
               if (!resource.canvasId || resource.canvasId !== canvasId) {
