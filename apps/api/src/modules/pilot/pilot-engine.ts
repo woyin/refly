@@ -69,7 +69,7 @@ export class PilotEngine {
         this.logger.log(`Generated research plan: ${JSON.stringify(steps)}`);
 
         if (recommendedStage === 'creation') {
-          return (
+          const creationSteps =
             steps
               .filter(
                 (step) =>
@@ -78,8 +78,12 @@ export class PilotEngine {
                   step.skillName === 'generateMedia' ||
                   step.skillName === 'commonQnA',
               )
-              .slice(0, 1) || []
-          );
+              .slice(0, 1) || [];
+          return creationSteps?.length > 0
+            ? creationSteps
+            : steps?.length > 0
+              ? [{ ...steps?.[0], skillName: 'commonQnA' }]
+              : [];
         } else {
           return (
             steps
