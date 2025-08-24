@@ -1285,6 +1285,7 @@ const translations = {
         inputPlaceholder: '请输入',
         selectPlaceholder: '请选择',
         duplicateOption: '可选项不能存在重复值',
+        upload: '上传文件',
       },
     },
     connectionTimeout: {

@@ -2,7 +2,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { Button, Modal, Form, Input, Checkbox, Upload, message, Radio } from 'antd';
-import { Close, Attachment, List, Add, Delete } from 'refly-icons';
+import { Close, Attachment, List, Add, Delete, Refresh } from 'refly-icons';
 import { MdOutlineDragIndicator } from 'react-icons/md';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { BiText } from 'react-icons/bi';
@@ -11,8 +11,41 @@ import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import './index.scss';
 import { genVariableID } from '@refly/utils';
+import {
+  FileIcon,
+  defaultStyles,
+} from '@refly-packages/ai-workspace-common/components/common/resource-icon';
+import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
 const MAX_OPTIONS = 20;
+const DOCUMENT_FILE_EXTENSIONS = [
+  'txt',
+  'md',
+  'mdx',
+  'markdown',
+  'pdf',
+  'html',
+  'xlsx',
+  'xls',
+  'doc',
+  'docx',
+  'csv',
+  'eml',
+  'msg',
+  'pptx',
+  'ppt',
+  'xml',
+  'epub',
+];
+const IMAGE_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+const AUDIO_FILE_EXTENSIONS = ['mp3', 'm4a', 'wav', 'amr', 'mpga'];
+const VIDEO_FILE_EXTENSIONS = ['mp4', 'mov', 'mpeg', 'webm'];
+const ACCEPT_FILE_EXTENSIONS = [
+  ...DOCUMENT_FILE_EXTENSIONS,
+  ...IMAGE_FILE_EXTENSIONS,
+  ...AUDIO_FILE_EXTENSIONS,
+  ...VIDEO_FILE_EXTENSIONS,
+];
 
 interface CreateVariablesModalProps {
   variableType?: 'string' | 'option' | 'resource';
@@ -87,6 +120,46 @@ export const CreateVariablesModal = ({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [currentOption, setCurrentOption] = useState<string>('');
 
+  // Helper function to get file extension
+  const getFileExtension = useCallback((filename: string): string => {
+    const lastDotIndex = filename.lastIndexOf('.');
+    if (lastDotIndex === -1 || lastDotIndex === filename.length - 1) {
+      return ''; // No extension or dot at the end
+    }
+    return filename.slice(lastDotIndex + 1).toLowerCase();
+  }, []);
+
+  // Helper function to get file category and size limit
+  const getFileCategoryAndLimit = useCallback(
+    (file: File) => {
+      const extension = getFileExtension(file.name);
+
+      // Document types
+      if (DOCUMENT_FILE_EXTENSIONS.includes(extension)) {
+        return { category: 'document', maxSize: 20 * 1024 * 1024, fileType: extension };
+      }
+
+      // Image types
+      if (IMAGE_FILE_EXTENSIONS.includes(extension)) {
+        return { category: 'image', maxSize: 10 * 1024 * 1024, fileType: extension };
+      }
+
+      // Audio types
+      if (AUDIO_FILE_EXTENSIONS.includes(extension)) {
+        return { category: 'audio', maxSize: 50 * 1024 * 1024, fileType: extension };
+      }
+
+      // Video types
+      if (VIDEO_FILE_EXTENSIONS.includes(extension)) {
+        return { category: 'video', maxSize: 100 * 1024 * 1024, fileType: extension };
+      }
+
+      // Unknown type
+      return { category: 'unknown', maxSize: 100 * 1024 * 1024, fileType: extension };
+    },
+    [getFileExtension],
+  );
+
   const variableTypeOptions = useMemo(() => {
     return [
       {
@@ -160,12 +233,12 @@ export const CreateVariablesModal = ({
           form.setFieldsValue(resourceFormData);
 
           // Set file list for resource type
-          if (resourceFormData.value.length) {
-            const files: UploadFile[] = resourceFormData.value.map((value, index) => ({
+          if (defaultValue.value?.length) {
+            const files: UploadFile[] = defaultValue.value.map((value, index) => ({
               uid: `file-${index}`,
               name: value.resource?.name || '',
               status: 'done',
-              url: value.resource?.storageKey || '',
+              url: value.resource?.storageKey || '', // Use storageKey from resource
             }));
             setFileList(files);
           }
@@ -276,35 +349,115 @@ export const CreateVariablesModal = ({
       setFileList(newFileList);
 
       // Update resource form data with current file list
-      // if (variableType === 'resource') {
-      //   setResourceFormData((prev) => ({
-      //     ...prev,
-      //     value: newFileList.map((file) => file.url || '').filter((url) => url),
-      //   }));
-      // }
+      if (variableType === 'resource') {
+        const resourceValues: VariableValue[] = newFileList.map((file) => ({
+          type: 'resource',
+          resource: {
+            name: file.name || '',
+            storageKey: file.url || '', // Use url field to store storageKey
+            fileType: getFileExtension(file.name) || 'file', // Store file extension
+          },
+        }));
+
+        setResourceFormData((prev) => ({
+          ...prev,
+          value: resourceValues,
+        }));
+
+        // Update form values to sync with the form
+        form.setFieldValue('value', resourceValues);
+      }
     },
-    [variableType],
+    [variableType, form, getFileExtension],
   );
 
   const handleFileUpload = useCallback(
     async (file: File) => {
       try {
-        setUploading(true);
-        const { data, error } = await getClient().upload({
-          body: { file },
-        });
+        // Check file count limit
+        const maxFileCount = 1; // Maximum 10 files
+        if (fileList.length >= maxFileCount) {
+          message.error(t('common.tooManyFiles') || `Maximum ${maxFileCount} files allowed`);
+          return false;
+        }
 
-        if (error || !data?.data?.url) {
+        // Check for duplicate file names
+        const existingFileNames = fileList.map((f) => f.name);
+        if (existingFileNames.includes(file.name)) {
+          message.error(t('common.duplicateFileName') || 'File with this name already exists');
+          return false;
+        }
+
+        // File validation
+        const { maxSize, category, fileType } = getFileCategoryAndLimit(file);
+
+        // Check if file type is supported
+        if (category === 'unknown') {
+          message.error(t('common.unsupportedFileType') || `Unsupported file type: .${fileType}`);
+          return false;
+        }
+
+        // Additional MIME type validation for better security
+        const mimeTypeValidation = {
+          document: [
+            'text/',
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/xml',
+            'application/epub+zip',
+            'message/rfc822',
+            'application/vnd.ms-outlook',
+          ],
+          image: ['image/'],
+          audio: ['audio/'],
+          video: ['video/'],
+        };
+
+        const allowedMimeTypes =
+          mimeTypeValidation[category as keyof typeof mimeTypeValidation] || [];
+        const isValidMimeType = allowedMimeTypes.some((type) => file.type.startsWith(type));
+
+        if (!isValidMimeType) {
+          message.error(
+            t('common.unsupportedFileType') ||
+              `File MIME type not supported for ${category}: ${file.type}`,
+          );
+          return false;
+        }
+
+        // Check file size limit
+        if (maxSize > 0 && file.size > maxSize) {
+          const maxSizeMB = maxSize / (1024 * 1024);
+          message.error(
+            t('common.fileTooLarge') || `${category} file size exceeds ${maxSizeMB}MB limit`,
+          );
+          return false;
+        }
+
+        setUploading(true);
+
+        // Generate temporary UID for the file
+        const tempUid = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        // Call uploadFile function to get storageKey
+        const data = await uploadFile(file, tempUid);
+
+        if (!data?.storageKey) {
           message.error(t('common.uploadFailed') || 'Upload failed');
           return false;
         }
 
-        // Add file to list
+        // Add file to list with storageKey
         const newFile: UploadFile = {
-          uid: `file-${Date.now()}`,
+          uid: tempUid,
           name: file.name,
           status: 'done',
-          url: data.data.url,
+          url: data.storageKey, // Store storageKey in url field
         };
 
         const newFileList = [...fileList, newFile];
@@ -319,8 +472,120 @@ export const CreateVariablesModal = ({
         setUploading(false);
       }
     },
-    [t, fileList, handleFileListChange],
+    [t, fileList, handleFileListChange, getFileCategoryAndLimit],
   );
+
+  // Add uploadFile function to handle file upload and get storageKey
+  const uploadFile = useCallback(async (file: File, uid: string) => {
+    try {
+      const { data, error } = await getClient().upload({
+        body: { file },
+      });
+
+      if (error) {
+        const errorMessage =
+          typeof error === 'object' && error !== null && 'message' in error
+            ? String(error.message)
+            : 'Unknown error';
+        throw new Error(`Upload error: ${errorMessage}`);
+      }
+
+      if (!data?.data?.storageKey) {
+        throw new Error('Upload response missing storageKey');
+      }
+
+      return {
+        storageKey: data.data.storageKey,
+        url: data.data.url || '',
+        uid,
+      };
+    } catch (error) {
+      console.error('Upload error:', error);
+      if (error instanceof Error) {
+        throw new Error(`File upload failed: ${error.message}`);
+      } else {
+        throw new Error('File upload failed: Unknown error');
+      }
+    }
+  }, []);
+
+  const handleRefreshFile = useCallback(() => {
+    // Create a hidden file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = ACCEPT_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(',');
+    fileInput.multiple = false;
+    fileInput.style.display = 'none';
+
+    // Add event listener for file selection
+    fileInput.addEventListener('change', async (event) => {
+      const target = event.target as HTMLInputElement;
+      const files = target.files;
+
+      if (files && files.length > 0) {
+        const file = files[0];
+
+        try {
+          // Validate and upload the new file
+          const { maxSize, category, fileType } = getFileCategoryAndLimit(file);
+
+          // Check if file type is supported
+          if (category === 'unknown') {
+            message.error(t('common.unsupportedFileType') || `Unsupported file type: .${fileType}`);
+            return;
+          }
+
+          // Check file size limit
+          if (maxSize > 0 && file.size > maxSize) {
+            const maxSizeMB = maxSize / (1024 * 1024);
+            message.error(
+              t('common.fileTooLarge') || `${category} file size exceeds ${maxSizeMB}MB limit`,
+            );
+            return;
+          }
+
+          setUploading(true);
+
+          // Generate new UID for the file
+          const tempUid = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+          // Upload the new file
+          const data = await uploadFile(file, tempUid);
+
+          if (!data?.storageKey) {
+            message.error(t('common.uploadFailed') || 'Upload failed');
+            return;
+          }
+
+          // Replace the existing file with the new one
+          const newFile: UploadFile = {
+            uid: tempUid,
+            name: file.name,
+            status: 'done',
+            url: data.storageKey,
+          };
+
+          // Replace the file list with the new file
+          const newFileList = [newFile];
+          handleFileListChange(newFileList);
+
+          message.success(t('common.uploadSuccess') || 'File refreshed successfully');
+        } catch (error) {
+          console.error('File refresh error:', error);
+          message.error(t('common.uploadFailed') || 'File refresh failed');
+        } finally {
+          setUploading(false);
+        }
+      }
+
+      // Clean up the file input
+      document.body.removeChild(fileInput);
+    });
+
+    // Add to DOM and trigger click
+    document.body.appendChild(fileInput);
+    fileInput.click();
+  }, [getFileCategoryAndLimit, uploadFile, handleFileListChange, t]);
 
   const handleFileRemove = useCallback(
     (file: UploadFile) => {
@@ -437,19 +702,21 @@ export const CreateVariablesModal = ({
       const values = await form.validateFields();
       console.log('values', values, options, stringFormData, resourceFormData, optionFormData);
 
-      // Additional validation for resource type
-      if (variableType === 'resource' && fileList.length === 0) {
-        message.error(
-          t('canvas.workflow.variables.filesRequired') || 'At least one file is required',
-        );
-        return;
-      }
-
-      // For string type, construct the value array from the form data
+      // Construct the value array based on variable type
       let finalValue: VariableValue[];
       if (variableType === 'string') {
         const textValue = values.value?.[0]?.text ?? '';
         finalValue = textValue ? [{ type: 'text', text: textValue }] : [];
+      } else if (variableType === 'resource') {
+        // For resource type, construct value array from fileList
+        finalValue = fileList.map((file) => ({
+          type: 'resource',
+          resource: {
+            name: file.name || '',
+            storageKey: file.url || '', // url field contains storageKey
+            fileType: getFileExtension(file.name) || 'file', // Store file extension
+          },
+        }));
       } else {
         finalValue = values.value;
       }
@@ -479,7 +746,17 @@ export const CreateVariablesModal = ({
     } catch (error) {
       console.error('Form validation failed:', error);
     }
-  }, [form, variableType, fileList, onCancel, t, saveVariable, refetchWorkflowVariables, options]);
+  }, [
+    form,
+    variableType,
+    fileList,
+    onCancel,
+    t,
+    saveVariable,
+    refetchWorkflowVariables,
+    options,
+    getFileExtension,
+  ]);
 
   const handleModalClose = useCallback(() => {
     onCancel(false);
@@ -499,47 +776,72 @@ export const CreateVariablesModal = ({
   );
 
   const renderResourceTypeForm = () => (
-    <>
-      <Form.Item
-        label={t('canvas.workflow.variables.multiple') || 'Select Settings'}
-        name="isSingle"
-      >
-        <Radio.Group>
-          <Radio value={true}>
-            {t('canvas.workflow.variables.singleSelect') || 'Single Select'}
-          </Radio>
-          <Radio value={false}>
-            {t('canvas.workflow.variables.multipleSelect') || 'Multiple Select'}
-          </Radio>
-        </Radio.Group>
-      </Form.Item>
+    <Form.Item label={t('canvas.workflow.variables.optionResource') || 'Option Resource'}>
+      <Upload
+        className="file-upload-container"
+        fileList={fileList}
+        beforeUpload={handleFileUpload}
+        onRemove={handleFileRemove}
+        onChange={(info) => {
+          // Handle file status changes
+          if (info.file.status === 'uploading') {
+            setUploading(true);
+          } else if (info.file.status === 'done') {
+            setUploading(false);
+          } else if (info.file.status === 'error') {
+            setUploading(false);
+            message.error(`${info.file.name} upload failed`);
+          }
+        }}
+        multiple={false}
+        accept={ACCEPT_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(',')}
+        listType="text"
+        disabled={uploading}
+        maxCount={1}
+        itemRender={(_originNode, file) => (
+          <Spin className="w-full" spinning={uploading}>
+            <div className="w-full h-9 flex items-center justify-between gap-2 box-border px-2 bg-refly-bg-control-z0 rounded-lg hover:bg-refly-tertiary-hover">
+              <div className="flex items-center gap-2">
+                <FileIcon
+                  extension={getFileExtension(file.name || '')}
+                  width={20}
+                  height={20}
+                  type="icon"
+                  {...defaultStyles[getFileExtension(file.name || '')]}
+                />
+                <div className="flex-1 text-sm leading-5 truncate">{file.name}</div>
+              </div>
 
-      <Form.Item
-        label={t('canvas.workflow.variables.optionResource') || 'Option Resource'}
-        required
-        help={
-          fileList.length === 0
-            ? t('canvas.workflow.variables.optionResourceRequired') ||
-              'At least one file is required'
-            : ''
-        }
-        validateStatus={fileList.length === 0 ? 'error' : 'success'}
+              <div className="fl">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<Refresh size={16} color="var(--refly-text-1)" />}
+                  onClick={handleRefreshFile}
+                />
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<Delete size={16} color="var(--refly-text-1)" />}
+                  onClick={() => handleFileRemove(file)}
+                />
+              </div>
+            </div>
+          </Spin>
+        )}
       >
-        <Upload
-          fileList={fileList}
-          beforeUpload={handleFileUpload}
-          onRemove={handleFileRemove}
-          multiple={true}
-          accept="*/*"
-          listType="text"
-          disabled={uploading}
-        >
-          <Button type="dashed" disabled={uploading} loading={uploading}>
-            {t('common.upload') || 'Upload Files'}
+        {fileList.length === 0 && (
+          <Button
+            className="w-full bg-refly-bg-control-z0 border-none"
+            type="default"
+            disabled={uploading}
+            loading={uploading}
+          >
+            {t('canvas.workflow.variables.upload') || 'Upload Files'}
           </Button>
-        </Upload>
-      </Form.Item>
-    </>
+        )}
+      </Upload>
+    </Form.Item>
   );
 
   const renderOptionTypeForm = () => {

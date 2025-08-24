@@ -1308,6 +1308,7 @@ const translations = {
         inputPlaceholder: 'Please enter',
         selectPlaceholder: 'Please select',
         duplicateOption: 'Option values cannot be duplicated',
+        upload: 'Upload Files',
       },
     },
     connectionTimeout: {

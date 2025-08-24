@@ -41,4 +41,11 @@
         }
     }
   }
+
+  .file-upload-container {
+    .ant-upload {
+      padding: 0;
+      width: 100%;
+    }
+  }
 }
