@@ -16,6 +16,7 @@ import {
   defaultStyles,
 } from '@refly-packages/ai-workspace-common/components/common/resource-icon';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
+import { MAX_VARIABLE_LENGTH } from '../node-preview/start';
 
 const MAX_OPTIONS = 20;
 const DOCUMENT_FILE_EXTENSIONS = [
@@ -700,7 +701,24 @@ export const CreateVariablesModal = ({
   const handleSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
-      console.log('values', values, options, stringFormData, resourceFormData, optionFormData);
+
+      // Check variable count limits before creating/updating
+      const currentTypeCount =
+        workflowVariables?.filter(
+          (v) => v.variableType === variableType && v.variableId !== defaultValue?.variableId,
+        ).length ?? 0;
+
+      if (
+        currentTypeCount >= MAX_VARIABLE_LENGTH[variableType as keyof typeof MAX_VARIABLE_LENGTH]
+      ) {
+        const typeName =
+          t(`canvas.workflow.variables.variableTypeOptions.${variableType}`) || variableType;
+        message.error(
+          t('canvas.workflow.variables.typeLimitReached', { type: typeName }) ||
+            `${typeName} type variables have reached the maximum limit and cannot be submitted.`,
+        );
+        return;
+      }
 
       // Construct the value array based on variable type
       let finalValue: VariableValue[];
@@ -726,6 +744,7 @@ export const CreateVariablesModal = ({
         name: values.name,
         value: finalValue,
         description: values.description,
+        source: 'startNode',
         variableType: variableType as 'string' | 'option' | 'resource',
         required: values.required,
         ...(variableType === 'resource' && {
@@ -738,7 +757,6 @@ export const CreateVariablesModal = ({
         }),
       };
 
-      console.log('variable', variable);
       // return;
       await saveVariable(variable);
       refetchWorkflowVariables();
@@ -756,6 +774,8 @@ export const CreateVariablesModal = ({
     refetchWorkflowVariables,
     options,
     getFileExtension,
+    workflowVariables,
+    defaultValue,
   ]);
 
   const handleModalClose = useCallback(() => {
@@ -776,7 +796,7 @@ export const CreateVariablesModal = ({
   );
 
   const renderResourceTypeForm = () => (
-    <Form.Item label={t('canvas.workflow.variables.optionResource') || 'Option Resource'}>
+    <Form.Item label={t('canvas.workflow.variables.value') || 'Variable Value'}>
       <Upload
         className="file-upload-container"
         fileList={fileList}
@@ -905,6 +925,8 @@ export const CreateVariablesModal = ({
                     autoFocus
                     className="flex-1"
                     data-option-index={index}
+                    maxLength={200}
+                    showCount
                   />
                 ) : (
                   <div
@@ -1026,6 +1048,30 @@ export const CreateVariablesModal = ({
                   required: true,
                   message:
                     t('canvas.workflow.variables.nameRequired') || 'Variable name is required',
+                },
+                {
+                  validator: async (_, value) => {
+                    if (!value) {
+                      return Promise.resolve();
+                    }
+
+                    // Check for duplicate names in workflowVariables array
+                    const trimmedName = value.trim();
+                    const duplicateVariable = workflowVariables?.find(
+                      (variable) =>
+                        variable.name === trimmedName &&
+                        variable.variableId !== defaultValue?.variableId,
+                    );
+
+                    if (duplicateVariable) {
+                      throw new Error(
+                        t('canvas.workflow.variables.duplicateName') ||
+                          'Variable name already exists. Please choose a different name.',
+                      );
+                    }
+
+                    return Promise.resolve();
+                  },
                 },
               ]}
             >

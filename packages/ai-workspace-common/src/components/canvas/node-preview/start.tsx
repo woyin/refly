@@ -11,7 +11,7 @@ import { CreateVariablesModal } from '../workflow-variables/create-variables-mod
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 type VariableType = 'string' | 'option' | 'resource';
-const MAX_VARIABLE_LENGTH = {
+export const MAX_VARIABLE_LENGTH = {
   string: 10,
   option: 10,
   resource: 30,

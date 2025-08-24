@@ -1309,6 +1309,8 @@ const translations = {
         selectPlaceholder: 'Please select',
         duplicateOption: 'Option values cannot be duplicated',
         upload: 'Upload Files',
+        typeLimitReached:
+          '{{type}} type variables have reached the maximum limit and cannot be submitted.',
       },
     },
     connectionTimeout: {

@@ -1286,6 +1286,7 @@ const translations = {
         selectPlaceholder: '请选择',
         duplicateOption: '可选项不能存在重复值',
         upload: '上传文件',
+        typeLimitReached: '{{type}}类型的变量数量已达上限，无法提交。',
       },
     },
     connectionTimeout: {
