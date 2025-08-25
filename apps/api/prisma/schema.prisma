@@ -1518,16 +1518,12 @@ model VariableExtractionHistory {
   reusedVariables      String    @default("[]") @map("reused_variables")
   /// LLM extraction confidence (0.00-1.00)
   extractionConfidence Decimal?  @map("extraction_confidence") @db.Decimal(3, 2)
-  /// Processing time in milliseconds
-  processingTimeMs     Int?      @map("processing_time_ms")
   /// LLM model used
   llmModel             String?   @map("llm_model")
   /// Status: pending(candidate) | applied(already applied) | expired(expired)
   status               String    @default("pending") @map("status")
   /// Applied timestamp (when candidate mode converts to direct mode)
   appliedAt            DateTime? @map("applied_at") @db.Timestamptz()
-  /// Expiration timestamp (candidate mode expires in 1 hour)
-  expiresAt            DateTime? @map("expires_at") @db.Timestamptz()
   /// Create timestamp
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -1535,7 +1531,6 @@ model VariableExtractionHistory {
 
   @@index([canvasId, uid, createdAt])
   @@index([triggerType, extractionMode])
-  @@index([status, expiresAt])
   @@index([extractionConfidence])
   @@map("variable_extraction_history")
 }

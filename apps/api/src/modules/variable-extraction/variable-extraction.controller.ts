@@ -24,12 +24,9 @@ export class VariableExtractionController {
       sessionId?: string; // 可选，直接模式时检查是否有候选记录
     },
   ): Promise<VariableExtractionResult> {
-    return this.variableExtractionService.extractVariables(
-      user,
-      body.prompt,
-      body.canvasId,
-      body.mode,
-      body.sessionId,
-    );
+    return this.variableExtractionService.extractVariables(user, body.prompt, body.canvasId, {
+      mode: body.mode,
+      sessionId: body.sessionId,
+    });
   }
 }

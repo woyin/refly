@@ -444,7 +444,10 @@ export class PilotService {
               user,
               rawStep.query, // Original query
               targetId, // Canvas ID
-              'direct', // Direct mode, automatically update Canvas variables
+              {
+                mode: 'direct',
+                triggerType: 'pilot',
+              },
             )
             .then(() => {
               this.logger.log(`Variable extraction for step ${rawStep.name} completed`);
@@ -694,7 +697,10 @@ export class PilotService {
               user,
               input.query, // Summary query
               targetId, // Canvas ID
-              'direct', // Direct mode, Agent scenarios have many variable reuses
+              {
+                mode: 'direct',
+                triggerType: 'pilot',
+              },
             )
             .then(() => {
               this.logger.log('Variable extraction for summary step completed');

@@ -4,6 +4,7 @@ import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
+import { genVariableExtractionSessionID } from '@refly/utils';
 import {
   buildVariableExtractionPrompt,
   buildValidationPrompt,
@@ -17,17 +18,14 @@ import {
   CandidateRecord,
   CanvasData,
   CanvasContext,
+  VariableExtractionOptions,
+  HistoricalData,
 } from 'src/modules/variable-extraction/variable-extraction.dto';
 import {
   addTimestampsToNewVariable,
   updateTimestampForVariable,
   hasVariableChanged,
 } from './utils';
-
-interface HistoricalData {
-  extractionHistory: any[];
-  canvasPatterns: string[];
-}
 
 @Injectable()
 export class VariableExtractionService {
@@ -53,9 +51,10 @@ export class VariableExtractionService {
     user: User,
     prompt: string,
     canvasId: string,
-    mode: 'direct' | 'candidate' = 'direct',
-    sessionId?: string,
+    options: VariableExtractionOptions = {},
   ): Promise<VariableExtractionResult> {
+    const { mode = 'direct', sessionId, triggerType = 'askAI_direct' } = options;
+
     // 1. 检查候选记录（有sessionId时，无论模式）
     if (mode === 'direct' && sessionId) {
       const candidateRecord = await this.getCandidateRecord(sessionId);
@@ -92,9 +91,18 @@ export class VariableExtractionService {
     // 4. 根据模式处理结果（保持原有逻辑）
     if (mode === 'direct') {
       await this.updateCanvasVariables(user, canvasId, extractionResult.variables);
-      await this.saveExtractionHistory(user, canvasId, extractionResult, 'direct');
+      // 获取模型名称用于记录
+      const model = await this.prepareChatModel(user);
+      const modelName = model?.constructor?.name || 'unknown';
+      await this.saveExtractionHistory(user, canvasId, extractionResult, {
+        mode: 'direct',
+        model: modelName,
+        triggerType,
+      });
     } else {
-      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult);
+      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult, {
+        triggerType,
+      });
       extractionResult.sessionId = finalSessionId;
     }
 
@@ -115,7 +123,7 @@ export class VariableExtractionService {
     prompt: string,
     context: ExtractionContext,
     user: User,
-    _canvasId: string,
+    canvasId: string,
   ): Promise<VariableExtractionResult> {
     try {
       this.logger.log('Performing enhanced direct mode extraction with dual-path validation');
@@ -127,7 +135,11 @@ export class VariableExtractionService {
       ]);
 
       // 2. 生成共识结果
-      const consensusResult = await this.generateConsensusResult(primaryResult, validationResult);
+      const consensusResult = await this.generateConsensusResult(
+        primaryResult,
+        validationResult,
+        user,
+      );
 
       // 3. 基础质量检查
       const qualityScore = await this.performBasicQualityCheck(consensusResult, context);
@@ -140,14 +152,20 @@ export class VariableExtractionService {
           `Enhanced direct mode quality below threshold: ${qualityScore}, falling back to candidate mode`,
         );
         // 降级到候选模式
-        return await this.performCandidateModeExtraction(prompt, context, user, '', undefined);
+        return await this.performCandidateModeExtraction(
+          prompt,
+          context,
+          user,
+          canvasId,
+          undefined,
+        );
       }
     } catch (error) {
       this.logger.error(
         `Enhanced direct mode failed: ${error.message}, falling back to candidate mode`,
       );
       // 降级到候选模式
-      return await this.performCandidateModeExtraction(prompt, context, user, '', undefined);
+      return await this.performCandidateModeExtraction(prompt, context, user, canvasId, undefined);
     }
   }
 
@@ -187,11 +205,24 @@ export class VariableExtractionService {
 
     // 4. 保存候选记录（使用原有的完整逻辑）
     if (!sessionId) {
-      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult);
+      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult, {
+        triggerType: 'askAI_candidate',
+      });
       extractionResult.sessionId = finalSessionId;
     }
 
     return extractionResult;
+  }
+
+  private async prepareChatModel(user: User) {
+    const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
+    if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
+      throw new Error('No valid LLM provider found for validation');
+    }
+
+    const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
+
+    return model;
   }
 
   /**
@@ -221,12 +252,7 @@ export class VariableExtractionService {
         primarySkills: context.analysis.primarySkills,
       } as CanvasContext);
 
-      const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
-      if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
-        throw new Error('No valid LLM provider found for validation');
-      }
-
-      const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
+      const model = await this.prepareChatModel(user);
       const response = await model.invoke(validationPrompt);
       const responseText = response.content.toString();
 
@@ -243,38 +269,29 @@ export class VariableExtractionService {
   private async generateConsensusResult(
     primaryResult: VariableExtractionResult,
     validationResult: VariableExtractionResult,
+    user: User,
   ): Promise<VariableExtractionResult> {
     try {
       // 使用共识生成提示词
       const consensusPrompt = buildConsensusPrompt(primaryResult, validationResult);
 
-      // 使用LLM生成共识结果
-      const chatPi = await this.providerService.findDefaultProviderItem(
-        { uid: 'system' } as User,
-        'chat',
-      );
-      if (chatPi?.category === 'llm' && chatPi.enabled) {
-        const model = await this.providerService.prepareChatModel(
-          { uid: 'system' } as User,
-          chatPi.itemId,
-        );
-        const response = await model.invoke(consensusPrompt);
-        const responseText = response.content.toString();
+      const model = await this.prepareChatModel(user);
+      const response = await model.invoke(consensusPrompt);
+      const responseText = response.content.toString();
 
-        try {
-          const consensusData = JSON.parse(responseText);
-          if (consensusData.variables && Array.isArray(consensusData.variables)) {
-            return {
-              ...primaryResult,
-              variables: consensusData.variables,
-              reusedVariables: consensusData.reusedVariables || primaryResult.reusedVariables,
-            };
-          }
-        } catch (parseError) {
-          this.logger.warn(
-            `Failed to parse consensus LLM response, using primary result: ${parseError}`,
-          );
+      try {
+        const consensusData = JSON.parse(responseText);
+        if (consensusData.variables && Array.isArray(consensusData.variables)) {
+          return {
+            ...primaryResult,
+            variables: consensusData.variables,
+            reusedVariables: consensusData.reusedVariables || primaryResult.reusedVariables,
+          };
         }
+      } catch (parseError) {
+        this.logger.warn(
+          `Failed to parse consensus LLM response, using primary result: ${parseError}`,
+        );
       }
 
       // 如果LLM共识生成失败，使用智能合并逻辑
@@ -508,12 +525,8 @@ export class VariableExtractionService {
   ): Promise<VariableExtractionResult> {
     try {
       // 使用增强的提示词进行LLM提取
-      const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
-      if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
-        throw new Error('No valid LLM provider found for multi-round extraction');
-      }
 
-      const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
+      const model = await this.prepareChatModel(user);
       const response = await model.invoke(enhancedPrompt);
       const responseText = response.content.toString();
 
@@ -607,9 +620,6 @@ export class VariableExtractionService {
           sessionId,
           status: 'pending',
           extractionMode: 'candidate',
-          expiresAt: {
-            gt: new Date(), // 未过期
-          },
         },
       });
 
@@ -625,7 +635,6 @@ export class VariableExtractionService {
         extractedVariables: JSON.parse(record.extractedVariables),
         reusedVariables: JSON.parse(record.reusedVariables),
         applied: record.status === 'applied',
-        expiresAt: record.expiresAt!,
         createdAt: record.createdAt,
       };
     } catch (error) {
@@ -670,7 +679,10 @@ export class VariableExtractionService {
       await this.updateCanvasVariables(user, canvasId, record.extractedVariables);
 
       // 记录为直接模式的历史记录
-      await this.saveExtractionHistory(user, canvasId, result, 'direct');
+      await this.saveExtractionHistory(user, canvasId, result, {
+        mode: 'direct',
+        triggerType: 'candidate_conversion',
+      });
 
       this.logger.log(`Successfully applied candidate record ${record.sessionId}`);
       return result;
@@ -718,12 +730,7 @@ export class VariableExtractionService {
   ): Promise<VariableExtractionResult> {
     try {
       // 1. 获取LLM模型实例（参考pilot.service.ts的模式）
-      const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
-      if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
-        throw new Error('No valid LLM provider found for variable extraction');
-      }
-
-      const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
+      const model = await this.prepareChatModel(user);
 
       // 2. 构建变量提取提示词（使用增强版本）
       const extractionPrompt = buildVariableExtractionPrompt(originalPrompt, context.variables, {
@@ -930,9 +937,7 @@ export class VariableExtractionService {
     user: User,
     canvasId: string,
     result: VariableExtractionResult,
-    mode: string,
-    processingTimeMs?: number,
-    model?: string,
+    options: { mode: string; model?: string; triggerType: string },
   ): Promise<void> {
     try {
       await this.prisma.variableExtractionHistory.create({
@@ -940,21 +945,20 @@ export class VariableExtractionService {
           sessionId: result.sessionId || null,
           canvasId,
           uid: user.uid,
-          triggerType: 'askAI_direct', // 可以后续通过参数传入
-          extractionMode: mode,
+          triggerType: options.triggerType,
+          extractionMode: options.mode,
           originalPrompt: result.originalPrompt,
           processedPrompt: result.processedPrompt,
           extractedVariables: JSON.stringify(result.variables),
           reusedVariables: JSON.stringify(result.reusedVariables),
           extractionConfidence: this.calculateOverallConfidence(result),
-          processingTimeMs: processingTimeMs || null,
-          llmModel: model || null,
+          llmModel: options.model || null,
           status: 'applied',
           appliedAt: new Date(),
         },
       });
 
-      this.logger.log(`Saved extraction history for canvas ${canvasId}, mode: ${mode}`);
+      this.logger.log(`Saved extraction history for canvas ${canvasId}, mode: ${options.mode}`);
     } catch (error) {
       this.logger.error(`Error saving extraction history for canvas ${canvasId}:`, error);
       // 不抛出错误，保证主流程继续
@@ -965,35 +969,29 @@ export class VariableExtractionService {
     user: User,
     canvasId: string,
     result: VariableExtractionResult,
-    processingTimeMs?: number,
-    model?: string,
+    options: { triggerType: string },
   ): Promise<string> {
     try {
-      const sessionId = `candidate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const expiresAt = new Date(Date.now() + 3600000); // 1小时后过期
+      const sessionId = genVariableExtractionSessionID();
 
       await this.prisma.variableExtractionHistory.create({
         data: {
           sessionId,
           canvasId,
           uid: user.uid,
-          triggerType: 'askAI_candidate',
+          triggerType: options.triggerType,
           extractionMode: 'candidate',
           originalPrompt: result.originalPrompt,
           processedPrompt: result.processedPrompt,
           extractedVariables: JSON.stringify(result.variables),
           reusedVariables: JSON.stringify(result.reusedVariables),
           extractionConfidence: this.calculateOverallConfidence(result),
-          processingTimeMs: processingTimeMs || null,
-          llmModel: model || null,
+          llmModel: null, // Candidate records don't have a specific LLM model
           status: 'pending',
-          expiresAt,
         },
       });
 
-      this.logger.log(
-        `Saved candidate record ${sessionId} for canvas ${canvasId}, expires at ${expiresAt}`,
-      );
+      this.logger.log(`Saved candidate record ${sessionId} for canvas ${canvasId}`);
       return sessionId;
     } catch (error) {
       this.logger.error(`Error saving candidate record for canvas ${canvasId}:`, error);
@@ -1144,23 +1142,103 @@ export class VariableExtractionService {
 
   /**
    * 计算提取结果的总体置信度
+   * 基于LLM返回的置信度分数进行加权计算，提供更可信的评估
    */
   private calculateOverallConfidence(result: VariableExtractionResult): number {
     if (!result.variables.length) {
       return 0;
     }
 
-    // 基于变量数量和复杂度计算基础置信度
-    const baseConfidence = Math.min(0.9, 0.5 + result.variables.length * 0.1);
+    // 1. 基于LLM返回的变量置信度计算基础分数
+    const variableConfidences = result.variables
+      .map((v) => (v as any).confidence || 0.8) // 如果没有置信度，默认为0.8
+      .filter((conf) => conf > 0); // 过滤掉无效置信度
 
-    // 如果有处理后的提示词，增加置信度
-    const hasProcessedPrompt = result.processedPrompt !== result.originalPrompt;
-    const processedPromptBonus = hasProcessedPrompt ? 0.1 : 0;
+    if (variableConfidences.length === 0) {
+      return 0.5; // 如果没有有效置信度，返回中等评分
+    }
 
-    // 如果有复用变量，增加置信度
-    const reuseBonus = result.reusedVariables.length > 0 ? 0.05 : 0;
+    // 2. 计算加权平均置信度（变量数量越多，权重越高）
+    const totalConfidence = variableConfidences.reduce((sum, conf) => sum + conf, 0);
+    const baseConfidence = totalConfidence / variableConfidences.length;
 
-    return Math.min(1, baseConfidence + processedPromptBonus + reuseBonus);
+    // 3. 基于变量数量调整置信度（变量越多，置信度可能越低）
+    const variableCountAdjustment = Math.max(0.1, 1 - (result.variables.length - 1) * 0.05);
+
+    // 4. 基于变量类型分布调整置信度
+    const typeDistribution = this.calculateTypeDistributionConfidence(result.variables);
+
+    // 5. 基于复用变量调整置信度
+    const reuseAdjustment = result.reusedVariables.length > 0 ? 0.05 : 0;
+
+    // 6. 基于处理后的提示词质量调整置信度
+    const processedPromptQuality = this.assessProcessedPromptQuality(result);
+
+    // 7. 综合计算最终置信度
+    const finalConfidence = Math.min(
+      1,
+      baseConfidence * variableCountAdjustment * typeDistribution +
+        reuseAdjustment +
+        processedPromptQuality,
+    );
+
+    this.logger.debug(
+      `Confidence calculation: base=${baseConfidence.toFixed(3)}, ` +
+        `countAdj=${variableCountAdjustment.toFixed(3)}, ` +
+        `typeDist=${typeDistribution.toFixed(3)}, ` +
+        `reuse=${reuseAdjustment.toFixed(3)}, ` +
+        `promptQuality=${processedPromptQuality.toFixed(3)}, ` +
+        `final=${finalConfidence.toFixed(3)}`,
+    );
+
+    return finalConfidence;
+  }
+
+  /**
+   * 计算变量类型分布的置信度调整因子
+   */
+  private calculateTypeDistributionConfidence(variables: WorkflowVariable[]): number {
+    const typeCounts = new Map<string, number>();
+
+    for (const variable of variables) {
+      const type = variable.variableType || 'unknown';
+      typeCounts.set(type, (typeCounts.get(type) || 0) + 1);
+    }
+
+    // 类型分布越均匀，置信度越高
+    const totalVariables = variables.length;
+    const typeDiversity = typeCounts.size / Math.min(totalVariables, 3); // 最多3种类型
+
+    return 0.8 + typeDiversity * 0.2; // 0.8-1.0范围
+  }
+
+  /**
+   * 评估处理后提示词的质量
+   */
+  private assessProcessedPromptQuality(result: VariableExtractionResult): number {
+    if (result.processedPrompt === result.originalPrompt) {
+      return 0; // 没有处理，不加分
+    }
+
+    // 检查占位符数量是否合理
+    const placeholderCount = (result.processedPrompt.match(/\{\{[^}]+\}\}/g) || []).length;
+    const variableCount = result.variables.length;
+
+    if (placeholderCount === 0 || variableCount === 0) {
+      return 0;
+    }
+
+    // 占位符数量应该与变量数量匹配
+    const placeholderRatio =
+      Math.min(placeholderCount, variableCount) / Math.max(placeholderCount, variableCount);
+
+    // 检查占位符格式是否正确
+    const validPlaceholders = (
+      result.processedPrompt.match(/\{\{[a-zA-Z_][a-zA-Z0-9_]*\}\}/g) || []
+    ).length;
+    const formatQuality = validPlaceholders / placeholderCount;
+
+    return Math.min(0.1, placeholderRatio * formatQuality * 0.1);
   }
 
   /**

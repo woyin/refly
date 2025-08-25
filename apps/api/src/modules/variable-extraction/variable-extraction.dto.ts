@@ -3,6 +3,31 @@ import { CanvasContentItem } from 'src/modules/canvas/canvas.dto';
 // 重新导出 openapi-schema 中的 WorkflowVariable 类型
 export { WorkflowVariable } from '@refly/openapi-schema';
 
+export interface HistoricalData {
+  extractionHistory: ExtractionHistoryRecord[];
+  canvasPatterns: string[];
+}
+
+// 变量提取选项
+export interface VariableExtractionOptions {
+  mode?: 'direct' | 'candidate';
+  sessionId?: string;
+  triggerType?: string;
+}
+
+// 保存历史记录选项
+export interface SaveHistoryOptions {
+  mode: string;
+  model?: string;
+  triggerType?: string;
+}
+
+// 保存候选记录选项
+export interface SaveCandidateOptions {
+  modelName?: string;
+  triggerType?: string;
+}
+
 // 核心返回类型
 export interface VariableExtractionResult {
   originalPrompt: string; // 原始用户输入
@@ -127,7 +152,6 @@ export interface CandidateRecord {
   extractedVariables: WorkflowVariable[];
   reusedVariables: VariableReuse[];
   applied: boolean;
-  expiresAt: Date;
   createdAt: Date;
 }
 
