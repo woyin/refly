@@ -8636,6 +8636,13 @@ components:
         resource:
           description: Variable resource value (for resource type)
           $ref: '#/components/schemas/ResourceValue'
+    VariableResourceType:
+      type: string
+      enum:
+        - document
+        - image
+        - video
+        - audio
     WorkflowVariable:
       type: object
       description: Workflow variable definition
@@ -8656,12 +8663,6 @@ components:
           items:
             $ref: '#/components/schemas/VariableValue'
           description: Variable values
-        options:
-          type: array
-          items:
-            type: string
-          description: Variable options
-          example: ["张三", "李四"]
         description:
           type: string
           description: Variable description
@@ -8687,6 +8688,17 @@ components:
           type: boolean
           description: Whether the variable value is single (not multiple)
           example: true
+        options:
+          type: array
+          items:
+            type: string
+          description: Variable options (only valid when variable type is option)
+          example: ["张三", "李四"]
+        resourceTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/VariableResourceType'
+          description: Supported resource types (only valid when variable type is resource)
     GetWorkflowVariablesResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

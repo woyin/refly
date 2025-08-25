@@ -7697,6 +7697,11 @@ export const VariableValueSchema = {
   },
 } as const;
 
+export const VariableResourceTypeSchema = {
+  type: 'string',
+  enum: ['document', 'image', 'video', 'audio'],
+} as const;
+
 export const WorkflowVariableSchema = {
   type: 'object',
   description: 'Workflow variable definition',
@@ -7717,14 +7722,6 @@ export const WorkflowVariableSchema = {
         $ref: '#/components/schemas/VariableValue',
       },
       description: 'Variable values',
-    },
-    options: {
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-      description: 'Variable options',
-      example: ['张三', '李四'],
     },
     description: {
       type: 'string',
@@ -7750,6 +7747,21 @@ export const WorkflowVariableSchema = {
       type: 'boolean',
       description: 'Whether the variable value is single (not multiple)',
       example: true,
+    },
+    options: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      description: 'Variable options (only valid when variable type is option)',
+      example: ['张三', '李四'],
+    },
+    resourceTypes: {
+      type: 'array',
+      items: {
+        $ref: '#/components/schemas/VariableResourceType',
+      },
+      description: 'Supported resource types (only valid when variable type is resource)',
     },
   },
 } as const;

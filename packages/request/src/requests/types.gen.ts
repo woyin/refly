@@ -5401,6 +5401,8 @@ export type VariableValue = {
   resource?: ResourceValue;
 };
 
+export type VariableResourceType = 'document' | 'image' | 'video' | 'audio';
+
 /**
  * Workflow variable definition
  */
@@ -5417,10 +5419,6 @@ export type WorkflowVariable = {
    * Variable values
    */
   value: Array<VariableValue>;
-  /**
-   * Variable options
-   */
-  options?: Array<string>;
   /**
    * Variable description
    */
@@ -5441,6 +5439,14 @@ export type WorkflowVariable = {
    * Whether the variable value is single (not multiple)
    */
   isSingle?: boolean;
+  /**
+   * Variable options (only valid when variable type is option)
+   */
+  options?: Array<string>;
+  /**
+   * Supported resource types (only valid when variable type is resource)
+   */
+  resourceTypes?: Array<VariableResourceType>;
 };
 
 /**
