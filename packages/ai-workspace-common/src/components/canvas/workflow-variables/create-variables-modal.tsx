@@ -143,6 +143,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           }
         }
       } else {
+        setVariableType(initialVariableType || 'string');
         resetState();
       }
     }, [visible]);
