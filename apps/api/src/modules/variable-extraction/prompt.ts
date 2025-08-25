@@ -4,9 +4,9 @@ import {
 } from 'src/modules/variable-extraction/variable-extraction.dto';
 
 /**
- * 基础提示词构建器 - 标准变量提取模式
- * 使用场景: 首次变量提取，无特殊要求的场景
- * 作用: 提供标准化的变量提取指导，平衡准确性和完整性
+ * Base prompt builder - standard variable extraction mode
+ * Use cases: first-time variable extraction, no special requirements
+ * Purpose: provide standardized variable extraction guidance, balancing accuracy and completeness
  */
 export function buildVariableExtractionPrompt(
   userPrompt: string,
@@ -17,20 +17,20 @@ export function buildVariableExtractionPrompt(
 }
 
 /**
- * 增强提示词构建器 - 支持多种模式
- * 使用场景: 根据不同业务需求生成专门的提示词
- * 作用: 提供模式化的提示词，提升特定场景下的提取质量
+ * Enhanced prompt builder - supports multiple modes
+ * Use cases: generate specialized prompts for different business requirements
+ * Purpose: provide modal prompts to improve extraction quality in specific scenarios
  */
 export function buildEnhancedPrompt(
   userPrompt: string,
   existingVariables: WorkflowVariable[],
   canvasContext: CanvasContext,
   /**
-   * 变量提取模式，控制提示词的生成策略和侧重点
-   * - standard: 标准模式 - 平衡准确性和完整性，适用于首次变量提取
-   * - validation: 验证模式 - 重点关注变量准确性和合理性，用于双路径验证
-   * - historical: 历史模式 - 基于历史数据学习，优化变量命名和分类策略
-   * - consensus: 共识模式 - 对比多个提取结果，生成最优的融合方案
+   * Variable extraction mode, controls prompt generation strategy and focus
+   * - standard: standard mode - balance accuracy and completeness, suitable for first-time variable extraction
+   * - validation: validation mode - focus on variable accuracy and reasonability, for dual-path validation
+   * - historical: historical mode - based on historical data learning, optimize variable naming and classification strategies
+   * - consensus: consensus mode - compare multiple extraction results, generate optimal fusion solution
    */
   mode: 'standard' | 'validation' | 'historical' | 'consensus' = 'standard',
 ): string {
@@ -53,87 +53,87 @@ export function buildEnhancedPrompt(
       modeSpecificInstructions = buildStandardInstructions();
   }
 
-  return `# AI 工作流变量智能提取专家
+  return `# AI Workflow Variable Intelligent Extraction Expert
 
-你是一个专业的工作流分析专家，负责从用户的自然语言输入中智能提取可参数化的变量，构建高效的工作流模板。
+You are a professional workflow analysis expert responsible for intelligently extracting parameterizable variables from users' natural language input to build efficient workflow templates.
 
-## 核心任务
-1. **精准识别**: 分析用户输入，识别所有可变参数
-2. **智能分类**: 将参数归类为 string/resource/option 三种类型
-3. **变量复用**: 检测并复用现有变量，避免重复创建
-4. **模板生成**: 生成带占位符的 processedPrompt 模板
+## Core Tasks
+1. **Precise Identification**: Analyze user input, identify all variable parameters
+2. **Intelligent Classification**: Categorize parameters into string/resource/option three types
+3. **Variable Reuse**: Detect and reuse existing variables, avoid duplicate creation
+4. **Template Generation**: Generate processedPrompt template with placeholders
 
-## 输入上下文
+## Input Context
 
-### 用户原始输入
+### User Original Input
 \`\`\`
 ${userPrompt}
 \`\`\`
 
-### 现有变量库
+### Existing Variable Library
 ${existingVarsText}
 
-### 工作流上下文
+### Workflow Context
 ${canvasContextText}
 
 ${modeSpecificInstructions}
 
-## 变量类型定义
+## Variable Type Definitions
 
-### 1. string (文本变量)
-- **用途**: 纯文本内容、配置参数、描述信息
-- **示例**: 主题、标题、要求、风格、语言等
-- **命名**: topic, title, style, language, requirement
+### 1. string (Text Variable)
+- **Purpose**: Pure text content, configuration parameters, description information
+- **Examples**: Topic, title, requirements, style, language, etc.
+- **Naming**: topic, title, style, language, requirement
 
-### 2. resource (资源变量) 
-- **用途**: 需要用户上传的文件、文档、图片等
-- **示例**: 简历文件、参考文档、图片素材等
-- **命名**: resume_file, reference_doc, source_image
+### 2. resource (Resource Variable) 
+- **Purpose**: Files, documents, images that users need to upload
+- **Examples**: Resume files, reference documents, image materials, etc.
+- **Naming**: resume_file, reference_doc, source_image
 
-### 3. option (选项变量)
-- **用途**: 预定义的选择项、枚举值
-- **示例**: 格式选择、模式选择、级别选择等
-- **命名**: output_format, processing_mode, difficulty_level
+### 3. option (Option Variable)
+- **Purpose**: Predefined selection items, enumeration values
+- **Examples**: Format selection, mode selection, level selection, etc.
+- **Naming**: output_format, processing_mode, difficulty_level
 
-## 智能分析流程
+## Intelligent Analysis Process
 
-### Step 1: 意图理解
-- 分析用户的核心目标和期望输出
-- 识别任务类型和复杂程度
+### Step 1: Intent Understanding
+- Analyze user's core goals and expected output
+- Identify task type and complexity level
 
-### Step 2: 实体抽取
-- 扫描用户输入中的具体值和概念
-- 判断哪些内容可以参数化
-- 区分固定内容和可变内容
+### Step 2: Entity Extraction
+- Scan specific values and concepts in user input
+- Determine which content can be parameterized
+- Distinguish between fixed content and variable content
 
-### Step 3: 变量分类
-- string: 用户可直接输入的文本内容
-- resource: 需要上传的文件或外部资源
-- option: 有限选择集合中的选项
+### Step 3: Variable Classification
+- string: Text content that users can directly input
+- resource: Files or external resources that need to be uploaded
+- option: Options in limited selection sets
 
-### Step 4: 复用检测
-- 语义相似度匹配 (阈值 0.8+)
-- 指代词检测 ("这个"、"上述"、"刚才的")
-- 上下文关联分析
+### Step 4: Reuse Detection
+- Semantic similarity matching (threshold 0.8+)
+- Pronoun detection ("this", "above", "just now")
+- Context association analysis
 
-### Step 5: 变量命名
-- 使用英文 snake_case 格式
-- 名称要见名知意且简洁
-- 避免与现有变量名冲突
+### Step 5: Variable Naming
+- Use English snake_case format
+- Names should be self-explanatory and concise
+- Avoid conflicts with existing variable names
 
-### Step 6: 模板构建
-- 将提取的变量值替换为 {{variable_name}} 占位符
-- 保持原文语义和结构完整
-- 确保模板可读性和实用性
+### Step 6: Template Construction
+- Replace extracted variable values with {{variable_name}} placeholders
+- Maintain original semantic and structural integrity
+- Ensure template readability and practicality
 
-## 输出格式要求
+## Output Format Requirements
 
-**必须**返回标准 JSON 格式，不允许有任何格式错误：
+**Must** return standard JSON format, no format errors allowed:
 
 \`\`\`json
 {
   "analysis": {
-    "userIntent": "用户意图的简洁描述",
+    "userIntent": "Concise description of user intent",
     "extractionConfidence": 0.95,
     "complexityScore": 3,
     "extractedEntityCount": 5,
@@ -146,38 +146,38 @@ ${modeSpecificInstructions}
   "variables": [
     {
       "name": "variable_name",
-      "value": ["具体提取的值或空字符串"],
-      "description": "变量用途描述",
+      "value": ["Specific extracted value or empty string"],
+      "description": "Variable purpose description",
       "variableType": "string",
       "source": "startNode",
-      "extractionReason": "为什么提取这个变量",
+      "extractionReason": "Why extract this variable",
       "confidence": 0.92
     }
   ],
   "reusedVariables": [
     {
-      "detectedText": "原文中被复用的文本片段",
-      "reusedVariableName": "复用的变量名",
+      "detectedText": "Text fragment reused in original text",
+      "reusedVariableName": "Reused variable name",
       "confidence": 0.89,
-      "reason": "复用的具体原因"
+      "reason": "Specific reason for reuse"
     }
   ],
-  "processedPrompt": "替换变量后的模板字符串，使用{{variable_name}}格式",
-  "originalPrompt": "原始用户输入"
+  "processedPrompt": "Template string after variable replacement, using {{variable_name}} format",
+  "originalPrompt": "Original user input"
 }
 \`\`\`
 
-## 质量标准
-- 变量名称：清晰、一致、见名知意
-- 变量类型：准确分类，符合三种类型定义
-- 复用检测：高准确率，减少冗余变量
-- 处理后模板：保持原意，正确替换占位符`;
+## Quality Standards
+- Variable names: Clear, consistent, self-explanatory
+- Variable types: Accurate classification, conforming to three type definitions
+- Reuse detection: High accuracy, reduce redundant variables
+- Processed template: Maintain original meaning, correct placeholder replacement`;
 }
 
 /**
- * 验证模式提示词 - 用于双路径验证
- * 使用场景: 增强直接模式下的验证LLM调用
- * 作用: 提供验证导向的提示词，重点关注变量准确性和合理性
+ * Validation prompt - used for dual-path validation
+ * Use cases: enhance direct mode LLM calls
+ * Purpose: provide validation-oriented prompts, focusing on variable accuracy and reasonability
  */
 export function buildValidationPrompt(
   userPrompt: string,
@@ -188,9 +188,9 @@ export function buildValidationPrompt(
 }
 
 /**
- * 历史模式提示词 - 基于历史数据学习
- * 使用场景: 候选模式下的变量提取，有丰富历史数据
- * 作用: 利用历史成功模式和历史变量使用习惯，提供更精准的提取结果
+ * Historical prompt - based on historical data learning
+ * Use cases: variable extraction in candidate modes, with rich historical data
+ * Purpose: utilize historical successful patterns and historical variable usage habits to provide more accurate extraction results
  */
 export function buildHistoricalPrompt(
   userPrompt: string,
@@ -208,129 +208,130 @@ export function buildHistoricalPrompt(
 
   return `${basePrompt}
 
-## 历史学习上下文
+## Historical Learning Context
 ${historicalContext}
 
-请基于历史成功模式和历史变量使用习惯，提供更精准的变量提取结果。`;
+Please provide more accurate variable extraction results based on historical successful patterns and historical variable usage habits.`;
 }
 
 /**
- * 共识生成提示词 - 融合多个提取结果
- * 使用场景: 增强直接模式下的双路径结果融合
- * 作用: 对比和融合两个不同的变量提取结果，生成最优的共识方案
+ * Consensus generation prompt - fuse multiple extraction results
+ * Use cases: enhance dual-path results fusion in direct mode
+ * Purpose: compare and fuse two different variable extraction results to generate the optimal consensus solution
  */
 export function buildConsensusPrompt(primaryResult: any, validationResult: any): string {
-  return `# 变量提取结果共识生成专家
+  return `# Variable Extraction Result Consensus Generation Expert
 
-你是一个专业的变量提取结果分析专家，负责对比和融合两个不同的变量提取结果，生成最优的共识方案。
+You are a professional variable extraction result analysis expert responsible for comparing and fusing two different variable extraction results to generate the optimal consensus solution.
 
-## 输入结果
+## Input Results
 
-### 主结果
+### Primary Result
 \`\`\`json
 ${JSON.stringify(primaryResult.variables, null, 2)}
 \`\`\`
 
-### 验证结果
+### Validation Result
 \`\`\`json
 ${JSON.stringify(validationResult.variables, null, 2)}
 \`\`\`
 
-## 共识生成要求
+## Consensus Generation Requirements
 
-1. **质量优先**: 选择置信度更高、描述更清晰的变量定义
-2. **智能合并**: 合并两个结果中的有效信息，避免重复
-3. **一致性保证**: 确保最终结果在逻辑上一致
-4. **复用优化**: 优先保留有效的变量复用建议
+1. **Quality Priority**: Select variable definitions with higher confidence and clearer descriptions
+2. **Smart Merging**: Merge effective information from both results, avoid duplication
+3. **Consistency Guarantee**: Ensure final results are logically consistent
+4. **Reuse Optimization**: Prioritize effective reuse suggestions
 
-## 分析维度
+## Analysis Dimensions
 
-- **变量完整性**: 检查是否覆盖了所有必要的参数
-- **命名规范性**: 确保变量名称符合命名规范
-- **类型准确性**: 验证变量类型分类是否合理
-- **描述清晰度**: 评估变量描述的准确性和可理解性
+- **Variable Completeness**: Check if all necessary parameters are covered
+- **Naming Conformity**: Ensure variable names conform to naming conventions
+- **Type Accuracy**: Verify if variable type classification is reasonable
+- **Description Clarity**: Evaluate the accuracy and understandability of variable descriptions
 
-## 输出格式
+## Output Format
 
-返回融合后的标准JSON格式：
+Return fused standard JSON format:
 
 \`\`\`json
 {
   "variables": [
     {
       "name": "variable_name",
-      "value": ["具体值"],
-      "description": "变量用途描述",
+      "value": ["Specific value"],
+      "description": "Variable purpose description",
       "variableType": "string",
       "source": "startNode"
     }
   ],
   "reusedVariables": [
     {
-      "detectedText": "原文中被复用的文本片段",
-      "reusedVariableName": "复用的变量名",
+      "detectedText": "Text fragment reused in original text",
+      "reusedVariableName": "Reused variable name",
       "confidence": 0.89,
-      "reason": "复用的具体原因"
+      "reason": "Specific reason for reuse"
     }
   ],
-  "consensusReason": "为什么选择这个融合方案",
+  "consensusReason": "Why choose this fusion solution",
   "qualityScore": 0.95
 }
 \`\`\``;
 }
 
 /**
- * 构建现有变量文本 - 内部工具函数
- * 作用: 将现有变量格式化为可读的文本描述
+ * Build existing variable text - internal utility function
+ * Purpose: format existing variables into readable text description
  */
 function buildExistingVariablesText(existingVariables: WorkflowVariable[]): string {
   if (existingVariables.length === 0) {
-    return '- 暂无现有变量';
+    return '- No existing variables';
   }
 
   return existingVariables
     .map((v) => {
       const value = Array.isArray(v.value) ? v.value.join(', ') : v.value;
-      return `- ${v.name} (${v.variableType}): ${v.description} [当前值: ${value || '空'}]`;
+      return `- ${v.name} (${v.variableType}): ${v.description} [Current value: ${value || 'Empty'}]`;
     })
     .join('\n');
 }
 
 /**
- * 构建画布上下文文本 - 内部工具函数
- * 作用: 将画布上下文信息格式化为结构化的文本描述
+ * Build canvas context text - internal utility function
+ * Purpose: format canvas context information into structured text description
  */
 function buildCanvasContextText(canvasContext: CanvasContext): string {
   const {
     nodeCount = 0,
     complexity = 0,
     resourceCount = 0,
-    workflowType = '通用工作流',
-    primarySkills = ['内容生成'],
+    workflowType = 'Generic Workflow',
+    primarySkills = ['Content Generation'],
     lastExtractionTime,
     recentVariablePatterns = [],
   } = canvasContext;
 
-  let contextText = `- 画布节点: ${nodeCount} 个
-- 工作流类型: ${workflowType}
-- 主要技能: ${Array.isArray(primarySkills) ? primarySkills.join(', ') : primarySkills}
-- 复杂度评分: ${complexity}/100
-- 资源数量: ${resourceCount} 个`;
+  let contextText = `- Canvas Nodes: ${nodeCount}
+- Workflow Type: ${workflowType}
+- Primary Skills: ${Array.isArray(primarySkills) ? primarySkills.join(', ') : primarySkills}
+- Complexity Score: ${complexity}/100
+- Resource Count: ${resourceCount}
+`;
 
   if (lastExtractionTime) {
-    contextText += `\n- 上次提取时间: ${new Date(lastExtractionTime).toLocaleString()}`;
+    contextText += `\n- Last Extraction Time: ${new Date(lastExtractionTime).toLocaleString()}`;
   }
 
   if (recentVariablePatterns.length > 0) {
-    contextText += `\n- 最近变量模式: ${recentVariablePatterns.slice(0, 5).join(', ')}`;
+    contextText += `\n- Recent Variable Patterns: ${recentVariablePatterns.slice(0, 5).join(', ')}`;
   }
 
   return contextText;
 }
 
 /**
- * 构建历史上下文 - 内部工具函数
- * 作用: 分析历史数据并生成结构化的历史学习上下文
+ * Build historical context - internal utility function
+ * Purpose: analyze historical data and generate structured historical learning context
  */
 function buildHistoricalContext(historicalData: any): string {
   if (
@@ -338,7 +339,7 @@ function buildHistoricalContext(historicalData: any): string {
     !historicalData.extractionHistory ||
     historicalData.extractionHistory.length === 0
   ) {
-    return '暂无历史提取记录，将使用标准提取策略';
+    return 'No historical extraction records, standard extraction strategy will be used';
   }
 
   const recentExtractions = historicalData.extractionHistory.slice(0, 5);
@@ -350,27 +351,27 @@ function buildHistoricalContext(historicalData: any): string {
     try {
       const variables = JSON.parse(record.extractedVariables);
       for (const variable of variables) {
-        // 统计变量类型分布
+        // Count variable type distribution
         const type = variable.variableType || 'unknown';
         variableTypes.set(type, (variableTypes.get(type) || 0) + 1);
 
-        // 收集常见模式
+        // Collect common patterns
         if (variable.description) {
           commonPatterns.add(variable.description);
         }
       }
 
-      // 统计成功率
+      // Count success rate
       const status = record.status || 'unknown';
       successRates.set(status, (successRates.get(status) || 0) + 1);
     } catch {
-      // 忽略解析错误的记录
+      // Ignore records with parsing errors
     }
   }
 
-  // 构建历史上下文描述
+  // Build historical context description
   const typeDistribution = Array.from(variableTypes.entries())
-    .map(([type, count]) => `${type}: ${count}个`)
+    .map(([type, count]) => `${type}: ${count}`)
     .join(', ');
 
   const patternList = Array.from(commonPatterns).slice(0, 3).join('、');
@@ -379,57 +380,57 @@ function buildHistoricalContext(historicalData: any): string {
   const totalRecords = recentExtractions.length;
   const successPercentage = totalRecords > 0 ? Math.round((successRate / totalRecords) * 100) : 0;
 
-  return `基于${historicalData.extractionHistory.length}次历史提取经验：
-- 变量类型分布: ${typeDistribution}
-- 常见模式: ${patternList || '无特定模式'}
-- 最近提取时间: ${recentExtractions[0]?.createdAt?.toLocaleDateString() || '未知'}
-- 历史成功率: ${successPercentage}% (${successRate}/${totalRecords})
-- 最近提取记录: ${recentExtractions.length} 条`;
+  return `Based on ${historicalData.extractionHistory.length} historical extraction experiences:
+- Variable type distribution: ${typeDistribution}
+- Common patterns: ${patternList || 'No specific patterns'}
+- Last extraction time: ${recentExtractions[0]?.createdAt?.toLocaleDateString() || 'Unknown'}
+- Historical success rate: ${successPercentage}% (${successRate}/${totalRecords})
+- Recent extraction records: ${recentExtractions.length} records`;
 }
 
 /**
- * 构建标准指令 - 内部工具函数
- * 作用: 为标准提取模式生成特定的指导说明
+ * Build standard instructions - internal utility function
+ * Purpose: generate specific guidance for standard extraction mode
  */
 function buildStandardInstructions(): string {
-  return `## 标准提取模式
-- 使用标准的质量评估标准
-- 平衡准确性和完整性
-- 优先考虑用户输入的明确性`;
+  return `## Standard Extraction Mode
+- Use standard quality assessment standards
+- Balance accuracy and completeness
+- Prioritize user input clarity`;
 }
 
 /**
- * 构建验证指令 - 内部工具函数
- * 作用: 为验证提取模式生成特定的指导说明
+ * Build validation instructions - internal utility function
+ * Purpose: generate specific guidance for validation extraction mode
  */
 function buildValidationInstructions(): string {
-  return `## 验证提取模式
-- 重点关注变量的准确性和合理性
-- 验证变量类型分类的正确性
-- 检查变量命名的一致性
-- 确保复用检测的准确性`;
+  return `## Validation Extraction Mode
+- Focus on variable accuracy and reasonability
+- Verify variable type classification correctness
+- Check variable naming consistency
+- Ensure reuse detection accuracy`;
 }
 
 /**
- * 构建历史指令 - 内部工具函数
- * 作用: 为历史学习模式生成特定的指导说明
+ * Build historical instructions - internal utility function
+ * Purpose: generate specific guidance for historical learning mode
  */
 function buildHistoricalInstructions(): string {
-  return `## 历史学习模式
-- 基于历史成功模式进行提取
-- 学习用户的变量使用偏好
-- 优化变量命名和分类策略
-- 提高复用检测的准确性`;
+  return `## Historical Learning Mode
+- Extract based on historical successful patterns
+- Learn user's variable usage preferences
+- Optimize variable naming and classification strategies
+- Improve reuse detection accuracy`;
 }
 
 /**
- * 构建共识指令 - 内部工具函数
- * 作用: 为共识生成模式生成特定的指导说明
+ * Build consensus instructions - internal utility function
+ * Purpose: generate specific guidance for consensus generation mode
  */
 function buildConsensusInstructions(): string {
-  return `## 共识生成模式
-- 对比多个提取结果的质量
-- 选择最优的变量定义
-- 合并有效的复用建议
-- 确保结果的一致性和完整性`;
+  return `## Consensus Generation Mode
+- Compare quality of multiple extraction results
+- Select the optimal variable definition
+- Merge effective reuse suggestions
+- Ensure consistency and completeness of the result`;
 }

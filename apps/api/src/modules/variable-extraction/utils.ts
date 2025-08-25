@@ -2,11 +2,11 @@ import { COMPLEXITY_WEIGHTS, CONFIDENCE_WEIGHTS, DEFAULT_VALUES } from './consta
 import type { CanvasNode, CanvasEdge, WorkflowVariable } from './variable-extraction.dto';
 
 /**
- * 计算画布复杂度评分
- * @param nodes 画布节点
- * @param edges 画布边
- * @param variables 工作流变量
- * @returns 复杂度评分 0-100
+ * Calculate canvas complexity score
+ * @param nodes Canvas nodes
+ * @param edges Canvas edges
+ * @param variables Workflow variables
+ * @returns Complexity score 0-100
  */
 export function calculateCanvasComplexity(
   nodes: CanvasNode[] = [],
@@ -19,16 +19,16 @@ export function calculateCanvasComplexity(
 
   let score = 0;
 
-  // 节点数量评分
+  // Node count score
   score += Math.min(nodes.length * COMPLEXITY_WEIGHTS.NODE_COUNT, 30);
 
-  // 边数量评分
+  // Edge count score
   score += Math.min(edges.length * COMPLEXITY_WEIGHTS.EDGE_COUNT, 20);
 
-  // 变量数量评分
+  // Variable count score
   score += Math.min(variables.length * COMPLEXITY_WEIGHTS.VARIABLE_COUNT, 20);
 
-  // 节点类型多样性评分
+  // Node type diversity score
   const nodeTypes = new Set(nodes.map((node) => node.type));
   score += Math.min(nodeTypes.size * COMPLEXITY_WEIGHTS.NODE_TYPE_DIVERSITY, 30);
 
@@ -36,10 +36,10 @@ export function calculateCanvasComplexity(
 }
 
 /**
- * 检测工作流类型
- * @param contentItems 内容项
- * @param variables 变量
- * @returns 工作流类型
+ * Detect workflow type
+ * @param contentItems Content items
+ * @param variables Variables
+ * @returns Workflow type
  */
 export function detectWorkflowType(
   contentItems: Array<{ type: string; title?: string }> = [],
@@ -49,7 +49,7 @@ export function detectWorkflowType(
     return DEFAULT_VALUES.WORKFLOW_TYPE;
   }
 
-  // 基于内容项类型判断
+  // Judge based on content item types
   const typeCounts = contentItems.reduce(
     (acc, item) => {
       acc[item.type] = (acc[item.type] || 0) + 1;
@@ -58,7 +58,7 @@ export function detectWorkflowType(
     {} as Record<string, number>,
   );
 
-  // 基于变量名称判断
+  // Judge based on variable names
   const variableNames = variables.map((v) => v.name.toLowerCase()).join(' ');
 
   if (
@@ -66,7 +66,7 @@ export function detectWorkflowType(
     variableNames.includes('project') ||
     variableNames.includes('task')
   ) {
-    return '项目管理';
+    return 'Project Management';
   }
 
   if (
@@ -74,7 +74,7 @@ export function detectWorkflowType(
     variableNames.includes('code') ||
     variableNames.includes('function')
   ) {
-    return '代码开发';
+    return 'Code Development';
   }
 
   if (
@@ -82,7 +82,7 @@ export function detectWorkflowType(
     variableNames.includes('data') ||
     variableNames.includes('analysis')
   ) {
-    return '数据分析';
+    return 'Data Analysis';
   }
 
   if (
@@ -90,17 +90,17 @@ export function detectWorkflowType(
     variableNames.includes('design') ||
     variableNames.includes('ui')
   ) {
-    return '设计创作';
+    return 'Design Creation';
   }
 
   return DEFAULT_VALUES.WORKFLOW_TYPE;
 }
 
 /**
- * 识别主要技能
- * @param contentItems 内容项
- * @param variables 变量
- * @returns 主要技能列表
+ * Identify primary skills
+ * @param contentItems Content items
+ * @param variables Variables
+ * @returns Primary skills list
  */
 export function identifyPrimarySkills(
   contentItems: Array<{ type: string; title?: string }> = [],
@@ -112,54 +112,54 @@ export function identifyPrimarySkills(
 
   const skills = new Set<string>();
 
-  // 基于内容项类型识别技能
+  // Identify skills based on content item types
   for (const item of contentItems) {
     switch (item.type) {
       case 'startNode':
-        skills.add('需求分析');
+        skills.add('Requirements Analysis');
         break;
       case 'codeNode':
-        skills.add('代码开发');
+        skills.add('Code Development');
         break;
       case 'dataNode':
-        skills.add('数据处理');
+        skills.add('Data Processing');
         break;
       case 'designNode':
-        skills.add('设计创作');
+        skills.add('Design Creation');
         break;
       case 'apiNode':
-        skills.add('API集成');
+        skills.add('API Integration');
         break;
       case 'workflowNode':
-        skills.add('工作流编排');
+        skills.add('Workflow Orchestration');
         break;
     }
   }
 
-  // 基于变量名称识别技能
+  // Identify skills based on variable names
   const variableNames = variables.map((v) => v.name.toLowerCase()).join(' ');
 
   if (variableNames.includes('prompt') || variableNames.includes('template')) {
-    skills.add('提示词工程');
+    skills.add('Prompt Engineering');
   }
 
   if (variableNames.includes('api') || variableNames.includes('endpoint')) {
-    skills.add('API设计');
+    skills.add('API Design');
   }
 
   if (variableNames.includes('database') || variableNames.includes('query')) {
-    skills.add('数据库操作');
+    skills.add('Database Operations');
   }
 
   return skills.size > 0 ? Array.from(skills) : [...DEFAULT_VALUES.PRIMARY_SKILLS];
 }
 
 /**
- * 计算置信度分数
- * @param variables 变量数量
- * @param hasProcessedPrompt 是否有处理后的提示词
- * @param reusedVariables 复用变量数量
- * @returns 置信度分数 0-1
+ * Calculate confidence score
+ * @param variables Variable count
+ * @param hasProcessedPrompt Whether there is a processed prompt
+ * @param reusedVariables Reused variable count
+ * @returns Confidence score 0-1
  */
 export function calculateConfidence(
   variables: number,
@@ -168,25 +168,25 @@ export function calculateConfidence(
 ): number {
   let confidence = CONFIDENCE_WEIGHTS.BASE_CONFIDENCE;
 
-  // 变量数量加成
+  // Variable count bonus
   confidence += Math.min(variables * CONFIDENCE_WEIGHTS.PER_VARIABLE_BONUS, 0.3);
 
-  // 处理后提示词加成
+  // Processed prompt bonus
   if (hasProcessedPrompt) {
     confidence += CONFIDENCE_WEIGHTS.PROCESSED_PROMPT_BONUS;
   }
 
-  // 复用变量加成
+  // Reused variable bonus
   confidence += Math.min(reusedVariables * CONFIDENCE_WEIGHTS.REUSE_BONUS, 0.1);
 
   return Math.min(confidence, CONFIDENCE_WEIGHTS.MAX_CONFIDENCE);
 }
 
 /**
- * 生成会话ID
- * @param prefix 前缀
- * @param timestamp 时间戳
- * @returns 会话ID
+ * Generate session ID
+ * @param prefix Prefix
+ * @param timestamp Timestamp
+ * @returns Session ID
  */
 export function generateSessionId(prefix: string, timestamp: number): string {
   const randomSuffix = Math.random().toString(36).substring(2, 8);
@@ -194,27 +194,27 @@ export function generateSessionId(prefix: string, timestamp: number): string {
 }
 
 /**
- * 检查候选记录是否过期
- * @param expiresAt 过期时间
- * @returns 是否过期
+ * Check if candidate record is expired
+ * @param expiresAt Expiration time
+ * @returns Whether expired
  */
 export function isCandidateRecordExpired(expiresAt: Date): boolean {
   return new Date() > expiresAt;
 }
 
 /**
- * 计算候选记录过期时间
- * @param hours 小时数
- * @returns 过期时间
+ * Calculate candidate record expiration time
+ * @param hours Hours
+ * @returns Expiration time
  */
 export function calculateExpiryTime(hours: number): Date {
   return new Date(Date.now() + hours * 60 * 60 * 1000);
 }
 
 /**
- * 验证变量提取结果
- * @param result 提取结果
- * @returns 是否有效
+ * Validate variable extraction result
+ * @param result Extraction result
+ * @returns Whether valid
  */
 export function validateExtractionResult(result: {
   variables: unknown[];
@@ -229,9 +229,9 @@ export function validateExtractionResult(result: {
 }
 
 /**
- * 清理和标准化变量名称
- * @param name 原始名称
- * @returns 标准化名称
+ * Clean and standardize variable names
+ * @param name Original name
+ * @returns Standardized name
  */
 export function normalizeVariableName(name: string): string {
   return name
@@ -243,9 +243,9 @@ export function normalizeVariableName(name: string): string {
 }
 
 /**
- * 检查变量名称是否有效
- * @param name 变量名称
- * @returns 是否有效
+ * Check if variable name is valid
+ * @param name Variable name
+ * @returns Whether valid
  */
 export function isValidVariableName(name: string): boolean {
   const normalized = normalizeVariableName(name);
@@ -253,10 +253,10 @@ export function isValidVariableName(name: string): boolean {
 }
 
 /**
- * 生成变量描述
- * @param name 变量名称
- * @param context 上下文信息
- * @returns 变量描述
+ * Generate variable description
+ * @param name Variable name
+ * @param context Context information
+ * @returns Variable description
  */
 export function generateVariableDescription(
   name: string,
@@ -272,9 +272,9 @@ export function generateVariableDescription(
 }
 
 /**
- * 为新变量添加时间戳字段
- * @param variable 变量对象
- * @returns 带时间戳的变量对象
+ * Add timestamp fields to new variables
+ * @param variable Variable object
+ * @returns Variable object with timestamps
  */
 export function addTimestampsToNewVariable(variable: WorkflowVariable): WorkflowVariable {
   const now = new Date().toISOString();
@@ -286,10 +286,10 @@ export function addTimestampsToNewVariable(variable: WorkflowVariable): Workflow
 }
 
 /**
- * 为更新的变量添加更新时间戳
- * @param variable 变量对象
- * @param existingVariable 现有变量对象
- * @returns 更新时间戳的变量对象
+ * Add update timestamp for updated variables
+ * @param variable Variable object
+ * @param existingVariable Existing variable object
+ * @returns Variable object with updated timestamp
  */
 export function updateTimestampForVariable(
   variable: WorkflowVariable,
@@ -298,22 +298,22 @@ export function updateTimestampForVariable(
   const now = new Date().toISOString();
   return {
     ...variable,
-    createdAt: existingVariable?.createdAt || now, // 保持原有创建时间或使用当前时间
-    updatedAt: now, // 总是更新修改时间
+    createdAt: existingVariable?.createdAt || now, // Keep original creation time or use current time
+    updatedAt: now, // Always update modification time
   };
 }
 
 /**
- * 检查变量是否发生了实质性变化
- * @param newVariable 新变量
- * @param existingVariable 现有变量
- * @returns 是否有变化
+ * Check if variable has substantive changes
+ * @param newVariable New variable
+ * @param existingVariable Existing variable
+ * @returns Whether there are changes
  */
 export function hasVariableChanged(
   newVariable: WorkflowVariable,
   existingVariable: WorkflowVariable,
 ): boolean {
-  // 比较核心字段，忽略时间戳字段
+  // Compare core fields, ignore timestamp fields
   const coreFields: (keyof WorkflowVariable)[] = [
     'name',
     'value',
@@ -327,7 +327,7 @@ export function hasVariableChanged(
     const newValue = newVariable[field];
     const existingValue = existingVariable[field];
 
-    // 对数组类型进行深度比较
+    // Deep comparison for array types
     if (Array.isArray(newValue) && Array.isArray(existingValue)) {
       if (newValue.length !== existingValue.length) {
         return true;

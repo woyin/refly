@@ -1,6 +1,6 @@
 import { WorkflowVariable } from '@refly/openapi-schema';
 import { CanvasContentItem } from 'src/modules/canvas/canvas.dto';
-// 重新导出 openapi-schema 中的 WorkflowVariable 类型
+// Re-export WorkflowVariable type from openapi-schema
 export { WorkflowVariable } from '@refly/openapi-schema';
 
 export interface HistoricalData {
@@ -8,58 +8,58 @@ export interface HistoricalData {
   canvasPatterns: string[];
 }
 
-// 变量提取选项
+// Variable extraction options
 export interface VariableExtractionOptions {
   mode?: 'direct' | 'candidate';
   sessionId?: string;
   triggerType?: string;
 }
 
-// 保存历史记录选项
+// Save history record options
 export interface SaveHistoryOptions {
   mode: string;
   model?: string;
   triggerType?: string;
 }
 
-// 保存候选记录选项
+// Save candidate record options
 export interface SaveCandidateOptions {
   modelName?: string;
   triggerType?: string;
 }
 
-// 核心返回类型
+// Core return type
 export interface VariableExtractionResult {
-  originalPrompt: string; // 原始用户输入
-  processedPrompt: string; // 处理后的prompt（包含变量引用）
-  variables: WorkflowVariable[]; // 提取的变量列表
-  reusedVariables: VariableReuse[]; // 复用的变量信息
-  sessionId?: string; // 候选模式下的会话ID
+  originalPrompt: string; // Original user input
+  processedPrompt: string; // Processed prompt (with variable references)
+  variables: WorkflowVariable[]; // Extracted variable list
+  reusedVariables: VariableReuse[]; // Reused variable information
+  sessionId?: string; // Session ID in candidate mode
 }
 
-// 变量复用信息
+// Variable reuse information
 export interface VariableReuse {
-  detectedText: string; // 原文本中检测到的表达
-  reusedVariableName: string; // 复用的变量名
-  confidence: number; // 置信度
-  reason: string; // 复用原因
+  detectedText: string; // Text expression detected in original text
+  reusedVariableName: string; // Reused variable name
+  confidence: number; // Confidence level
+  reason: string; // Reuse reason
 }
 
-// APP模板生成结果
+// APP template generation result
 export interface AppTemplateResult {
-  templateContent: string; // 包含占位符的模板
-  variables: WorkflowVariable[]; // 相关变量列表
+  templateContent: string; // Template with placeholders
+  variables: WorkflowVariable[]; // Related variable list
   metadata: {
-    extractedAt: number; // 模板生成时间戳（用于版本控制）
-    variableCount: number; // 变量总数（用于前端展示统计）
-    promptCount?: number; // 原始prompt数量（用于质量评估）
-    canvasComplexity?: string; // 画布复杂度（simple/medium/complex，影响模板展示）
-    workflowType?: string; // 工作流类型（用于模板分类和展示）
-    templateVersion?: number; // 模板版本号（支持模板迭代）
+    extractedAt: number; // Template generation timestamp (for version control)
+    variableCount: number; // Total variable count (for frontend statistics display)
+    promptCount?: number; // Original prompt count (for quality assessment)
+    canvasComplexity?: string; // Canvas complexity (simple/medium/complex, affects template display)
+    workflowType?: string; // Workflow type (for template classification and display)
+    templateVersion?: number; // Template version number (supports template iteration)
   };
 }
 
-// 上下文数据结构定义
+// Context data structure definition
 export interface ExtractionContext {
   canvasData: CanvasData;
   variables: WorkflowVariable[];
@@ -68,14 +68,14 @@ export interface ExtractionContext {
   extractionContext: ExtractionContextMetadata;
 }
 
-// 画布数据结构
+// Canvas data structure
 export interface CanvasData {
   nodes?: CanvasNode[];
   edges?: CanvasEdge[];
   workflow?: WorkflowData;
 }
 
-// 画布节点
+// Canvas node
 export interface CanvasNode {
   id: string;
   type: string;
@@ -83,7 +83,7 @@ export interface CanvasNode {
   position?: { x: number; y: number };
 }
 
-// 画布边
+// Canvas edge
 export interface CanvasEdge {
   id: string;
   source: string;
@@ -91,51 +91,51 @@ export interface CanvasEdge {
   type?: string;
 }
 
-// 工作流数据
+// Workflow data
 export interface WorkflowData {
   variables?: WorkflowVariable[];
   nodes?: CanvasNode[];
   edges?: CanvasEdge[];
 }
 
-// 使用Canvas服务的CanvasContentItem类型
+// Use Canvas service's CanvasContentItem type
 export { CanvasContentItem } from '../canvas/canvas.dto';
 
-// 画布分析结果
+// Canvas analysis result
 export interface CanvasAnalysis {
-  complexity: number; // 复杂度评分 0-100
-  nodeCount: number; // 节点数量
-  variableCount: number; // 变量数量
-  resourceCount: number; // 资源数量
-  workflowType?: string; // 工作流类型
-  primarySkills?: string[]; // 主要技能
+  complexity: number; // Complexity score 0-100
+  nodeCount: number; // Node count
+  variableCount: number; // Variable count
+  resourceCount: number; // Resource count
+  workflowType?: string; // Workflow type
+  primarySkills?: string[]; // Primary skills
 }
 
-// 画布上下文信息 - 用于提示词构建
+// Canvas context information - for prompt construction
 export interface CanvasContext {
-  nodeCount: number; // 画布节点数量
-  complexity: number; // 复杂度评分 0-100
-  resourceCount: number; // 资源数量
-  workflowType?: string; // 工作流类型
-  primarySkills?: string[]; // 主要技能
-  lastExtractionTime?: Date; // 上次提取时间
-  recentVariablePatterns?: string[]; // 最近的变量模式
+  nodeCount: number; // Canvas node count
+  complexity: number; // Complexity score 0-100
+  resourceCount: number; // Resource count
+  workflowType?: string; // Workflow type
+  primarySkills?: string[]; // Primary skills
+  lastExtractionTime?: Date; // Last extraction time
+  recentVariablePatterns?: string[]; // Recent variable patterns
 }
 
-// 提取上下文元数据
+// Extraction context metadata
 export interface ExtractionContextMetadata {
-  lastExtractionTime?: Date; // 上次提取时间
-  recentVariablePatterns: string[]; // 最近的变量模式
+  lastExtractionTime?: Date; // Last extraction time
+  recentVariablePatterns: string[]; // Recent variable patterns
 }
 
-// 用户工作流偏好
+// User workflow preferences
 export interface UserWorkflowPreferences {
   preferredVariableTypes?: string[];
   commonWorkflowPatterns?: string[];
   extractionHistory?: ExtractionHistoryItem[];
 }
 
-// 提取历史项
+// Extraction history item
 export interface ExtractionHistoryItem {
   timestamp: Date;
   prompt: string;
@@ -143,7 +143,7 @@ export interface ExtractionHistoryItem {
   confidence: number;
 }
 
-// 候选记录类型
+// Candidate record type
 export interface CandidateRecord {
   sessionId: string;
   canvasId: string;
@@ -155,7 +155,7 @@ export interface CandidateRecord {
   createdAt: Date;
 }
 
-// LLM提取响应类型
+// LLM extraction response type
 export interface LLMExtractionResponse {
   variables: ExtractedVariable[];
   processedPrompt: string;
@@ -163,7 +163,7 @@ export interface LLMExtractionResponse {
   reasoning?: string;
 }
 
-// 提取的变量
+// Extracted variable
 export interface ExtractedVariable {
   name: string;
   value: string;
@@ -173,29 +173,29 @@ export interface ExtractedVariable {
   source: 'llm_extraction' | 'variable_reuse' | 'context_analysis';
 }
 
-// 质量评估结果
+// Quality assessment result
 export interface QualityMetrics {
-  overallScore: number; // 总体评分 0-100
-  variableCompleteness: number; // 变量完整性
-  promptClarity: number; // 提示清晰度
-  contextRelevance: number; // 上下文相关性
-  suggestions: string[]; // 改进建议
+  overallScore: number; // Overall score 0-100
+  variableCompleteness: number; // Variable completeness
+  promptClarity: number; // Prompt clarity
+  contextRelevance: number; // Context relevance
+  suggestions: string[]; // Improvement suggestions
 }
 
-// 历史数据接口
+// Historical data interface
 export interface HistoricalData {
   extractionHistory: ExtractionHistoryRecord[];
   canvasPatterns: string[];
 }
 
-// 提取历史记录
+// Extraction history record
 export interface ExtractionHistoryRecord {
   extractedVariables: string;
   status: string;
   createdAt: Date;
 }
 
-// 内容项类型
+// Content item type
 export interface CanvasContentItemWithType {
   id: string;
   type: string;

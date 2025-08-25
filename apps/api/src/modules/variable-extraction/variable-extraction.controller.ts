@@ -10,18 +10,18 @@ export class VariableExtractionController {
   constructor(private readonly variableExtractionService: VariableExtractionService) {}
 
   /**
-   * 统一的变量提取接口
-   * 支持 'direct'（直接更新Canvas变量）和 'candidate'（返回候选方案）两种模式
+   * Unified variable extraction interface
+   * Supports two modes: 'direct' (directly update Canvas variables) and 'candidate' (return candidate solutions)
    */
   @UseGuards(JwtAuthGuard)
   @Post('extract')
   async extractVariables(
     @LoginedUser() user: User,
     @Body() body: {
-      prompt: string; // 原始自然语言提示
-      canvasId: string; // 画布ID，用于获取现有变量上下文
-      mode: 'direct' | 'candidate'; // 处理模式
-      sessionId?: string; // 可选，直接模式时检查是否有候选记录
+      prompt: string; // Original natural language prompt
+      canvasId: string; // Canvas ID, used to get existing variable context
+      mode: 'direct' | 'candidate'; // Processing mode
+      sessionId?: string; // Optional, check for candidate records when in direct mode
     },
   ): Promise<VariableExtractionResult> {
     return this.variableExtractionService.extractVariables(user, body.prompt, body.canvasId, {

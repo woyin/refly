@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { ERROR_MESSAGES } from './constants';
 
 /**
- * 错误信息接口
+ * Error information interface
  */
 export interface ErrorInfo {
   type:
@@ -22,7 +22,7 @@ export interface ErrorInfo {
 }
 
 /**
- * 错误类型枚举
+ * Error type enumeration
  */
 export const ErrorType = {
   VALIDATION: 'VALIDATION',
@@ -35,24 +35,24 @@ export const ErrorType = {
 } as const;
 
 /**
- * 错误严重程度枚举
+ * Error severity enumeration
  */
 export const ErrorSeverity = {
-  LOW: 'LOW', // 可以降级处理
-  MEDIUM: 'MEDIUM', // 需要重试
-  HIGH: 'HIGH', // 需要立即处理
-  CRITICAL: 'CRITICAL', // 服务不可用
+  LOW: 'LOW', // Can be handled with fallback
+  MEDIUM: 'MEDIUM', // Needs retry
+  HIGH: 'HIGH', // Needs immediate handling
+  CRITICAL: 'CRITICAL', // Service unavailable
 } as const;
 
 const logger = new Logger('VariableExtractionErrorHandler');
 
 /**
- * 分析错误并返回错误信息
+ * Analyze error and return error information
  */
 export function analyzeError(error: Error, context?: Record<string, unknown>): ErrorInfo {
   const errorMessage = error.message.toLowerCase();
 
-  // 分析错误类型和严重程度
+  // Analyze error type and severity
   if (errorMessage.includes('llm') || errorMessage.includes('provider')) {
     return {
       type: 'LLM_SERVICE',
@@ -113,7 +113,7 @@ export function analyzeError(error: Error, context?: Record<string, unknown>): E
     };
   }
 
-  // 默认未知错误
+  // Default unknown error
   return {
     type: 'UNKNOWN',
     severity: 'HIGH',
@@ -126,7 +126,7 @@ export function analyzeError(error: Error, context?: Record<string, unknown>): E
 }
 
 /**
- * 处理错误并决定是否抛出
+ * Handle error and decide whether to throw
  */
 export function handleError(
   error: Error,
@@ -135,17 +135,17 @@ export function handleError(
 ): void {
   const errorInfo = analyzeError(error, context);
 
-  // 记录错误日志
+  // Log error
   logError(errorInfo);
 
-  // 根据配置决定是否抛出错误
+  // Decide whether to throw error based on configuration
   if (shouldThrow || errorInfo.severity === 'CRITICAL') {
     throw error;
   }
 }
 
 /**
- * 记录错误日志
+ * Log error
  */
 function logError(errorInfo: ErrorInfo): void {
   const { type, severity, message, context } = errorInfo;
@@ -170,7 +170,7 @@ function logError(errorInfo: ErrorInfo): void {
 }
 
 /**
- * 创建标准化的错误消息
+ * Create standardized error message
  */
 export function createErrorMessage(
   errorType: keyof typeof ERROR_MESSAGES,
@@ -189,7 +189,7 @@ export function createErrorMessage(
 }
 
 /**
- * 判断错误是否可以重试
+ * Determine if error can be retried
  */
 export function canRetry(error: Error): boolean {
   const errorInfo = analyzeError(error);
@@ -197,7 +197,7 @@ export function canRetry(error: Error): boolean {
 }
 
 /**
- * 判断错误是否可以降级处理
+ * Determine if error can be handled with fallback
  */
 export function canFallback(error: Error): boolean {
   const errorInfo = analyzeError(error);
