@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Source } from '@refly/openapi-schema';
 import { Spin } from 'antd';
-import { Markdown } from '@refly-packages/ai-workspace-common/components/markdown';
+import { parseMarkdownCitationsAndCanvasTags } from '@refly/utils';
 
 interface MultimodalContentPreviewProps {
   content: string;
@@ -64,25 +64,45 @@ const TextContent = memo(
     content,
     sources,
     className,
-    resultId,
   }: {
     content: string;
     sources?: Source[];
     className?: string;
     resultId?: string;
   }) => {
-    const markdownClassName = useMemo(
-      () => `text-xs overflow-hidden max-h-[120px] truncate ${className}`,
+    const plainText = useMemo(() => {
+      // Use parseMarkdownCitationsAndCanvasTags to clean content
+      const cleanedContent = parseMarkdownCitationsAndCanvasTags(content, sources || []);
+
+      // Remove remaining markdown syntax and convert to plain text
+      return cleanedContent
+        .replace(/#{1,6}\s+/g, '') // Remove headers
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+        .replace(/\*(.*?)\*/g, '$1') // Remove italic
+        .replace(/`(.*?)`/g, '$1') // Remove inline code
+        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to text
+        .replace(/\n{3,}/g, '\n\n') // Remove excessive line breaks
+        .trim();
+    }, [content, sources]);
+
+    const textClassName = useMemo(
+      () => `text-xs text-gray-700 leading-relaxed overflow-hidden ${className}`,
       [className],
     );
 
     return (
-      <Markdown
-        className={markdownClassName}
-        content={content}
-        sources={sources ?? []}
-        resultId={resultId}
-      />
+      <div
+        className={textClassName}
+        style={{
+          display: '-webkit-box',
+          WebkitLineClamp: 5,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}
+      >
+        {plainText}
+      </div>
     );
   },
 );
@@ -91,6 +111,9 @@ export const MultimodalContentPreview = memo(
   ({ content, sources, className = '', resultId, metadata }: MultimodalContentPreviewProps) => {
     const contentType = metadata?.contentType || 'text';
     const generationConfig = metadata?.generationConfig;
+
+    // Suppress unused variable warnings for resultId when content type is not text
+    void resultId;
 
     const renderContent = () => {
       switch (contentType) {
@@ -101,14 +124,7 @@ export const MultimodalContentPreview = memo(
         case 'audio':
           return <AudioPreview config={generationConfig} />;
         default:
-          return (
-            <TextContent
-              content={content}
-              sources={sources}
-              className={className}
-              resultId={resultId}
-            />
-          );
+          return <TextContent content={content} sources={sources} className={className} />;
       }
     };
 
