@@ -78,28 +78,28 @@ export const SkillNode = memo(
       // Default example variables for testing @mention functionality
       {
         name: 'userName',
-        value: '张三',
+        value: ['张三'],
         description: '用户姓名',
         source: 'startNode' as const,
         variableType: 'string' as const,
       },
       {
         name: 'projectName',
-        value: 'AI智能助手项目',
+        value: ['AI智能助手项目'],
         description: '当前项目名称',
         source: 'startNode' as const,
         variableType: 'string' as const,
       },
       {
         name: 'knowledgeBase',
-        value: 'research-papers-2024',
+        value: ['research-papers-2024'],
         description: '研究论文知识库',
         source: 'resourceLibrary' as const,
         variableType: 'resource' as const,
       },
       {
         name: 'documentTemplate',
-        value: 'tech-report-template',
+        value: ['tech-report-template'],
         description: '技术报告模板',
         source: 'resourceLibrary' as const,
         variableType: 'resource' as const,

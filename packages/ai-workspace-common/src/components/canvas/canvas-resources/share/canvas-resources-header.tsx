@@ -22,7 +22,7 @@ import cn from 'classnames';
 import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
-import { AddFromKnowledgeBase } from '../add-from-knowledgeBase';
+import { AddFromKnowledgeBase } from '@refly-packages/ai-workspace-common/components/canvas/canvas-resources/add-from-knowledgeBase';
 
 const { Text } = Typography;
 

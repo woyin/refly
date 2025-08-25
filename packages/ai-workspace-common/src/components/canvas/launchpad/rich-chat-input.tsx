@@ -1,14 +1,13 @@
+import { AutoComplete, AutoCompleteProps, Input } from 'antd';
 import { memo, useRef, useCallback, forwardRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { useSearchStoreShallow } from '@refly/stores';
 import type { WorkflowVariable } from '@refly/openapi-schema';
 import { cn } from '@refly/utils/cn';
-
 import { useUserStoreShallow } from '@refly/stores';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import { WorkflowVariableMention } from './extensions/workflow-variable-mention';
+
+const TextArea = Input.TextArea;
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -51,7 +50,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const [isMac, setIsMac] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
-    const editorRef = useRef<HTMLDivElement>(null);
+
+    const inputRef = useRef<TextAreaRef>(null);
+    const hasMatchedOptions = useRef(false);
 
     useEffect(() => {
       // Detect if user is on macOS
@@ -71,130 +72,208 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       );
     }, [variables]);
 
-    const editor = useEditor({
-      extensions: [
-        StarterKit.configure({
-          // Disable history to prevent conflicts
-          history: false,
-        }),
-        Placeholder.configure({
-          placeholder: placeholder ?? getPlaceholder(selectedSkillName),
-        }),
-        WorkflowVariableMention.configure({
-          variables: filteredVariables,
-        }),
-      ],
-      content: query || '',
-      editable: !readonly,
-      onUpdate: ({ editor }) => {
-        // Get plain text for now, but could also get HTML or markdown
-        const text = editor.getText();
-        setQuery(text);
+    const [showVariableSelector, setShowVariableSelector] = useState(false);
+
+    // Variable options for AutoComplete
+    const variableOptions = useMemo(() => {
+      return filteredVariables.map((variable) => ({
+        value: variable.name,
+        label: (
+          <div className="flex items-center gap-2 h-6">
+            <span className="text-sm font-medium">{variable.name}</span>
+            <span className="text-sm text-gray-500">{variable.description ?? ''}</span>
+          </div>
+        ),
+        textLabel: variable.name,
+      }));
+    }, [filteredVariables]);
+
+    const [options, setOptions] = useState<AutoCompleteProps['options']>([]);
+
+    // Get placeholder dynamically based on OS
+    const getPlaceholder = useCallback(
+      (skillName: string | null) => {
+        const defaultValue = isMac
+          ? t('commonQnA.placeholderMac', {
+              ns: 'skill',
+              defaultValue: t('commonQnA.placeholder', { ns: 'skill' }),
+            })
+          : t('commonQnA.placeholder', { ns: 'skill' });
+
+        return skillName
+          ? t(`${skillName}.placeholder${isMac ? 'Mac' : ''}`, {
+              ns: 'skill',
+              defaultValue: t(`${skillName}.placeholder`, {
+                ns: 'skill',
+                defaultValue,
+              }),
+            })
+          : defaultValue;
       },
-      onFocus: () => {
-        setIsFocused(true);
-        onFocus?.();
-      },
-      onBlur: () => {
-        setIsFocused(false);
-      },
-      editorProps: {
-        attributes: {
-          class: cn(
-            'outline-none focus:outline-none resize-none border-none',
-            'prose prose-sm max-w-none',
-            inputClassName,
-            readonly && 'cursor-not-allowed opacity-70',
-            isFocused ? 'nodrag nopan nowheel cursor-text' : 'cursor-pointer',
-          ),
-          style: `min-height: ${minRows * 1.5}rem; max-height: ${maxRows * 1.5}rem; overflow-y: auto;`,
-        },
-        handleKeyDown: (_view, event) => {
-          if (readonly) {
-            event.preventDefault();
-            return true;
+      [t, isMac],
+    );
+
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (readonly) {
+          e.preventDefault();
+          return;
+        }
+
+        // When the user presses @ key, open the variable selector
+        if (e.key === '@') {
+          setShowVariableSelector(true);
+          setOptions(variableOptions);
+          hasMatchedOptions.current = true;
+          return;
+        }
+
+        // Handle Ctrl+K or Cmd+K to open search
+        if (e.keyCode === 75 && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          searchStore.setIsSearchOpen(true);
+        }
+
+        // Only intercept ArrowUp and ArrowDown when variable selector is active and has options
+        if (
+          (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
+          showVariableSelector &&
+          hasMatchedOptions.current &&
+          options?.length > 0
+        ) {
+          // Allow the default behavior for AutoComplete navigation
+          return;
+        }
+
+        // Handle the Enter key
+        if (e.keyCode === 13) {
+          // Shift + Enter creates a new line (let default behavior handle it)
+          if (e.shiftKey) {
+            return;
           }
 
-          // Handle Ctrl+K or Cmd+K to open search
-          if (event.keyCode === 75 && (event.metaKey || event.ctrlKey)) {
-            event.preventDefault();
-            searchStore.setIsSearchOpen(true);
-            return true;
+          // Ctrl/Meta + Enter should always send the message regardless of variable selector
+          if ((e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
+            e.preventDefault();
+            handleSendMessage();
+            return;
           }
 
-          // Handle the Enter key
-          if (event.keyCode === 13) {
-            // Shift + Enter creates a new line (let default behavior handle it)
-            if (event.shiftKey) {
-              return false;
+          // For regular Enter key
+          if (!e.shiftKey) {
+            // enter should not be used to select when the variable selector is active and has options
+            if (showVariableSelector && hasMatchedOptions.current && options?.length > 0) {
+              e.preventDefault();
+              return;
             }
 
-            // Ctrl/Meta + Enter should always send the message
-            if ((event.ctrlKey || event.metaKey) && (query?.trim() || !isLogin)) {
-              event.preventDefault();
+            // Otherwise send message on Enter
+            e.preventDefault();
+            if (query?.trim() || !isLogin) {
               handleSendMessage();
-              return true;
-            }
-
-            // Regular Enter should send message
-            if (!event.shiftKey) {
-              event.preventDefault();
-              if (query?.trim() || !isLogin) {
-                handleSendMessage();
-              }
-              return true;
             }
           }
+        }
 
-          return false;
-        },
-        handlePaste: (_view, event) => {
-          if (readonly || (!onUploadImage && !onUploadMultipleImages)) {
-            return false;
-          }
-
-          const items = event.clipboardData?.items;
-
-          if (!items?.length) {
-            return false;
-          }
-
-          const imageFiles: File[] = [];
-
-          for (const item of Array.from(items)) {
-            if (item.type.startsWith('image/')) {
-              const file = item.getAsFile();
-              if (file) {
-                imageFiles.push(file);
-              }
-            }
-          }
-
-          if (imageFiles.length > 0) {
-            event.preventDefault();
-            // Handle image upload asynchronously without blocking the editor
-            if (imageFiles.length === 1 && onUploadImage) {
-              onUploadImage(imageFiles[0]).catch(console.error);
-            } else if (onUploadMultipleImages && imageFiles.length > 0) {
-              onUploadMultipleImages(imageFiles).catch(console.error);
-            }
-            return true;
-          }
-
-          return false;
-        },
+        // Update the variable selector state - exclude navigation keys to allow proper navigation
+        const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
+        if (!navigationKeys.includes(e.key) && e.key !== '@' && showVariableSelector) {
+          setShowVariableSelector(false);
+        }
       },
-    });
+      [
+        query,
+        readonly,
+        showVariableSelector,
+        options,
+        handleSendMessage,
+        searchStore,
+        variableOptions,
+      ],
+    );
 
-    // Update editor content when query changes externally
-    useEffect(() => {
-      if (editor && editor.getText() !== query) {
-        editor.commands.setContent(query || '');
+    const handleInputChange = useCallback(
+      (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setQuery(value);
+      },
+      [setQuery],
+    );
+
+    const handleVariableSelect = useCallback(
+      (value: string) => {
+        setOptions([]);
+        setShowVariableSelector(false);
+
+        // Find the selected variable
+        const selectedVariable = filteredVariables.find((variable) => variable.name === value);
+        if (!selectedVariable) {
+          return;
+        }
+
+        // Replace the current query by inserting the variable name
+        // Find the last @ position and replace from there
+        const lastAtIndex = query.lastIndexOf('@');
+        if (lastAtIndex !== -1) {
+          const beforeAt = query.substring(0, lastAtIndex);
+          const newQuery = `${beforeAt}@${selectedVariable.name} `;
+          setQuery(newQuery);
+        } else {
+          // If no @ found, just append the variable
+          setQuery(`${query}@${selectedVariable.name} `);
+        }
+      },
+      [filteredVariables, query, setQuery],
+    );
+
+    const filterOption = useCallback(
+      (inputValue: string, option: any) => {
+        // @ was just pressed, show all options
+        if (showVariableSelector && inputValue === query) {
+          return true;
+        }
+
+        const searchVal = inputValue.toLowerCase();
+        const isMatch =
+          !searchVal ||
+          option.value.toString().toLowerCase().includes(searchVal) ||
+          option.textLabel.toLowerCase().includes(searchVal);
+
+        if (isMatch) {
+          hasMatchedOptions.current = true;
+        }
+        return isMatch;
+      },
+      [showVariableSelector, query],
+    );
+
+    const onSelect = useCallback(
+      (value: string) => {
+        if (!readonly) handleVariableSelect(value);
+      },
+      [readonly, handleVariableSelect],
+    );
+
+    // Handle focus event and propagate it upward, then move cursor to end
+    const handleFocus = useCallback(() => {
+      setIsFocused(true);
+      if (onFocus && !readonly) {
+        onFocus();
       }
-    }, [query, editor]);
+      // Ensure cursor is placed at end of text
+      setTimeout(() => {
+        const el =
+          (inputRef.current as any)?.resizableTextArea?.textArea ||
+          (inputRef.current as any)?.textarea;
+        if (el) {
+          const length = el.value.length;
+          el.setSelectionRange(length, length);
+        }
+      }, 0);
+    }, [onFocus, readonly, setIsFocused]);
 
     const handlePaste = useCallback(
-      async (e: React.ClipboardEvent<HTMLDivElement>) => {
+      async (e: React.ClipboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
         if (readonly || (!onUploadImage && !onUploadMultipleImages)) {
           return;
         }
@@ -227,26 +306,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       },
       [onUploadImage, onUploadMultipleImages, readonly],
     );
-
-    // Get placeholder dynamically based on OS
-    function getPlaceholder(skillName: string | null) {
-      const defaultValue = isMac
-        ? t('commonQnA.placeholderMac', {
-            ns: 'skill',
-            defaultValue: t('commonQnA.placeholder', { ns: 'skill' }),
-          })
-        : t('commonQnA.placeholder', { ns: 'skill' });
-
-      return skillName
-        ? t(`${skillName}.placeholder${isMac ? 'Mac' : ''}`, {
-            ns: 'skill',
-            defaultValue: t(`${skillName}.placeholder`, {
-              ns: 'skill',
-              defaultValue,
-            }),
-          })
-        : defaultValue;
-    }
 
     return (
       <div
@@ -290,16 +349,86 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             }
           }
         }}
-        onPaste={handlePaste}
       >
         {isDragging && !readonly && (
           <div className="absolute inset-0 bg-green-50/50 flex items-center justify-center pointer-events-none z-10 rounded-lg border-2 border-green-500/30">
             <div className="text-green-600 text-sm font-medium">{t('common.dropImageHere')}</div>
           </div>
         )}
-        <div ref={editorRef} className={cn('w-full h-full', readonly && 'pointer-events-none')}>
-          <EditorContent editor={editor} className="w-full h-full" data-cy="rich-chat-input" />
-        </div>
+        {showVariableSelector && !readonly ? (
+          <AutoComplete
+            className="h-full"
+            autoFocus={!readonly}
+            open={true}
+            options={options}
+            popupMatchSelectWidth={false}
+            placement="topLeft"
+            value={query}
+            disabled={readonly}
+            filterOption={filterOption}
+            onSelect={onSelect}
+          >
+            <TextArea
+              style={{ paddingLeft: 0, paddingRight: 0 }}
+              ref={inputRef}
+              autoFocus={!readonly}
+              disabled={readonly}
+              onFocus={handleFocus}
+              onBlur={() => {
+                setIsFocused(false);
+                setTimeout(() => {
+                  setShowVariableSelector(false);
+                }, 100);
+              }}
+              value={query ?? ''}
+              onChange={handleInputChange}
+              onKeyDownCapture={handleKeyDown}
+              onPaste={handlePaste}
+              className={cn(
+                '!m-0 !bg-transparent outline-none box-border border-none resize-none focus:outline-none focus:shadow-none focus:border-none',
+                inputClassName,
+                readonly && 'cursor-not-allowed',
+                isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
+              )}
+              placeholder={placeholder ?? getPlaceholder(selectedSkillName)}
+              autoSize={{
+                minRows: minRows,
+                maxRows: maxRows,
+              }}
+              data-cy="rich-chat-input"
+            />
+          </AutoComplete>
+        ) : (
+          <TextArea
+            ref={inputRef}
+            style={{ paddingLeft: 0, paddingRight: 0 }}
+            autoFocus={!readonly}
+            disabled={readonly}
+            onFocus={handleFocus}
+            onBlur={() => {
+              setIsFocused(false);
+              setTimeout(() => {
+                setShowVariableSelector(false);
+              }, 100);
+            }}
+            value={query ?? ''}
+            onChange={handleInputChange}
+            onKeyDownCapture={handleKeyDown}
+            onPaste={handlePaste}
+            className={cn(
+              '!m-0 !bg-transparent outline-none box-border border-none resize-none focus:outline-none focus:shadow-none focus:border-none',
+              inputClassName,
+              readonly && 'cursor-not-allowed',
+              isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
+            )}
+            placeholder={placeholder ?? getPlaceholder(selectedSkillName)}
+            autoSize={{
+              minRows: minRows,
+              maxRows: maxRows,
+            }}
+            data-cy="rich-chat-input"
+          />
+        )}
       </div>
     );
   },
