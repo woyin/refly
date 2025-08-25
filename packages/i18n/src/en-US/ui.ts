@@ -1254,8 +1254,8 @@ const translations = {
       createMindMap: 'Create Mind Map Node',
       createMindMapDescription: 'Create a mind map node to embed a mind map in your canvas',
       removeFromProject: 'Remove from Project',
-      openResourcesPanel: 'Open Resources Panel',
-      closeResourcesPanel: 'Close Resources Panel',
+      openResourcesPanel: 'Open Panel',
+      closeResourcesPanel: 'Close Panel',
     },
     workflow: {
       variables: {

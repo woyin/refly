@@ -4,12 +4,24 @@ import { useTranslation } from 'react-i18next';
 import { MAX_OPTIONS } from '../constants';
 import { ensureUniqueOptions } from '../utils';
 import type { DropResult } from 'react-beautiful-dnd';
+import { useThrottledCallback } from 'use-debounce';
 
 export const useOptionsManagement = (initialOptions: string[] = []) => {
   const { t } = useTranslation();
   const [options, setOptions] = useState<string[]>(initialOptions);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [currentOption, setCurrentOption] = useState<string>('');
+
+  // Create a throttled error message function that only shows once within 2 seconds
+  const showDuplicateError = useThrottledCallback(
+    () => {
+      message.error(
+        t('canvas.workflow.variables.duplicateOption') || 'Duplicate option value is not allowed',
+      );
+    },
+    3000,
+    { trailing: false, leading: true },
+  );
 
   const setOptionsValue = useCallback((newOptions: string[]) => {
     const uniqueOptions = ensureUniqueOptions(newOptions);
@@ -67,10 +79,8 @@ export const useOptionsManagement = (initialOptions: string[] = []) => {
         );
 
         if (duplicateIndex !== -1) {
-          message.error(
-            t('canvas.workflow.variables.duplicateOption') ||
-              'Duplicate option value is not allowed',
-          );
+          // Use the throttled error message function
+          showDuplicateError();
           return options; // Don't update if duplicate found
         }
       }
@@ -79,7 +89,7 @@ export const useOptionsManagement = (initialOptions: string[] = []) => {
       addNewOption(newOptions);
       return newOptions;
     },
-    [options, addNewOption, t],
+    [options, addNewOption, showDuplicateError],
   );
 
   const handleEditStart = useCallback(

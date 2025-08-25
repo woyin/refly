@@ -144,7 +144,7 @@ export const StepList = memo(() => {
     }
 
     // Filter nodes by type
-    const startNodes = nodes.filter((node) => node.type === 'start');
+
     const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
     const groupNodes = nodes.filter((node) => node.type === 'group');
 
@@ -181,26 +181,6 @@ export const StepList = memo(() => {
 
     // Build tree structure
     const treeNodes: TreeNode[] = [];
-
-    // Add start nodes first (they should always be at the top)
-    for (const startNode of startNodes) {
-      if (nodeMatchesSearch(startNode)) {
-        treeNodes.push({
-          key: startNode.id,
-          title: (
-            <StepRowTitle
-              node={startNode}
-              isActive={activeNode?.id === startNode.id}
-              onLocate={handleLocateNode}
-              onDelete={handleDeleteNode}
-            />
-          ),
-          nodeType: 'start',
-          nodeData: startNode,
-          icon: <NodeIcon type="start" small />,
-        });
-      }
-    }
 
     // Helper to check if a node is a (direct or indirect) child of a group
     const isDescendantOfGroup = (node: CanvasNode, groupId: string): boolean => {

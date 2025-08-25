@@ -1231,8 +1231,8 @@ const translations = {
       createMindMap: '创建思维导图节点',
       createMindMapDescription: '创建一个思维导图节点以在画布中嵌入思维导图',
       removeFromProject: '从知识库移除',
-      openResourcesPanel: '打开资源库',
-      closeResourcesPanel: '收起资源库',
+      openResourcesPanel: '打开',
+      closeResourcesPanel: '收起',
     },
     workflow: {
       variables: {

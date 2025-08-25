@@ -120,12 +120,14 @@ const VariableTypeSection = ({
   variables,
   totalVariables,
   refetchWorkflowVariables,
+  readonly,
 }: {
   canvasId: string;
   type: VariableType;
   variables: WorkflowVariable[];
   totalVariables: WorkflowVariable[];
   refetchWorkflowVariables: () => void;
+  readonly: boolean;
 }) => {
   const { t } = useTranslation();
   const Icon = VARIABLE_TYPE_ICON_MAP[type];
@@ -184,17 +186,19 @@ const VariableTypeSection = ({
         </div>
       ) : (
         <div className="px-3 py-6 gap-0.5 flex items-center justify-center bg-refly-bg-control-z0 rounded-lg">
-          <div className="text-xs text-refly-text-1 leading-4">
+          <div className="text-[13px] text-refly-text-1 leading-5">
             {t('canvas.workflow.variables.empty') || 'No variables defined'}
           </div>
-          <Button
-            type="text"
-            size="small"
-            className="text-xs leading-4 font-semibold !text-refly-primary-default p-0.5 !h-5 box-border hover:bg-refly-tertiary-hover"
-            onClick={handleAddVariable}
-          >
-            {t('canvas.workflow.variables.addVariable') || 'Add'}
-          </Button>
+          {!readonly && (
+            <Button
+              type="text"
+              size="small"
+              className="text-[13px] leading-5 font-semibold !text-refly-primary-default p-0.5 !h-5 box-border hover:bg-refly-tertiary-hover"
+              onClick={handleAddVariable}
+            >
+              {t('canvas.workflow.variables.addVariable') || 'Add'}
+            </Button>
+          )}
         </div>
       )}
 
@@ -209,7 +213,7 @@ const VariableTypeSection = ({
 };
 
 export const StartNodePreview = () => {
-  const { workflow, canvasId } = useCanvasContext();
+  const { workflow, canvasId, readonly } = useCanvasContext();
   const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
 
   // Group variables by type
@@ -249,6 +253,7 @@ export const StartNodePreview = () => {
           variables={groupedVariables.string}
           totalVariables={workflowVariables}
           refetchWorkflowVariables={refetchWorkflowVariables}
+          readonly={readonly}
         />
 
         <VariableTypeSection
@@ -257,6 +262,7 @@ export const StartNodePreview = () => {
           variables={groupedVariables.resource}
           totalVariables={workflowVariables}
           refetchWorkflowVariables={refetchWorkflowVariables}
+          readonly={readonly}
         />
 
         <VariableTypeSection
@@ -265,6 +271,7 @@ export const StartNodePreview = () => {
           variables={groupedVariables.option}
           totalVariables={workflowVariables}
           refetchWorkflowVariables={refetchWorkflowVariables}
+          readonly={readonly}
         />
       </div>
     </div>

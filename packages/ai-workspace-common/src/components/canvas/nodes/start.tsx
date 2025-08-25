@@ -14,6 +14,16 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { CreateVariablesModal } from '../workflow-variables';
 import { Attachment, List } from 'refly-icons';
 import SVGX from '../../../assets/x.svg';
+import {
+  nodeActionEmitter,
+  createNodeEventName,
+  cleanupNodeEvents,
+} from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { genSkillID } from '@refly/utils/id';
+import { IContextItem } from '@refly/common-types';
+import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
+import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
 export const VARIABLE_TYPE_ICON_MAP = {
@@ -81,6 +91,8 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
   const { workflow, readonly } = useCanvasContext();
   const [showCreateVariablesModal, setShowCreateVariablesModal] = useState(false);
   const { workflowVariables, refetchWorkflowVariables, workflowVariablesLoading } = workflow;
+  const { addNode } = useAddNode();
+  const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
   console.log(
     'workflowVariables',
@@ -106,9 +118,71 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
     }
   }, [isHovered, onHoverEnd]);
 
+  const handleAskAI = useCallback(
+    (event?: {
+      dragCreateInfo?: NodeDragCreateInfo;
+    }) => {
+      // For start node, we can create a skill node with workflow variables as context
+      const { position, connectTo } = getConnectionInfo(
+        { entityId: id, type: 'start' },
+        event?.dragCreateInfo,
+      );
+
+      // Create context items from workflow variables
+      const contextItems: IContextItem[] = workflowVariables.map((variable) => ({
+        type: 'memo', // Use memo type to represent workflow variables
+        title: variable.name,
+        entityId: variable.name, // Use variable name as entityId for variables
+        metadata: {
+          variableType: variable.variableType,
+          required: variable.required,
+          isSingle: variable.isSingle,
+          isWorkflowVariable: true, // Mark as workflow variable
+        },
+      }));
+
+      addNode(
+        {
+          type: 'skill',
+          data: {
+            title: 'Skill',
+            entityId: genSkillID(),
+            metadata: {
+              contextItems,
+            },
+          },
+          position,
+        },
+        connectTo,
+        false,
+        true,
+      );
+    },
+    [id, workflowVariables, addNode, getConnectionInfo],
+  );
+
   useEffect(() => {
     setNodeStyle(id, NODE_SIDE_CONFIG);
   }, [id, setNodeStyle]);
+
+  // Add event handling for askAI
+  useEffect(() => {
+    // Create node-specific event handler
+    const handleNodeAskAI = (event?: { dragCreateInfo?: NodeDragCreateInfo }) => {
+      handleAskAI(event);
+    };
+
+    // Register event with node ID
+    nodeActionEmitter.on(createNodeEventName(id, 'askAI'), handleNodeAskAI);
+
+    return () => {
+      // Cleanup event when component unmounts
+      nodeActionEmitter.off(createNodeEventName(id, 'askAI'), handleNodeAskAI);
+
+      // Clean up all node events
+      cleanupNodeEvents(id);
+    };
+  }, [id, handleAskAI]);
 
   return (
     <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onClick={onNodeClick}>
@@ -154,18 +228,20 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
             <div className="text-xs text-refly-text-1 leading-4">
               {t('canvas.workflow.variables.empty') || 'No variables defined'}
             </div>
-            <Button
-              type="text"
-              size="small"
-              className="text-xs leading-4 font-semibold !text-refly-primary-default p-0.5 !h-5 box-border hover:bg-refly-tertiary-hover"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowCreateVariablesModal(true);
-              }}
-            >
-              {t('canvas.workflow.variables.addVariable') || 'Add'}
-            </Button>
+            {!readonly && (
+              <Button
+                type="text"
+                size="small"
+                className="text-xs leading-4 font-semibold !text-refly-primary-default p-0.5 !h-5 box-border hover:bg-refly-tertiary-hover"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCreateVariablesModal(true);
+                }}
+              >
+                {t('canvas.workflow.variables.addVariable') || 'Add'}
+              </Button>
+            )}
           </div>
         )}
       </div>

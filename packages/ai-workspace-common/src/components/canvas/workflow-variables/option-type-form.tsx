@@ -84,6 +84,13 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
       onDragStart();
     }, [onDragStart]);
 
+    const isDuplicate = useCallback(
+      (value: string, index: number) => {
+        return options.some((option, i) => i !== index && option === value);
+      },
+      [options],
+    );
+
     return (
       <>
         <Form.Item
@@ -178,7 +185,12 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
                                 onEditingIndexChange(null);
                               }}
                               autoFocus
-                              className="flex-1"
+                              className={cn('flex-1', {
+                                '!border-refly-func-danger-default': isDuplicate(
+                                  currentOption,
+                                  index,
+                                ),
+                              })}
                               data-option-index={index}
                               maxLength={200}
                               showCount
@@ -198,10 +210,14 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
                                 className="flex items-center justify-center"
                               >
                                 <MdOutlineDragIndicator
-                                  className="text-refly-text-3 cursor-move"
+                                  className={cn('text-refly-text-3 cursor-move', {
+                                    'invisible w-0 h-0': options.length < 2,
+                                  })}
+                                  aria-hidden={options.length < 2}
                                   size={16}
                                 />
                               </div>
+
                               <div
                                 className={cn('flex-1 text-sm leading-5 truncate', {
                                   'text-refly-text-3': !option,
