@@ -106,6 +106,7 @@ export const CreateVariablesModal = ({
   const [uploading, setUploading] = useState(false);
   const { workflow, canvasId } = useCanvasContext();
   const { workflowVariables, refetchWorkflowVariables } = workflow;
+  const [isSaving, setIsSaving] = useState(false);
 
   const [stringFormData, setStringFormData] = useState<VariableFormData>({
     ...defaultStringData,
@@ -772,19 +773,21 @@ export const CreateVariablesModal = ({
         newWorkflowVariables = [...workflowVariables, variable];
       }
 
-      const { data, error } = await getClient().updateWorkflowVariables({
+      const { data } = await getClient().updateWorkflowVariables({
         body: {
           canvasId: canvasId,
           variables: newWorkflowVariables,
         },
       });
 
-      if (error) {
-        throw error;
+      if (data?.success) {
+        message.success(
+          t('canvas.workflow.variables.saveSuccess') || 'Variables saved successfully',
+        );
+      } else {
+        message.error(t('canvas.workflow.variables.saveError') || 'Failed to save variables');
       }
-
-      message.success(t('canvas.workflow.variables.saveSuccess') || 'Variables saved successfully');
-      console.log(data);
+      return data?.success;
     },
     [t, canvasId, workflowVariables],
   );
@@ -826,8 +829,13 @@ export const CreateVariablesModal = ({
             fileType: getFileExtension(file.name) || 'file', // Store file extension
           },
         }));
-      } else {
-        finalValue = values.value;
+      } else if (variableType === 'option' && options.length > 0 && options[0]) {
+        finalValue = [
+          {
+            type: 'text',
+            text: options[0] || '',
+          },
+        ];
       }
 
       const variable: WorkflowVariable = {
@@ -848,10 +856,13 @@ export const CreateVariablesModal = ({
         }),
       };
 
-      // return;
-      await saveVariable(variable);
-      refetchWorkflowVariables();
-      onCancel(false);
+      setIsSaving(true);
+      const success = await saveVariable(variable);
+      setIsSaving(false);
+      if (success) {
+        refetchWorkflowVariables();
+        onCancel(false);
+      }
     } catch (error) {
       console.error('Form validation failed:', error);
     }
@@ -867,6 +878,7 @@ export const CreateVariablesModal = ({
     getFileExtension,
     workflowVariables,
     defaultValue,
+    setIsSaving,
   ]);
 
   const handleModalClose = useCallback(() => {
@@ -912,7 +924,7 @@ export const CreateVariablesModal = ({
         itemRender={(_originNode, file) => (
           <Spin className="w-full" spinning={uploading}>
             <div className="w-full h-9 flex items-center justify-between gap-2 box-border px-2 bg-refly-bg-control-z0 rounded-lg hover:bg-refly-tertiary-hover">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <FileIcon
                   extension={getFileExtension(file.name || '')}
                   width={20}
@@ -920,7 +932,9 @@ export const CreateVariablesModal = ({
                   type="icon"
                   {...defaultStyles[getFileExtension(file.name || '')]}
                 />
-                <div className="flex-1 text-sm leading-5 truncate">{file.name}</div>
+                <div className="min-w-0 flex-1 text-sm text-refly-text-0 leading-5 truncate">
+                  {file.name}
+                </div>
               </div>
 
               <div className="fl">
@@ -1247,7 +1261,13 @@ export const CreateVariablesModal = ({
           <Button className="w-[80px]" onClick={handleModalClose}>
             {t('common.cancel') || 'Cancel'}
           </Button>
-          <Button className="w-[80px]" type="primary" onClick={handleSubmit}>
+          <Button
+            className="w-[80px]"
+            type="primary"
+            onClick={handleSubmit}
+            loading={isSaving}
+            disabled={isSaving}
+          >
             {t('common.save') || 'Save'}
           </Button>
         </div>
