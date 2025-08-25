@@ -6,7 +6,21 @@ import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
 import { getNodeCommonStyles } from './index';
-import { ModelInfo, Skill, SkillRuntimeConfig, SkillTemplateConfig } from '@refly/openapi-schema';
+import {
+  ModelInfo,
+  Skill,
+  SkillRuntimeConfig,
+  SkillTemplateConfig,
+  WorkflowVariable,
+} from '@refly/openapi-schema';
+
+// Extended WorkflowVariable type to support canvas nodes
+type ExtendedWorkflowVariable = Omit<WorkflowVariable, 'source' | 'variableType'> & {
+  source?: 'startNode' | 'resourceLibrary' | 'stepRecord' | 'resultRecord';
+  variableType?: 'string' | 'option' | 'resource' | 'step' | 'result';
+  entityId?: string;
+  nodeId?: string;
+};
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useChatStoreShallow } from '@refly/stores';
@@ -42,7 +56,7 @@ type SkillNode = Node<CanvasNodeData<SkillNodeMeta>, 'skill'>;
 export const SkillNode = memo(
   ({ data, selected, id }: NodeProps<SkillNode>) => {
     const [isHovered, setIsHovered] = useState(false);
-    const { edges } = useCanvasData();
+    const { edges, nodes } = useCanvasData();
     const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
     const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
@@ -74,79 +88,70 @@ export const SkillNode = memo(
     });
     console.log('workflowVariables.data', workflowVariables?.data);
 
-    const variables = [
-      // Default example variables for testing @mention functionality
-      {
-        name: 'userName',
-        value: ['张三'],
-        description: '用户姓名',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'projectName',
-        value: ['AI智能助手项目'],
-        description: '当前项目名称',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'userName',
-        value: ['张三'],
-        description: '用户姓名',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'projectName',
-        value: ['AI智能助手项目'],
-        description: '当前项目名称',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'userName',
-        value: ['张三'],
-        description: '用户姓名',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'projectName',
-        value: ['AI智能助手项目'],
-        description: '当前项目名称',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'userName',
-        value: ['张三'],
-        description: '用户姓名',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'projectName',
-        value: ['AI智能助手项目'],
-        description: '当前项目名称',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        name: 'knowledgeBase',
-        value: ['research-papers-2024'],
-        description: '研究论文知识库',
-        source: 'resourceLibrary' as const,
-        variableType: 'resource' as const,
-      },
-      {
-        name: 'documentTemplate',
-        value: ['tech-report-template'],
-        description: '技术报告模板',
-        source: 'resourceLibrary' as const,
-        variableType: 'resource' as const,
-      },
-    ];
+    // Generate variables including canvas nodes
+    const variables: ExtendedWorkflowVariable[] = useMemo(() => {
+      const baseVariables: ExtendedWorkflowVariable[] = [
+        // Default example variables for testing @mention functionality
+        {
+          name: 'userName',
+          value: ['张三'],
+          description: '用户姓名',
+          source: 'startNode',
+          variableType: 'string',
+        },
+        {
+          name: 'projectName',
+          value: ['AI智能助手项目'],
+          description: '当前项目名称',
+          source: 'startNode',
+          variableType: 'string',
+        },
+        {
+          name: 'knowledgeBase',
+          value: ['research-papers-2024'],
+          description: '研究论文知识库',
+          source: 'resourceLibrary',
+          variableType: 'resource',
+        },
+        {
+          name: 'documentTemplate',
+          value: ['tech-report-template'],
+          description: '技术报告模板',
+          source: 'resourceLibrary',
+          variableType: 'resource',
+        },
+      ];
+
+      // Add step record variables from skillResponse nodes
+      const stepRecordVariables: ExtendedWorkflowVariable[] =
+        nodes
+          ?.filter((node) => node.type === 'skillResponse')
+          ?.map((node) => ({
+            name: node.data?.title ?? '未命名步骤',
+            value: [node.data?.entityId ?? ''],
+            description: '步骤记录',
+            source: 'stepRecord',
+            variableType: 'step',
+            entityId: node.data?.entityId,
+            nodeId: node.id,
+          })) ?? [];
+
+      // Add result record variables from non-skill nodes
+      const resultRecordVariables: ExtendedWorkflowVariable[] =
+        nodes
+          ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
+          ?.map((node) => ({
+            name: node.data?.title ?? '未命名结果',
+            value: [node.data?.entityId ?? ''],
+            description: '结果记录',
+            source: 'resultRecord',
+            variableType: 'result',
+            entityId: node.data?.entityId,
+            nodeId: node.id,
+          })) ?? [];
+
+      return [...baseVariables, ...stepRecordVariables, ...resultRecordVariables];
+    }, [nodes]);
     // Check if node has any connections
     const isTargetConnected = useMemo(() => edges?.some((edge) => edge.target === id), [edges, id]);
     const isSourceConnected = useMemo(() => edges?.some((edge) => edge.source === id), [edges, id]);
@@ -447,7 +452,18 @@ export const SkillNode = memo(
               handleProjectChange(projectId);
               updateNodeData({ metadata: { projectId } });
             }}
-            workflowVariables={variables}
+            workflowVariables={variables
+              .filter((v) => v.source === 'startNode' || v.source === 'resourceLibrary')
+              .map((v) => ({
+                name: v.name,
+                value: v.value,
+                description: v.description,
+                source: v.source as 'startNode' | 'resourceLibrary',
+                variableType: v.variableType as 'string' | 'option' | 'resource',
+              }))}
+            extendedWorkflowVariables={variables.filter(
+              (v) => v.source === 'stepRecord' || v.source === 'resultRecord',
+            )}
             enableRichInput={true}
           />
         </div>

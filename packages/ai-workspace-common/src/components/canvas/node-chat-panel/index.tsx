@@ -224,6 +224,7 @@ export interface ChatPanelProps {
   projectId?: string;
   handleProjectChange?: (newProjectId: string) => void;
   workflowVariables?: WorkflowVariable[];
+  extendedWorkflowVariables?: any[]; // Extended variables for canvas nodes
   enableRichInput?: boolean;
 }
 
@@ -251,6 +252,7 @@ export const ChatPanel = memo(
     projectId,
     handleProjectChange,
     workflowVariables = [],
+    extendedWorkflowVariables = [],
     enableRichInput = false,
   }: ChatPanelProps) => {
     const [form] = Form.useForm();
@@ -407,7 +409,8 @@ export const ChatPanel = memo(
           setContextItems={setContextItems}
         /> */}
 
-        {enableRichInput && workflowVariables?.length > 0 ? (
+        {enableRichInput &&
+        (workflowVariables?.length > 0 || extendedWorkflowVariables?.length > 0) ? (
           <RichChatInput
             readonly={canvasReadonly}
             ref={chatInputRef}
@@ -418,7 +421,7 @@ export const ChatPanel = memo(
                 setTimeout(onInputHeightChange, 0);
               }
             }}
-            variables={workflowVariables}
+            variables={[...workflowVariables, ...extendedWorkflowVariables]}
             selectedSkillName={selectedSkill?.name ?? null}
             inputClassName="px-1 py-0"
             maxRows={6}
@@ -426,6 +429,8 @@ export const ChatPanel = memo(
             onUploadImage={handleImageUpload}
             onUploadMultipleImages={handleMultipleImagesUpload}
             onFocus={handleInputFocus}
+            contextItems={contextItems}
+            setContextItems={setContextItems}
           />
         ) : (
           <ChatInput

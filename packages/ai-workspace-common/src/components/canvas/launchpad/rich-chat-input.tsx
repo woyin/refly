@@ -9,6 +9,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
 import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
+import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import type { IContextItem } from '@refly/common-types';
 
 // Add custom styles for the editor and mention
 const editorStyles = `
@@ -81,6 +83,8 @@ interface RichChatInputProps {
   maxRows?: number;
   minRows?: number;
   handleSendMessage: () => void;
+  contextItems?: IContextItem[];
+  setContextItems?: (items: IContextItem[]) => void;
 
   onUploadImage?: (file: File) => Promise<void>;
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
@@ -91,17 +95,49 @@ interface RichChatInputProps {
 const MentionList = ({ items, command }: { items: any[]; command: any }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [resourceLibraryType, setResourceLibraryType] = useState<
+    'uploads' | 'stepRecord' | 'resultRecord'
+  >('uploads');
+  const { nodes } = useCanvasData();
 
-  // Group items by source
+  // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
     const startNodeItems = items.filter((item) => item.source === 'startNode');
     const resourceLibraryItems = items.filter((item) => item.source === 'resourceLibrary');
 
+    // Get skillResponse nodes for step records
+    const stepRecordItems =
+      nodes
+        ?.filter((node) => node.type === 'skillResponse')
+        ?.map((node) => ({
+          name: node.data?.title ?? '未命名步骤',
+          description: '步骤记录',
+          source: 'stepRecord' as const,
+          variableType: 'step' as const,
+          entityId: node.data?.entityId,
+          nodeId: node.id,
+        })) ?? [];
+
+    // Get non-skill nodes for result records
+    const resultRecordItems =
+      nodes
+        ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
+        ?.map((node) => ({
+          name: node.data?.title ?? '未命名结果',
+          description: '结果记录',
+          source: 'resultRecord' as const,
+          variableType: 'result' as const,
+          entityId: node.data?.entityId,
+          nodeId: node.id,
+        })) ?? [];
+
     return {
       startNode: startNodeItems,
       resourceLibrary: resourceLibraryItems,
+      stepRecord: stepRecordItems,
+      resultRecord: resultRecordItems,
     };
-  }, [items]);
+  }, [items, nodes]);
 
   const selectItem = (item: any) => {
     command(item);
@@ -202,14 +238,20 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
           )}
 
           {/* Resource Library Category */}
-          {groupedItems.resourceLibrary.length > 0 && (
+          {(groupedItems.resourceLibrary.length > 0 ||
+            groupedItems.stepRecord.length > 0 ||
+            groupedItems.resultRecord.length > 0) && (
             <div
               className={`px-4 py-3 cursor-pointer transition-colors ${
                 hoveredCategory === 'resourceLibrary'
                   ? 'bg-blue-50 border-l-2 border-l-blue-500'
                   : 'hover:bg-gray-50'
               }`}
-              onMouseEnter={() => setHoveredCategory('resourceLibrary')}
+              onMouseEnter={() => {
+                setHoveredCategory('resourceLibrary');
+                // Reset to uploads when hovering resource library
+                setResourceLibraryType('uploads');
+              }}
             >
               <div className="flex items-center gap-3">
                 <span className="text-gray-600 text-sm">{'{'}</span>
@@ -234,37 +276,164 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
 
         {/* Second level menu - Variables */}
         <div className="flex-1">
-          {hoveredCategory &&
-            groupedItems[hoveredCategory as keyof typeof groupedItems]?.length > 0 && (
-              <div className="py-2 max-h-56 overflow-y-auto">
-                {groupedItems[hoveredCategory as keyof typeof groupedItems].map((item) => (
-                  <div
-                    key={item.name}
-                    className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => selectItem(item)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500 text-xs">✗</span>
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {item.name}
-                        </span>
-                        {item.description && (
-                          <span className="text-xs text-gray-500 truncate">{item.description}</span>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-400 font-mono flex-shrink-0">
-                        {item.source === 'startNode'
-                          ? 'T'
-                          : item.variableType === 'resource'
-                            ? '@'
-                            : null}
+          {hoveredCategory === 'startNode' && groupedItems.startNode?.length > 0 && (
+            <div className="py-2 max-h-56 overflow-y-auto">
+              {groupedItems.startNode.map((item) => (
+                <div
+                  key={item.name}
+                  className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => selectItem(item)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-green-500 text-xs">🚀</span>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-900 truncate">
+                        {item.name}
                       </span>
+                      {item.description && (
+                        <span className="text-xs text-gray-500 truncate">{item.description}</span>
+                      )}
                     </div>
+                    <span className="text-xs text-gray-400 font-mono flex-shrink-0">T</span>
                   </div>
-                ))}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {hoveredCategory === 'resourceLibrary' && (
+            <>
+              {/* Switch button for resource library types */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                  <button
+                    type="button"
+                    className={`flex-1 px-3 py-1 text-xs rounded-md transition-colors ${
+                      resourceLibraryType === 'uploads'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    onClick={() => setResourceLibraryType('uploads')}
+                  >
+                    我的上传
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 px-3 py-1 text-xs rounded-md transition-colors ${
+                      resourceLibraryType === 'stepRecord'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    onClick={() => setResourceLibraryType('stepRecord')}
+                  >
+                    步骤记录
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 px-3 py-1 text-xs rounded-md transition-colors ${
+                      resourceLibraryType === 'resultRecord'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    onClick={() => setResourceLibraryType('resultRecord')}
+                  >
+                    结果记录
+                  </button>
+                </div>
               </div>
-            )}
+
+              {/* Content based on selected type */}
+              <div className="py-2 max-h-56 overflow-y-auto">
+                {resourceLibraryType === 'uploads' &&
+                  groupedItems.resourceLibrary?.length > 0 &&
+                  groupedItems.resourceLibrary.map((item) => (
+                    <div
+                      key={item.name}
+                      className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => selectItem(item)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-green-500 text-xs">📁</span>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {item.name}
+                          </span>
+                          {item.description && (
+                            <span className="text-xs text-gray-500 truncate">
+                              {item.description}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400 font-mono flex-shrink-0">@</span>
+                      </div>
+                    </div>
+                  ))}
+
+                {resourceLibraryType === 'stepRecord' &&
+                  groupedItems.stepRecord?.length > 0 &&
+                  groupedItems.stepRecord.map((item) => (
+                    <div
+                      key={item.name}
+                      className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => selectItem(item)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-green-500 text-xs">📝</span>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {item.name}
+                          </span>
+                          {item.description && (
+                            <span className="text-xs text-gray-500 truncate">
+                              {item.description}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400 font-mono flex-shrink-0">S</span>
+                      </div>
+                    </div>
+                  ))}
+
+                {resourceLibraryType === 'resultRecord' &&
+                  groupedItems.resultRecord?.length > 0 &&
+                  groupedItems.resultRecord.map((item) => (
+                    <div
+                      key={item.name}
+                      className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => selectItem(item)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-green-500 text-xs">📊</span>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {item.name}
+                          </span>
+                          {item.description && (
+                            <span className="text-xs text-gray-500 truncate">
+                              {item.description}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400 font-mono flex-shrink-0">R</span>
+                      </div>
+                    </div>
+                  ))}
+
+                {/* Show empty state when no items in selected type */}
+                {((resourceLibraryType === 'uploads' &&
+                  groupedItems.resourceLibrary?.length === 0) ||
+                  (resourceLibraryType === 'stepRecord' && groupedItems.stepRecord?.length === 0) ||
+                  (resourceLibraryType === 'resultRecord' &&
+                    groupedItems.resultRecord?.length === 0)) && (
+                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                    {resourceLibraryType === 'uploads' && '暂无上传文件'}
+                    {resourceLibraryType === 'stepRecord' && '暂无步骤记录'}
+                    {resourceLibraryType === 'resultRecord' && '暂无结果记录'}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Show default view when no category is hovered */}
           {!hoveredCategory && (
@@ -288,6 +457,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       onUploadImage,
       onUploadMultipleImages,
       onFocus,
+      contextItems = [],
+      setContextItems,
     },
     ref,
   ) => {
@@ -295,19 +466,82 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
-
+    const { nodes } = useCanvasData();
+    console.log('nodes', nodes);
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
 
-    // Filter workflow variables to only show startNode and resourceLibrary types
-    const filteredVariables = useMemo(() => {
-      return (
-        variables?.filter(
-          (variable) => variable.source === 'startNode' || variable.source === 'resourceLibrary',
-        ) ?? []
-      );
-    }, [variables]);
+    // Get all available items including canvas nodes with fallback data
+    const allItems = useMemo(() => {
+      // Default variables if none provided
+      const defaultVariables = [
+        {
+          name: 'userName',
+          value: ['张三'],
+          description: '用户姓名',
+          source: 'startNode' as const,
+          variableType: 'string' as const,
+        },
+        {
+          name: 'projectName',
+          value: ['AI智能助手项目'],
+          description: '当前项目名称',
+          source: 'startNode' as const,
+          variableType: 'string' as const,
+        },
+        {
+          name: 'knowledgeBase',
+          value: ['research-papers-2024'],
+          description: '研究论文知识库',
+          source: 'resourceLibrary' as const,
+          variableType: 'resource' as const,
+        },
+        {
+          name: 'documentTemplate',
+          value: ['tech-report-template'],
+          description: '技术报告模板',
+          source: 'resourceLibrary' as const,
+          variableType: 'resource' as const,
+        },
+      ];
+
+      const variableItems =
+        variables?.length > 0
+          ? variables.filter(
+              (variable) =>
+                variable.source === 'startNode' || variable.source === 'resourceLibrary',
+            )
+          : defaultVariables;
+
+      // Get skillResponse nodes for step records
+      const stepRecordItems =
+        nodes
+          ?.filter((node) => node.type === 'skillResponse')
+          ?.map((node) => ({
+            name: node.data?.title ?? '未命名步骤',
+            description: '步骤记录',
+            source: 'stepRecord' as const,
+            variableType: 'step' as const,
+            entityId: node.data?.entityId,
+            nodeId: node.id,
+          })) ?? [];
+
+      // Get non-skill nodes for result records
+      const resultRecordItems =
+        nodes
+          ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
+          ?.map((node) => ({
+            name: node.data?.title ?? '未命名结果',
+            description: '结果记录',
+            source: 'resultRecord' as const,
+            variableType: 'result' as const,
+            entityId: node.data?.entityId,
+            nodeId: node.id,
+          })) ?? [];
+
+      return [...variableItems, ...stepRecordItems, ...resultRecordItems];
+    }, [variables, nodes]);
 
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
@@ -316,11 +550,82 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           class: 'mention',
         },
         suggestion: {
-          items: ({ query }: { query: string }) => {
-            if (!query) {
-              return filteredVariables;
+          char: '@',
+          command: ({ editor, range, props }: { editor: any; range: any; props: any }) => {
+            // Handle different types of items
+            const item = props;
+
+            // For step and result records, add to context instead of inserting text
+            if (item.source === 'stepRecord' || item.source === 'resultRecord') {
+              if (setContextItems && item.entityId) {
+                // Create context item
+                const contextItem: IContextItem = {
+                  entityId: item.entityId,
+                  title: item.name,
+                  type: item.source === 'stepRecord' ? 'skillResponse' : 'document',
+                  metadata: {
+                    nodeId: item.nodeId,
+                    source: item.source,
+                  },
+                };
+
+                // Check if already in context
+                const isAlreadyInContext = contextItems.some(
+                  (ctxItem) => ctxItem.entityId === item.entityId,
+                );
+
+                if (!isAlreadyInContext) {
+                  setContextItems([...contextItems, contextItem]);
+                }
+
+                // Insert a placeholder text to show the selection
+                const mentionText = `@${item.name}`;
+                editor
+                  .chain()
+                  .focus()
+                  .insertContentAt(range, [
+                    {
+                      type: 'mention',
+                      attrs: {
+                        id: item.name,
+                        label: mentionText,
+                      },
+                    },
+                    {
+                      type: 'text',
+                      text: ' ',
+                    },
+                  ])
+                  .run();
+              }
+            } else {
+              // For regular variables, insert as normal
+              const mentionText = `@${item.name}`;
+              editor
+                .chain()
+                .focus()
+                .insertContentAt(range, [
+                  {
+                    type: 'mention',
+                    attrs: {
+                      id: item.name,
+                      label: mentionText,
+                    },
+                  },
+                  {
+                    type: 'text',
+                    text: ' ',
+                  },
+                ])
+                .run();
             }
-            return filteredVariables.filter(
+          },
+          items: ({ query }: { query: string }) => {
+            console.log('Mention suggestion items:', allItems);
+            if (!query) {
+              return allItems;
+            }
+            return allItems.filter(
               (item) =>
                 item.name.toLowerCase().includes(query.toLowerCase()) ||
                 (item.description?.toLowerCase().includes(query.toLowerCase()) ?? false),
@@ -332,6 +637,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
             return {
               onStart: (props: any) => {
+                console.log('Mention suggestion onStart:', props);
                 component = new ReactRenderer(MentionList, {
                   props,
                   editor: props.editor,
@@ -373,7 +679,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           },
         },
       });
-    }, [filteredVariables]);
+    }, [allItems, contextItems, setContextItems]);
 
     // Create Tiptap editor
     const editor = useEditor({
