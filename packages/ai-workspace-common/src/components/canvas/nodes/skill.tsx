@@ -5,7 +5,7 @@ import { Form } from 'antd';
 import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
-import { getNodeCommonStyles } from './index';
+import { getNodeCommonStyles } from './shared/styles';
 import { ModelInfo, Skill, SkillRuntimeConfig, SkillTemplateConfig } from '@refly/openapi-schema';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -77,29 +77,33 @@ export const SkillNode = memo(
     const variables = [
       // Default example variables for testing @mention functionality
       {
+        variableId: 'userName',
         name: 'userName',
-        value: '张三',
+        value: [{ text: '张三', type: 'text' as const }],
         description: '用户姓名',
         source: 'startNode' as const,
         variableType: 'string' as const,
       },
       {
+        variableId: 'projectName',
         name: 'projectName',
-        value: 'AI智能助手项目',
+        value: [{ text: 'AI智能助手项目', type: 'text' as const }],
         description: '当前项目名称',
         source: 'startNode' as const,
         variableType: 'string' as const,
       },
       {
+        variableId: 'knowledgeBase',
         name: 'knowledgeBase',
-        value: 'research-papers-2024',
+        value: [{ text: 'research-papers-2024', type: 'resource' as const }],
         description: '研究论文知识库',
         source: 'resourceLibrary' as const,
         variableType: 'resource' as const,
       },
       {
+        variableId: 'documentTemplate',
         name: 'documentTemplate',
-        value: 'tech-report-template',
+        value: [{ text: 'tech-report-template', type: 'resource' as const }],
         description: '技术报告模板',
         source: 'resourceLibrary' as const,
         variableType: 'resource' as const,
