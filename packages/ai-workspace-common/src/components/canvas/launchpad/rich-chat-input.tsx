@@ -1,13 +1,74 @@
-import { AutoComplete, AutoCompleteProps, Input } from 'antd';
-import { memo, useRef, useCallback, forwardRef, useEffect, useState, useMemo } from 'react';
+import { memo, useCallback, forwardRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { useSearchStoreShallow } from '@refly/stores';
 import type { WorkflowVariable } from '@refly/openapi-schema';
 import { cn } from '@refly/utils/cn';
 import { useUserStoreShallow } from '@refly/stores';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Mention from '@tiptap/extension-mention';
+import { ReactRenderer } from '@tiptap/react';
+import tippy from 'tippy.js';
 
-const TextArea = Input.TextArea;
+// Add custom styles for the editor and mention
+const editorStyles = `
+  .ProseMirror {
+    outline: none;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    padding: 0;
+    margin: 0;
+    resize: none;
+    min-height: 2.5rem;
+    max-height: 12rem;
+    overflow-y: auto;
+  }
+  
+  .ProseMirror p {
+    margin: 0;
+  }
+  
+  .ProseMirror p.is-editor-empty:first-child::before {
+    color: #adb5bd;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+  
+  .mention {
+    background-color: #e3f2fd;
+    border-radius: 4px;
+    padding: 2px 4px;
+    color: #1976d2;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  
+  .mention:hover {
+    background-color: #bbdefb;
+  }
+
+  /* Custom tippy styles to override default black border */
+  .tippy-box {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .tippy-arrow {
+    display: none !important;
+  }
+  
+  .tippy-content {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+`;
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -26,18 +87,203 @@ interface RichChatInputProps {
   onFocus?: () => void;
 }
 
+// Custom mention suggestion component with improved UI design
+const MentionList = ({ items, command }: { items: any[]; command: any }) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+
+  // Group items by source
+  const groupedItems = useMemo(() => {
+    const startNodeItems = items.filter((item) => item.source === 'startNode');
+    const resourceLibraryItems = items.filter((item) => item.source === 'resourceLibrary');
+
+    return {
+      startNode: startNodeItems,
+      resourceLibrary: resourceLibraryItems,
+    };
+  }, [items]);
+
+  const selectItem = (item: any) => {
+    command(item);
+  };
+
+  const upHandler = () => {
+    const totalItems = items.length;
+    setSelectedIndex((selectedIndex + totalItems - 1) % totalItems);
+  };
+
+  const downHandler = () => {
+    const totalItems = items.length;
+    setSelectedIndex((selectedIndex + 1) % totalItems);
+  };
+
+  const enterHandler = () => {
+    const item = items[selectedIndex];
+    if (item) {
+      selectItem(item);
+    }
+  };
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [items]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowUp') {
+        upHandler();
+        return true;
+      }
+
+      if (event.key === 'ArrowDown') {
+        downHandler();
+        return true;
+      }
+
+      if (event.key === 'Enter') {
+        enterHandler();
+        return true;
+      }
+
+      return false;
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [selectedIndex, items]);
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className="bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-hidden min-w-96"
+      onMouseLeave={() => {
+        setHoveredCategory(null);
+      }}
+    >
+      {/* Green border at top */}
+      <div className="h-1 bg-green-500 rounded-t-lg" />
+
+      <div className="flex">
+        {/* First level menu - Categories */}
+        <div className="w-36 border-r border-gray-100">
+          {/* Start Node Category */}
+          {groupedItems.startNode.length > 0 && (
+            <div
+              className={`px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors ${
+                hoveredCategory === 'startNode'
+                  ? 'bg-blue-50 border-l-2 border-l-blue-500'
+                  : 'hover:bg-gray-50'
+              }`}
+              onMouseEnter={() => setHoveredCategory('startNode')}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600 text-sm">@</span>
+                <span className="text-sm font-medium text-gray-700">开始节点</span>
+                <svg
+                  className="w-3 h-3 text-gray-400 ml-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* Resource Library Category */}
+          {groupedItems.resourceLibrary.length > 0 && (
+            <div
+              className={`px-4 py-3 cursor-pointer transition-colors ${
+                hoveredCategory === 'resourceLibrary'
+                  ? 'bg-blue-50 border-l-2 border-l-blue-500'
+                  : 'hover:bg-gray-50'
+              }`}
+              onMouseEnter={() => setHoveredCategory('resourceLibrary')}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-gray-600 text-sm">{'{'}</span>
+                <span className="text-sm font-medium text-gray-700">资源库</span>
+                <svg
+                  className="w-3 h-3 text-gray-400 ml-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Second level menu - Variables */}
+        <div className="flex-1">
+          {hoveredCategory &&
+            groupedItems[hoveredCategory as keyof typeof groupedItems]?.length > 0 && (
+              <div className="py-2 max-h-56 overflow-y-auto">
+                {groupedItems[hoveredCategory as keyof typeof groupedItems].map((item) => (
+                  <div
+                    key={item.name}
+                    className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => selectItem(item)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500 text-xs">✗</span>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {item.name}
+                        </span>
+                        {item.description && (
+                          <span className="text-xs text-gray-500 truncate">{item.description}</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400 font-mono flex-shrink-0">
+                        {item.source === 'startNode'
+                          ? 'T'
+                          : item.variableType === 'resource'
+                            ? '@'
+                            : null}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          {/* Show default view when no category is hovered */}
+          {!hoveredCategory && (
+            <div className="p-8 text-center text-gray-500 text-sm">悬停左侧分类查看变量</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
   (
     {
-      placeholder,
       readonly,
       query,
       setQuery,
       variables = [],
-      selectedSkillName,
       inputClassName,
-      maxRows = 6,
-      minRows = 2,
       handleSendMessage,
       onUploadImage,
       onUploadMultipleImages,
@@ -47,17 +293,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
   ) => {
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
-    const [isMac, setIsMac] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
-
-    const inputRef = useRef<TextAreaRef>(null);
-    const hasMatchedOptions = useRef(false);
-
-    useEffect(() => {
-      // Detect if user is on macOS
-      setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
-    }, []);
 
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
@@ -72,59 +309,104 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       );
     }, [variables]);
 
-    const [showVariableSelector, setShowVariableSelector] = useState(false);
+    // Create mention extension with custom suggestion
+    const mentionExtension = useMemo(() => {
+      return Mention.configure({
+        HTMLAttributes: {
+          class: 'mention',
+        },
+        suggestion: {
+          items: ({ query }: { query: string }) => {
+            if (!query) {
+              return filteredVariables;
+            }
+            return filteredVariables.filter(
+              (item) =>
+                item.name.toLowerCase().includes(query.toLowerCase()) ||
+                (item.description?.toLowerCase().includes(query.toLowerCase()) ?? false),
+            );
+          },
+          render: () => {
+            let component: any;
+            let popup: any;
 
-    // Variable options for AutoComplete
-    const variableOptions = useMemo(() => {
-      return filteredVariables.map((variable) => ({
-        value: variable.name,
-        label: (
-          <div className="flex items-center gap-2 h-6">
-            <span className="text-sm font-medium">{variable.name}</span>
-            <span className="text-sm text-gray-500">{variable.description ?? ''}</span>
-          </div>
-        ),
-        textLabel: variable.name,
-      }));
+            return {
+              onStart: (props: any) => {
+                component = new ReactRenderer(MentionList, {
+                  props,
+                  editor: props.editor,
+                });
+
+                popup = tippy('body', {
+                  getReferenceClientRect: props.clientRect,
+                  appendTo: () => document.body,
+                  content: component.element,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                  placement: 'bottom-start',
+                  theme: 'custom',
+                  arrow: false,
+                  offset: [0, 8],
+                });
+              },
+              onUpdate(props: any) {
+                component.updateProps(props);
+
+                popup[0].setProps({
+                  getReferenceClientRect: props.clientRect,
+                });
+              },
+              onKeyDown(props: any) {
+                if (props.event.key === 'Escape') {
+                  popup[0].hide();
+                  return true;
+                }
+
+                return component.onKeyDown(props);
+              },
+              onExit() {
+                popup[0].destroy();
+                component.destroy();
+              },
+            };
+          },
+        },
+      });
     }, [filteredVariables]);
 
-    const [options, setOptions] = useState<AutoCompleteProps['options']>([]);
-
-    // Get placeholder dynamically based on OS
-    const getPlaceholder = useCallback(
-      (skillName: string | null) => {
-        const defaultValue = isMac
-          ? t('commonQnA.placeholderMac', {
-              ns: 'skill',
-              defaultValue: t('commonQnA.placeholder', { ns: 'skill' }),
-            })
-          : t('commonQnA.placeholder', { ns: 'skill' });
-
-        return skillName
-          ? t(`${skillName}.placeholder${isMac ? 'Mac' : ''}`, {
-              ns: 'skill',
-              defaultValue: t(`${skillName}.placeholder`, {
-                ns: 'skill',
-                defaultValue,
-              }),
-            })
-          : defaultValue;
+    // Create Tiptap editor
+    const editor = useEditor({
+      extensions: [StarterKit, mentionExtension],
+      content: query,
+      editable: !readonly,
+      onUpdate: ({ editor }) => {
+        const content = editor.getText();
+        setQuery(content);
       },
-      [t, isMac],
-    );
+      editorProps: {
+        attributes: {
+          class: cn(
+            'prose prose-sm max-w-none focus:outline-none',
+            inputClassName,
+            readonly && 'cursor-not-allowed',
+            isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
+          ),
+        },
+      },
+    });
+
+    // Update editor content when query changes externally
+    useEffect(() => {
+      if (editor && editor.getText() !== query) {
+        editor.commands.setContent(query);
+      }
+    }, [query, editor]);
 
     const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      (e: React.KeyboardEvent) => {
         if (readonly) {
           e.preventDefault();
-          return;
-        }
-
-        // When the user presses @ key, open the variable selector
-        if (e.key === '@') {
-          setShowVariableSelector(true);
-          setOptions(variableOptions);
-          hasMatchedOptions.current = true;
           return;
         }
 
@@ -134,17 +416,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           searchStore.setIsSearchOpen(true);
         }
 
-        // Only intercept ArrowUp and ArrowDown when variable selector is active and has options
-        if (
-          (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
-          showVariableSelector &&
-          hasMatchedOptions.current &&
-          options?.length > 0
-        ) {
-          // Allow the default behavior for AutoComplete navigation
-          return;
-        }
-
         // Handle the Enter key
         if (e.keyCode === 13) {
           // Shift + Enter creates a new line (let default behavior handle it)
@@ -152,128 +423,33 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             return;
           }
 
-          // Ctrl/Meta + Enter should always send the message regardless of variable selector
+          // Ctrl/Meta + Enter should always send the message
           if ((e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
             e.preventDefault();
             handleSendMessage();
             return;
           }
 
-          // For regular Enter key
-          if (!e.shiftKey) {
-            // enter should not be used to select when the variable selector is active and has options
-            if (showVariableSelector && hasMatchedOptions.current && options?.length > 0) {
-              e.preventDefault();
-              return;
-            }
-
-            // Otherwise send message on Enter
+          // For regular Enter key, send message if not in mention suggestion
+          if (!e.shiftKey && (query?.trim() || !isLogin)) {
             e.preventDefault();
-            if (query?.trim() || !isLogin) {
-              handleSendMessage();
-            }
+            handleSendMessage();
           }
         }
-
-        // Update the variable selector state - exclude navigation keys to allow proper navigation
-        const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
-        if (!navigationKeys.includes(e.key) && e.key !== '@' && showVariableSelector) {
-          setShowVariableSelector(false);
-        }
       },
-      [
-        query,
-        readonly,
-        showVariableSelector,
-        options,
-        handleSendMessage,
-        searchStore,
-        variableOptions,
-      ],
+      [query, readonly, handleSendMessage, searchStore, isLogin],
     );
 
-    const handleInputChange = useCallback(
-      (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const value = e.target.value;
-        setQuery(value);
-      },
-      [setQuery],
-    );
-
-    const handleVariableSelect = useCallback(
-      (value: string) => {
-        setOptions([]);
-        setShowVariableSelector(false);
-
-        // Find the selected variable
-        const selectedVariable = filteredVariables.find((variable) => variable.name === value);
-        if (!selectedVariable) {
-          return;
-        }
-
-        // Replace the current query by inserting the variable name
-        // Find the last @ position and replace from there
-        const lastAtIndex = query.lastIndexOf('@');
-        if (lastAtIndex !== -1) {
-          const beforeAt = query.substring(0, lastAtIndex);
-          const newQuery = `${beforeAt}@${selectedVariable.name} `;
-          setQuery(newQuery);
-        } else {
-          // If no @ found, just append the variable
-          setQuery(`${query}@${selectedVariable.name} `);
-        }
-      },
-      [filteredVariables, query, setQuery],
-    );
-
-    const filterOption = useCallback(
-      (inputValue: string, option: any) => {
-        // @ was just pressed, show all options
-        if (showVariableSelector && inputValue === query) {
-          return true;
-        }
-
-        const searchVal = inputValue.toLowerCase();
-        const isMatch =
-          !searchVal ||
-          option.value.toString().toLowerCase().includes(searchVal) ||
-          option.textLabel.toLowerCase().includes(searchVal);
-
-        if (isMatch) {
-          hasMatchedOptions.current = true;
-        }
-        return isMatch;
-      },
-      [showVariableSelector, query],
-    );
-
-    const onSelect = useCallback(
-      (value: string) => {
-        if (!readonly) handleVariableSelect(value);
-      },
-      [readonly, handleVariableSelect],
-    );
-
-    // Handle focus event and propagate it upward, then move cursor to end
+    // Handle focus event and propagate it upward
     const handleFocus = useCallback(() => {
       setIsFocused(true);
       if (onFocus && !readonly) {
         onFocus();
       }
-      // Ensure cursor is placed at end of text
-      setTimeout(() => {
-        const el =
-          (inputRef.current as any)?.resizableTextArea?.textArea ||
-          (inputRef.current as any)?.textarea;
-        if (el) {
-          const length = el.value.length;
-          el.setSelectionRange(length, length);
-        }
-      }, 0);
     }, [onFocus, readonly, setIsFocused]);
 
     const handlePaste = useCallback(
-      async (e: React.ClipboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
+      async (e: React.ClipboardEvent) => {
         if (readonly || (!onUploadImage && !onUploadMultipleImages)) {
           return;
         }
@@ -308,128 +484,73 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     );
 
     return (
-      <div
-        ref={ref}
-        className={cn(
-          'w-full h-full flex flex-col flex-grow overflow-y-auto relative',
-          isDragging && 'ring-2 ring-green-500 ring-opacity-50 rounded-lg',
-          readonly && 'opacity-70 cursor-not-allowed',
-        )}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!readonly) setIsDragging(true);
-        }}
-        onDragLeave={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!readonly) setIsDragging(false);
-        }}
-        onDrop={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (readonly) return;
+      <>
+        <style>{editorStyles}</style>
+        <div
+          ref={ref}
+          className={cn(
+            'w-full h-full flex flex-col flex-grow overflow-y-auto relative',
+            isDragging && 'ring-2 ring-green-500 ring-opacity-50 rounded-lg',
+            readonly && 'opacity-70 cursor-not-allowed',
+          )}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!readonly) setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!readonly) setIsDragging(false);
+          }}
+          onDrop={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (readonly) return;
 
-          setIsDragging(false);
+            setIsDragging(false);
 
-          if (!onUploadImage && !onUploadMultipleImages) return;
+            if (!onUploadImage && !onUploadMultipleImages) return;
 
-          const files = Array.from(e.dataTransfer.files);
-          const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+            const files = Array.from(e.dataTransfer.files);
+            const imageFiles = files.filter((file) => file.type.startsWith('image/'));
 
-          if (imageFiles.length > 0) {
-            try {
-              if (imageFiles.length === 1 && onUploadImage) {
-                await onUploadImage(imageFiles[0]);
-              } else if (onUploadMultipleImages) {
-                await onUploadMultipleImages(imageFiles);
+            if (imageFiles.length > 0) {
+              try {
+                if (imageFiles.length === 1 && onUploadImage) {
+                  await onUploadImage(imageFiles[0]);
+                } else if (onUploadMultipleImages) {
+                  await onUploadMultipleImages(imageFiles);
+                }
+              } catch (error) {
+                console.error('Failed to upload images:', error);
               }
-            } catch (error) {
-              console.error('Failed to upload images:', error);
             }
-          }
-        }}
-      >
-        {isDragging && !readonly && (
-          <div className="absolute inset-0 bg-green-50/50 flex items-center justify-center pointer-events-none z-10 rounded-lg border-2 border-green-500/30">
-            <div className="text-green-600 text-sm font-medium">{t('common.dropImageHere')}</div>
-          </div>
-        )}
-        {showVariableSelector && !readonly ? (
-          <AutoComplete
-            className="h-full"
-            autoFocus={!readonly}
-            open={true}
-            options={options}
-            popupMatchSelectWidth={false}
-            placement="topLeft"
-            value={query}
-            disabled={readonly}
-            filterOption={filterOption}
-            onSelect={onSelect}
-          >
-            <TextArea
-              style={{ paddingLeft: 0, paddingRight: 0 }}
-              ref={inputRef}
-              autoFocus={!readonly}
-              disabled={readonly}
-              onFocus={handleFocus}
-              onBlur={() => {
-                setIsFocused(false);
-                setTimeout(() => {
-                  setShowVariableSelector(false);
-                }, 100);
-              }}
-              value={query ?? ''}
-              onChange={handleInputChange}
-              onKeyDownCapture={handleKeyDown}
-              onPaste={handlePaste}
-              className={cn(
-                '!m-0 !bg-transparent outline-none box-border border-none resize-none focus:outline-none focus:shadow-none focus:border-none',
-                inputClassName,
-                readonly && 'cursor-not-allowed',
-                isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
-              )}
-              placeholder={placeholder ?? getPlaceholder(selectedSkillName)}
-              autoSize={{
-                minRows: minRows,
-                maxRows: maxRows,
-              }}
-              data-cy="rich-chat-input"
-            />
-          </AutoComplete>
-        ) : (
-          <TextArea
-            ref={inputRef}
-            style={{ paddingLeft: 0, paddingRight: 0 }}
-            autoFocus={!readonly}
-            disabled={readonly}
+          }}
+        >
+          {isDragging && !readonly && (
+            <div className="absolute inset-0 bg-green-50/50 flex items-center justify-center pointer-events-none z-10 rounded-lg border-2 border-green-500/30">
+              <div className="text-green-600 text-sm font-medium">{t('common.dropImageHere')}</div>
+            </div>
+          )}
+
+          <div
+            className={cn('flex-1 min-h-0', readonly && 'cursor-not-allowed')}
+            onKeyDown={handleKeyDown}
             onFocus={handleFocus}
-            onBlur={() => {
-              setIsFocused(false);
-              setTimeout(() => {
-                setShowVariableSelector(false);
-              }, 100);
-            }}
-            value={query ?? ''}
-            onChange={handleInputChange}
-            onKeyDownCapture={handleKeyDown}
+            onBlur={() => setIsFocused(false)}
             onPaste={handlePaste}
-            className={cn(
-              '!m-0 !bg-transparent outline-none box-border border-none resize-none focus:outline-none focus:shadow-none focus:border-none',
-              inputClassName,
-              readonly && 'cursor-not-allowed',
-              isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
+          >
+            {editor ? (
+              <EditorContent editor={editor} className="h-full" data-cy="rich-chat-input" />
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400">
+                Loading editor...
+              </div>
             )}
-            placeholder={placeholder ?? getPlaceholder(selectedSkillName)}
-            autoSize={{
-              minRows: minRows,
-              maxRows: maxRows,
-            }}
-            data-cy="rich-chat-input"
-          />
-        )}
-      </div>
+          </div>
+        </div>
+      </>
     );
   },
 );

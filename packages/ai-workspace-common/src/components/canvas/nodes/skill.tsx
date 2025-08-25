@@ -72,10 +72,52 @@ export const SkillNode = memo(
         canvasId,
       },
     });
-    console.log('workflowVariables', workflowVariables?.data);
+    console.log('workflowVariables.data', workflowVariables?.data);
 
     const variables = [
       // Default example variables for testing @mention functionality
+      {
+        name: 'userName',
+        value: ['张三'],
+        description: '用户姓名',
+        source: 'startNode' as const,
+        variableType: 'string' as const,
+      },
+      {
+        name: 'projectName',
+        value: ['AI智能助手项目'],
+        description: '当前项目名称',
+        source: 'startNode' as const,
+        variableType: 'string' as const,
+      },
+      {
+        name: 'userName',
+        value: ['张三'],
+        description: '用户姓名',
+        source: 'startNode' as const,
+        variableType: 'string' as const,
+      },
+      {
+        name: 'projectName',
+        value: ['AI智能助手项目'],
+        description: '当前项目名称',
+        source: 'startNode' as const,
+        variableType: 'string' as const,
+      },
+      {
+        name: 'userName',
+        value: ['张三'],
+        description: '用户姓名',
+        source: 'startNode' as const,
+        variableType: 'string' as const,
+      },
+      {
+        name: 'projectName',
+        value: ['AI智能助手项目'],
+        description: '当前项目名称',
+        source: 'startNode' as const,
+        variableType: 'string' as const,
+      },
       {
         name: 'userName',
         value: ['张三'],
