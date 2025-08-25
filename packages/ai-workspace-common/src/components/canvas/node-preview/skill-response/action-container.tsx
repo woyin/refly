@@ -348,6 +348,8 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
         },
       },
       connectTo,
+      true,
+      true,
     );
 
     // Clear input and hide input box
