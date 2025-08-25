@@ -90,17 +90,10 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
   const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
   const { workflow, readonly } = useCanvasContext();
   const [showCreateVariablesModal, setShowCreateVariablesModal] = useState(false);
-  const { workflowVariables, refetchWorkflowVariables, workflowVariablesLoading } = workflow;
+  const { workflowVariables } = workflow;
   const { addNode } = useAddNode();
   const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
-  console.log(
-    'workflowVariables',
-    readonly,
-    workflowVariables,
-    workflowVariablesLoading,
-    refetchWorkflowVariables,
-  );
   // Check if node has any connections
   const isSourceConnected = edges?.some((edge) => edge.source === id);
 

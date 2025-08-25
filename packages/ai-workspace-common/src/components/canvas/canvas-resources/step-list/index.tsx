@@ -18,7 +18,7 @@ interface TreeNode {
   key: string;
   title: React.ReactNode;
   children?: TreeNode[];
-  nodeType: 'skillResponse' | 'group' | 'start';
+  nodeType: 'skillResponse' | 'group';
   nodeData: CanvasNode;
   icon?: React.ReactNode;
 }
@@ -43,11 +43,7 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
   const { t } = useTranslation();
   const { readonly } = useCanvasContext();
 
-  // Get the appropriate title for the node
   const getNodeTitle = () => {
-    if (node?.type === 'start') {
-      return t('canvas.nodeTypes.start');
-    }
     return node?.data?.title || t('common.untitled');
   };
 
@@ -71,7 +67,7 @@ const StepRowTitle = memo(({ node, isActive, onLocate, onDelete }: StepRowTitleP
             }}
           />
         </Tooltip>
-        {!readonly && node?.type !== 'start' && (
+        {!readonly && (
           <Tooltip title={t('common.delete')} arrow={false}>
             <Button
               type="text"
@@ -119,11 +115,6 @@ export const StepList = memo(() => {
         return;
       }
 
-      // Prevent deletion of start nodes as they are essential for workflow
-      if (node?.type === 'start') {
-        return;
-      }
-
       deleteNode({
         id: node.id,
         type: node.type,
@@ -166,14 +157,6 @@ export const StepList = memo(() => {
       const title = node?.data?.title ?? '';
       if (title.toLowerCase().includes(searchTerm)) {
         return true;
-      }
-
-      // For start nodes, also check the translated title
-      if (node?.type === 'start') {
-        const startTitle = t('canvas.nodeTypes.start').toLowerCase();
-        if (startTitle.includes(searchTerm)) {
-          return true;
-        }
       }
 
       return false;
