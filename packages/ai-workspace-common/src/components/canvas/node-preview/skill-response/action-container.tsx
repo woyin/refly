@@ -340,6 +340,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
             modelInfo,
             runtimeConfig: followUpRuntimeConfig,
             tplConfig,
+            contextItems: followUpContextItems,
             structuredData: {
               query: followUpQuery,
             },
