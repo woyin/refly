@@ -7,7 +7,7 @@ import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin
 import { VARIABLE_TYPE_ICON_MAP } from '../nodes/start';
 import { useTranslation } from 'react-i18next';
 import SVGX from '../../../assets/x.svg';
-import { CreateVariablesModal } from '../workflow-variables/create-variables-modal';
+import { CreateVariablesModal } from '../workflow-variables';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 type VariableType = 'string' | 'option' | 'resource';

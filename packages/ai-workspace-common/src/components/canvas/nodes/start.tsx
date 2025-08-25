@@ -4,14 +4,14 @@ import { NodeIcon } from './shared/node-icon';
 import { Button, Divider } from 'antd';
 import { BiText } from 'react-icons/bi';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { getNodeCommonStyles } from './index';
+import { getNodeCommonStyles } from './shared/styles';
 import { CustomHandle } from './shared/custom-handle';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { useTranslation } from 'react-i18next';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { CreateVariablesModal } from '../workflow-variables/create-variables-modal';
+import { CreateVariablesModal } from '../workflow-variables';
 import { Attachment, List } from 'refly-icons';
 import SVGX from '../../../assets/x.svg';
 

@@ -1301,7 +1301,7 @@ const translations = {
         optionsRequired: 'At least one option is required',
         optionsEmpty: 'Options cannot be empty',
         addOption: 'Add Option',
-        maxOptions: 'Maximum 10 options allowed',
+        maxOptions: 'Maximum {{max}} options allowed',
         selectOptions: 'Select options',
         clickToEdit: 'Click to edit',
         deleteSuccess: 'Variable deleted successfully',

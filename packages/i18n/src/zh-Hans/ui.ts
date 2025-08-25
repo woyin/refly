@@ -1278,7 +1278,7 @@ const translations = {
         optionsRequired: '至少需要一个可选项',
         optionsEmpty: '可选项不能为空',
         addOption: '添加可选项',
-        maxOptions: '最多可添加10个可选项',
+        maxOptions: '最多可添加{{max}}个可选项',
         selectOptions: '选择可选项',
         clickToEdit: '点击编辑',
         deleteSuccess: '变量删除成功',
