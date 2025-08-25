@@ -1254,6 +1254,8 @@ const translations = {
         saveSuccess: '变量保存成功',
         deleteConfirm: '确定要删除这个变量吗？',
         empty: '暂未定义变量',
+        startNode: '起始节点',
+        resourceLibrary: '资源库',
       },
     },
     connectionTimeout: {

@@ -1277,6 +1277,8 @@ const translations = {
         saveSuccess: 'Variables saved successfully',
         deleteConfirm: 'Delete this variable?',
         empty: 'No variables defined',
+        startNode: 'Start Node',
+        resourceLibrary: 'Resource Library',
       },
     },
     connectionTimeout: {

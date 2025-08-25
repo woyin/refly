@@ -93,38 +93,52 @@ const AnimatedEllipsis = memo(() => {
 AnimatedEllipsis.displayName = 'AnimatedEllipsis';
 
 // Component for new task button when session is completed
-const NewTaskButton = memo(() => {
-  const { t } = useTranslation();
-  const { setActiveSessionId } = usePilotStoreShallow((state) => ({
-    setActiveSessionId: state.setActiveSessionId,
-  }));
+export const NewTaskButton = memo(
+  ({
+    className,
+    setIsNewTask,
+    canvasId,
+  }: { className?: string; setIsNewTask: (isNewTask: boolean) => void; canvasId: string }) => {
+    const { t } = useTranslation();
+    const { setActiveSessionId, setIsPilotOpen } = usePilotStoreShallow((state) => ({
+      setActiveSessionId: state.setActiveSessionId,
+      setIsPilotOpen: state.setIsPilotOpen,
+    }));
+    const { clearCanvasQuery } = useFrontPageStoreShallow((state) => ({
+      clearCanvasQuery: state.clearCanvasQuery,
+    }));
+    const handleNewTask = useCallback(() => {
+      setIsNewTask(true);
+      setIsPilotOpen(true);
+      setActiveSessionId(null);
+      clearCanvasQuery?.(canvasId);
+    }, [setIsNewTask, setIsPilotOpen, setActiveSessionId, clearCanvasQuery, canvasId]);
 
-  const handleNewTask = useCallback(() => {
-    // Clear the current session to show NoSession component
-    setActiveSessionId(null);
-  }, [setActiveSessionId]);
-
-  return (
-    <motion.div
-      className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeInOut' }}
-    >
-      <div className="pt-3 flex justify-end">
-        <Button
-          type="primary"
-          size="large"
-          className="w-24 h-8 text-[14px] font-medium px-1.5 py-2"
-          onClick={handleNewTask}
-          icon={<Send size={16} />}
-        >
-          {t('pilot.newTask', { defaultValue: 'New Task' })}
-        </Button>
-      </div>
-    </motion.div>
-  );
-});
+    return (
+      <motion.div
+        className={cn(
+          'px-4 pt-3 pb-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800',
+          className,
+        )}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+      >
+        <div className="flex justify-end">
+          <Button
+            type="primary"
+            size="large"
+            className="w-24 h-8 text-[14px] font-medium px-1.5 py-2"
+            onClick={handleNewTask}
+            icon={<Send size={16} />}
+          >
+            {t('pilot.newTask', { defaultValue: 'New Task' })}
+          </Button>
+        </div>
+      </motion.div>
+    );
+  },
+);
 
 NewTaskButton.displayName = 'NewTaskButton';
 
@@ -135,11 +149,15 @@ export const SessionContainer = memo(
     const [sessionStatus, setSessionStatus] = useState<string | null>(null);
     const { getNodes } = useReactFlow<CanvasNode<any>>();
 
-    const { isPilotOpen, setIsPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
-      isPilotOpen: state.isPilotOpen,
-      setIsPilotOpen: state.setIsPilotOpen,
-      setActiveSessionId: state.setActiveSessionId,
-    }));
+    const { isPilotOpen, isNewTask, setIsPilotOpen, setActiveSessionId, setIsNewTask } =
+      usePilotStoreShallow((state) => ({
+        isPilotOpen: state.isPilotOpen,
+        isNewTask: state.isNewTask,
+        setIsPilotOpen: state.setIsPilotOpen,
+        activeSessionId: state.activeSessionId,
+        setActiveSessionId: state.setActiveSessionId,
+        setIsNewTask: state.setIsNewTask,
+      }));
     const { query } = useFrontPageStoreShallow((state) => ({
       query: state.getQuery?.(canvasId) || '',
     }));
@@ -235,6 +253,7 @@ export const SessionContainer = memo(
         setIsPolling(false);
       }
     }, [shouldPoll, isPolling]);
+    console.log('Session status:', isNewTask);
     return (
       <div className={containerClassName}>
         {/* Header */}
@@ -251,7 +270,7 @@ export const SessionContainer = memo(
         {/* )} */}
 
         <AnimatePresence mode="wait">
-          {!session ? (
+          {!session || isNewTask ? (
             <motion.div
               key="no-session"
               initial={{ opacity: 0, y: 20 }}
@@ -281,7 +300,7 @@ export const SessionContainer = memo(
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                     >
                       <motion.div
-                        className="px-4"
+                        className="px-1"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2, delay: 0.1 }}
@@ -353,13 +372,17 @@ export const SessionContainer = memo(
                       transition={{ duration: 0.3, ease: 'easeInOut' }}
                     >
                       <Empty
-                        description={t('pilot.noTasks', { defaultValue: 'No tasks available yet' })}
+                        description={t('pilot.noTasks', {
+                          defaultValue: 'No tasks available yet',
+                        })}
                       />
                     </motion.div>
                   )}
                 </AnimatePresence>
               </motion.div>
-              {session?.status === 'finish' && <NewTaskButton />}
+              {session?.status === 'finish' && (
+                <NewTaskButton setIsNewTask={setIsNewTask} canvasId={canvasId} />
+              )}
             </div>
           )}
         </AnimatePresence>

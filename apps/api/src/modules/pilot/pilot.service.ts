@@ -313,6 +313,30 @@ export class PilotService {
   }
 
   /**
+   * Generates a summary title based on user's locale preference
+   * @param locale User's preferred output locale
+   * @returns Localized summary title
+   */
+  private getSummaryTitle(locale?: string): string {
+    // Default to English if no locale is specified
+    const userLocale = locale?.toLowerCase() ?? 'en';
+
+    // Map locale to summary title
+    const summaryTitles: Record<string, string> = {
+      zh: '阶段总结',
+      'zh-cn': '阶段总结',
+      'zh-hans': '阶段总结',
+      'zh-hans-cn': '阶段总结',
+      en: 'Stage Summary',
+      'en-us': 'Stage Summary',
+      'en-gb': 'Stage Summary',
+    };
+
+    // Return localized title or fallback to English
+    return summaryTitles[userLocale] ?? summaryTitles.en;
+  }
+
+  /**
    * Run the pilot for a given session
    * @param user - The user to run the pilot for
    * @param sessionId - The ID of the session to run the pilot for
@@ -634,6 +658,15 @@ export class PilotService {
 
       this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
 
+      // Get user's output locale preference
+      const userPo = await this.prisma.user.findUnique({
+        select: { outputLocale: true },
+        where: { uid: user.uid },
+      });
+      const locale = userPo?.outputLocale;
+
+      const summaryTitle = this.getSummaryTitle(locale);
+
       const agentPi = await this.providerService.findProviderItemById(
         user,
         pilotSession.providerItemId,
@@ -688,6 +721,7 @@ export class PilotService {
           subtaskTitles:
             latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ??
             [],
+          locale,
         });
 
         // *** NEW: Variable extraction for Summary input (only updates variables, does not affect skill calls) ***
@@ -714,7 +748,7 @@ export class PilotService {
           data: {
             uid: user.uid,
             resultId,
-            title: input.query,
+            title: summaryTitle,
             actionMeta: JSON.stringify({
               type: 'skill',
               name: skill.name,
@@ -739,7 +773,7 @@ export class PilotService {
         await this.prisma.pilotStep.create({
           data: {
             stepId,
-            name: input.query,
+            name: summaryTitle,
             sessionId,
             epoch: currentEpoch,
             entityId: actionResult.resultId,
@@ -759,7 +793,7 @@ export class PilotService {
             {
               type: 'skillResponse',
               data: {
-                title: input.query,
+                title: summaryTitle,
                 entityId: resultId,
                 metadata: {
                   status: 'executing',

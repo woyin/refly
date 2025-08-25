@@ -53,9 +53,10 @@ No manual action required, can switch to new packages anytime for more flexible 
 10. Gemini 2.5 Pro
 11. Gemini 2.5 Flash
 12. DeepSeek V3
-13. DeepSeek R1
-14. Grok 4
-15. Qwen3 Coder
+13. DeepSeek V3.1
+14. DeepSeek R1
+15. Grok 4
+16. Qwen3 Coder
 
 ## 📊 How to Check Credit Balance and Usage
 
@@ -64,67 +65,7 @@ You can check in the following locations:
 - System will estimate and show expected consumption before each model call
 - Transaction history shows credit deduction details and call times
 
-## 💰 Model Pricing
 
-### Text Models: Token-based Billing (per 5K tokens)
-
-| Model | Credit Consumption |
-|-------|-------------------|
-| Claude Sonnet 4 | ~11 credits |
-| Claude Opus 4.1 | ~53 credits |
-| Claude 4 Sonnet (thinking) | ~11 credits |
-| Kimi K2 | ~2 credits |
-| GPT-4o | ~7 credits |
-| GPT-4.1 | ~6 credits |
-| GPT-5 | ~7 credits |
-| GPT-5 chat | ~7 credits |
-| GPT-o3 | ~6 credits |
-| GPT-OSS-120B | ~1 credit |
-| Gemini 2.5 Pro | ~7 credits |
-| Gemini 2.5 Flash | ~2 credits |
-| DeepSeek V3 0324 | ~1 credit |
-| DeepSeek R1 0528 | ~2 credits |
-| Grok 4 | ~10 credits |
-| Qwen3 Coder | ~3 credits |
-
-### Image Models: Per Image Billing
-
-| Model Name | Credit Consumption |
-|------------|-------------------|
-| Flux 1.1 pro ultra | ~9 credits |
-| Flux 1.1 pro | ~6 credits |
-| flux-dev | ~4 credits |
-| Flux-Krea-Dev | ~4 credits |
-| flux-schnell | ~1 credit |
-| recraft-v3 | ~6 credits |
-| recraft-v3-svg | ~12 credits |
-| google / imagen-4 | ~6 credits |
-| google / imagen-4-fast | ~3 credits |
-| google / imagen-4-ultra | ~9 credits |
-| doubao-Seedream-3.0-t2i | ~6 credits |
-| Qwen-Image | ~4 credits |
-
-
-### Video Models: Per Second Billing
-
-| Model Name | Credit Consumption |
-|------------|-------------------|
-| Veo 3 Fast (Audio) | ~448 credits |
-| Veo 3 | ~840 credits |
-| bytedance / seedance-1-pro | ~14 credits |
-| bytedance / seedance-1-lite | ~10 credits |
-| kwaivgi / kling-v2.1-master | ~196 credits |
-| Wan 2.2 Fast | ~7 credits |
-
-### Audio Models: Per Use Billing
-
-| Model Name | Credit Consumption |
-|------------|-------------------|
-| suno-ai/bark | ~10 credits |
-| lucataco/ace-step | ~1 credit |
-| haoheliu/audio-Idm | ~10 credits |
-| elevenlabs-turbo-v2.5 | ~35 credits |
-| elevenlabs-multilingual-v2 | ~70 credits |
 
 ## ❓ Frequently Asked Questions (FAQ)
 
