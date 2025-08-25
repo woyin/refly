@@ -6,10 +6,11 @@ interface PilotState {
   // state
   isPilotOpen: boolean;
   activeSessionId: string | null;
-
+  isNewTask: boolean;
   // method
   setIsPilotOpen: (val: boolean) => void;
   setActiveSessionId: (sessionId: string | null) => void;
+  setIsNewTask: (isNewTask: boolean) => void;
 }
 
 export const usePilotStore = create<PilotState>()(
@@ -18,9 +19,10 @@ export const usePilotStore = create<PilotState>()(
       (set) => ({
         isPilotOpen: false,
         activeSessionId: null,
-
+        isNewTask: false,
         setIsPilotOpen: (val: boolean) => set({ isPilotOpen: val }),
         setActiveSessionId: (sessionId: string | null) => set({ activeSessionId: sessionId }),
+        setIsNewTask: (isNewTask: boolean) => set({ isNewTask }),
       }),
       {
         name: 'pilot-storage', // unique name for the localStorage key

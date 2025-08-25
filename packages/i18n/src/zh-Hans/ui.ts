@@ -1254,7 +1254,7 @@ const translations = {
         saveError: '保存变量失败',
         saveSuccess: '变量保存成功',
         deleteConfirm: '确定要删除这个变量吗？',
-        empty: '暂无变量',
+        empty: '暂未定义变量',
         addVariable: '新建',
         variableType: '变量类型',
         required: '必填',
@@ -1293,6 +1293,8 @@ const translations = {
         duplicateOption: '可选项不能存在重复值',
         upload: '上传文件',
         typeLimitReached: '{{type}}类型的变量数量已达上限，无法提交。',
+        startNode: '起始节点',
+        resourceLibrary: '资源库',
       },
     },
     connectionTimeout: {

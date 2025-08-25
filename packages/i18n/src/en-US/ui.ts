@@ -1316,6 +1316,8 @@ const translations = {
         upload: 'Upload Files',
         typeLimitReached:
           '{{type}} type variables have reached the maximum limit and cannot be submitted.',
+        startNode: 'Start Node',
+        resourceLibrary: 'Resource Library',
       },
     },
     connectionTimeout: {
