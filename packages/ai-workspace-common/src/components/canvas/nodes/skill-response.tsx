@@ -548,6 +548,8 @@ export const SkillResponseNode = memo(
           },
         },
         connectTo,
+        false,
+        true,
       );
 
       nodeActionEmitter.emit(createNodeEventName(id, 'cloneAskAI.completed'));
