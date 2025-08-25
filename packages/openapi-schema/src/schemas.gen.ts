@@ -6706,6 +6706,11 @@ export const ModelInfoSchema = {
       type: 'string',
       description: 'Model group',
     },
+    category: {
+      type: 'string',
+      description: 'Model category',
+      $ref: '#/components/schemas/ProviderCategory',
+    },
     creditBilling: {
       $ref: '#/components/schemas/CreditBilling',
       description: 'Credit billing info',

@@ -227,7 +227,7 @@ export const useListenNodeOperationEvents = () => {
           const connectedTo: CanvasNodeFilter[] = currentNode
             ? [
                 {
-                  type: 'mediaSkill',
+                  type: currentNode.type as CanvasNodeType,
                   entityId: currentNode.data?.entityId as string,
                   handleType: 'source',
                 },

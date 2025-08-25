@@ -180,9 +180,7 @@ const MediaSkillResponseNode = memo(
 
           // Find the mediaSkill node that connects to this node
           const mediaSkillNode = nodes?.find((node) => {
-            return (
-              node.type === 'mediaSkill' && incomingEdges.some((edge) => edge.source === node.id)
-            );
+            return node.type === 'skill' && incomingEdges.some((edge) => edge.source === node.id);
           });
 
           const connectedTo: CanvasNodeFilter[] = [];
@@ -190,11 +188,14 @@ const MediaSkillResponseNode = memo(
           if (mediaSkillNode) {
             // Connect the new media node to the mediaSkill node's source
             connectedTo.push({
-              type: 'mediaSkill' as CanvasNodeType,
+              type: 'skill' as CanvasNodeType,
               entityId: mediaSkillNode.data?.entityId as string,
               handleType: 'source',
             });
           }
+
+          // Add the new media node at the same position
+          addNode(newNode, connectedTo, false, true);
 
           // Delete this MediaSkillResponse node
           deleteNode(
@@ -208,9 +209,6 @@ const MediaSkillResponseNode = memo(
               showMessage: false,
             },
           );
-
-          // Add the new media node at the same position
-          addNode(newNode, connectedTo, false, true);
 
           message.success(
             t('canvas.nodes.mediaSkillResponse.success', 'Media generated successfully!'),

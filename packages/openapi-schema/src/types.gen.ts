@@ -4678,6 +4678,10 @@ export type ModelInfo = {
    */
   group?: string;
   /**
+   * Model category
+   */
+  category?: ProviderCategory;
+  /**
    * Credit billing info
    */
   creditBilling?: CreditBilling;
