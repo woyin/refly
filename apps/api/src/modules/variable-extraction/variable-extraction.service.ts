@@ -88,20 +88,28 @@ export class VariableExtractionService {
       );
     }
 
-    // 4. 根据模式处理结果（保持原有逻辑）
+    // 获取模型名称用于记录
+    const model = await this.prepareChatModel(user);
+    const modelName = model?.constructor?.name || 'unknown';
+
+    // 4. 根据模式处理结果（统一处理存储逻辑）
     if (mode === 'direct') {
       await this.updateCanvasVariables(user, canvasId, extractionResult.variables);
-      // 获取模型名称用于记录
-      const model = await this.prepareChatModel(user);
-      const modelName = model?.constructor?.name || 'unknown';
-      await this.saveExtractionHistory(user, canvasId, extractionResult, {
+
+      // 使用通用保存函数
+      await this.saveExtractionRecord(user, canvasId, extractionResult, {
         mode: 'direct',
-        model: modelName,
         triggerType,
+        model: modelName,
+        status: 'applied',
       });
     } else {
-      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult, {
+      // 候选模式：使用通用保存函数
+      const finalSessionId = await this.saveExtractionRecord(user, canvasId, extractionResult, {
+        mode: 'candidate',
         triggerType,
+        model: modelName,
+        status: 'pending',
       });
       extractionResult.sessionId = finalSessionId;
     }
@@ -178,7 +186,7 @@ export class VariableExtractionService {
    * - 获取完整的历史数据进行分析
    * - 构建增强的历史学习提示词
    * - 执行多轮LLM处理提升质量
-   * - 保存候选记录供用户确认
+   * - 不负责存储，只负责抽取逻辑
    */
   private async performCandidateModeExtraction(
     prompt: string,
@@ -203,12 +211,10 @@ export class VariableExtractionService {
       prompt,
     );
 
-    // 4. 保存候选记录（使用原有的完整逻辑）
-    if (!sessionId) {
-      const finalSessionId = await this.saveCandidateRecord(user, canvasId, extractionResult, {
-        triggerType: 'askAI_candidate',
-      });
-      extractionResult.sessionId = finalSessionId;
+    // 4. 不在这里保存候选记录，由调用方统一处理存储逻辑
+    // 只设置 sessionId 如果传入的话
+    if (sessionId) {
+      extractionResult.sessionId = sessionId;
     }
 
     return extractionResult;
@@ -678,12 +684,6 @@ export class VariableExtractionService {
       // 更新Canvas变量
       await this.updateCanvasVariables(user, canvasId, record.extractedVariables);
 
-      // 记录为直接模式的历史记录
-      await this.saveExtractionHistory(user, canvasId, result, {
-        mode: 'direct',
-        triggerType: 'candidate_conversion',
-      });
-
       this.logger.log(`Successfully applied candidate record ${record.sessionId}`);
       return result;
     } catch (error) {
@@ -933,69 +933,65 @@ export class VariableExtractionService {
     }
   }
 
-  private async saveExtractionHistory(
+  /**
+   * 统一的变量提取记录保存方法
+   *
+   * 使用场景: 统一处理候选记录和直接模式的历史记录保存
+   *
+   * 作用:
+   * - 避免代码重复
+   * - 统一错误处理
+   * - 提供一致的日志记录
+   */
+  private async saveExtractionRecord(
     user: User,
     canvasId: string,
     result: VariableExtractionResult,
-    options: { mode: string; model?: string; triggerType: string },
-  ): Promise<void> {
+    options: {
+      mode: 'candidate' | 'direct';
+      triggerType: string;
+      model?: string;
+      status: 'pending' | 'applied';
+    },
+  ): Promise<string | undefined> {
     try {
-      await this.prisma.variableExtractionHistory.create({
-        data: {
-          sessionId: result.sessionId || null,
-          canvasId,
-          uid: user.uid,
-          triggerType: options.triggerType,
-          extractionMode: options.mode,
-          originalPrompt: result.originalPrompt,
-          processedPrompt: result.processedPrompt,
-          extractedVariables: JSON.stringify(result.variables),
-          reusedVariables: JSON.stringify(result.reusedVariables),
-          extractionConfidence: this.calculateOverallConfidence(result),
-          llmModel: options.model || null,
-          status: 'applied',
-          appliedAt: new Date(),
-        },
-      });
+      const sessionId =
+        options.mode === 'candidate' ? genVariableExtractionSessionID() : result.sessionId;
 
-      this.logger.log(`Saved extraction history for canvas ${canvasId}, mode: ${options.mode}`);
-    } catch (error) {
-      this.logger.error(`Error saving extraction history for canvas ${canvasId}:`, error);
-      // 不抛出错误，保证主流程继续
-    }
-  }
-
-  private async saveCandidateRecord(
-    user: User,
-    canvasId: string,
-    result: VariableExtractionResult,
-    options: { triggerType: string },
-  ): Promise<string> {
-    try {
-      const sessionId = genVariableExtractionSessionID();
+      const recordData = {
+        sessionId: options.mode === 'candidate' ? sessionId : result.sessionId || null,
+        canvasId,
+        uid: user.uid,
+        triggerType: options.triggerType,
+        extractionMode: options.mode,
+        originalPrompt: result.originalPrompt,
+        processedPrompt: result.processedPrompt,
+        extractedVariables: JSON.stringify(result.variables),
+        reusedVariables: JSON.stringify(result.reusedVariables),
+        extractionConfidence: this.calculateOverallConfidence(result),
+        llmModel: options.model || null,
+        status: options.status,
+        ...(options.status === 'applied' && { appliedAt: new Date() }),
+      };
 
       await this.prisma.variableExtractionHistory.create({
-        data: {
-          sessionId,
-          canvasId,
-          uid: user.uid,
-          triggerType: options.triggerType,
-          extractionMode: 'candidate',
-          originalPrompt: result.originalPrompt,
-          processedPrompt: result.processedPrompt,
-          extractedVariables: JSON.stringify(result.variables),
-          reusedVariables: JSON.stringify(result.reusedVariables),
-          extractionConfidence: this.calculateOverallConfidence(result),
-          llmModel: null, // Candidate records don't have a specific LLM model
-          status: 'pending',
-        },
+        data: recordData,
       });
 
-      this.logger.log(`Saved candidate record ${sessionId} for canvas ${canvasId}`);
-      return sessionId;
+      const logMessage =
+        options.mode === 'candidate'
+          ? `Saved candidate record ${sessionId} for canvas ${canvasId}`
+          : `Saved extraction history for canvas ${canvasId}, mode: ${options.mode}`;
+
+      this.logger.log(logMessage);
+
+      // 候选模式返回 sessionId，直接模式返回 undefined
+      return options.mode === 'candidate' ? sessionId : undefined;
     } catch (error) {
-      this.logger.error(`Error saving candidate record for canvas ${canvasId}:`, error);
-      throw new Error('Failed to save candidate record');
+      const errorMessage = `Error saving ${options.mode} record for canvas ${canvasId}: ${error.message}`;
+      this.logger.error(errorMessage);
+
+      throw new Error(`Failed to save candidate record: ${error.message}`);
     }
   }
 
