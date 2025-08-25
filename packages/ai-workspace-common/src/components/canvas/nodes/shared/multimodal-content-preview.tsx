@@ -87,7 +87,7 @@ const TextContent = memo(
     }, [content, sources]);
 
     const textClassName = useMemo(
-      () => `text-xs text-gray-700 leading-relaxed overflow-hidden ${className}`,
+      () => `text-xs leading-relaxed overflow-hidden ${className}`,
       [className],
     );
 
