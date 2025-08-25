@@ -1,3 +1,5 @@
+import { VariableResourceType } from '@refly/openapi-schema';
+
 export const MAX_OPTIONS = 20;
 
 export const DOCUMENT_FILE_EXTENSIONS = [
@@ -58,3 +60,5 @@ export const MIME_TYPE_VALIDATION = {
   audio: ['audio/'],
   video: ['video/'],
 } as const;
+
+export const RESOURCE_TYPE = ['document', 'image', 'audio', 'video'] as VariableResourceType[];

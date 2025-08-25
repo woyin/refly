@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { VariableFormData } from '../types';
+import { RESOURCE_TYPE } from '../constants';
 
 const defaultStringData: VariableFormData = {
   name: '',
@@ -17,6 +18,7 @@ const defaultResourceData: VariableFormData = {
   required: true,
   isSingle: true,
   options: [],
+  resourceTypes: RESOURCE_TYPE,
 };
 
 const defaultOptionData: VariableFormData = {

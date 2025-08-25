@@ -42,8 +42,6 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
     const handleAddOption = useCallback(() => {
       if (options.length < MAX_OPTIONS) {
         onAddOption();
-      } else {
-        // This should be handled by parent component
       }
     }, [options.length, onAddOption]);
 

@@ -1,4 +1,4 @@
-import type { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
+import type { WorkflowVariable, VariableValue, VariableResourceType } from '@refly/openapi-schema';
 
 export interface CreateVariablesModalProps {
   variableType?: 'string' | 'option' | 'resource';
@@ -16,6 +16,7 @@ export interface VariableFormData {
   isSingle?: boolean;
   options?: string[];
   currentOption?: string;
+  resourceTypes?: VariableResourceType[];
 }
 
 export interface VariableTypeOption {

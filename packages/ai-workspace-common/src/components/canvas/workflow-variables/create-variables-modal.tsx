@@ -18,6 +18,7 @@ import type { CreateVariablesModalProps, VariableFormData } from './types';
 import type { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
 import './index.scss';
 import { BiText } from 'react-icons/bi';
+import { RESOURCE_TYPE } from './constants';
 
 export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.memo(
   ({ visible, onCancel, defaultValue, variableType: initialVariableType }) => {
@@ -109,6 +110,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               value: defaultValue.value || [],
               description: defaultValue.description || '',
               required: defaultValue.required ?? true,
+              resourceTypes: defaultValue.resourceTypes || RESOURCE_TYPE,
             };
             updateResourceFormData(newResourceFormData);
             form.setFieldsValue(newResourceFormData);
@@ -162,7 +164,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
     const handleFormValuesChange = useCallback(
       (_changedValues: Partial<VariableFormData>) => {
         const currentFormValues = form.getFieldsValue();
-
         if (variableType === 'string') {
           updateStringFormData(currentFormValues);
         } else if (variableType === 'resource') {
@@ -328,7 +329,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
         // Construct the value array based on variable type
         let finalValue: VariableValue[];
         if (variableType === 'string') {
-          const textValue = values.value?.[0]?.text ?? '';
+          const textValue = values.value?.[0]?.text?.trim() ?? '';
           finalValue = textValue ? [{ type: 'text', text: textValue }] : [];
         } else if (variableType === 'resource') {
           // For resource type, construct value array from fileList
@@ -336,8 +337,8 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
             type: 'resource',
             resource: {
               name: file.name || '',
-              storageKey: file.url || '', // url field contains storageKey
-              fileType: getFileExtension(file.name) || 'file', // Store file extension
+              storageKey: file.url || '',
+              fileType: getFileExtension(file.name) || 'file',
             },
           }));
         } else if (variableType === 'option' && options.length > 0 && options[0]) {
@@ -358,6 +359,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           variableType: variableType as 'string' | 'option' | 'resource',
           required: values.required,
           ...(variableType === 'resource' && {
+            resourceTypes: values.resourceTypes || RESOURCE_TYPE,
             isSingle: true,
             options: [],
           }),
@@ -407,6 +409,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               onFileUpload={handleFileUpload}
               onFileRemove={handleFileRemove}
               onRefreshFile={handleRefreshFile}
+              form={form}
             />
           );
         case 'option':
@@ -449,6 +452,13 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       handleDragEnd,
       handleDragStart,
     ]);
+
+    const handleNameBlur = useCallback(() => {
+      const value = form.getFieldValue('name');
+      if (value) {
+        form.setFieldValue('name', value.trim());
+      }
+    }, [form]);
 
     return (
       <Modal
@@ -499,6 +509,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                 isSingle: true,
                 value: [{ type: 'text', text: '' }],
                 currentOption: '',
+                resourceTypes: RESOURCE_TYPE,
               }}
             >
               <Form.Item
@@ -540,6 +551,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                   placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
                   maxLength={50}
                   showCount
+                  onBlur={handleNameBlur}
                 />
               </Form.Item>
               {renderForm()}

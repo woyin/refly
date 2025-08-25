@@ -1261,9 +1261,15 @@ const translations = {
         multiple: '多选设置',
         singleSelect: '单选',
         multipleSelect: '多选',
-        optionResource: '选项资源',
-        optionResourceRequired: '至少需要上传一个资源',
-        uploadFileFirst: '请先上传资源文件',
+        resourceAcceptType: '支持的资源类型',
+        resourceTypesRequired: '请选择支持的资源类型',
+        selectResourceTypes: '选择资源类型',
+        resourceType: {
+          document: '文档',
+          image: '图片',
+          audio: '音频',
+          video: '视频',
+        },
         resourceValuePlaceholder: '选择资源',
         variableTypeOptions: {
           string: '文本',
