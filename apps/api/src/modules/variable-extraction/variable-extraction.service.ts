@@ -122,11 +122,13 @@ export class VariableExtractionService {
     const enhancedPrompt = this.buildUnifiedEnhancedPrompt(prompt, context, historicalData);
 
     // 3. Execute LLM extraction
-    const extractionResult = await this.performLLMExtraction(enhancedPrompt, context, user);
+    const extractionResult = await this.performLLMExtraction(enhancedPrompt, user, prompt);
 
     // 4. Basic quality check
-    const qualityScore = await this.performBasicQualityCheck(extractionResult, context);
-    extractionResult.qualityScore = qualityScore;
+    extractionResult.extractionConfidence = this.calculateOverallConfidence(
+      extractionResult,
+      context,
+    );
 
     // 5. Set sessionId if provided
     if (sessionId) {
@@ -150,10 +152,10 @@ export class VariableExtractionService {
   /**
    * Basic quality check
    */
-  private async performBasicQualityCheck(
+  private performBasicQualityCheck(
     result: VariableExtractionResult,
     context: ExtractionContext,
-  ): Promise<number> {
+  ): number {
     try {
       // 1. Syntax validation
       const syntaxValid = this.validateSyntax(result);
@@ -473,20 +475,18 @@ export class VariableExtractionService {
    * - Parse and validate LLM response
    */
   public async performLLMExtraction(
-    originalPrompt: string,
-    _context: ExtractionContext,
+    llmPrompt: string,
     user: User,
+    originalPrompt: string,
   ): Promise<VariableExtractionResult> {
     try {
       // 1. Get LLM model instance
       const model = await this.prepareChatModel(user);
 
-      this.logger.log(
-        `Performing LLM extraction for prompt: "${originalPrompt.substring(0, 100)}..."`,
-      );
+      this.logger.log(`Performing LLM extraction for prompt: "${llmPrompt.substring(0, 100)}..."`);
 
       // 2. Call LLM for variable extraction
-      const response = await model.invoke(originalPrompt);
+      const response = await model.invoke(llmPrompt);
       const responseText = response.content.toString();
 
       // 3. Parse LLM response
@@ -706,7 +706,7 @@ export class VariableExtractionService {
         processedPrompt: result.processedPrompt,
         extractedVariables: JSON.stringify(result.variables),
         reusedVariables: JSON.stringify(result.reusedVariables),
-        extractionConfidence: this.calculateOverallConfidence(result),
+        extractionConfidence: result.extractionConfidence,
         llmModel: options.model || null,
         status: options.status,
         ...(options.status === 'applied' && { appliedAt: new Date() }),
@@ -882,56 +882,62 @@ export class VariableExtractionService {
 
   /**
    * Calculate overall confidence of extraction result
-   * Based on confidence score returned by LLM, provide a more reliable evaluation
+   * Integrated with quality check for more reliable evaluation
    */
-  private calculateOverallConfidence(result: VariableExtractionResult): number {
+  private calculateOverallConfidence(
+    result: VariableExtractionResult,
+    context: ExtractionContext,
+  ): number {
     if (!result.variables.length) {
       return 0;
     }
 
-    // 1. Calculate base score based on variable confidence returned by LLM
+    // 1. Use quality score as primary confidence indicator
+    const qualityScore = this.performBasicQualityCheck(result, context);
+
+    // 2. Calculate base confidence from LLM variable confidence
     const variableConfidences = result.variables
-      .map((v) => (v as any).confidence || 0.8) // If no confidence, default to 0.8
-      .filter((conf) => conf > 0); // Filter out invalid confidence
+      .map((v) => (v as any).confidence ?? 0.8)
+      .filter((conf) => conf > 0);
 
     if (variableConfidences.length === 0) {
-      return 0.5; // If no valid confidence, return medium score
+      return qualityScore * 0.8; // Fallback to quality score
     }
 
-    // 2. Calculate weighted average confidence (more variables, higher weight)
-    const totalConfidence = variableConfidences.reduce((sum, conf) => sum + conf, 0);
-    const baseConfidence = totalConfidence / variableConfidences.length;
+    const baseConfidence =
+      variableConfidences.reduce((sum, conf) => sum + conf, 0) / variableConfidences.length;
 
-    // 3. Adjust confidence based on number of variables (more variables, confidence may decrease)
-    const variableCountAdjustment = Math.max(0.1, 1 - (result.variables.length - 1) * 0.05);
+    // 3. Calculate confidence adjustments with better weighting
+    const adjustments = {
+      // Quality score has highest weight (40%)
+      quality: qualityScore * 0.4,
 
-    // 4. Adjust confidence based on variable type distribution
-    const typeDistribution = this.calculateTypeDistributionConfidence(result.variables);
+      // LLM confidence has significant weight (35%)
+      llmConfidence: baseConfidence * 0.35,
 
-    // 5. Adjust confidence based on reused variables
-    const reuseAdjustment = result.reusedVariables.length > 0 ? 0.05 : 0;
+      // Variable count adjustment (15%) - less aggressive
+      variableCount: Math.max(0.7, 1 - (result.variables.length - 1) * 0.02) * 0.15,
 
-    // 6. Adjust confidence based on quality of processed prompt
-    const processedPromptQuality = this.assessProcessedPromptQuality(result);
+      // Type distribution (5%)
+      typeDistribution: this.calculateTypeDistributionConfidence(result.variables) * 0.05,
 
-    // 7. Comprehensive final confidence calculation
-    const finalConfidence = Math.min(
-      1,
-      baseConfidence * variableCountAdjustment * typeDistribution +
-        reuseAdjustment +
-        processedPromptQuality,
-    );
+      // Reuse bonus (3%)
+      reuseBonus: Math.min(0.03, result.reusedVariables.length * 0.01),
+
+      // Prompt processing quality (2%)
+      promptQuality: this.assessProcessedPromptQuality(result) * 0.02,
+    };
+
+    // 4. Calculate final confidence with weighted sum
+    const finalConfidence = Object.values(adjustments).reduce((sum, value) => sum + value, 0);
 
     this.logger.debug(
-      `Confidence calculation: base=${baseConfidence.toFixed(3)}, ` +
-        `countAdj=${variableCountAdjustment.toFixed(3)}, ` +
-        `typeDist=${typeDistribution.toFixed(3)}, ` +
-        `reuse=${reuseAdjustment.toFixed(3)}, ` +
-        `promptQuality=${processedPromptQuality.toFixed(3)}, ` +
-        `final=${finalConfidence.toFixed(3)}`,
+      `Confidence calculation: ${Object.entries(adjustments)
+        .map(([key, value]) => `${key}=${value.toFixed(3)}`)
+        .join(', ')} => final=${finalConfidence.toFixed(3)}`,
     );
 
-    return finalConfidence;
+    return Math.min(1, Math.max(0, finalConfidence));
   }
 
   /**

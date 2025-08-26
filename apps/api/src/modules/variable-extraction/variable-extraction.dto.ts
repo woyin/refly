@@ -36,6 +36,7 @@ export interface VariableExtractionResult {
   reusedVariables: VariableReuse[]; // Reused variable information
   sessionId?: string; // Session ID in candidate mode
   qualityScore?: number; // Quality score
+  extractionConfidence?: number; // Extraction confidence
 }
 
 // Variable reuse information
