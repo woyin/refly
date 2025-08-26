@@ -5,7 +5,7 @@ import { Form } from 'antd';
 import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
-import { getNodeCommonStyles } from './index';
+import { getNodeCommonStyles } from './shared/styles';
 import {
   ModelInfo,
   Skill,
@@ -93,29 +93,33 @@ export const SkillNode = memo(
       const baseVariables: ExtendedWorkflowVariable[] = [
         // Default example variables for testing @mention functionality
         {
+          variableId: 'userName',
           name: 'userName',
-          value: ['张三'],
+          value: [{ text: '张三', type: 'text' as const }],
           description: '用户姓名',
           source: 'startNode',
           variableType: 'string',
         },
         {
+          variableId: 'projectName',
           name: 'projectName',
-          value: ['AI智能助手项目'],
+          value: [{ text: 'AI智能助手项目', type: 'text' as const }],
           description: '当前项目名称',
           source: 'startNode',
           variableType: 'string',
         },
         {
+          variableId: 'knowledgeBase',
           name: 'knowledgeBase',
-          value: ['research-papers-2024'],
+          value: [{ text: 'research-papers-2024', type: 'resource' as const }],
           description: '研究论文知识库',
           source: 'resourceLibrary',
           variableType: 'resource',
         },
         {
+          variableId: 'documentTemplate',
           name: 'documentTemplate',
-          value: ['tech-report-template'],
+          value: [{ text: 'tech-report-template', type: 'resource' as const }],
           description: '技术报告模板',
           source: 'resourceLibrary',
           variableType: 'resource',
@@ -127,8 +131,9 @@ export const SkillNode = memo(
         nodes
           ?.filter((node) => node.type === 'skillResponse')
           ?.map((node) => ({
+            variableId: `step-${node.id}`,
             name: node.data?.title ?? '未命名步骤',
-            value: [node.data?.entityId ?? ''],
+            value: [{ text: node.data?.entityId ?? '', type: 'text' as const }],
             description: '步骤记录',
             source: 'stepRecord',
             variableType: 'step',
@@ -141,8 +146,9 @@ export const SkillNode = memo(
         nodes
           ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
           ?.map((node) => ({
+            variableId: `result-${node.id}`,
             name: node.data?.title ?? '未命名结果',
-            value: [node.data?.entityId ?? ''],
+            value: [{ text: node.data?.entityId ?? '', type: 'text' as const }],
             description: '结果记录',
             source: 'resultRecord',
             variableType: 'result',
@@ -455,6 +461,7 @@ export const SkillNode = memo(
             workflowVariables={variables
               .filter((v) => v.source === 'startNode' || v.source === 'resourceLibrary')
               .map((v) => ({
+                variableId: v.variableId,
                 name: v.name,
                 value: v.value,
                 description: v.description,
