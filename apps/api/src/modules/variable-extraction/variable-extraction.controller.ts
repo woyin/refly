@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
-import { User } from '@refly/openapi-schema';
+import { ExtractVariablesRequest, GenerateAppTemplateRequest, User } from '@refly/openapi-schema';
 import {
   AppTemplateResult,
   VariableExtractionResult,
@@ -13,16 +13,14 @@ export class VariableExtractionController {
   constructor(private readonly variableExtractionService: VariableExtractionService) {}
 
   /**
-   * APP发布模板生成接口
-   * 基于Canvas所有原始prompt和变量生成用户意图模板
+   * APP publishing template generation endpoint
+   * Generates user intent templates based on all original Canvas prompts and variables
    */
   @UseGuards(JwtAuthGuard)
   @Post('generate-template')
   async generateAppTemplate(
     @LoginedUser() user: User,
-    @Body() body: {
-      canvasId: string; // 画布ID
-    },
+    @Body() body: GenerateAppTemplateRequest,
   ): Promise<AppTemplateResult> {
     return this.variableExtractionService.generateAppPublishTemplate(user, body.canvasId);
   }
@@ -35,12 +33,7 @@ export class VariableExtractionController {
   @Post('extract')
   async extractVariables(
     @LoginedUser() user: User,
-    @Body() body: {
-      prompt: string; // Original natural language prompt
-      canvasId: string; // Canvas ID, used to get existing variable context
-      mode: 'direct' | 'candidate'; // Processing mode
-      sessionId?: string; // Optional, check for candidate records when in direct mode
-    },
+    @Body() body: ExtractVariablesRequest,
   ): Promise<VariableExtractionResult> {
     return this.variableExtractionService.extractVariables(user, body.prompt, body.canvasId, {
       mode: body.mode,

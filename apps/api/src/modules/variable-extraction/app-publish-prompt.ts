@@ -8,9 +8,9 @@ import {
 import { APP_PUBLISH_EXAMPLES } from './examples';
 
 /**
- * APP发布模板生成专用prompt
- * 基于Canvas所有原始prompt和变量生成用户友好的自然语言模板
- * 用于APP发布流程，让用户能够理解和使用工作流
+ * APP publishing template generation dedicated prompt
+ * Generates user-friendly natural language templates based on all original Canvas prompts and variables
+ * Used for APP publishing workflow to help users understand and use the workflow
  */
 export function buildAppPublishPrompt(
   canvasData: {
