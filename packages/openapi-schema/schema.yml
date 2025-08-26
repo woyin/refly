@@ -42,6 +42,104 @@ tags:
     description: Workflow management endpoints
 
 paths:
+  /variable-extraction/extract:
+    post:
+      tags:
+        - variable-extraction
+      summary: Extract variables from prompt
+      description: |
+        Unified variable extraction interface that supports two modes:
+        - 'direct': Directly update Canvas variables
+        - 'candidate': Return candidate solutions for user selection
+        
+        This endpoint analyzes natural language prompts and extracts workflow variables
+        based on the context of existing Canvas variables and content.
+      operationId: extractVariables
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtractVariablesRequest'
+              candidate_mode:
+                summary: Candidate mode example
+                description: Example request for candidate mode
+                value:
+                  prompt: "Create a user registration form with username, email, and password fields"
+                  canvasId: "canvas-123"
+                  mode: "candidate"
+              direct_mode:
+                summary: Direct mode example
+                description: Example request for direct mode with session ID
+                value:
+                  prompt: "Generate an e-commerce product list page with pagination and search"
+                  canvasId: "canvas-456"
+                  mode: "direct"
+                  sessionId: "session-789"
+      responses:
+        '200':
+          description: Variables extracted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VariableExtractionResult'
+
+  /variable-extraction/generate-template:
+    post:
+      tags:
+        - variable-extraction
+      summary: Generate APP publish template
+      description: |
+        Generate a user intent template based on all original prompts and variables in a Canvas.
+        This endpoint analyzes the Canvas content and creates a template with placeholders
+        that can be used for APP publishing and user interaction.
+      operationId: generateAppTemplate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateAppTemplateRequest'
+            examples:
+              basic_request:
+                summary: Basic template generation request
+                description: Generate template for a canvas with basic configuration
+                value:
+                  canvasId: "canvas-123"
+      responses:
+        '200':
+          description: APP template generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppTemplateResult'
+            examples:
+              success_response:
+                summary: Successful template generation
+                description: Template with variables and metadata
+                value:
+                  templateContent: "Create a {{workflowType}} workflow with {{variableCount}} variables including {{primarySkill}} functionality"
+                  variables:
+                    - name: "workflowType"
+                      value: ["data-processing"]
+                      description: "Type of workflow to create"
+                      variableType: "option"
+                  metadata:
+                    extractedAt: 1703123456789
+                    variableCount: 5
+                    promptCount: 3
+                    canvasComplexity: "medium"
+                    workflowType: "data-processing"
+                    templateVersion: 1
+                    workflowTitle: "Data Processing Pipeline"
+                    workflowDescription: "Automated data processing workflow"
+                    estimatedExecutionTime: "5-10 minutes"
+                    skillTags: ["data-processing", "automation"]
+
   /mcp-server/list:
     get:
       tags:
@@ -3143,6 +3241,110 @@ paths:
 
 components:
   schemas:
+    ExtractVariablesRequest:
+      type: object
+      required:
+        - prompt
+        - canvasId
+        - mode
+      properties:
+        prompt:
+          type: string
+          description: Natural language prompt describing the desired functionality
+          minLength: 1
+          maxLength: 500
+          example: "Create a user registration form with username, email, and password fields"
+        canvasId:
+          type: string
+          description: Canvas ID to retrieve existing variable context and content
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: "canvas-123"
+        mode:
+          type: string
+          enum: [direct, candidate]
+          description: |
+            Processing mode for variable extraction:
+            - direct: Directly update Canvas variables and return results
+            - candidate: Return candidate solutions for user selection
+          example: "candidate"
+        sessionId:
+          type: string
+          description: |
+            Optional session ID for direct mode to check for existing candidate records.
+            When provided in direct mode, the system will check if there are
+            unapplied candidate records for this session.
+          example: "session-789"
+
+    VariableExtractionResult:
+      type: object
+      required:
+        - originalPrompt
+        - processedPrompt
+        - variables
+        - reusedVariables
+      properties:
+        originalPrompt:
+          type: string
+          description: Original natural language prompt from user input
+          example: "Create a user registration form with username, email, and password fields"
+        processedPrompt:
+          type: string
+          description: |
+            Processed prompt with variable references embedded.
+            Variables are represented using handlebars syntax (e.g., {{variableName}}).
+          example: "Create a user registration form with {{username}}, {{email}}, and {{password}} fields"
+        variables:
+          type: array
+          description: List of extracted workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
+        reusedVariables:
+          type: array
+          description: List of variables that were reused from existing context
+          items:
+            $ref: '#/components/schemas/VariableReuse'
+        sessionId:
+          type: string
+          description: |
+            Session ID for candidate mode responses.
+            This ID can be used in subsequent direct mode requests
+            to apply the selected candidate solution.
+          example: "session-abc123"
+        extractionConfidence:
+          type: number
+          description: Confidence score for the extraction (0.0 to 1.0)
+          example: 0.78
+
+    VariableReuse:
+      type: object
+      description: Information about variables reused from existing context
+      required:
+        - detectedText
+        - reusedVariableName
+        - confidence
+        - reason
+      properties:
+        detectedText:
+          type: string
+          description: Text in the prompt that triggered variable reuse detection
+          example: "form"
+        reusedVariableName:
+          type: string
+          description: Name of the existing variable that was reused
+          example: "formType"
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence score for the reuse detection (0.0 to 1.0)
+          example: 0.78
+        reason:
+          type: string
+          description: Explanation of why this variable was reused
+          example: "Similar form structure detected in existing variables"
+
+
     McpServerType:
       type: string
       description: MCP Server type
@@ -8667,6 +8869,14 @@ components:
           type: string
           description: Variable description
           example: "用户姓名"
+        createdAt:
+          type: string
+          description: Variable created at
+          example: "2021-01-01T00:00:00.000Z"
+        updatedAt:
+          type: string
+          description: Variable updated at
+          example: "2021-01-01T00:00:00.000Z"
         source:
           type: string
           description: Variable source
@@ -8733,6 +8943,85 @@ components:
               description: Updated list of workflow variables
               items:
                 $ref: '#/components/schemas/WorkflowVariable'
+
+    GenerateAppTemplateRequest:
+      type: object
+      required:
+        - canvasId
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID to generate template for
+          pattern: '^[a-zA-Z0-9_-]+$'
+          example: "canvas-123"
+
+    AppTemplateResult:
+      type: object
+      required:
+        - templateContent
+        - variables
+        - metadata
+      properties:
+        templateContent:
+          type: string
+          description: |
+            Template with placeholders for user interaction.
+            Variables are represented using handlebars syntax (e.g., {{variableName}}).
+          example: "Create a {{workflowType}} workflow with {{variableCount}} variables including {{primarySkill}} functionality"
+        variables:
+          type: array
+          description: List of related workflow variables used in the template
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
+        metadata:
+          type: object
+          required:
+            - extractedAt
+            - variableCount
+          properties:
+            extractedAt:
+              type: number
+              description: Template generation timestamp (for version control)
+              example: 1703123456789
+            variableCount:
+              type: number
+              description: Total variable count (for frontend statistics display)
+              example: 5
+            promptCount:
+              type: number
+              description: Original prompt count (for quality assessment)
+              example: 3
+            canvasComplexity:
+              type: string
+              description: Canvas complexity level
+              enum: [simple, medium, complex]
+              example: "medium"
+            workflowType:
+              type: string
+              description: Workflow type (for template classification and display)
+              example: "data-processing"
+            templateVersion:
+              type: number
+              description: Template version number (supports template iteration)
+              example: 1
+            workflowTitle:
+              type: string
+              description: Workflow title for display
+              example: "Data Processing Pipeline"
+            workflowDescription:
+              type: string
+              description: Workflow description
+              example: "Automated data processing workflow"
+            estimatedExecutionTime:
+              type: string
+              description: Estimated execution time
+              example: "5-10 minutes"
+            skillTags:
+              type: array
+              description: Skill tags for categorization
+              items:
+                type: string
+              example: ["data-processing", "automation"]
   securitySchemes:
     api_key:
       type: apiKey

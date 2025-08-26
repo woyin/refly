@@ -57,6 +57,8 @@ import {
   emailSignup,
   exportCanvas,
   exportDocument,
+  extractVariables,
+  generateAppTemplate,
   generateMedia,
   getActionResult,
   getAuthConfig,
@@ -246,6 +248,10 @@ import {
   ExportCanvasError,
   ExportDocumentData,
   ExportDocumentError,
+  ExtractVariablesData,
+  ExtractVariablesError,
+  GenerateAppTemplateData,
+  GenerateAppTemplateError,
   GenerateMediaData,
   GenerateMediaError,
   GetActionResultData,
@@ -1103,6 +1109,40 @@ export const useServeStatic = <
     queryKey: Common.UseServeStaticKeyFn(clientOptions, queryKey),
     queryFn: () =>
       serveStatic({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useExtractVariables = <
+  TData = Common.ExtractVariablesMutationResult,
+  TError = ExtractVariablesError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<ExtractVariablesData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<ExtractVariablesData, true>, TContext>({
+    mutationKey: Common.UseExtractVariablesKeyFn(mutationKey),
+    mutationFn: (clientOptions) => extractVariables(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useGenerateAppTemplate = <
+  TData = Common.GenerateAppTemplateMutationResult,
+  TError = GenerateAppTemplateError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<GenerateAppTemplateData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<GenerateAppTemplateData, true>, TContext>({
+    mutationKey: Common.UseGenerateAppTemplateKeyFn(mutationKey),
+    mutationFn: (clientOptions) => generateAppTemplate(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateMcpServer = <
