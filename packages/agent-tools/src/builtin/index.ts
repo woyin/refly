@@ -17,7 +17,7 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
   },
   tools: [
     {
-      name: 'search',
+      name: 'library_search',
       descriptionDict: {
         en: 'Search within Refly knowledge base, documents, and resources.',
         'zh-CN': '在 Refly 知识库、文档和资源中搜索。',
@@ -93,8 +93,8 @@ interface BuiltinToolParams extends ToolParams {
   reflyService: ReflyService;
 }
 
-export class BuiltinSearch extends AgentBaseTool<BuiltinToolParams> {
-  name = 'search';
+export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
+  name = 'library_search';
   toolsetKey = BuiltinToolsetDefinition.key;
 
   schema = z.object({
@@ -375,7 +375,7 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
 export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   toolsetKey = BuiltinToolsetDefinition.key;
   tools = [
-    BuiltinSearch,
+    BuiltinLibrarySearch,
     BuiltinWebSearch,
     BuiltinCreateCanvas,
     BuiltinListCanvases,
