@@ -21,7 +21,6 @@ import { useAuthStoreShallow } from '@refly/stores';
 import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/canvas-layout-controls';
 import { TooltipButton } from './buttons';
 import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
-import { WorkflowVariablesDropdown } from './workflow-variables-dropdown';
 
 const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
@@ -160,8 +159,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
           >
             <Play size={16} />
           </TooltipButton>
-
-          <WorkflowVariablesDropdown canvasId={canvasId} className={buttonClass} />
 
           {/* Add a button to trigger new execution mode, passing a new canvasId, and after successful initialization, navigate to the new canvas */}
           <TooltipButton

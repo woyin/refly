@@ -5340,7 +5340,8 @@ export type CanvasNodeType =
   | 'video'
   | 'audio'
   | 'mediaSkill'
-  | 'mediaSkillResponse';
+  | 'mediaSkillResponse'
+  | 'start';
 
 export type CanvasNodeData = {
   /**
@@ -5451,10 +5452,48 @@ export type InitializeWorkflowResponse = BaseResponse & {
   };
 };
 
+export type VariableType = 'text' | 'resource';
+
+export type ResourceValue = {
+  /**
+   * Resource name
+   */
+  name: string;
+  /**
+   * Resource file type
+   */
+  fileType: string;
+  /**
+   * Resource storage key
+   */
+  storageKey: string;
+};
+
+export type VariableValue = {
+  /**
+   * Variable type
+   */
+  type: VariableType;
+  /**
+   * Variable text value (for text type)
+   */
+  text?: string;
+  /**
+   * Variable resource value (for resource type)
+   */
+  resource?: ResourceValue;
+};
+
+export type VariableResourceType = 'document' | 'image' | 'video' | 'audio';
+
 /**
  * Workflow variable definition
  */
 export type WorkflowVariable = {
+  /**
+   * Variable ID, unique and readonly
+   */
+  variableId: string;
   /**
    * Variable name
    */
@@ -5462,11 +5501,7 @@ export type WorkflowVariable = {
   /**
    * Variable values
    */
-  value: Array<string>;
-  /**
-   * Variable options
-   */
-  options?: Array<string>;
+  value: Array<VariableValue>;
   /**
    * Variable description
    */
@@ -5495,6 +5530,14 @@ export type WorkflowVariable = {
    * Whether the variable value is single (not multiple)
    */
   isSingle?: boolean;
+  /**
+   * Variable options (only valid when variable type is option)
+   */
+  options?: Array<string>;
+  /**
+   * Supported resource types (only valid when variable type is resource)
+   */
+  resourceTypes?: Array<VariableResourceType>;
 };
 
 /**

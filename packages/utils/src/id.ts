@@ -40,6 +40,8 @@ export enum IDPrefix {
   CREDIT_DEBT = 'cd-',
   NODE = 'node-',
   VARIABLE_EXTRACTION_SESSION = 'ves-',
+  START = 'start-',
+  VARIABLE = 'var-',
 }
 
 export function genUID(): string {
@@ -170,6 +172,10 @@ export function genMcpServerID(): string {
   return IDPrefix.MCP_SERVER + createId();
 }
 
+export function genVariableID(): string {
+  return IDPrefix.VARIABLE + createId();
+}
+
 export const genUniqueId = () => {
   const uuid = UUIDV4();
   const timestamp = new Date().getTime();
@@ -202,6 +208,10 @@ export const genCreditUsageId = () => {
 export function genCreditDebtId() {
   const timestamp = Date.now();
   return `${IDPrefix.CREDIT_DEBT}${timestamp}-${createId()}`;
+}
+
+export function genStartID(): string {
+  return IDPrefix.START + createId();
 }
 
 export function genNodeID(): string {

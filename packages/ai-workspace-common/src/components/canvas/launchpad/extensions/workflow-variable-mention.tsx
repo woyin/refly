@@ -189,8 +189,10 @@ const VariableSuggestionList = forwardRef<VariableSuggestionListRef, VariableSug
                 {item.description && (
                   <div className="text-xs text-gray-500 mb-1">{item.description}</div>
                 )}
-                {item.value && (
-                  <div className="text-xs text-gray-400 truncate">Current: {item.value}</div>
+                {item.value?.length && (
+                  <div className="text-xs text-gray-400 truncate">
+                    Current: {item.value[0]?.text}
+                  </div>
                 )}
               </button>
             ))}
