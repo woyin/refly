@@ -14,7 +14,6 @@ import {
   UseCasesGalleryPage,
   ProjectPage,
 } from '@refly/web-core';
-import VariableExtractionTestPage from '../pages/variable-extraction-test';
 
 import type { RouteObject } from 'react-router-dom';
 
@@ -70,9 +69,5 @@ export const RoutesList: RouteObject[] = [
   {
     path: '/project/:projectId',
     element: <ProjectPage />,
-  },
-  {
-    path: '/test/variable-extraction',
-    element: <VariableExtractionTestPage />,
   },
 ];
