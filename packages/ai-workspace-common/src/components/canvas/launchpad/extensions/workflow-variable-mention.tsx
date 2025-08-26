@@ -249,7 +249,7 @@ export const WorkflowVariableMention = Extension.create<WorkflowVariableMentionO
                 type: 'mention',
                 attrs: {
                   id: variableName,
-                  label: `@${variableName}`,
+                  label: variableName,
                 },
               },
               {

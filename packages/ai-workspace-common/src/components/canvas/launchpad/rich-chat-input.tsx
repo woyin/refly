@@ -11,89 +11,9 @@ import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import type { IContextItem } from '@refly/common-types';
-
-// Add custom styles for the editor and mention
-const editorStyles = `
-  .ProseMirror {
-    outline: none;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: inherit;
-    line-height: inherit;
-    color: inherit;
-    padding: 0;
-    margin: 0;
-    resize: none;
-    min-height: 2.5rem;
-    max-height: 12rem;
-    overflow-y: auto;
-  }
-  
-  .ProseMirror p {
-    margin: 0;
-  }
-  
-  .ProseMirror p.is-editor-empty:first-child::before {
-    color: #adb5bd;
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-  
-  .mention {
-    background-color: #F5F5F5;
-    border-radius: 16px;
-    padding: 6px 12px;
-    color: #000000;
-    font-weight: 500;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    line-height: 1.2;
-    border: 1px solid #E0E0E0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-    margin-right:2px;
-    margin-left:2px;
-  }
-  
-  .mention::before {
-    content: '';
-    width: 16px;
-    height: 16px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='8' fill='%2312B76A'/%3E%3Cpath d='M5 8L7 10L11 6' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    display: inline-block;
-    flex-shrink: 0;
-  }
-  
-  .mention:hover {
-    background-color: #EEEEEE;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  }
-
-  /* Custom tippy styles to override default black border */
-  .tippy-box {
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  
-  .tippy-arrow {
-    display: none !important;
-  }
-  
-  .tippy-content {
-    padding: 0 !important;
-    background: transparent !important;
-  }
-`;
+import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
+import { AiChat } from 'refly-icons';
+import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -113,7 +33,6 @@ interface RichChatInputProps {
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
   onFocus?: () => void;
 }
-
 // Custom mention suggestion component with improved UI design
 const MentionList = ({ items, command }: { items: any[]; command: any }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -136,7 +55,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
           name: node.data?.title ?? '未命名步骤',
           description: '步骤记录',
           source: 'stepRecord' as const,
-          variableType: 'step' as const,
+          variableType: node.type,
           entityId: node.data?.entityId,
           nodeId: node.id,
         })) ?? [];
@@ -144,12 +63,14 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
     // Get non-skill nodes for result records
     const resultRecordItems =
       nodes
-        ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
+        ?.filter(
+          (node) => node.type !== 'skill' && node.type !== 'skillResponse' && node.type !== 'start',
+        )
         ?.map((node) => ({
           name: node.data?.title ?? '未命名结果',
           description: '结果记录',
           source: 'resultRecord' as const,
-          variableType: 'result' as const,
+          variableType: node.type,
           entityId: node.data?.entityId,
           nodeId: node.id,
         })) ?? [];
@@ -294,13 +215,12 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                   onClick={() => selectItem(item)}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-green-500 text-xl pl-1.5">🚀</span>
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-900 truncate">
+                    {getVariableIcon(item.variableType)}
+                    <div className="flex flex-col flex-1 min-w-0 ">
+                      <span className="text-sm font-medium text-gray-900 truncate max-w-20">
                         {item.name}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-400 font-mono flex-shrink-0">T</span>
                   </div>
                 </div>
               ))}
@@ -379,7 +299,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-green-500 text-xl pl-1.5">📝</span>
+                        <AiChat className="bg-[#FC8800] rounded-md p-1" size={20} color="white" />
                         <div className="flex flex-col flex-1 min-w-0">
                           <span className="text-sm font-medium text-gray-900 truncate max-w-20">
                             {item.name}
@@ -398,7 +318,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-green-500 text-xl pl-1.5">📊</span>
+                        {getVariableIcon(item.variableType)}
                         <div className="flex flex-col flex-1">
                           <span className="text-sm font-medium text-gray-900 truncate max-w-20">
                             {item.name}
@@ -456,7 +376,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
-    console.log('nodes', nodes);
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
@@ -464,44 +383,13 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     // Get all available items including canvas nodes with fallback data
     const allItems = useMemo(() => {
       // Default variables if none provided
-      const defaultVariables = [
-        {
-          name: 'userName',
-          value: ['张三'],
-          description: '用户姓名',
-          source: 'startNode' as const,
-          variableType: 'string' as const,
-        },
-        {
-          name: 'projectName',
-          value: ['AI智能助手项目'],
-          description: '当前项目名称',
-          source: 'startNode' as const,
-          variableType: 'string' as const,
-        },
-        {
-          name: 'knowledgeBase',
-          value: ['research-papers-2024'],
-          description: '研究论文知识库',
-          source: 'resourceLibrary' as const,
-          variableType: 'resource' as const,
-        },
-        {
-          name: 'documentTemplate',
-          value: ['tech-report-template'],
-          description: '技术报告模板',
-          source: 'resourceLibrary' as const,
-          variableType: 'resource' as const,
-        },
-      ];
-
       const variableItems =
         variables?.length > 0
           ? variables.filter(
               (variable) =>
                 variable.source === 'startNode' || variable.source === 'resourceLibrary',
             )
-          : defaultVariables;
+          : [];
 
       // Get skillResponse nodes for step records
       const stepRecordItems =
@@ -568,7 +456,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                 }
 
                 // Insert a placeholder text to show the selection
-                const mentionText = `@${item.name}`;
                 editor
                   .chain()
                   .focus()
@@ -577,7 +464,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                       type: 'mention',
                       attrs: {
                         id: item.name,
-                        label: mentionText,
+                        label: item.name, // Don't include @ in label
                       },
                     },
                     {
@@ -588,8 +475,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                   .run();
               }
             } else {
-              // For regular variables, insert as normal
-              const mentionText = `@${item.name}`;
+              // For regular variables (startNode and resourceLibrary), insert as normal mention
+              // These will be converted to Handlebars format when sending
               editor
                 .chain()
                 .focus()
@@ -598,7 +485,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                     type: 'mention',
                     attrs: {
                       id: item.name,
-                      label: mentionText,
+                      label: item.name, // Don't include @ in label
+                      source: item.source, // Store source for later processing
                     },
                   },
                   {
@@ -610,7 +498,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             }
           },
           items: ({ query }: { query: string }) => {
-            console.log('Mention suggestion items:', allItems);
             if (!query) {
               return allItems;
             }
@@ -626,7 +513,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
             return {
               onStart: (props: any) => {
-                console.log('Mention suggestion onStart:', props);
                 component = new ReactRenderer(MentionList, {
                   props,
                   editor: props.editor,
@@ -691,6 +577,51 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       },
     });
 
+    // Function to convert mentions to Handlebars format
+    const convertMentionsToHandlebars = useCallback(
+      (content: string) => {
+        if (!editor) return content;
+
+        // Instead of string replacement, we'll build the content from scratch
+        // by traversing the document and handling mention nodes properly
+        let processedContent = '';
+
+        editor.state.doc.descendants((node) => {
+          if (node.type.name === 'mention') {
+            const mentionName = node.attrs.label || node.attrs.id;
+            const source = node.attrs.source;
+
+            // Only convert startNode and resourceLibrary variables to Handlebars format
+            if (mentionName && (source === 'startNode' || source === 'resourceLibrary')) {
+              processedContent += `{{${mentionName}}}`;
+            } else {
+              // For other types (stepRecord, resultRecord), just add the name without @
+              processedContent += mentionName;
+            }
+          } else if (node.type.name === 'text') {
+            processedContent += node.text;
+          }
+        });
+
+        return processedContent;
+      },
+      [editor],
+    );
+
+    // Enhanced handleSendMessage that converts mentions to Handlebars
+    const handleSendMessageWithHandlebars = useCallback(() => {
+      if (editor) {
+        const currentContent = editor.getText();
+        const processedContent = convertMentionsToHandlebars(currentContent);
+        // Update the query with the processed content before sending
+        setQuery(processedContent);
+        // Call the original handleSendMessage
+        handleSendMessage();
+      } else {
+        handleSendMessage();
+      }
+    }, [editor, convertMentionsToHandlebars, setQuery, handleSendMessage]);
+
     // Update editor content when query changes externally
     useEffect(() => {
       if (editor && editor.getText() !== query) {
@@ -721,18 +652,18 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           // Ctrl/Meta + Enter should always send the message
           if ((e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
             e.preventDefault();
-            handleSendMessage();
+            handleSendMessageWithHandlebars();
             return;
           }
 
           // For regular Enter key, send message if not in mention suggestion
           if (!e.shiftKey && (query?.trim() || !isLogin)) {
             e.preventDefault();
-            handleSendMessage();
+            handleSendMessageWithHandlebars();
           }
         }
       },
-      [query, readonly, handleSendMessage, searchStore, isLogin],
+      [query, readonly, handleSendMessageWithHandlebars, searchStore, isLogin],
     );
 
     // Handle focus event and propagate it upward
@@ -780,7 +711,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
     return (
       <>
-        <style>{editorStyles}</style>
+        <style>{mentionStyles}</style>
         <div
           ref={ref}
           className={cn(
