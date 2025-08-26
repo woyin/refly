@@ -10,6 +10,9 @@ import type {
   ExtractVariablesData,
   ExtractVariablesError,
   ExtractVariablesResponse,
+  GenerateAppTemplateData,
+  GenerateAppTemplateError,
+  GenerateAppTemplateResponse,
   ListMcpServersData2,
   ListMcpServersError,
   ListMcpServersResponse2,
@@ -425,6 +428,26 @@ export const extractVariables = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/variable-extraction/extract',
+  });
+};
+
+/**
+ * Generate APP publish template
+ * Generate a user intent template based on all original prompts and variables in a Canvas.
+ * This endpoint analyzes the Canvas content and creates a template with placeholders
+ * that can be used for APP publishing and user interaction.
+ *
+ */
+export const generateAppTemplate = <ThrowOnError extends boolean = false>(
+  options: Options<GenerateAppTemplateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    GenerateAppTemplateResponse,
+    GenerateAppTemplateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/variable-extraction/generate-template',
   });
 };
 

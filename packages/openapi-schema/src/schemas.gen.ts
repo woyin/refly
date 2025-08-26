@@ -7884,3 +7884,98 @@ export const UpdateWorkflowVariablesResponseSchema = {
     },
   ],
 } as const;
+
+export const GenerateAppTemplateRequestSchema = {
+  type: 'object',
+  required: ['canvasId'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to generate template for',
+      pattern: '^[a-zA-Z0-9_-]+$',
+      example: 'canvas-123',
+    },
+  },
+} as const;
+
+export const AppTemplateResultSchema = {
+  type: 'object',
+  required: ['templateContent', 'variables', 'metadata'],
+  properties: {
+    templateContent: {
+      type: 'string',
+      description: `Template with placeholders for user interaction.
+Variables are represented using handlebars syntax (e.g., {{variableName}}).
+`,
+      example:
+        'Create a {{workflowType}} workflow with {{variableCount}} variables including {{primarySkill}} functionality',
+    },
+    variables: {
+      type: 'array',
+      description: 'List of related workflow variables used in the template',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
+    metadata: {
+      type: 'object',
+      required: ['extractedAt', 'variableCount'],
+      properties: {
+        extractedAt: {
+          type: 'number',
+          description: 'Template generation timestamp (for version control)',
+          example: 1703123456789,
+        },
+        variableCount: {
+          type: 'number',
+          description: 'Total variable count (for frontend statistics display)',
+          example: 5,
+        },
+        promptCount: {
+          type: 'number',
+          description: 'Original prompt count (for quality assessment)',
+          example: 3,
+        },
+        canvasComplexity: {
+          type: 'string',
+          description: 'Canvas complexity level',
+          enum: ['simple', 'medium', 'complex'],
+          example: 'medium',
+        },
+        workflowType: {
+          type: 'string',
+          description: 'Workflow type (for template classification and display)',
+          example: 'data-processing',
+        },
+        templateVersion: {
+          type: 'number',
+          description: 'Template version number (supports template iteration)',
+          example: 1,
+        },
+        workflowTitle: {
+          type: 'string',
+          description: 'Workflow title for display',
+          example: 'Data Processing Pipeline',
+        },
+        workflowDescription: {
+          type: 'string',
+          description: 'Workflow description',
+          example: 'Automated data processing workflow',
+        },
+        estimatedExecutionTime: {
+          type: 'string',
+          description: 'Estimated execution time',
+          example: '5-10 minutes',
+        },
+        skillTags: {
+          type: 'array',
+          description: 'Skill tags for categorization',
+          items: {
+            type: 'string',
+          },
+          example: ['data-processing', 'automation'],
+        },
+      },
+    },
+  },
+} as const;

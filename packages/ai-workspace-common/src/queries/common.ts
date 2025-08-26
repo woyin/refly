@@ -57,6 +57,7 @@ import {
   exportCanvas,
   exportDocument,
   extractVariables,
+  generateAppTemplate,
   generateMedia,
   getActionResult,
   getAuthConfig,
@@ -644,6 +645,12 @@ export type ExtractVariablesMutationResult = Awaited<ReturnType<typeof extractVa
 export const useExtractVariablesKey = 'ExtractVariables';
 export const UseExtractVariablesKeyFn = (mutationKey?: Array<unknown>) => [
   useExtractVariablesKey,
+  ...(mutationKey ?? []),
+];
+export type GenerateAppTemplateMutationResult = Awaited<ReturnType<typeof generateAppTemplate>>;
+export const useGenerateAppTemplateKey = 'GenerateAppTemplate';
+export const UseGenerateAppTemplateKeyFn = (mutationKey?: Array<unknown>) => [
+  useGenerateAppTemplateKey,
   ...(mutationKey ?? []),
 ];
 export type CreateMcpServerMutationResult = Awaited<ReturnType<typeof createMcpServer>>;

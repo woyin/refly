@@ -5532,6 +5532,73 @@ export type UpdateWorkflowVariablesResponse = BaseResponse & {
   data?: Array<WorkflowVariable>;
 };
 
+export type GenerateAppTemplateRequest = {
+  /**
+   * Canvas ID to generate template for
+   */
+  canvasId: string;
+};
+
+export type AppTemplateResult = {
+  /**
+   * Template with placeholders for user interaction.
+   * Variables are represented using handlebars syntax (e.g., {{variableName}}).
+   *
+   */
+  templateContent: string;
+  /**
+   * List of related workflow variables used in the template
+   */
+  variables: Array<WorkflowVariable>;
+  metadata: {
+    /**
+     * Template generation timestamp (for version control)
+     */
+    extractedAt: number;
+    /**
+     * Total variable count (for frontend statistics display)
+     */
+    variableCount: number;
+    /**
+     * Original prompt count (for quality assessment)
+     */
+    promptCount?: number;
+    /**
+     * Canvas complexity level
+     */
+    canvasComplexity?: 'simple' | 'medium' | 'complex';
+    /**
+     * Workflow type (for template classification and display)
+     */
+    workflowType?: string;
+    /**
+     * Template version number (supports template iteration)
+     */
+    templateVersion?: number;
+    /**
+     * Workflow title for display
+     */
+    workflowTitle?: string;
+    /**
+     * Workflow description
+     */
+    workflowDescription?: string;
+    /**
+     * Estimated execution time
+     */
+    estimatedExecutionTime?: string;
+    /**
+     * Skill tags for categorization
+     */
+    skillTags?: Array<string>;
+  };
+};
+
+/**
+ * Canvas complexity level
+ */
+export type canvasComplexity = 'simple' | 'medium' | 'complex';
+
 export type ExtractVariablesData = {
   body: ExtractVariablesRequest;
 };
@@ -5539,6 +5606,14 @@ export type ExtractVariablesData = {
 export type ExtractVariablesResponse = VariableExtractionResult;
 
 export type ExtractVariablesError = unknown;
+
+export type GenerateAppTemplateData = {
+  body: GenerateAppTemplateRequest;
+};
+
+export type GenerateAppTemplateResponse = AppTemplateResult;
+
+export type GenerateAppTemplateError = unknown;
 
 export type ListMcpServersData2 = {
   query?: {

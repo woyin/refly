@@ -6,6 +6,7 @@ import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
 import { genVariableExtractionSessionID } from '@refly/utils';
 import { buildUnifiedPrompt } from './prompt';
+import { buildAppPublishPrompt } from './app-publish-prompt';
 import {
   ExtractionContext,
   VariableExtractionResult,
@@ -15,6 +16,7 @@ import {
   CanvasContext,
   VariableExtractionOptions,
   HistoricalData,
+  AppTemplateResult,
 } from 'src/modules/variable-extraction/variable-extraction.dto';
 import {
   addTimestampsToNewVariable,
@@ -1023,5 +1025,167 @@ export class VariableExtractionService {
     }
 
     return Array.from(skills).length > 0 ? Array.from(skills) : ['Content Generation'];
+  }
+
+  /**
+   * Generate APP publish template
+   * Based on Canvas all original prompts and variables, generate user-friendly natural language template
+   * This is the core method for APP publishing workflow
+   */
+  async generateAppPublishTemplate(user: User, canvasId: string): Promise<AppTemplateResult> {
+    try {
+      this.logger.log(`Generating APP publish template for canvas ${canvasId}`);
+
+      // 1. Build enhanced context for the canvas
+      const context = await this.buildEnhancedContext(canvasId, user);
+
+      // 2. Get comprehensive historical data
+      const historicalData = await this.getComprehensiveHistoricalData(user.uid, canvasId);
+
+      // 3. Build APP publish prompt
+      const appPublishPrompt = buildAppPublishPrompt(
+        {
+          nodes: context.canvasData.nodes || [],
+          variables: context.variables,
+          title: context.canvasData.title,
+          description: context.canvasData.description,
+        },
+        context.analysis,
+        historicalData,
+      );
+
+      // 4. Execute LLM template generation
+      const templateResult = await this.performLLMTemplateGeneration(
+        appPublishPrompt,
+        context,
+        user,
+      );
+
+      // 5. Parse and validate template result
+      const parsedTemplate = this.parseTemplateResult(templateResult, context);
+
+      // 6. Build final result
+      const result: AppTemplateResult = {
+        templateContent: parsedTemplate.content,
+        variables: parsedTemplate.variables,
+        metadata: {
+          extractedAt: Date.now(),
+          variableCount: parsedTemplate.variables.length,
+          promptCount: context.canvasData.nodes?.length || 0,
+          canvasComplexity: this.getComplexityLevel(context.analysis.complexity),
+          workflowType: context.analysis.workflowType,
+          templateVersion: 1,
+          workflowTitle: parsedTemplate.title,
+          workflowDescription: parsedTemplate.description,
+          estimatedExecutionTime: parsedTemplate.estimatedExecutionTime,
+          skillTags: parsedTemplate.skillTags,
+        },
+      };
+
+      this.logger.log(
+        `Successfully generated APP template for canvas ${canvasId}: ${result.metadata.variableCount} variables, complexity: ${result.metadata.canvasComplexity}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to generate APP publish template for canvas ${canvasId}:`, error);
+      throw new Error(`APP template generation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Execute LLM template generation
+   */
+  private async performLLMTemplateGeneration(
+    prompt: string,
+    _context: ExtractionContext,
+    user: User,
+  ): Promise<string> {
+    try {
+      const model = await this.prepareChatModel(user);
+      this.logger.log('Executing LLM template generation');
+
+      const response = await model.invoke(prompt);
+      const responseText = response.content.toString();
+
+      this.logger.log(`LLM template generation completed, response length: ${responseText.length}`);
+      return responseText;
+    } catch (error) {
+      this.logger.error(`LLM template generation failed: ${error.message}`);
+      throw new Error(`LLM template generation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Parse template generation result
+   */
+  private parseTemplateResult(responseText: string, context: ExtractionContext): any {
+    try {
+      this.logger.log('Parsing template generation result');
+
+      // Try to extract JSON from response
+      const jsonMatch =
+        responseText.match(/```json\s*\n([\s\S]*?)\n\s*```/) ||
+        responseText.match(/```\s*\n([\s\S]*?)\n\s*```/) ||
+        responseText.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        this.logger.warn('No JSON structure found in template response');
+        throw new Error('No JSON found in template response');
+      }
+
+      const jsonText = jsonMatch[1] || jsonMatch[0];
+      const parsed = JSON.parse(jsonText);
+
+      // Validate required fields
+      if (!parsed.template?.content) {
+        throw new Error('Missing template content in response');
+      }
+
+      if (!parsed.variables || !Array.isArray(parsed.variables)) {
+        throw new Error('Missing or invalid variables array in response');
+      }
+
+      // Process variables to ensure compatibility
+      const processedVariables = parsed.variables.map((v: any) => ({
+        name: v.name || `var_${Math.random().toString(36).substr(2, 9)}`,
+        value: Array.isArray(v.value) ? v.value : [v.value || ''],
+        description: v.description || `Variable ${v.name}`,
+        variableType: v.variableType || 'string',
+        source: 'app_template',
+      }));
+
+      return {
+        content: parsed.template.content,
+        title: parsed.template.title || 'Workflow Template',
+        description: parsed.template.description || 'Generated workflow template',
+        variables: processedVariables,
+        estimatedExecutionTime: parsed.analysis?.estimatedExecutionTime || '5-10 minutes',
+        skillTags: parsed.metadata?.skillTags ||
+          context.analysis.primarySkills || ['Content Generation'],
+      };
+    } catch (error) {
+      this.logger.error(`Failed to parse template result: ${error.message}`);
+      this.logger.debug(`Raw response: ${responseText.substring(0, 500)}...`);
+
+      // Return fallback template
+      return {
+        content: 'I will help you with your workflow. Please provide the necessary information.',
+        title: 'Workflow Template',
+        description: 'Generated workflow template',
+        variables: context.variables,
+        estimatedExecutionTime: '5-10 minutes',
+        skillTags: context.analysis.primarySkills || ['Content Generation'],
+      };
+    }
+  }
+
+  /**
+   * Get complexity level string based on score
+   */
+  private getComplexityLevel(score: number): string {
+    if (score < 30) return 'simple';
+    if (score < 70) return 'medium';
+    return 'complex';
   }
 }

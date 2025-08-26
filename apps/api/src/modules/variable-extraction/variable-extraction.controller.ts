@@ -2,12 +2,30 @@ import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { User } from '@refly/openapi-schema';
-import { VariableExtractionResult } from 'src/modules/variable-extraction/variable-extraction.dto';
+import {
+  AppTemplateResult,
+  VariableExtractionResult,
+} from 'src/modules/variable-extraction/variable-extraction.dto';
 import { VariableExtractionService } from 'src/modules/variable-extraction/variable-extraction.service';
 
 @Controller('v1/variable-extraction')
 export class VariableExtractionController {
   constructor(private readonly variableExtractionService: VariableExtractionService) {}
+
+  /**
+   * APP发布模板生成接口
+   * 基于Canvas所有原始prompt和变量生成用户意图模板
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('generate-template')
+  async generateAppTemplate(
+    @LoginedUser() user: User,
+    @Body() body: {
+      canvasId: string; // 画布ID
+    },
+  ): Promise<AppTemplateResult> {
+    return this.variableExtractionService.generateAppPublishTemplate(user, body.canvasId);
+  }
 
   /**
    * Unified variable extraction interface

@@ -57,6 +57,10 @@ export interface AppTemplateResult {
     canvasComplexity?: string; // Canvas complexity (simple/medium/complex, affects template display)
     workflowType?: string; // Workflow type (for template classification and display)
     templateVersion?: number; // Template version number (supports template iteration)
+    workflowTitle?: string; // Workflow title for display
+    workflowDescription?: string; // Workflow description
+    estimatedExecutionTime?: string; // Estimated execution time
+    skillTags?: string[]; // Skill tags for categorization
   };
 }
 
@@ -74,6 +78,8 @@ export interface CanvasData {
   nodes?: CanvasNode[];
   edges?: CanvasEdge[];
   workflow?: WorkflowData;
+  title?: string; // Canvas title
+  description?: string; // Canvas description
 }
 
 // Canvas node
@@ -202,4 +208,19 @@ export interface CanvasContentItemWithType {
   type: string;
   title: string;
   content?: string;
+}
+
+// Prompt example interface for testing and reference
+export interface PromptExample {
+  id: string;
+  scenario: string;
+  complexity: 'Simple' | 'Complex';
+  originalPrompt: string;
+  extractedVariables: {
+    name: string;
+    value: string;
+    description: string;
+    variableType: 'string' | 'option' | 'resource';
+  }[];
+  processedPrompt: string;
 }
