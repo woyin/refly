@@ -80,7 +80,7 @@ export class ToolService {
   }
 
   async createToolset(user: User, param: UpsertToolsetRequest): Promise<ToolsetPO> {
-    const { name, key, authType, authData, config } = param;
+    const { name, key, enabled, authType, authData, config } = param;
 
     if (!name) {
       throw new ParamsError('name is required');
@@ -126,6 +126,7 @@ export class ToolService {
         toolsetId: genToolsetID(),
         name,
         key,
+        enabled,
         authType,
         authData: encryptedAuthData,
         config: config ? JSON.stringify(config) : null,
@@ -169,6 +170,9 @@ export class ToolService {
         throw new ParamsError(`Toolset ${param.key} not valid`);
       }
       updates.key = param.key;
+    }
+    if (param.enabled !== undefined) {
+      updates.enabled = param.enabled;
     }
     if (param.authType !== undefined) {
       updates.authType = param.authType;

@@ -1475,6 +1475,8 @@ model Toolset {
   authData      String?   @map("auth_data")
   /// Toolset config
   config        String?   @map("config")
+  /// Whether the toolset is enabled
+  enabled       Boolean   @default(true) @map("enabled")
   /// Toolset credit billing
   creditBilling String?   @map("credit_billing")
   /// Create timestamp

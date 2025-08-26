@@ -7,7 +7,7 @@ import { toolsetInventory } from '@refly/agent-tools';
 export const toolsetPO2DTO = (toolset: ToolsetPO): ToolsetInstance => {
   const inventoryItem = toolsetInventory[toolset.key];
   return {
-    ...pick(toolset, ['toolsetId', 'name', 'key', 'isGlobal']),
+    ...pick(toolset, ['toolsetId', 'name', 'key', 'isGlobal', 'enabled']),
     authType: toolset.authType as ToolsetAuthType,
     descriptionDict: inventoryItem?.definition.descriptionDict ?? {},
     tools: inventoryItem?.definition.tools ?? [],

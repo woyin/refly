@@ -5314,9 +5314,9 @@ export type ToolsetInstance = ToolsetDefinition & {
    */
   isGlobal?: boolean;
   /**
-   * Whether the toolset is builtin
+   * Whether the toolset is enabled
    */
-  isBuiltin?: boolean;
+  enabled?: boolean;
   /**
    * Toolset auth type
    */
@@ -5374,6 +5374,10 @@ export type UpsertToolsetRequest = {
    * Toolset key
    */
   key?: string;
+  /**
+   * Whether the toolset is enabled
+   */
+  enabled?: boolean;
   /**
    * Toolset auth type
    */

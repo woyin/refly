@@ -7560,9 +7560,9 @@ export const ToolsetInstanceSchema = {
           type: 'boolean',
           description: 'Whether the toolset is global',
         },
-        isBuiltin: {
+        enabled: {
           type: 'boolean',
-          description: 'Whether the toolset is builtin',
+          description: 'Whether the toolset is enabled',
         },
         authType: {
           $ref: '#/components/schemas/ToolsetAuthType',
@@ -7651,6 +7651,10 @@ export const UpsertToolsetRequestSchema = {
     key: {
       type: 'string',
       description: 'Toolset key',
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'Whether the toolset is enabled',
     },
     authType: {
       $ref: '#/components/schemas/ToolsetAuthType',

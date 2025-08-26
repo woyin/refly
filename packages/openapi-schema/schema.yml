@@ -8660,9 +8660,9 @@ components:
             isGlobal:
               type: boolean
               description: Whether the toolset is global
-            isBuiltin:
+            enabled:
               type: boolean
-              description: Whether the toolset is builtin
+              description: Whether the toolset is enabled
             authType:
               $ref: '#/components/schemas/ToolsetAuthType'
               description: Toolset auth type
@@ -8716,6 +8716,9 @@ components:
         key:
           type: string
           description: Toolset key
+        enabled:
+          type: boolean
+          description: Whether the toolset is enabled
         authType:
           $ref: '#/components/schemas/ToolsetAuthType'
           description: Toolset auth type
