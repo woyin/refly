@@ -1,57 +1,26 @@
 import {
   WorkflowVariable,
   CanvasContext,
+  HistoricalData,
 } from 'src/modules/variable-extraction/variable-extraction.dto';
 
-/**
- * Base prompt builder - standard variable extraction mode
- * Use cases: first-time variable extraction, no special requirements
- * Purpose: provide standardized variable extraction guidance, balancing accuracy and completeness
- */
-export function buildVariableExtractionPrompt(
-  userPrompt: string,
-  existingVariables: WorkflowVariable[],
-  canvasContext: CanvasContext,
-): string {
-  return buildEnhancedPrompt(userPrompt, existingVariables, canvasContext, 'standard');
-}
+// Import examples for reference and testing
+import { PROMPT_EXAMPLES } from './examples';
 
 /**
- * Enhanced prompt builder - supports multiple modes
- * Use cases: generate specialized prompts for different business requirements
- * Purpose: provide modal prompts to improve extraction quality in specific scenarios
+ * Unified intelligent prompt builder for variable extraction
+ * Automatically adapts based on context complexity and historical data
+ * Use cases: all variable extraction scenarios, automatically selects optimal strategy
  */
-export function buildEnhancedPrompt(
+export function buildUnifiedPrompt(
   userPrompt: string,
   existingVariables: WorkflowVariable[],
   canvasContext: CanvasContext,
-  /**
-   * Variable extraction mode, controls prompt generation strategy and focus
-   * - standard: standard mode - balance accuracy and completeness, suitable for first-time variable extraction
-   * - validation: validation mode - focus on variable accuracy and reasonability, for dual-path validation
-   * - historical: historical mode - based on historical data learning, optimize variable naming and classification strategies
-   * - consensus: consensus mode - compare multiple extraction results, generate optimal fusion solution
-   */
-  mode: 'standard' | 'validation' | 'historical' | 'consensus' = 'standard',
+  historicalData?: HistoricalData,
 ): string {
   const existingVarsText = buildExistingVariablesText(existingVariables);
   const canvasContextText = buildCanvasContextText(canvasContext);
-
-  let modeSpecificInstructions = '';
-
-  switch (mode) {
-    case 'validation':
-      modeSpecificInstructions = buildValidationInstructions();
-      break;
-    case 'historical':
-      modeSpecificInstructions = buildHistoricalInstructions();
-      break;
-    case 'consensus':
-      modeSpecificInstructions = buildConsensusInstructions();
-      break;
-    default:
-      modeSpecificInstructions = buildStandardInstructions();
-  }
+  const historicalContext = historicalData ? buildHistoricalContext(historicalData) : '';
 
   return `# AI Workflow Variable Intelligent Extraction Expert
 
@@ -76,7 +45,7 @@ ${existingVarsText}
 ### Workflow Context
 ${canvasContextText}
 
-${modeSpecificInstructions}
+${historicalContext ? `### Historical Learning Context\n${historicalContext}` : ''}
 
 ## Variable Type Definitions
 
@@ -171,112 +140,20 @@ ${modeSpecificInstructions}
 - Variable names: Clear, consistent, self-explanatory
 - Variable types: Accurate classification, conforming to three type definitions
 - Reuse detection: High accuracy, reduce redundant variables
-- Processed template: Maintain original meaning, correct placeholder replacement`;
-}
+- Processed template: Maintain original meaning, correct placeholder replacement
 
-/**
- * Validation prompt - used for dual-path validation
- * Use cases: enhance direct mode LLM calls
- * Purpose: provide validation-oriented prompts, focusing on variable accuracy and reasonability
- */
-export function buildValidationPrompt(
-  userPrompt: string,
-  existingVariables: WorkflowVariable[],
-  canvasContext: CanvasContext,
-): string {
-  return buildEnhancedPrompt(userPrompt, existingVariables, canvasContext, 'validation');
-}
+${PROMPT_EXAMPLES}
 
-/**
- * Historical prompt - based on historical data learning
- * Use cases: variable extraction in candidate modes, with rich historical data
- * Purpose: utilize historical successful patterns and historical variable usage habits to provide more accurate extraction results
- */
-export function buildHistoricalPrompt(
-  userPrompt: string,
-  existingVariables: WorkflowVariable[],
-  canvasContext: CanvasContext,
-  historicalData: any,
-): string {
-  const basePrompt = buildEnhancedPrompt(
-    userPrompt,
-    existingVariables,
-    canvasContext,
-    'historical',
-  );
-  const historicalContext = buildHistoricalContext(historicalData);
+**Extra
+## Key Learning Points from Examples
 
-  return `${basePrompt}
-
-## Historical Learning Context
-${historicalContext}
-
-Please provide more accurate variable extraction results based on historical successful patterns and historical variable usage habits.`;
-}
-
-/**
- * Consensus generation prompt - fuse multiple extraction results
- * Use cases: enhance dual-path results fusion in direct mode
- * Purpose: compare and fuse two different variable extraction results to generate the optimal consensus solution
- */
-export function buildConsensusPrompt(primaryResult: any, validationResult: any): string {
-  return `# Variable Extraction Result Consensus Generation Expert
-
-You are a professional variable extraction result analysis expert responsible for comparing and fusing two different variable extraction results to generate the optimal consensus solution.
-
-## Input Results
-
-### Primary Result
-\`\`\`json
-${JSON.stringify(primaryResult.variables, null, 2)}
-\`\`\`
-
-### Validation Result
-\`\`\`json
-${JSON.stringify(validationResult.variables, null, 2)}
-\`\`\`
-
-## Consensus Generation Requirements
-
-1. **Quality Priority**: Select variable definitions with higher confidence and clearer descriptions
-2. **Smart Merging**: Merge effective information from both results, avoid duplication
-3. **Consistency Guarantee**: Ensure final results are logically consistent
-4. **Reuse Optimization**: Prioritize effective reuse suggestions
-
-## Analysis Dimensions
-
-- **Variable Completeness**: Check if all necessary parameters are covered
-- **Naming Conformity**: Ensure variable names conform to naming conventions
-- **Type Accuracy**: Verify if variable type classification is reasonable
-- **Description Clarity**: Evaluate the accuracy and understandability of variable descriptions
-
-## Output Format
-
-Return fused standard JSON format:
-
-\`\`\`json
-{
-  "variables": [
-    {
-      "name": "variable_name",
-      "value": ["Specific value"],
-      "description": "Variable purpose description",
-      "variableType": "string",
-      "source": "startNode"
-    }
-  ],
-  "reusedVariables": [
-    {
-      "detectedText": "Text fragment reused in original text",
-      "reusedVariableName": "Reused variable name",
-      "confidence": 0.89,
-      "reason": "Specific reason for reuse"
-    }
-  ],
-  "consensusReason": "Why choose this fusion solution",
-  "qualityScore": 0.95
-}
-\`\`\``;
+1. **Variable Naming**: Use descriptive English names in snake_case format (e.g., departure_city, daily_routes)
+2. **Type Classification**: 
+   - string: Most common for text content, preferences, descriptions
+   - resource: For files, data sources, uploads
+   - option: For limited choices, style preferences
+3. **Template Construction**: Replace specific values with {{variable_name}} placeholders while maintaining semantic meaning
+4. **Context Preservation**: Keep the original intent and structure of the user's request`;
 }
 
 /**
@@ -333,7 +210,7 @@ function buildCanvasContextText(canvasContext: CanvasContext): string {
  * Build historical context - internal utility function
  * Purpose: analyze historical data and generate structured historical learning context
  */
-function buildHistoricalContext(historicalData: any): string {
+function buildHistoricalContext(historicalData: HistoricalData): string {
   if (
     !historicalData ||
     !historicalData.extractionHistory ||
@@ -388,49 +265,11 @@ function buildHistoricalContext(historicalData: any): string {
 - Recent extraction records: ${recentExtractions.length} records`;
 }
 
-/**
- * Build standard instructions - internal utility function
- * Purpose: generate specific guidance for standard extraction mode
- */
-function buildStandardInstructions(): string {
-  return `## Standard Extraction Mode
-- Use standard quality assessment standards
-- Balance accuracy and completeness
-- Prioritize user input clarity`;
-}
-
-/**
- * Build validation instructions - internal utility function
- * Purpose: generate specific guidance for validation extraction mode
- */
-function buildValidationInstructions(): string {
-  return `## Validation Extraction Mode
-- Focus on variable accuracy and reasonability
-- Verify variable type classification correctness
-- Check variable naming consistency
-- Ensure reuse detection accuracy`;
-}
-
-/**
- * Build historical instructions - internal utility function
- * Purpose: generate specific guidance for historical learning mode
- */
-function buildHistoricalInstructions(): string {
-  return `## Historical Learning Mode
-- Extract based on historical successful patterns
-- Learn user's variable usage preferences
-- Optimize variable naming and classification strategies
-- Improve reuse detection accuracy`;
-}
-
-/**
- * Build consensus instructions - internal utility function
- * Purpose: generate specific guidance for consensus generation mode
- */
-function buildConsensusInstructions(): string {
-  return `## Consensus Generation Mode
-- Compare quality of multiple extraction results
-- Select the optimal variable definition
-- Merge effective reuse suggestions
-- Ensure consistency and completeness of the result`;
+// Legacy function for backward compatibility
+export function buildVariableExtractionPrompt(
+  userPrompt: string,
+  existingVariables: WorkflowVariable[],
+  canvasContext: CanvasContext,
+): string {
+  return buildUnifiedPrompt(userPrompt, existingVariables, canvasContext);
 }

@@ -5,12 +5,7 @@ import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
 import { genVariableExtractionSessionID } from '@refly/utils';
-import {
-  buildVariableExtractionPrompt,
-  buildValidationPrompt,
-  buildHistoricalPrompt,
-  buildConsensusPrompt,
-} from './prompt';
+import { buildUnifiedPrompt } from './prompt';
 import {
   ExtractionContext,
   VariableExtractionResult,
@@ -39,14 +34,14 @@ export class VariableExtractionService {
   ) {}
 
   /**
-   * Core variable extraction method (integrated simplified gating mechanism)
+   * Core variable extraction method (unified approach)
    *
    * Use cases:
    * - direct mode: directly update Canvas variables, suitable for user-confirmed variable extraction
    * - candidate mode: return candidate solutions, suitable for scenarios requiring user confirmation
    *
    * Purpose: intelligently extract workflow variables based on user input and canvas context,
-   * supporting dual-path validation and fallback strategies
+   * using unified high-quality extraction strategy
    */
   async extractVariables(
     user: User,
@@ -67,27 +62,14 @@ export class VariableExtractionService {
     // 2. Build context (multi-dimensional analysis)
     const context = await this.buildEnhancedContext(canvasId, user);
 
-    let extractionResult: VariableExtractionResult;
-
-    // 3. Execute corresponding mode based on gating decision
-    if (mode === 'direct') {
-      // Enhanced direct mode: dual-path validation
-      extractionResult = await this.performEnhancedDirectExtraction(
-        prompt,
-        context,
-        user,
-        canvasId,
-      );
-    } else {
-      // Candidate mode: use existing complete implementation
-      extractionResult = await this.performCandidateModeExtraction(
-        prompt,
-        context,
-        user,
-        canvasId,
-        sessionId,
-      );
-    }
+    // 3. Perform unified variable extraction
+    const extractionResult = await this.performUnifiedVariableExtraction(
+      prompt,
+      context,
+      user,
+      canvasId,
+      sessionId,
+    );
 
     // Get model name for recording
     const model = await this.prepareChatModel(user);
@@ -119,101 +101,32 @@ export class VariableExtractionService {
   }
 
   /**
-   * Enhanced direct mode: dual-path validation processing
-   *
-   * Use cases: high-quality variable extraction in direct mode, requiring double verification to ensure accuracy
-   *
-   * Purpose:
-   * - Execute parallel main path and validation path LLM extractions
-   * - Generate consensus results and perform quality checks
-   * - Automatically downgrade to candidate mode if quality is not met
+   * Unified variable extraction method
+   * Uses the same high-quality strategy for both direct and candidate modes
    */
-  private async performEnhancedDirectExtraction(
-    prompt: string,
-    context: ExtractionContext,
-    user: User,
-    canvasId: string,
-  ): Promise<VariableExtractionResult> {
-    try {
-      this.logger.log('Performing enhanced direct mode extraction with dual-path validation');
-
-      // 1. Parallel dual-path processing
-      const [primaryResult, validationResult] = await Promise.all([
-        this.performLLMExtraction(prompt, context, user),
-        this.performValidationLLMExtraction(prompt, context, user),
-      ]);
-
-      // 2. Generate consensus results
-      const consensusResult = await this.generateConsensusResult(
-        primaryResult,
-        validationResult,
-        user,
-      );
-
-      // 3. Basic quality check
-      const qualityScore = await this.performBasicQualityCheck(consensusResult, context);
-
-      if (qualityScore >= 0.8) {
-        this.logger.log('Enhanced direct mode quality check passed');
-        return consensusResult;
-      } else {
-        this.logger.warn(
-          `Enhanced direct mode quality below threshold: ${qualityScore}, falling back to candidate mode`,
-        );
-        // Fallback to candidate mode
-        return await this.performCandidateModeExtraction(
-          prompt,
-          context,
-          user,
-          canvasId,
-          undefined,
-        );
-      }
-    } catch (error) {
-      this.logger.error(
-        `Enhanced direct mode failed: ${error.message}, falling back to candidate mode`,
-      );
-      // Fallback to candidate mode
-      return await this.performCandidateModeExtraction(prompt, context, user, canvasId, undefined);
-    }
-  }
-
-  /**
-   * Candidate mode: use existing complete implementation
-   *
-   * Use cases: variable extraction requiring user confirmation, or as a fallback strategy for direct mode
-   *
-   * Purpose:
-   * - Get comprehensive historical data for analysis
-   * - Build enhanced historical learning prompts
-   * - Execute multi-round LLM processing to improve quality
-   * - Does not handle storage, only responsible for extraction logic
-   */
-  private async performCandidateModeExtraction(
+  private async performUnifiedVariableExtraction(
     prompt: string,
     context: ExtractionContext,
     user: User,
     canvasId: string,
     sessionId?: string,
   ): Promise<VariableExtractionResult> {
-    this.logger.log('Performing candidate mode extraction with full features');
+    this.logger.log('Performing unified variable extraction with enhanced features');
 
     // 1. Get comprehensive historical data
     const historicalData = await this.getComprehensiveHistoricalData(user.uid, canvasId);
 
-    // 2. Build enhanced prompt
-    const enhancedPrompt = this.buildAdvancedHistoryPrompt(prompt, context, historicalData);
+    // 2. Build unified enhanced prompt
+    const enhancedPrompt = this.buildUnifiedEnhancedPrompt(prompt, context, historicalData);
 
-    // 3. Execute multi-round LLM processing
-    const extractionResult = await this.performMultiRoundLLMExtraction(
-      enhancedPrompt,
-      context,
-      user,
-      prompt,
-    );
+    // 3. Execute LLM extraction
+    const extractionResult = await this.performLLMExtraction(enhancedPrompt, context, user);
 
-    // 4. Do not save candidate record here, let the caller handle storage logic
-    // Only set sessionId if passed
+    // 4. Basic quality check
+    const qualityScore = await this.performBasicQualityCheck(extractionResult, context);
+    extractionResult.qualityScore = qualityScore;
+
+    // 5. Set sessionId if provided
     if (sessionId) {
       extractionResult.sessionId = sessionId;
     }
@@ -224,7 +137,7 @@ export class VariableExtractionService {
   private async prepareChatModel(user: User) {
     const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
     if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
-      throw new Error('No valid LLM provider found for validation');
+      throw new Error('No valid LLM provider found for variable extraction');
     }
 
     const model = await this.providerService.prepareChatModel(user, chatPi.itemId);
@@ -233,150 +146,7 @@ export class VariableExtractionService {
   }
 
   /**
-   * Validation LLM extraction (used for enhanced direct mode dual-path validation)
-   *
-   * Use cases: validation path in enhanced direct mode, providing second opinion to validate main path results
-   *
-   * Purpose:
-   * - Use validation-oriented prompts for variable extraction
-   * - Focus on variable accuracy and reasonability
-   * - Provide validation and supplement for main path results
-   */
-  private async performValidationLLMExtraction(
-    prompt: string,
-    context: ExtractionContext,
-    user: User,
-  ): Promise<VariableExtractionResult> {
-    try {
-      // Use validation mode prompt
-      const validationPrompt = buildValidationPrompt(prompt, context.variables, {
-        nodeCount: context.analysis.nodeCount,
-        complexity: context.analysis.complexity,
-        resourceCount: context.analysis.resourceCount,
-        lastExtractionTime: context.extractionContext.lastExtractionTime,
-        recentVariablePatterns: context.extractionContext.recentVariablePatterns,
-        workflowType: context.analysis.workflowType,
-        primarySkills: context.analysis.primarySkills,
-      } as CanvasContext);
-
-      const model = await this.prepareChatModel(user);
-      const response = await model.invoke(validationPrompt);
-      const responseText = response.content.toString();
-
-      return this.parseLLMResponse(responseText, prompt);
-    } catch (error) {
-      this.logger.error(`Validation LLM extraction failed: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Generate consensus results (used for enhanced direct mode)
-   */
-  private async generateConsensusResult(
-    primaryResult: VariableExtractionResult,
-    validationResult: VariableExtractionResult,
-    user: User,
-  ): Promise<VariableExtractionResult> {
-    try {
-      // Use consensus generation prompt
-      const consensusPrompt = buildConsensusPrompt(primaryResult, validationResult);
-
-      const model = await this.prepareChatModel(user);
-      const response = await model.invoke(consensusPrompt);
-      const responseText = response.content.toString();
-
-      try {
-        const consensusData = JSON.parse(responseText);
-        if (consensusData.variables && Array.isArray(consensusData.variables)) {
-          return {
-            ...primaryResult,
-            variables: consensusData.variables,
-            reusedVariables: consensusData.reusedVariables || primaryResult.reusedVariables,
-          };
-        }
-      } catch (parseError) {
-        this.logger.warn(
-          `Failed to parse consensus LLM response, using primary result: ${parseError}`,
-        );
-      }
-
-      // If LLM consensus generation fails, use intelligent merge logic
-      return this.mergeResultsIntelligently(primaryResult, validationResult);
-    } catch (error) {
-      this.logger.error(`Consensus generation failed: ${error.message}`);
-      // Return intelligent merge result as fallback
-      return this.mergeResultsIntelligently(primaryResult, validationResult);
-    }
-  }
-
-  /**
-   * Intelligent merge of two extraction results
-   */
-  private mergeResultsIntelligently(
-    primaryResult: VariableExtractionResult,
-    validationResult: VariableExtractionResult,
-  ): VariableExtractionResult {
-    const mergedVariables = [...primaryResult.variables];
-    const mergedReusedVariables = [...primaryResult.reusedVariables];
-
-    // Merge new variables from validation result
-    for (const validationVar of validationResult.variables) {
-      const existingIndex = mergedVariables.findIndex((v) => v.name === validationVar.name);
-      if (existingIndex >= 0) {
-        // If variable exists, choose the higher quality version
-        const existingVar = mergedVariables[existingIndex];
-        if (
-          this.calculateVariableQuality(validationVar) > this.calculateVariableQuality(existingVar)
-        ) {
-          mergedVariables[existingIndex] = validationVar;
-        }
-      } else {
-        // Add new variable
-        mergedVariables.push(validationVar);
-      }
-    }
-
-    // Merge reused variables
-    for (const reuseVar of validationResult.reusedVariables) {
-      const existingIndex = mergedReusedVariables.findIndex(
-        (v) => v.reusedVariableName === reuseVar.reusedVariableName,
-      );
-      if (existingIndex < 0) {
-        mergedReusedVariables.push(reuseVar);
-      }
-    }
-
-    return {
-      ...primaryResult,
-      variables: mergedVariables,
-      reusedVariables: mergedReusedVariables,
-    };
-  }
-
-  /**
-   * Calculate variable quality score
-   */
-  private calculateVariableQuality(variable: WorkflowVariable): number {
-    let score = 0;
-
-    // Based on variable name quality
-    if (variable.name && variable.name.length > 0) score += 0.3;
-
-    // Based on description quality
-    if (variable.description && variable.description.length > 10) score += 0.3;
-
-    // Based on variable type
-    if (variable.variableType) score += 0.2;
-
-    // Based on value existence
-    if (variable.value && Array.isArray(variable.value) && variable.value.length > 0) score += 0.2;
-
-    return score;
-  }
-
-  /**
-   * Basic quality check (used for enhanced direct mode)
+   * Basic quality check
    */
   private async performBasicQualityCheck(
     result: VariableExtractionResult,
@@ -467,7 +237,7 @@ export class VariableExtractionService {
   }
 
   /**
-   * Get comprehensive historical data (for candidate mode)
+   * Get comprehensive historical data
    */
   private async getComprehensiveHistoricalData(
     uid: string,
@@ -498,14 +268,14 @@ export class VariableExtractionService {
   }
 
   /**
-   * Build advanced history prompt (for candidate mode)
+   * Build unified enhanced prompt
    */
-  private buildAdvancedHistoryPrompt(
+  private buildUnifiedEnhancedPrompt(
     prompt: string,
     context: ExtractionContext,
     historicalData: HistoricalData,
   ): string {
-    return buildHistoricalPrompt(
+    return buildUnifiedPrompt(
       prompt,
       context.variables,
       {
@@ -519,30 +289,6 @@ export class VariableExtractionService {
       } as CanvasContext,
       historicalData,
     );
-  }
-
-  /**
-   * Execute multi-round LLM processing (for candidate mode)
-   */
-  private async performMultiRoundLLMExtraction(
-    enhancedPrompt: string,
-    context: ExtractionContext,
-    user: User,
-    prompt: string,
-  ): Promise<VariableExtractionResult> {
-    try {
-      // Use enhanced prompt for LLM extraction
-
-      const model = await this.prepareChatModel(user);
-      const response = await model.invoke(enhancedPrompt);
-      const responseText = response.content.toString();
-
-      return this.parseLLMResponse(responseText, prompt);
-    } catch (error) {
-      this.logger.error(`Multi-round LLM extraction failed: ${error.message}`);
-      // Fallback to basic extraction
-      return this.performLLMExtraction(enhancedPrompt, context, user);
-    }
   }
 
   /**
@@ -726,33 +472,22 @@ export class VariableExtractionService {
    */
   public async performLLMExtraction(
     originalPrompt: string,
-    context: ExtractionContext,
+    _context: ExtractionContext,
     user: User,
   ): Promise<VariableExtractionResult> {
     try {
-      // 1. Get LLM model instance (refer to pilot.service.ts pattern)
+      // 1. Get LLM model instance
       const model = await this.prepareChatModel(user);
-
-      // 2. Build variable extraction prompt (using enhanced version)
-      const extractionPrompt = buildVariableExtractionPrompt(originalPrompt, context.variables, {
-        nodeCount: context.analysis.nodeCount,
-        complexity: context.analysis.complexity,
-        resourceCount: context.analysis.resourceCount,
-        lastExtractionTime: context.extractionContext.lastExtractionTime,
-        recentVariablePatterns: context.extractionContext.recentVariablePatterns,
-        workflowType: context.analysis.workflowType,
-        primarySkills: context.analysis.primarySkills,
-      } as CanvasContext);
 
       this.logger.log(
         `Performing LLM extraction for prompt: "${originalPrompt.substring(0, 100)}..."`,
       );
 
-      // 3. Call LLM for variable extraction
-      const response = await model.invoke(extractionPrompt);
+      // 2. Call LLM for variable extraction
+      const response = await model.invoke(originalPrompt);
       const responseText = response.content.toString();
 
-      // 4. Parse LLM response
+      // 3. Parse LLM response
       const extractionResult = this.parseLLMResponse(responseText, originalPrompt);
 
       this.logger.log(

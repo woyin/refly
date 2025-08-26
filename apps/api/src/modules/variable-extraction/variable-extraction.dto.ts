@@ -35,6 +35,7 @@ export interface VariableExtractionResult {
   variables: WorkflowVariable[]; // Extracted variable list
   reusedVariables: VariableReuse[]; // Reused variable information
   sessionId?: string; // Session ID in candidate mode
+  qualityScore?: number; // Quality score
 }
 
 // Variable reuse information
