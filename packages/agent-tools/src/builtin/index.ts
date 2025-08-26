@@ -123,7 +123,7 @@ export class BuiltinSearch extends AgentBaseTool<BuiltinToolParams> {
         { enableReranker: true },
       );
 
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     } catch (error) {
       return `Error performing search: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
@@ -156,7 +156,7 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
         limit: input.limit,
       });
 
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     } catch (error) {
       return `Error performing web search: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
@@ -190,7 +190,7 @@ export class BuiltinCreateCanvas extends AgentBaseTool<BuiltinToolParams> {
         projectId: input.projectId,
       });
 
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     } catch (error) {
       return `Error creating canvas: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
@@ -225,7 +225,7 @@ export class BuiltinListCanvases extends AgentBaseTool<BuiltinToolParams> {
         projectId: input.projectId,
       });
 
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     } catch (error) {
       return `Error listing canvases: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
@@ -263,7 +263,7 @@ export class BuiltinCreateDocument extends AgentBaseTool<BuiltinToolParams> {
         canvasId: input.canvasId,
       });
 
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     } catch (error) {
       return `Error creating document: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
@@ -300,7 +300,7 @@ export class BuiltinListDocuments extends AgentBaseTool<BuiltinToolParams> {
         canvasId: input.canvasId,
       });
 
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     } catch (error) {
       return `Error listing documents: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
@@ -353,9 +353,10 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
         provider: input.provider,
         targetType: input.targetType,
         targetId: input.targetId,
+        wait: true,
       });
 
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(result);
     } catch (error) {
       return `Error generating media: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
