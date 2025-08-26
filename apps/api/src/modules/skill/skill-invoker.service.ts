@@ -751,6 +751,7 @@ export class SkillInvokerService {
 
               const content = event.data?.output
                 ? `
+
 <tool_use>
 <name>${name}</name>
 <type>${type}</type>
@@ -763,8 +764,10 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 ${event.data?.output ? JSON.stringify(event.data.output) : ''}
 </result>
 </tool_use>
+
 `
                 : `
+
 <tool_use>
 <name>${name}</name>
 <type>${type}</type>
@@ -774,6 +777,7 @@ ${event.data?.output ? JSON.stringify(event.data.output) : ''}
 ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 </arguments>
 </tool_use>
+
 `;
               resultAggregator.handleStreamContent(runMeta, content, '');
 
