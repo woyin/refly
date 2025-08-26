@@ -1,8 +1,7 @@
 import { Button, Tooltip, Upload, Switch, FormInstance } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { IconImage } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LinkOutlined } from '@ant-design/icons';
-import { Send, Stop } from 'refly-icons';
+import { Attachment, Send, Stop } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow, useLaunchpadStore } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
@@ -144,7 +143,7 @@ export const ChatActions = memo(
               <Button
                 type="text"
                 size="small"
-                icon={<IconImage className="flex items-center w-4 h-4" />}
+                icon={<Attachment className="flex items-center w-5 h-5" />}
                 className="h-7 w-7 flex items-center justify-center"
               />
             </Tooltip>

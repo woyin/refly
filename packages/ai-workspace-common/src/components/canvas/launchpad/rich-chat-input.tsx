@@ -1,4 +1,4 @@
-import { memo, useCallback, forwardRef, useEffect, useState, useMemo } from 'react';
+import { memo, useCallback, forwardRef, useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchStoreShallow } from '@refly/stores';
 import type { WorkflowVariable } from '@refly/openapi-schema';
@@ -404,14 +404,14 @@ const CustomMention = Mention.extend({
       const textContainer = document.createElement('span');
       textContainer.className = 'mention-text';
       textContainer.textContent = node.attrs.label || node.attrs.id;
-      console.log(node.attrs, 'node.attrs');
+
       // Get variable type and render the appropriate icon
       // Align logic with MentionList and allItems handling
       const variableType = node.attrs.variableType || node.attrs.source;
 
       let reactRoot: any = null;
       reactRoot = createRoot(iconContainer);
-      console.log(variableType, 'variableType');
+
       reactRoot.render(getVariableIcon(variableType));
 
       dom.appendChild(iconContainer);
@@ -640,13 +640,17 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     }, [allItems, contextItems, setContextItems]);
 
     // Create Tiptap editor
+    const internalUpdateRef = useRef(false);
+
     const editor = useEditor({
       extensions: [StarterKit, mentionExtension],
       content: query,
       editable: !readonly,
       onUpdate: ({ editor }) => {
         const content = editor.getText();
-        setQuery(content);
+        const processedContent = convertMentionsToHandlebars(content);
+        internalUpdateRef.current = true;
+        setQuery(processedContent);
       },
       editorProps: {
         attributes: {
@@ -707,8 +711,14 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
     // Update editor content when query changes externally
     useEffect(() => {
-      if (editor && editor.getText() !== query) {
-        editor.commands.setContent(query);
+      if (!editor) return;
+      if (internalUpdateRef.current) {
+        // Skip applying content when the change originated from editor updates
+        internalUpdateRef.current = false;
+        return;
+      }
+      if (editor.getText() !== (query ?? '')) {
+        editor.commands.setContent(query ?? '');
       }
     }, [query, editor]);
 
