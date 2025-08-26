@@ -9,21 +9,25 @@ export const FirecrawlToolsetDefinition: ToolsetDefinition = {
   domain: 'https://firecrawl.dev',
   labelDict: {
     en: 'Firecrawl',
+    'zh-CN': 'Firecrawl',
   },
   descriptionDict: {
     en: 'Firecrawl is a toolset for scraping and searching the web.',
+    'zh-CN': 'Firecrawl 是一个用于网页抓取和搜索的工具集。',
   },
   tools: [
     {
       name: 'scrape',
       descriptionDict: {
         en: 'A web scraper. Useful for when you need to scrape a website.',
+        'zh-CN': '一个网页抓取器。当您需要抓取网站内容时非常有用。',
       },
     },
     {
       name: 'search',
       descriptionDict: {
         en: 'A search engine. Useful for when you need to answer questions about current events.',
+        'zh-CN': '一个搜索引擎。当您需要回答关于当前事件的问题时非常有用。',
       },
     },
   ],

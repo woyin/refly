@@ -7,21 +7,25 @@ export const CalculatorToolsetDefinition: ToolsetDefinition = {
   domain: 'https://www.calculator.net',
   labelDict: {
     en: 'Calculator',
+    'zh-CN': '计算器',
   },
   descriptionDict: {
     en: 'A calculator that adds and subtracts two numbers together.',
+    'zh-CN': '一个可以进行加法和减法运算的计算器。',
   },
   tools: [
     {
       name: 'add',
       descriptionDict: {
         en: 'A calculator that adds two numbers together.',
+        'zh-CN': '一个可以将两个数字相加的计算器。',
       },
     },
     {
       name: 'subtract',
       descriptionDict: {
         en: 'A calculator that subtracts two numbers together.',
+        'zh-CN': '一个可以将两个数字相减的计算器。',
       },
     },
   ],

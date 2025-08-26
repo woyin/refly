@@ -9,51 +9,60 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
   domain: 'https://refly.ai',
   labelDict: {
     en: 'Builtin',
+    'zh-CN': '内建',
   },
   descriptionDict: {
     en: 'Builtin tools that provide access to Refly internal services.',
+    'zh-CN': '内建工具，提供对 Refly 内部服务的访问。',
   },
   tools: [
     {
       name: 'search',
       descriptionDict: {
         en: 'Search within Refly knowledge base, documents, and resources.',
+        'zh-CN': '在 Refly 知识库、文档和资源中搜索。',
       },
     },
     {
       name: 'web_search',
       descriptionDict: {
         en: 'Search the web for current information and news.',
+        'zh-CN': '在网络上搜索最新信息和新闻。',
       },
     },
     {
       name: 'create_canvas',
       descriptionDict: {
         en: 'Create a new canvas for organizing ideas and content.',
+        'zh-CN': '创建新的画布来组织想法和内容。',
       },
     },
     {
       name: 'list_canvases',
       descriptionDict: {
         en: 'List available canvases for the user.',
+        'zh-CN': '列出用户可用的画布。',
       },
     },
     {
       name: 'create_document',
       descriptionDict: {
         en: 'Create a new document in the knowledge base.',
+        'zh-CN': '在知识库中创建新文档。',
       },
     },
     {
       name: 'list_documents',
       descriptionDict: {
         en: 'List available documents for the user.',
+        'zh-CN': '列出用户可用的文档。',
       },
     },
     {
       name: 'generate_media',
       descriptionDict: {
         en: 'Generate images, audio, or video content using AI.',
+        'zh-CN': '使用 AI 生成图像、音频或视频内容。',
       },
     },
   ],
