@@ -455,8 +455,10 @@ export class VariableExtractionService {
       // Handle value as array, take the first value for replacement
       const valueToReplace = Array.isArray(variable.value) ? variable.value[0] : variable.value;
       if (valueToReplace) {
+        // Escape regex special characters to prevent errors
+        const escapedValue = valueToReplace.toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         // Simple text replacement, actual implementation may require more intelligent matching
-        processedPrompt = processedPrompt.replace(new RegExp(valueToReplace, 'gi'), placeholder);
+        processedPrompt = processedPrompt.replace(new RegExp(escapedValue, 'gi'), placeholder);
       }
     }
 

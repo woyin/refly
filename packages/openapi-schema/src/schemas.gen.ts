@@ -76,6 +76,11 @@ to apply the selected candidate solution.
 `,
       example: 'session-abc123',
     },
+    extractionConfidence: {
+      type: 'number',
+      description: 'Confidence score for the extraction (0.0 to 1.0)',
+      example: 0.78,
+    },
   },
 } as const;
 

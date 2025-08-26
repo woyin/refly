@@ -59,6 +59,10 @@ export type VariableExtractionResult = {
    *
    */
   sessionId?: string;
+  /**
+   * Confidence score for the extraction (0.0 to 1.0)
+   */
+  extractionConfidence?: number;
 };
 
 /**
