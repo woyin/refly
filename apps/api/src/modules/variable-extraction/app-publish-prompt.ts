@@ -4,6 +4,9 @@ import {
   HistoricalData,
 } from 'src/modules/variable-extraction/variable-extraction.dto';
 
+// Import examples for reference and testing
+import { APP_PUBLISH_EXAMPLES } from './examples';
+
 /**
  * APP发布模板生成专用prompt
  * 基于Canvas所有原始prompt和变量生成用户友好的自然语言模板
@@ -121,18 +124,60 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 }
 \`\`\`
 
-## Example Template Transformation
-
-**Before (Technical)**: "Analyze resume with target job description, rewrite content, optimize format for ATS"
-
-**After (User-friendly)**: "I'll help you create a professional resume optimized for your target job. Please provide your {{original_resume}} and the {{target_job_description}}, and I'll rewrite it in {{preferred_language}} with {{output_format}} formatting to ensure it passes ATS screening."
-
 ## Key Principles
 1. **Clarity**: Users should immediately understand what the workflow does
 2. **Simplicity**: Avoid technical jargon, use everyday language
 3. **Completeness**: Include all necessary variables and context
 4. **Actionability**: Users should know exactly what to provide and expect
-5. **Professionalism**: Maintain a helpful, trustworthy tone`;
+5. **Professionalism**: Maintain a helpful, trustworthy tone
+
+## Critical Focus: Workflow Publishing Template String
+
+The **"content"** field in the template object is the most important output - this is the **workflow publishing template string** that will be used by users. It must:
+
+- **Be Natural and Conversational**: Sound like a helpful assistant explaining what they'll do
+- **Include All Variables**: Every extracted variable must be represented with {{variable_name}} placeholders
+- **Maintain Original Intent**: Preserve the user's original goal and requirements
+- **Be Self-Contained**: Users should understand the complete workflow from this single template
+- **Use Proper Variable Format**: All placeholders must use {{variable_name}} format exactly
+
+### Template String Examples:
+
+**Before (Technical)**: "Analyze resume with target job description, rewrite content, optimize format for ATS"
+
+**After (User-friendly)**: "I'll help you create a professional resume optimized for your target job. Please provide your {{original_resume}} and the {{target_job_description}}, and I'll rewrite it in {{preferred_language}} with {{output_format}} formatting to ensure it passes ATS screening."
+
+**Before (Technical)**: "Generate travel itinerary based on destination, dates, and preferences"
+
+**After (User-friendly)**: "I'll create a personalized travel plan for your trip to {{destination}} from {{departure_city}} during {{dates}}. I'll arrange {{accommodation}} accommodations and {{food}} dining options, maintaining a {{pace}} pace with {{daily_routes}} for your {{goal}}."
+
+${APP_PUBLISH_EXAMPLES}
+
+## Key Learning Points from Examples
+
+1. **Template String Structure**: 
+   - Start with "I'll help you..." or "I'll create..." to establish the assistant role
+   - Use natural language that flows conversationally
+   - Include all variables with {{variable_name}} placeholders
+   - End with clear expectations of what will be delivered
+
+2. **Variable Integration**:
+   - Replace specific values with descriptive placeholders
+   - Maintain the original semantic meaning
+   - Ensure all extracted variables are represented
+   - Use consistent naming conventions
+
+3. **User Experience Focus**:
+   - Templates should be immediately understandable
+   - Avoid technical jargon
+   - Focus on benefits and outcomes
+   - Provide clear guidance on what users need to provide
+
+4. **Quality Assurance**:
+   - Every template string must be complete and self-contained
+   - All variables must be properly integrated
+   - Templates should maintain the original workflow intent
+   - Language should be professional yet approachable`;
 }
 
 /**

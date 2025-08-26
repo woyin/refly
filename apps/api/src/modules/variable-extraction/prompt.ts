@@ -5,7 +5,7 @@ import {
 } from 'src/modules/variable-extraction/variable-extraction.dto';
 
 // Import examples for reference and testing
-import { PROMPT_EXAMPLES } from './examples';
+import { VARIABLE_EXTRACTION_EXAMPLES } from './examples';
 
 /**
  * Unified intelligent prompt builder for variable extraction
@@ -142,9 +142,8 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 - Reuse detection: High accuracy, reduce redundant variables
 - Processed template: Maintain original meaning, correct placeholder replacement
 
-${PROMPT_EXAMPLES}
+${VARIABLE_EXTRACTION_EXAMPLES}
 
-**Extra
 ## Key Learning Points from Examples
 
 1. **Variable Naming**: Use descriptive English names in snake_case format (e.g., departure_city, daily_routes)
