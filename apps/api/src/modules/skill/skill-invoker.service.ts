@@ -1146,9 +1146,18 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           resultId,
           version,
           content: JSON.stringify(genBaseRespDataFromError(err)),
+          originError: err.message,
         });
       }
       this.logger.error(`invoke skill error: ${err.stack}`);
+
+      await this.prisma.actionResult.updateMany({
+        where: { resultId, version },
+        data: {
+          status: 'failed',
+          errors: JSON.stringify([err.message]),
+        },
+      });
     } finally {
       if (res) {
         res.end('');

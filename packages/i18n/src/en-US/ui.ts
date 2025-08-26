@@ -1362,6 +1362,7 @@ const translations = {
       shareError: 'Failed to share skill response',
       error: {
         defaultTitle: 'Skill execution failed',
+        description: '[{{errCode}}] {{errMsg}} Original error: {{rawError}}',
         networkError: 'If the problem persists, please check your internet connection or VPN',
       },
     },

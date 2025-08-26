@@ -1336,6 +1336,7 @@ const translations = {
       shareError: '技能响应分享失败',
       error: {
         defaultTitle: '技能执行失败',
+        description: '[{{errCode}}] {{errMsg}} 原始错误: {{rawError}}',
         networkError: '如果问题持续存在，请检查您的网络连接或 VPN',
       },
     },
