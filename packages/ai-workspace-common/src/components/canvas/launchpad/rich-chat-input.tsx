@@ -9,11 +9,13 @@ import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
 import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
+
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import type { IContextItem } from '@refly/common-types';
 import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { AiChat } from 'refly-icons';
 import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
+import { createRoot } from 'react-dom/client';
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -354,6 +356,80 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
   );
 };
 
+// Custom Mention extension with icon support
+const CustomMention = Mention.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      source: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-source'),
+        renderHTML: (attributes) => {
+          if (!attributes.source) {
+            return {};
+          }
+          return {
+            'data-source': attributes.source,
+          };
+        },
+      },
+      variableType: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-variable-type'),
+        renderHTML: (attributes) => {
+          if (!attributes.variableType) {
+            return {};
+          }
+          return {
+            'data-variable-type': attributes.variableType,
+          };
+        },
+      },
+    };
+  },
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('span');
+      dom.className = 'mention';
+
+      // Create icon container
+      const iconContainer = document.createElement('span');
+      iconContainer.className = 'mention-icon';
+
+      // Create text container
+      const textContainer = document.createElement('span');
+      textContainer.className = 'mention-text';
+      textContainer.textContent = node.attrs.label || node.attrs.id;
+      console.log(node.attrs, 'node.attrs');
+      // Get variable type and render the appropriate icon
+      // Align logic with MentionList and allItems handling
+      const variableType = node.attrs.variableType || node.attrs.source;
+
+      let reactRoot: any = null;
+      reactRoot = createRoot(iconContainer);
+      console.log(variableType, 'variableType');
+      reactRoot.render(getVariableIcon(variableType));
+
+      dom.appendChild(iconContainer);
+      dom.appendChild(textContainer);
+
+      return {
+        dom,
+        destroy() {
+          // Clean up React root when the node is destroyed
+          if (reactRoot) {
+            try {
+              reactRoot.unmount();
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+        },
+      };
+    };
+  },
+});
+
 const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
   (
     {
@@ -422,7 +498,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
-      return Mention.configure({
+      return CustomMention.configure({
         HTMLAttributes: {
           class: 'mention',
         },
@@ -465,6 +541,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                       attrs: {
                         id: item.name,
                         label: item.name, // Don't include @ in label
+                        source: item.source, // Store source for later processing
+                        variableType: item.variableType || item.source,
                       },
                     },
                     {
@@ -487,6 +565,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                       id: item.name,
                       label: item.name, // Don't include @ in label
                       source: item.source, // Store source for later processing
+                      variableType: item.variableType || item.source,
                     },
                   },
                   {

@@ -30,8 +30,8 @@ export const mentionStyles = `
   
   .mention {
     background-color: #F5F5F5;
-    border-radius: 16px;
-    padding: 6px 12px;
+    border-radius: 4px;
+    padding: 4px 6px;
     color: #000000;
     font-weight: 500;
     text-decoration: none;
@@ -43,20 +43,26 @@ export const mentionStyles = `
     border: 1px solid #E0E0E0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
-    margin-right:2px;
-    margin-left:2px;
   }
   
-  .mention::before {
-    content: '';
-    width: 16px;
-    height: 16px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='8' fill='%2312B76A'/%3E%3Cpath d='M5 8L7 10L11 6' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    display: inline-block;
+  .mention .mention-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+  }
+  
+  .mention .mention-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .mention .mention-text {
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.2;
   }
   
   .mention:hover {

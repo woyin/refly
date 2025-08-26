@@ -7,15 +7,12 @@ import {
   Video,
   Web1,
   Note,
-  Media,
   Group,
-  Start,
   List,
   Attachment,
 } from 'refly-icons';
 import { BiText } from 'react-icons/bi';
 export const getVariableIcon = (type: string) => {
-  console.log('type', type);
   switch (type) {
     // Start node variable types
     case 'string':
@@ -31,7 +28,9 @@ export const getVariableIcon = (type: string) => {
     case 'audio':
       return <Audio className="bg-[#F93920] rounded-md p-1" size={20} color="white" />;
     case 'startNode':
-      return <Start className="bg-[#FC8800] rounded-md p-1" size={20} color="white" />;
+    case 'skillResponse':
+    case 'mediaSkillResponse':
+      return <AiChat className="bg-[#FC8800] rounded-md p-1" size={20} color="white" />;
     case 'resourceLibrary':
       return <AiChat className="bg-[#FC8800] rounded-md p-1" size={20} color="white" />;
     case 'code':
@@ -53,9 +52,6 @@ export const getVariableIcon = (type: string) => {
       return <Note className="bg-[#F79009] rounded-md p-1" size={20} color="white" />;
     case 'skill':
     case 'mediaSkill':
-      return <Media className="bg-[#155EEF] rounded-md p-1" size={20} color="white" />;
-    case 'skillResponse':
-    case 'mediaSkillResponse':
       return <AiChat className="bg-[#12B76A] rounded-md p-1" size={20} color="white" />;
     case 'tool':
     case 'toolResponse':
