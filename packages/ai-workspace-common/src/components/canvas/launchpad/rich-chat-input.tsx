@@ -43,16 +43,39 @@ const editorStyles = `
   }
   
   .mention {
-    background-color: #e3f2fd;
-    border-radius: 4px;
-    padding: 2px 4px;
-    color: #1976d2;
+    background-color: #F5F5F5;
+    border-radius: 16px;
+    padding: 6px 12px;
+    color: #000000;
     font-weight: 500;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    line-height: 1.2;
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    margin-right:2px;
+    margin-left:2px;
+  }
+  
+  .mention::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='8' cy='8' r='8' fill='%2312B76A'/%3E%3Cpath d='M5 8L7 10L11 6' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: inline-block;
+    flex-shrink: 0;
   }
   
   .mention:hover {
-    background-color: #bbdefb;
+    background-color: #EEEEEE;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
 
   /* Custom tippy styles to override default black border */
@@ -193,7 +216,6 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
   if (items.length === 0) {
     return null;
   }
-
   return (
     <div
       className="bg-white rounded-xl shadow-lg border border-refly-Card-Border max-h-64 overflow-hidden min-w-96"
@@ -203,19 +225,14 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
     >
       <div className="flex">
         {/* First level menu - Categories */}
-        <div className="w-36 border-r border-gray-100">
+        <div className="w-36 border-r border-gray-100 p-2">
           {/* Start Node Category */}
           {groupedItems.startNode.length > 0 && (
             <div
-              className={`px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors ${
-                hoveredCategory === 'startNode'
-                  ? 'bg-blue-50 border-l-2 border-l-blue-500'
-                  : 'hover:bg-gray-50'
-              }`}
+              className="px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-xl"
               onMouseEnter={() => setHoveredCategory('startNode')}
             >
               <div className="flex items-center gap-3">
-                <span className="text-gray-600 text-sm">@</span>
                 <span className="text-sm font-medium text-gray-700">开始节点</span>
                 <svg
                   className="w-3 h-3 text-gray-400 ml-auto"
@@ -239,11 +256,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
             groupedItems.stepRecord.length > 0 ||
             groupedItems.resultRecord.length > 0) && (
             <div
-              className={`px-4 py-3 cursor-pointer transition-colors ${
-                hoveredCategory === 'resourceLibrary'
-                  ? 'bg-blue-50 border-l-2 border-l-blue-500'
-                  : 'hover:bg-gray-50'
-              }`}
+              className="px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-xl"
               onMouseEnter={() => {
                 setHoveredCategory('resourceLibrary');
                 // Reset to uploads when hovering resource library
@@ -251,7 +264,6 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
               }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-gray-600 text-sm">{'{'}</span>
                 <span className="text-sm font-medium text-gray-700">资源库</span>
                 <svg
                   className="w-3 h-3 text-gray-400 ml-auto"
@@ -302,41 +314,42 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                 <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
                   <button
                     type="button"
-                    className={`flex-1 px-3 py-1 text-xs rounded-md transition-colors border-none${
+                    className={cn(
+                      'flex-1 px-3 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
                       resourceLibraryType === 'uploads'
                         ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                        : 'text-gray-600 hover:text-gray-900',
+                    )}
                     onClick={() => setResourceLibraryType('uploads')}
                   >
                     我的上传
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 px-3 py-1 text-xs rounded-md transition-colors border-none${
+                    className={cn(
+                      'flex-1 px-3 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
                       resourceLibraryType === 'stepRecord'
                         ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                        : 'text-gray-600 hover:text-gray-900',
+                    )}
                     onClick={() => setResourceLibraryType('stepRecord')}
                   >
                     步骤记录
                   </button>
                   <button
                     type="button"
-                    className={`flex-1 px-3 py-1 text-xs rounded-md transition-colors border-none${
+                    className={cn(
+                      'flex-1 px-3 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
                       resourceLibraryType === 'resultRecord'
                         ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
+                        : 'text-gray-600 hover:text-gray-900',
+                    )}
                     onClick={() => setResourceLibraryType('resultRecord')}
                   >
                     结果记录
                   </button>
                 </div>
               </div>
-
-              {/* Content based on selected type */}
               <div className="py-2  px-2 max-h-56 overflow-y-auto">
                 {resourceLibraryType === 'uploads' &&
                   groupedItems.resourceLibrary?.length > 0 &&
@@ -348,8 +361,8 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-green-500 text-xl pl-1.5">📁</span>
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900 truncate">
+                        <div className="flex flex-col flex-1">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-20">
                             {item.name}
                           </span>
                         </div>
@@ -362,22 +375,16 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                   groupedItems.stepRecord.map((item) => (
                     <div
                       key={item.name}
-                      className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                      className="p-1.5 cursor-pointer hover:bg-refly-fill-hover transition-colors rounded-md border-6px"
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-green-500 text-xs">📝</span>
+                        <span className="text-green-500 text-xl pl-1.5">📝</span>
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900 truncate">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-20">
                             {item.name}
                           </span>
-                          {item.description && (
-                            <span className="text-xs text-gray-500 truncate">
-                              {item.description}
-                            </span>
-                          )}
                         </div>
-                        <span className="text-xs text-gray-400 font-mono flex-shrink-0">S</span>
                       </div>
                     </div>
                   ))}
@@ -387,22 +394,16 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                   groupedItems.resultRecord.map((item) => (
                     <div
                       key={item.name}
-                      className="px-4 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                      className="p-1.5 cursor-pointer hover:bg-refly-fill-hover transition-colors rounded-md border-6px"
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-green-500 text-xs">📊</span>
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900 truncate">
+                        <span className="text-green-500 text-xl pl-1.5">📊</span>
+                        <div className="flex flex-col flex-1">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-20">
                             {item.name}
                           </span>
-                          {item.description && (
-                            <span className="text-xs text-gray-500 truncate">
-                              {item.description}
-                            </span>
-                          )}
                         </div>
-                        <span className="text-xs text-gray-400 font-mono flex-shrink-0">R</span>
                       </div>
                     </div>
                   ))}
