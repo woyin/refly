@@ -2026,10 +2026,12 @@ const translations = {
       appearance: '外观',
       subscription: '订阅',
       mcpServer: 'MCP 服务器',
+      tools: '工具配置',
     },
     mcpServer: {
       myServers: '我的服务器',
       mcpStore: 'MCP 市场',
+      toolStore: '工具市场',
       title: 'MCP 服务器管理',
       name: '名称',
       type: '类型',
@@ -2149,6 +2151,15 @@ const translations = {
         validateSuccess: '验证成功',
         validateError: '验证失败',
       },
+    },
+    toolStore: {
+      title: '工具市场',
+      noSearchResults: '没有找到相关工具',
+      noTools: '暂无工具',
+      searchPlaceholder: '搜索工具...',
+      install: '安装',
+      installing: '安装中...',
+      installed: '已安装',
     },
     appearance: {
       title: '外观',

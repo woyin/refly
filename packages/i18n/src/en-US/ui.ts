@@ -2076,10 +2076,12 @@ const translations = {
       appearance: 'Appearance',
       subscription: 'Subscription',
       mcpServer: 'MCP Server',
+      tools: 'Tools Config',
     },
     mcpServer: {
       myServers: 'My Servers',
       mcpStore: 'MCP Store',
+      toolStore: 'Tool Store',
       noToolsAvailable: 'No tools available',
       availableToolsPrefix: 'Available Tools: ',
       collapse: 'Collapse',
@@ -2197,6 +2199,15 @@ const translations = {
         validateSuccess: 'Validation successful',
         validateError: 'Validation failed',
       },
+    },
+    toolStore: {
+      title: 'Tool Store',
+      noSearchResults: 'No tools found matching your search',
+      noTools: 'No tools',
+      searchPlaceholder: 'Search tools...',
+      install: 'Install',
+      installing: 'Installing...',
+      installed: 'Installed',
     },
     appearance: {
       title: 'Appearance Settings',

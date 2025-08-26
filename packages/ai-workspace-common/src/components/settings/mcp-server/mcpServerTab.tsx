@@ -3,30 +3,31 @@ import { useUserStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { useMemo, useState } from 'react';
 import { McpServerList } from './McpServerList';
-import { CommunityMcpList } from './CommunityMcpList';
 import { ContentHeader } from '../contentHeader';
-import { Button, Modal } from 'antd';
+import { Button, Modal, Segmented } from 'antd';
 import { HiMiniBuildingStorefront } from 'react-icons/hi2';
 import { Close } from 'refly-icons';
 import { McpServerBatchImport } from './McpServerBatchImport';
 import '../model-providers/index.scss';
 import { McpServerDTO } from '@refly-packages/ai-workspace-common/requests';
+import { ToolList } from './tools/tool-list';
+import { ToolStore } from './tools/tool-store';
 
 export const McpServerTab = ({ visible }: { visible: boolean }) => {
   const { t } = useTranslation();
   const [openMcpStoreModal, setOpenMcpStoreModal] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
-
+  const [selectedTab, setSelectedTab] = useState<'tools' | 'mcp'>('tools');
   const isLogin = useUserStoreShallow((state) => state.isLogin);
 
   // Fetch MCP servers for the community tab to check installed status
-  const { data: mcpServersData, refetch } = useListMcpServers({}, [], {
+  const { data: _mcpServersData, refetch } = useListMcpServers({}, [], {
     enabled: visible && isLogin,
     refetchOnWindowFocus: false,
   });
 
-  const mcpServers = mcpServersData?.data || [];
+  // const mcpServers = mcpServersData?.data || [];
   const renderCustomActions = useMemo(() => {
     return (
       <div className="flex items-center gap-2">
@@ -36,7 +37,7 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
           icon={<HiMiniBuildingStorefront />}
           onClick={() => setOpenMcpStoreModal(true)}
         >
-          {t('settings.mcpServer.mcpStore')}
+          {t('settings.mcpServer.toolStore')}
         </Button>
         <McpServerBatchImport onSuccess={() => refetch()} />
         <Button
@@ -57,17 +58,29 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
 
   return (
     <div className="h-full flex flex-col">
-      <ContentHeader title="MCP" customActions={renderCustomActions} />
-
+      <ContentHeader title={t('settings.tabs.tools')} customActions={renderCustomActions} />
+      <div className="px-5 pt-5">
+        <Segmented
+          shape="round"
+          options={['tools', 'mcp']}
+          value={selectedTab}
+          onChange={(value) => setSelectedTab(value as 'tools' | 'mcp')}
+          className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"
+        />
+      </div>
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
-        <McpServerList
-          visible={visible}
-          isFormVisible={isFormVisible}
-          setIsFormVisible={setIsFormVisible}
-          editingServer={editingServer}
-          setEditingServer={setEditingServer}
-        />
+        {selectedTab === 'tools' ? (
+          <ToolList />
+        ) : (
+          <McpServerList
+            visible={visible}
+            isFormVisible={isFormVisible}
+            setIsFormVisible={setIsFormVisible}
+            editingServer={editingServer}
+            setEditingServer={setEditingServer}
+          />
+        )}
       </div>
 
       <Modal
@@ -84,7 +97,7 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
         <div className="h-full w-full overflow-hidden flex flex-col">
           <div className="flex items-center justify-between p-5 border-solid border-[1px] border-x-0 border-t-0 border-refly-Card-Border">
             <div className="text-lg font-semibold text-refly-text-0 leading-7">
-              {t('settings.mcpServer.mcpStore')}
+              {t('settings.toolStore.title')}
             </div>
             <Button
               type="text"
@@ -92,11 +105,8 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
               onClick={() => setOpenMcpStoreModal(false)}
             />
           </div>
-          <CommunityMcpList
-            visible={openMcpStoreModal}
-            installedServers={mcpServers}
-            onInstallSuccess={() => refetch()}
-          />
+
+          <ToolStore visible={openMcpStoreModal} />
         </div>
       </Modal>
     </div>
