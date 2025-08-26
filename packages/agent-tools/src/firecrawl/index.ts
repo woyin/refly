@@ -6,6 +6,7 @@ import { ToolsetDefinition } from '@refly/openapi-schema';
 
 export const FirecrawlToolsetDefinition: ToolsetDefinition = {
   key: 'firecrawl',
+  domain: 'https://firecrawl.dev',
   labelDict: {
     en: 'Firecrawl',
   },

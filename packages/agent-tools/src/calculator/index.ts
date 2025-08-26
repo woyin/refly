@@ -4,6 +4,7 @@ import { ToolsetDefinition } from '@refly/openapi-schema';
 
 export const CalculatorToolsetDefinition: ToolsetDefinition = {
   key: 'calculator',
+  domain: 'https://www.calculator.net',
   labelDict: {
     en: 'Calculator',
   },

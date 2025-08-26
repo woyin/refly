@@ -3912,6 +3912,10 @@ export type MediaGenerateRequest = {
    * Text prompt for content generation
    */
   prompt: string;
+  /**
+   * Whether to wait for the generation to complete
+   */
+  wait?: boolean;
 };
 
 export type MediaGenerateResponse = BaseResponse & {
@@ -3919,6 +3923,14 @@ export type MediaGenerateResponse = BaseResponse & {
    * Media generation result ID
    */
   resultId?: string;
+  /**
+   * Media generation output URL (only available when `wait` is true)
+   */
+  outputUrl?: string;
+  /**
+   * Media generation output storage key (only available when `wait` is true)
+   */
+  storageKey?: string;
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
@@ -5252,6 +5264,10 @@ export type ToolsetDefinition = {
    * Toolset key
    */
   key: string;
+  /**
+   * Toolset domain (used for display icon)
+   */
+  domain?: string;
   /**
    * Toolset label dictionary
    */

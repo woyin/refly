@@ -7257,6 +7257,10 @@ components:
           prompt:
             type: string
             description: Text prompt for content generation
+          wait:
+            type: boolean
+            description: Whether to wait for the generation to complete
+            default: false
     MediaGenerateResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -7266,6 +7270,12 @@ components:
               type: string
               description: Media generation result ID
               example: ar-g30e1b80b5g1itbemc0g5jj3
+            outputUrl:
+              type: string
+              description: Media generation output URL (only available when `wait` is true)
+            storageKey:
+              type: string
+              description: Media generation output storage key (only available when `wait` is true)
     PilotStepStatus:
       type: string
       enum:
@@ -8603,6 +8613,9 @@ components:
         key:
           type: string
           description: Toolset key
+        domain:
+          type: string
+          description: Toolset domain (used for display icon)
         labelDict:
           type: object
           additionalProperties: true

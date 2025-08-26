@@ -5562,6 +5562,11 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Text prompt for content generation',
     },
+    wait: {
+      type: 'boolean',
+      description: 'Whether to wait for the generation to complete',
+      default: false,
+    },
   },
 } as const;
 
@@ -5577,6 +5582,14 @@ export const MediaGenerateResponseSchema = {
           type: 'string',
           description: 'Media generation result ID',
           example: 'ar-g30e1b80b5g1itbemc0g5jj3',
+        },
+        outputUrl: {
+          type: 'string',
+          description: 'Media generation output URL (only available when `wait` is true)',
+        },
+        storageKey: {
+          type: 'string',
+          description: 'Media generation output storage key (only available when `wait` is true)',
         },
       },
     },
@@ -7483,6 +7496,10 @@ export const ToolsetDefinitionSchema = {
     key: {
       type: 'string',
       description: 'Toolset key',
+    },
+    domain: {
+      type: 'string',
+      description: 'Toolset domain (used for display icon)',
     },
     labelDict: {
       type: 'object',

@@ -6,6 +6,7 @@ import { ReflyService } from './interface';
 
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
+  domain: 'https://refly.ai',
   labelDict: {
     en: 'Builtin',
   },
