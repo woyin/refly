@@ -9,10 +9,13 @@ import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
 import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
-
+import SVGX from '../../../assets/x.svg';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import type { IContextItem } from '@refly/common-types';
-import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
+import {
+  getStartNodeIcon,
+  getVariableIcon,
+} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { AiChat } from 'refly-icons';
 import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
 import { createRoot } from 'react-dom/client';
@@ -152,7 +155,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
           {/* Start Node Category */}
           {groupedItems.startNode.length > 0 && (
             <div
-              className="px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-xl"
+              className="p-1.5 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-md"
               onMouseEnter={() => setHoveredCategory('startNode')}
             >
               <div className="flex items-center gap-3">
@@ -179,7 +182,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
             groupedItems.stepRecord.length > 0 ||
             groupedItems.resultRecord.length > 0) && (
             <div
-              className="px-4 py-3 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-xl"
+              className="p-1.5 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-md"
               onMouseEnter={() => {
                 setHoveredCategory('resourceLibrary');
                 // Reset to uploads when hovering resource library
@@ -217,12 +220,13 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                   onClick={() => selectItem(item)}
                 >
                   <div className="flex items-center gap-2">
-                    {getVariableIcon(item.variableType)}
+                    <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
                     <div className="flex flex-col flex-1 min-w-0 ">
-                      <span className="text-sm font-medium text-gray-900 truncate max-w-20">
+                      <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
                         {item.name}
                       </span>
                     </div>
+                    <div className="flex">{getStartNodeIcon(item.variableType)}</div>
                   </div>
                 </div>
               ))}
@@ -282,9 +286,9 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-green-500 text-xl pl-1.5">📁</span>
+                        {getVariableIcon(item.variableType)}
                         <div className="flex flex-col flex-1">
-                          <span className="text-sm font-medium text-gray-900 truncate max-w-20">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
                             {item.name}
                           </span>
                         </div>
@@ -303,7 +307,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       <div className="flex items-center gap-3">
                         <AiChat className="bg-[#FC8800] rounded-md p-1" size={20} color="white" />
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900 truncate max-w-20">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
                             {item.name}
                           </span>
                         </div>
@@ -322,7 +326,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       <div className="flex items-center gap-3">
                         {getVariableIcon(item.variableType)}
                         <div className="flex flex-col flex-1">
-                          <span className="text-sm font-medium text-gray-900 truncate max-w-20">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
                             {item.name}
                           </span>
                         </div>
