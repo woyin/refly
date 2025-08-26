@@ -263,130 +263,188 @@ export class MediaGeneratorService {
     });
   }
 
+  /**
+   * Start asynchronous media generation task (synchronous version)
+   * @param user User Information
+   * @param request Media Generation Request
+   * @returns Response containing resultId
+   */
   async generate(user: User, request: MediaGenerateRequest): Promise<MediaGenerateResponse> {
-    const resultId = request.resultId || genActionResultID();
+    try {
+      const resultId = request.resultId || genActionResultID();
 
-    await this.prisma.actionResult.create({
-      data: {
-        resultId,
-        uid: user.uid,
-        type: 'media',
-        title: `${request.mediaType} generation: ${request.prompt.substring(0, 50)}...`,
-        modelName: request.model,
-        targetType: request.targetType,
-        targetId: request.targetId,
-        providerItemId: request.providerItemId,
-        status: 'executing',
-        input: JSON.stringify(request),
-        version: 0,
-      },
-    });
+      const { mediaType, model, prompt, targetType, targetId, providerItemId } = request;
 
-    const providerItem = await this.providerService.findProviderItemById(
-      user,
-      request.providerItemId,
-    );
-
-    if (!providerItem) {
-      throw new ProviderItemNotFoundError(`provider item ${request.providerItemId} not found`);
-    }
-
-    const creditBilling: CreditBilling = providerItem?.creditBilling
-      ? JSON.parse(providerItem?.creditBilling)
-      : undefined;
-
-    if (creditBilling) {
-      const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
-      this.logger.log('creditUsageResult', creditUsageResult);
-      if (!creditUsageResult.canUse) {
-        throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
-      }
-    }
-
-    const input = this.buildInputObject(request);
-    let url = '';
-
-    // Generate media based on provider type
-    const providerKey = providerItem?.provider?.providerKey;
-
-    if (providerKey === 'replicate') {
-      // Use Replicate provider
-      const replicate = new Replicate({
-        auth: providerItem?.provider?.apiKey ?? '',
-      });
-
-      const output = await replicate.run(
-        request.model as `${string}/${string}` | `${string}/${string}:${string}`,
-        { input },
-      );
-
-      url = this.getUrlFromReplicateOutput(output);
-    } else if (providerKey === 'fal') {
-      // Use Fal provider
-      fal.config({
-        credentials: providerItem.provider.apiKey,
-      });
-
-      const result = await fal.subscribe(request.model, {
-        input: input,
-        logs: true,
-        onQueueUpdate: (update) => {
-          if (update.status === 'IN_PROGRESS') {
-            update.logs?.map((log) => log.message).forEach(console.log);
-          }
+      // Creating an ActionResult Record
+      await this.prisma.actionResult.create({
+        data: {
+          resultId,
+          uid: user.uid,
+          type: 'media',
+          title: `${mediaType} generation: ${prompt.substring(0, 50)}...`,
+          modelName: model,
+          targetType,
+          targetId,
+          providerItemId,
+          status: 'waiting',
+          input: JSON.stringify(request),
+          version: 0,
         },
       });
 
-      url = this.getUrlFromFalResult(result);
-    } else {
-      throw new Error(`Unsupported provider: ${providerKey}`);
-    }
+      // Perform media generation asynchronously
+      this.executeGenerate(user, resultId, request).catch((error) => {
+        this.logger.error(`Media generation failed for ${resultId}:`, error);
+      });
 
-    const uploadResult = await this.miscService.dumpFileFromURL(user, {
-      url: url,
-      entityId: resultId,
-      entityType: 'mediaResult',
-      visibility: 'private',
-    });
-
-    await this.prisma.actionResult.update({
-      where: { resultId_version: { resultId, version: 0 } },
-      data: {
-        status: 'finish',
-        outputUrl: uploadResult.url, // Using system internal URL
-        storageKey: uploadResult.storageKey, // Save storage key
-      },
-    });
-
-    if (this.mediaCreditUsageReportQueue && creditBilling) {
-      const basicUsageData = {
-        uid: user.uid,
+      return {
+        success: true,
         resultId,
       };
-      const mediaCreditUsage: SyncMediaCreditUsageJobData = {
-        ...basicUsageData,
-        creditBilling,
-        timestamp: new Date(),
+    } catch (error) {
+      this.logger.error('Media generation initialization failed:', error);
+      return {
+        success: false,
       };
-
-      await this.mediaCreditUsageReportQueue.add(
-        `media_credit_usage_report:${resultId}`,
-        mediaCreditUsage,
-      );
     }
-
-    return {
-      success: true,
-      resultId,
-      outputUrl: uploadResult.url,
-      storageKey: uploadResult.storageKey,
-    };
   }
 
-  private buildInputObject(request: MediaGenerateRequest): Record<string, any> {
+  /**
+   * Execute synchronous media generation tasks
+   * @param user User Information
+   * @param resultId Result ID
+   * @param request Media Generation Request
+   */
+  private async executeGenerate(
+    user: User,
+    resultId: string,
+    request: MediaGenerateRequest,
+  ): Promise<void> {
+    try {
+      // Update status to executing
+      await this.prisma.actionResult.update({
+        where: { resultId_version: { resultId, version: 0 } },
+        data: {
+          status: 'executing',
+        },
+      });
+
+      const providerItem = await this.providerService.findProviderItemById(
+        user,
+        request.providerItemId,
+      );
+
+      if (!providerItem) {
+        throw new ProviderItemNotFoundError(`provider item ${request.providerItemId} not found`);
+      }
+
+      const creditBilling: CreditBilling = providerItem?.creditBilling
+        ? JSON.parse(providerItem?.creditBilling)
+        : undefined;
+
+      if (creditBilling) {
+        const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
+        this.logger.log('creditUsageResult', creditUsageResult);
+        if (!creditUsageResult.canUse) {
+          throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
+        }
+      }
+
+      const input = await this.buildInputObject(user, request);
+      let url = '';
+
+      // Generate media based on provider type
+      const providerKey = providerItem?.provider?.providerKey;
+
+      if (providerKey === 'replicate') {
+        // Use Replicate provider
+        const replicate = new Replicate({
+          auth: providerItem?.provider?.apiKey ?? '',
+        });
+
+        const output = await replicate.run(
+          request.model as `${string}/${string}` | `${string}/${string}:${string}`,
+          { input },
+        );
+
+        url = this.getUrlFromReplicateOutput(output);
+      } else if (providerKey === 'fal') {
+        // Use Fal provider
+        fal.config({
+          credentials: providerItem.provider.apiKey,
+        });
+
+        const result = await fal.subscribe(request.model, {
+          input: input,
+          logs: true,
+          onQueueUpdate: (update) => {
+            if (update.status === 'IN_PROGRESS') {
+              update.logs?.map((log) => log.message).forEach(console.log);
+            }
+          },
+        });
+
+        url = this.getUrlFromFalResult(result);
+      } else {
+        throw new Error(`Unsupported provider: ${providerKey}`);
+      }
+
+      const uploadResult = await this.miscService.dumpFileFromURL(user, {
+        url: url,
+        entityId: resultId,
+        entityType: 'mediaResult',
+        visibility: 'private',
+      });
+
+      // Update status to completed, saving the storage information inside the system
+      await this.prisma.actionResult.update({
+        where: { resultId_version: { resultId, version: 0 } },
+        data: {
+          status: 'finish',
+          outputUrl: uploadResult.url, // Using system internal URL
+          storageKey: uploadResult.storageKey, // Save storage key
+        },
+      });
+
+      if (this.mediaCreditUsageReportQueue && creditBilling) {
+        const basicUsageData = {
+          uid: user.uid,
+          resultId,
+        };
+        const mediaCreditUsage: SyncMediaCreditUsageJobData = {
+          ...basicUsageData,
+          creditBilling,
+          timestamp: new Date(),
+        };
+
+        await this.mediaCreditUsageReportQueue.add(
+          `media_credit_usage_report:${resultId}`,
+          mediaCreditUsage,
+        );
+      }
+    } catch (error) {
+      this.logger.error(`Media generation failed for ${resultId}: ${error.stack}`);
+
+      // Update status to failed
+      await this.prisma.actionResult.update({
+        where: { resultId_version: { resultId, version: 0 } },
+        data: {
+          status: 'failed',
+          errors: JSON.stringify([error instanceof Error ? error.message : 'Unknown error']),
+        },
+      });
+    }
+  }
+
+  private async buildInputObject(
+    user: User,
+    request: MediaGenerateRequest,
+  ): Promise<Record<string, any>> {
     if (!request?.inputParameters) {
+      const imageUrl = await this.miscService.generateImageUrls(user, [request.image]);
       return {
         prompt: request?.prompt ?? '', // Base field
+        image: imageUrl?.[0] ?? '',
       };
     }
 
@@ -394,7 +452,26 @@ export class MediaGeneratorService {
     if (Array.isArray(request?.inputParameters)) {
       for (const param of request.inputParameters) {
         if (param?.name && param?.value !== undefined) {
-          input[param.name] = param.value;
+          // Handle URL type parameters by converting storage keys to external URLs
+          if (param.type === 'url') {
+            if (Array.isArray(param.value)) {
+              // Handle array of storage keys
+              const imageUrls = await this.miscService.generateImageUrls(
+                user,
+                param.value as string[],
+              );
+              input[param.name] = imageUrls;
+            } else {
+              // Handle single storage key
+              const imageUrls = await this.miscService.generateImageUrls(user, [
+                param.value as string,
+              ]);
+              input[param.name] = imageUrls?.[0] ?? '';
+            }
+          } else {
+            // Handle non-URL parameters normally
+            input[param.name] = param.value;
+          }
         }
       }
     }

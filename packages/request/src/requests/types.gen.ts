@@ -3889,6 +3889,10 @@ export type MediaGenerateRequest = {
    */
   prompt: string;
   /**
+   * Image storage key for content generation
+   */
+  image?: string;
+  /**
    * Media generation result ID
    */
   resultId?: string;

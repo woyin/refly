@@ -20,12 +20,15 @@ import Moveable from 'react-moveable';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import cn from 'classnames';
-import { ImagePreview } from '@refly-packages/ai-workspace-common/components/common/image-preview';
+
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
+import { useTranslation } from 'react-i18next';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
 export const ImageNode = memo(
@@ -33,7 +36,7 @@ export const ImageNode = memo(
     const { metadata } = data ?? {};
     const imageUrl = metadata?.imageUrl ?? '';
     const [isHovered, setIsHovered] = useState(false);
-    const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
+
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
     const targetRef = useRef<HTMLDivElement>(null);
     useSelectedNodeZIndex(id, selected);
@@ -42,8 +45,10 @@ export const ImageNode = memo(
     const { deleteNode } = useDeleteNode();
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
     const { setNodeStyle } = useNodeData();
+    const { previewNode } = useNodePreviewControl({ canvasId });
+    const { t } = useTranslation();
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -107,10 +112,6 @@ export const ImageNode = memo(
       [data, addNode, getConnectionInfo],
     );
 
-    const handlePreview = useCallback(() => {
-      setIsPreviewModalVisible(true);
-    }, []);
-
     const handleDownload = useCallback(async () => {
       if (!imageUrl) return;
 
@@ -157,11 +158,47 @@ export const ImageNode = memo(
       }
     }, [imageUrl, data?.title, id]);
 
+    const handleCloneAskAI = useCallback(async () => {
+      const { contextItems, modelInfo } = data?.metadata || {};
+
+      // Create new skill node with context
+      const connectTo = contextItems?.map((item) => ({
+        type: item.type as CanvasNodeType,
+        entityId: item.entityId,
+      }));
+
+      // Create new skill node
+      addNode(
+        {
+          type: 'skill',
+          data: {
+            title: t('canvas.nodeActions.cloneAskAI'),
+            entityId: genSkillID(),
+            metadata: {
+              contextItems,
+              query: data.title,
+              modelInfo,
+            },
+          },
+        },
+        connectTo,
+        false,
+        true,
+      );
+
+      nodeActionEmitter.emit(createNodeEventName(id, 'cloneAskAI.completed'));
+    }, [id, data?.entityId, addNode, t]);
+
     const handleImageClick = useCallback(() => {
-      if (selected || readonly) {
-        handlePreview();
-      }
-    }, [selected, readonly, handlePreview]);
+      // Create a node object for preview
+      const nodeForPreview = {
+        id,
+        type: 'image' as const,
+        data,
+        position: { x: 0, y: 0 },
+      };
+      previewNode(nodeForPreview);
+    }, [previewNode, id, data]);
 
     const onTitleChange = (newTitle: string) => {
       setNodeDataByEntity(
@@ -188,12 +225,14 @@ export const ImageNode = memo(
         handleAskAI(event?.dragCreateInfo);
       };
       const handleNodeDownload = () => handleDownload();
+      const handleNodeCloneAskAI = () => handleCloneAskAI();
 
       // Register events with node ID
       nodeActionEmitter.on(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
       nodeActionEmitter.on(createNodeEventName(id, 'delete'), handleNodeDelete);
       nodeActionEmitter.on(createNodeEventName(id, 'askAI'), handleNodeAskAI);
       nodeActionEmitter.on(createNodeEventName(id, 'download'), handleNodeDownload);
+      nodeActionEmitter.on(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
 
       return () => {
         // Cleanup events when component unmounts
@@ -201,11 +240,12 @@ export const ImageNode = memo(
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
         nodeActionEmitter.off(createNodeEventName(id, 'askAI'), handleNodeAskAI);
         nodeActionEmitter.off(createNodeEventName(id, 'download'), handleNodeDownload);
+        nodeActionEmitter.off(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
 
         // Clean up all node events
         cleanupNodeEvents(id);
       };
-    }, [id, handleAddToContext, handleDelete, handleAskAI, handleDownload]);
+    }, [id, handleAddToContext, handleDelete, handleAskAI, handleDownload, handleCloneAskAI]);
 
     const moveableRef = useRef<Moveable>(null);
 
@@ -233,7 +273,7 @@ export const ImageNode = memo(
         onClick={onNodeClick}
         className="relative"
       >
-        <div className="absolute -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[60%]">
+        <div className="absolute -top-8 left-3 z-10 flex items-center h-8 gap-2 w-[52%]">
           <div
             className={cn(
               'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
@@ -284,23 +324,12 @@ export const ImageNode = memo(
           </>
         )}
 
-        <div className="w-full relative z-1 rounded-2xl overflow-hidden flex items-center justify-center">
-          <img
-            onClick={handleImageClick}
-            src={imageUrl}
-            alt={data.title || 'Image'}
-            className="w-full h-full object-cover"
-            style={{ cursor: selected || readonly ? 'pointer' : 'default' }}
-          />
-          {/* only for preview image */}
-          {isPreviewModalVisible && !isPreview && (
-            <ImagePreview
-              isPreviewModalVisible={isPreviewModalVisible}
-              setIsPreviewModalVisible={setIsPreviewModalVisible}
-              imageUrl={imageUrl}
-              imageTitle={data?.title}
-            />
-          )}
+        <div
+          className="w-full relative z-1 rounded-2xl overflow-hidden flex items-center justify-center"
+          style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
+          onClick={handleImageClick}
+        >
+          <img src={imageUrl} alt={data.title || 'Image'} className="w-full h-full object-cover" />
         </div>
       </div>
     );

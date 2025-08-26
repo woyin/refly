@@ -5539,6 +5539,10 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Text prompt for content generation',
     },
+    image: {
+      type: 'string',
+      description: 'Image storage key for content generation',
+    },
     resultId: {
       type: 'string',
       description: 'Media generation result ID',

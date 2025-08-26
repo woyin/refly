@@ -236,12 +236,11 @@ export const SkillNode = memo(
           targetId: canvasId ?? '',
           mediaType,
           query,
-          model: modelInfo?.name || '',
+          modelInfo,
           nodeId: id,
+          contextItems,
         });
 
-        // Delete the skill node after emitting the event
-        //deleteElements({ nodes: [node] });
         return;
       }
 

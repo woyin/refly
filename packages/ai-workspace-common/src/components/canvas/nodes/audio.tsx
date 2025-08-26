@@ -25,6 +25,10 @@ import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspac
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { NodeProps } from '@xyflow/react';
 import { CanvasNodeData } from '@refly/canvas-common';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
+import { ModelInfo } from '@refly/openapi-schema';
+import { CanvasNodeType } from '@refly/openapi-schema';
+import { useTranslation } from 'react-i18next';
 
 const NODE_SIDE_CONFIG = {
   width: 350,
@@ -37,6 +41,9 @@ interface AudioNodeMeta {
   showBorder?: boolean;
   showTitle?: boolean;
   style?: Record<string, any>;
+  resultId?: string;
+  contextItems?: IContextItem[];
+  modelInfo?: ModelInfo;
 }
 
 interface AudioNodeProps extends NodeProps {
@@ -71,7 +78,9 @@ export const AudioNode = memo(
     const { deleteNode } = useDeleteNode();
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
+    const { previewNode } = useNodePreviewControl({ canvasId });
+    const { t } = useTranslation();
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -135,6 +144,37 @@ export const AudioNode = memo(
       [data, addNode, getConnectionInfo],
     );
 
+    const handleCloneAskAI = useCallback(async () => {
+      const { contextItems, modelInfo } = data?.metadata || {};
+
+      // Create new skill node with context
+      const connectTo = contextItems?.map((item) => ({
+        type: item.type as CanvasNodeType,
+        entityId: item.entityId,
+      }));
+
+      // Create new skill node
+      addNode(
+        {
+          type: 'skill',
+          data: {
+            title: t('canvas.nodeActions.cloneAskAI'),
+            entityId: genSkillID(),
+            metadata: {
+              contextItems,
+              query: data.title,
+              modelInfo,
+            },
+          },
+        },
+        connectTo,
+        false,
+        true,
+      );
+
+      nodeActionEmitter.emit(createNodeEventName(id, 'cloneAskAI.completed'));
+    }, [id, data?.entityId, addNode, t]);
+
     const onTitleChange = (newTitle: string) => {
       setNodeDataByEntity(
         {
@@ -146,6 +186,17 @@ export const AudioNode = memo(
         },
       );
     };
+
+    const handleAudioClick = useCallback(() => {
+      // Create a node object for preview
+      const nodeForPreview = {
+        id,
+        type: 'audio' as const,
+        data: data as any,
+        position: { x: 0, y: 0 },
+      };
+      previewNode(nodeForPreview);
+    }, [previewNode, id, data]);
 
     // Handle audio loading errors with fallback
     const handleAudioError = useCallback(() => {
@@ -181,22 +232,25 @@ export const AudioNode = memo(
       const handleNodeAskAI = (event?: { dragCreateInfo?: NodeDragCreateInfo }) => {
         handleAskAI(event?.dragCreateInfo);
       };
+      const handleNodeCloneAskAI = () => handleCloneAskAI();
 
       // Register events with node ID
       nodeActionEmitter.on(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
       nodeActionEmitter.on(createNodeEventName(id, 'delete'), handleNodeDelete);
       nodeActionEmitter.on(createNodeEventName(id, 'askAI'), handleNodeAskAI);
+      nodeActionEmitter.on(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
 
       return () => {
         // Cleanup events when component unmounts
         nodeActionEmitter.off(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
         nodeActionEmitter.off(createNodeEventName(id, 'askAI'), handleNodeAskAI);
+        nodeActionEmitter.off(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
 
         // Clean up all node events
         cleanupNodeEvents(id);
       };
-    }, [id, handleAddToContext, handleDelete, handleAskAI]);
+    }, [id, handleAddToContext, handleDelete, handleAskAI, handleCloneAskAI]);
 
     if (!data) {
       return null;
@@ -252,6 +306,8 @@ export const AudioNode = memo(
                p-4
                 ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
               `}
+          style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
+          onClick={handleAudioClick}
         >
           <div className={cn('flex flex-col h-full relative box-border')}>
             {showTitle && (
@@ -277,10 +333,14 @@ export const AudioNode = memo(
                 <audio
                   src={currentAudioUrl}
                   controls
-                  className="w-full max-w-sm rounded-md cursor-pointer"
+                  className="w-full max-w-sm rounded-md"
                   preload="metadata"
                   onError={handleAudioError}
                   onLoadStart={() => setAudioError(false)}
+                  onClick={(e) => {
+                    // Prevent audio controls from triggering the parent click
+                    e.stopPropagation();
+                  }}
                 >
                   <track kind="captions" />
                   Your browser does not support the audio element.

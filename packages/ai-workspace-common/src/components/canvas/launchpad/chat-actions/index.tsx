@@ -87,7 +87,11 @@ export const ChatActions = memo(
       isLogin: state.isLogin,
     }));
 
-    const canSendEmptyMessage = useMemo(() => query?.trim(), [query]);
+    const canSendEmptyMessage = useMemo(() => {
+      const hasQuery = query?.trim();
+      const hasContextItems = contextItems?.length > 0;
+      return hasQuery || hasContextItems;
+    }, [query, contextItems]);
     const canSendMessage = useMemo(
       () => !userStore.isLogin || canSendEmptyMessage,
       [userStore.isLogin, canSendEmptyMessage],

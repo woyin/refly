@@ -41,15 +41,13 @@ export const CanvasResources = memo(({ className }: CanvasResourcesProps) => {
       if (activeNode.type === 'skillResponse') {
         setParentType('stepsRecord');
       }
-      if (
-        ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(
-          activeNode.type as CanvasNodeType,
-        )
-      ) {
+      if (['document', 'codeArtifact', 'website'].includes(activeNode.type as CanvasNodeType)) {
         setParentType('resultsRecord');
       }
-      if (activeNode.type === 'image' && !!activeNode.data?.metadata?.resultId) {
-        setParentType(activeNode.data?.metadata?.resultId ? 'resultsRecord' : 'myUpload');
+      if (['image', 'audio', 'video'].includes(activeNode.type as CanvasNodeType)) {
+        // Check if media has resultId to determine if it's from results or my upload
+        const hasResultId = !!activeNode.data?.metadata?.resultId;
+        setParentType(hasResultId ? 'resultsRecord' : 'myUpload');
       }
     }
   }, [activeNode]);
