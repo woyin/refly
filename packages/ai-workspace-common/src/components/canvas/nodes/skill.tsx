@@ -6,7 +6,16 @@ import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
 import { getNodeCommonStyles } from './shared/styles';
-import { ModelInfo, Skill, SkillRuntimeConfig, SkillTemplateConfig } from '@refly/openapi-schema';
+import {
+  ModelInfo,
+  Skill,
+  SkillRuntimeConfig,
+  SkillTemplateConfig,
+  WorkflowVariable,
+} from '@refly/openapi-schema';
+
+// Use union type from launchpad/types for mention-capable variables
+import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useChatStoreShallow } from '@refly/stores';
@@ -42,7 +51,7 @@ type SkillNode = Node<CanvasNodeData<SkillNodeMeta>, 'skill'>;
 export const SkillNode = memo(
   ({ data, selected, id }: NodeProps<SkillNode>) => {
     const [isHovered, setIsHovered] = useState(false);
-    const { edges } = useCanvasData();
+    const { edges, nodes } = useCanvasData();
     const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
     const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
@@ -72,43 +81,37 @@ export const SkillNode = memo(
         canvasId,
       },
     });
-    console.log('workflowVariables', workflowVariables?.data);
+    // Generate variables including canvas nodes
+    const variables: MentionVariable[] = useMemo(() => {
+      const baseVariables: MentionVariable[] = (workflowVariables?.data ?? []) as MentionVariable[];
+      // Add step record variables from skillResponse nodes
+      const stepRecordVariables: MentionVariable[] =
+        nodes
+          ?.filter((node) => node.type === 'skillResponse')
+          ?.map((node) => ({
+            name: node.data?.title ?? '未命名步骤',
+            description: '步骤记录',
+            source: 'stepRecord',
+            variableType: 'step',
+            entityId: node.data?.entityId,
+            nodeId: node.id,
+          })) ?? [];
 
-    const variables = [
-      // Default example variables for testing @mention functionality
-      {
-        variableId: 'userName',
-        name: 'userName',
-        value: [{ text: '张三', type: 'text' as const }],
-        description: '用户姓名',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        variableId: 'projectName',
-        name: 'projectName',
-        value: [{ text: 'AI智能助手项目', type: 'text' as const }],
-        description: '当前项目名称',
-        source: 'startNode' as const,
-        variableType: 'string' as const,
-      },
-      {
-        variableId: 'knowledgeBase',
-        name: 'knowledgeBase',
-        value: [{ text: 'research-papers-2024', type: 'resource' as const }],
-        description: '研究论文知识库',
-        source: 'resourceLibrary' as const,
-        variableType: 'resource' as const,
-      },
-      {
-        variableId: 'documentTemplate',
-        name: 'documentTemplate',
-        value: [{ text: 'tech-report-template', type: 'resource' as const }],
-        description: '技术报告模板',
-        source: 'resourceLibrary' as const,
-        variableType: 'resource' as const,
-      },
-    ];
+      // Add result record variables from non-skill nodes
+      const resultRecordVariables: MentionVariable[] =
+        nodes
+          ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
+          ?.map((node) => ({
+            name: node.data?.title ?? '未命名结果',
+            description: '结果记录',
+            source: 'resultRecord',
+            variableType: 'result',
+            entityId: node.data?.entityId,
+            nodeId: node.id,
+          })) ?? [];
+
+      return [...baseVariables, ...stepRecordVariables, ...resultRecordVariables];
+    }, [nodes, workflowVariables?.data]);
     // Check if node has any connections
     const isTargetConnected = useMemo(() => edges?.some((edge) => edge.target === id), [edges, id]);
     const isSourceConnected = useMemo(() => edges?.some((edge) => edge.source === id), [edges, id]);
@@ -409,7 +412,23 @@ export const SkillNode = memo(
               handleProjectChange(projectId);
               updateNodeData({ metadata: { projectId } });
             }}
-            workflowVariables={variables}
+            workflowVariables={variables
+              .filter((v): v is WorkflowVariable => {
+                // Guard to narrow union to WorkflowVariable only
+                const src = (v as any)?.source;
+                return (src === 'startNode' || src === 'resourceLibrary') && 'value' in (v as any);
+              })
+              .map((v) => ({
+                variableId: v.variableId,
+                name: v.name,
+                value: v.value,
+                description: v.description,
+                source: v.source,
+                variableType: v.variableType,
+              }))}
+            extendedWorkflowVariables={variables.filter(
+              (v) => v.source === 'stepRecord' || v.source === 'resultRecord',
+            )}
             enableRichInput={true}
           />
         </div>
