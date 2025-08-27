@@ -12,6 +12,7 @@ import {
   SkillTemplateConfig,
   WorkflowVariable,
 } from '@refly/openapi-schema';
+import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 // import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 // import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
@@ -224,7 +225,7 @@ export interface ChatPanelProps {
   projectId?: string;
   handleProjectChange?: (newProjectId: string) => void;
   workflowVariables?: WorkflowVariable[];
-  extendedWorkflowVariables?: any[]; // Extended variables for canvas nodes
+  extendedWorkflowVariables?: MentionVariable[]; // Extended variables for canvas nodes
   enableRichInput?: boolean;
 }
 
@@ -421,7 +422,7 @@ export const ChatPanel = memo(
                 setTimeout(onInputHeightChange, 0);
               }
             }}
-            variables={[...workflowVariables, ...extendedWorkflowVariables]}
+            variables={[...workflowVariables, ...extendedWorkflowVariables] as WorkflowVariable[]}
             selectedSkillName={selectedSkill?.name ?? null}
             inputClassName="px-1 py-0"
             maxRows={6}

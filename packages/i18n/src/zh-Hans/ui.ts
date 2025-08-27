@@ -1565,6 +1565,20 @@ const translations = {
       importFromKnowledgeBase: '从知识库导入',
       importFromExtension: '插件剪存',
     },
+    richChatInput: {
+      startNode: '开始节点',
+      resourceLibrary: '资源库',
+      myUploads: '我的上传',
+      stepRecord: '步骤记录',
+      resultRecord: '结果记录',
+      noUploadFiles: '暂无上传文件',
+      noStepRecords: '暂无步骤记录',
+      noResultRecords: '暂无结果记录',
+      hoverToViewVariables: '悬停左侧分类查看变量',
+      untitledStep: '未命名步骤',
+      untitledResult: '未命名结果',
+      loadingEditor: '加载编辑器中...',
+    },
   },
   resource: {
     multilingualSearch: {

@@ -14,13 +14,8 @@ import {
   WorkflowVariable,
 } from '@refly/openapi-schema';
 
-// Extended WorkflowVariable type to support canvas nodes
-type ExtendedWorkflowVariable = Omit<WorkflowVariable, 'source' | 'variableType'> & {
-  source?: 'startNode' | 'resourceLibrary' | 'stepRecord' | 'resultRecord';
-  variableType?: 'string' | 'option' | 'resource' | 'step' | 'result';
-  entityId?: string;
-  nodeId?: string;
-};
+// Use union type from launchpad/types for mention-capable variables
+import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useChatStoreShallow } from '@refly/stores';
@@ -87,16 +82,14 @@ export const SkillNode = memo(
       },
     });
     // Generate variables including canvas nodes
-    const variables: ExtendedWorkflowVariable[] = useMemo(() => {
-      const baseVariables: ExtendedWorkflowVariable[] = workflowVariables?.data ?? [];
+    const variables: MentionVariable[] = useMemo(() => {
+      const baseVariables: MentionVariable[] = (workflowVariables?.data ?? []) as MentionVariable[];
       // Add step record variables from skillResponse nodes
-      const stepRecordVariables: ExtendedWorkflowVariable[] =
+      const stepRecordVariables: MentionVariable[] =
         nodes
           ?.filter((node) => node.type === 'skillResponse')
           ?.map((node) => ({
-            variableId: `step-${node.id}`,
             name: node.data?.title ?? '未命名步骤',
-            value: [{ text: node.data?.entityId ?? '', type: 'text' as const }],
             description: '步骤记录',
             source: 'stepRecord',
             variableType: 'step',
@@ -105,13 +98,11 @@ export const SkillNode = memo(
           })) ?? [];
 
       // Add result record variables from non-skill nodes
-      const resultRecordVariables: ExtendedWorkflowVariable[] =
+      const resultRecordVariables: MentionVariable[] =
         nodes
           ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
           ?.map((node) => ({
-            variableId: `result-${node.id}`,
             name: node.data?.title ?? '未命名结果',
-            value: [{ text: node.data?.entityId ?? '', type: 'text' as const }],
             description: '结果记录',
             source: 'resultRecord',
             variableType: 'result',
@@ -120,7 +111,7 @@ export const SkillNode = memo(
           })) ?? [];
 
       return [...baseVariables, ...stepRecordVariables, ...resultRecordVariables];
-    }, [nodes]);
+    }, [nodes, workflowVariables?.data]);
     // Check if node has any connections
     const isTargetConnected = useMemo(() => edges?.some((edge) => edge.target === id), [edges, id]);
     const isSourceConnected = useMemo(() => edges?.some((edge) => edge.source === id), [edges, id]);
@@ -422,14 +413,18 @@ export const SkillNode = memo(
               updateNodeData({ metadata: { projectId } });
             }}
             workflowVariables={variables
-              .filter((v) => v.source === 'startNode' || v.source === 'resourceLibrary')
+              .filter((v): v is WorkflowVariable => {
+                // Guard to narrow union to WorkflowVariable only
+                const src = (v as any)?.source;
+                return (src === 'startNode' || src === 'resourceLibrary') && 'value' in (v as any);
+              })
               .map((v) => ({
                 variableId: v.variableId,
                 name: v.name,
                 value: v.value,
                 description: v.description,
-                source: v.source as 'startNode' | 'resourceLibrary',
-                variableType: v.variableType as 'string' | 'option' | 'resource',
+                source: v.source,
+                variableType: v.variableType,
               }))}
             extendedWorkflowVariables={variables.filter(
               (v) => v.source === 'stepRecord' || v.source === 'resultRecord',

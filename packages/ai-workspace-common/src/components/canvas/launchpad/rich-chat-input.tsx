@@ -1,7 +1,7 @@
 import { memo, useCallback, forwardRef, useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchStoreShallow } from '@refly/stores';
-import type { WorkflowVariable } from '@refly/openapi-schema';
+import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { cn } from '@refly/utils/cn';
 import { useUserStoreShallow } from '@refly/stores';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -24,7 +24,7 @@ interface RichChatInputProps {
   readonly: boolean;
   query: string;
   setQuery: (text: string) => void;
-  variables?: WorkflowVariable[];
+  variables?: MentionVariable[];
   selectedSkillName?: string | null;
   placeholder?: string;
   inputClassName?: string;
@@ -40,6 +40,7 @@ interface RichChatInputProps {
 }
 // Custom mention suggestion component with improved UI design
 const MentionList = ({ items, command }: { items: any[]; command: any }) => {
+  const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [resourceLibraryType, setResourceLibraryType] = useState<
@@ -57,8 +58,8 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
       nodes
         ?.filter((node) => node.type === 'skillResponse')
         ?.map((node) => ({
-          name: node.data?.title ?? '未命名步骤',
-          description: '步骤记录',
+          name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
+          description: t('canvas.richChatInput.stepRecord'),
           source: 'stepRecord' as const,
           variableType: node.type,
           entityId: node.data?.entityId,
@@ -72,8 +73,8 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
           (node) => node.type !== 'skill' && node.type !== 'skillResponse' && node.type !== 'start',
         )
         ?.map((node) => ({
-          name: node.data?.title ?? '未命名结果',
-          description: '结果记录',
+          name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
+          description: t('canvas.richChatInput.resultRecord'),
           source: 'resultRecord' as const,
           variableType: node.type,
           entityId: node.data?.entityId,
@@ -144,24 +145,26 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
   }
   return (
     <div
-      className="bg-white rounded-xl shadow-lg border border-refly-Card-Border max-h-64 overflow-hidden min-w-96"
+      className="bg-refly-bg-content-z2 rounded-xl shadow-lg border border-refly-Card-Border max-h-64 overflow-hidden min-w-96"
       onMouseLeave={() => {
         setHoveredCategory(null);
       }}
     >
       <div className="flex">
         {/* First level menu - Categories */}
-        <div className="w-36 border-r border-gray-100 p-2">
+        <div className="w-[174px] border-r border-refly-Card-Border p-2">
           {/* Start Node Category */}
           {groupedItems.startNode.length > 0 && (
             <div
-              className="p-1.5 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-md"
+              className="p-1.5 cursor-pointer border-b border-refly-Card-Border transition-colors hover:bg-refly-fill-hover rounded-md"
               onMouseEnter={() => setHoveredCategory('startNode')}
             >
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700">开始节点</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 max-w-[120px] truncate">
+                  {t('canvas.richChatInput.startNode')}
+                </span>
                 <svg
-                  className="w-3 h-3 text-gray-400 ml-auto"
+                  className="w-3 h-3 text-gray-400 dark:text-gray-500 ml-auto"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -182,7 +185,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
             groupedItems.stepRecord.length > 0 ||
             groupedItems.resultRecord.length > 0) && (
             <div
-              className="p-1.5 cursor-pointer border-b border-gray-50 transition-colors hover:bg-[#E6E8EA] rounded-md"
+              className="p-1.5 cursor-pointer border-b border-refly-Card-Border transition-colors hover:bg-refly-fill-hover rounded-md"
               onMouseEnter={() => {
                 setHoveredCategory('resourceLibrary');
                 // Reset to uploads when hovering resource library
@@ -190,9 +193,11 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
               }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-700">资源库</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 max-w-[120px] truncate">
+                  {t('canvas.richChatInput.resourceLibrary')}
+                </span>
                 <svg
-                  className="w-3 h-3 text-gray-400 ml-auto"
+                  className="w-3 h-3 text-gray-400 dark:text-gray-500 ml-auto"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -210,7 +215,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
         </div>
 
         {/* Second level menu - Variables */}
-        <div className="flex-1">
+        <div className="flex-1 max-w-[400px]">
           {hoveredCategory === 'startNode' && groupedItems.startNode?.length > 0 && (
             <div className="p-2 max-h-56 overflow-y-auto">
               {groupedItems.startNode.map((item) => (
@@ -222,7 +227,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                   <div className="flex items-center gap-2">
                     <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
                     <div className="flex flex-col flex-1 min-w-0 ">
-                      <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
+                      <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
                         {item.name}
                       </span>
                     </div>
@@ -236,43 +241,43 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
           {hoveredCategory === 'resourceLibrary' && (
             <>
               {/* Switch button for resource library types */}
-              <div className="px-4 py-3 border-b border-gray-100">
-                <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+              <div className="px-4 py-3 border-b border-refly-Card-Border">
+                <div className="flex space-x-1 bg-refly-fill-default rounded-lg p-1">
                   <button
                     type="button"
                     className={cn(
-                      'flex-1 px-3 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
-                      resourceLibraryType === 'uploads'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900',
-                    )}
-                    onClick={() => setResourceLibraryType('uploads')}
-                  >
-                    我的上传
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      'flex-1 px-3 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
-                      resourceLibraryType === 'stepRecord'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900',
-                    )}
-                    onClick={() => setResourceLibraryType('stepRecord')}
-                  >
-                    步骤记录
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      'flex-1 px-3 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
+                      'flex-1 px-2 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
                       resourceLibraryType === 'resultRecord'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900',
+                        ? 'bg-refly-bg-content-z2 text-gray-900 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100',
                     )}
                     onClick={() => setResourceLibraryType('resultRecord')}
                   >
-                    结果记录
+                    {t('canvas.richChatInput.resultRecord')}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex-1 px-2 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
+                      resourceLibraryType === 'stepRecord'
+                        ? 'bg-refly-bg-content-z2 text-gray-900 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100',
+                    )}
+                    onClick={() => setResourceLibraryType('stepRecord')}
+                  >
+                    {t('canvas.richChatInput.stepRecord')}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex-1 px-2 py-1 text-xs rounded-md transition-all duration-200 whitespace-nowrap min-w-0 relative border-none',
+                      resourceLibraryType === 'uploads'
+                        ? 'bg-refly-bg-content-z2 text-gray-900 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100',
+                    )}
+                    onClick={() => setResourceLibraryType('uploads')}
+                  >
+                    {t('canvas.richChatInput.myUploads')}
                   </button>
                 </div>
               </div>
@@ -288,7 +293,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       <div className="flex items-center gap-3">
                         {getVariableIcon(item.variableType)}
                         <div className="flex flex-col flex-1">
-                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
                             {item.name}
                           </span>
                         </div>
@@ -307,7 +312,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       <div className="flex items-center gap-3">
                         <AiChat className="bg-[#FC8800] rounded-md p-1" size={20} color="white" />
                         <div className="flex flex-col flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
                             {item.name}
                           </span>
                         </div>
@@ -326,7 +331,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                       <div className="flex items-center gap-3">
                         {getVariableIcon(item.variableType)}
                         <div className="flex flex-col flex-1">
-                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px]">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
                             {item.name}
                           </span>
                         </div>
@@ -341,9 +346,11 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                   (resourceLibraryType === 'resultRecord' &&
                     groupedItems.resultRecord?.length === 0)) && (
                   <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                    {resourceLibraryType === 'uploads' && '暂无上传文件'}
-                    {resourceLibraryType === 'stepRecord' && '暂无步骤记录'}
-                    {resourceLibraryType === 'resultRecord' && '暂无结果记录'}
+                    {resourceLibraryType === 'uploads' && t('canvas.richChatInput.noUploadFiles')}
+                    {resourceLibraryType === 'stepRecord' &&
+                      t('canvas.richChatInput.noStepRecords')}
+                    {resourceLibraryType === 'resultRecord' &&
+                      t('canvas.richChatInput.noResultRecords')}
                   </div>
                 )}
               </div>
@@ -352,7 +359,9 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
 
           {/* Show default view when no category is hovered */}
           {!hoveredCategory && (
-            <div className="p-8 text-center text-gray-500 text-sm">悬停左侧分类查看变量</div>
+            <div className="p-8 text-center text-gray-500 text-sm">
+              {t('canvas.richChatInput.hoverToViewVariables')}
+            </div>
           )}
         </div>
       </div>
@@ -476,8 +485,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         nodes
           ?.filter((node) => node.type === 'skillResponse')
           ?.map((node) => ({
-            name: node.data?.title ?? '未命名步骤',
-            description: '步骤记录',
+            name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
+            description: t('canvas.richChatInput.stepRecord'),
             source: 'stepRecord' as const,
             variableType: 'step' as const,
             entityId: node.data?.entityId,
@@ -489,8 +498,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         nodes
           ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
           ?.map((node) => ({
-            name: node.data?.title ?? '未命名结果',
-            description: '结果记录',
+            name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
+            description: t('canvas.richChatInput.resultRecord'),
             source: 'resultRecord' as const,
             variableType: 'result' as const,
             entityId: node.data?.entityId,
@@ -620,14 +629,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                 popup[0].setProps({
                   getReferenceClientRect: props.clientRect,
                 });
-              },
-              onKeyDown(props: any) {
-                if (props.event.key === 'Escape') {
-                  popup[0].hide();
-                  return true;
-                }
-
-                return component.onKeyDown(props);
               },
               onExit() {
                 popup[0].destroy();
@@ -864,7 +865,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
               <EditorContent editor={editor} className="h-full" data-cy="rich-chat-input" />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-400">
-                Loading editor...
+                {t('canvas.richChatInput.loadingEditor')}
               </div>
             )}
           </div>

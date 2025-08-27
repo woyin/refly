@@ -7,7 +7,7 @@ export const mentionStyles = `
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
-    color: inherit;
+    color: var(--refly-text-0);
     padding: 0;
     margin: 0;
     resize: none;
@@ -15,13 +15,14 @@ export const mentionStyles = `
     max-height: 12rem;
     overflow-y: auto;
   }
-  
+
+
   .ProseMirror p {
     margin: 0;
   }
   
   .ProseMirror p.is-editor-empty:first-child::before {
-    color: #adb5bd;
+    color: var(--refly-text-3);
     content: attr(data-placeholder);
     float: left;
     height: 0;
@@ -29,10 +30,10 @@ export const mentionStyles = `
   }
   
   .mention {
-    background-color: #F5F5F5;
+    background-color: var(--refly-fill-default);
     border-radius: 4px;
     padding: 4px 6px;
-    color: #000000;
+    color: var(--refly-text-0);
     font-weight: 500;
     text-decoration: none;
     display: inline-flex;
@@ -40,7 +41,7 @@ export const mentionStyles = `
     gap: 6px;
     font-size: 14px;
     line-height: 1.2;
-    border: 1px solid #E0E0E0;
+    border: 1px solid var(--refly-Card-Border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
   }
@@ -66,7 +67,7 @@ export const mentionStyles = `
   }
   
   .mention:hover {
-    background-color: #EEEEEE;
+    background-color: var(--refly-fill-hover);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
 

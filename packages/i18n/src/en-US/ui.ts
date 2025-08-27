@@ -1601,6 +1601,20 @@ const translations = {
       importFromKnowledgeBase: 'Import from Knowledge Base',
       importFromExtension: 'Import from Extension',
     },
+    richChatInput: {
+      startNode: 'Start Node',
+      resourceLibrary: 'Resource Hub',
+      myUploads: 'Uploads',
+      stepRecord: 'Step',
+      resultRecord: 'Result',
+      noUploadFiles: 'No uploaded files',
+      noStepRecords: 'No step records',
+      noResultRecords: 'No result records',
+      hoverToViewVariables: 'Hover over categories to view variables',
+      untitledStep: 'Untitled Step',
+      untitledResult: 'Untitled Result',
+      loadingEditor: 'Loading editor...',
+    },
   },
   resource: {
     multilingualSearch: {
