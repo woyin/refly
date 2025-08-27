@@ -173,9 +173,12 @@ export const genCanvasVersionId = () => {
   return `cv-${timestamp}-${createId()}`;
 };
 
-export const genCreditRechargeId = () => {
-  const timestamp = Date.now();
-  return `${IDPrefix.CREDIT_RECHARGE}${timestamp}-${createId()}`;
+export const genSubscriptionRechargeId = (uid: string, month: string) => {
+  return `${IDPrefix.CREDIT_RECHARGE}subscription-${uid}-${month}`;
+};
+
+export const genDailyCreditRechargeId = (uid: string, date: string) => {
+  return `${IDPrefix.CREDIT_RECHARGE}daily-${uid}-${date}`;
 };
 
 export const genCreditUsageId = () => {

@@ -13,7 +13,7 @@ import {
   genCreditUsageId,
   genCreditDebtId,
   safeParseJSON,
-  genCreditRechargeId,
+  genDailyCreditRechargeId,
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 
@@ -139,19 +139,23 @@ export class CreditService {
       expiresAt.setDate(expiresAt.getDate() + 1);
       expiresAt.setHours(0, 0, 0, 0);
 
-      await this.prisma.creditRecharge.create({
-        data: {
-          rechargeId: genCreditRechargeId(),
-          uid,
-          amount: plan.dailyGiftCreditQuota,
-          balance: plan.dailyGiftCreditQuota,
-          enabled: true,
-          source: 'gift',
-          description: `Daily gift credit recharge for plan ${subscription?.planType ?? 'free'}`,
-          createdAt: createdAt,
-          updatedAt: now, // Use current time for updatedAt
-          expiresAt: expiresAt,
-        },
+      const ymd = `${now.getFullYear()}${now.getMonth() + 1}${now.getDate()}`;
+      await this.prisma.creditRecharge.createMany({
+        data: [
+          {
+            rechargeId: genDailyCreditRechargeId(uid, ymd),
+            uid,
+            amount: plan.dailyGiftCreditQuota,
+            balance: plan.dailyGiftCreditQuota,
+            enabled: true,
+            source: 'gift',
+            description: `Daily gift credit recharge for plan ${subscription?.planType ?? 'free'}`,
+            createdAt: createdAt,
+            updatedAt: now, // Use current time for updatedAt
+            expiresAt: expiresAt,
+          },
+        ],
+        skipDuplicates: true,
       });
 
       this.logger.log(

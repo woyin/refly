@@ -8,7 +8,7 @@ import { CreateCheckoutSessionRequest, SubscriptionUsageData, User } from '@refl
 import {
   genTokenUsageMeterID,
   genStorageUsageMeterID,
-  genCreditRechargeId,
+  genSubscriptionRechargeId,
   safeParseJSON,
 } from '@refly/utils';
 import {
@@ -345,20 +345,24 @@ export class SubscriptionService implements OnModuleInit {
     const operations = [...debtPaymentOperations];
 
     if (remainingCredits > 0) {
+      const ym = `${now.getFullYear()}${now.getMonth() + 1}`;
       operations.push(
-        prisma.creditRecharge.create({
-          data: {
-            rechargeId: genCreditRechargeId(),
-            uid,
-            amount: remainingCredits,
-            balance: remainingCredits,
-            enabled: true,
-            source,
-            description,
-            createdAt: now,
-            updatedAt: now,
-            expiresAt,
-          },
+        prisma.creditRecharge.createMany({
+          data: [
+            {
+              rechargeId: genSubscriptionRechargeId(uid, ym),
+              uid,
+              amount: remainingCredits,
+              balance: remainingCredits,
+              enabled: true,
+              source,
+              description,
+              createdAt: now,
+              updatedAt: now,
+              expiresAt,
+            },
+          ],
+          skipDuplicates: true,
         }),
       );
     }

@@ -12,7 +12,7 @@ import {
   ACCESS_TOKEN_COOKIE,
   genUID,
   genVerificationSessionID,
-  genCreditRechargeId,
+  genDailyCreditRechargeId,
   omit,
   pick,
   REFRESH_TOKEN_COOKIE,
@@ -393,19 +393,23 @@ export class AuthService {
       creditAmount = freePlan.creditQuota;
     }
 
-    await this.prisma.creditRecharge.create({
-      data: {
-        rechargeId: genCreditRechargeId(),
-        uid: user.uid,
-        amount: creditAmount,
-        balance: creditAmount,
-        enabled: true,
-        source: 'gift',
-        description: 'Initial free plan credit recharge for new user',
-        createdAt: now,
-        updatedAt: now,
-        expiresAt,
-      },
+    const ymd = `${now.getFullYear()}${now.getMonth() + 1}${now.getDate()}`;
+    await this.prisma.creditRecharge.createMany({
+      data: [
+        {
+          rechargeId: genDailyCreditRechargeId(user.uid, ymd),
+          uid: user.uid,
+          amount: creditAmount,
+          balance: creditAmount,
+          enabled: true,
+          source: 'gift',
+          description: 'Initial free plan credit recharge for new user',
+          createdAt: now,
+          updatedAt: now,
+          expiresAt,
+        },
+      ],
+      skipDuplicates: true,
     });
 
     this.logger.log(
