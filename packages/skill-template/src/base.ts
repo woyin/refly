@@ -25,6 +25,7 @@ import {
   MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import { EventEmitter } from 'node:stream';
+import { preprocess, PreprocessResult } from './scheduler/utils/preprocess';
 
 export abstract class BaseSkill {
   /**
@@ -183,6 +184,9 @@ export abstract class BaseSkill {
       icon: this.icon,
     };
 
+    // Preprocess query and context
+    config.preprocessResult = config.preprocessResult || (await preprocess(input.query, config));
+
     const response = await this.toRunnable().invoke(input, {
       ...config,
       metadata: {
@@ -298,4 +302,5 @@ export interface SkillRunnableConfig extends RunnableConfig {
     selectedTools?: StructuredToolInterface[];
   };
   metadata?: SkillRunnableMeta;
+  preprocessResult?: PreprocessResult;
 }

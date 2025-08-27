@@ -1,36 +1,22 @@
-import {
-  START,
-  END,
-  StateGraphArgs,
-  StateGraph,
-  MessagesAnnotation, // Restored import
-  // ToolNode, // Moved to prebuilt
-} from '@langchain/langgraph';
-import { ToolNode } from '@langchain/langgraph/prebuilt'; // Correct import for ToolNode
-// ListMcpServersResponse will be imported later with other types from '@refly/openapi-schema'
+import { START, END, StateGraphArgs, StateGraph, MessagesAnnotation } from '@langchain/langgraph';
+import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { z } from 'zod';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
-import { safeStringifyJSON, isValidUrl } from '@refly/utils';
 import {
   Icon,
   SkillInvocationConfig,
   SkillTemplateConfigDefinition,
-  Source,
   User,
 } from '@refly/openapi-schema';
 
 // types
 import { GraphState } from '../scheduler/types';
 // utils
-import { prepareContext } from '../scheduler/utils/context';
 import { truncateSource } from '../scheduler/utils/truncator';
 import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils/message';
-import { processQuery } from '../scheduler/utils/queryProcessor';
-import { extractAndCrawlUrls, crawlExtractedUrls } from '../scheduler/utils/extract-weblink';
 
 // prompts
 import * as commonQnA from '../scheduler/module/commonQnA';
-import { checkModelContextLenSupport } from '../scheduler/utils/model';
 import { buildSystemPrompt } from '../mcp/core/prompt';
 import { MCPTool, MCPToolInputSchema } from '../mcp/core/prompt';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -76,7 +62,7 @@ function convertToMCPTools(langchainTools: StructuredToolInterface[]): MCPTool[]
 }
 
 interface AgentComponents {
-  mcpTools: StructuredToolInterface[];
+  tools: StructuredToolInterface[];
   compiledLangGraphApp: any;
   mcpAvailable: boolean;
 }
@@ -109,106 +95,16 @@ export class Agent extends BaseSkill {
     module: SkillPromptModule,
     customInstructions?: string,
   ) => {
-    const { messages = [], images = [] } = state;
-    const { locale = 'en', modelConfigMap, project, runtimeConfig } = config.configurable;
-
-    config.metadata.step = { name: 'analyzeQuery' };
-
-    const {
-      optimizedQuery,
-      query,
-      usedChatHistory,
-      hasContext,
-      remainingTokens,
-      mentionedContext,
-      rewrittenQueries,
-    } = await processQuery({
-      config,
-      ctxThis: this,
-      state,
-      shouldSkipAnalysis: true,
-    });
-
-    const projectId = project?.projectId;
-    const enableKnowledgeBaseSearch = !!projectId && !!runtimeConfig?.enabledKnowledgeBase;
-    this.engine.logger.log(
-      `ProjectId: ${projectId}, Enable KB Search: ${enableKnowledgeBaseSearch}`,
-    );
-
-    const contextUrls = config.configurable?.urls || [];
-    this.engine.logger.log(`Context URLs: ${safeStringifyJSON(contextUrls)}`);
-
-    let contextUrlSources: Source[] = [];
-    if (contextUrls.length > 0) {
-      const urls = contextUrls.map((item) => item.url).filter((url) => url && isValidUrl(url));
-      if (urls.length > 0) {
-        this.engine.logger.log(`Processing ${urls.length} URLs from context`);
-        contextUrlSources = await crawlExtractedUrls(urls, config, this, {
-          concurrencyLimit: 5,
-          batchSize: 8,
-        });
-        this.engine.logger.log(`Processed context URL sources count: ${contextUrlSources.length}`);
-      }
-    }
-
-    const { sources: queryUrlSources, analysis } = await extractAndCrawlUrls(query, config, this, {
-      concurrencyLimit: 5,
-      batchSize: 8,
-    });
-    this.engine.logger.log(`URL extraction analysis: ${safeStringifyJSON(analysis)}`);
-    this.engine.logger.log(`Extracted query URL sources count: ${queryUrlSources.length}`);
-
-    const urlSources = [...contextUrlSources, ...queryUrlSources];
-    this.engine.logger.log(`Total URL sources count: ${urlSources.length}`);
-
-    let context = '';
-    let sources: Source[] = [];
-    const hasUrlSources = urlSources.length > 0;
-    const needPrepareContext =
-      (hasContext || hasUrlSources || enableKnowledgeBaseSearch) && remainingTokens > 0;
-    const isModelContextLenSupport = checkModelContextLenSupport(modelConfigMap.chat);
-
-    this.engine.logger.log(`optimizedQuery: ${optimizedQuery}`);
-    this.engine.logger.log(`mentionedContext: ${safeStringifyJSON(mentionedContext)}`);
-    this.engine.logger.log(`hasUrlSources: ${hasUrlSources}`);
-
-    if (needPrepareContext) {
-      config.metadata.step = { name: 'analyzeContext' };
-      const preparedRes = await prepareContext(
-        {
-          query: optimizedQuery,
-          mentionedContext,
-          maxTokens: remainingTokens,
-          enableMentionedContext: hasContext,
-          rewrittenQueries,
-          urlSources,
-        },
-        {
-          config,
-          ctxThis: this,
-          state,
-          tplConfig: {
-            ...(config?.configurable?.tplConfig || {}),
-            enableKnowledgeBaseSearch: {
-              value: enableKnowledgeBaseSearch,
-              label: 'Knowledge Base Search',
-              displayValue: enableKnowledgeBaseSearch ? 'true' : 'false',
-            },
-          },
-        },
-      );
-      context = preparedRes.contextStr;
-      sources = preparedRes.sources;
-      this.engine.logger.log(`context: ${safeStringifyJSON(context)}`);
-      this.engine.logger.log(`sources: ${safeStringifyJSON(sources)}`);
-    }
+    const { query, messages = [], images = [] } = state;
+    const { locale = 'en' } = config.configurable;
+    const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
+      config.preprocessResult;
 
     const requestMessages = buildFinalRequestMessages({
       module,
       locale,
       chatHistory: usedChatHistory,
       messages,
-      needPrepareContext: needPrepareContext && isModelContextLenSupport,
       context,
       images,
       originalQuery: query,
@@ -290,7 +186,7 @@ export class Agent extends BaseSkill {
     const compiledGraph = workflow.compile();
 
     const components: AgentComponents = {
-      mcpTools: selectedTools, // Store the successfully initialized tools
+      tools: selectedTools, // Store the successfully initialized tools
       compiledLangGraphApp: compiledGraph, // Store the compiled graph
       mcpAvailable: selectedTools.length > 0,
     };
@@ -310,10 +206,11 @@ export class Agent extends BaseSkill {
       | undefined;
     const customInstructions = project?.projectId ? project?.customInstructions : undefined;
 
-    const { compiledLangGraphApp, mcpAvailable, mcpTools } = await this.initializeAgentComponents(
-      user,
-      config,
-    );
+    const {
+      compiledLangGraphApp,
+      mcpAvailable,
+      tools: mcpTools,
+    } = await this.initializeAgentComponents(user, config);
 
     const module: SkillPromptModule = {
       buildSystemPrompt: mcpAvailable
