@@ -25,7 +25,7 @@ export class CustomPrompt extends BaseSkill {
     items: [
       {
         key: 'customSystemPrompt',
-        inputMode: 'inputTextArea',
+        inputMode: 'textarea',
         defaultValue: '',
         labelDict: {
           en: 'Custom System Prompt',
@@ -38,7 +38,7 @@ export class CustomPrompt extends BaseSkill {
       },
       {
         key: 'temperature',
-        inputMode: 'inputNumber',
+        inputMode: 'number',
         defaultValue: 0.1,
         labelDict: {
           en: 'Temperature',
@@ -57,7 +57,7 @@ export class CustomPrompt extends BaseSkill {
       },
       {
         key: 'topP',
-        inputMode: 'inputNumber',
+        inputMode: 'number',
         defaultValue: 1,
         labelDict: {
           en: 'Top P',

@@ -880,9 +880,9 @@ export type LabelInstance = {
  * Data input mode
  */
 export type InputMode =
-  | 'input'
-  | 'inputNumber'
-  | 'inputTextArea'
+  | 'text'
+  | 'textarea'
+  | 'number'
   | 'select'
   | 'multiSelect'
   | 'radio'
@@ -926,18 +926,9 @@ export type DynamicConfigItem = {
    */
   inputMode: InputMode;
   /**
-   * Specifies whether this config is required and in which contexts
+   * Specifies whether this config is required
    */
-  required?: {
-    /**
-     * Whether this config is required
-     */
-    value?: boolean;
-    /**
-     * The contexts in which the requirement applies
-     */
-    configScope?: ConfigScope;
-  };
+  required?: boolean;
   /**
    * Config label (key is locale, value is label)
    */
@@ -5252,11 +5243,9 @@ export type AuthPattern = {
    */
   type: ToolsetAuthType;
   /**
-   * Credential schema (JSON schema), only for `credentials` type
+   * Credential items, only for `credentials` type
    */
-  credentialSchema?: {
-    [key: string]: unknown;
-  };
+  credentialItems?: Array<DynamicConfigItem>;
 };
 
 export type ToolsetDefinition = {
@@ -5293,11 +5282,9 @@ export type ToolsetDefinition = {
    */
   authPatterns?: Array<AuthPattern>;
   /**
-   * Toolset config schema (JSON schema)
+   * Toolset config items
    */
-  configSchema?: {
-    [key: string]: unknown;
-  };
+  configItems?: Array<DynamicConfigItem>;
 };
 
 export type ToolsetInstance = ToolsetDefinition & {

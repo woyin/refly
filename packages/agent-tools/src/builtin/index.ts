@@ -66,26 +66,6 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
       },
     },
   ],
-  requiresAuth: true,
-  authPatterns: [
-    {
-      type: 'credentials',
-      credentialSchema: {
-        type: 'object',
-        properties: {
-          reflyService: {
-            type: 'object',
-            description: 'ReflyService instance for calling internal services',
-          },
-          user: {
-            type: 'object',
-            description: 'User object for authentication and authorization',
-          },
-        },
-        required: ['reflyService', 'user'],
-      },
-    },
-  ],
 };
 
 interface BuiltinToolParams extends ToolParams {

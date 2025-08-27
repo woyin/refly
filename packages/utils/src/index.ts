@@ -20,3 +20,4 @@ export * from './brand';
 export * from './str';
 export * from './step';
 export * from './artifact';
+export * from './validator';

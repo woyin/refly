@@ -1223,7 +1223,7 @@ export const LabelInstanceSchema = {
 export const InputModeSchema = {
   type: 'string',
   description: 'Data input mode',
-  enum: ['input', 'inputNumber', 'inputTextArea', 'select', 'multiSelect', 'radio', 'switch'],
+  enum: ['text', 'textarea', 'number', 'select', 'multiSelect', 'radio', 'switch'],
 } as const;
 
 export const ConfigScopeSchema = {
@@ -1273,23 +1273,9 @@ export const DynamicConfigItemSchema = {
       $ref: '#/components/schemas/InputMode',
     },
     required: {
-      type: 'object',
-      description: 'Specifies whether this config is required and in which contexts',
-      properties: {
-        value: {
-          type: 'boolean',
-          description: 'Whether this config is required',
-          default: false,
-        },
-        configScope: {
-          description: 'The contexts in which the requirement applies',
-          $ref: '#/components/schemas/ConfigScope',
-        },
-      },
-      default: {
-        value: false,
-        scope: ['runtime', 'template'],
-      },
+      type: 'boolean',
+      description: 'Specifies whether this config is required',
+      default: false,
     },
     labelDict: {
       type: 'object',
@@ -7481,10 +7467,12 @@ export const AuthPatternSchema = {
       description: 'Auth pattern type',
       $ref: '#/components/schemas/ToolsetAuthType',
     },
-    credentialSchema: {
-      type: 'object',
-      additionalProperties: true,
-      description: 'Credential schema (JSON schema), only for `credentials` type',
+    credentialItems: {
+      type: 'array',
+      description: 'Credential items, only for `credentials` type',
+      items: {
+        $ref: '#/components/schemas/DynamicConfigItem',
+      },
     },
   },
 } as const;
@@ -7530,10 +7518,12 @@ export const ToolsetDefinitionSchema = {
         $ref: '#/components/schemas/AuthPattern',
       },
     },
-    configSchema: {
-      type: 'object',
-      additionalProperties: true,
-      description: 'Toolset config schema (JSON schema)',
+    configItems: {
+      type: 'array',
+      description: 'Toolset config items',
+      items: {
+        $ref: '#/components/schemas/DynamicConfigItem',
+      },
     },
   },
 } as const;

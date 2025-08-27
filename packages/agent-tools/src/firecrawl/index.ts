@@ -35,26 +35,38 @@ export const FirecrawlToolsetDefinition: ToolsetDefinition = {
   authPatterns: [
     {
       type: 'credentials',
-      credentialSchema: {
-        type: 'object',
-        properties: {
-          apiKey: {
-            type: 'string',
+      credentialItems: [
+        {
+          key: 'apiKey',
+          inputMode: 'text',
+          labelDict: {
+            en: 'API Key',
+            'zh-CN': 'API 密钥',
           },
+          descriptionDict: {
+            en: 'The API key for Firecrawl',
+            'zh-CN': 'Firecrawl 的 API 密钥',
+          },
+          required: true,
         },
-        required: ['apiKey'],
-      },
+      ],
     },
   ],
-  configSchema: {
-    type: 'object',
-    properties: {
-      baseUrl: {
-        type: 'string',
-        description: 'The base URL of the Firecrawl API',
+  configItems: [
+    {
+      key: 'baseUrl',
+      inputMode: 'text',
+      labelDict: {
+        en: 'Base URL',
+        'zh-CN': '基础 URL',
       },
+      descriptionDict: {
+        en: 'The base URL of Firecrawl service',
+        'zh-CN': 'Firecrawl 服务的 URL',
+      },
+      defaultValue: 'https://api.firecrawl.dev/v1',
     },
-  },
+  ],
 };
 
 interface FirecrawlToolParams extends ToolParams {

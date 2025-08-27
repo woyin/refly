@@ -6,13 +6,14 @@ import { EncryptionService } from '../common/encryption.service';
 import { Prisma, Toolset as ToolsetPO, McpServer as McpServerPO } from '../../generated/client';
 import {
   DeleteToolsetRequest,
+  DynamicConfigItem,
   GenericToolset,
   ListToolsData,
   ToolsetDefinition,
   UpsertToolsetRequest,
   User,
 } from '@refly/openapi-schema';
-import { genToolsetID, safeParseJSON } from '@refly/utils';
+import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
 import { BuiltinToolset, BuiltinToolsetDefinition, toolsetInventory } from '@refly/agent-tools';
 import { ParamsError, ToolsetNotFoundError } from '@refly/errors';
 import { mcpServerPo2GenericToolset, toolsetPo2GenericToolset } from './tool.dto';
@@ -108,8 +109,8 @@ export class ToolService {
     }
 
     // Validate config against toolset schema
-    if (config && toolsetDefinition.configSchema) {
-      this.validateConfig(config, toolsetDefinition.configSchema);
+    if (config && toolsetDefinition.configItems) {
+      this.validateConfig(config, toolsetDefinition.configItems);
     }
 
     let encryptedAuthData: string | null = null;
@@ -194,8 +195,8 @@ export class ToolService {
     if (config !== undefined) {
       // Validate config against toolset schema
       const toolsetDefinition = toolsetInventory[param.key ?? toolset.key]?.definition;
-      if (toolsetDefinition?.configSchema) {
-        this.validateConfig(config, toolsetDefinition.configSchema);
+      if (toolsetDefinition?.configItems) {
+        this.validateConfig(config, toolsetDefinition.configItems);
       }
 
       updates.config = JSON.stringify(config);
@@ -421,29 +422,19 @@ export class ToolService {
       );
     }
 
-    // Validate credentials schema if present
-    if (authPattern.credentialSchema && authType === 'credentials') {
-      const validate = this.ajv.compile(authPattern.credentialSchema);
-      if (!validate(authData)) {
-        const errors = validate.errors
-          ?.map((err) => `${err.instancePath} ${err.message}`)
-          .join(', ');
-        throw new ParamsError(`Invalid auth data: ${errors}`);
-      }
+    // Validate auth data if auth type is credentials
+    if (authType === 'credentials') {
+      this.validateConfig(authData, authPattern.credentialItems);
     }
   }
 
   /**
    * Validate config against the toolset's config schema
    */
-  private validateConfig(
-    config: Record<string, unknown>,
-    configSchema: Record<string, unknown>,
-  ): void {
-    const validate = this.ajv.compile(configSchema);
-    if (!validate(config)) {
-      const errors = validate.errors?.map((err) => `${err.instancePath} ${err.message}`).join(', ');
-      throw new ParamsError(`Invalid config: ${errors}`);
+  private validateConfig(config: Record<string, unknown>, configItems: DynamicConfigItem[]): void {
+    const result = validateConfig(config, configItems);
+    if (!result.isValid) {
+      throw new ParamsError(`Invalid config: ${result.errors.join('; ')}`);
     }
   }
 
