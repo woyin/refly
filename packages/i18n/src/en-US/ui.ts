@@ -2081,6 +2081,8 @@ const translations = {
       tools: 'Tools Config',
     },
     mcpServer: {
+      tools: 'Tools',
+      mcp: 'MCP',
       myServers: 'My Servers',
       mcpStore: 'MCP Store',
       toolStore: 'Tool Store',

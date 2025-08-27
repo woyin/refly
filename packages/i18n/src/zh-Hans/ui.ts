@@ -2031,6 +2031,8 @@ const translations = {
       tools: '工具配置',
     },
     mcpServer: {
+      tools: '工具',
+      mcp: 'MCP',
       myServers: '我的服务器',
       mcpStore: 'MCP 市场',
       toolStore: '工具市场',

@@ -77,7 +77,10 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
       <div className="px-5 pt-5">
         <Segmented
           shape="round"
-          options={['tools', 'mcp']}
+          options={[
+            { label: t('settings.mcpServer.tools'), value: 'tools' },
+            { label: t('settings.mcpServer.mcp'), value: 'mcp' },
+          ]}
           value={selectedTab}
           onChange={(value) => setSelectedTab(value as 'tools' | 'mcp')}
           className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"

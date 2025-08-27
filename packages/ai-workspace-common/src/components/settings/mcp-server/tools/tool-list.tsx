@@ -161,7 +161,7 @@ const ToolItem = ({
 
         {tool?.definition?.tools?.length && (
           <div className="mt-2 p-2 bg-refly-bg-control-z0 rounded-[8px]">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center flex-wrap">
               {tool?.definition?.tools?.map((t, index) => {
                 return (
                   <Tag
