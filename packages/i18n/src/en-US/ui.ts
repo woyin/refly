@@ -132,6 +132,8 @@ const translations = {
     actions: 'Actions',
     addedToCanvas: 'Added to canvas',
     operationFailed: 'Operation failed',
+    enable: 'Enable',
+    disable: 'Disable',
     enabled: 'Enabled',
     disabled: 'Disabled',
     create: 'Create',
@@ -2221,6 +2223,8 @@ const translations = {
         installSuccess: 'Install successfully',
         installError: 'Install failed',
         required: '{{name}} is required',
+        toolEnabled: '{{name}} enabled',
+        toolDisabled: '{{name}} disabled',
       },
     },
     appearance: {

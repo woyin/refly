@@ -64,7 +64,6 @@ const ToolItem = ({
       <div className="mb-2">
         <div className="flex items-center mb-0.5">
           <div className="w-11 h-11 rounded-lg bg-refly-bg-control-z0 flex items-center justify-center mr-2 flex-shrink-0 overflow-hidden">
-            {/* <Tools size={24} /> */}
             <Favicon url={tool.domain} size={24} />
           </div>
 

@@ -41,28 +41,33 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
   const renderCustomActions = useMemo(() => {
     return (
       <div className="flex items-center gap-2">
-        <Button
-          type="text"
-          className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
-          icon={<HiMiniBuildingStorefront />}
-          onClick={() => setOpenMcpStoreModal(true)}
-        >
-          {t('settings.mcpServer.toolStore')}
-        </Button>
-        <McpServerBatchImport onSuccess={() => refetch()} />
-        <Button
-          type="primary"
-          className="font-semibold"
-          onClick={() => {
-            setIsFormVisible(true);
-            setEditingServer(null);
-          }}
-        >
-          {t('settings.mcpServer.addServer')}
-        </Button>
+        {selectedTab === 'mcp' ? (
+          <>
+            <McpServerBatchImport onSuccess={() => refetch()} />
+            <Button
+              type="primary"
+              className="font-semibold"
+              onClick={() => {
+                setIsFormVisible(true);
+                setEditingServer(null);
+              }}
+            >
+              {t('settings.mcpServer.addServer')}
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="text"
+            className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
+            icon={<HiMiniBuildingStorefront />}
+            onClick={() => setOpenMcpStoreModal(true)}
+          >
+            {t('settings.mcpServer.toolStore')}
+          </Button>
+        )}
       </div>
     );
-  }, [t, refetch, setIsFormVisible, setEditingServer, setOpenMcpStoreModal]);
+  }, [t, refetch, setIsFormVisible, setEditingServer, setOpenMcpStoreModal, selectedTab]);
 
   if (!visible) return null;
 

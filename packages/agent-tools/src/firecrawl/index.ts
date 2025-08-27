@@ -39,6 +39,9 @@ export const FirecrawlToolsetDefinition: ToolsetDefinition = {
         {
           key: 'apiKey',
           inputMode: 'text',
+          inputProps: {
+            passwordType: true,
+          },
           labelDict: {
             en: 'API Key',
             'zh-CN': 'API 密钥',

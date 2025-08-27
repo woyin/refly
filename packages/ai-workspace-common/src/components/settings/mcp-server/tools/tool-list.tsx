@@ -1,11 +1,12 @@
 import { ToolsetInstance } from '@refly/openapi-schema';
-import { Tools, Delete, Edit, More } from 'refly-icons';
+import { Delete, Edit, More } from 'refly-icons';
 import { Button, Skeleton, Tag, Switch, MenuProps, Popconfirm, Dropdown, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useState } from 'react';
 import { ToolInstallModal } from './tool-install-modal';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { Favicon } from '@refly-packages/ai-workspace-common/components/common/favicon';
 
 const ActionDropdown = ({
   tool,
@@ -19,6 +20,11 @@ const ActionDropdown = ({
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
+  const onEdit = () => {
+    setVisible(false);
+    handleEdit();
+  };
+
   const items: MenuProps['items'] = [
     {
       label: (
@@ -28,7 +34,7 @@ const ActionDropdown = ({
         </div>
       ),
       key: 'edit',
-      onClick: () => handleEdit(),
+      onClick: onEdit,
     },
     {
       label: (
@@ -37,7 +43,7 @@ const ActionDropdown = ({
           title={t('settings.modelConfig.deleteConfirm', {
             name: tool.name || t('common.untitled'),
           })}
-          onConfirm={() => handleDelete()}
+          onConfirm={handleDelete}
           onCancel={() => setVisible(false)}
           okText={t('common.confirm')}
           cancelText={t('common.cancel')}
@@ -72,8 +78,8 @@ const ToolItem = ({
 }: { tool: ToolsetInstance; refetchToolsets: () => void }) => {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language as 'en' | 'zh';
-  const desc = (tool.descriptionDict?.[currentLanguage] ||
-    tool.descriptionDict?.en ||
+  const desc = (tool?.definition?.descriptionDict?.[currentLanguage] ||
+    tool?.definition?.descriptionDict?.en ||
     '') as string;
   const [visible, setVisible] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -88,7 +94,11 @@ const ToolItem = ({
         },
       });
       if (data.success) {
-        message.success(t('common.putSuccess'));
+        message.success(
+          t(`settings.toolStore.install.${enabled ? 'toolEnabled' : 'toolDisabled'}`, {
+            name: tool.name,
+          }),
+        );
         refetchToolsets();
       } else {
         message.error(t('common.putErr'));
@@ -124,16 +134,16 @@ const ToolItem = ({
       key={tool.toolsetId}
     >
       <div className="flex-shrink-0 h-10 w-10 rounded-md bg-refly-tertiary-default flex items-center justify-center">
-        <Tools size={24} />
+        <Favicon url={tool.definition?.domain} size={24} />
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="font-semibold text-refly-text-0 leading-5 text-sm mb-0.5">
-              {tool.name}
-            </div>
-            {desc && <div className="text-refly-text-1 text-xs leading-4 line-clamp-2">{desc}</div>}
+            <div className="font-semibold text-refly-text-0 leading-5 text-sm">{tool.name}</div>
+            {desc && (
+              <div className="mt-0.5 text-refly-text-1 text-xs leading-4 line-clamp-2">{desc}</div>
+            )}
           </div>
 
           {!tool.isGlobal && (
@@ -149,20 +159,22 @@ const ToolItem = ({
           )}
         </div>
 
-        <div className="mt-2 p-2 bg-refly-bg-control-z0 rounded-[8px]">
-          <div className="flex items-center gap-2 flex-wrap">
-            {tool.tools.map((t, index) => {
-              return (
-                <Tag
-                  key={index}
-                  className="bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px]"
-                >
-                  {t.name}
-                </Tag>
-              );
-            })}
+        {tool?.definition?.tools?.length && (
+          <div className="mt-2 p-2 bg-refly-bg-control-z0 rounded-[8px]">
+            <div className="flex items-center gap-2 flex-wrap">
+              {tool?.definition?.tools?.map((t, index) => {
+                return (
+                  <Tag
+                    key={index}
+                    className="bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px]"
+                  >
+                    {t.name}
+                  </Tag>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <ToolInstallModal

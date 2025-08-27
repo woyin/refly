@@ -298,6 +298,8 @@ const translations = {
     actions: '操作',
     addedToCanvas: '已添加到画布',
     operationFailed: '操作失败',
+    enable: '启用',
+    disable: '禁用',
     enabled: '已启用',
     disabled: '已禁用',
     create: '创建',
@@ -2173,6 +2175,8 @@ const translations = {
         installSuccess: '安装成功',
         installError: '安装失败',
         required: '{{name}} 必填',
+        toolEnabled: '已启用{{name}}',
+        toolDisabled: '已禁用{{name}}',
       },
     },
     appearance: {
