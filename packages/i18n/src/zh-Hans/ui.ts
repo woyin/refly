@@ -2162,8 +2162,13 @@ const translations = {
         updateTitle: '更新工具',
         name: '名称',
         namePlaceholder: '请输入工具名称',
+        authType: '认证类型',
+        authTypePlaceholder: '请选择认证类型',
+        nameDuplicate: '工具名称已存在',
         install: '安装',
+        installed: '已安装',
         update: '更新',
+        required: '{{name}} 必填',
       },
     },
     appearance: {

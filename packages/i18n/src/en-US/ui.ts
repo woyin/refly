@@ -2210,8 +2210,13 @@ const translations = {
         updateTitle: 'Update Tool',
         name: 'Name',
         namePlaceholder: 'Please enter the name of the tool',
+        authType: 'Authentication Type',
+        authTypePlaceholder: 'Please select the authentication type',
+        nameDuplicate: 'Tool name already exists',
         install: 'Install',
+        installed: 'Installed',
         update: 'Update',
+        required: '{{name}} is required',
       },
     },
     appearance: {

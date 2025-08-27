@@ -1,17 +1,21 @@
-import { useListToolsets } from '@refly-packages/ai-workspace-common/queries';
 import { ToolsetInstance } from '@refly/openapi-schema';
 import { Tools } from 'refly-icons';
-import { Button, Tag } from 'antd';
+import { Button, Skeleton, Tag } from 'antd';
 import { useTranslation } from 'react-i18next';
+import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
-export const ToolList = () => {
+export const ToolList = ({
+  toolInstances,
+  refetchToolsets,
+  isLoadingToolsets,
+}: {
+  toolInstances: ToolsetInstance[];
+  refetchToolsets: () => void;
+  isLoadingToolsets: boolean;
+}) => {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language as 'en' | 'zh';
-  const { data } = useListToolsets({}, [], {
-    enabled: true,
-  });
-  const tools = data?.data || [];
-  console.log(tools);
+  console.log('toolInstances', refetchToolsets);
 
   const toolItem = (tool: ToolsetInstance) => {
     return (
@@ -66,8 +70,14 @@ export const ToolList = () => {
 
   return (
     <div className="p-5 h-full overflow-y-auto">
-      {tools.map(toolItem)}
-      <div className="text-center text-gray-400 text-sm mt-4 pb-10">{t('common.noMore')}</div>
+      {isLoadingToolsets && toolInstances.length === 0 ? (
+        <Skeleton paragraph={{ rows: 10 }} active title={false} />
+      ) : (
+        <Spin spinning={isLoadingToolsets}>
+          {toolInstances.map(toolItem)}
+          <div className="text-center text-gray-400 text-sm mt-4 pb-10">{t('common.noMore')}</div>
+        </Spin>
+      )}
     </div>
   );
 };

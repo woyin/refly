@@ -12,6 +12,7 @@ import '../model-providers/index.scss';
 import { McpServerDTO } from '@refly-packages/ai-workspace-common/requests';
 import { ToolList } from './tools/tool-list';
 import { ToolStore } from './tools/tool-store';
+import { useListToolsets } from '@refly-packages/ai-workspace-common/queries';
 
 export const McpServerTab = ({ visible }: { visible: boolean }) => {
   const { t } = useTranslation();
@@ -26,6 +27,15 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
     enabled: visible && isLogin,
     refetchOnWindowFocus: false,
   });
+
+  const {
+    data: toolsets,
+    refetch: refetchToolsets,
+    isLoading: isLoadingToolsets,
+  } = useListToolsets({}, [], {
+    enabled: true,
+  });
+  const toolInstances = toolsets?.data || [];
 
   // const mcpServers = mcpServersData?.data || [];
   const renderCustomActions = useMemo(() => {
@@ -71,7 +81,11 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
       {/* Tab Content */}
       <div className="flex-1 overflow-hidden">
         {selectedTab === 'tools' ? (
-          <ToolList />
+          <ToolList
+            toolInstances={toolInstances}
+            refetchToolsets={refetchToolsets}
+            isLoadingToolsets={isLoadingToolsets}
+          />
         ) : (
           <McpServerList
             visible={visible}
@@ -106,7 +120,7 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
             />
           </div>
 
-          <ToolStore visible={openMcpStoreModal} />
+          <ToolStore visible={openMcpStoreModal} toolInstances={toolInstances} />
         </div>
       </Modal>
     </div>

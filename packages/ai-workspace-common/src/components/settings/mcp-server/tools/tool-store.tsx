@@ -1,13 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { useListToolsetInventory } from '@refly-packages/ai-workspace-common/queries';
 import { Col, Empty, Row, Button, Typography, Skeleton, Input } from 'antd';
-import { ToolsetDefinition } from '@refly-packages/ai-workspace-common/requests';
-import { Tools, Search } from 'refly-icons';
+import { ToolsetDefinition, ToolsetInstance } from '@refly-packages/ai-workspace-common/requests';
+import { Search, Checked } from 'refly-icons';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ToolInstallModal } from './tool-install-modal';
+import { Favicon } from '@refly-packages/ai-workspace-common/components/common/favicon';
 
 interface ToolStoreProps {
   visible: boolean;
+  toolInstances: ToolsetInstance[];
   onInstallSuccess?: () => void;
 }
 
@@ -36,10 +38,15 @@ const ToolItemSkeleton = () => {
   );
 };
 
-const ToolItem = ({ tool }: { tool: ToolsetDefinition }) => {
+const ToolItem = ({
+  tool,
+  toolInstances,
+}: { tool: ToolsetDefinition; toolInstances: ToolsetInstance[] }) => {
   const { i18n, t } = useTranslation();
   const currentLanguage = i18n.language as 'en' | 'zh';
   const [openInstallModal, setOpenInstallModal] = useState(false);
+
+  const isInstalled = toolInstances.some((instance) => instance.key === tool.key);
 
   const name = (tool.labelDict[currentLanguage] as string) ?? (tool.labelDict.en as string);
   const description =
@@ -57,7 +64,8 @@ const ToolItem = ({ tool }: { tool: ToolsetDefinition }) => {
       <div className="mb-2">
         <div className="flex items-center mb-0.5">
           <div className="w-11 h-11 rounded-lg bg-refly-bg-control-z0 flex items-center justify-center mr-2 flex-shrink-0 overflow-hidden">
-            <Tools size={24} />
+            {/* <Tools size={24} /> */}
+            <Favicon url={tool.domain} size={24} />
           </div>
 
           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
@@ -83,13 +91,22 @@ const ToolItem = ({ tool }: { tool: ToolsetDefinition }) => {
       {/* Action section */}
       <div className="flex items-center justify-between gap-3">
         <Button
+          disabled={isInstalled}
           onClick={handleInstall}
           size="middle"
           type="text"
-          variant="filled"
-          className="h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default hover:!bg-refly-tertiary-hover"
+          className={`h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default hover:!bg-refly-tertiary-hover ${
+            isInstalled ? '!bg-[#f6ffed] hover:!bg-[#f6ffed] !border-[#52c41a] !text-[#52c41a]' : ''
+          }`}
         >
-          {t('settings.mcpServer.community.install')}
+          {isInstalled ? (
+            <div className="flex items-center gap-2">
+              <Checked size={16} />
+              {t('settings.toolStore.install.installed')}
+            </div>
+          ) : (
+            t('settings.toolStore.install.install')
+          )}
         </Button>
       </div>
 
@@ -103,7 +120,7 @@ const ToolItem = ({ tool }: { tool: ToolsetDefinition }) => {
   );
 };
 
-export const ToolStore = ({ visible }: ToolStoreProps) => {
+export const ToolStore = ({ visible, toolInstances }: ToolStoreProps) => {
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
@@ -191,7 +208,7 @@ export const ToolStore = ({ visible }: ToolStoreProps) => {
           <Row gutter={[16, 12]}>
             {filteredTools.map((tool, index) => (
               <Col key={index} xs={24} sm={12} md={6} lg={6} xl={6}>
-                <ToolItem tool={tool} />
+                <ToolItem tool={tool} toolInstances={toolInstances} />
               </Col>
             ))}
           </Row>

@@ -1,13 +1,19 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { Modal, Form, Input, Radio, Switch, Button, message } from 'antd';
+import { Modal, Form, Input, Radio, Switch, Button, message, Checkbox, InputNumber } from 'antd';
 import {
   ToolsetDefinition,
   ToolsetInstance,
   UpsertToolsetRequest,
   ToolsetAuthType,
+  DynamicConfigItem,
+  DynamicConfigValue,
 } from '@refly-packages/ai-workspace-common/requests';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { Close } from 'refly-icons';
+import { useListToolsets } from '@refly-packages/ai-workspace-common/queries';
+
+const { TextArea } = Input;
 
 interface ToolInstallModalProps {
   mode: 'install' | 'update';
@@ -18,16 +24,171 @@ interface ToolInstallModalProps {
   onSuccess?: () => void;
 }
 
+const getDictValue = (dict: { [key: string]: string } | undefined, locale: string) => {
+  return dict?.[locale] || dict?.en || '';
+};
+
+// ConfigItem component for rendering individual form fields
+const ConfigItem = React.memo(
+  ({
+    item,
+    field,
+    locale,
+    configValue,
+    onValueChange,
+    readonly = false,
+  }: {
+    item: DynamicConfigItem;
+    field: string;
+    locale: string;
+    configValue?: DynamicConfigValue;
+    onValueChange: (field: string, val: any) => void;
+    readonly?: boolean;
+  }) => {
+    const [initialValue, setInitialValue] = useState<any>(null);
+
+    // Handle initial value setup
+    React.useEffect(() => {
+      if (!initialValue) {
+        // Priority 1: Use existing configValue if available
+        if (configValue?.value !== undefined) {
+          setInitialValue(configValue.value);
+        }
+        // Priority 2: Use default value from schema
+        else if (item?.defaultValue !== undefined) {
+          setInitialValue(item.defaultValue);
+        }
+      }
+    }, [configValue, item, initialValue]);
+
+    const onValueChangeHandler = (val: any) => {
+      setInitialValue(val);
+      onValueChange(field, val);
+    };
+
+    if (item.inputMode === 'text') {
+      return (
+        <Input
+          variant="filled"
+          placeholder={getDictValue(item.descriptionDict, locale)}
+          value={initialValue !== null ? String(initialValue) : undefined}
+          type={item.inputProps?.passwordType ? 'password' : 'text'}
+          onChange={(e) => {
+            const val = e.target.value;
+            onValueChangeHandler(val);
+          }}
+          disabled={readonly}
+        />
+      );
+    }
+
+    if (item.inputMode === 'textarea') {
+      return (
+        <TextArea
+          variant="filled"
+          placeholder={getDictValue(item.descriptionDict, locale)}
+          value={initialValue !== null ? String(initialValue) : undefined}
+          rows={4}
+          autoSize={{
+            minRows: 4,
+            maxRows: 10,
+          }}
+          onChange={(e) => {
+            const val = e.target.value;
+            onValueChangeHandler(val);
+          }}
+          disabled={readonly}
+        />
+      );
+    }
+
+    if (item.inputMode === 'number') {
+      return (
+        <InputNumber
+          variant="filled"
+          controls
+          value={initialValue !== null ? Number(initialValue) : undefined}
+          className="w-full"
+          onChange={(val) => {
+            onValueChangeHandler(val);
+          }}
+          disabled={readonly}
+        />
+      );
+    }
+
+    if (item.inputMode === 'select' || item.inputMode === 'multiSelect') {
+      const defaultValue =
+        configValue?.value ||
+        (item.inputMode === 'multiSelect' ? [item.options?.[0]?.value] : item.options?.[0]?.value);
+
+      if (item.inputMode === 'multiSelect') {
+        return (
+          <Checkbox.Group
+            options={(item.options ?? []).map((option) => ({
+              label: getDictValue(option.labelDict ?? {}, locale),
+              value: option.value,
+            }))}
+            style={{ fontSize: '10px' }}
+            value={(configValue?.value as string[]) || (defaultValue as string[])}
+            onChange={(val) => {
+              onValueChangeHandler(val);
+            }}
+            disabled={readonly}
+          />
+        );
+      }
+
+      return (
+        <Radio.Group
+          value={configValue?.value || defaultValue}
+          onChange={(e) => {
+            const checkedValue = e.target.value;
+            onValueChangeHandler(checkedValue);
+          }}
+          disabled={readonly}
+        >
+          {(item.options ?? []).map((option) => (
+            <Radio key={option.value} value={option.value} className="config-radio text-[10px]">
+              {getDictValue(option.labelDict ?? {}, locale)}
+            </Radio>
+          ))}
+        </Radio.Group>
+      );
+    }
+
+    if (item.inputMode === 'switch') {
+      return (
+        <Switch
+          size="small"
+          checked={Boolean(configValue?.value)}
+          onChange={(checked) => {
+            onValueChangeHandler(checked);
+          }}
+          disabled={readonly}
+        />
+      );
+    }
+
+    return null;
+  },
+);
+
+ConfigItem.displayName = 'ConfigItem';
+
 export const ToolInstallModal = React.memo(
   ({ mode, toolInstance, toolDefinition, visible, onCancel, onSuccess }: ToolInstallModalProps) => {
-    const { i18n } = useTranslation();
+    const { i18n, t } = useTranslation();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
+    const { data, refetch: refetchToolsets } = useListToolsets({}, [], {
+      enabled: true,
+    });
+    const toolInstances = data?.data || [];
+    console.log('toolInstances', toolInstances);
 
-    // Get current UI language
     const currentLocale = i18n.language || 'en';
 
-    // Get the source data based on mode
     const sourceData = useMemo(() => {
       if (mode === 'install') {
         return toolDefinition;
@@ -35,14 +196,9 @@ export const ToolInstallModal = React.memo(
       return toolInstance;
     }, [mode, toolDefinition, toolInstance]);
 
-    // Get name value based on mode
     const defaultName = useMemo(() => {
       if (mode === 'install' && toolDefinition?.labelDict) {
-        return (
-          toolDefinition.labelDict[currentLocale] ||
-          toolDefinition.labelDict.en ||
-          toolDefinition.key
-        );
+        return toolDefinition.labelDict[currentLocale] || toolDefinition.labelDict.en;
       }
       if (mode === 'update' && toolInstance?.name) {
         return toolInstance.name;
@@ -50,44 +206,27 @@ export const ToolInstallModal = React.memo(
       return '';
     }, [mode, toolDefinition, toolInstance, currentLocale]);
 
-    // Get auth patterns
     const authPatterns = useMemo(() => {
       return sourceData?.authPatterns || [];
     }, [sourceData]);
 
-    // Get credential schema for selected auth type
-    const [selectedAuthType, setSelectedAuthType] = useState<ToolsetAuthType | ''>('');
+    const [selectedAuthType, setSelectedAuthType] = useState<ToolsetAuthType | ''>(
+      authPatterns.length ? authPatterns[0].type : '',
+    );
 
-    const credentialSchema = useMemo(() => {
+    const selectedAuthPattern = useMemo(() => {
       if (!selectedAuthType || !authPatterns.length) return null;
-
-      const authPattern = authPatterns.find((pattern) => pattern.type === selectedAuthType);
-      if (!authPattern) return null;
-
-      // For now, we'll use a simple schema structure
-      // In a real implementation, this would come from the authPattern
-      return {
-        type: 'object',
-        properties: {
-          reflyService: {
-            type: 'object',
-            description: 'ReflyService instance for calling internal services',
-          },
-          user: {
-            type: 'object',
-            description: 'User object for authentication and authorization',
-          },
-        },
-        required: ['reflyService', 'user'],
-      };
+      return authPatterns.find((pattern) => pattern.type === selectedAuthType);
     }, [selectedAuthType, authPatterns]);
 
-    // Get config schema
-    const configSchema = useMemo(() => {
-      return sourceData?.configSchema;
+    const credentialItems = useMemo(() => {
+      return selectedAuthPattern?.credentialItems || [];
+    }, [selectedAuthPattern]);
+
+    const configItems = useMemo(() => {
+      return sourceData?.configItems || [];
     }, [sourceData]);
 
-    // Initialize form values
     React.useEffect(() => {
       if (visible && sourceData) {
         const initialValues: Record<string, unknown> = {
@@ -97,8 +236,15 @@ export const ToolInstallModal = React.memo(
 
         if (mode === 'update' && toolInstance) {
           initialValues.authType = toolInstance.authType;
-          initialValues.authData = toolInstance.authData || {};
-          initialValues.config = toolInstance.config || {};
+
+          initialValues.authData = toolInstance.authData;
+
+          initialValues.config = toolInstance.config;
+        }
+
+        if (mode === 'install' && authPatterns.length) {
+          initialValues.authType = authPatterns[0].type;
+          setSelectedAuthType(authPatterns[0].type);
         }
 
         form.setFieldsValue(initialValues);
@@ -108,82 +254,103 @@ export const ToolInstallModal = React.memo(
           setSelectedAuthType(toolInstance.authType);
         }
       }
-    }, [visible, sourceData, mode, toolInstance, defaultName, form]);
+    }, [visible, sourceData, mode, toolInstance, defaultName, form, authPatterns]);
 
-    // Handle auth type change
     const handleAuthTypeChange = useCallback(
       (value: ToolsetAuthType) => {
         setSelectedAuthType(value);
-        // Clear auth data when auth type changes
         form.setFieldValue('authData', {});
       },
       [form],
     );
 
-    // Render auth form fields based on credential schema
-    const renderAuthFields = useCallback(() => {
-      if (!credentialSchema || !credentialSchema.properties) return null;
+    const handleCredentialValueChange = useCallback(
+      (field: string, val: any) => {
+        form.setFieldValue(['authData', field], val);
+      },
+      [form],
+    );
 
-      const fields: React.ReactNode[] = [];
-      const requiredFields = credentialSchema.required || [];
+    const handleConfigValueChange = useCallback(
+      (field: string, val: any) => {
+        form.setFieldValue(['config', field], val);
+      },
+      [form],
+    );
 
-      for (const [key, schema] of Object.entries(credentialSchema.properties)) {
-        const isRequired = Array.isArray(requiredFields) && requiredFields.includes(key);
+    // Render credential form fields based on credential items
+    const renderCredentialFields = useCallback(() => {
+      if (!credentialItems.length) return null;
 
-        fields.push(
-          <Form.Item
-            key={key}
-            label={schema.description || key}
-            name={['authData', key]}
-            rules={[
-              {
-                required: isRequired,
-                message: `${schema.description || key} is required`,
-              },
-            ]}
-          >
-            <Input.TextArea placeholder={`Enter ${schema.description || key}`} rows={3} />
-          </Form.Item>,
-        );
-      }
+      return (
+        <>
+          {credentialItems.map((item) => (
+            <Form.Item
+              key={item.key}
+              label={getDictValue(item.labelDict, currentLocale)}
+              name={['authData', item.key]}
+              rules={[
+                {
+                  required: item.required,
+                  message: t('settings.toolStore.install.required', {
+                    name: getDictValue(item.labelDict, currentLocale),
+                  }),
+                },
+              ]}
+            >
+              <ConfigItem
+                item={item}
+                field={item.key}
+                locale={currentLocale}
+                configValue={form.getFieldValue(['authData', item.key])}
+                onValueChange={handleCredentialValueChange}
+                readonly={false}
+              />
+            </Form.Item>
+          ))}
+        </>
+      );
+    }, [credentialItems, currentLocale, form, handleCredentialValueChange]);
 
-      return fields;
-    }, [credentialSchema]);
-
-    // Render config form fields based on config schema
+    // Render config form fields based on config items
     const renderConfigFields = useCallback(() => {
-      if (!configSchema || !configSchema.properties) return null;
+      if (!configItems.length) return null;
 
-      const fields: React.ReactNode[] = [];
-      const requiredFields = configSchema.required || [];
-
-      for (const [key, schema] of Object.entries(configSchema.properties)) {
-        const isRequired = Array.isArray(requiredFields) && requiredFields.includes(key);
-
-        fields.push(
-          <Form.Item
-            key={key}
-            label={schema.description || key}
-            name={['config', key]}
-            rules={[
-              {
-                required: isRequired,
-                message: `${schema.description || key} is required`,
-              },
-            ]}
-          >
-            <Input.TextArea placeholder={`Enter ${schema.description || key}`} rows={3} />
-          </Form.Item>,
-        );
-      }
-
-      return fields;
-    }, [configSchema]);
+      return (
+        <>
+          {configItems.map((item) => (
+            <Form.Item
+              key={item.key}
+              label={getDictValue(item.labelDict, currentLocale)}
+              name={['config', item.key]}
+              rules={[
+                {
+                  required: item.required,
+                  message: t('settings.toolStore.install.required', {
+                    name: getDictValue(item.labelDict, currentLocale),
+                  }),
+                },
+              ]}
+            >
+              <ConfigItem
+                item={item}
+                field={item.key}
+                locale={currentLocale}
+                configValue={form.getFieldValue(['config', item.key])}
+                onValueChange={handleConfigValueChange}
+                readonly={false}
+              />
+            </Form.Item>
+          ))}
+        </>
+      );
+    }, [configItems, currentLocale, form, handleConfigValueChange]);
 
     // Handle form submission
     const handleSubmit = useCallback(async () => {
       try {
         const values = await form.validateFields();
+        console.log(values);
         setLoading(true);
 
         const requestData: UpsertToolsetRequest = {
@@ -215,6 +382,7 @@ export const ToolInstallModal = React.memo(
         }
 
         message.success(`${mode === 'install' ? 'Installation' : 'Update'} successful`);
+        refetchToolsets();
         onSuccess?.();
         onCancel();
       } catch (error) {
@@ -224,40 +392,65 @@ export const ToolInstallModal = React.memo(
       }
     }, [form, mode, sourceData, selectedAuthType, toolInstance, onSuccess, onCancel]);
 
-    const title = mode === 'install' ? 'Install Tool' : 'Update Tool';
-    const submitText = mode === 'install' ? 'Install' : 'Update';
-
     return (
       <Modal
-        title={title}
+        title={
+          <div className="flex items-center gap-2 justify-between w-full">
+            <div className="text-lg font-semibold text-refly-text-0 leading-6">
+              {t(`settings.toolStore.install.${mode}Title`)}
+            </div>
+            <Button type="text" onClick={onCancel} icon={<Close size={24} />} />
+          </div>
+        }
         open={visible}
         onCancel={onCancel}
         footer={[
           <Button key="cancel" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>,
           <Button key="submit" type="primary" loading={loading} onClick={handleSubmit}>
-            {submitText}
+            {t(`settings.toolStore.install.${mode}`)}
           </Button>,
         ]}
         width={600}
+        closable={false}
       >
         <Form form={form} layout="vertical" className="space-y-4">
           {/* Name field */}
           <Form.Item
-            label="Name"
+            label={t('settings.toolStore.install.name')}
             name="name"
-            rules={[{ required: true, message: 'Please enter a name' }]}
+            rules={[
+              { required: true, message: t('settings.toolStore.install.namePlaceholder') },
+              {
+                validator: async (_, value) => {
+                  if (!value) return;
+
+                  // Check if name already exists (excluding current tool in update mode)
+                  const existingTool = toolInstances.find(
+                    (tool) =>
+                      tool.name === value &&
+                      (mode === 'update' ? tool.toolsetId !== toolInstance?.toolsetId : true),
+                  );
+
+                  if (existingTool) {
+                    throw new Error(t('settings.toolStore.install.nameDuplicate'));
+                  }
+                },
+              },
+            ]}
           >
-            <Input placeholder="Enter tool name" />
+            <Input variant="filled" placeholder={t('settings.toolStore.install.namePlaceholder')} />
           </Form.Item>
 
           {/* Auth type selection */}
           {authPatterns.length > 0 && (
             <Form.Item
-              label="Authentication Type"
+              label={t('settings.toolStore.install.authType')}
               name="authType"
-              rules={[{ required: true, message: 'Please select an authentication type' }]}
+              rules={[
+                { required: true, message: t('settings.toolStore.install.authTypePlaceholder') },
+              ]}
             >
               <Radio.Group onChange={(e) => handleAuthTypeChange(e.target.value)}>
                 {authPatterns.map((pattern) => (
@@ -269,23 +462,11 @@ export const ToolInstallModal = React.memo(
             </Form.Item>
           )}
 
-          {/* Auth fields */}
-          {selectedAuthType && credentialSchema && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
-                Authentication Configuration
-              </h4>
-              {renderAuthFields()}
-            </div>
-          )}
+          {/* Credential fields */}
+          {selectedAuthType && credentialItems.length > 0 && renderCredentialFields()}
 
           {/* Config fields */}
-          {configSchema && (
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Configuration</h4>
-              {renderConfigFields()}
-            </div>
-          )}
+          {configItems.length > 0 && renderConfigFields()}
 
           {/* Enabled switch */}
           <Form.Item label="Enabled" name="enabled" valuePropName="checked">
