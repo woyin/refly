@@ -7,6 +7,12 @@ import {
   formDataBodySerializer,
 } from '@hey-api/client-fetch';
 import type {
+  ExtractVariablesData,
+  ExtractVariablesError,
+  ExtractVariablesResponse,
+  GenerateAppTemplateData,
+  GenerateAppTemplateError,
+  GenerateAppTemplateResponse,
   ListMcpServersData2,
   ListMcpServersError,
   ListMcpServersResponse2,
@@ -401,6 +407,49 @@ import type {
 } from './types.gen';
 
 export const client = createClient(createConfig());
+
+/**
+ * Extract variables from prompt
+ * Unified variable extraction interface that supports two modes:
+ * - 'direct': Directly update Canvas variables
+ * - 'candidate': Return candidate solutions for user selection
+ *
+ * This endpoint analyzes natural language prompts and extracts workflow variables
+ * based on the context of existing Canvas variables and content.
+ *
+ */
+export const extractVariables = <ThrowOnError extends boolean = false>(
+  options: Options<ExtractVariablesData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    ExtractVariablesResponse,
+    ExtractVariablesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/variable-extraction/extract',
+  });
+};
+
+/**
+ * Generate APP publish template
+ * Generate a user intent template based on all original prompts and variables in a Canvas.
+ * This endpoint analyzes the Canvas content and creates a template with placeholders
+ * that can be used for APP publishing and user interaction.
+ *
+ */
+export const generateAppTemplate = <ThrowOnError extends boolean = false>(
+  options: Options<GenerateAppTemplateData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    GenerateAppTemplateResponse,
+    GenerateAppTemplateError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/variable-extraction/generate-template',
+  });
+};
 
 /**
  * List MCP servers
