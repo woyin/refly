@@ -11,7 +11,7 @@
 
 Refly.AI is the open-source Agentic Workspace for Human–AI Collaboration. Seamlessly blend human insight with AI execution across real-world scenarios—whether you’re rapidly prototyping a product design, creating polished presentations, conducting hot-topic analysis, automating deep research workflows, generating multimodal marketing content, or orchestrating complex operational pipelines, Refly empowers your team to achieve any task with transparency and control.
 
-[🚀 v0.10.0 Released! A powerful update with unified resource panel. 🚀](https://docs.refly.ai/changelog/v0.10.0)
+[🚀 v0.10.0 Released! A powerful update with a unified resource panel. 🚀](https://docs.refly.ai/changelog/v0.10.0)
 
 [Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/community-version/self-deploy) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
 

@@ -418,9 +418,9 @@ const translations = {
       second: 'Refly is the best way to transform ideas into quality content.',
     },
     messageText:
-      '🚀 v0.10.0 Released! A powerful update with unified resource panel. 🚀',
+      '🚀 v0.10.0 Released! A powerful update with a unified resource panel. 🚀',
     simpleMessageText:
-      '🚀 v0.10.0 Released! A powerful update with unified resource panel. 🚀',
+      '🚀 v0.10.0 Released! A powerful update with a unified resource panel. 🚀',
     tryForFree: 'Get Started',
     tryItNow: 'Try It Now',
     creationEngine: 'Creation Engine',
