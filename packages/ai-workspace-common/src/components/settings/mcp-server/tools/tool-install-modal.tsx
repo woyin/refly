@@ -377,11 +377,11 @@ export const ToolInstallModal = React.memo(
         }
 
         if (response.error) {
-          message.error('Operation failed');
+          message.error(t(`settings.toolStore.install.${mode}Error`));
           return;
         }
 
-        message.success(`${mode === 'install' ? 'Installation' : 'Update'} successful`);
+        message.success(t(`settings.toolStore.install.${mode}Success`));
         refetchToolsets();
         onSuccess?.();
         onCancel();
