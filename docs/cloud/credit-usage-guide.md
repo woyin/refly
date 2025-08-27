@@ -91,7 +91,7 @@ For example, you can use credits to:
 
 ### Q3: How do I know how many credits I've used? Can I control usage?
 
-**A:** We provide detailed credit consumption records and prediction prompts:
+**A:** We provide detailed credit consumption records:
 - Shows estimated consumption before each generation (e.g., calling Kimi K2 consumes 1 credit)
 - Supports credit balance queries
 
