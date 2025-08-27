@@ -8639,45 +8639,44 @@ components:
       required:
         - toolsetId
         - name
-      allOf:
-        - $ref: '#/components/schemas/ToolsetDefinition'
-        - type: object
-          properties:
-            toolsetId:
-              type: string
-              description: Toolset ID
-            name:
-              type: string
-              description: Toolset name
-            isGlobal:
-              type: boolean
-              description: Whether the toolset is global
-            enabled:
-              type: boolean
-              description: Whether the toolset is enabled
-            authType:
-              $ref: '#/components/schemas/ToolsetAuthType'
-              description: Toolset auth type
-            authData:
-              type: object
-              additionalProperties: true
-              description: Toolset auth data
-            config:
-              type: object
-              additionalProperties: true
-              description: Toolset config
-            tools:
-              type: array
-              items:
-                $ref: '#/components/schemas/ToolDefinition'
-            createdAt:
-              type: string
-              format: date-time
-              description: Toolset creation timestamp
-            updatedAt:
-              type: string
-              format: date-time
-              description: Toolset update timestamp
+      properties:
+        toolsetId:
+          type: string
+          description: Toolset ID
+        name:
+          type: string
+          description: Toolset name
+        key:
+          type: string
+          description: Toolset key
+        isGlobal:
+          type: boolean
+          description: Whether the toolset is global
+        enabled:
+          type: boolean
+          description: Whether the toolset is enabled
+        authType:
+          $ref: '#/components/schemas/ToolsetAuthType'
+          description: Toolset auth type
+        authData:
+          type: object
+          additionalProperties: true
+          description: Toolset auth data
+        config:
+          type: object
+          additionalProperties: true
+          description: Toolset config
+        definition:
+          description: Toolset definition
+          $ref: '#/components/schemas/ToolsetDefinition'
+        createdAt:
+          type: string
+          format: date-time
+          description: Toolset creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Toolset update timestamp
     ListToolsetInventoryResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

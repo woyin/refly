@@ -5287,15 +5287,19 @@ export type ToolsetDefinition = {
   configItems?: Array<DynamicConfigItem>;
 };
 
-export type ToolsetInstance = ToolsetDefinition & {
+export type ToolsetInstance = {
   /**
    * Toolset ID
    */
-  toolsetId?: string;
+  toolsetId: string;
   /**
    * Toolset name
    */
-  name?: string;
+  name: string;
+  /**
+   * Toolset key
+   */
+  key?: string;
   /**
    * Whether the toolset is global
    */
@@ -5320,7 +5324,10 @@ export type ToolsetInstance = ToolsetDefinition & {
   config?: {
     [key: string]: unknown;
   };
-  tools?: Array<ToolDefinition>;
+  /**
+   * Toolset definition
+   */
+  definition?: ToolsetDefinition;
   /**
    * Toolset creation timestamp
    */
@@ -5329,15 +5336,6 @@ export type ToolsetInstance = ToolsetDefinition & {
    * Toolset update timestamp
    */
   updatedAt?: string;
-} & {
-  /**
-   * Toolset ID
-   */
-  toolsetId: string;
-  /**
-   * Toolset name
-   */
-  name: string;
 };
 
 export type ListToolsetInventoryResponse = BaseResponse & {

@@ -9,8 +9,8 @@ export const toolsetPO2DTO = (toolset: ToolsetPO): ToolsetInstance => {
   return {
     ...pick(toolset, ['toolsetId', 'name', 'key', 'isGlobal', 'enabled']),
     authType: toolset.authType as ToolsetAuthType,
-    descriptionDict: inventoryItem?.definition.descriptionDict ?? {},
-    tools: inventoryItem?.definition.tools ?? [],
+    config: JSON.parse(toolset.config),
+    definition: inventoryItem?.definition,
     createdAt: toolset.createdAt.toJSON(),
     updatedAt: toolset.updatedAt.toJSON(),
   };
