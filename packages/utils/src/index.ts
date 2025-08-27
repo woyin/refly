@@ -19,4 +19,5 @@ export * from './json-repair';
 export * from './brand';
 export * from './str';
 export * from './step';
+export * from './time';
 export * from './artifact';
