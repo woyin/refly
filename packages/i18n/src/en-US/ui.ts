@@ -417,10 +417,8 @@ const translations = {
         'Powered by multi-threaded dialogue, artifacts, knowledge integration, context memory, and intelligent search, ',
       second: 'Refly is the best way to transform ideas into quality content.',
     },
-    messageText:
-      '🚀 v0.10.0 Released! A powerful update with a unified resource panel. 🚀',
-    simpleMessageText:
-      '🚀 v0.10.0 Released! A powerful update with a unified resource panel. 🚀',
+    messageText: '🚀 v0.10.0 Released! A powerful update with a unified resource panel. 🚀',
+    simpleMessageText: '🚀 v0.10.0 Released! A powerful update with a unified resource panel. 🚀',
     tryForFree: 'Get Started',
     tryItNow: 'Try It Now',
     creationEngine: 'Creation Engine',
