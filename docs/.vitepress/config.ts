@@ -9,8 +9,8 @@ const enNav = [
   },
   { text: 'Community', link: '/community/contact-us' },
   {
-    text: 'v0.9.0',
-    items: [{ text: 'Changelog', link: '/changelog/v0.9.0' }],
+    text: 'v0.10.0',
+    items: [{ text: 'Changelog', link: '/changelog/v0.10.0' }],
   },
   { text: 'Roadmap', link: '/roadmap' },
 ];
@@ -23,8 +23,8 @@ const zhNav = [
   },
   { text: '社区', link: '/zh/community/contact-us' },
   {
-    text: 'v0.9.0',
-    items: [{ text: '更新日志', link: '/zh/changelog/v0.9.0' }],
+    text: 'v0.10.0',
+    items: [{ text: '更新日志', link: '/zh/changelog/v0.10.0' }],
   },
   { text: '路线图', link: '/zh/roadmap' },
 ];
@@ -134,6 +134,7 @@ const sidebar = {
     {
       text: 'Changelog',
       items: [
+        { text: 'v0.10.0', link: '/changelog/v0.10.0' },
         { text: 'v0.9.0', link: '/changelog/v0.9.0' },
         { text: 'v0.8.0', link: '/changelog/v0.8.0' },
         { text: 'v0.7.1', link: '/changelog/v0.7.1' },
@@ -253,6 +254,7 @@ const sidebar = {
     {
       text: '更新日志',
       items: [
+        { text: 'v0.10.0', link: '/zh/changelog/v0.10.0' },
         { text: 'v0.9.0', link: '/zh/changelog/v0.9.0' },
         { text: 'v0.8.0', link: '/zh/changelog/v0.8.0' },
         { text: 'v0.7.1', link: '/zh/changelog/v0.7.1' },
