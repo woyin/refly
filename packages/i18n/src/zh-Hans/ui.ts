@@ -2157,9 +2157,14 @@ const translations = {
       noSearchResults: '没有找到相关工具',
       noTools: '暂无工具',
       searchPlaceholder: '搜索工具...',
-      install: '安装',
-      installing: '安装中...',
-      installed: '已安装',
+      install: {
+        installTitle: '安装工具',
+        updateTitle: '更新工具',
+        name: '名称',
+        namePlaceholder: '请输入工具名称',
+        install: '安装',
+        update: '更新',
+      },
     },
     appearance: {
       title: '外观',

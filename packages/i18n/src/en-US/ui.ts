@@ -2205,9 +2205,14 @@ const translations = {
       noSearchResults: 'No tools found matching your search',
       noTools: 'No tools',
       searchPlaceholder: 'Search tools...',
-      install: 'Install',
-      installing: 'Installing...',
-      installed: 'Installed',
+      install: {
+        installTitle: 'Install Tool',
+        updateTitle: 'Update Tool',
+        name: 'Name',
+        namePlaceholder: 'Please enter the name of the tool',
+        install: 'Install',
+        update: 'Update',
+      },
     },
     appearance: {
       title: 'Appearance Settings',

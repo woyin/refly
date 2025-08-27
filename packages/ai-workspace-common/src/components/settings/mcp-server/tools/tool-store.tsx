@@ -4,6 +4,7 @@ import { Col, Empty, Row, Button, Typography, Skeleton, Input } from 'antd';
 import { ToolsetDefinition } from '@refly-packages/ai-workspace-common/requests';
 import { Tools, Search } from 'refly-icons';
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { ToolInstallModal } from './tool-install-modal';
 
 interface ToolStoreProps {
   visible: boolean;
@@ -38,6 +39,7 @@ const ToolItemSkeleton = () => {
 const ToolItem = ({ tool }: { tool: ToolsetDefinition }) => {
   const { i18n, t } = useTranslation();
   const currentLanguage = i18n.language as 'en' | 'zh';
+  const [openInstallModal, setOpenInstallModal] = useState(false);
 
   const name = (tool.labelDict[currentLanguage] as string) ?? (tool.labelDict.en as string);
   const description =
@@ -46,8 +48,7 @@ const ToolItem = ({ tool }: { tool: ToolsetDefinition }) => {
     '';
 
   const handleInstall = () => {
-    // TODO: Implement installation logic
-    console.log('Install tool:', tool);
+    setOpenInstallModal(true);
   };
 
   return (
@@ -91,6 +92,13 @@ const ToolItem = ({ tool }: { tool: ToolsetDefinition }) => {
           {t('settings.mcpServer.community.install')}
         </Button>
       </div>
+
+      <ToolInstallModal
+        mode="install"
+        toolDefinition={tool}
+        visible={openInstallModal}
+        onCancel={() => setOpenInstallModal(false)}
+      />
     </div>
   );
 };
