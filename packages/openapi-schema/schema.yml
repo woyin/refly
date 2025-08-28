@@ -7058,9 +7058,6 @@ components:
           prompt:
             type: string
             description: Text prompt for content generation
-          image:
-            type: string
-            description: Image storage key for content generation
           resultId:
             type: string
             description: Media generation result ID
@@ -7071,7 +7068,7 @@ components:
             type: array
             description: Input parameter configurations
             items:
-              $ref: '#/components/schemas/ModelParameter'
+              $ref: '#/components/schemas/MediaModelParameter'
           
     MediaGenerateResponse:
       allOf:
@@ -7874,7 +7871,7 @@ components:
             type: array
             description: Input parameter configurations
             items:
-              $ref: '#/components/schemas/ModelParameter'
+              $ref: '#/components/schemas/MediaModelParameter'
     ListModelsResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -7960,7 +7957,7 @@ components:
           description: Model capabilities
           $ref: '#/components/schemas/ModelCapabilities'
 
-    ModelParameter:
+    MediaModelParameter:
       type: object
       description: Media generation parameter configuration
       required:
@@ -8042,12 +8039,12 @@ components:
           type: array
           description: Input parameter configurations
           items:
-            $ref: '#/components/schemas/ModelParameter'
+            $ref: '#/components/schemas/MediaModelParameter'
         outputParameters:
           type: array
           description: Output parameter configurations
           items:
-            $ref: '#/components/schemas/ModelParameter'
+            $ref: '#/components/schemas/MediaModelParameter'
         baseModel:
           type: string
           description: Base model for the model

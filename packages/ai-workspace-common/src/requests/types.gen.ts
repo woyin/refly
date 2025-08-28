@@ -3889,10 +3889,6 @@ export type MediaGenerateRequest = {
    */
   prompt: string;
   /**
-   * Image storage key for content generation
-   */
-  image?: string;
-  /**
    * Media generation result ID
    */
   resultId?: string;
@@ -3903,7 +3899,7 @@ export type MediaGenerateRequest = {
   /**
    * Input parameter configurations
    */
-  inputParameters?: Array<ModelParameter>;
+  inputParameters?: Array<MediaModelParameter>;
 };
 
 export type MediaGenerateResponse = BaseResponse & {
@@ -4704,7 +4700,7 @@ export type ModelInfo = {
   /**
    * Input parameter configurations
    */
-  inputParameters?: Array<ModelParameter>;
+  inputParameters?: Array<MediaModelParameter>;
 };
 
 export type ListModelsResponse = BaseResponse & {
@@ -4798,7 +4794,7 @@ export type LLMModelConfig = {
 /**
  * Media generation parameter configuration
  */
-export type ModelParameter = {
+export type MediaModelParameter = {
   /**
    * Parameter name
    */
@@ -4858,11 +4854,11 @@ export type MediaGenerationModelConfig = {
   /**
    * Input parameter configurations
    */
-  inputParameters?: Array<ModelParameter>;
+  inputParameters?: Array<MediaModelParameter>;
   /**
    * Output parameter configurations
    */
-  outputParameters?: Array<ModelParameter>;
+  outputParameters?: Array<MediaModelParameter>;
   /**
    * Base model for the model
    */

@@ -284,7 +284,6 @@ export const useListenNodeOperationEvents = () => {
             providerItemId,
             targetType,
             targetId,
-            image: storageKeys[0],
             inputParameters: processedInputParameters,
           },
         });

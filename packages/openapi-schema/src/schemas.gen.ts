@@ -5539,10 +5539,6 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Text prompt for content generation',
     },
-    image: {
-      type: 'string',
-      description: 'Image storage key for content generation',
-    },
     resultId: {
       type: 'string',
       description: 'Media generation result ID',
@@ -5555,7 +5551,7 @@ export const MediaGenerateRequestSchema = {
       type: 'array',
       description: 'Input parameter configurations',
       items: {
-        $ref: '#/components/schemas/ModelParameter',
+        $ref: '#/components/schemas/MediaModelParameter',
       },
     },
   },
@@ -6735,7 +6731,7 @@ export const ModelInfoSchema = {
       type: 'array',
       description: 'Input parameter configurations',
       items: {
-        $ref: '#/components/schemas/ModelParameter',
+        $ref: '#/components/schemas/MediaModelParameter',
       },
     },
   },
@@ -6853,7 +6849,7 @@ export const LLMModelConfigSchema = {
   },
 } as const;
 
-export const ModelParameterSchema = {
+export const MediaModelParameterSchema = {
   type: 'object',
   description: 'Media generation parameter configuration',
   required: ['name', 'type', 'required', 'visible'],
@@ -6966,14 +6962,14 @@ export const MediaGenerationModelConfigSchema = {
       type: 'array',
       description: 'Input parameter configurations',
       items: {
-        $ref: '#/components/schemas/ModelParameter',
+        $ref: '#/components/schemas/MediaModelParameter',
       },
     },
     outputParameters: {
       type: 'array',
       description: 'Output parameter configurations',
       items: {
-        $ref: '#/components/schemas/ModelParameter',
+        $ref: '#/components/schemas/MediaModelParameter',
       },
     },
     baseModel: {
