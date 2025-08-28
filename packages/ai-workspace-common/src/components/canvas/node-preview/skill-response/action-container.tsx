@@ -416,7 +416,12 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   }
 
   return (
-    <div className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3">
+    <div
+      className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3"
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
       <div className="flex flex-row items-center justify-between bg-refly-tertiary-default px-3 py-2 rounded-xl mx-3">
         <div className="flex flex-row items-center px-2">
           <span className="font-[600] pr-4">{t('canvas.nodeActions.nextStepSuggestions')}</span>

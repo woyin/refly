@@ -65,7 +65,7 @@ export class SkillEngineService implements OnModuleInit {
         return result;
       },
       generateMedia: async (user, req) => {
-        const result = await this.mediaGeneratorService?.generateMedia?.(user, req);
+        const result = await this.mediaGeneratorService?.generate?.(user, req);
         return result;
       },
       getActionResult: async (user, req) => {

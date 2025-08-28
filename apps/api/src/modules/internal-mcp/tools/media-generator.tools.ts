@@ -102,7 +102,7 @@ export class MediaGeneratorTools {
       };
 
       // Start media generation
-      const generateResponse = await this.mediaGeneratorService.generateMedia(user, mediaRequest);
+      const generateResponse = await this.mediaGeneratorService.generate(user, mediaRequest);
 
       if (!generateResponse.success || !generateResponse.resultId) {
         return this.internalMcpService.formatErrorResponse(

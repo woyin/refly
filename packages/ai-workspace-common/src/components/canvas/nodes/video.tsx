@@ -24,13 +24,21 @@ import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspac
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { NodeProps } from '@xyflow/react';
 import { CanvasNodeData } from '@refly/canvas-common';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
+import { ModelInfo } from '@refly/openapi-schema';
+import { CanvasNodeType } from '@refly/openapi-schema';
+import { useTranslation } from 'react-i18next';
 
 // Define VideoNodeMeta interface
 interface VideoNodeMeta {
   videoUrl?: string;
+  storageKey?: string;
   showBorder?: boolean;
   showTitle?: boolean;
   style?: Record<string, any>;
+  resultId?: string;
+  contextItems?: IContextItem[];
+  modelInfo?: ModelInfo;
 }
 
 interface VideoNodeProps extends NodeProps {
@@ -56,7 +64,9 @@ export const VideoNode = memo(
     const { deleteNode } = useDeleteNode();
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
+    const { previewNode } = useNodePreviewControl({ canvasId });
+    const { t } = useTranslation();
 
     // Check if node has any connections
     const { getEdges } = useReactFlow();
@@ -126,6 +136,37 @@ export const VideoNode = memo(
       [data, addNode, getConnectionInfo],
     );
 
+    const handleCloneAskAI = useCallback(async () => {
+      const { contextItems, modelInfo } = data?.metadata || {};
+
+      // Create new skill node with context
+      const connectTo = contextItems?.map((item) => ({
+        type: item.type as CanvasNodeType,
+        entityId: item.entityId,
+      }));
+
+      // Create new skill node
+      addNode(
+        {
+          type: 'skill',
+          data: {
+            title: t('canvas.nodeActions.cloneAskAI'),
+            entityId: genSkillID(),
+            metadata: {
+              contextItems,
+              query: data.title,
+              modelInfo,
+            },
+          },
+        },
+        connectTo,
+        false,
+        true,
+      );
+
+      nodeActionEmitter.emit(createNodeEventName(id, 'cloneAskAI.completed'));
+    }, [id, data?.entityId, addNode, t]);
+
     const onTitleChange = (newTitle: string) => {
       setNodeDataByEntity(
         {
@@ -138,6 +179,17 @@ export const VideoNode = memo(
       );
     };
 
+    const handleVideoClick = useCallback(() => {
+      // Create a node object for preview
+      const nodeForPreview = {
+        id,
+        type: 'video' as const,
+        data: data as any,
+        position: { x: 0, y: 0 },
+      };
+      previewNode(nodeForPreview);
+    }, [previewNode, id, data]);
+
     // Add event handling
     useEffect(() => {
       // Create node-specific event handlers
@@ -146,22 +198,25 @@ export const VideoNode = memo(
       const handleNodeAskAI = (event?: { dragCreateInfo?: NodeDragCreateInfo }) => {
         handleAskAI(event?.dragCreateInfo);
       };
+      const handleNodeCloneAskAI = () => handleCloneAskAI();
 
       // Register events with node ID
       nodeActionEmitter.on(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
       nodeActionEmitter.on(createNodeEventName(id, 'delete'), handleNodeDelete);
       nodeActionEmitter.on(createNodeEventName(id, 'askAI'), handleNodeAskAI);
+      nodeActionEmitter.on(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
 
       return () => {
         // Cleanup events when component unmounts
         nodeActionEmitter.off(createNodeEventName(id, 'addToContext'), handleNodeAddToContext);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
         nodeActionEmitter.off(createNodeEventName(id, 'askAI'), handleNodeAskAI);
+        nodeActionEmitter.off(createNodeEventName(id, 'cloneAskAI'), handleNodeCloneAskAI);
 
         // Clean up all node events
         cleanupNodeEvents(id);
       };
-    }, [id, handleAddToContext, handleDelete, handleAskAI]);
+    }, [id, handleAddToContext, handleDelete, handleAskAI, handleCloneAskAI]);
 
     if (!data || !videoUrl) {
       return null;
@@ -228,13 +283,14 @@ export const VideoNode = memo(
 
         <div
           className={`h-full flex items-center justify-center relative z-1 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
+          style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
+          onClick={handleVideoClick}
         >
           <video
             ref={videoRef}
             src={videoUrl}
             controls
             className="w-full h-full object-contain bg-black"
-            style={{ cursor: 'default' }}
             preload="metadata"
             onError={(e) => {
               console.error('Video failed to load:', e);

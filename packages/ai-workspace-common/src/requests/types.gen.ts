@@ -3888,6 +3888,18 @@ export type MediaGenerateRequest = {
    * Text prompt for content generation
    */
   prompt: string;
+  /**
+   * Media generation result ID
+   */
+  resultId?: string;
+  /**
+   * API key for the provider
+   */
+  apiKey?: string;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<MediaModelParameter>;
 };
 
 export type MediaGenerateResponse = BaseResponse & {
@@ -3895,6 +3907,14 @@ export type MediaGenerateResponse = BaseResponse & {
    * Media generation result ID
    */
   resultId?: string;
+  /**
+   * Media generation output URL
+   */
+  outputUrl?: string;
+  /**
+   * Media generation output storage key
+   */
+  storageKey?: string;
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
@@ -4614,6 +4634,18 @@ export type ModelCapabilities = {
    * Whether this model supports context caching
    */
   contextCaching?: boolean;
+  /**
+   * Whether this model supports image generation
+   */
+  image?: boolean;
+  /**
+   * Whether this model supports video generation
+   */
+  video?: boolean;
+  /**
+   * Whether this model supports audio generation
+   */
+  audio?: boolean;
 };
 
 export type ModelInfo = {
@@ -4658,9 +4690,17 @@ export type ModelInfo = {
    */
   group?: string;
   /**
+   * Model category
+   */
+  category?: ProviderCategory;
+  /**
    * Credit billing info
    */
   creditBilling?: CreditBilling;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<MediaModelParameter>;
 };
 
 export type ListModelsResponse = BaseResponse & {
@@ -4752,6 +4792,42 @@ export type LLMModelConfig = {
 };
 
 /**
+ * Media generation parameter configuration
+ */
+export type MediaModelParameter = {
+  /**
+   * Parameter name
+   */
+  name: string;
+  /**
+   * Parameter type
+   */
+  type: 'url' | 'text' | 'option';
+  value?: string | Array<string> | number | boolean;
+  /**
+   * Available options for option type
+   */
+  options?: Array<string | number | boolean>;
+  /**
+   * Parameter description
+   */
+  description?: string;
+  /**
+   * Whether this parameter is required
+   */
+  required: boolean;
+  /**
+   * Whether this parameter should be displayed in UI
+   */
+  visible: boolean;
+};
+
+/**
+ * Parameter type
+ */
+export type type3 = 'url' | 'text' | 'option';
+
+/**
  * Provider config for media generation
  */
 export type MediaGenerationModelConfig = {
@@ -4771,6 +4847,22 @@ export type MediaGenerationModelConfig = {
    * Model description
    */
   description?: string;
+  /**
+   * Supported languages for translation
+   */
+  supportedLanguages?: Array<string>;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<MediaModelParameter>;
+  /**
+   * Output parameter configurations
+   */
+  outputParameters?: Array<MediaModelParameter>;
+  /**
+   * Base model for the model
+   */
+  baseModel?: string;
 };
 
 /**

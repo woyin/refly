@@ -20,6 +20,9 @@ import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-up
 import { notification, Form } from 'antd';
 import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 
 interface EditChatInputProps {
   enabled: boolean;
@@ -69,6 +72,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
   const [form] = Form.useForm();
   const { getFinalProjectId } = useAskProject();
+  const { addNode } = useAddNode();
 
   const hideSelectedSkillHeader = useMemo(
     () => !localActionMeta || localActionMeta?.name === 'commonQnA' || !localActionMeta?.name,
@@ -131,6 +135,27 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     contextItemsRef.current = editContextItems;
   }, [editContextItems]);
 
+  // Sync internal state with props changes
+  useEffect(() => {
+    setEditQuery(query);
+  }, [query]);
+
+  useEffect(() => {
+    setEditContextItems(contextItems);
+  }, [contextItems]);
+
+  useEffect(() => {
+    setEditModelInfo(modelInfo);
+  }, [modelInfo]);
+
+  useEffect(() => {
+    setEditRuntimeConfig(runtimeConfig);
+  }, [runtimeConfig]);
+
+  useEffect(() => {
+    setLocalActionMeta(actionMeta);
+  }, [actionMeta]);
+
   const handleSendMessage = useCallback(() => {
     // Check for form errors
     if (formErrors && Object.keys(formErrors).length > 0) {
@@ -147,8 +172,47 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
     // Synchronize edges with latest context items
     const nodes = getNodes();
-    const currentNode = nodes.find((node) => node.data?.entityId === resultId);
+    let currentNode = nodes.find((node) => node.data?.entityId === resultId);
+
+    // Check if this is a media generation model
+    const isMediaGeneration = editModelInfo?.category === 'mediaGeneration';
+
+    // If not found by entityId and is media generation, try to find by metadata.resultId
+    if (!currentNode && isMediaGeneration) {
+      currentNode = nodes.find((node) => (node.data?.metadata as any)?.resultId === resultId);
+    }
+
+    console.log('currentNode', currentNode);
+
     if (!currentNode) {
+      return;
+    }
+
+    if (isMediaGeneration) {
+      // Handle media generation using existing media generation flow
+      // Parse capabilities from modelInfo
+      const capabilities = editModelInfo?.capabilities as any;
+      const mediaType = capabilities?.image
+        ? 'image'
+        : capabilities?.video
+          ? 'video'
+          : capabilities?.audio
+            ? 'audio'
+            : 'image'; // Default fallback
+
+      // Emit media generation event
+      nodeOperationsEmitter.emit('generateMedia', {
+        providerItemId: editModelInfo?.providerItemId ?? '',
+        targetType: 'canvas',
+        targetId: canvasId ?? '',
+        mediaType,
+        query: editQuery,
+        modelInfo: editModelInfo,
+        nodeId: currentNode.id,
+        contextItems: editContextItems,
+      });
+
+      setEditMode(false);
       return;
     }
 
@@ -197,6 +261,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     t,
     form,
     getFinalProjectId,
+    addNode,
   ]);
 
   const handleSelectSkill = useCallback(
@@ -259,7 +324,12 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   }
 
   return (
-    <div className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px] flex flex-col gap-2">
+    <div
+      className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px] flex flex-col gap-2"
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
       {!hideSelectedSkillHeader && (
         <SelectedSkillHeader
           readonly={readonly}

@@ -1,9 +1,24 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
-import { Button, Dropdown, DropdownProps, MenuProps, Skeleton, Tooltip, Typography } from 'antd';
+import {
+  Button,
+  Dropdown,
+  DropdownProps,
+  MenuProps,
+  Skeleton,
+  Tooltip,
+  Typography,
+  Segmented,
+} from 'antd';
 import { useTranslation } from 'react-i18next';
 import { ModelIcon } from '@lobehub/icons';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
-import { LLMModelConfig, ModelInfo, TokenUsageMeter } from '@refly/openapi-schema';
+import {
+  LLMModelConfig,
+  MediaGenerationModelConfig,
+  ModelInfo,
+  TokenUsageMeter,
+  ModelCapabilities,
+} from '@refly/openapi-schema';
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 import { IconError } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LuInfo } from 'react-icons/lu';
@@ -128,9 +143,9 @@ export const SettingsButton = memo(
     return (
       <div
         onClick={handleClick}
-        className="p-3 flex items-center rounded-b-lg gap-2 hover:bg-refly-tertiary-hover cursor-pointer border-t-[1px] border-x-0 border-b-0 border-solid border-refly-Card-Border"
+        className="p-2 flex items-center rounded-b-lg gap-2 hover:bg-refly-tertiary-hover cursor-pointer border-t-[1px] border-x-0 border-b-0 border-solid border-refly-Card-Border"
       >
-        <Settings size={14} />
+        <Settings size={12} />
         <span className="text-xs font-semibold text-refly-text-0">
           {t('copilot.modelSelector.configureModel')}
         </span>
@@ -164,6 +179,7 @@ export const ModelSelector = memo(
     contextItems,
   }: ModelSelectorProps) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<'llm' | 'mediaGeneration'>('llm');
     const { t } = useTranslation();
 
     const { userProfile } = useUserStoreShallow((state) => ({
@@ -178,7 +194,6 @@ export const ModelSelector = memo(
     } = useListProviderItems(
       {
         query: {
-          category: 'llm',
           enabled: true,
           isGlobal: userProfile?.preferences?.providerMode === 'global',
         },
@@ -209,6 +224,21 @@ export const ModelSelector = memo(
       refetchModelList();
     }, [providerMode, refetchModelList]);
 
+    // Auto-select category based on current model
+    useEffect(() => {
+      if (model && providerItemList?.data) {
+        const currentModelItem = providerItemList.data.find(
+          (item) => item.itemId === model.providerItemId,
+        );
+        if (
+          currentModelItem?.category &&
+          (currentModelItem.category === 'llm' || currentModelItem.category === 'mediaGeneration')
+        ) {
+          setSelectedCategory(currentModelItem.category as 'llm' | 'mediaGeneration');
+        }
+      }
+    }, [model, providerItemList?.data]);
+
     const { tokenUsage, isUsageLoading } = useSubscriptionUsage();
 
     const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
@@ -221,24 +251,56 @@ export const ModelSelector = memo(
       setSettingsModalActiveTab(SettingsModalActiveTab.ModelConfig);
     }, [setShowSettingModal, setSettingsModalActiveTab]);
 
+    /**
+     * Filter and map provider items to only include those with category 'llm' or 'mediaGeneration'.
+     * This ensures only relevant model types are shown in the model selector.
+     */
     const modelList: ModelInfo[] = useMemo(() => {
-      return (
-        providerItemList?.data?.map((item) => {
-          const config = item.config as LLMModelConfig;
-          return {
-            name: config.modelId,
-            label: item.name,
-            provider: item.provider?.providerKey ?? '',
-            providerItemId: item.itemId,
-            contextLimit: config.contextLimit!,
-            maxOutput: config.maxOutput!,
-            capabilities: config.capabilities,
-            creditBilling: item.creditBilling,
-            group: item.group,
-          };
-        }) || []
-      );
-    }, [providerItemList?.data]);
+      // Ensure providerItemList?.data exists and is an array before using filter/map
+      if (!Array.isArray(providerItemList?.data)) return [];
+      return providerItemList.data
+        .filter((item) => {
+          // Validate item.category existence before checking value
+          const category = item?.category;
+          return category === selectedCategory;
+        })
+        .map((item) => {
+          // Validate config existence and type before destructuring
+          const category = item?.category;
+
+          if (category === 'mediaGeneration') {
+            const config = item?.config as MediaGenerationModelConfig;
+            return {
+              name: config?.modelId ?? '',
+              label: item?.name ?? '',
+              provider: item?.provider?.providerKey ?? '',
+              providerItemId: item?.itemId ?? '',
+              contextLimit: 0, // MediaGenerationModelConfig doesn't have contextLimit
+              maxOutput: 0, // MediaGenerationModelConfig doesn't have maxOutput
+              capabilities: config?.capabilities as ModelCapabilities, // Cast to ModelCapabilities for compatibility
+              creditBilling: item?.creditBilling ?? null,
+              group: item?.group ?? '',
+              category: item?.category,
+              inputParameters: config?.inputParameters ?? [],
+            };
+          } else {
+            const config = item?.config as LLMModelConfig;
+            return {
+              name: config?.modelId ?? '',
+              label: item?.name ?? '',
+              provider: item?.provider?.providerKey ?? '',
+              providerItemId: item?.itemId ?? '',
+              contextLimit: config?.contextLimit ?? 0,
+              maxOutput: config?.maxOutput ?? 0,
+              capabilities: config?.capabilities ?? {},
+              creditBilling: item?.creditBilling ?? null,
+              group: item?.group ?? '',
+              category: item?.category,
+              inputParameters: [],
+            };
+          }
+        });
+    }, [providerItemList?.data, selectedCategory]);
 
     const { handleGroupModelList } = useGroupModels();
 
@@ -292,13 +354,28 @@ export const ModelSelector = memo(
       }
 
       return list;
-    }, [modelList, isContextIncludeImage]);
+    }, [modelList, isContextIncludeImage, providerMode]);
 
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
         <div className="w-[260px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
-          <div className="max-h-[48vh] w-full overflow-y-auto p-2">
+          {/* Category Switch */}
+          <div className="p-2 pb-0">
+            <Segmented
+              className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center [&_.ant-segmented-item]:py-0.5 [&_.ant-segmented-item]:text-xs"
+              shape="round"
+              size="small"
+              options={[
+                { label: '对话模型', value: 'llm' },
+                { label: '多模态模型', value: 'mediaGeneration' },
+              ]}
+              value={selectedCategory}
+              onChange={(value) => setSelectedCategory(value as 'llm' | 'mediaGeneration')}
+            />
+          </div>
+
+          <div className="max-h-[38vh] w-full overflow-y-auto p-1.5">
             {droplist
               .filter((item) => !!item)
               .map((item) => {
@@ -331,35 +408,36 @@ export const ModelSelector = memo(
           />
         </div>
       ),
-      [t, droplist, handleMenuClick, handleOpenSettingModal, setDropdownOpen],
+      [
+        t,
+        droplist,
+        handleMenuClick,
+        handleOpenSettingModal,
+        setDropdownOpen,
+        selectedCategory,
+        modelList,
+      ],
     );
 
-    // Automatically select available model when:
-    // 1. No model is selected
-    // 2. Current model is disabled
-    // 3. Current model is not present in the model list
+    // Automatically select available model only when there is no current model
+    // Default to LLM category's first available model to avoid flicker
     useEffect(() => {
-      if (modelList?.length === 0) {
-        return;
+      if (!modelList || modelList.length === 0) return;
+      if (model) return;
+
+      const defaultModelItemId = userProfile?.preferences?.defaultModel?.chat?.itemId;
+      let initialModel: ModelInfo | undefined;
+
+      if (defaultModelItemId) {
+        initialModel = modelList.find((m) => m.providerItemId === defaultModelItemId);
       }
 
-      if (
-        !model ||
-        isModelDisabled(tokenUsage!, model) ||
-        !modelList?.find((m) => m.name === model.name)
-      ) {
-        const defaultModelItemId = userProfile?.preferences?.defaultModel?.chat?.itemId;
-        let initialModel: ModelInfo | undefined;
-
-        if (defaultModelItemId) {
-          initialModel = modelList?.find((m) => m.providerItemId === defaultModelItemId);
-        }
-        if (!initialModel) {
-          initialModel = modelList?.find((m) => !isModelDisabled(tokenUsage!, m));
-        }
-        setModel(initialModel ?? null);
+      if (!initialModel) {
+        initialModel = modelList.find((m) => !isModelDisabled(tokenUsage!, m));
       }
-    }, [model, tokenUsage, modelList, isModelDisabled, setModel]);
+
+      setModel(initialModel ?? null);
+    }, [model, modelList, tokenUsage, setModel]);
 
     if (isModelListLoading || isUsageLoading) {
       return <Skeleton className="w-28" active paragraph={false} />;

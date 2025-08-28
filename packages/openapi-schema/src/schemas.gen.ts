@@ -5539,6 +5539,21 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Text prompt for content generation',
     },
+    resultId: {
+      type: 'string',
+      description: 'Media generation result ID',
+    },
+    apiKey: {
+      type: 'string',
+      description: 'API key for the provider',
+    },
+    inputParameters: {
+      type: 'array',
+      description: 'Input parameter configurations',
+      items: {
+        $ref: '#/components/schemas/MediaModelParameter',
+      },
+    },
   },
 } as const;
 
@@ -5554,6 +5569,15 @@ export const MediaGenerateResponseSchema = {
           type: 'string',
           description: 'Media generation result ID',
           example: 'ar-g30e1b80b5g1itbemc0g5jj3',
+        },
+        outputUrl: {
+          type: 'string',
+          format: 'uri',
+          description: 'Media generation output URL',
+        },
+        storageKey: {
+          type: 'string',
+          description: 'Media generation output storage key',
         },
       },
     },
@@ -6634,6 +6658,18 @@ export const ModelCapabilitiesSchema = {
       type: 'boolean',
       description: 'Whether this model supports context caching',
     },
+    image: {
+      type: 'boolean',
+      description: 'Whether this model supports image generation',
+    },
+    video: {
+      type: 'boolean',
+      description: 'Whether this model supports video generation',
+    },
+    audio: {
+      type: 'boolean',
+      description: 'Whether this model supports audio generation',
+    },
   },
 } as const;
 
@@ -6682,9 +6718,21 @@ export const ModelInfoSchema = {
       type: 'string',
       description: 'Model group',
     },
+    category: {
+      type: 'string',
+      description: 'Model category',
+      $ref: '#/components/schemas/ProviderCategory',
+    },
     creditBilling: {
       $ref: '#/components/schemas/CreditBilling',
       description: 'Credit billing info',
+    },
+    inputParameters: {
+      type: 'array',
+      description: 'Input parameter configurations',
+      items: {
+        $ref: '#/components/schemas/MediaModelParameter',
+      },
     },
   },
 } as const;
@@ -6801,6 +6849,86 @@ export const LLMModelConfigSchema = {
   },
 } as const;
 
+export const MediaModelParameterSchema = {
+  type: 'object',
+  description: 'Media generation parameter configuration',
+  required: ['name', 'type', 'required', 'visible'],
+  properties: {
+    name: {
+      type: 'string',
+      description: 'Parameter name',
+    },
+    type: {
+      type: 'string',
+      description: 'Parameter type',
+      enum: ['url', 'text', 'option'],
+    },
+    value: {
+      oneOf: [
+        {
+          type: 'string',
+          description: 'String value for url/text type or option value',
+        },
+        {
+          type: 'array',
+          description: 'Array of URLs for url type',
+          items: {
+            type: 'string',
+          },
+        },
+        {
+          type: 'number',
+          description: 'Numeric value for option type',
+        },
+        {
+          type: 'integer',
+          description: 'Integer value for option type',
+        },
+        {
+          type: 'boolean',
+          description: 'Boolean value for option type',
+        },
+      ],
+    },
+    options: {
+      type: 'array',
+      description: 'Available options for option type',
+      items: {
+        oneOf: [
+          {
+            type: 'string',
+            description: 'String option',
+          },
+          {
+            type: 'number',
+            description: 'Numeric option',
+          },
+          {
+            type: 'integer',
+            description: 'Integer option',
+          },
+          {
+            type: 'boolean',
+            description: 'Boolean option',
+          },
+        ],
+      },
+    },
+    description: {
+      type: 'string',
+      description: 'Parameter description',
+    },
+    required: {
+      type: 'boolean',
+      description: 'Whether this parameter is required',
+    },
+    visible: {
+      type: 'boolean',
+      description: 'Whether this parameter should be displayed in UI',
+    },
+  },
+} as const;
+
 export const MediaGenerationModelConfigSchema = {
   type: 'object',
   description: 'Provider config for media generation',
@@ -6821,6 +6949,32 @@ export const MediaGenerationModelConfigSchema = {
     description: {
       type: 'string',
       description: 'Model description',
+    },
+    supportedLanguages: {
+      type: 'array',
+      description: 'Supported languages for translation',
+      items: {
+        type: 'string',
+        example: ['en', 'zh', 'ja', 'ko'],
+      },
+    },
+    inputParameters: {
+      type: 'array',
+      description: 'Input parameter configurations',
+      items: {
+        $ref: '#/components/schemas/MediaModelParameter',
+      },
+    },
+    outputParameters: {
+      type: 'array',
+      description: 'Output parameter configurations',
+      items: {
+        $ref: '#/components/schemas/MediaModelParameter',
+      },
+    },
+    baseModel: {
+      type: 'string',
+      description: 'Base model for the model',
     },
   },
 } as const;

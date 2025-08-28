@@ -15,6 +15,17 @@ import { ImageItem } from '@refly/stores';
 const { Dragger } = Upload;
 
 const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.bmp'];
+const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv'];
+const ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac'];
+
+// Helper function to extract file extension
+const getFileExtension = (filename: string): string => {
+  const lastDotIndex = filename.lastIndexOf('.');
+  if (lastDotIndex === -1 || lastDotIndex === filename.length - 1) {
+    return ''; // No extension or dot at the end
+  }
+  return filename.slice(lastDotIndex + 1).toLowerCase();
+};
 
 export const ImportFromImage = () => {
   const { t } = useTranslation();
@@ -64,7 +75,11 @@ export const ImportFromImage = () => {
   const props: UploadProps = {
     name: 'file',
     multiple: true,
-    accept: ALLOWED_IMAGE_EXTENSIONS.join(','),
+    accept: [
+      ...ALLOWED_IMAGE_EXTENSIONS,
+      ...ALLOWED_VIDEO_EXTENSIONS,
+      ...ALLOWED_AUDIO_EXTENSIONS,
+    ].join(','),
     fileList: imageList.map((item) => ({
       uid: item.uid,
       name: item.title,
@@ -140,16 +155,40 @@ export const ImportFromImage = () => {
               }
             : null;
 
+          const fileExtension = getFileExtension(image.title);
+          const fileType = ALLOWED_IMAGE_EXTENSIONS.includes(`.${fileExtension}`)
+            ? 'image'
+            : ALLOWED_VIDEO_EXTENSIONS.includes(`.${fileExtension}`)
+              ? 'video'
+              : ALLOWED_AUDIO_EXTENSIONS.includes(`.${fileExtension}`)
+                ? 'audio'
+                : 'image';
+
+          // Create metadata based on file type
+          const metadata: Record<string, any> = {
+            storageKey: image.storageKey,
+          };
+
+          // Set the appropriate URL field based on file type
+          switch (fileType) {
+            case 'image':
+              metadata.imageUrl = image.url;
+              break;
+            case 'video':
+              metadata.videoUrl = image.url;
+              break;
+            case 'audio':
+              metadata.audioUrl = image.url;
+              break;
+          }
+
           nodeOperationsEmitter.emit('addNode', {
             node: {
-              type: 'image',
+              type: fileType,
               data: {
                 title: image.title,
                 entityId: genImageID(),
-                metadata: {
-                  imageUrl: image.url,
-                  storageKey: image.storageKey,
-                },
+                metadata,
               },
               position: nodePosition,
             },
@@ -173,7 +212,13 @@ export const ImportFromImage = () => {
 
   const genUploadHint = () => {
     let hint = t('resource.import.supportedImages', {
-      formats: ALLOWED_IMAGE_EXTENSIONS.map((ext) => ext.slice(1).toUpperCase()).join(', '),
+      formats: [
+        ...ALLOWED_IMAGE_EXTENSIONS,
+        ...ALLOWED_VIDEO_EXTENSIONS,
+        ...ALLOWED_AUDIO_EXTENSIONS,
+      ]
+        .map((ext) => ext.slice(1).toUpperCase())
+        .join(', '),
     });
     if (uploadLimit > 0) {
       hint += `. ${t('resource.import.fileUploadLimit', { size: maxFileSize })}`;
