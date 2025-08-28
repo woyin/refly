@@ -64,6 +64,8 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
               id: toolset.id,
               type: toolset.type,
               name: toolset.name,
+              toolset: toolset.toolset,
+              mcpServer: toolset.mcpServer,
             },
           ];
 
