@@ -94,8 +94,10 @@ const ToolItem = ({
           onClick={handleInstall}
           size="middle"
           type="text"
-          className={`h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default hover:!bg-refly-tertiary-hover ${
-            isInstalled ? '!bg-[#f6ffed] hover:!bg-[#f6ffed] !border-[#52c41a] !text-[#52c41a]' : ''
+          className={`h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default ${
+            isInstalled
+              ? '!bg-[#f6ffed] hover:!bg-[#f6ffed] !border-[#52c41a] !text-[#52c41a]'
+              : 'hover:!bg-refly-tertiary-hover'
           }`}
         >
           {isInstalled ? (
