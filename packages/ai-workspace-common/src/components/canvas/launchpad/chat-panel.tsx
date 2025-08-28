@@ -438,7 +438,6 @@ export const ChatPanel = ({
                 query={chatStore.newQAText}
                 setQuery={chatStore.setNewQAText}
                 selectedSkillName={selectedSkill?.name ?? null}
-                autoCompletionPlacement={'topLeft'}
                 handleSendMessage={handleSendMessage}
                 onUploadImage={handleImageUpload}
                 onUploadMultipleImages={handleMultipleImagesUpload}
