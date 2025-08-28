@@ -538,6 +538,9 @@ export class SkillInvokerService {
       // Start initial network timeout
       createNetworkTimeout();
 
+      // Track whether a tool is currently executing to suppress duplicate streaming
+      let isToolExecuting = false;
+
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
@@ -565,6 +568,13 @@ export class SkillInvokerService {
         switch (event.event) {
           case 'on_tool_end':
           case 'on_tool_start': {
+            // Toggle tool execution flag
+            if (event.event === 'on_tool_start') {
+              isToolExecuting = true;
+            }
+            if (event.event === 'on_tool_end') {
+              isToolExecuting = false;
+            }
             // Extract tool_call_chunks from AIMessageChunk
             if (event.metadata.langgraph_node === 'tools' && event.data?.output) {
               // Update result content and forward stream events to client
@@ -620,6 +630,14 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
           }
           case 'on_chat_model_stream': {
             this.logger.log(`on_chat_model_stream: ${JSON.stringify(event)}`);
+
+            // Suppress streaming content when inside tool execution to avoid duplicate outputs
+            // Tools like generateDoc stream to their own targets (e.g., documents) and should not
+            // also stream to the skill response channel.
+            if (isToolExecuting || event?.metadata?.langgraph_node === 'tools') {
+              break;
+            }
+
             const { content, reasoningContent } = extractChunkContent(chunk);
 
             if ((content || reasoningContent) && !runMeta?.suppressOutput) {
