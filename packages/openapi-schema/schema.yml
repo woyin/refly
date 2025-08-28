@@ -7814,6 +7814,15 @@ components:
         contextCaching:
           type: boolean
           description: Whether this model supports context caching
+        image:
+          type: boolean
+          description: Whether this model supports image generation
+        video:
+          type: boolean
+          description: Whether this model supports video generation
+        audio:
+          type: boolean
+          description: Whether this model supports audio generation
     ModelInfo:
       type: object
       required:
@@ -7861,6 +7870,11 @@ components:
         creditBilling:
           $ref: '#/components/schemas/CreditBilling'
           description: Credit billing info
+        inputParameters:
+            type: array
+            description: Input parameter configurations
+            items:
+              $ref: '#/components/schemas/ModelParameter'
     ListModelsResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -8034,7 +8048,10 @@ components:
           description: Output parameter configurations
           items:
             $ref: '#/components/schemas/ModelParameter'
-        
+        baseUrl:
+          type: string
+          description: Base URL for the model
+
     EmbeddingModelConfig:
       type: object
       description: Provider config for embeddings

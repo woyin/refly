@@ -8,6 +8,7 @@ import { cn } from '@refly/utils/cn';
 
 type AudioNodeMeta = {
   audioUrl?: string;
+  storageKey?: string;
   showTitle?: boolean;
   contextItems?: IContextItem[];
   resultId?: string;

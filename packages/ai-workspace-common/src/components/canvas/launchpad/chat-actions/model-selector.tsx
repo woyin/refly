@@ -12,7 +12,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ModelIcon } from '@lobehub/icons';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
-import { LLMModelConfig, ModelInfo, TokenUsageMeter } from '@refly/openapi-schema';
+import {
+  LLMModelConfig,
+  MediaGenerationModelConfig,
+  ModelInfo,
+  TokenUsageMeter,
+  ModelCapabilities,
+} from '@refly/openapi-schema';
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 import { IconError } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { LuInfo } from 'react-icons/lu';
@@ -260,19 +266,39 @@ export const ModelSelector = memo(
         })
         .map((item) => {
           // Validate config existence and type before destructuring
-          const config = item?.config as LLMModelConfig;
-          return {
-            name: config?.modelId ?? '',
-            label: item?.name ?? '',
-            provider: item?.provider?.providerKey ?? '',
-            providerItemId: item?.itemId ?? '',
-            contextLimit: config?.contextLimit ?? 0,
-            maxOutput: config?.maxOutput ?? 0,
-            capabilities: config?.capabilities ?? {},
-            creditBilling: item?.creditBilling ?? null,
-            group: item?.group ?? '',
-            category: item?.category,
-          };
+          const category = item?.category;
+
+          if (category === 'mediaGeneration') {
+            const config = item?.config as MediaGenerationModelConfig;
+            return {
+              name: config?.modelId ?? '',
+              label: item?.name ?? '',
+              provider: item?.provider?.providerKey ?? '',
+              providerItemId: item?.itemId ?? '',
+              contextLimit: 0, // MediaGenerationModelConfig doesn't have contextLimit
+              maxOutput: 0, // MediaGenerationModelConfig doesn't have maxOutput
+              capabilities: config?.capabilities as ModelCapabilities, // Cast to ModelCapabilities for compatibility
+              creditBilling: item?.creditBilling ?? null,
+              group: item?.group ?? '',
+              category: item?.category,
+              inputParameters: config?.inputParameters ?? [],
+            };
+          } else {
+            const config = item?.config as LLMModelConfig;
+            return {
+              name: config?.modelId ?? '',
+              label: item?.name ?? '',
+              provider: item?.provider?.providerKey ?? '',
+              providerItemId: item?.itemId ?? '',
+              contextLimit: config?.contextLimit ?? 0,
+              maxOutput: config?.maxOutput ?? 0,
+              capabilities: config?.capabilities ?? {},
+              creditBilling: item?.creditBilling ?? null,
+              group: item?.group ?? '',
+              category: item?.category,
+              inputParameters: [],
+            };
+          }
         });
     }, [providerItemList?.data, selectedCategory]);
 

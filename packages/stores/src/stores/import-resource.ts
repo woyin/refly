@@ -22,7 +22,7 @@ export interface FileItem {
   uid?: string;
   status?: 'uploading' | 'done' | 'error';
   extension?: string;
-  type?: 'file' | 'image';
+  type?: 'file' | 'image' | 'video' | 'audio';
 }
 
 export interface ImageItem {

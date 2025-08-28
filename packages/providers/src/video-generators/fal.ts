@@ -59,12 +59,14 @@ export class FalVideoGenerator extends BaseVideoGenerator {
 
         await new Promise((resolve) => setTimeout(resolve, 5000));
 
-        const pollResponse = await fetch(statusUrl, {
+        const requestOptions = {
           method: 'GET',
           headers: {
             Authorization: `Key ${request.apiKey}`,
           },
-        });
+        };
+
+        const pollResponse = await fetch(statusUrl, requestOptions);
 
         if (!pollResponse.ok) {
           const errorText = await pollResponse.text();
@@ -78,12 +80,7 @@ export class FalVideoGenerator extends BaseVideoGenerator {
 
         if (status === 'COMPLETED') {
           const responseUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}`;
-          const finalResponse = await fetch(responseUrl, {
-            method: 'GET',
-            headers: {
-              Authorization: `Key ${request.apiKey}`,
-            },
-          });
+          const finalResponse = await fetch(responseUrl, requestOptions);
 
           if (!finalResponse.ok) {
             const errorText = await finalResponse.text();

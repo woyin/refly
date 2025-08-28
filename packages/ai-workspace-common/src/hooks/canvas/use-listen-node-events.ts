@@ -173,12 +173,11 @@ export const useListenNodeOperationEvents = () => {
       const { mediaSelectedModel } = useChatStore.getState();
 
       // Extract the first image storageKey from contextItems
-      const image =
-        contextItems
-          ?.filter((item) => item.type === 'image')
-          .flatMap((item) => findImages({ resultId: item.entityId }))
-          .map((img) => img.storageKey)
-          .filter(Boolean)?.[0] ?? '';
+      const storageKeys = contextItems
+        ?.filter((item) => item.type === 'image' || item.type === 'video' || item.type === 'audio')
+        .flatMap((item) => findImages({ resultId: item.entityId }))
+        .map((img) => img.storageKey)
+        .filter(Boolean);
 
       // Get skill response content and append to prompt
       let enhancedQuery = query;
@@ -233,6 +232,50 @@ export const useListenNodeOperationEvents = () => {
           }
         }
 
+        // Process inputParameters to fill in enhancedQuery and storageKeys
+        let imageStorageKeyIndex = 0;
+
+        const processedInputParameters = (modelInfo?.inputParameters ?? []).map((param) => {
+          if (param.type === 'text') {
+            // Fill text type parameter with enhancedQuery
+            return {
+              ...param,
+              value: enhancedQuery,
+            };
+          } else if (param.type === 'url') {
+            // Check if there are multiple url parameters
+            const urlParameters = modelInfo?.inputParameters?.filter((p) => p.type === 'url') ?? [];
+
+            if (urlParameters.length === 1) {
+              // Single url parameter - use original logic
+              if (storageKeys?.length === 1) {
+                // Single URL as string
+                return {
+                  ...param,
+                  value: storageKeys[0],
+                };
+              } else if (storageKeys?.length > 1) {
+                // Multiple URLs as array
+                return {
+                  ...param,
+                  value: storageKeys,
+                };
+              }
+            } else if (urlParameters.length > 1) {
+              // Multiple url parameters - fill sequentially
+              if (storageKeys?.length > 0 && imageStorageKeyIndex < storageKeys.length) {
+                const value = storageKeys[imageStorageKeyIndex];
+                imageStorageKeyIndex++;
+                return {
+                  ...param,
+                  value: value,
+                };
+              }
+            }
+          }
+          return param;
+        });
+
         const { data } = await getClient().generateMedia({
           body: {
             prompt: enhancedQuery,
@@ -241,7 +284,8 @@ export const useListenNodeOperationEvents = () => {
             providerItemId,
             targetType,
             targetId,
-            image,
+            image: storageKeys[0],
+            inputParameters: processedInputParameters,
           },
         });
 
@@ -268,7 +312,6 @@ export const useListenNodeOperationEvents = () => {
               },
             },
           };
-
           // Set the new node position to the current node's position
           if (currentNode?.position) {
             newNode.position = { ...currentNode.position };

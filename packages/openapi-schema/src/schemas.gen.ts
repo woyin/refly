@@ -6662,6 +6662,18 @@ export const ModelCapabilitiesSchema = {
       type: 'boolean',
       description: 'Whether this model supports context caching',
     },
+    image: {
+      type: 'boolean',
+      description: 'Whether this model supports image generation',
+    },
+    video: {
+      type: 'boolean',
+      description: 'Whether this model supports video generation',
+    },
+    audio: {
+      type: 'boolean',
+      description: 'Whether this model supports audio generation',
+    },
   },
 } as const;
 
@@ -6718,6 +6730,13 @@ export const ModelInfoSchema = {
     creditBilling: {
       $ref: '#/components/schemas/CreditBilling',
       description: 'Credit billing info',
+    },
+    inputParameters: {
+      type: 'array',
+      description: 'Input parameter configurations',
+      items: {
+        $ref: '#/components/schemas/ModelParameter',
+      },
     },
   },
 } as const;

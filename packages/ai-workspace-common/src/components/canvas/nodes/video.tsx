@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 // Define VideoNodeMeta interface
 interface VideoNodeMeta {
   videoUrl?: string;
+  storageKey?: string;
   showBorder?: boolean;
   showTitle?: boolean;
   style?: Record<string, any>;

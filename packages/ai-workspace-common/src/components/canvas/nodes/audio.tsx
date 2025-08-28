@@ -38,6 +38,7 @@ const NODE_SIDE_CONFIG = {
 // Define AudioNodeMeta interface
 interface AudioNodeMeta {
   audioUrl?: string;
+  storageKey?: string;
   showBorder?: boolean;
   showTitle?: boolean;
   style?: Record<string, any>;

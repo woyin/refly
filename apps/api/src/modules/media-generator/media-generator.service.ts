@@ -376,7 +376,7 @@ export class MediaGeneratorService {
 
         const result = await fal.subscribe(request.model, {
           input: input,
-          logs: true,
+          logs: false,
           onQueueUpdate: (update) => {
             if (update.status === 'IN_PROGRESS') {
               update.logs?.map((log) => log.message).forEach(console.log);
@@ -456,17 +456,12 @@ export class MediaGeneratorService {
           if (param.type === 'url') {
             if (Array.isArray(param.value)) {
               // Handle array of storage keys
-              const imageUrls = await this.miscService.generateImageUrls(
-                user,
-                param.value as string[],
-              );
-              input[param.name] = imageUrls;
+              const urls = await this.miscService.generateImageUrls(user, param.value as string[]);
+              input[param.name] = urls;
             } else {
               // Handle single storage key
-              const imageUrls = await this.miscService.generateImageUrls(user, [
-                param.value as string,
-              ]);
-              input[param.name] = imageUrls?.[0] ?? '';
+              const urls = await this.miscService.generateImageUrls(user, [param.value as string]);
+              input[param.name] = urls?.[0] ?? '';
             }
           } else {
             // Handle non-URL parameters normally
@@ -501,15 +496,15 @@ export class MediaGeneratorService {
   }
 
   private getUrlFromFalResult(result: any): string {
-    if (result?.audio?.url) return result.audio.url;
-    if (result?.video?.url) return result.video.url;
-    if (result?.image?.url) return result.image.url;
-    if (result?.model_glb?.url) return result.image.url;
-    if (result?.model_mesh?.url) return result.image.url;
+    if (result?.data?.audio?.url) return result.data.audio.url;
+    if (result?.data?.video?.url) return result.data.video.url;
+    if (result?.data?.image?.url) return result.data.image.url;
+    if (result?.data?.model_glb?.url) return result.data.image.url;
+    if (result?.data?.model_mesh?.url) return result.data.image.url;
 
-    if (result?.audios?.[0]?.url) return result.audios[0].url;
-    if (result?.videos?.[0]?.url) return result.videos[0].url;
-    if (result?.images?.[0]?.url) return result.images[0].url;
+    if (result?.data?.audios?.[0]?.url) return result.data.audios[0].url;
+    if (result?.data?.videos?.[0]?.url) return result.data.videos[0].url;
+    if (result?.data?.images?.[0]?.url) return result.data.images[0].url;
 
     return '';
   }

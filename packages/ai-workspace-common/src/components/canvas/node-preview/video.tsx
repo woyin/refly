@@ -8,6 +8,7 @@ import { cn } from '@refly/utils/cn';
 
 type VideoNodeMeta = {
   videoUrl?: string;
+  storageKey?: string;
   showTitle?: boolean;
   contextItems?: IContextItem[];
   resultId?: string;

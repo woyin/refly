@@ -4638,6 +4638,18 @@ export type ModelCapabilities = {
    * Whether this model supports context caching
    */
   contextCaching?: boolean;
+  /**
+   * Whether this model supports image generation
+   */
+  image?: boolean;
+  /**
+   * Whether this model supports video generation
+   */
+  video?: boolean;
+  /**
+   * Whether this model supports audio generation
+   */
+  audio?: boolean;
 };
 
 export type ModelInfo = {
@@ -4689,6 +4701,10 @@ export type ModelInfo = {
    * Credit billing info
    */
   creditBilling?: CreditBilling;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<ModelParameter>;
 };
 
 export type ListModelsResponse = BaseResponse & {
