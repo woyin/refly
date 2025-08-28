@@ -8,6 +8,7 @@ import { useUserStoreShallow } from '@refly/stores';
 import { useSiderStoreShallow, SettingsModalActiveTab } from '@refly/stores';
 import { Mcp, Checked, Settings } from 'refly-icons';
 import { GenericToolset } from '@refly/openapi-schema';
+import { Favicon } from '@refly-packages/ai-workspace-common/components/common/favicon';
 
 interface ToolsetSelectorPopoverProps {
   trigger?: React.ReactNode;
@@ -29,7 +30,8 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
   selectedToolsets = [],
   onSelectedToolsetsChange,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = (i18n.language || 'en') as 'en' | 'zh';
   const [open, setOpen] = useState(false);
 
   const selectedToolsetIds = new Set(selectedToolsets?.map((toolset) => toolset.id) ?? []);
@@ -100,6 +102,27 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
     );
   }, [handleOpenToolStore, t]);
 
+  interface ToolsetIconConfig {
+    size?: number;
+    className?: string;
+  }
+
+  const renderToolsetIcon = useCallback((toolset: GenericToolset, config?: ToolsetIconConfig) => {
+    const { size = 24, className } = config ?? {};
+    if (toolset.type === 'mcp') {
+      return (
+        <div className={cn('flex items-center justify-center overflow-hidden', className)}>
+          <Mcp size={size} color="var(--refly-text-1)" />
+        </div>
+      );
+    }
+    return (
+      <div className={cn('flex items-center justify-center overflow-hidden', className)}>
+        <Favicon url={toolset.toolset?.definition?.domain} size={size} />
+      </div>
+    );
+  }, []);
+
   const renderContent = useCallback(() => {
     if (loading) {
       return (
@@ -140,22 +163,31 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
       <div className="text-refly-text-0">
         <div className="flex flex-col gap-1.5 p-2">
           {sortedToolsets.map((toolset) => {
+            const description =
+              toolset?.type === 'mcp'
+                ? toolset.mcpServer.url
+                : toolset?.toolset?.definition?.descriptionDict?.[currentLanguage];
             return (
               <div
                 key={toolset.id}
                 className={cn(
-                  'flex items-center justify-between gap-2 px-2 h-8 rounded-lg hover:bg-refly-tertiary-hover',
+                  'flex items-center justify-between gap-2 px-2 py-1 rounded-lg hover:bg-refly-tertiary-hover',
                   'cursor-pointer transition-all duration-200',
                   selectedToolsetIds.has(toolset.id) ? 'bg-refly-tertiary-default' : '',
                 )}
                 onClick={() => handleToolSelect(toolset)}
               >
                 <div className="flex-1 min-w-0 flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <Mcp size={16} color="var(--refly-text-0)" />
-                    <span className="text-[12px] text-gray-700 dark:text-gray-200 font-medium block truncate">
-                      {toolset.name}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    {renderToolsetIcon(toolset)}
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="text-sm text-refly-text-0 font-semibold block truncate leading-5">
+                        {toolset.name}
+                      </div>
+                      <div className="text-xs text-refly-text-2 font-normal block truncate leading-4">
+                        {description as string}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {selectedToolsetIds.has(toolset.id) && (
@@ -170,8 +202,8 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
           className="p-3 flex items-center gap-2 hover:bg-refly-tertiary-hover cursor-pointer"
           onClick={handleOpenToolStore}
         >
-          <Settings size={16} color="var(--refly-text-0)" />
-          <div className="text-refly-text-0 text-xs font-medium">{t('tools.manageTools')}</div>
+          <Settings size={18} color="var(--refly-text-0)" />
+          <div className="text-refly-text-0 text-sm font-medium">{t('tools.manageTools')}</div>
         </div>
       </div>
     );
@@ -180,14 +212,33 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
   const defaultTrigger = (
     <Tooltip title={t('tools.useTools')} placement="bottom">
       <Button
-        className="gap-0 h-7 w-7 flex items-center justify-center"
+        className={cn(
+          'gap-0 h-7 w-auto flex items-center justify-center hover:bg-refly-tertiary-hover',
+          {
+            'w-7': !selectedToolsets?.length,
+            'bg-refly-bg-control-z0': selectedToolsets?.length,
+            'bg-refly-fill-active': open,
+          },
+        )}
         type="text"
         size="small"
         icon={<Mcp size={20} className="flex items-center" />}
       >
-        <span className="text-refly-text-2 text-xs font-semibold ml-[2px]">
-          {selectedToolsets?.length > 0 ? selectedToolsets.length : ''}
-        </span>
+        {selectedToolsets?.length > 0 && (
+          <div className="ml-1.5 flex items-center">
+            {selectedToolsets.slice(0, 3).map((toolset) => {
+              return renderToolsetIcon(toolset, {
+                size: 14,
+                className: 'bg-refly-bg-body-z0 shadow-refly-l p-0.5 -mr-[7px] rounded-full',
+              });
+            })}
+            {selectedToolsets.length > 3 && (
+              <div className="min-w-[18px] h-[18px] p-0.5 box-border flex items-center justify-center rounded-full bg-refly-bg-body-z0 shadow-refly-m text-refly-text-1 text-[10px]">
+                +{selectedToolsets.length - 3}
+              </div>
+            )}
+          </div>
+        )}
       </Button>
     </Tooltip>
   );
@@ -202,7 +253,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
       arrow={false}
       styles={{ body: { padding: 0, boxShadow: 'none' } }}
       content={
-        <div className="w-[240px] max-h-[320px] overflow-y-auto border-[1px] border-solid border-refly-Card-Border rounded-lg bg-refly-bg-content-z2 shadow-[0_8px_40px_0px_rgba(0,0,0,0.08)]">
+        <div className="w-[340px] max-h-[320px] overflow-y-auto border-[1px] border-solid border-refly-Card-Border rounded-lg bg-refly-bg-content-z2 shadow-[0_8px_40px_0px_rgba(0,0,0,0.08)]">
           {renderContent()}
         </div>
       }
