@@ -1,6 +1,7 @@
 import md5 from 'md5';
 import { v4 as UUIDV4 } from 'uuid';
 import { createId } from '@paralleldrive/cuid2';
+import { getYYYYMM, getYYYYMMDD } from './time';
 
 export enum IDPrefix {
   UID = 'u-',
@@ -40,6 +41,7 @@ export enum IDPrefix {
   CREDIT_USAGE = 'cu-',
   CREDIT_DEBT = 'cd-',
   NODE = 'node-',
+  VARIABLE_EXTRACTION_SESSION = 'ves-',
   START = 'start-',
   VARIABLE = 'var-',
 }
@@ -66,6 +68,10 @@ export function genPilotSessionID(): string {
 
 export function genPilotStepID(): string {
   return IDPrefix.PILOT_STEP + createId();
+}
+
+export function genVariableExtractionSessionID(): string {
+  return IDPrefix.VARIABLE_EXTRACTION_SESSION + createId();
 }
 
 export function genWorkflowExecutionID(): string {
@@ -195,9 +201,12 @@ export const genCanvasVersionId = () => {
   return `cv-${timestamp}-${createId()}`;
 };
 
-export const genCreditRechargeId = () => {
-  const timestamp = Date.now();
-  return `${IDPrefix.CREDIT_RECHARGE}${timestamp}-${createId()}`;
+export const genSubscriptionRechargeId = (uid: string, t: Date) => {
+  return `${IDPrefix.CREDIT_RECHARGE}subscription-${uid}-${getYYYYMM(t)}`;
+};
+
+export const genDailyCreditRechargeId = (uid: string, t: Date) => {
+  return `${IDPrefix.CREDIT_RECHARGE}daily-${uid}-${getYYYYMMDD(t)}`;
 };
 
 export const genCreditUsageId = () => {

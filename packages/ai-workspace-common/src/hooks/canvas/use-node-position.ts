@@ -31,11 +31,10 @@ export const useNodePosition = () => {
 
         const renderedNodeAbsolute = getNodeAbsolutePosition(renderedNode, nodes);
 
-        const currentZoom = getZoom();
         if (renderedNode) {
           setCenter(renderedNodeAbsolute.x + 200, renderedNodeAbsolute.y + 200, {
             duration: 300,
-            zoom: currentZoom,
+            zoom: 1,
           });
           if (shouldSelect) {
             setNodes((nodes) =>

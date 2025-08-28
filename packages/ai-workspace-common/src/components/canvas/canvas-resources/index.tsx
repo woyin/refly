@@ -57,6 +57,17 @@ export const CanvasResources = memo(
           setParentType(null);
         }
       }
+      if (activeNode.type === 'skillResponse') {
+        setParentType('stepsRecord');
+      }
+      if (['document', 'codeArtifact', 'website'].includes(activeNode.type as CanvasNodeType)) {
+        setParentType('resultsRecord');
+      }
+      if (['image', 'audio', 'video'].includes(activeNode.type as CanvasNodeType)) {
+        // Check if media has resultId to determine if it's from results or my upload
+        const hasResultId = !!activeNode.data?.metadata?.resultId;
+        setParentType(hasResultId ? 'resultsRecord' : 'myUpload');
+      }
     }, [activeNode]);
 
     return (

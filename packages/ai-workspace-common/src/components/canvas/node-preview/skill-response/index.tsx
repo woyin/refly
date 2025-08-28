@@ -263,8 +263,15 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
   return (
-    <div className="flex flex-col gap-4 h-full max-w-[1024px] mx-auto overflow-hidden">
-      {query && (
+    <div
+      className="flex flex-col gap-4 h-full max-w-[1024px] mx-auto overflow-hidden"
+      onClick={() => {
+        if (editMode) {
+          setEditMode(false);
+        }
+      }}
+    >
+      {title && (
         <div className="px-4 pt-4">
           <EditChatInput
             entityId={node.data?.entityId}
@@ -314,11 +321,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
               'h-full overflow-auto preview-container transition-opacity duration-500',
               { 'opacity-30': editMode },
             )}
-            onClick={() => {
-              if (editMode) {
-                setEditMode(false);
-              }
-            }}
           >
             {loading && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
             {(result?.status === 'executing' || result?.status === 'waiting') &&

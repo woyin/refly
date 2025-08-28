@@ -13,6 +13,7 @@ import {
   WorkflowVariable,
   GenericToolset,
 } from '@refly/openapi-schema';
+import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 // import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 // import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
@@ -225,6 +226,7 @@ export interface ChatPanelProps {
   projectId?: string;
   handleProjectChange?: (newProjectId: string) => void;
   workflowVariables?: WorkflowVariable[];
+  extendedWorkflowVariables?: MentionVariable[]; // Extended variables for canvas nodes
   enableRichInput?: boolean;
   selectedToolsets?: GenericToolset[];
   onSelectedToolsetsChange?: (toolsets: GenericToolset[]) => void;
@@ -254,6 +256,7 @@ export const ChatPanel = memo(
     projectId,
     handleProjectChange,
     workflowVariables = [],
+    extendedWorkflowVariables = [],
     enableRichInput = false,
     selectedToolsets,
     onSelectedToolsetsChange,
@@ -398,7 +401,8 @@ export const ChatPanel = memo(
           setContextItems={setContextItems}
         /> */}
 
-        {enableRichInput && workflowVariables?.length > 0 ? (
+        {enableRichInput &&
+        (workflowVariables?.length > 0 || extendedWorkflowVariables?.length > 0) ? (
           <RichChatInput
             readonly={canvasReadonly}
             ref={chatInputRef}
@@ -409,7 +413,7 @@ export const ChatPanel = memo(
                 setTimeout(onInputHeightChange, 0);
               }
             }}
-            variables={workflowVariables}
+            variables={[...workflowVariables, ...extendedWorkflowVariables] as WorkflowVariable[]}
             selectedSkillName={selectedSkill?.name ?? null}
             inputClassName="px-1 py-0"
             maxRows={6}
@@ -417,6 +421,8 @@ export const ChatPanel = memo(
             onUploadImage={handleImageUpload}
             onUploadMultipleImages={handleMultipleImagesUpload}
             onFocus={handleInputFocus}
+            contextItems={contextItems}
+            setContextItems={setContextItems}
           />
         ) : (
           <ChatInput

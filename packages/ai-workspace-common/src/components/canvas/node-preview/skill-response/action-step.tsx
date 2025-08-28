@@ -53,7 +53,10 @@ const LogBox = memo(
         {collapsed ? (
           <div
             className="text-gray-500 text-sm flex items-center justify-between"
-            onClick={() => onCollapse(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCollapse(false);
+            }}
           >
             <div>
               <CheckCircleOutlined /> {t('canvas.skillResponse.stepCompleted')}
@@ -87,7 +90,10 @@ const LogBox = memo(
             <Button
               type="text"
               icon={<ChevronUp className="w-4 h-4 text-gray-500" />}
-              onClick={() => onCollapse(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCollapse(true);
+              }}
               className="absolute right-2 top-2"
             />
           </>
@@ -147,7 +153,10 @@ const ReasoningContent = memo(
           {collapsed ? (
             <div
               className="flex items-center justify-between text-sm"
-              onClick={() => setCollapsed(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCollapsed(false);
+              }}
             >
               <div className="flex items-center gap-1">
                 <IconThinking className="w-4 h-4" />
@@ -165,7 +174,10 @@ const ReasoningContent = memo(
                 <Button
                   type="text"
                   icon={<ChevronUp className="w-4 h-4" />}
-                  onClick={() => setCollapsed(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCollapsed(true);
+                  }}
                   size="small"
                   className="flex items-center justify-center h-6 w-6 min-w-0 p-0"
                 />
@@ -240,7 +252,10 @@ const ArtifactItem = memo(({ artifact, onSelect }: { artifact: any; onSelect: ()
     <div
       key={artifact.entityId}
       className="my-2 px-4 py-2 h-12 border border-solid border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-      onClick={onSelect}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
     >
       <div className="flex items-center space-x-2">
         {getArtifactIcon(artifact, 'w-4 h-4')}

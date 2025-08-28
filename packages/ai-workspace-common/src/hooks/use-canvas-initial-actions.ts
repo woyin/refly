@@ -148,14 +148,14 @@ export const useCanvasInitialActions = (canvasId: string) => {
           return;
         }
 
-        const { mediaType, query, model, providerItemId } = pendingMediaQueryData;
+        const { mediaType, query, modelInfo, providerItemId } = pendingMediaQueryData;
         nodeOperationsEmitter.emit('generateMedia', {
           providerItemId,
           targetType: 'canvas',
           targetId: canvasId,
           mediaType: mediaType,
           query: query,
-          model: model,
+          modelInfo: modelInfo,
           nodeId: '',
         });
       } else {

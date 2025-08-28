@@ -147,7 +147,6 @@ export const useAddNode = () => {
         elevateNodesOnSelect: false,
       });
       setState({ nodes: updatedNodes.filter((node) => node && !node.id.startsWith('ghost-')) });
-
       // Then update edges with a slight delay to ensure nodes are registered first
       // This helps prevent the race condition where edges are created but nodes aren't ready
       setTimeout(() => {

@@ -119,7 +119,13 @@ const MediaChatInput = memo(
             const mediaQueryData: MediaQueryData = {
               mediaType: currentMediaType,
               query,
-              model: selectedModel?.config?.modelId || '',
+              modelInfo: {
+                name: selectedModel?.config?.modelId || '',
+                label: selectedModel?.name || '',
+                provider: selectedModel?.provider?.name || '',
+                contextLimit: 0,
+                maxOutput: 0,
+              },
               providerItemId: selectedModel?.itemId ?? '',
             };
             setMediaQueryData(mediaQueryData);
@@ -131,7 +137,13 @@ const MediaChatInput = memo(
               targetId: canvasId ?? '',
               mediaType: currentMediaType,
               query,
-              model: selectedModel?.config?.modelId || '',
+              modelInfo: {
+                name: selectedModel?.config?.modelId || '',
+                label: selectedModel?.name || '',
+                provider: selectedModel?.provider?.name || '',
+                contextLimit: 0,
+                maxOutput: 0,
+              },
               nodeId: nodeId || '',
             });
           }

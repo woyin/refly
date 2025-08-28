@@ -5,12 +5,13 @@ import type {
   SkillRuntimeConfig,
   MediaType,
   GenericToolset,
+  ModelInfo,
 } from '@refly/openapi-schema';
 
 export interface MediaQueryData {
   mediaType: MediaType;
   query: string;
-  model: string;
+  modelInfo: ModelInfo;
   providerItemId: string;
 }
 

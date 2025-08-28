@@ -11,6 +11,8 @@ const { Dragger } = Upload;
 
 const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.docx', '.rtf', '.txt', '.md', '.html', '.epub'];
 const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.bmp'];
+const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv'];
+const ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac'];
 
 export const ImportFromFile = () => {
   const { t } = useTranslation();
@@ -62,7 +64,12 @@ export const ImportFromFile = () => {
   const props: UploadProps = {
     name: 'file',
     multiple: true,
-    accept: [...ALLOWED_FILE_EXTENSIONS, ...ALLOWED_IMAGE_EXTENSIONS].join(','),
+    accept: [
+      ...ALLOWED_FILE_EXTENSIONS,
+      ...ALLOWED_IMAGE_EXTENSIONS,
+      ...ALLOWED_VIDEO_EXTENSIONS,
+      ...ALLOWED_AUDIO_EXTENSIONS,
+    ].join(','),
     fileList: [],
     beforeUpload: async (file: File) => {
       if (uploadLimit > 0 && file.size > maxFileSizeBytes) {
@@ -73,7 +80,13 @@ export const ImportFromFile = () => {
       const tempUid = genResourceID();
       const fileExtension = getFileExtension(file.name);
 
-      const fileType = ALLOWED_IMAGE_EXTENSIONS.includes(`.${fileExtension}`) ? 'image' : 'file';
+      const fileType = ALLOWED_IMAGE_EXTENSIONS.includes(`.${fileExtension}`)
+        ? 'image'
+        : ALLOWED_VIDEO_EXTENSIONS.includes(`.${fileExtension}`)
+          ? 'video'
+          : ALLOWED_AUDIO_EXTENSIONS.includes(`.${fileExtension}`)
+            ? 'audio'
+            : 'file';
 
       // Add file to waiting list with pending status
       addToWaitingList({
@@ -170,7 +183,12 @@ export const ImportFromFile = () => {
 
   const genUploadHint = () => {
     let hint = t('resource.import.supportedFiles', {
-      formats: [...ALLOWED_FILE_EXTENSIONS, ...ALLOWED_IMAGE_EXTENSIONS]
+      formats: [
+        ...ALLOWED_FILE_EXTENSIONS,
+        ...ALLOWED_IMAGE_EXTENSIONS,
+        ...ALLOWED_VIDEO_EXTENSIONS,
+        ...ALLOWED_AUDIO_EXTENSIONS,
+      ]
         .map((ext) => ext.slice(1).toUpperCase())
         .join(', '),
     });
