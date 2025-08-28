@@ -4,17 +4,9 @@ import {
   MediaGenerateRequest,
   MediaGenerateResponse,
   CreditBilling,
+  MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
-import {
-  ReplicateAudioGenerator,
-  ReplicateVideoGenerator,
-  ReplicateImageGenerator,
-  FalAudioGenerator,
-  FalVideoGenerator,
-  FalImageGenerator,
-  VolcesVideoGenerator,
-  VolcesImageGenerator,
-} from '@refly/providers';
+
 import { ModelUsageQuotaExceeded, ProviderItemNotFoundError } from '@refly/errors';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -25,44 +17,13 @@ import { MiscService } from '../misc/misc.service';
 import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
 import { PromptProcessorService } from './prompt-processor.service';
-import { genActionResultID, pick } from '@refly/utils';
-
-// Define generator interface for type safety
-interface MediaGenerator {
-  generate(params: { model: string; prompt: string; apiKey: string }): Promise<{ output: string }>;
-}
-
-// Generator factory type
-type GeneratorFactory = () => MediaGenerator;
-
-// Generator mapping configuration
-type GeneratorConfig = {
-  [provider: string]: {
-    [mediaType: string]: GeneratorFactory;
-  };
-};
+import { genActionResultID } from '@refly/utils';
+import { fal } from '@fal-ai/client';
+import Replicate from 'replicate';
 
 @Injectable()
 export class MediaGeneratorService {
   private readonly logger = new Logger(MediaGeneratorService.name);
-
-  // Generator configuration mapping
-  private readonly generatorConfig: GeneratorConfig = {
-    replicate: {
-      audio: () => new ReplicateAudioGenerator(),
-      video: () => new ReplicateVideoGenerator(),
-      image: () => new ReplicateImageGenerator(),
-    },
-    fal: {
-      audio: () => new FalAudioGenerator(),
-      video: () => new FalVideoGenerator(),
-      image: () => new FalImageGenerator(),
-    },
-    volces: {
-      video: () => new VolcesVideoGenerator(),
-      image: () => new VolcesImageGenerator(),
-    },
-  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -75,14 +36,14 @@ export class MediaGeneratorService {
   ) {}
 
   /**
-   * Start asynchronous media generation task
+   * Start asynchronous media generation task (synchronous version)
    * @param user User Information
    * @param request Media Generation Request
    * @returns Response containing resultId
    */
-  async generateMedia(user: User, request: MediaGenerateRequest): Promise<MediaGenerateResponse> {
+  async generate(user: User, request: MediaGenerateRequest): Promise<MediaGenerateResponse> {
     try {
-      const resultId = genActionResultID();
+      const resultId = request.resultId || genActionResultID();
 
       const { mediaType, model, prompt, targetType, targetId, providerItemId } = request;
 
@@ -104,7 +65,7 @@ export class MediaGeneratorService {
       });
 
       // Perform media generation asynchronously
-      this.executeMediaGeneration(user, resultId, request).catch((error) => {
+      this.executeGenerate(user, resultId, request).catch((error) => {
         this.logger.error(`Media generation failed for ${resultId}:`, error);
       });
 
@@ -121,42 +82,34 @@ export class MediaGeneratorService {
   }
 
   /**
-   * Execute media generation tasks
+   * Execute synchronous media generation tasks
+   * @param user User Information
    * @param resultId Result ID
    * @param request Media Generation Request
    */
-  private async executeMediaGeneration(
+  private async executeGenerate(
     user: User,
     resultId: string,
     request: MediaGenerateRequest,
   ): Promise<void> {
-    let result: { output: string };
-    const { providerItemId, prompt } = request;
-
     try {
-      // ===== Language Processing: Detect and translate prompt =====
-      const promptProcessingResult = await this.promptProcessor.processPrompt(prompt);
-
-      // Update status to Executing with language processing info
+      // Update status to executing
       await this.prisma.actionResult.update({
         where: { resultId_version: { resultId, version: 0 } },
         data: {
           status: 'executing',
-          // Store language processing info while keeping original request intact
-          input: JSON.stringify({
-            ...pick(request, ['mediaType', 'model', 'prompt']), // Keep original request fields unchanged (prompt = original user input)
-            // Add new fields for language processing
-            englishPrompt: promptProcessingResult.translatedPrompt, // English version for generation
-            detectedLanguage: promptProcessingResult.detectedLanguage,
-            isTranslated: promptProcessingResult.isTranslated,
-          }),
         },
       });
 
-      const providerItem = await this.providerService.findProviderItemById(user, providerItemId);
+      const providerItem = await this.providerService.findProviderItemById(
+        user,
+        request.providerItemId,
+      );
+
+      const config = JSON.parse(providerItem?.config) as MediaGenerationModelConfig;
 
       if (!providerItem) {
-        throw new ProviderItemNotFoundError(`provider item ${providerItemId} not found`);
+        throw new ProviderItemNotFoundError(`provider item ${request.providerItemId} not found`);
       }
 
       const creditBilling: CreditBilling = providerItem?.creditBilling
@@ -171,22 +124,53 @@ export class MediaGeneratorService {
         }
       }
 
-      // Create request with translated prompt for third-party service
-      const translatedRequest: MediaGenerateRequest = {
-        ...request,
-        prompt: promptProcessingResult.translatedPrompt, // Use English prompt for generation
-      };
+      const input = await this.buildInputObject(user, request, config.supportedLanguages);
+      let url = '';
 
-      result = await this.generateWithProvider(translatedRequest, providerItem.provider);
+      // Generate media based on provider type
+      const providerKey = providerItem?.provider?.providerKey;
+
+      if (providerKey === 'replicate') {
+        // Use Replicate provider
+        const replicate = new Replicate({
+          auth: providerItem?.provider?.apiKey ?? '',
+        });
+
+        const output = await replicate.run(
+          request.model as `${string}/${string}` | `${string}/${string}:${string}`,
+          { input },
+        );
+
+        url = this.getUrlFromReplicateOutput(output);
+      } else if (providerKey === 'fal') {
+        // Use Fal provider
+        fal.config({
+          credentials: providerItem.provider.apiKey,
+        });
+
+        const result = await fal.subscribe(request.model, {
+          input: input,
+          logs: false,
+          onQueueUpdate: (update) => {
+            if (update.status === 'IN_PROGRESS') {
+              update.logs?.map((log) => log.message).forEach(console.log);
+            }
+          },
+        });
+
+        url = this.getUrlFromFalResult(result);
+      } else {
+        throw new Error(`Unsupported provider: ${providerKey}`);
+      }
 
       const uploadResult = await this.miscService.dumpFileFromURL(user, {
-        url: result.output,
+        url: url,
         entityId: resultId,
         entityType: 'mediaResult',
         visibility: 'private',
       });
 
-      // The update status is completed, saving the storage information inside the system
+      // Update status to completed, saving the storage information inside the system
       await this.prisma.actionResult.update({
         where: { resultId_version: { resultId, version: 0 } },
         data: {
@@ -226,38 +210,241 @@ export class MediaGeneratorService {
     }
   }
 
-  /**
-   * Generate media using the appropriate provider and media type
-   * @param request Media generation request
-   * @param apiKey API key for the provider
-   * @returns Generated media output
-   */
-  private async generateWithProvider(
+  private async buildInputObject(
+    user: User,
     request: MediaGenerateRequest,
-    provider: { apiKey: string; providerKey: string },
-  ): Promise<{ output: string }> {
-    const { mediaType, model, prompt } = request;
-    const { apiKey, providerKey } = provider;
-
-    // Get the generator factory from configuration
-    const providerConfig = this.generatorConfig[providerKey];
-    if (!providerConfig) {
-      throw new Error(
-        `Unsupported provider for media generation: ${providerKey}, provider item id: ${request.providerItemId}`,
-      );
+    supportedLanguages: string[],
+  ): Promise<Record<string, any>> {
+    if (!request?.inputParameters) {
+      const languageDetection = await this.promptProcessor.detectLanguage(request?.prompt);
+      if (languageDetection.isEnglish || !supportedLanguages.includes(languageDetection.language)) {
+        const translatedPrompt = await this.promptProcessor.translateToEnglish(
+          request?.prompt,
+          languageDetection.language,
+        );
+        request.prompt = translatedPrompt.translatedPrompt;
+      }
+      return {
+        prompt: request?.prompt ?? '', // Base field
+      };
     }
 
-    const generatorFactory = providerConfig[mediaType];
-    if (!generatorFactory) {
-      throw new Error(`Unsupported media type '${mediaType}' for provider '${providerKey}'`);
+    const input: Record<string, any> = {};
+    if (Array.isArray(request?.inputParameters)) {
+      for (const param of request.inputParameters) {
+        if (param?.name && param?.value !== undefined) {
+          // Handle URL type parameters by converting storage keys to external URLs
+          if (param.type === 'url') {
+            if (Array.isArray(param.value)) {
+              // Handle array of storage keys
+              const urls = await this.miscService.generateImageUrls(user, param.value as string[]);
+              input[param.name] = urls;
+            } else {
+              // Handle single storage key
+              const urls = await this.miscService.generateImageUrls(user, [param.value as string]);
+              input[param.name] = urls?.[0] ?? '';
+            }
+          } else if (param.type === 'text') {
+            const languageDetection = await this.promptProcessor.detectLanguage(
+              param.value as string,
+            );
+            if (
+              languageDetection.isEnglish ||
+              !supportedLanguages.includes(languageDetection.language)
+            ) {
+              input[param.name] = param.value;
+            } else {
+              const translatedPrompt = await this.promptProcessor.translateToEnglish(
+                param.value as string,
+                languageDetection.language,
+              );
+              input[param.name] = translatedPrompt.translatedPrompt;
+            }
+          } else {
+            input[param.name] = param.value;
+          }
+        }
+      }
     }
 
-    // Create generator instance and generate media
-    const generator = generatorFactory();
-    return await generator.generate({
-      model,
-      prompt,
-      apiKey,
+    return input;
+  }
+
+  private getUrlFromReplicateOutput(output: any): string {
+    // Check for model_file property
+    if (output?.model_file ?? false) {
+      return output.model_file;
+    }
+    // Check for wav property
+    if (output?.wav ?? false) {
+      return output.wav;
+    }
+    // Check for mesh_paint property
+    if (output?.mesh_paint ?? false) {
+      return output.mesh_paint;
+    }
+    // Check if output is an array and return the first element if exists
+    if (Array.isArray(output) && output?.[0] !== undefined) {
+      return output[0];
+    }
+    // Fallback: return output as string (or empty string if undefined)
+    return output ?? '';
+  }
+
+  private async getFromReplicate(
+    model: string,
+    input: Record<string, any>,
+    apiKey: string,
+  ): Promise<any> {
+    const url = 'https://api.replicate.com/v1/predictions';
+
+    const headers = {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'wait',
+    };
+
+    const data = {
+      version: model,
+      input: input,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
     });
+
+    if (!response.ok) {
+      throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+  private async pollFromFal(
+    model: string,
+    baseModel: string,
+    input: Record<string, any>,
+    apiKey: string,
+  ): Promise<any> {
+    const url = `https://queue.fal.run/${model}`;
+
+    const headers = {
+      Authorization: `Key ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      // Submit the initial request
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      const requestId = responseData.request_id;
+
+      if (!requestId) {
+        throw new Error('No request ID received from fal');
+      }
+
+      // Poll for completion
+      const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
+      const responseUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}`;
+
+      let status = responseData.status;
+      const maxAttempts = 60; // 5 minutes with 5-second intervals
+      let attempts = 0;
+
+      while (status !== 'COMPLETED' && status !== 'FAILED' && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        attempts++;
+
+        const pollResponse = await fetch(statusUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Key ${apiKey}`,
+          },
+        });
+
+        if (!pollResponse.ok) {
+          throw new Error(
+            `Failed to poll status: ${pollResponse.status} ${pollResponse.statusText}`,
+          );
+        }
+
+        const statusData = await pollResponse.json();
+        status = statusData.status;
+
+        if (status === 'FAILED') {
+          throw new Error(`Request failed: ${statusData.error || 'Unknown error'}`);
+        }
+      }
+
+      if (status !== 'COMPLETED') {
+        throw new Error('Request timed out');
+      }
+
+      // Get the final result
+      const finalResponse = await fetch(responseUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Key ${apiKey}`,
+        },
+      });
+
+      if (!finalResponse.ok) {
+        throw new Error(
+          `Failed to get result: ${finalResponse.status} ${finalResponse.statusText}`,
+        );
+      }
+
+      return await finalResponse.json();
+    } catch (error) {
+      this.logger.error(
+        `Error generating media with fal: ${error instanceof Error ? error.stack : error}`,
+      );
+      throw error;
+    }
+  }
+
+  async getFromFal(model: string, input: Record<string, any>, apiKey: string): Promise<any> {
+    const url = `https://queue.fal.run/${model}`;
+
+    const headers = {
+      Authorization: `Key ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  private getUrlFromFalResult(result: any): string {
+    if (result?.data?.audio?.url) return result.data.audio.url;
+    if (result?.data?.video?.url) return result.data.video.url;
+    if (result?.data?.image?.url) return result.data.image.url;
+    if (result?.data?.model_glb?.url) return result.data.model_glb.url;
+    if (result?.data?.model_mesh?.url) return result.data.model_mesh.url;
+
+    if (result?.data?.audios?.[0]?.url) return result.data.audios[0].url;
+    if (result?.data?.videos?.[0]?.url) return result.data.videos[0].url;
+    if (result?.data?.images?.[0]?.url) return result.data.images[0].url;
+
+    return '';
   }
 }

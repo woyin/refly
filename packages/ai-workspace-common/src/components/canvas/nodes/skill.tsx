@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
 import { getNodeCommonStyles } from './shared/styles';
 import {
+  ModelCapabilities,
   ModelInfo,
   Skill,
   SkillRuntimeConfig,
@@ -42,6 +43,7 @@ import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/ed
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 const NODE_WIDTH = 480;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
@@ -258,6 +260,37 @@ export const SkillNode = memo(
       const { runtimeConfig: contextRuntimeConfig } = useContextPanelStore.getState();
       const finalProjectId = getFinalProjectId(projectId);
 
+      // Check if this is a media generation model
+      const isMediaGeneration = modelInfo?.category === 'mediaGeneration';
+
+      if (isMediaGeneration) {
+        // Handle media generation using existing media generation flow
+        // Parse capabilities from modelInfo
+        const capabilities = modelInfo?.capabilities as ModelCapabilities;
+        const mediaType = capabilities?.image
+          ? 'image'
+          : capabilities?.video
+            ? 'video'
+            : capabilities?.audio
+              ? 'audio'
+              : 'image'; // Default fallback
+
+        // Emit media generation event
+        nodeOperationsEmitter.emit('generateMedia', {
+          providerItemId: modelInfo?.providerItemId ?? '',
+          targetType: 'canvas',
+          targetId: canvasId ?? '',
+          mediaType,
+          query,
+          modelInfo,
+          nodeId: id,
+          contextItems,
+        });
+
+        return;
+      }
+
+      // Original skill execution logic for non-media models
       const resultId = genActionResultID();
       invokeAction(
         {

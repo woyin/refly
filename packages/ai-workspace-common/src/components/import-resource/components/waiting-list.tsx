@@ -62,6 +62,20 @@ const WaitingList = memo(() => {
               alt={item.file.url}
               className="w-5 h-5 rounded-md object-cover"
             />
+          ) : item.file?.type === 'video' && item.file.url ? (
+            <div className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center">
+              <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                <path d="M8 11l3-2-3-2v4z" />
+              </svg>
+            </div>
+          ) : item.file?.type === 'audio' && item.file.url ? (
+            <div className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center">
+              <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                <path d="M9 12l2-2-2-2v4z" />
+              </svg>
+            </div>
           ) : (
             <ResourceIcon url="" resourceType="file" extension={item.file.extension} size={16} />
           )}
