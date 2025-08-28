@@ -74,7 +74,9 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const [downloadRunning, setDownloadRunning] = useState(false);
 
     const shouldShowButtons =
-      !readonly && !isMultiSelected && (isNodeHovered || contextMenuOpenedCanvasId === nodeId);
+      !readonly &&
+      !isMultiSelected &&
+      (isNodeHovered || contextMenuOpenedCanvasId === nodeId || !!isExtracting);
 
     const handleCloneAskAI = useCallback(() => {
       setCloneAskAIRunning(true);
