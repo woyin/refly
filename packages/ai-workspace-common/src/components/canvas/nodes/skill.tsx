@@ -33,6 +33,7 @@ import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/ed
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
+import { GenericToolset } from '@refly/openapi-schema';
 
 const NODE_WIDTH = 480;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
@@ -63,10 +64,14 @@ export const SkillNode = memo(
       contextItems = [],
       tplConfig,
       runtimeConfig,
+      selectedToolsets: metadataSelectedToolsets = [],
     } = metadata;
     const skill = useFindSkill(selectedSkill?.name);
 
     const [localQuery, setLocalQuery] = useState(query);
+    const [selectedToolsets, setLocalSelectedToolsets] =
+      useState<GenericToolset[]>(metadataSelectedToolsets);
+
     const { data: workflowVariables } = useGetWorkflowVariables({
       query: {
         canvasId,
@@ -184,6 +189,14 @@ export const SkillNode = memo(
       [id, setNodeData],
     );
 
+    const setSelectedToolsets = useCallback(
+      (toolsets: GenericToolset[]) => {
+        setLocalSelectedToolsets(toolsets);
+        updateNodeData({ metadata: { selectedToolsets: toolsets } });
+      },
+      [updateNodeData],
+    );
+
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const setTplConfig = useCallback(
       (config: SkillTemplateConfig) => {
@@ -266,6 +279,7 @@ export const SkillNode = memo(
             ...runtimeConfig,
           },
           projectId: finalProjectId,
+          selectedToolsets,
         },
         {
           entityId: canvasId,
@@ -283,6 +297,7 @@ export const SkillNode = memo(
               status: 'executing',
               contextItems,
               tplConfig,
+              selectedToolsets,
               selectedSkill,
               modelInfo,
               runtimeConfig: {
@@ -301,7 +316,17 @@ export const SkillNode = memo(
       );
 
       deleteElements({ nodes: [node] });
-    }, [id, getNode, deleteElements, invokeAction, canvasId, addNode, form]);
+    }, [
+      id,
+      getNode,
+      deleteElements,
+      invokeAction,
+      canvasId,
+      addNode,
+      form,
+      selectedToolsets,
+      contextItems,
+    ]);
 
     const handleDelete = useCallback(() => {
       const currentNode = getNode(id);
@@ -411,6 +436,8 @@ export const SkillNode = memo(
             }}
             workflowVariables={variables}
             enableRichInput={true}
+            selectedToolsets={selectedToolsets}
+            onSelectedToolsetsChange={setSelectedToolsets}
           />
         </div>
       </div>

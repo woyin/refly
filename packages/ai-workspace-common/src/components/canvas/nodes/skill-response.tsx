@@ -345,6 +345,7 @@ export const SkillResponseNode = memo(
           query: title,
           selectedSkill: skill,
           contextItems: data?.metadata?.contextItems,
+          selectedToolsets: data?.metadata?.selectedToolsets,
         },
         {
           entityType: 'canvas',

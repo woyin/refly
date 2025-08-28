@@ -11,6 +11,7 @@ import {
   SkillRuntimeConfig,
   SkillTemplateConfig,
   Skill,
+  GenericToolset,
 } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'motion/react';
@@ -50,6 +51,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     hasEditorSelection: state.hasEditorSelection,
     activeDocumentId: state.activeDocumentId,
   }));
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
 
   // Add state for follow-up question input with full functionality
   const [showFollowUpInput, setShowFollowUpInput] = useState(false);
@@ -266,6 +268,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
       {
         query: followUpQuery,
         resultId,
+        selectedToolsets,
         selectedSkill: followUpSkill,
         modelInfo,
         tplConfig,
@@ -298,6 +301,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
           entityId: resultId,
           metadata: {
             status: 'executing',
+            selectedToolsets,
             selectedSkill: followUpSkill,
             modelInfo,
             runtimeConfig: followUpRuntimeConfig,
@@ -337,6 +341,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     getFinalProjectId,
     form,
     t,
+    selectedToolsets,
   ]);
 
   // Image upload handlers for follow-up
@@ -534,6 +539,8 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
                   onUploadImage={handleFollowUpImageUpload}
                   contextItems={followUpContextItems}
                   form={form}
+                  selectedToolsets={selectedToolsets}
+                  setSelectedToolsets={setSelectedToolsets}
                 />
               </motion.div>
             </div>

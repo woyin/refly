@@ -3,7 +3,7 @@ import { Button, Divider, Result, Skeleton, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useActionResultStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { ActionResult } from '@refly/openapi-schema';
+import { ActionResult, GenericToolset } from '@refly/openapi-schema';
 import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 import { Thinking } from 'refly-icons';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
@@ -58,6 +58,10 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(!result);
   const [currentQuery, setCurrentQuery] = useState<string | null>(null);
+  const nodeSelectedToolsets = node?.data?.metadata?.selectedToolsets;
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
+    nodeSelectedToolsets ?? [],
+  );
 
   const shareId = node.data?.metadata?.shareId;
   const { data: shareData } = useFetchShareData(shareId);
@@ -221,6 +225,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
           name: actionMeta?.name || 'commonQnA',
         },
         contextItems,
+        selectedToolsets: nodeSelectedToolsets,
       },
       {
         entityId: canvasId,
@@ -262,6 +267,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       {query && (
         <div className="px-4 pt-4">
           <EditChatInput
+            entityId={node.data?.entityId}
             enabled={editMode}
             resultId={resultId}
             version={version}
@@ -281,6 +287,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             tplConfig={tplConfig}
             runtimeConfig={runtimeConfig}
             onQueryChange={setCurrentQuery}
+            selectedToolsets={selectedToolsets}
+            setSelectedToolsets={setSelectedToolsets}
           />
           <PreviewChatInput
             enabled={!editMode}

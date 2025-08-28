@@ -11,6 +11,7 @@ import {
   SkillRuntimeConfig,
   SkillTemplateConfig,
   WorkflowVariable,
+  GenericToolset,
 } from '@refly/openapi-schema';
 import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 // import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
@@ -225,6 +226,8 @@ export interface ChatPanelProps {
   handleProjectChange?: (newProjectId: string) => void;
   workflowVariables?: WorkflowVariable[];
   enableRichInput?: boolean;
+  selectedToolsets?: GenericToolset[];
+  onSelectedToolsetsChange?: (toolsets: GenericToolset[]) => void;
 }
 
 export const ChatPanel = memo(
@@ -252,6 +255,8 @@ export const ChatPanel = memo(
     handleProjectChange,
     workflowVariables = [],
     enableRichInput = false,
+    selectedToolsets,
+    onSelectedToolsetsChange,
   }: ChatPanelProps) => {
     const [form] = Form.useForm();
     const [_formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -277,20 +282,6 @@ export const ChatPanel = memo(
     useEffect(() => {
       contextItemsRef.current = contextItems;
     }, [contextItems]);
-
-    // Memoize initialTplConfig to prevent unnecessary recalculations
-    // const initialTplConfig = useMemo(() => {
-    //   return tplConfig || selectedSkill?.tplConfig || {};
-    // }, [tplConfig, selectedSkill?.tplConfig]);
-
-    // const _handleTplConfigChange = useCallback(
-    //   (config: SkillTemplateConfig) => {
-    //     if (setTplConfig && JSON.stringify(config) !== JSON.stringify(initialTplConfig)) {
-    //       setTplConfig(config);
-    //     }
-    //   },
-    //   [setTplConfig, initialTplConfig],
-    // );
 
     const handleImageUpload = useCallback(
       async (file: File) => {
@@ -452,39 +443,6 @@ export const ChatPanel = memo(
           />
         )}
 
-        {/* {selectedSkill?.configSchema?.items?.length && setTplConfig ? (
-          <ConfigManager
-            readonly={canvasReadonly}
-            key={`${selectedSkill?.name}-${Object.keys(initialTplConfig).length}`}
-            form={form}
-            formErrors={formErrors}
-            setFormErrors={setFormErrors}
-            schema={selectedSkill?.configSchema}
-            tplConfig={initialTplConfig}
-            fieldPrefix="tplConfig"
-            configScope="runtime"
-            onExpandChange={(_expanded) => {
-              if (onInputHeightChange) {
-                setTimeout(onInputHeightChange, 0);
-              }
-            }}
-            resetConfig={() => {
-              // Use setTimeout to move outside of React's render cycle
-              setTimeout(() => {
-                const defaultConfig = selectedSkill?.tplConfig ?? {};
-                form.setFieldValue('tplConfig', defaultConfig);
-              }, 0);
-            }}
-            onFormValuesChange={(_, allValues) => {
-              // Debounce form value changes to prevent cascading updates
-              const newConfig = allValues.tplConfig;
-              if (JSON.stringify(newConfig) !== JSON.stringify(initialTplConfig)) {
-                handleTplConfigChange(newConfig);
-              }
-            }}
-          />
-        ) : null} */}
-
         <ChatActions
           className={classNames({
             'py-2': isList,
@@ -498,6 +456,8 @@ export const ChatPanel = memo(
           contextItems={contextItems}
           runtimeConfig={runtimeConfig}
           setRuntimeConfig={setRuntimeConfig}
+          selectedToolsets={selectedToolsets}
+          setSelectedToolsets={onSelectedToolsetsChange}
         />
       </>
     );

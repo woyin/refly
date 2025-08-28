@@ -28,7 +28,12 @@ import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { omit } from '@refly/utils/index';
 import { cn } from '@refly/utils/cn';
-import { ActionStatus, SkillTemplateConfig, ModelInfo } from '@refly/openapi-schema';
+import {
+  ActionStatus,
+  SkillTemplateConfig,
+  ModelInfo,
+  GenericToolset,
+} from '@refly/openapi-schema';
 import { ContextTarget } from '@refly/common-types';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
@@ -95,6 +100,8 @@ interface ChatPanelProps {
   tplConfig?: SkillTemplateConfig | null;
   onUpdateTplConfig?: (config: SkillTemplateConfig | null) => void;
   resultId?: string;
+  selectedToolsets?: GenericToolset[];
+  onSelectedToolsetsChange?: (toolsets: GenericToolset[]) => void;
 }
 
 export const ChatPanel = ({
@@ -104,6 +111,8 @@ export const ChatPanel = ({
   tplConfig: initialTplConfig,
   onUpdateTplConfig,
   resultId = ContextTarget.Global,
+  selectedToolsets,
+  onSelectedToolsetsChange,
 }: ChatPanelProps) => {
   const { t } = useTranslation();
   const { formErrors, setFormErrors } = useContextPanelStore((state) => ({
@@ -136,10 +145,6 @@ export const ChatPanel = ({
   // Get setActiveResultId from context panel store
   const { setActiveResultId } = useContextPanelStoreShallow((state) => ({
     setActiveResultId: state.setActiveResultId,
-  }));
-
-  const { selectedToolsets } = useLaunchpadStoreShallow((state) => ({
-    selectedToolsets: state.selectedToolsets,
   }));
 
   const [form] = Form.useForm();
@@ -291,6 +296,7 @@ export const ChatPanel = ({
       {
         query: originalQuery,
         resultId: newResultId,
+        selectedToolsets,
         selectedSkill: selectedSkill ?? undefined,
         modelInfo: selectedModel ?? undefined,
         contextItems,
@@ -496,6 +502,8 @@ export const ChatPanel = ({
               onUploadImage={handleImageUpload}
               contextItems={contextItems}
               isExecuting={!!currentActionResultId}
+              selectedToolsets={selectedToolsets}
+              setSelectedToolsets={onSelectedToolsetsChange}
             />
           </div>
         </div>

@@ -41,7 +41,13 @@ import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-up
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 import { genActionResultID } from '@refly/utils';
 import { IContextItem } from '@refly/common-types';
-import { ModelInfo, SkillRuntimeConfig, SkillTemplateConfig, Skill } from '@refly/openapi-schema';
+import {
+  ModelInfo,
+  SkillRuntimeConfig,
+  SkillTemplateConfig,
+  Skill,
+  GenericToolset,
+} from '@refly/openapi-schema';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
@@ -171,6 +177,7 @@ const StatusBar = memo(
       icon?: any;
     } | null>(null);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
 
     // Add hooks for AI functionality
     const { invokeAction } = useInvokeAction();
@@ -387,6 +394,7 @@ const StatusBar = memo(
         {
           query: followUpQuery,
           resultId,
+          selectedToolsets,
           selectedSkill: followUpSkill,
           modelInfo,
           tplConfig,
@@ -419,6 +427,7 @@ const StatusBar = memo(
             entityId: resultId,
             metadata: {
               status: 'executing',
+              selectedToolsets,
               selectedSkill: followUpSkill,
               modelInfo,
               runtimeConfig: followUpRuntimeConfig,
@@ -458,6 +467,7 @@ const StatusBar = memo(
       getFinalProjectId,
       form,
       t,
+      selectedToolsets,
     ]);
 
     // Image upload handlers for follow-up
@@ -652,6 +662,8 @@ const StatusBar = memo(
                     onUploadImage={handleFollowUpImageUpload}
                     contextItems={followUpContextItems}
                     form={form}
+                    selectedToolsets={selectedToolsets}
+                    setSelectedToolsets={setSelectedToolsets}
                   />
                 </motion.div>
               </div>

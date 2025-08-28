@@ -4,7 +4,7 @@ import { IconImage } from '@refly-packages/ai-workspace-common/components/common
 import { LinkOutlined } from '@ant-design/icons';
 import { Send, Stop } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow, useLaunchpadStore } from '@refly/stores';
+import { useUserStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from './model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
@@ -12,7 +12,7 @@ import { cn, extractUrlsWithLinkify } from '@refly/utils/index';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { IContextItem } from '@refly/common-types';
-import { SkillRuntimeConfig } from '@refly/openapi-schema';
+import { SkillRuntimeConfig, GenericToolset } from '@refly/openapi-schema';
 import { ToolSelectorPopover } from '../tool-selector-panel';
 import { logEvent } from '@refly/telemetry-web';
 
@@ -36,6 +36,8 @@ interface ChatActionsProps {
   onUploadImage?: (file: File) => Promise<void>;
   contextItems: IContextItem[];
   isExecuting?: boolean;
+  selectedToolsets?: GenericToolset[];
+  setSelectedToolsets?: (toolsets: GenericToolset[]) => void;
 }
 
 export const ChatActions = memo(
@@ -53,6 +55,8 @@ export const ChatActions = memo(
       handleAbort,
       contextItems,
       isExecuting = false,
+      selectedToolsets,
+      setSelectedToolsets,
     } = props;
     const { t } = useTranslation();
     const { canvasId, readonly } = useCanvasContext();
@@ -64,7 +68,6 @@ export const ChatActions = memo(
         contextItems?.some((item) => item?.type === 'resource' || item?.type === 'document') ??
         false;
 
-      const { selectedToolsets } = useLaunchpadStore.getState();
       const usedTools = selectedToolsets?.length > 0;
 
       logEvent('canvas::node_execute', Date.now(), {
@@ -74,7 +77,7 @@ export const ChatActions = memo(
         used_tools: usedTools,
       });
       handleSendMessage();
-    }, [contextItems, model, handleSendMessage]);
+    }, [contextItems, model, handleSendMessage, selectedToolsets]);
 
     const handleAbortClick = useCallback(() => {
       handleAbort();
@@ -150,7 +153,10 @@ export const ChatActions = memo(
             </Tooltip>
           </Upload>
 
-          <ToolSelectorPopover />
+          <ToolSelectorPopover
+            selectedToolsets={selectedToolsets}
+            onSelectedToolsetsChange={setSelectedToolsets}
+          />
 
           {detectedUrls?.length > 0 && (
             <div className="flex items-center gap-1 ml-2">
@@ -209,7 +215,9 @@ export const ChatActions = memo(
       prevProps.onUploadImage === nextProps.onUploadImage &&
       prevProps.model === nextProps.model &&
       prevProps.customActions === nextProps.customActions &&
-      prevProps.isExecuting === nextProps.isExecuting
+      prevProps.isExecuting === nextProps.isExecuting &&
+      prevProps.selectedToolsets === nextProps.selectedToolsets &&
+      prevProps.setSelectedToolsets === nextProps.setSelectedToolsets
     );
   },
 );

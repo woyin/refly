@@ -47,11 +47,15 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
     runtimeConfig,
     setRuntimeConfig,
     reset,
+    selectedToolsets,
+    setSelectedToolsets,
   } = useFrontPageStoreShallow((state) => ({
     query: state.query,
     selectedSkill: state.selectedSkill,
     setQuery: state.setQuery,
     setSelectedSkill: state.setSelectedSkill,
+    selectedToolsets: state.selectedToolsets,
+    setSelectedToolsets: state.setSelectedToolsets,
     tplConfig: state.tplConfig,
     setTplConfig: state.setTplConfig,
     runtimeConfig: state.runtimeConfig,
@@ -216,6 +220,8 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
                     handleAbort={handleAbort}
                     loading={isCreating}
                     isExecuting={isExecuting}
+                    selectedToolsets={selectedToolsets}
+                    onSelectedToolsetsChange={setSelectedToolsets}
                   />
                 </div>
               </>

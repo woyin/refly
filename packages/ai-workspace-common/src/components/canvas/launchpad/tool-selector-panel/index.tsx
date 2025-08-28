@@ -4,7 +4,6 @@ import type { PopoverProps } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { useListTools } from '@refly-packages/ai-workspace-common/queries';
-import { useLaunchpadStoreShallow } from '@refly/stores';
 import { useUserStoreShallow } from '@refly/stores';
 import { useSiderStoreShallow, SettingsModalActiveTab } from '@refly/stores';
 import { Mcp, Checked, Settings } from 'refly-icons';
@@ -14,26 +13,26 @@ interface ToolsetSelectorPopoverProps {
   trigger?: React.ReactNode;
   placement?: PopoverProps['placement'];
   align?: { offset: [number, number] };
+  selectedToolsets: GenericToolset[];
+  onSelectedToolsetsChange: (toolsets: GenericToolset[]) => void;
 }
 
 /**
  * Tool Selector Popover Component
  * A popover wrapper around the tool selector with a trigger button
+ * Now manages selectedToolsets locally through props instead of global state
  */
 export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
   trigger,
   placement = 'bottomLeft',
   align = { offset: [0, 8] },
+  selectedToolsets = [],
+  onSelectedToolsetsChange,
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
-  // Get selected toolsets from store
-  const { selectedToolsets, setSelectedToolsets } = useLaunchpadStoreShallow((state) => ({
-    selectedToolsets: state.selectedToolsets,
-    setSelectedToolsets: state.setSelectedToolsets,
-  }));
-  const selectedToolsetIds = new Set(selectedToolsets.map((toolset) => toolset.id));
+  const selectedToolsetIds = new Set(selectedToolsets?.map((toolset) => toolset.id) ?? []);
 
   const isLogin = useUserStoreShallow((state) => state.isLogin);
   if (!isLogin) return null;
@@ -56,9 +55,9 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
   const handleToolSelect = useCallback(
     (toolset: GenericToolset) => {
       const newSelectedToolsets = selectedToolsetIds.has(toolset.id)
-        ? selectedToolsets.filter((t) => t.id !== toolset.id)
+        ? (selectedToolsets?.filter((t) => t.id !== toolset.id) ?? [])
         : [
-            ...selectedToolsets,
+            ...(selectedToolsets ?? []),
             {
               id: toolset.id,
               type: toolset.type,
@@ -66,9 +65,9 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
             },
           ];
 
-      setSelectedToolsets(newSelectedToolsets);
+      onSelectedToolsetsChange(newSelectedToolsets);
     },
-    [selectedToolsets, selectedToolsetIds, setSelectedToolsets],
+    [selectedToolsets, selectedToolsetIds, onSelectedToolsetsChange],
   );
 
   const handleOpenToolStore = useCallback(() => {

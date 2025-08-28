@@ -27,8 +27,11 @@ import { useUpdateNodeQuery } from '@refly-packages/ai-workspace-common/hooks/us
 import { useActionResultStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { Undo } from 'refly-icons';
+import { GenericToolset } from '@refly/openapi-schema';
+import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 
 interface EditChatInputProps {
+  entityId: string;
   enabled: boolean;
   resultId: string;
   version?: number;
@@ -44,10 +47,13 @@ interface EditChatInputProps {
   tplConfig?: SkillTemplateConfig;
   runtimeConfig?: SkillRuntimeConfig;
   onQueryChange?: (newQuery: string) => void;
+  selectedToolsets?: GenericToolset[];
+  setSelectedToolsets?: (toolsets: GenericToolset[]) => void;
 }
 
 const EditChatInputComponent = (props: EditChatInputProps) => {
   const {
+    entityId,
     enabled,
     resultId,
     version,
@@ -60,6 +66,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     tplConfig: initialTplConfig,
     runtimeConfig,
     onQueryChange,
+    selectedToolsets,
+    setSelectedToolsets,
   } = props;
 
   const { getEdges, getNodes, deleteElements, addEdges } = useReactFlow();
@@ -68,6 +76,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   const [editModelInfo, setEditModelInfo] = useState<ModelInfo>(modelInfo);
   const [editRuntimeConfig, setEditRuntimeConfig] = useState<SkillRuntimeConfig>(runtimeConfig);
   const contextItemsRef = useRef(editContextItems);
+  const setNodeDataByEntity = useSetNodeDataByEntity();
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { t } = useTranslation();
@@ -229,14 +238,18 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         selectedSkill: skill,
         tplConfig,
         projectId: finalProjectId,
+        selectedToolsets,
       },
       {
         entityId: canvasId,
         entityType: 'canvas',
       },
     );
+    setNodeDataByEntity({ entityId, type: 'skillResponse' }, { metadata: { selectedToolsets } });
+
     setEditMode(false);
   }, [
+    entityId,
     resultId,
     editQuery,
     editModelInfo,
@@ -254,6 +267,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     t,
     form,
     getFinalProjectId,
+    selectedToolsets,
+    setNodeDataByEntity,
   ]);
 
   const handleSelectSkill = useCallback(
@@ -425,6 +440,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         contextItems={editContextItems}
         form={form}
         customActions={customActions}
+        selectedToolsets={selectedToolsets}
+        setSelectedToolsets={setSelectedToolsets}
       />
     </div>
   );
@@ -440,7 +457,10 @@ const arePropsEqual = (prevProps: EditChatInputProps, nextProps: EditChatInputPr
     prevProps.contextItems === nextProps.contextItems &&
     prevProps.actionMeta?.name === nextProps.actionMeta?.name &&
     prevProps.tplConfig === nextProps.tplConfig &&
-    prevProps.onQueryChange === nextProps.onQueryChange
+    prevProps.onQueryChange === nextProps.onQueryChange &&
+    prevProps.selectedToolsets === nextProps.selectedToolsets &&
+    prevProps.setSelectedToolsets === nextProps.setSelectedToolsets &&
+    prevProps.entityId === nextProps.entityId
   );
 };
 
