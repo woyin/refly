@@ -181,6 +181,7 @@ const translations = {
     edit: '编辑',
     save: '保存',
     saveToCanvas: '添加到画布',
+    noData: '暂无数据',
     search: '搜索',
     skip: '跳过',
     finish: '完成',

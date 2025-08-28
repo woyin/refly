@@ -16,6 +16,7 @@ const translations = {
     edit: 'Edit',
     save: 'Save',
     saveToCanvas: 'Add to Canvas',
+    noData: 'No data',
     search: 'Search',
     skip: 'Skip',
     finish: 'Finish',
