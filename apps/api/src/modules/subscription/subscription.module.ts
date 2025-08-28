@@ -12,6 +12,7 @@ import {
 } from './subscription.processor';
 import { SubscriptionController } from './subscription.controller';
 import { CommonModule } from '../common/common.module';
+import { CreditModule } from '../credit/credit.module';
 import {
   QUEUE_CHECK_CANCELED_SUBSCRIPTIONS,
   QUEUE_EXPIRE_AND_RECHARGE_CREDITS,
@@ -21,6 +22,7 @@ import { isDesktop } from '../../utils/runtime';
 @Module({
   imports: [
     CommonModule,
+    CreditModule,
     ...(isDesktop()
       ? []
       : [
