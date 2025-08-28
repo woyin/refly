@@ -19,7 +19,7 @@ import {
 import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow } from '@refly/stores';
+import { useChatStoreShallow, useLaunchpadStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { cleanupNodeEvents } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -43,6 +43,7 @@ import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/ed
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
+import { GenericToolset } from '@refly/openapi-schema';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 const NODE_WIDTH = 480;
@@ -74,10 +75,19 @@ export const SkillNode = memo(
       contextItems = [],
       tplConfig,
       runtimeConfig,
+      selectedToolsets: metadataSelectedToolsets,
     } = metadata;
     const skill = useFindSkill(selectedSkill?.name);
 
+    const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+      selectedToolsets: state.selectedToolsets,
+    }));
+
     const [localQuery, setLocalQuery] = useState(query);
+    const [selectedToolsets, setLocalSelectedToolsets] = useState<GenericToolset[]>(
+      metadataSelectedToolsets ?? selectedToolsetsFromStore ?? [],
+    );
+
     const { data: workflowVariables } = useGetWorkflowVariables({
       query: {
         canvasId,
@@ -187,6 +197,14 @@ export const SkillNode = memo(
         setNodeData(id, { metadata: { runtimeConfig } });
       },
       [id, setNodeData],
+    );
+
+    const setSelectedToolsets = useCallback(
+      (toolsets: GenericToolset[]) => {
+        setLocalSelectedToolsets(toolsets);
+        updateNodeData({ metadata: { selectedToolsets: toolsets } });
+      },
+      [updateNodeData],
     );
 
     const setNodeDataByEntity = useSetNodeDataByEntity();
@@ -302,6 +320,7 @@ export const SkillNode = memo(
             ...runtimeConfig,
           },
           projectId: finalProjectId,
+          selectedToolsets,
         },
         {
           entityId: canvasId,
@@ -319,6 +338,7 @@ export const SkillNode = memo(
               status: 'executing',
               contextItems,
               tplConfig,
+              selectedToolsets,
               selectedSkill,
               modelInfo,
               runtimeConfig: {
@@ -337,7 +357,17 @@ export const SkillNode = memo(
       );
 
       deleteElements({ nodes: [node] });
-    }, [id, getNode, deleteElements, invokeAction, canvasId, addNode, form]);
+    }, [
+      id,
+      getNode,
+      deleteElements,
+      invokeAction,
+      canvasId,
+      addNode,
+      form,
+      selectedToolsets,
+      contextItems,
+    ]);
 
     const handleDelete = useCallback(() => {
       const currentNode = getNode(id);
@@ -463,6 +493,8 @@ export const SkillNode = memo(
               (v) => v.source === 'stepRecord' || v.source === 'resultRecord',
             )}
             enableRichInput={true}
+            selectedToolsets={selectedToolsets}
+            onSelectedToolsetsChange={setSelectedToolsets}
           />
         </div>
       </div>

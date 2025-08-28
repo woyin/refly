@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Form, Input, Button, Radio } from 'antd';
+import { Form, Input, Button, Radio, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Add, Delete } from 'refly-icons';
 import { MdOutlineDragIndicator } from 'react-icons/md';
@@ -249,18 +249,25 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
               )}
             </Droppable>
           </DragDropContext>
-
-          {options.length < MAX_OPTIONS && (
+          <Tooltip
+            title={
+              options.length >= MAX_OPTIONS
+                ? t('canvas.workflow.variables.maxOptions', {
+                    max: MAX_OPTIONS,
+                  }) || 'Max options reached'
+                : ''
+            }
+          >
             <Button
               type="default"
               onClick={handleAddOption}
               className="w-full border-none bg-refly-bg-control-z0 mt-2"
               icon={<Add size={16} />}
-              disabled={editingIndex !== null && !currentOption}
+              disabled={options.length >= MAX_OPTIONS || (editingIndex !== null && !currentOption)}
             >
               {t('canvas.workflow.variables.addOption') || 'Add Option'}
             </Button>
-          )}
+          </Tooltip>
         </Form.Item>
       </>
     );

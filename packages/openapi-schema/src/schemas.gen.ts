@@ -123,7 +123,7 @@ export const McpServerTypeSchema = {
 
 export const McpServerDTOSchema = {
   type: 'object',
-  required: ['name', 'type', 'enabled', 'isGlobal', 'createdAt', 'updatedAt'],
+  required: ['name', 'type', 'enabled', 'isGlobal'],
   properties: {
     name: {
       type: 'string',
@@ -211,24 +211,6 @@ export const McpServerDTOSchema = {
       type: 'string',
       format: 'date-time',
       description: 'MCP server update time',
-    },
-  },
-} as const;
-
-export const ListMcpServersDataSchema = {
-  type: 'object',
-  properties: {
-    query: {
-      type: 'object',
-      properties: {
-        type: {
-          $ref: '#/components/schemas/McpServerType',
-        },
-        enabled: {
-          type: 'boolean',
-          description: 'Filter by enabled status',
-        },
-      },
     },
   },
 } as const;
@@ -1356,7 +1338,7 @@ export const LabelInstanceSchema = {
 export const InputModeSchema = {
   type: 'string',
   description: 'Data input mode',
-  enum: ['input', 'inputNumber', 'inputTextArea', 'select', 'multiSelect', 'radio', 'switch'],
+  enum: ['text', 'textarea', 'number', 'select', 'multiSelect', 'radio', 'switch'],
 } as const;
 
 export const ConfigScopeSchema = {
@@ -1406,23 +1388,9 @@ export const DynamicConfigItemSchema = {
       $ref: '#/components/schemas/InputMode',
     },
     required: {
-      type: 'object',
-      description: 'Specifies whether this config is required and in which contexts',
-      properties: {
-        value: {
-          type: 'boolean',
-          description: 'Whether this config is required',
-          default: false,
-        },
-        configScope: {
-          description: 'The contexts in which the requirement applies',
-          $ref: '#/components/schemas/ConfigScope',
-        },
-      },
-      default: {
-        value: false,
-        scope: ['runtime', 'template'],
-      },
+      type: 'boolean',
+      description: 'Specifies whether this config is required',
+      default: false,
     },
     labelDict: {
       type: 'object',
@@ -5469,9 +5437,17 @@ export const InvokeSkillRequestSchema = {
     },
     selectedMcpServers: {
       type: 'array',
-      description: 'Selected MCP servers',
+      description: 'Selected MCP servers (deprecated, use `tools` instead)',
       items: {
         type: 'string',
+      },
+      deprecated: true,
+    },
+    toolsets: {
+      type: 'array',
+      description: 'Selected toolsets',
+      items: {
+        $ref: '#/components/schemas/GenericToolset',
       },
     },
     workflowExecutionId: {
@@ -5687,6 +5663,11 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Text prompt for content generation',
     },
+    wait: {
+      type: 'boolean',
+      description: 'Whether to wait for the generation to complete',
+      default: false,
+    },
     resultId: {
       type: 'string',
       description: 'Media generation result ID',
@@ -5720,12 +5701,11 @@ export const MediaGenerateResponseSchema = {
         },
         outputUrl: {
           type: 'string',
-          format: 'uri',
-          description: 'Media generation output URL',
+          description: 'Media generation output URL (only available when `wait` is true)',
         },
         storageKey: {
           type: 'string',
-          description: 'Media generation output storage key',
+          description: 'Media generation output storage key (only available when `wait` is true)',
         },
       },
     },
@@ -7712,6 +7692,312 @@ export const DeleteProviderItemRequestSchema = {
     itemId: {
       type: 'string',
       description: 'Provider item ID',
+    },
+  },
+} as const;
+
+export const ToolsetAuthTypeSchema = {
+  type: 'string',
+  description: 'Toolset auth type',
+  enum: ['credentials', 'oauth'],
+} as const;
+
+export const ToolDefinitionSchema = {
+  type: 'object',
+  required: ['name', 'descriptionDict'],
+  properties: {
+    name: {
+      type: 'string',
+      description: 'Tool name',
+    },
+    descriptionDict: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Tool description dictionary for humans',
+    },
+  },
+} as const;
+
+export const AuthPatternSchema = {
+  type: 'object',
+  required: ['type', 'pattern'],
+  properties: {
+    type: {
+      type: 'string',
+      description: 'Auth pattern type',
+      $ref: '#/components/schemas/ToolsetAuthType',
+    },
+    credentialItems: {
+      type: 'array',
+      description: 'Credential items, only for `credentials` type',
+      items: {
+        $ref: '#/components/schemas/DynamicConfigItem',
+      },
+    },
+  },
+} as const;
+
+export const ToolsetDefinitionSchema = {
+  type: 'object',
+  required: ['key', 'descriptionDict', 'tools'],
+  properties: {
+    key: {
+      type: 'string',
+      description: 'Toolset key',
+    },
+    domain: {
+      type: 'string',
+      description: 'Toolset domain (used for display icon)',
+    },
+    labelDict: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Toolset label dictionary',
+    },
+    descriptionDict: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Toolset description dictionary for humans',
+    },
+    tools: {
+      type: 'array',
+      description: 'Toolset tools',
+      items: {
+        $ref: '#/components/schemas/ToolDefinition',
+      },
+    },
+    requiresAuth: {
+      type: 'boolean',
+      description: 'Whether the toolset requires auth',
+      default: false,
+    },
+    authPatterns: {
+      type: 'array',
+      description: 'Toolset auth patterns',
+      items: {
+        $ref: '#/components/schemas/AuthPattern',
+      },
+    },
+    configItems: {
+      type: 'array',
+      description: 'Toolset config items',
+      items: {
+        $ref: '#/components/schemas/DynamicConfigItem',
+      },
+    },
+  },
+} as const;
+
+export const ToolsetInstanceSchema = {
+  type: 'object',
+  required: ['toolsetId', 'name'],
+  properties: {
+    toolsetId: {
+      type: 'string',
+      description: 'Toolset ID',
+    },
+    name: {
+      type: 'string',
+      description: 'Toolset name',
+    },
+    key: {
+      type: 'string',
+      description: 'Toolset key',
+    },
+    isGlobal: {
+      type: 'boolean',
+      description: 'Whether the toolset is global',
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'Whether the toolset is enabled',
+    },
+    authType: {
+      $ref: '#/components/schemas/ToolsetAuthType',
+      description: 'Toolset auth type',
+    },
+    authData: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Toolset auth data',
+    },
+    config: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Toolset config',
+    },
+    definition: {
+      description: 'Toolset definition',
+      $ref: '#/components/schemas/ToolsetDefinition',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Toolset creation timestamp',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Toolset update timestamp',
+    },
+  },
+} as const;
+
+export const ListToolsetInventoryResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: '#/components/schemas/ToolsetDefinition',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const ListToolsetsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: '#/components/schemas/ToolsetInstance',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const UpsertToolsetRequestSchema = {
+  type: 'object',
+  properties: {
+    toolsetId: {
+      type: 'string',
+      description: 'Toolset ID (only for update)',
+    },
+    name: {
+      type: 'string',
+      description: 'Toolset name',
+    },
+    key: {
+      type: 'string',
+      description: 'Toolset key',
+    },
+    enabled: {
+      type: 'boolean',
+      description: 'Whether the toolset is enabled',
+    },
+    authType: {
+      $ref: '#/components/schemas/ToolsetAuthType',
+      description: 'Toolset auth type',
+    },
+    authData: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Toolset auth data',
+    },
+    config: {
+      type: 'object',
+      additionalProperties: true,
+      description: 'Toolset config',
+    },
+  },
+} as const;
+
+export const UpsertToolsetResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/ToolsetInstance',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GenericToolsetTypeSchema = {
+  type: 'string',
+  enum: ['regular', 'mcp'],
+} as const;
+
+export const GenericToolsetSchema = {
+  type: 'object',
+  required: ['type', 'id', 'name'],
+  properties: {
+    type: {
+      $ref: '#/components/schemas/GenericToolsetType',
+      description: 'Toolset type',
+    },
+    id: {
+      type: 'string',
+      description: 'Toolset ID (toolsetId for regular toolset, name for MCP toolset)',
+    },
+    name: {
+      type: 'string',
+      description: 'Toolset name',
+    },
+    toolset: {
+      $ref: '#/components/schemas/ToolsetInstance',
+      description: 'Toolset detail',
+    },
+    mcpServer: {
+      $ref: '#/components/schemas/McpServerDTO',
+      description: 'MCP server',
+    },
+    selectedTools: {
+      type: 'array',
+      description: 'Selected tools (used for skill invocation)',
+      items: {
+        type: 'string',
+      },
+    },
+  },
+} as const;
+
+export const ListToolsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            $ref: '#/components/schemas/GenericToolset',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const DeleteToolsetRequestSchema = {
+  type: 'object',
+  required: ['toolsetId'],
+  properties: {
+    toolsetId: {
+      type: 'string',
+      description: 'Toolset ID',
     },
   },
 } as const;
