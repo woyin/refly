@@ -274,7 +274,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
       {title && (
         <div className="px-4 pt-4">
           <EditChatInput
-            entityId={node.data?.entityId}
             enabled={editMode}
             resultId={resultId}
             version={version}

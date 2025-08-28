@@ -33,7 +33,6 @@ import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/event
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 
 interface EditChatInputProps {
-  entityId: string;
   enabled: boolean;
   resultId: string;
   version?: number;
@@ -55,7 +54,6 @@ interface EditChatInputProps {
 
 const EditChatInputComponent = (props: EditChatInputProps) => {
   const {
-    entityId,
     enabled,
     resultId,
     version,
@@ -308,11 +306,13 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         entityType: 'canvas',
       },
     );
-    setNodeDataByEntity({ entityId, type: 'skillResponse' }, { metadata: { selectedToolsets } });
+    setNodeDataByEntity(
+      { entityId: resultId, type: 'skillResponse' },
+      { metadata: { selectedToolsets } },
+    );
 
     setEditMode(false);
   }, [
-    entityId,
     resultId,
     editQuery,
     editModelInfo,
@@ -528,8 +528,7 @@ const arePropsEqual = (prevProps: EditChatInputProps, nextProps: EditChatInputPr
     prevProps.tplConfig === nextProps.tplConfig &&
     prevProps.onQueryChange === nextProps.onQueryChange &&
     prevProps.selectedToolsets === nextProps.selectedToolsets &&
-    prevProps.setSelectedToolsets === nextProps.setSelectedToolsets &&
-    prevProps.entityId === nextProps.entityId
+    prevProps.setSelectedToolsets === nextProps.setSelectedToolsets
   );
 };
 
