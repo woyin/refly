@@ -4863,6 +4863,10 @@ export type MediaGenerationModelConfig = {
    * Output parameter configurations
    */
   outputParameters?: Array<ModelParameter>;
+  /**
+   * Base model for the model
+   */
+  baseModel?: string;
 };
 
 /**

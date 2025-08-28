@@ -8048,9 +8048,9 @@ components:
           description: Output parameter configurations
           items:
             $ref: '#/components/schemas/ModelParameter'
-        baseUrl:
+        baseModel:
           type: string
-          description: Base URL for the model
+          description: Base model for the model
 
     EmbeddingModelConfig:
       type: object

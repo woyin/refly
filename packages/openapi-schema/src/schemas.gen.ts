@@ -6976,6 +6976,10 @@ export const MediaGenerationModelConfigSchema = {
         $ref: '#/components/schemas/ModelParameter',
       },
     },
+    baseModel: {
+      type: 'string',
+      description: 'Base model for the model',
+    },
   },
 } as const;
 

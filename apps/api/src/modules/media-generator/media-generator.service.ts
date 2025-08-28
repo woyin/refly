@@ -4,6 +4,7 @@ import {
   MediaGenerateRequest,
   MediaGenerateResponse,
   CreditBilling,
+  //MediaGenerationModelConfig,
 } from '@refly/openapi-schema';
 import {
   ReplicateAudioGenerator,
@@ -334,6 +335,8 @@ export class MediaGeneratorService {
         request.providerItemId,
       );
 
+      //const config = JSON.parse(providerItem?.config) as MediaGenerationModelConfig;
+
       if (!providerItem) {
         throw new ProviderItemNotFoundError(`provider item ${request.providerItemId} not found`);
       }
@@ -495,12 +498,155 @@ export class MediaGeneratorService {
     return output ?? '';
   }
 
+  private async getFromReplicate(
+    model: string,
+    input: Record<string, any>,
+    apiKey: string,
+  ): Promise<any> {
+    const url = 'https://api.replicate.com/v1/predictions';
+
+    const headers = {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'wait',
+    };
+
+    const data = {
+      version: model,
+      input: input,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+  private async pollFromFal(
+    model: string,
+    baseModel: string,
+    input: Record<string, any>,
+    apiKey: string,
+  ): Promise<any> {
+    const url = `https://queue.fal.run/${model}`;
+
+    const headers = {
+      Authorization: `Key ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    try {
+      // Submit the initial request
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      const requestId = responseData.request_id;
+
+      if (!requestId) {
+        throw new Error('No request ID received from fal');
+      }
+
+      // Poll for completion
+      const statusUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}/status`;
+      const responseUrl = `https://queue.fal.run/${baseModel}/requests/${requestId}`;
+
+      let status = responseData.status;
+      const maxAttempts = 60; // 5 minutes with 5-second intervals
+      let attempts = 0;
+
+      while (status !== 'COMPLETED' && status !== 'FAILED' && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        attempts++;
+
+        const pollResponse = await fetch(statusUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Key ${apiKey}`,
+          },
+        });
+
+        if (!pollResponse.ok) {
+          throw new Error(
+            `Failed to poll status: ${pollResponse.status} ${pollResponse.statusText}`,
+          );
+        }
+
+        const statusData = await pollResponse.json();
+        status = statusData.status;
+
+        if (status === 'FAILED') {
+          throw new Error(`Request failed: ${statusData.error || 'Unknown error'}`);
+        }
+      }
+
+      if (status !== 'COMPLETED') {
+        throw new Error('Request timed out');
+      }
+
+      // Get the final result
+      const finalResponse = await fetch(responseUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Key ${apiKey}`,
+        },
+      });
+
+      if (!finalResponse.ok) {
+        throw new Error(
+          `Failed to get result: ${finalResponse.status} ${finalResponse.statusText}`,
+        );
+      }
+
+      return await finalResponse.json();
+    } catch (error) {
+      this.logger.error(
+        `Error generating media with fal: ${error instanceof Error ? error.stack : error}`,
+      );
+      throw error;
+    }
+  }
+
+  async getFromFal(model: string, input: Record<string, any>, apiKey: string): Promise<any> {
+    const url = `https://queue.fal.run/${model}`;
+
+    const headers = {
+      Authorization: `Key ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(input),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to submit request: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
   private getUrlFromFalResult(result: any): string {
     if (result?.data?.audio?.url) return result.data.audio.url;
     if (result?.data?.video?.url) return result.data.video.url;
     if (result?.data?.image?.url) return result.data.image.url;
-    if (result?.data?.model_glb?.url) return result.data.image.url;
-    if (result?.data?.model_mesh?.url) return result.data.image.url;
+    if (result?.data?.model_glb?.url) return result.data.model_glb.url;
+    if (result?.data?.model_mesh?.url) return result.data.model_mesh.url;
 
     if (result?.data?.audios?.[0]?.url) return result.data.audios[0].url;
     if (result?.data?.videos?.[0]?.url) return result.data.videos[0].url;
