@@ -11,7 +11,7 @@
 
 Refly.AI 是一款开源的 Agentic 工作空间，专为人机协作而生。在真实场景中无缝融合人类洞察与 AI 执行力——无论是快速原型设计、精美 PPT 制作、热点话题分析、深度研究流程自动化、多模态营销内容生成，还是复杂业务流程编排，Refly 都能为团队提供全链路透明可控的任务驱动体验。
 
-[🚀 v0.9.0 发布！刷爆创意：积分自由 × 全新界面 × 多模态魔法](https://docs.refly.ai/zh/changelog/v0.9.0)
+[🚀 v0.10.0 发布！这才是 Manus + Notion +白板的新范式](https://docs.refly.ai/zh/changelog/v0.10.0)
 
 [Refly Cloud](https://refly.ai/) · [Self-hosting](https://docs.refly.ai/zh/community-version/self-deploy/) · [Forum](https://github.com/refly-ai/refly/discussions) · [Discord](https://discord.gg/bWjffrb89h) · [Twitter](https://x.com/reflyai) · [Documentation](https://docs.refly.ai/)
 

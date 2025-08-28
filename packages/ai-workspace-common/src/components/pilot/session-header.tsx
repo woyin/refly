@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { usePilotStoreShallow } from '@refly/stores';
 import { ScreenDefault, ScreenFull } from 'refly-icons';
 import { SessionStatusTag } from '@refly-packages/ai-workspace-common/components/pilot/session-status-tag';
+import { NewTaskButton } from '@refly-packages/ai-workspace-common/components/pilot/session-container';
 const SessionHeader = memo(
   ({
     canvasId,
@@ -21,8 +22,9 @@ const SessionHeader = memo(
     onClick: () => void;
     onSessionClick: (sessionId: string) => void;
   }) => {
-    const { isPilotOpen } = usePilotStoreShallow((state) => ({
+    const { isPilotOpen, setIsNewTask } = usePilotStoreShallow((state) => ({
       isPilotOpen: state.isPilotOpen,
+      setIsNewTask: state.setIsNewTask,
     }));
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const handleSessionClick = useCallback(
@@ -69,9 +71,11 @@ const SessionHeader = memo(
           </span>
           {session ? <SessionStatusTag status={session?.status} steps={steps} /> : null}
         </div>
-
         {/* Header Right */}
         <div className="flex items-center gap-2">
+          {!isPilotOpen && session?.status === 'finish' && (
+            <NewTaskButton className="p-0 mr-1" setIsNewTask={setIsNewTask} canvasId={canvasId} />
+          )}
           <Popover
             open={isHistoryOpen}
             onOpenChange={setIsHistoryOpen}
@@ -89,7 +93,11 @@ const SessionHeader = memo(
               />
             }
           >
-            <Tooltip title={t('pilot.sessionHistory', { defaultValue: 'Session History' })}>
+            <Tooltip
+              title={t('pilot.sessionHistory', {
+                defaultValue: 'Session History',
+              })}
+            >
               <Button
                 type="text"
                 size="small"
