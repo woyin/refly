@@ -215,7 +215,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
         className={cn(
           'gap-0 h-7 w-auto flex items-center justify-center hover:bg-refly-tertiary-hover',
           {
-            'w-7': !selectedToolsets?.length,
+            '!w-7': !selectedToolsets?.length,
             'bg-refly-bg-control-z0': selectedToolsets?.length,
             'bg-refly-fill-active': open,
           },
@@ -229,7 +229,8 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
             {selectedToolsets.slice(0, 3).map((toolset) => {
               return renderToolsetIcon(toolset, {
                 size: 14,
-                className: 'bg-refly-bg-body-z0 shadow-refly-l p-0.5 -mr-[7px] rounded-full',
+                className:
+                  'bg-refly-bg-body-z0 shadow-refly-l p-0.5 -mr-[7px] last:mr-0 rounded-full',
               });
             })}
             {selectedToolsets.length > 3 && (
