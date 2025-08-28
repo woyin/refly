@@ -629,8 +629,6 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
             break;
           }
           case 'on_chat_model_stream': {
-            this.logger.log(`on_chat_model_stream: ${JSON.stringify(event)}`);
-
             // Suppress streaming content when inside tool execution to avoid duplicate outputs
             // Tools like generateDoc stream to their own targets (e.g., documents) and should not
             // also stream to the skill response channel.

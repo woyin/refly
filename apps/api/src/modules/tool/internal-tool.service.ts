@@ -9,12 +9,7 @@ import { CanvasService } from '../canvas/canvas.service';
 import { CollabContext } from '../collab/collab.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { Document as DocumentPO } from '../../generated/client';
-import {
-  getArtifactContentAndAttributes,
-  incrementalMarkdownUpdate,
-  safeParseJSON,
-} from '@refly/utils';
+import { incrementalMarkdownUpdate, safeParseJSON } from '@refly/utils';
 import { SkillRunnableConfig } from '@refly/skill-template/src/base';
 import {
   SkillPromptModule,
@@ -44,7 +39,7 @@ export class InternalToolService {
     title: string,
     // outline: string,
     config: SkillRunnableConfig,
-  ): Promise<{ docId: string }> {
+  ): Promise<{ docId: string; title: string }> {
     const { resultId } = config.configurable;
 
     this.logger.log(
@@ -66,7 +61,7 @@ export class InternalToolService {
         throw new Error('Action result not found');
       }
 
-      const { targetId, targetType, projectId, input, title, providerItemId } = actionResult;
+      const { targetId, targetType, projectId, input, providerItemId } = actionResult;
 
       const canvasId: string | null = targetType === 'canvas' ? targetId : null;
 
@@ -108,10 +103,34 @@ export class InternalToolService {
         generateDocPromptModule,
       );
 
-      await this.streamLLMResponse(chatModel, requestMessages, document);
+      // Open direct connection to document for real-time updates
+      const collabContext: CollabContext = {
+        user: { uid: document.uid } as User,
+        entity: document,
+        entityType: 'document',
+      };
+
+      const connection = await this.collabService.openDirectConnection(
+        document.docId,
+        collabContext,
+      );
+
+      const contentUpdater = (content: string) => {
+        incrementalMarkdownUpdate(connection.document, content);
+      };
+
+      try {
+        await this.streamLLMResponse(chatModel, requestMessages, contentUpdater, 20);
+      } finally {
+        // Clean up connection
+        if (connection) {
+          connection.disconnect();
+        }
+      }
 
       return {
         docId: document.docId,
+        title: document.title,
       };
     } catch (error) {
       this.logger.error(`Document generation failed: ${error.message}`, error.stack);
@@ -124,7 +143,7 @@ export class InternalToolService {
     title: string,
     type: CodeArtifactType,
     config: SkillRunnableConfig,
-  ): Promise<{ artifactId: string }> {
+  ): Promise<{ artifactId: string; title: string }> {
     const { resultId } = config.configurable;
 
     this.logger.log(
@@ -187,16 +206,21 @@ export class InternalToolService {
         codeArtifactsPromptModule,
       );
 
-      await this.streamLLMResponseForCodeArtifact(
-        chatModel,
-        requestMessages,
-        codeArtifact,
-        resultId,
-        user,
-      );
+      const contentUpdater = async (content: string) => {
+        await this.codeArtifactService.updateCodeArtifact(user, {
+          artifactId: codeArtifact.artifactId,
+          content,
+          createIfNotExists: false,
+          resultId: actionResult.resultId,
+          resultVersion: actionResult.version,
+        });
+      };
+
+      await this.streamLLMResponse(chatModel, requestMessages, contentUpdater, 1000);
 
       return {
         artifactId: codeArtifact.artifactId,
+        title: codeArtifact.title,
       };
     } catch (error) {
       this.logger.error(`Code artifact generation failed: ${error.message}`, error.stack);
@@ -249,27 +273,19 @@ export class InternalToolService {
   }
 
   /**
-   * Stream LLM response and update document content
+   * Generic method to stream LLM response and update content
    */
   private async streamLLMResponse(
     model: BaseChatModel,
     messages: any[],
-    doc: DocumentPO,
+    contentUpdater: (content: string) => Promise<void> | void,
+    throttleDelay = 1000,
   ): Promise<void> {
-    // Open direct connection to document for real-time updates
-    const collabContext: CollabContext = {
-      user: { uid: doc.uid } as User,
-      entity: doc,
-      entityType: 'document',
-    };
-
-    const connection = await this.collabService.openDirectConnection(doc.docId, collabContext);
-
-    const throttledMarkdownUpdate = throttle(
+    const throttledUpdate = throttle(
       (content: string) => {
-        incrementalMarkdownUpdate(connection.document, content);
+        contentUpdater(content);
       },
-      20,
+      throttleDelay,
       {
         leading: true,
         trailing: true,
@@ -286,69 +302,13 @@ export class InternalToolService {
         if (chunk.content) {
           const content = chunk.content.toString();
           accumulatedContent += content;
-          throttledMarkdownUpdate(accumulatedContent);
-        }
-      }
-    } finally {
-      // Clean up connection
-      if (connection) {
-        connection.disconnect();
-      }
-    }
-  }
-
-  /**
-   * Stream LLM response and update code artifact content
-   */
-  private async streamLLMResponseForCodeArtifact(
-    model: BaseChatModel,
-    messages: any[],
-    codeArtifact: any,
-    resultId: string,
-    user: User,
-  ): Promise<void> {
-    const throttledCodeArtifactUpdate = throttle(
-      async (content: string) => {
-        // Extract code content and attributes from content string
-        const {
-          content: codeContent,
-          language,
-          type,
-          title,
-        } = getArtifactContentAndAttributes(content);
-
-        await this.codeArtifactService.updateCodeArtifact(user, {
-          artifactId: codeArtifact.artifactId,
-          title: title ?? codeArtifact.title,
-          type: type ?? codeArtifact.type,
-          language: language ?? codeArtifact.language,
-          content: codeContent,
-          createIfNotExists: false,
-          resultId,
-          resultVersion: codeArtifact.version,
-        });
-      },
-      1000,
-      { leading: true, trailing: true },
-    );
-
-    let accumulatedContent = '';
-
-    try {
-      // Stream the LLM response
-      const stream = await model.stream(messages);
-
-      for await (const chunk of stream) {
-        if (chunk.content) {
-          const content = chunk.content.toString();
-          accumulatedContent += content;
-          throttledCodeArtifactUpdate(accumulatedContent);
+          throttledUpdate(accumulatedContent);
         }
       }
     } finally {
       // Final update to ensure all content is saved
       if (accumulatedContent) {
-        throttledCodeArtifactUpdate.flush();
+        throttledUpdate.flush();
       }
     }
   }
