@@ -98,6 +98,7 @@ export class CustomPrompt extends BaseSkill {
       project,
       runtimeConfig,
       modelConfigMap,
+      preprocessResult,
     } = config.configurable;
     const modelInfo = modelConfigMap.chat;
 
@@ -151,7 +152,7 @@ export class CustomPrompt extends BaseSkill {
       sources,
       usedChatHistory,
       rewrittenQueries,
-    } = config.preprocessResult;
+    } = preprocessResult;
 
     this.engine.logger.log('Prepared context successfully!');
 

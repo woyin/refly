@@ -96,9 +96,9 @@ export class Agent extends BaseSkill {
     customInstructions?: string,
   ) => {
     const { query, messages = [], images = [] } = state;
-    const { locale = 'en' } = config.configurable;
+    const { locale = 'en', preprocessResult } = config.configurable;
     const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
-      config.preprocessResult;
+      preprocessResult;
 
     const requestMessages = buildFinalRequestMessages({
       module,

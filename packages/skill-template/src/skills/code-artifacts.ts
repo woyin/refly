@@ -18,12 +18,7 @@ import { buildFinalRequestMessages } from '../scheduler/utils/message';
 import { genCodeArtifactID } from '@refly/utils';
 import { truncateSource } from '../scheduler/utils/truncator';
 
-// Import prompt building functions - only import what we need
-import {
-  buildArtifactsUserPrompt,
-  buildArtifactsContextUserPrompt,
-  buildArtifactsSystemPrompt,
-} from '../scheduler/module/artifacts';
+import { codeArtifactsPromptModule } from '../scheduler/module/artifacts';
 
 import { extractStructuredData } from '../scheduler/utils/extractor';
 import { BaseMessage, HumanMessage } from '@langchain/core/dist/messages';
@@ -112,7 +107,13 @@ export class CodeArtifacts extends BaseSkill {
 
   commonPreprocess = async (state: GraphState, config: SkillRunnableConfig) => {
     const { query, messages = [], images = [] } = state;
-    const { locale = 'en', modelConfigMap, project, tplConfig } = config.configurable;
+    const {
+      locale = 'en',
+      modelConfigMap,
+      project,
+      tplConfig,
+      preprocessResult,
+    } = config.configurable;
     const modelInfo = modelConfigMap.chat;
     const artifactType = tplConfig?.artifactType?.value ?? 'auto';
 
@@ -120,7 +121,7 @@ export class CodeArtifacts extends BaseSkill {
     const customInstructions = project?.customInstructions;
 
     const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
-      config.preprocessResult;
+      preprocessResult;
 
     // Prepare additional instructions based on selected artifact type
     let typeInstructions = '';
@@ -132,22 +133,7 @@ export class CodeArtifacts extends BaseSkill {
     const combinedInstructions = typeInstructions;
 
     // Custom module for building messages
-    const module = {
-      // Custom system prompt that includes examples
-      buildSystemPrompt: () => {
-        return buildArtifactsSystemPrompt();
-      },
-      buildContextUserPrompt: buildArtifactsContextUserPrompt,
-      buildUserPrompt: ({ originalQuery, optimizedQuery, rewrittenQueries, locale }) => {
-        return buildArtifactsUserPrompt({
-          originalQuery,
-          optimizedQuery,
-          rewrittenQueries,
-          customInstructions,
-          locale,
-        });
-      },
-    };
+    const module = codeArtifactsPromptModule;
 
     // Modify query to include instructions if provided
     const enhancedQuery = combinedInstructions

@@ -58,6 +58,7 @@ export class WebSearch extends BaseSkill {
       project,
       runtimeConfig,
       modelConfigMap,
+      preprocessResult,
     } = config.configurable;
 
     // Extract customInstructions from project if available
@@ -91,7 +92,7 @@ export class WebSearch extends BaseSkill {
       sources,
       usedChatHistory,
       rewrittenQueries,
-    } = config.preprocessResult;
+    } = preprocessResult;
 
     // Set current step for answer generation
     config.metadata.step = { name: 'answerQuestion' };

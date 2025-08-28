@@ -17,13 +17,7 @@ import {
 import { InvokeSkillJobData } from './skill.dto';
 import { PrismaService } from '../common/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import {
-  detectLanguage,
-  incrementalMarkdownUpdate,
-  safeParseJSON,
-  getArtifactContentAndAttributes,
-  genTransactionId,
-} from '@refly/utils';
+import { detectLanguage, safeParseJSON } from '@refly/utils';
 import {
   SkillRunnableConfig,
   SkillEventMap,
@@ -32,7 +26,6 @@ import {
   SkillEngine,
   createSkillInventory,
 } from '@refly/skill-template';
-import { throttle } from 'lodash';
 import { MiscService } from '../misc/misc.service';
 import { ResultAggregator } from '../../utils/result';
 import { DirectConnection } from '@hocuspocus/server';
@@ -58,7 +51,6 @@ import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
 import { SyncWorkflowJobData } from '../workflow/workflow.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { CollabContext } from '../collab/collab.dto';
 import { CollabService } from '../collab/collab.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
 import { CanvasService } from '../canvas/canvas.service';
@@ -288,7 +280,7 @@ export class SkillInvokerService {
   }
 
   private async _invokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
-    const { input, result, target } = data;
+    const { input, result } = data;
     this.logger.log(`invoke skill with data: ${JSON.stringify(data)}`);
 
     const { resultId, version, actionMeta, tier } = result;
@@ -455,140 +447,6 @@ export class SkillInvokerService {
             return;
           case 'artifact':
             this.logger.log(`artifact event received: ${JSON.stringify(artifact)}`);
-            if (artifact) {
-              resultAggregator.addSkillEvent(data);
-
-              const { entityId, type, status } = artifact;
-              if (!artifactMap[entityId]) {
-                artifactMap[entityId] = { ...artifact, content: '', nodeCreated: false };
-              } else {
-                // Only update artifact status
-                artifactMap[entityId].status = status;
-              }
-
-              if (!artifactMap[entityId].nodeCreated) {
-                this.logger.log(
-                  `add node to canvas ${target.entityId}, artifact: ${JSON.stringify(artifact)}`,
-                );
-
-                // For media types, include initial metadata
-                const nodeMetadata: any = {
-                  status: 'generating',
-                };
-
-                // If this is a completed media artifact, include the media URL
-                if (
-                  ['image', 'video', 'audio'].includes(type) &&
-                  status === 'finish' &&
-                  artifact.metadata
-                ) {
-                  Object.assign(nodeMetadata, artifact.metadata);
-                }
-
-                await this.canvasService.addNodeToCanvas(
-                  user,
-                  target.entityId,
-                  {
-                    type: artifact.type,
-                    data: {
-                      title: artifact.title,
-                      entityId: artifact.entityId,
-                      metadata: nodeMetadata,
-                    },
-                  },
-                  [{ type: 'skillResponse', entityId: resultId }],
-                );
-                artifactMap[entityId].nodeCreated = true;
-              }
-
-              // Handle media artifact completion - update node metadata
-              if (
-                ['image', 'video', 'audio'].includes(type) &&
-                status === 'finish' &&
-                artifact.metadata &&
-                artifactMap[entityId].nodeCreated
-              ) {
-                this.logger.log(
-                  `updating media node metadata for ${entityId}, metadata: ${JSON.stringify(artifact.metadata)}`,
-                );
-
-                try {
-                  // Get current canvas state to find and update the node
-                  const { nodes } = await this.canvasSyncService.getCanvasData(user, {
-                    canvasId: target.entityId,
-                  });
-
-                  // Find the node to update
-                  const nodeToUpdate = nodes.find(
-                    (node) =>
-                      node.data?.entityId === artifact.entityId && node.type === artifact.type,
-                  );
-
-                  if (nodeToUpdate) {
-                    // Update the node metadata with media URL and completion status
-                    const updatedNode = {
-                      ...nodeToUpdate,
-                      data: {
-                        ...nodeToUpdate.data,
-                        metadata: {
-                          ...nodeToUpdate.data.metadata,
-                          status: 'finish',
-                          ...artifact.metadata,
-                        },
-                      },
-                    };
-
-                    // Sync the updated node to canvas
-                    await this.canvasSyncService.syncState(user, {
-                      canvasId: target.entityId,
-                      transactions: [
-                        {
-                          txId: genTransactionId(),
-                          createdAt: Date.now(),
-                          syncedAt: Date.now(),
-                          nodeDiffs: [
-                            {
-                              type: 'update',
-                              id: nodeToUpdate.id,
-                              from: nodeToUpdate,
-                              to: updatedNode,
-                            },
-                          ],
-                          edgeDiffs: [],
-                        },
-                      ],
-                    });
-                  } else {
-                    this.logger.warn(`Media node not found for artifact ${artifact.entityId}`);
-                  }
-                } catch (error) {
-                  this.logger.error(`Failed to update media node metadata: ${error.message}`);
-                }
-              }
-
-              // Open direct connection to yjs doc if artifact type is document
-              if (type === 'document' && !artifactMap[entityId].connection) {
-                const doc = await this.prisma.document.findFirst({
-                  where: { docId: entityId },
-                });
-                const collabContext: CollabContext = {
-                  user,
-                  entity: doc,
-                  entityType: 'document',
-                };
-                const connection = await this.collabService.openDirectConnection(
-                  entityId,
-                  collabContext,
-                );
-
-                this.logger.log(
-                  `open direct connection to document ${entityId}, doc: ${JSON.stringify(
-                    connection.document?.toJSON(),
-                  )}`,
-                );
-                artifactMap[entityId].connection = connection;
-              }
-            }
             return;
           case 'error':
             result.errors.push(data.content);
@@ -605,42 +463,6 @@ export class SkillInvokerService {
       resultId,
       actionMeta,
     };
-
-    const throttledMarkdownUpdate = throttle(
-      ({ connection, content }: ArtifactOutput) => {
-        incrementalMarkdownUpdate(connection.document, content);
-      },
-      20,
-      {
-        leading: true,
-        trailing: true,
-      },
-    );
-
-    const throttledCodeArtifactUpdate = throttle(
-      async ({ entityId, content }: ArtifactOutput) => {
-        // Extract code content and attributes from content string
-        const {
-          content: codeContent,
-          language,
-          type,
-          title,
-        } = getArtifactContentAndAttributes(content);
-
-        await this.codeArtifactService.updateCodeArtifact(user, {
-          artifactId: entityId,
-          title,
-          type,
-          language,
-          content: codeContent,
-          createIfNotExists: true,
-          resultId,
-          resultVersion: version,
-        });
-      },
-      1000,
-      { leading: true, trailing: true },
-    );
 
     if (res) {
       writeSSEResponse(res, { event: 'start', resultId, version });
@@ -797,52 +619,20 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
             break;
           }
           case 'on_chat_model_stream': {
+            this.logger.log(`on_chat_model_stream: ${JSON.stringify(event)}`);
             const { content, reasoningContent } = extractChunkContent(chunk);
 
             if ((content || reasoningContent) && !runMeta?.suppressOutput) {
-              if (runMeta?.artifact) {
-                const { entityId } = runMeta.artifact;
-                const artifact = artifactMap[entityId];
-
-                // Update artifact content based on type
-                artifact.content += content;
-
-                if (artifact.type === 'document' && artifact.connection) {
-                  // For document artifacts, update the yjs document
-                  throttledMarkdownUpdate(artifact);
-                } else if (artifact.type === 'codeArtifact') {
-                  // For code artifacts, save to MinIO and database
-                  throttledCodeArtifactUpdate(artifact);
-
-                  // Send stream and stream_artifact event to client
-                  resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
-                  if (res) {
-                    writeSSEResponse(res, {
-                      event: 'stream',
-                      resultId,
-                      content,
-                      reasoningContent: reasoningContent || undefined,
-                      step: runMeta?.step,
-                      artifact: {
-                        entityId: artifact.entityId,
-                        type: artifact.type,
-                        title: artifact.title,
-                      },
-                    });
-                  }
-                }
-              } else {
-                // Update result content and forward stream events to client
-                resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
-                if (res) {
-                  writeSSEResponse(res, {
-                    event: 'stream',
-                    resultId,
-                    content,
-                    reasoningContent,
-                    step: runMeta?.step,
-                  });
-                }
+              // Update result content and forward stream events to client
+              resultAggregator.handleStreamContent(runMeta, content, reasoningContent);
+              if (res) {
+                writeSSEResponse(res, {
+                  event: 'stream',
+                  resultId,
+                  content,
+                  reasoningContent,
+                  step: runMeta?.step,
+                });
               }
             }
             break;

@@ -59,10 +59,10 @@ export class EditDoc extends BaseSkill {
     module: SkillPromptModule,
   ) => {
     const { query, messages = [], images = [] } = state;
-    const { locale = 'en', modelConfigMap } = config.configurable;
+    const { locale = 'en', modelConfigMap, preprocessResult } = config.configurable;
     const modelInfo = modelConfigMap.chat;
 
-    const { optimizedQuery, context, usedChatHistory } = config.preprocessResult;
+    const { optimizedQuery, context, usedChatHistory } = preprocessResult;
 
     const requestMessages = buildFinalRequestMessages({
       module,

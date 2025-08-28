@@ -37,7 +37,13 @@ export class LibrarySearch extends BaseSkill {
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
     const { query, messages = [], images = [] } = state;
-    const { locale = 'en', currentSkill, project, modelConfigMap } = config.configurable;
+    const {
+      locale = 'en',
+      currentSkill,
+      project,
+      modelConfigMap,
+      preprocessResult,
+    } = config.configurable;
 
     // Extract customInstructions from project if available
     const customInstructions = project?.customInstructions;
@@ -65,7 +71,7 @@ export class LibrarySearch extends BaseSkill {
       sources,
       usedChatHistory,
       rewrittenQueries,
-    } = config.preprocessResult;
+    } = preprocessResult;
 
     // Set current step for answer generation
     config.metadata.step = { name: 'answerQuestion' };

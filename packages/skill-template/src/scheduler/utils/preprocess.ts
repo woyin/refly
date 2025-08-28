@@ -1,5 +1,5 @@
 import { Source } from '@refly/openapi-schema';
-import { SkillRunnableConfig } from '../../base';
+import { BaseSkill, SkillRunnableConfig } from '../../base';
 import { processQuery } from './queryProcessor';
 import { extractAndCrawlUrls } from './extract-weblink';
 import { processContextUrls } from '../../utils/url-processing';
@@ -16,6 +16,7 @@ export interface PreprocessResult {
 export const preprocess = async (
   query: string,
   config: SkillRunnableConfig,
+  ctxThis: BaseSkill,
 ): Promise<PreprocessResult> => {
   const { project, runtimeConfig, urls = [], tplConfig } = config.configurable;
 
@@ -31,19 +32,16 @@ export const preprocess = async (
     remainingTokens,
     mentionedContext,
     rewrittenQueries,
-  } = await processQuery(query, {
-    config,
-    ctxThis: this,
-  });
+  } = await processQuery(query, { config, ctxThis });
 
   // Extract URLs from the query and crawl them with optimized concurrent processing
-  const { sources: queryUrlSources } = await extractAndCrawlUrls(query, config, this, {
+  const { sources: queryUrlSources } = await extractAndCrawlUrls(query, config, ctxThis, {
     concurrencyLimit: 5,
     batchSize: 8,
   });
 
   // Process URLs from frontend context if available
-  const contextUrlSources = await processContextUrls(urls, config, this);
+  const contextUrlSources = await processContextUrls(urls, config, ctxThis);
 
   // Combine URL sources from context and query extraction
   const urlSources = [...contextUrlSources, ...(queryUrlSources || [])];
@@ -73,7 +71,7 @@ export const preprocess = async (
       },
       {
         config,
-        ctxThis: this,
+        ctxThis,
         tplConfig,
       },
     );

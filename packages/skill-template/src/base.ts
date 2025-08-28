@@ -185,7 +185,7 @@ export abstract class BaseSkill {
     };
 
     // Preprocess query and context
-    config.preprocessResult = config.preprocessResult || (await preprocess(input.query, config));
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this);
 
     const response = await this.toRunnable().invoke(input, {
       ...config,
@@ -212,6 +212,9 @@ export abstract class BaseSkill {
       name: this.name,
       icon: this.icon,
     };
+
+    // Preprocess query and context
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this);
 
     const runnable = this.toRunnable();
 
@@ -300,7 +303,7 @@ export interface SkillRunnableConfig extends RunnableConfig {
     runtimeConfig?: SkillRuntimeConfig;
     emitter?: EventEmitter<SkillEventMap>;
     selectedTools?: StructuredToolInterface[];
+    preprocessResult?: PreprocessResult;
   };
   metadata?: SkillRunnableMeta;
-  preprocessResult?: PreprocessResult;
 }

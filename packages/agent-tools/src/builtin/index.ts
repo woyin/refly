@@ -3,6 +3,7 @@ import { ToolParams } from '@langchain/core/tools';
 import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor } from '../base';
 import { ToolsetDefinition, User } from '@refly/openapi-schema';
 import { ReflyService } from './interface';
+import { RunnableConfig } from '@langchain/core/dist/runnables/types';
 
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
@@ -63,6 +64,20 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
       descriptionDict: {
         en: 'Generate images, audio, or video content using AI.',
         'zh-CN': '使用 AI 生成图像、音频或视频内容。',
+      },
+    },
+    {
+      name: 'generate_doc',
+      descriptionDict: {
+        en: 'Generate a new document using AI based on a title and configuration.',
+        'zh-CN': '基于标题和配置使用 AI 生成新文档。',
+      },
+    },
+    {
+      name: 'generate_code_artifact',
+      descriptionDict: {
+        en: 'Generate a new code artifact using AI based on title, type, and configuration.',
+        'zh-CN': '基于标题、类型和配置使用 AI 生成新的代码工件。',
       },
     },
   ],
@@ -352,6 +367,75 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
   }
 }
 
+export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
+  name = 'generate_doc';
+  toolsetKey = BuiltinToolsetDefinition.key;
+
+  schema = z.object({
+    title: z.string().describe('Title of the document to generate'),
+  });
+
+  description = 'Generate a new document using AI based on a title.';
+
+  protected params: BuiltinToolParams;
+
+  constructor(params: BuiltinToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>, _: any, config: RunnableConfig): Promise<string> {
+    try {
+      const { reflyService, user } = this.params;
+      const result = await reflyService.generateDoc(user, input.title, config);
+
+      return JSON.stringify(result);
+    } catch (error) {
+      return `Error generating document: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+}
+
+export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams> {
+  name = 'generate_code_artifact';
+  toolsetKey = BuiltinToolsetDefinition.key;
+
+  schema = z.object({
+    title: z.string().describe('Title of the code artifact to generate'),
+    type: z
+      .enum([
+        'application/refly.artifacts.react',
+        'image/svg+xml',
+        'application/refly.artifacts.mermaid',
+        'text/markdown',
+        'application/refly.artifacts.code',
+        'text/html',
+        'application/refly.artifacts.mindmap',
+      ])
+      .describe('Type of code artifact to generate'),
+  });
+
+  description = 'Generate a new code artifact using AI based on title and type.';
+
+  protected params: BuiltinToolParams;
+
+  constructor(params: BuiltinToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>, _: any, config: RunnableConfig): Promise<string> {
+    try {
+      const { reflyService, user } = this.params;
+      const result = await reflyService.generateCodeArtifact(user, input.title, input.type, config);
+
+      return JSON.stringify(result);
+    } catch (error) {
+      return `Error generating code artifact: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+}
+
 export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   toolsetKey = BuiltinToolsetDefinition.key;
   tools = [
@@ -362,5 +446,7 @@ export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
     BuiltinCreateDocument,
     BuiltinListDocuments,
     BuiltinGenerateMedia,
+    BuiltinGenerateDoc,
+    BuiltinGenerateCodeArtifact,
   ] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
 }

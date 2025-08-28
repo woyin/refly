@@ -38,8 +38,10 @@ import {
   MediaGenerateRequest,
   MediaGenerateResponse,
   GetActionResultData,
+  CodeArtifactType,
 } from '@refly/openapi-schema';
 import { Document } from '@langchain/core/documents';
+import { RunnableConfig } from '@langchain/core/dist/runnables/types';
 
 export interface ReflyService {
   listMcpServers: (user: User, req: ListMcpServersData['query']) => Promise<ListMcpServersResponse>;
@@ -79,6 +81,13 @@ export interface ReflyService {
     results: SearchResult[],
     options?: { topN?: number; relevanceThreshold?: number },
   ) => Promise<RerankResponse>;
+  generateDoc: (user: User, title: string, config: RunnableConfig) => Promise<{ docId: string }>;
+  generateCodeArtifact: (
+    user: User,
+    title: string,
+    type: CodeArtifactType,
+    config: RunnableConfig,
+  ) => Promise<{ artifactId: string }>;
   addReferences: (user: User, req: AddReferencesRequest) => Promise<AddReferencesResponse>;
   deleteReferences: (user: User, req: DeleteReferencesRequest) => Promise<DeleteReferencesResponse>;
   inMemorySearchWithIndexing: (

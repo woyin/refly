@@ -18,10 +18,11 @@ import { countToken } from '../scheduler/utils/token';
 import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils/message';
 
 // prompts
-import * as generateDocument from '../scheduler/module/generateDocument';
+import { generateDocPromptModule } from '../scheduler/module/generateDocument';
 import { extractStructuredData } from '../scheduler/utils/extractor';
 import { BaseMessage, HumanMessage } from '@langchain/core/dist/messages';
 import { truncateTextWithToken } from '../scheduler/utils/truncator';
+import { getTitlePrompt } from '../scheduler/module/generateDocument/prompt';
 
 // Add title schema with reason
 const titleSchema = z.object({
@@ -59,9 +60,9 @@ export class GenerateDoc extends BaseSkill {
   ) => {
     config.metadata.step = { name: 'analyzeQuery' };
     const { query, messages = [], images = [] } = state;
+    const { locale = 'en', modelConfigMap, project, preprocessResult } = config.configurable;
     const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
-      config.preprocessResult;
-    const { locale = 'en', modelConfigMap, project } = config.configurable;
+      preprocessResult;
     const modelInfo = modelConfigMap.chat;
 
     // Extract customInstructions from project if available
@@ -118,7 +119,7 @@ export class GenerateDoc extends BaseSkill {
     // Prepare recent chat history
     const recentHistory = truncateMessages(chatHistory); // Limit chat history tokens
 
-    const titlePrompt = `${generateDocument.getTitlePrompt(locale, uiLocale)}
+    const titlePrompt = `${getTitlePrompt(locale, uiLocale)}
 
 USER QUERY:
 ${query}
@@ -179,12 +180,7 @@ ${recentHistory.map((msg) => `${(msg as HumanMessage)?.getType?.()}: ${msg.conte
 
     const model = this.engine.chatModel({ temperature: 0.1 });
 
-    const module = {
-      buildSystemPrompt: (locale: string, needPrepareContext: boolean) =>
-        generateDocument.buildGenerateDocumentSystemPrompt(locale, needPrepareContext),
-      buildUserPrompt: generateDocument.buildGenerateDocumentUserPrompt,
-      buildContextUserPrompt: generateDocument.buildGenerateDocumentContextUserPrompt,
-    };
+    const module = generateDocPromptModule;
 
     const { optimizedQuery, requestMessages, context, sources, usedChatHistory } =
       await this.commonPreprocess(state, config, module);

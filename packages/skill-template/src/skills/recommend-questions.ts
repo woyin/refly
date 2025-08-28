@@ -59,7 +59,13 @@ export class RecommendQuestions extends BaseSkill {
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
     const { messages = [], query } = state;
-    const { locale = 'en', modelConfigMap, tplConfig, project } = config.configurable ?? {};
+    const {
+      locale = 'en',
+      modelConfigMap,
+      tplConfig,
+      project,
+      preprocessResult,
+    } = config.configurable ?? {};
     const modelInfo = modelConfigMap.chat;
 
     // Extract customInstructions from project if available
@@ -81,7 +87,7 @@ export class RecommendQuestions extends BaseSkill {
 
     const isRefresh = tplConfig?.refresh?.value;
 
-    const { context, sources, usedChatHistory } = config.preprocessResult;
+    const { context, sources, usedChatHistory } = preprocessResult;
 
     // Generate title first
     config.metadata.step = { name: 'recommendQuestions' };

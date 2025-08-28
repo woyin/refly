@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ReflyService } from '@refly/agent-tools';
-import { SkillEngine, SkillEngineOptions } from '@refly/skill-template';
+import { SkillEngine, SkillEngineOptions, SkillRunnableConfig } from '@refly/skill-template';
 import { CanvasService } from '../canvas/canvas.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { McpServerService } from '../mcp-server/mcp-server.service';
@@ -17,6 +17,7 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth/auth.service';
 import { MediaGeneratorService } from '../media-generator/media-generator.service';
 import { ActionService } from '../action/action.service';
+import { InternalToolService } from '../tool/internal-tool.service';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -31,7 +32,7 @@ export class SkillEngineService implements OnModuleInit {
   private authService: AuthService;
   private mediaGeneratorService: MediaGeneratorService;
   private actionService: ActionService;
-
+  private internalToolService: InternalToolService;
   private engine: SkillEngine;
 
   constructor(
@@ -49,6 +50,7 @@ export class SkillEngineService implements OnModuleInit {
     this.authService = this.moduleRef.get(AuthService, { strict: false });
     this.mediaGeneratorService = this.moduleRef.get(MediaGeneratorService, { strict: false });
     this.actionService = this.moduleRef.get(ActionService, { strict: false });
+    this.internalToolService = this.moduleRef.get(InternalToolService, { strict: false });
   }
 
   /**
@@ -127,6 +129,23 @@ export class SkillEngineService implements OnModuleInit {
       librarySearch: async (user, req, options) => {
         const result = await this.searchService.search(user, req, options);
         return buildSuccessResponse(result);
+      },
+      generateDoc: async (user, title, config) => {
+        const result = await this.internalToolService.generateDoc(
+          user,
+          title,
+          config as SkillRunnableConfig,
+        );
+        return result;
+      },
+      generateCodeArtifact: async (user, title, type, config) => {
+        const result = await this.internalToolService.generateCodeArtifact(
+          user,
+          title,
+          type,
+          config as SkillRunnableConfig,
+        );
+        return result;
       },
       addReferences: async (user, req) => {
         const references = await this.knowledgeService.addReferences(user, req);

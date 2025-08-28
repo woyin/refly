@@ -42,12 +42,12 @@ export class CommonQnA extends BaseSkill {
     customInstructions?: string,
   ) => {
     const { query, messages = [], images = [] } = state;
-    const { locale = 'en', modelConfigMap } = config.configurable;
+    const { locale = 'en', modelConfigMap, preprocessResult } = config.configurable;
 
     config.metadata.step = { name: 'analyzeQuery' };
 
     const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
-      config.preprocessResult;
+      preprocessResult;
 
     const requestMessages = buildFinalRequestMessages({
       module,
