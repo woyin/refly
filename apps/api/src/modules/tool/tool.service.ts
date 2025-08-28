@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Ajv from 'ajv';
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools';
 import { PrismaService } from '../common/prisma.service';
 import { EncryptionService } from '../common/encryption.service';
@@ -28,7 +27,6 @@ import {
 @Injectable()
 export class ToolService {
   private logger = new Logger(ToolService.name);
-  private ajv = new Ajv();
 
   constructor(
     private readonly prisma: PrismaService,

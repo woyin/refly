@@ -202,9 +202,6 @@ importers:
       '@sentry/profiling-node':
         specifier: ^7.113.0
         version: 7.120.3
-      ajv:
-        specifier: ^8.17.1
-        version: 8.17.1
       apache-arrow:
         specifier: ^20.0.0
         version: 20.0.0
