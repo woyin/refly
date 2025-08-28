@@ -1284,6 +1284,7 @@ const translations = {
         variableType: 'Variable Type',
         required: 'Required',
         multiple: 'Multiple Settings',
+        multipleSelect: 'Multiple Select',
         singleSelect: 'Single Select',
         resourceAcceptType: 'Supported Types',
         resourceTypesRequired: 'Please select supported resource types',
