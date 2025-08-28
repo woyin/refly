@@ -5,8 +5,8 @@
       "providerKey": "openai",
       "baseUrl": "https://api.ppinfra.com/v3/openai",
       "description": {
-        "en": "PPIO Cloud is a leading distributed cloud service provider in China, dedicated to delivering high-performance, cost-effective, ultra-elastic, and low-latency integrated computing power, model, and edge computing services for next-generation applications such as AI, audio-video, and the metaverse. Its AIGC Cloud Service platform leverages distributed computing, cloud-native technologies, and inference acceleration innovations to provide highly flexible, low-cost, and high-efficiency one-stop AI cloud services for enterprises, developers, and researchers, enabling clients to focus on AIGC product innovation and business growth.",
-        "zh-CN": "PPIO派欧云是中国领先的分布式云服务商，致力于为AI、音视频、元宇宙等新一代应用场景提供高性价比、超弹性、低延迟的一站式算力、模型及边缘计算服务。其AIGC云服务平台依托分布式计算、云原生、推理加速等创新技术，汇集模型API、GPU容器等产品，为企业、开发者和研究者提供灵活、低成本、高效能的一站式AI云服务，助力客户专注于AIGC产品创新与业务增长。"
+        "en": "PPIO Cloud is a leading distributed cloud provider in China, offering AI cloud services including GPU computing, model APIs, and edge computing.",
+        "zh-CN": "PPIO派欧云是中国领先的分布式云服务商，提供高性价比的AI云服务，包括GPU计算、模型API和边缘计算，适用于AI、音视频和元宇宙等应用场景。"
       },
       "categories": ["llm", "embedding"],
       "documentation": "https://ppio.com/docs/models/reference-authentication",
