@@ -17,8 +17,12 @@ import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/i
 import { motion, AnimatePresence } from 'motion/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { convertResultContextToItems } from '@refly/canvas-common';
+import {
+  useDocumentStoreShallow,
+  useLaunchpadStoreShallow,
+  useUserStoreShallow,
+} from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -52,7 +56,14 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     hasEditorSelection: state.hasEditorSelection,
     activeDocumentId: state.activeDocumentId,
   }));
-  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
+
+  const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+    selectedToolsets: state.selectedToolsets,
+  }));
+
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
+    selectedToolsetsFromStore ?? [],
+  );
 
   // Add state for follow-up question input with full functionality
   const [showFollowUpInput, setShowFollowUpInput] = useState(false);

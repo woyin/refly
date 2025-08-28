@@ -19,7 +19,7 @@ import {
 import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow } from '@refly/stores';
+import { useChatStoreShallow, useLaunchpadStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { cleanupNodeEvents } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -75,13 +75,18 @@ export const SkillNode = memo(
       contextItems = [],
       tplConfig,
       runtimeConfig,
-      selectedToolsets: metadataSelectedToolsets = [],
+      selectedToolsets: metadataSelectedToolsets,
     } = metadata;
     const skill = useFindSkill(selectedSkill?.name);
 
+    const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+      selectedToolsets: state.selectedToolsets,
+    }));
+
     const [localQuery, setLocalQuery] = useState(query);
-    const [selectedToolsets, setLocalSelectedToolsets] =
-      useState<GenericToolset[]>(metadataSelectedToolsets);
+    const [selectedToolsets, setLocalSelectedToolsets] = useState<GenericToolset[]>(
+      metadataSelectedToolsets ?? selectedToolsetsFromStore ?? [],
+    );
 
     const { data: workflowVariables } = useGetWorkflowVariables({
       query: {

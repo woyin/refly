@@ -11,7 +11,11 @@ import {
   IconUnlock,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useTranslation } from 'react-i18next';
-import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
+import {
+  useDocumentStoreShallow,
+  useLaunchpadStoreShallow,
+  useUserStoreShallow,
+} from '@refly/stores';
 import { AiChat } from 'refly-icons';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -177,7 +181,13 @@ const StatusBar = memo(
       icon?: any;
     } | null>(null);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
+
+    const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+      selectedToolsets: state.selectedToolsets,
+    }));
+    const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
+      selectedToolsetsFromStore ?? [],
+    );
 
     // Add hooks for AI functionality
     const { invokeAction } = useInvokeAction();
