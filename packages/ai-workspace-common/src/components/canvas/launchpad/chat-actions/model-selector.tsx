@@ -297,7 +297,7 @@ export const ModelSelector = memo(
     // Custom dropdown overlay component
     const dropdownOverlay = useMemo(
       () => (
-        <div className="w-[260px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border">
+        <div className="w-[260px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border shadow-refly-m">
           <div className="max-h-[48vh] w-full overflow-y-auto p-2">
             {droplist
               .filter((item) => !!item)

@@ -232,11 +232,11 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
               return renderToolsetIcon(toolset, {
                 size: 14,
                 className:
-                  'bg-refly-bg-body-z0 shadow-refly-l p-0.5 -mr-[7px] last:mr-0 rounded-full',
+                  'bg-refly-bg-body-z0 shadow-refly-s p-0.5 -mr-[7px] last:mr-0 rounded-full',
               });
             })}
             {selectedToolsets.length > 3 && (
-              <div className="min-w-[18px] h-[18px] p-0.5 box-border flex items-center justify-center rounded-full bg-refly-bg-body-z0 shadow-refly-m text-refly-text-1 text-[10px]">
+              <div className="min-w-[18px] h-[18px] p-0.5 box-border flex items-center justify-center rounded-full bg-refly-bg-body-z0 shadow-refly-s text-refly-text-1 text-[10px]">
                 +{selectedToolsets.length - 3}
               </div>
             )}
@@ -254,7 +254,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
       align={align}
       trigger="click"
       arrow={false}
-      styles={{ body: { padding: 0, boxShadow: 'none' } }}
+      styles={{ body: { padding: 0 } }}
       content={
         <div className="w-[340px] max-h-[320px] overflow-y-auto border-[1px] border-solid border-refly-Card-Border rounded-lg bg-refly-bg-content-z2 shadow-[0_8px_40px_0px_rgba(0,0,0,0.08)]">
           {renderContent()}
