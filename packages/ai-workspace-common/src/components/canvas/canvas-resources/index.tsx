@@ -36,28 +36,15 @@ export const CanvasResources = memo(
     }, [canvasId, resetState]);
 
     useEffect(() => {
-      if (activeNode) {
-        if (activeNode.type === 'resource') {
-          setParentType('myUpload');
-        }
-        if (['skillResponse'].includes(activeNode.type)) {
-          setParentType('stepsRecord');
-        }
-        if (
-          ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(
-            activeNode.type as CanvasNodeType,
-          )
-        ) {
-          setParentType('resultsRecord');
-        }
-        if (activeNode.type === 'image' && !!activeNode.data?.metadata?.resultId) {
-          setParentType(activeNode.data?.metadata?.resultId ? 'resultsRecord' : 'myUpload');
-        }
-        if (activeNode.type === 'start') {
-          setParentType(null);
-        }
+      if (!activeNode) {
+        setParentType(null);
+        return;
       }
-      if (activeNode.type === 'skillResponse') {
+
+      if (activeNode.type === 'resource') {
+        setParentType('myUpload');
+      }
+      if (['skillResponse'].includes(activeNode.type)) {
         setParentType('stepsRecord');
       }
       if (['document', 'codeArtifact', 'website'].includes(activeNode.type as CanvasNodeType)) {
@@ -67,6 +54,9 @@ export const CanvasResources = memo(
         // Check if media has resultId to determine if it's from results or my upload
         const hasResultId = !!activeNode.data?.metadata?.resultId;
         setParentType(hasResultId ? 'resultsRecord' : 'myUpload');
+      }
+      if (activeNode.type === 'start') {
+        setParentType(null);
       }
     }, [activeNode]);
 
