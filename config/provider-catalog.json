@@ -1,6 +1,18 @@
 {
   "providers": [
     {
+      "name": "PPIO",
+      "providerKey": "openai",
+      "baseUrl": "https://api.ppinfra.com/v3/openai",
+      "description": {
+        "en": "PPIO Cloud is a leading distributed cloud provider in China, offering AI cloud services including GPU computing, model APIs, and edge computing.",
+        "zh-CN": "PPIO派欧云是中国领先的分布式云服务商，提供高性价比的AI云服务，包括GPU计算、模型API和边缘计算，适用于AI、音视频和元宇宙等应用场景。"
+      },
+      "categories": ["llm", "embedding"],
+      "documentation": "https://ppio.com/docs/models/reference-authentication",
+      "icon": "https://static.refly.ai/icons/providers/siliconflow.png"
+    },
+    {
       "name": "SiliconFlow",
       "providerKey": "openai",
       "baseUrl": "https://api.siliconflow.cn/v1",
