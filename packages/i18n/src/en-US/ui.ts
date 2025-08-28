@@ -1397,6 +1397,7 @@ const translations = {
       nodeNotFound: 'Source node not found or has been deleted. Please add it to the canvas first.',
     },
     nodeActions: {
+      extractVariables: 'Extract variables',
       dragToConnect: 'Drag to Connect',
       clickToAdd: 'Click to Add',
       duplicateMemo: 'Duplicate Memo',

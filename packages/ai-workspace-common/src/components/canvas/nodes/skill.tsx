@@ -329,59 +329,74 @@ export const SkillNode = memo(
         };
 
         try {
+          setIsExtracting(true);
           const result = await extractVariablesMutation.mutateAsync({ body: payload });
           const extractionData = result?.data;
 
-          if (extractionData?.sessionId) {
-            // Now send with the sessionId
-            const resultId = genActionResultID();
-            invokeAction(
-              {
-                resultId,
-                ...data?.metadata,
-                tplConfig,
-                runtimeConfig: {
-                  ...contextRuntimeConfig,
-                  ...runtimeConfig,
-                },
-                projectId: finalProjectId,
+          // Update local state and editor content using processed prompt when available
+          const nextPrompt = extractionData?.processedPrompt ?? prompt;
+          setExtractionResult(extractionData ?? null);
+          setQuery(nextPrompt);
+          setLocalQuery(nextPrompt);
+          updateNodeData({
+            title: nextPrompt,
+            metadata: {
+              ...data?.metadata,
+              query: nextPrompt,
+            },
+          });
+          await refetchWorkflowVariables();
+
+          // Now send (with or without sessionId)
+          const resultId = genActionResultID();
+          invokeAction(
+            {
+              resultId,
+              ...data?.metadata,
+              tplConfig,
+              runtimeConfig: {
+                ...contextRuntimeConfig,
+                ...runtimeConfig,
               },
-              {
-                entityId: canvasId,
-                entityType: 'canvas',
-              },
-            );
-            addNode(
-              {
-                type: 'skillResponse',
-                data: {
-                  title: query,
-                  entityId: resultId,
-                  metadata: {
-                    ...data?.metadata,
-                    status: 'executing',
-                    contextItems,
-                    tplConfig,
-                    selectedSkill,
-                    modelInfo,
-                    runtimeConfig: {
-                      ...contextRuntimeConfig,
-                      ...runtimeConfig,
-                    },
-                    structuredData: {
-                      query,
-                    },
-                    projectId: finalProjectId,
+              projectId: finalProjectId,
+            },
+            {
+              entityId: canvasId,
+              entityType: 'canvas',
+            },
+          );
+          addNode(
+            {
+              type: 'skillResponse',
+              data: {
+                title: nextPrompt,
+                entityId: resultId,
+                metadata: {
+                  ...data?.metadata,
+                  status: 'executing',
+                  contextItems,
+                  tplConfig,
+                  selectedSkill,
+                  modelInfo,
+                  runtimeConfig: {
+                    ...contextRuntimeConfig,
+                    ...runtimeConfig,
                   },
+                  structuredData: {
+                    query: nextPrompt,
+                  },
+                  projectId: finalProjectId,
                 },
-                position: node.position,
               },
-              convertContextItemsToNodeFilters(contextItems),
-            );
-            deleteElements({ nodes: [node] });
-          }
+              position: node.position,
+            },
+            convertContextItemsToNodeFilters(contextItems),
+          );
+          deleteElements({ nodes: [node] });
         } catch (error) {
           console.error('Failed to extract variables:', error);
+        } finally {
+          setIsExtracting(false);
         }
       };
 
