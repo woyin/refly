@@ -33,6 +33,7 @@ import {
   createShare,
   createSkillInstance,
   createSkillTrigger,
+  createToolset,
   createVerification,
   deleteCanvas,
   deleteDocument,
@@ -50,6 +51,7 @@ import {
   deleteShare,
   deleteSkillInstance,
   deleteSkillTrigger,
+  deleteToolset,
   duplicateCanvas,
   duplicateShare,
   emailLogin,
@@ -104,6 +106,9 @@ import {
   listSkillInstances,
   listSkills,
   listSkillTriggers,
+  listTools,
+  listToolsetInventory,
+  listToolsets,
   logout,
   multiLingualWebSearch,
   pinSkillInstance,
@@ -137,6 +142,7 @@ import {
   updateSettings,
   updateSkillInstance,
   updateSkillTrigger,
+  updateToolset,
   updateWorkflowVariables,
   upload,
   validateMcpServer,
@@ -201,6 +207,8 @@ import {
   CreateSkillInstanceError,
   CreateSkillTriggerData,
   CreateSkillTriggerError,
+  CreateToolsetData,
+  CreateToolsetError,
   CreateVerificationData,
   CreateVerificationError,
   DeleteCanvasData,
@@ -235,6 +243,8 @@ import {
   DeleteSkillInstanceError,
   DeleteSkillTriggerData,
   DeleteSkillTriggerError,
+  DeleteToolsetData,
+  DeleteToolsetError,
   DuplicateCanvasData,
   DuplicateCanvasError,
   DuplicateShareData,
@@ -333,6 +343,11 @@ import {
   ListSkillsError,
   ListSkillTriggersData,
   ListSkillTriggersError,
+  ListToolsData,
+  ListToolsError,
+  ListToolsetInventoryError,
+  ListToolsetsData,
+  ListToolsetsError,
   LogoutError,
   MultiLingualWebSearchData,
   MultiLingualWebSearchError,
@@ -396,6 +411,8 @@ import {
   UpdateSkillInstanceError,
   UpdateSkillTriggerData,
   UpdateSkillTriggerError,
+  UpdateToolsetData,
+  UpdateToolsetError,
   UpdateWorkflowVariablesData,
   UpdateWorkflowVariablesError,
   UploadData,
@@ -1093,6 +1110,53 @@ export const useListProviderItemOptions = <
       listProviderItemOptions({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListTools = <
+  TData = Common.ListToolsDefaultResponse,
+  TError = ListToolsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListToolsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListToolsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listTools({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useListToolsetInventory = <
+  TData = Common.ListToolsetInventoryDefaultResponse,
+  TError = ListToolsetInventoryError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListToolsetInventoryKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listToolsetInventory({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useListToolsets = <
+  TData = Common.ListToolsetsDefaultResponse,
+  TError = ListToolsetsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListToolsetsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListToolsetsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listToolsets({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useServeStatic = <
@@ -2543,6 +2607,57 @@ export const useDeleteProviderItem = <
   useMutation<TData, TError, Options<DeleteProviderItemData, true>, TContext>({
     mutationKey: Common.UseDeleteProviderItemKeyFn(mutationKey),
     mutationFn: (clientOptions) => deleteProviderItem(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useCreateToolset = <
+  TData = Common.CreateToolsetMutationResult,
+  TError = CreateToolsetError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<CreateToolsetData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<CreateToolsetData, true>, TContext>({
+    mutationKey: Common.UseCreateToolsetKeyFn(mutationKey),
+    mutationFn: (clientOptions) => createToolset(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useUpdateToolset = <
+  TData = Common.UpdateToolsetMutationResult,
+  TError = UpdateToolsetError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<UpdateToolsetData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<UpdateToolsetData, true>, TContext>({
+    mutationKey: Common.UseUpdateToolsetKeyFn(mutationKey),
+    mutationFn: (clientOptions) => updateToolset(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useDeleteToolset = <
+  TData = Common.DeleteToolsetMutationResult,
+  TError = DeleteToolsetError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<DeleteToolsetData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<DeleteToolsetData, true>, TContext>({
+    mutationKey: Common.UseDeleteToolsetKeyFn(mutationKey),
+    mutationFn: (clientOptions) => deleteToolset(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useScrape = <

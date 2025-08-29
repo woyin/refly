@@ -52,7 +52,9 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const buttonContainerRef = useRef<HTMLDivElement>(null);
 
     const showMoreButton = useMemo(() => {
-      return !['skill', 'mediaSkill', 'video', 'audio', 'image'].includes(nodeType);
+      return !['skill', 'mediaSkill', 'mediaSkillResponse', 'video', 'audio', 'image'].includes(
+        nodeType,
+      );
     }, [nodeType]);
 
     const { nodes } = useStore(
@@ -160,8 +162,8 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const actionButtons = useMemo(() => {
       const buttons: ActionButtonType[] = [];
 
-      // Add askAI button for most node types except skill, mediaSkill, audio, video
-      if (!['skill', 'mediaSkill', 'audio', 'video'].includes(nodeType)) {
+      // Add askAI button for most node types except skill, mediaSkill, mediaSkillResponse, audio, video
+      if (!['skill', 'mediaSkill', 'mediaSkillResponse', 'audio', 'video'].includes(nodeType)) {
         buttons.push({
           key: 'askAI',
           icon: AiChat,
@@ -200,6 +202,15 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
           });
           break;
 
+        case 'mediaSkillResponse':
+          buttons.push({
+            key: 'rerun',
+            icon: Reload,
+            tooltip: t('canvas.nodeActions.rerun'),
+            onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'rerun')),
+          });
+          break;
+
         case 'image':
           buttons.push({
             key: 'download',
@@ -208,11 +219,48 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             onClick: handleDownload,
             loading: downloadRunning,
           });
+
+          buttons.push({
+            key: 'cloneAskAI',
+            icon: Clone,
+            tooltip: t('canvas.nodeActions.cloneAskAI'),
+            onClick: handleCloneAskAI,
+            loading: cloneAskAIRunning,
+          });
+          break;
+
+        case 'audio':
+          buttons.push({
+            key: 'cloneAskAI',
+            icon: Clone,
+            tooltip: t('canvas.nodeActions.cloneAskAI'),
+            onClick: handleCloneAskAI,
+            loading: cloneAskAIRunning,
+          });
+          break;
+
+        case 'video':
+          buttons.push({
+            key: 'cloneAskAI',
+            icon: Clone,
+            tooltip: t('canvas.nodeActions.cloneAskAI'),
+            onClick: handleCloneAskAI,
+            loading: cloneAskAIRunning,
+          });
           break;
       }
 
       // Add copy button for content nodes
-      if (['skillResponse', 'document', 'resource', 'codeArtifact', 'memo'].includes(nodeType)) {
+      if (
+        [
+          'skillResponse',
+          'mediaSkillResponse',
+          'document',
+          'resource',
+          'codeArtifact',
+          'memo',
+        ].includes(nodeType)
+      ) {
         buttons.push({
           key: 'copy',
           icon: Copy,

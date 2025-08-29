@@ -1,7 +1,8 @@
 import mitt from 'mitt';
 import { XYPosition } from '@xyflow/react';
-import { CanvasNodeType, EntityType } from '@refly/openapi-schema';
+import { CanvasNodeType, EntityType, ModelInfo } from '@refly/openapi-schema';
 import { CanvasNodeData, CanvasNodeFilter } from '@refly/canvas-common';
+import { IContextItem } from '@refly/common-types';
 
 export type NodeContextMenuSource = 'node' | 'handle';
 export type NodeDragCreateInfo = {
@@ -42,8 +43,9 @@ export type Events = {
     targetType: EntityType;
     targetId: string;
     query: string;
-    model: string;
+    modelInfo: ModelInfo;
     nodeId: string;
+    contextItems?: IContextItem[];
   };
   mediaGenerationComplete: {
     nodeId: string;

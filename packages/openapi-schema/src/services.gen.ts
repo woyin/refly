@@ -13,7 +13,7 @@ import type {
   GenerateAppTemplateData,
   GenerateAppTemplateError,
   GenerateAppTemplateResponse,
-  ListMcpServersData2,
+  ListMcpServersData,
   ListMcpServersError,
   ListMcpServersResponse2,
   CreateMcpServerData,
@@ -393,6 +393,23 @@ import type {
   DeleteProviderItemData,
   DeleteProviderItemError,
   DeleteProviderItemResponse,
+  ListToolsData,
+  ListToolsError,
+  ListToolsResponse2,
+  ListToolsetInventoryError,
+  ListToolsetInventoryResponse2,
+  ListToolsetsData,
+  ListToolsetsError,
+  ListToolsetsResponse2,
+  CreateToolsetData,
+  CreateToolsetError,
+  CreateToolsetResponse,
+  UpdateToolsetData,
+  UpdateToolsetError,
+  UpdateToolsetResponse,
+  DeleteToolsetData,
+  DeleteToolsetError,
+  DeleteToolsetResponse,
   ScrapeData,
   ScrapeError,
   ScrapeResponse,
@@ -456,7 +473,7 @@ export const generateAppTemplate = <ThrowOnError extends boolean = false>(
  * List all MCP servers for a user
  */
 export const listMcpServers = <ThrowOnError extends boolean = false>(
-  options?: Options<ListMcpServersData2, ThrowOnError>,
+  options?: Options<ListMcpServersData, ThrowOnError>,
 ) => {
   return (options?.client ?? client).get<
     ListMcpServersResponse2,
@@ -2534,6 +2551,88 @@ export const deleteProviderItem = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/provider/item/delete',
+  });
+};
+
+/**
+ * List tool
+ * List all available tools, including regular tools and MCP servers.
+ */
+export const listTools = <ThrowOnError extends boolean = false>(
+  options?: Options<ListToolsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<ListToolsResponse2, ListToolsError, ThrowOnError>({
+    ...options,
+    url: '/tool/list',
+  });
+};
+
+/**
+ * List toolset inventory
+ * List all available toolsets in inventory, including uninstalled.
+ */
+export const listToolsetInventory = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListToolsetInventoryResponse2,
+    ListToolsetInventoryError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/tool/inventory/list',
+  });
+};
+
+/**
+ * List toolsets
+ * List all installed toolsets
+ */
+export const listToolsets = <ThrowOnError extends boolean = false>(
+  options?: Options<ListToolsetsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<ListToolsetsResponse2, ListToolsetsError, ThrowOnError>({
+    ...options,
+    url: '/tool/toolset/list',
+  });
+};
+
+/**
+ * Create regular tool
+ * Create a new regular tool
+ */
+export const createToolset = <ThrowOnError extends boolean = false>(
+  options: Options<CreateToolsetData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<CreateToolsetResponse, CreateToolsetError, ThrowOnError>({
+    ...options,
+    url: '/tool/toolset/create',
+  });
+};
+
+/**
+ * Update toolset
+ * Update an existing toolset
+ */
+export const updateToolset = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateToolsetData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<UpdateToolsetResponse, UpdateToolsetError, ThrowOnError>({
+    ...options,
+    url: '/tool/toolset/update',
+  });
+};
+
+/**
+ * Delete toolset
+ * Delete an existing toolset
+ */
+export const deleteToolset = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteToolsetData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<DeleteToolsetResponse, DeleteToolsetError, ThrowOnError>({
+    ...options,
+    url: '/tool/toolset/delete',
   });
 };
 

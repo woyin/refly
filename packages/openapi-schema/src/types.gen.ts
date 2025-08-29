@@ -156,21 +156,11 @@ export type McpServerDTO = {
   /**
    * MCP server creation time
    */
-  createdAt: string;
+  createdAt?: string;
   /**
    * MCP server update time
    */
-  updatedAt: string;
-};
-
-export type ListMcpServersData = {
-  query?: {
-    type?: McpServerType;
-    /**
-     * Filter by enabled status
-     */
-    enabled?: boolean;
-  };
+  updatedAt?: string;
 };
 
 export type ListMcpServersResponse = BaseResponse & {
@@ -977,9 +967,9 @@ export type LabelInstance = {
  * Data input mode
  */
 export type InputMode =
-  | 'input'
-  | 'inputNumber'
-  | 'inputTextArea'
+  | 'text'
+  | 'textarea'
+  | 'number'
   | 'select'
   | 'multiSelect'
   | 'radio'
@@ -1023,18 +1013,9 @@ export type DynamicConfigItem = {
    */
   inputMode: InputMode;
   /**
-   * Specifies whether this config is required and in which contexts
+   * Specifies whether this config is required
    */
-  required?: {
-    /**
-     * Whether this config is required
-     */
-    value?: boolean;
-    /**
-     * The contexts in which the requirement applies
-     */
-    configScope?: ConfigScope;
-  };
+  required?: boolean;
   /**
    * Config label (key is locale, value is label)
    */
@@ -3874,9 +3855,14 @@ export type InvokeSkillRequest = {
    */
   triggerId?: string;
   /**
-   * Selected MCP servers
+   * Selected MCP servers (deprecated, use `tools` instead)
+   * @deprecated
    */
   selectedMcpServers?: Array<string>;
+  /**
+   * Selected toolsets
+   */
+  toolsets?: Array<GenericToolset>;
   /**
    * Workflow execution ID for workflow context
    */
@@ -4004,6 +3990,22 @@ export type MediaGenerateRequest = {
    * Text prompt for content generation
    */
   prompt: string;
+  /**
+   * Whether to wait for the generation to complete
+   */
+  wait?: boolean;
+  /**
+   * Media generation result ID
+   */
+  resultId?: string;
+  /**
+   * API key for the provider
+   */
+  apiKey?: string;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<MediaModelParameter>;
 };
 
 export type MediaGenerateResponse = BaseResponse & {
@@ -4011,6 +4013,14 @@ export type MediaGenerateResponse = BaseResponse & {
    * Media generation result ID
    */
   resultId?: string;
+  /**
+   * Media generation output URL (only available when `wait` is true)
+   */
+  outputUrl?: string;
+  /**
+   * Media generation output storage key (only available when `wait` is true)
+   */
+  storageKey?: string;
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
@@ -4730,6 +4740,18 @@ export type ModelCapabilities = {
    * Whether this model supports context caching
    */
   contextCaching?: boolean;
+  /**
+   * Whether this model supports image generation
+   */
+  image?: boolean;
+  /**
+   * Whether this model supports video generation
+   */
+  video?: boolean;
+  /**
+   * Whether this model supports audio generation
+   */
+  audio?: boolean;
 };
 
 export type ModelInfo = {
@@ -4774,9 +4796,17 @@ export type ModelInfo = {
    */
   group?: string;
   /**
+   * Model category
+   */
+  category?: ProviderCategory;
+  /**
    * Credit billing info
    */
   creditBilling?: CreditBilling;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<MediaModelParameter>;
 };
 
 export type ListModelsResponse = BaseResponse & {
@@ -4864,6 +4894,42 @@ export type LLMModelConfig = {
 };
 
 /**
+ * Media generation parameter configuration
+ */
+export type MediaModelParameter = {
+  /**
+   * Parameter name
+   */
+  name: string;
+  /**
+   * Parameter type
+   */
+  type: 'url' | 'text' | 'option';
+  value?: string | Array<string> | number | boolean;
+  /**
+   * Available options for option type
+   */
+  options?: Array<string | number | boolean>;
+  /**
+   * Parameter description
+   */
+  description?: string;
+  /**
+   * Whether this parameter is required
+   */
+  required: boolean;
+  /**
+   * Whether this parameter should be displayed in UI
+   */
+  visible: boolean;
+};
+
+/**
+ * Parameter type
+ */
+export type type3 = 'url' | 'text' | 'option';
+
+/**
  * Provider config for media generation
  */
 export type MediaGenerationModelConfig = {
@@ -4883,6 +4949,22 @@ export type MediaGenerationModelConfig = {
    * Model description
    */
   description?: string;
+  /**
+   * Supported languages for translation
+   */
+  supportedLanguages?: Array<string>;
+  /**
+   * Input parameter configurations
+   */
+  inputParameters?: Array<MediaModelParameter>;
+  /**
+   * Output parameter configurations
+   */
+  outputParameters?: Array<MediaModelParameter>;
+  /**
+   * Base model for the model
+   */
+  baseModel?: string;
 };
 
 /**
@@ -5308,6 +5390,212 @@ export type DeleteProviderItemRequest = {
   itemId: string;
 };
 
+/**
+ * Toolset auth type
+ */
+export type ToolsetAuthType = 'credentials' | 'oauth';
+
+export type ToolDefinition = {
+  /**
+   * Tool name
+   */
+  name: string;
+  /**
+   * Tool description dictionary for humans
+   */
+  descriptionDict: {
+    [key: string]: unknown;
+  };
+};
+
+export type AuthPattern = {
+  /**
+   * Auth pattern type
+   */
+  type: ToolsetAuthType;
+  /**
+   * Credential items, only for `credentials` type
+   */
+  credentialItems?: Array<DynamicConfigItem>;
+};
+
+export type ToolsetDefinition = {
+  /**
+   * Toolset key
+   */
+  key: string;
+  /**
+   * Toolset domain (used for display icon)
+   */
+  domain?: string;
+  /**
+   * Toolset label dictionary
+   */
+  labelDict?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Toolset description dictionary for humans
+   */
+  descriptionDict: {
+    [key: string]: unknown;
+  };
+  /**
+   * Toolset tools
+   */
+  tools: Array<ToolDefinition>;
+  /**
+   * Whether the toolset requires auth
+   */
+  requiresAuth?: boolean;
+  /**
+   * Toolset auth patterns
+   */
+  authPatterns?: Array<AuthPattern>;
+  /**
+   * Toolset config items
+   */
+  configItems?: Array<DynamicConfigItem>;
+};
+
+export type ToolsetInstance = {
+  /**
+   * Toolset ID
+   */
+  toolsetId: string;
+  /**
+   * Toolset name
+   */
+  name: string;
+  /**
+   * Toolset key
+   */
+  key?: string;
+  /**
+   * Whether the toolset is global
+   */
+  isGlobal?: boolean;
+  /**
+   * Whether the toolset is enabled
+   */
+  enabled?: boolean;
+  /**
+   * Toolset auth type
+   */
+  authType?: ToolsetAuthType;
+  /**
+   * Toolset auth data
+   */
+  authData?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Toolset config
+   */
+  config?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Toolset definition
+   */
+  definition?: ToolsetDefinition;
+  /**
+   * Toolset creation timestamp
+   */
+  createdAt?: string;
+  /**
+   * Toolset update timestamp
+   */
+  updatedAt?: string;
+};
+
+export type ListToolsetInventoryResponse = BaseResponse & {
+  data?: Array<ToolsetDefinition>;
+};
+
+export type ListToolsetsResponse = BaseResponse & {
+  data?: Array<ToolsetInstance>;
+};
+
+export type UpsertToolsetRequest = {
+  /**
+   * Toolset ID (only for update)
+   */
+  toolsetId?: string;
+  /**
+   * Toolset name
+   */
+  name?: string;
+  /**
+   * Toolset key
+   */
+  key?: string;
+  /**
+   * Whether the toolset is enabled
+   */
+  enabled?: boolean;
+  /**
+   * Toolset auth type
+   */
+  authType?: ToolsetAuthType;
+  /**
+   * Toolset auth data
+   */
+  authData?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Toolset config
+   */
+  config?: {
+    [key: string]: unknown;
+  };
+};
+
+export type UpsertToolsetResponse = BaseResponse & {
+  data?: ToolsetInstance;
+};
+
+export type GenericToolsetType = 'regular' | 'mcp';
+
+export type GenericToolset = {
+  /**
+   * Toolset type
+   */
+  type: GenericToolsetType;
+  /**
+   * Toolset ID (toolsetId for regular toolset, name for MCP toolset)
+   */
+  id: string;
+  /**
+   * Toolset name
+   */
+  name: string;
+  /**
+   * Toolset detail
+   */
+  toolset?: ToolsetInstance;
+  /**
+   * MCP server
+   */
+  mcpServer?: McpServerDTO;
+  /**
+   * Selected tools (used for skill invocation)
+   */
+  selectedTools?: Array<string>;
+};
+
+export type ListToolsResponse = BaseResponse & {
+  data?: Array<GenericToolset>;
+};
+
+export type DeleteToolsetRequest = {
+  /**
+   * Toolset ID
+   */
+  toolsetId: string;
+};
+
 export type DocumentInterface = {
   /**
    * An optional identifier for the document. Ideally this should be unique across the document collection and formatted as a UUID.
@@ -5662,12 +5950,16 @@ export type GenerateAppTemplateResponse = AppTemplateResult;
 
 export type GenerateAppTemplateError = unknown;
 
-export type ListMcpServersData2 = {
+export type ListMcpServersData = {
   query?: {
     /**
      * Filter by enabled status
      */
     enabled?: boolean;
+    /**
+     * Filter by isGlobal status. If not passed, return both global and user-specific MCP servers.
+     */
+    isGlobal?: boolean;
     /**
      * MCP server type
      */
@@ -7033,7 +7325,7 @@ export type ListProvidersData = {
      */
     enabled?: boolean;
     /**
-     * Whether the provider is global
+     * Whether the provider is global. If not passed, return both global and user-specific providers.
      */
     isGlobal?: boolean;
     /**
@@ -7090,7 +7382,7 @@ export type ListProviderItemsData = {
      */
     enabled?: boolean;
     /**
-     * Whether the provider item is global
+     * Whether the provider item is global. If not passed, return both global and user-specific provider items.
      */
     isGlobal?: boolean;
     /**
@@ -7160,6 +7452,60 @@ export type DeleteProviderItemData = {
 export type DeleteProviderItemResponse = BaseResponse;
 
 export type DeleteProviderItemError = unknown;
+
+export type ListToolsData = {
+  query?: {
+    /**
+     * Whether the tool is global. If not passed, return both global and user-specific tools.
+     */
+    isGlobal?: boolean;
+  };
+};
+
+export type ListToolsResponse2 = ListToolsResponse;
+
+export type ListToolsError = unknown;
+
+export type ListToolsetInventoryResponse2 = ListToolsetInventoryResponse;
+
+export type ListToolsetInventoryError = unknown;
+
+export type ListToolsetsData = {
+  query?: {
+    /**
+     * Whether the toolset is global. If not passed, return both global and user-specific toolsets.
+     */
+    isGlobal?: boolean;
+  };
+};
+
+export type ListToolsetsResponse2 = ListToolsetsResponse;
+
+export type ListToolsetsError = unknown;
+
+export type CreateToolsetData = {
+  body: UpsertToolsetRequest;
+};
+
+export type CreateToolsetResponse = UpsertToolsetResponse;
+
+export type CreateToolsetError = unknown;
+
+export type UpdateToolsetData = {
+  body: UpsertToolsetRequest;
+};
+
+export type UpdateToolsetResponse = UpsertToolsetResponse;
+
+export type UpdateToolsetError = unknown;
+
+export type DeleteToolsetData = {
+  body: DeleteToolsetRequest;
+};
+
+export type DeleteToolsetResponse = BaseResponse;
+
+export type DeleteToolsetError = unknown;
 
 export type ScrapeData = {
   body: ScrapeWeblinkRequest;

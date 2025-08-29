@@ -345,6 +345,7 @@ export const SkillResponseNode = memo(
           query: title,
           selectedSkill: skill,
           contextItems: data?.metadata?.contextItems,
+          selectedToolsets: data?.metadata?.selectedToolsets,
         },
         {
           entityType: 'canvas',
@@ -548,6 +549,8 @@ export const SkillResponseNode = memo(
           },
         },
         connectTo,
+        false,
+        true,
       );
 
       nodeActionEmitter.emit(createNodeEventName(id, 'cloneAskAI.completed'));

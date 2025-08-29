@@ -13,7 +13,8 @@ import {
   genCreditUsageId,
   genCreditDebtId,
   safeParseJSON,
-  genCreditRechargeId,
+  genDailyCreditRechargeId,
+  genSubscriptionRechargeId,
 } from '@refly/utils';
 import { CreditBalance } from './credit.dto';
 
@@ -27,6 +28,132 @@ export class CreditService {
   ) {}
 
   /**
+   * Create daily gift credit recharge for a user
+   * This method creates a new daily gift credit recharge with proper expiration handling
+   */
+  async createDailyGiftCreditRecharge(
+    uid: string,
+    creditAmount: number,
+    description?: string,
+    now: Date = new Date(),
+  ): Promise<void> {
+    // Set created time to start of today (00:00:00)
+    const createdAt = new Date(now);
+    createdAt.setHours(0, 0, 0, 0);
+
+    // Set expires time to start of tomorrow (00:00:00)
+    const expiresAt = new Date(now);
+    expiresAt.setDate(expiresAt.getDate() + 1);
+    expiresAt.setHours(0, 0, 0, 0);
+
+    await this.prisma.creditRecharge.createMany({
+      data: [
+        {
+          rechargeId: genDailyCreditRechargeId(uid, now),
+          uid,
+          amount: creditAmount,
+          balance: creditAmount,
+          enabled: true,
+          source: 'gift',
+          description: description ?? 'Daily gift credit recharge',
+          createdAt: createdAt,
+          updatedAt: now,
+          expiresAt: expiresAt,
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    this.logger.log(
+      `Created daily gift credit recharge for user ${uid}: ${creditAmount} credits, expires at ${expiresAt.toISOString()}`,
+    );
+  }
+
+  /**
+   * Create subscription credit recharge for a user
+   * This method handles debt payment first, then creates a new credit recharge record
+   */
+  async createSubscriptionCreditRecharge(
+    uid: string,
+    creditAmount: number,
+    expiresAt: Date,
+    description?: string,
+    now: Date = new Date(),
+  ): Promise<void> {
+    // Check for existing debts
+    const activeDebts = await this.prisma.creditDebt.findMany({
+      where: {
+        uid,
+        enabled: true,
+        balance: {
+          gt: 0,
+        },
+      },
+      orderBy: {
+        createdAt: 'asc', // Pay off oldest debts first
+      },
+    });
+
+    let remainingCredits = creditAmount;
+    const debtPaymentOperations = [];
+
+    // Pay off debts first
+    for (const debt of activeDebts) {
+      if (remainingCredits <= 0) break;
+
+      const paymentAmount = Math.min(debt.balance, remainingCredits);
+      const newDebtBalance = debt.balance - paymentAmount;
+
+      debtPaymentOperations.push(
+        this.prisma.creditDebt.update({
+          where: { pk: debt.pk },
+          data: {
+            balance: newDebtBalance,
+            enabled: newDebtBalance > 0, // Disable if fully paid
+            updatedAt: now,
+          },
+        }),
+      );
+
+      remainingCredits -= paymentAmount;
+    }
+
+    // Create recharge record only if there are remaining credits after debt payment
+    const operations = [...debtPaymentOperations];
+
+    if (remainingCredits > 0) {
+      operations.push(
+        this.prisma.creditRecharge.createMany({
+          data: [
+            {
+              rechargeId: genSubscriptionRechargeId(uid, now),
+              uid,
+              amount: remainingCredits,
+              balance: remainingCredits,
+              enabled: true,
+              source: 'subscription',
+              description,
+              createdAt: now,
+              updatedAt: now,
+              expiresAt,
+            },
+          ],
+          skipDuplicates: true,
+        }),
+      );
+    }
+
+    // Execute all operations in a transaction
+    await this.prisma.$transaction(operations);
+
+    this.logger.log(
+      `Processed credit recharge for user ${uid}: ${creditAmount} credits total, ` +
+        `${creditAmount - remainingCredits} used for debt payment, ` +
+        `${remainingCredits} added as new balance, expires at ${expiresAt.toISOString()}`,
+    );
+  }
+
+  /**
    * Lazy load daily gift credits for user if needed
    * This method first checks if there's already a gift credit recharge for today,
    * then checks if user has active subscription and daily gift quota,
@@ -34,13 +161,15 @@ export class CreditService {
    * Uses distributed lock to prevent concurrent creation of gift credits
    */
   private async lazyLoadDailyGiftCredits(uid: string): Promise<void> {
+    this.logger.log(`Lazy loading daily gift credits for user ${uid}`);
+
     const lockKey = `gift_credit_lock:${uid}`;
 
     // Try to acquire distributed lock
     const releaseLock = await this.redis.acquireLock(lockKey);
 
     if (!releaseLock) {
-      this.logger.debug(`Failed to acquire lock for user ${uid}, skipping gift credit creation`);
+      this.logger.log(`Failed to acquire lock for user ${uid}, skipping gift credit creation`);
       return; // Another process is handling this user
     }
 
@@ -66,6 +195,9 @@ export class CreditService {
       });
 
       if (existingGiftRecharge) {
+        this.logger.log(
+          `User ${uid} already has gift credits for today, skipping gift credit creation`,
+        );
         return; // Already has gift credits for today
       }
 
@@ -129,33 +261,12 @@ export class CreditService {
         return; // No daily gift quota
       }
 
-      // Create new daily gift credit recharge
-      // Set created time to start of today (00:00:00)
-      const createdAt = new Date();
-      createdAt.setHours(0, 0, 0, 0);
-
-      // Set expires time to start of tomorrow (00:00:00)
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 1);
-      expiresAt.setHours(0, 0, 0, 0);
-
-      await this.prisma.creditRecharge.create({
-        data: {
-          rechargeId: genCreditRechargeId(),
-          uid,
-          amount: plan.dailyGiftCreditQuota,
-          balance: plan.dailyGiftCreditQuota,
-          enabled: true,
-          source: 'gift',
-          description: `Daily gift credit recharge for plan ${subscription?.planType ?? 'free'}`,
-          createdAt: createdAt,
-          updatedAt: now, // Use current time for updatedAt
-          expiresAt: expiresAt,
-        },
-      });
-
-      this.logger.log(
-        `Created daily gift credit recharge for user ${uid}: ${plan.dailyGiftCreditQuota} credits, expires at ${expiresAt.toISOString()}`,
+      // Use the new method to create daily gift credit recharge
+      await this.createDailyGiftCreditRecharge(
+        uid,
+        plan.dailyGiftCreditQuota,
+        `Daily gift credit recharge for plan ${subscription?.planType ?? 'free'}`,
+        now,
       );
     } catch (error) {
       this.logger.error(`Error in lazyLoadDailyGiftCredits for user ${uid}: ${error.message}`);

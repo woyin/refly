@@ -3,7 +3,7 @@ import { Button, Divider, Result, Skeleton, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useActionResultStoreShallow } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { ActionResult } from '@refly/openapi-schema';
+import { ActionResult, GenericToolset } from '@refly/openapi-schema';
 import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
 import { Thinking } from 'refly-icons';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
@@ -58,6 +58,10 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(!result);
   const [currentQuery, setCurrentQuery] = useState<string | null>(null);
+  const nodeSelectedToolsets = node?.data?.metadata?.selectedToolsets;
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
+    nodeSelectedToolsets ?? [],
+  );
 
   const shareId = node.data?.metadata?.shareId;
   const { data: shareData } = useFetchShareData(shareId);
@@ -221,6 +225,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
           name: actionMeta?.name || 'commonQnA',
         },
         contextItems,
+        selectedToolsets: nodeSelectedToolsets,
       },
       {
         entityId: canvasId,
@@ -258,8 +263,15 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
   return (
-    <div className="flex flex-col gap-4 h-full max-w-[1024px] mx-auto overflow-hidden">
-      {query && (
+    <div
+      className="flex flex-col gap-4 h-full max-w-[1024px] mx-auto overflow-hidden"
+      onClick={() => {
+        if (editMode) {
+          setEditMode(false);
+        }
+      }}
+    >
+      {title && (
         <div className="px-4 pt-4">
           <EditChatInput
             enabled={editMode}
@@ -281,6 +293,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             tplConfig={tplConfig}
             runtimeConfig={runtimeConfig}
             onQueryChange={setCurrentQuery}
+            selectedToolsets={selectedToolsets}
+            setSelectedToolsets={setSelectedToolsets}
           />
           <PreviewChatInput
             enabled={!editMode}
@@ -306,11 +320,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
               'h-full overflow-auto preview-container transition-opacity duration-500',
               { 'opacity-30': editMode },
             )}
-            onClick={() => {
-              if (editMode) {
-                setEditMode(false);
-              }
-            }}
           >
             {loading && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
             {(result?.status === 'executing' || result?.status === 'waiting') &&
