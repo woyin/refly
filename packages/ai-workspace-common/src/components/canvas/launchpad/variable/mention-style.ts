@@ -19,6 +19,13 @@ export const mentionStyles = `
 
   .ProseMirror p {
     margin: 0;
+    /* Make paragraph behave like chip container to align vertically */
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    /* Keep same visual height as mention chip: 20px line + 2px*2 padding */
+    line-height: 24px;
+    font-size: 14px;
   }
   
   .ProseMirror p.is-editor-empty:first-child::before {
@@ -32,7 +39,7 @@ export const mentionStyles = `
   .mention {
     background-color: var(--refly-fill-default);
     border-radius: 4px;
-    padding: 4px 6px;
+    padding: 2px 4px;
     color: var(--refly-text-0);
     font-weight: 500;
     text-decoration: none;
@@ -40,10 +47,13 @@ export const mentionStyles = `
     align-items: center;
     gap: 6px;
     font-size: 14px;
-    line-height: 1.2;
+    /* Use fixed line-height so total height matches paragraph (24px) */
+    line-height: 20px;
     border: 1px solid var(--refly-Card-Border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
+    max-width:200px;
+    overflow: hidden; /* Prevent content from overflowing the container */
   }
   
   .mention .mention-icon {
@@ -62,8 +72,12 @@ export const mentionStyles = `
   
   .mention .mention-text {
     font-weight: 500;
-    font-size: 14px;
-    line-height: 1.2;
+    font-size: 12px;
+    // line-height: 1.2;
+    overflow: hidden; /* Hide overflowed text */
+    text-overflow: ellipsis; /* Show ellipsis for overflowed text */
+    white-space: nowrap; /* Prevent wrapping */
+    min-width: 0; /* Required for text truncation inside flex container */
   }
   
   .mention:hover {

@@ -1,5 +1,5 @@
 import { Button, Tooltip, Upload, Switch, FormInstance } from 'antd';
-import { memo, useMemo, useRef, useCallback } from 'react';
+import { memo, useMemo, useRef, useCallback, useEffect, useState } from 'react';
 import { LinkOutlined } from '@ant-design/icons';
 import { Attachment, Send, Stop } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,10 @@ import { IContextItem } from '@refly/common-types';
 import { SkillRuntimeConfig, GenericToolset } from '@refly/openapi-schema';
 import { ToolSelectorPopover } from '../tool-selector-panel';
 import { logEvent } from '@refly/telemetry-web';
+import { useStore } from '@xyflow/react';
+import { useShallow } from 'zustand/react/shallow';
+import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { createNodeEventName } from '@refly-packages/ai-workspace-common/events/nodeActions';
 
 export interface CustomAction {
   icon: React.ReactNode;
@@ -61,6 +65,40 @@ export const ChatActions = memo(
     const { canvasId, readonly } = useCanvasContext();
     const { handleUploadImage } = useUploadImage();
 
+    // Track extracting state based on selected skill node events
+    const [isExtracting, setIsExtracting] = useState(false);
+    const selectedSkillNodeId = useStore(
+      useShallow((state: any) => {
+        const nodes = state.nodes || [];
+        const selected = nodes.find((n: any) => n?.selected && n?.type === 'skill');
+        return selected?.id || '';
+      }),
+    );
+
+    useEffect(() => {
+      if (!selectedSkillNodeId) return;
+      const onStarted = () => setIsExtracting(true);
+      const onCompleted = () => setIsExtracting(false);
+      nodeActionEmitter.on(
+        createNodeEventName(selectedSkillNodeId, 'extractVariables.started'),
+        onStarted,
+      );
+      nodeActionEmitter.on(
+        createNodeEventName(selectedSkillNodeId, 'extractVariables.completed'),
+        onCompleted,
+      );
+      return () => {
+        nodeActionEmitter.off(
+          createNodeEventName(selectedSkillNodeId, 'extractVariables.started'),
+          onStarted,
+        );
+        nodeActionEmitter.off(
+          createNodeEventName(selectedSkillNodeId, 'extractVariables.completed'),
+          onCompleted,
+        );
+      };
+    }, [selectedSkillNodeId]);
+
     const handleSendClick = useCallback(() => {
       // Check if knowledge base is used (resource or document types)
       const usedKnowledgeBase =
@@ -94,10 +132,10 @@ export const ChatActions = memo(
       const hasContextItems = contextItems?.length > 0;
       return hasQuery || hasContextItems;
     }, [query, contextItems]);
-    const canSendMessage = useMemo(
-      () => !userStore.isLogin || canSendEmptyMessage,
-      [userStore.isLogin, canSendEmptyMessage],
-    );
+    const canSendMessage = useMemo(() => {
+      if (isExtracting) return false;
+      return !userStore.isLogin || canSendEmptyMessage;
+    }, [userStore.isLogin, canSendEmptyMessage, isExtracting]);
 
     const detectedUrls = useMemo(() => {
       if (!query?.trim()) return [];
@@ -198,7 +236,10 @@ export const ChatActions = memo(
             <Button
               type="primary"
               disabled={!canSendMessage}
-              className="flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none"
+              className={cn(
+                'flex-shrink-0 flex items-center justify-center !w-9 !h-9 rounded-full border-none',
+                isExtracting && '!bg-gray-300 !border-gray-300',
+              )}
               onClick={handleSendClick}
               icon={<Send size={20} color="white" />}
             />
