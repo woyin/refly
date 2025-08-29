@@ -1,5 +1,5 @@
 import { WorkflowVariable } from '@refly/openapi-schema';
-import { CanvasContentItem } from 'src/modules/canvas/canvas.dto';
+import { CanvasContentItem } from '../canvas/canvas.dto';
 // Re-export WorkflowVariable type from openapi-schema
 export { WorkflowVariable } from '@refly/openapi-schema';
 

@@ -1,11 +1,26 @@
-import {
-  WorkflowVariable,
-  CanvasContext,
-  HistoricalData,
-} from 'src/modules/variable-extraction/variable-extraction.dto';
+import { WorkflowVariable, CanvasContext, HistoricalData } from './variable-extraction.dto';
 
 // Import examples for reference and testing
 import { APP_PUBLISH_EXAMPLES } from './examples';
+
+// Define proper types for canvas data
+interface CanvasNode {
+  id: string;
+  type: string;
+  title?: string;
+  data?: {
+    title?: string;
+    content?: string;
+  };
+  content?: string;
+}
+
+interface CanvasDataInput {
+  nodes: CanvasNode[];
+  variables: WorkflowVariable[];
+  title?: string;
+  description?: string;
+}
 
 /**
  * APP publishing template generation dedicated prompt
@@ -13,12 +28,7 @@ import { APP_PUBLISH_EXAMPLES } from './examples';
  * Used for APP publishing workflow to help users understand and use the workflow
  */
 export function buildAppPublishPrompt(
-  canvasData: {
-    nodes: any[];
-    variables: WorkflowVariable[];
-    title?: string;
-    description?: string;
-  },
+  canvasData: CanvasDataInput,
   canvasContext: CanvasContext,
   historicalData?: HistoricalData,
 ): string {
@@ -183,7 +193,7 @@ ${APP_PUBLISH_EXAMPLES}
 /**
  * Build nodes text - format canvas nodes into readable description
  */
-function buildNodesText(nodes: any[]): string {
+function buildNodesText(nodes: CanvasNode[]): string {
   if (!nodes?.length) {
     return '- No workflow nodes found';
   }
@@ -216,8 +226,23 @@ function buildVariablesText(variables: WorkflowVariable[]): string {
 
   return variables
     .map((v) => {
-      const value = Array.isArray(v.value) ? v.value.join(', ') : v.value;
-      return `- ${v.name} (${v.variableType}): ${v.description || 'No description'} [Current: ${value || 'Empty'}]`;
+      // Handle new VariableValue structure - display ALL values, not just the first one
+      let valueText = 'Empty';
+      if (v.value && Array.isArray(v.value) && v.value.length > 0) {
+        const valueTexts: string[] = [];
+
+        for (const valueItem of v.value) {
+          if (valueItem.type === 'text' && valueItem.text) {
+            valueTexts.push(valueItem.text);
+          } else if (valueItem.type === 'resource' && valueItem.resource) {
+            valueTexts.push(`${valueItem.resource.name} (${valueItem.resource.fileType})`);
+          }
+        }
+
+        valueText = valueTexts.length > 0 ? valueTexts.join(', ') : 'Empty';
+      }
+
+      return `- ${v.name} (${v.variableType}): ${v.description || 'No description'} [Current values: ${valueText}]`;
     })
     .join('\n');
 }

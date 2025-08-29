@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { User } from '@refly/openapi-schema';
+import { User, WorkflowVariable, VariableValue } from '@refly/openapi-schema';
 import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas/canvas-sync.service';
@@ -7,22 +7,58 @@ import { ProviderService } from '../provider/provider.service';
 import { genVariableExtractionSessionID } from '@refly/utils';
 import { buildUnifiedPrompt } from './prompt';
 import { buildAppPublishPrompt } from './app-publish-prompt';
+import { genVariableID } from '@refly/utils';
+
 import {
   ExtractionContext,
   VariableExtractionResult,
-  WorkflowVariable,
   CandidateRecord,
   CanvasData,
   CanvasContext,
   VariableExtractionOptions,
   HistoricalData,
   AppTemplateResult,
-} from 'src/modules/variable-extraction/variable-extraction.dto';
+} from './variable-extraction.dto';
 import {
   addTimestampsToNewVariable,
   updateTimestampForVariable,
   hasVariableChanged,
 } from './utils';
+import { CanvasContentItem } from '../canvas/canvas.dto';
+
+// Define proper types for LLM response parsing
+interface LLMVariableResponse {
+  name: string;
+  value: string[] | VariableValue[];
+  description?: string;
+  variableType?: 'string' | 'option' | 'resource';
+  source?: string;
+  extractionReason?: string;
+  confidence?: number;
+}
+
+interface LLMReusedVariableResponse {
+  detectedText: string;
+  reusedVariableName: string;
+  confidence: number;
+  reason: string;
+}
+
+interface LLMAnalysisResponse {
+  userIntent?: string;
+  extractionConfidence?: number;
+  complexityScore?: number;
+  extractedEntityCount?: number;
+  variableTypeDistribution?: Record<string, number>;
+}
+
+interface LLMExtractionResponse {
+  analysis?: LLMAnalysisResponse;
+  variables: LLMVariableResponse[];
+  reusedVariables: LLMReusedVariableResponse[];
+  processedPrompt?: string;
+  originalPrompt?: string;
+}
 
 @Injectable()
 export class VariableExtractionService {
@@ -122,7 +158,7 @@ export class VariableExtractionService {
     const enhancedPrompt = this.buildUnifiedEnhancedPrompt(prompt, context, historicalData);
 
     // 3. Execute LLM extraction
-    const extractionResult = await this.performLLMExtraction(enhancedPrompt, user, prompt);
+    const extractionResult = await this.performLLMExtraction(enhancedPrompt, user, prompt, context);
 
     // 4. Basic quality check
     extractionResult.extractionConfidence = this.calculateOverallConfidence(
@@ -389,8 +425,13 @@ export class VariableExtractionService {
         canvasId: record.canvasId,
         uid: record.uid,
         originalPrompt: record.originalPrompt,
-        extractedVariables: JSON.parse(record.extractedVariables),
-        reusedVariables: JSON.parse(record.reusedVariables),
+        extractedVariables: JSON.parse(record.extractedVariables) as WorkflowVariable[],
+        reusedVariables: JSON.parse(record.reusedVariables) as Array<{
+          detectedText: string;
+          reusedVariableName: string;
+          confidence: number;
+          reason: string;
+        }>,
         applied: record.status === 'applied',
         createdAt: record.createdAt,
       };
@@ -452,13 +493,26 @@ export class VariableExtractionService {
     // Replace variables with placeholder format
     for (const variable of variables) {
       const placeholder = `{{${variable.name}}}`;
-      // Handle value as array, take the first value for replacement
-      const valueToReplace = Array.isArray(variable.value) ? variable.value[0] : variable.value;
-      if (valueToReplace) {
-        // Escape regex special characters to prevent errors
-        const escapedValue = valueToReplace.toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // Simple text replacement, actual implementation may require more intelligent matching
-        processedPrompt = processedPrompt.replace(new RegExp(escapedValue, 'gi'), placeholder);
+
+      // Handle new VariableValue structure - process ALL values, not just the first one
+      if (variable.value && Array.isArray(variable.value) && variable.value.length > 0) {
+        // Process all values in the array
+        for (const valueItem of variable.value) {
+          let valueToReplace: string | undefined;
+
+          if (valueItem.type === 'text' && valueItem.text) {
+            valueToReplace = valueItem.text;
+          } else if (valueItem.type === 'resource' && valueItem.resource) {
+            valueToReplace = valueItem.resource.name;
+          }
+
+          if (valueToReplace) {
+            // Escape regex special characters to prevent errors
+            const escapedValue = valueToReplace.toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Simple text replacement, actual implementation may require more intelligent matching
+            processedPrompt = processedPrompt.replace(new RegExp(escapedValue, 'gi'), placeholder);
+          }
+        }
       }
     }
 
@@ -480,6 +534,7 @@ export class VariableExtractionService {
     llmPrompt: string,
     user: User,
     originalPrompt: string,
+    context: ExtractionContext,
   ): Promise<VariableExtractionResult> {
     try {
       // 1. Get LLM model instance
@@ -492,7 +547,7 @@ export class VariableExtractionService {
       const responseText = response.content.toString();
 
       // 3. Parse LLM response
-      const extractionResult = this.parseLLMResponse(responseText, originalPrompt);
+      const extractionResult = this.parseLLMResponse(responseText, originalPrompt, context);
 
       this.logger.log(
         `LLM extraction completed with ${extractionResult.variables.length} variables`,
@@ -516,7 +571,11 @@ export class VariableExtractionService {
   /**
    * Parse LLM response to get variable extraction result
    */
-  private parseLLMResponse(responseText: string, originalPrompt: string): VariableExtractionResult {
+  private parseLLMResponse(
+    responseText: string,
+    originalPrompt: string,
+    context: ExtractionContext,
+  ): VariableExtractionResult {
     try {
       this.logger.log('Parsing LLM response for variable extraction');
 
@@ -535,7 +594,7 @@ export class VariableExtractionService {
       const jsonText = jsonMatch[1] || jsonMatch[0];
       this.logger.debug(`Parsing JSON: ${jsonText.substring(0, 200)}...`);
 
-      const parsed = JSON.parse(jsonText);
+      const parsed = JSON.parse(jsonText) as LLMExtractionResponse;
 
       // Validate response structure - support new analysis fields
       if (!parsed.variables || !Array.isArray(parsed.variables)) {
@@ -548,38 +607,85 @@ export class VariableExtractionService {
         this.logger.warn('Missing analysis field in LLM response');
       }
 
-      // Convert to standard format, ensure all required fields exist
-      const variables: WorkflowVariable[] = parsed.variables.map((v: any, index: number) => {
-        // Ensure variable value is in array format
-        let value: string[];
-        if (Array.isArray(v.value)) {
-          value = v.value;
-        } else if (typeof v.value === 'string') {
-          value = [v.value];
-        } else {
-          value = [''];
-        }
+      // Process reused variables
+      const reusedVariables = (parsed.reusedVariables || []).map(
+        (rv: LLMReusedVariableResponse) => ({
+          detectedText: rv.detectedText || '',
+          reusedVariableName: rv.reusedVariableName || '',
+          confidence: rv.confidence || 0.5,
+          reason: rv.reason || 'System detected reuse opportunity',
+        }),
+      );
 
-        return {
-          name: v.name || `extracted_var_${index + 1}`,
-          value,
-          description: v.description || `Extracted variable ${index + 1}`,
-          variableType: v.variableType || 'string',
-          source: v.source || 'startNode',
-        };
-      });
+      const canvasVariables = context.variables;
+
+      // Convert to standard format, ensure all required fields exist
+      const extractedVariables: WorkflowVariable[] = parsed.variables.map(
+        (v: LLMVariableResponse, index: number) => {
+          // Convert to proper VariableValue structure
+          let value: VariableValue[];
+          if (Array.isArray(v.value)) {
+            if (v.value.length > 0 && typeof v.value[0] === 'object' && 'type' in v.value[0]) {
+              // Already in VariableValue format
+              value = v.value as VariableValue[];
+            } else {
+              // Convert from string array to VariableValue array
+              value = (v.value as string[]).map((text) => ({
+                type: 'text' as const,
+                text: text || '',
+              }));
+            }
+          } else {
+            value = [
+              {
+                type: 'text' as const,
+                text: '',
+              },
+            ];
+          }
+
+          return {
+            variableId: genVariableID(),
+            name: v.name || `extracted_var_${index + 1}`,
+            value,
+            description: v.description || `Extracted variable ${index + 1}`,
+            variableType: v.variableType || 'string',
+            source: (v.source as 'startNode' | 'resourceLibrary') || 'startNode',
+          };
+        },
+      );
+
+      // Add reused variables from canvas that are not already in extracted variables
+      const reusedCanvasVariables: WorkflowVariable[] = (reusedVariables || [])
+        .filter((rv) => {
+          // Find the corresponding canvas variable
+          const canvasVar = canvasVariables?.find((cv) => cv.name === rv.reusedVariableName);
+          if (!canvasVar) return false;
+
+          // Check if this variable is already in extracted variables
+          const isAlreadyExtracted = extractedVariables.some(
+            (ev) => ev.name === rv.reusedVariableName,
+          );
+          return !isAlreadyExtracted;
+        })
+        .map((rv) => {
+          const canvasVar = canvasVariables?.find((cv) => cv.name === rv.reusedVariableName);
+          return {
+            variableId: canvasVar?.variableId || genVariableID(),
+            name: rv.reusedVariableName,
+            value: canvasVar?.value ?? [{ type: 'text' as const, text: '' }],
+            description: canvasVar?.description ?? `Reused variable: ${rv.reusedVariableName}`,
+            variableType: canvasVar?.variableType ?? 'string',
+            source: 'startNode' as const, // Use valid source type
+          };
+        });
+
+      // Combine extracted and reused variables, ensuring no duplicates
+      const variables: WorkflowVariable[] = [...extractedVariables, ...reusedCanvasVariables];
 
       // Get processed prompt
       const processedPrompt =
         parsed.processedPrompt || this.generateProcessedPrompt(originalPrompt, variables);
-
-      // Process reused variables
-      const reusedVariables = (parsed.reusedVariables || []).map((rv: any) => ({
-        detectedText: rv.detectedText || '',
-        reusedVariableName: rv.reusedVariableName || '',
-        confidence: rv.confidence || 0.5,
-        reason: rv.reason || 'System detected reuse opportunity',
-      }));
 
       // Record extraction statistics
       const analysis = parsed.analysis || {};
@@ -899,7 +1005,13 @@ export class VariableExtractionService {
 
     // 2. Calculate base confidence from LLM variable confidence
     const variableConfidences = result.variables
-      .map((v) => (v as any).confidence ?? 0.8)
+      .map((v) => {
+        // Check if the variable has a confidence property from LLM response
+        if ('confidence' in v && typeof v.confidence === 'number') {
+          return v.confidence;
+        }
+        return 0.8; // Default confidence for variables without confidence property
+      })
       .filter((conf) => conf > 0);
 
     if (variableConfidences.length === 0) {
@@ -992,11 +1104,14 @@ export class VariableExtractionService {
   /**
    * Detect workflow type
    */
-  private detectWorkflowType(contentItems: any[], variables: WorkflowVariable[]): string {
+  private detectWorkflowType(
+    contentItems: CanvasContentItem[],
+    variables: WorkflowVariable[],
+  ): string {
     // Detect workflow type based on content item types
     const itemTypes = contentItems.map((item) => item.type);
 
-    if (itemTypes.includes('resource') && itemTypes.includes('text')) {
+    if (itemTypes.includes('resource') && itemTypes.includes('skillResponse')) {
       return 'Content Generation Workflow';
     } else if (
       itemTypes.includes('resource') &&
@@ -1013,13 +1128,16 @@ export class VariableExtractionService {
   /**
    * Detect primary skills
    */
-  private detectPrimarySkills(contentItems: any[], variables: WorkflowVariable[]): string[] {
+  private detectPrimarySkills(
+    contentItems: CanvasContentItem[],
+    variables: WorkflowVariable[],
+  ): string[] {
     const skills = new Set<string>();
 
     // Infer skills based on content item types
     const itemTypes = contentItems.map((item) => item.type);
 
-    if (itemTypes.includes('text')) {
+    if (itemTypes.includes('skillResponse')) {
       skills.add('Content Generation');
     }
     if (itemTypes.includes('resource')) {
@@ -1127,7 +1245,17 @@ export class VariableExtractionService {
   /**
    * Parse template generation result
    */
-  private parseTemplateResult(responseText: string, context: ExtractionContext): any {
+  private parseTemplateResult(
+    responseText: string,
+    context: ExtractionContext,
+  ): {
+    content: string;
+    title: string;
+    description: string;
+    variables: WorkflowVariable[];
+    estimatedExecutionTime: string;
+    skillTags: string[];
+  } {
     try {
       this.logger.log('Parsing template generation result');
 
@@ -1143,7 +1271,26 @@ export class VariableExtractionService {
       }
 
       const jsonText = jsonMatch[1] || jsonMatch[0];
-      const parsed = JSON.parse(jsonText);
+      const parsed = JSON.parse(jsonText) as {
+        template?: {
+          content: string;
+          title?: string;
+          description?: string;
+        };
+        variables?: Array<{
+          variableId?: string;
+          name?: string;
+          value?: VariableValue[];
+          description?: string;
+          variableType?: string;
+        }>;
+        analysis?: {
+          estimatedExecutionTime?: string;
+        };
+        metadata?: {
+          skillTags?: string[];
+        };
+      };
 
       // Validate required fields
       if (!parsed.template?.content) {
@@ -1154,14 +1301,42 @@ export class VariableExtractionService {
         throw new Error('Missing or invalid variables array in response');
       }
 
-      // Process variables to ensure compatibility
-      const processedVariables = parsed.variables.map((v: any) => ({
-        name: v.name || `var_${Math.random().toString(36).substr(2, 9)}`,
-        value: Array.isArray(v.value) ? v.value : [v.value || ''],
-        description: v.description || `Variable ${v.name}`,
-        variableType: v.variableType || 'string',
-        source: 'app_template',
-      }));
+      // Process variables to ensure compatibility with new structure
+      const processedVariables = parsed.variables.map(
+        (v: {
+          variableId?: string;
+          name?: string;
+          value?: VariableValue[];
+          description?: string;
+          variableType?: string;
+        }) => {
+          // Convert to proper VariableValue structure
+          let value: VariableValue[];
+          if (v.value && Array.isArray(v.value)) {
+            if (v.value.length > 0 && typeof v.value[0] === 'object' && 'type' in v.value[0]) {
+              // Already in VariableValue format
+              value = v.value as VariableValue[];
+            } else {
+              // Convert from string array to VariableValue array
+              value = (v.value as unknown as string[]).map((text) => ({
+                type: 'text' as const,
+                text: text || '',
+              }));
+            }
+          } else {
+            value = [{ type: 'text' as const, text: '' }];
+          }
+
+          return {
+            variableId: genVariableID(),
+            name: v.name || `var_${Math.random().toString(36).substr(2, 9)}`,
+            value,
+            description: v.description || `Variable ${v.name}`,
+            variableType: (v.variableType as 'string' | 'resource' | 'option') || 'string',
+            source: 'startNode' as const, // Use valid source type
+          };
+        },
+      );
 
       return {
         content: parsed.template.content,
@@ -1176,12 +1351,15 @@ export class VariableExtractionService {
       this.logger.error(`Failed to parse template result: ${error.message}`);
       this.logger.debug(`Raw response: ${responseText.substring(0, 500)}...`);
 
-      // Return fallback template
+      // Return fallback template with proper VariableValue structure
       return {
         content: 'I will help you with your workflow. Please provide the necessary information.',
         title: 'Workflow Template',
         description: 'Generated workflow template',
-        variables: context.variables,
+        variables: context.variables.map((v) => ({
+          ...v,
+          value: v.value || [{ type: 'text' as const, text: '' }],
+        })),
         estimatedExecutionTime: '5-10 minutes',
         skillTags: context.analysis.primarySkills || ['Content Generation'],
       };
