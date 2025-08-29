@@ -80,6 +80,13 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '基于标题、类型和配置使用 AI 生成新的代码工件。',
       },
     },
+    {
+      name: 'send_email',
+      descriptionDict: {
+        en: 'Send an email to a specified recipient with subject and HTML content.',
+        'zh-CN': '向指定收件人发送带有主题和HTML内容的电子邮件。',
+      },
+    },
   ],
 };
 
@@ -436,6 +443,46 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
   }
 }
 
+export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
+  name = 'send_email';
+  toolsetKey = BuiltinToolsetDefinition.key;
+
+  schema = z.object({
+    subject: z.string().describe('The subject of the email'),
+    html: z.string().describe('The HTML content of the email'),
+    to: z
+      .string()
+      .describe(
+        'The email address of the recipient. If not provided, the email will be sent to the user.',
+      )
+      .optional(),
+  });
+
+  description = 'Send an email to a specified recipient with subject and HTML content.';
+
+  protected params: BuiltinToolParams;
+
+  constructor(params: BuiltinToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+    try {
+      const { reflyService, user } = this.params;
+      const result = await reflyService.sendEmail(user, {
+        subject: input.subject,
+        html: input.html,
+        to: input.to,
+      });
+
+      return JSON.stringify(result);
+    } catch (error) {
+      return `Error sending email: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+}
+
 export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   toolsetKey = BuiltinToolsetDefinition.key;
   tools = [
@@ -448,5 +495,6 @@ export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
     BuiltinGenerateMedia,
     BuiltinGenerateDoc,
     BuiltinGenerateCodeArtifact,
+    BuiltinSendEmail,
   ] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
 }

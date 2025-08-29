@@ -39,6 +39,8 @@ import {
   MediaGenerateResponse,
   GetActionResultData,
   CodeArtifactType,
+  SendEmailRequest,
+  BaseResponse,
 } from '@refly/openapi-schema';
 import { Document } from '@langchain/core/documents';
 import { RunnableConfig } from '@langchain/core/dist/runnables/types';
@@ -107,6 +109,8 @@ export interface ReflyService {
     user: User,
     url: string,
   ) => Promise<{ title?: string; content?: string; metadata?: Record<string, any> }>;
+
+  sendEmail: (user: User, req: SendEmailRequest) => Promise<BaseResponse>;
 
   // Generate JWT token for user (same as AuthService.login)
   generateJwtToken: (user: User) => Promise<string>;
