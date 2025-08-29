@@ -334,7 +334,7 @@ const ToolsDependencyContent = React.memo(
                           </div>
                         </div>
 
-                        {isInstalled && isLogin && (
+                        {!isInstalled && isLogin && (
                           <Button
                             className="text-refly-primary-default hover:!text-refly-primary-hover"
                             onClick={handleOpenToolStore}
