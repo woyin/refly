@@ -12,22 +12,49 @@ export const FirecrawlToolsetDefinition: ToolsetDefinition = {
     'zh-CN': 'Firecrawl',
   },
   descriptionDict: {
-    en: 'Firecrawl is a toolset for scraping and searching the web.',
-    'zh-CN': 'Firecrawl 是一个用于网页抓取和搜索的工具集。',
+    en: 'Firecrawl is a powerful API service that takes URLs, crawls them, and converts them into clean markdown or structured data. Features advanced scraping, crawling, and AI-powered data extraction capabilities.',
+    'zh-CN':
+      'Firecrawl 是一个强大的 API 服务，可以抓取 URL，爬取内容，并将其转换为干净的 markdown 或结构化数据。具有高级抓取、爬取和 AI 驱动的数据提取功能。',
   },
   tools: [
     {
       name: 'scrape',
       descriptionDict: {
-        en: 'A web scraper. Useful for when you need to scrape a website.',
-        'zh-CN': '一个网页抓取器。当您需要抓取网站内容时非常有用。',
+        en: 'Scrapes a single URL and returns content in LLM-ready formats (markdown, HTML, structured data, screenshots). Supports dynamic content, PDFs, and custom actions like clicking and scrolling.',
+        'zh-CN':
+          '抓取单个 URL 并以 LLM 就绪的格式返回内容（markdown、HTML、结构化数据、截图）。支持动态内容、PDF 和自定义操作，如点击和滚动。',
       },
     },
     {
       name: 'search',
       descriptionDict: {
-        en: 'A search engine. Useful for when you need to answer questions about current events.',
-        'zh-CN': '一个搜索引擎。当您需要回答关于当前事件的问题时非常有用。',
+        en: 'Searches the web and returns full content from results. Useful for answering questions about current events and getting comprehensive information from multiple sources.',
+        'zh-CN':
+          '搜索网络并从结果中返回完整内容。适用于回答有关当前事件的问题和从多个来源获取全面信息。',
+      },
+    },
+    {
+      name: 'crawl',
+      descriptionDict: {
+        en: 'Crawls a URL and all accessible subpages, returning content in LLM-ready format. Supports custom depth limits, path filtering, and batch processing for comprehensive website analysis.',
+        'zh-CN':
+          '爬取 URL 和所有可访问的子页面，以 LLM 就绪的格式返回内容。支持自定义深度限制、路径过滤和批处理，用于全面的网站分析。',
+      },
+    },
+    {
+      name: 'map',
+      descriptionDict: {
+        en: 'Maps a website to discover all URLs and links. Extremely fast for getting a complete overview of website structure without scraping content.',
+        'zh-CN':
+          '映射网站以发现所有 URL 和链接。非常快速地获取网站结构的完整概览，而无需抓取内容。',
+      },
+    },
+    {
+      name: 'extract',
+      descriptionDict: {
+        en: 'Uses AI to extract structured data from single pages, multiple pages, or entire websites. Supports custom schemas and natural language prompts for intelligent data extraction.',
+        'zh-CN':
+          '使用 AI 从单个页面、多个页面或整个网站提取结构化数据。支持自定义模式和自然语言提示，用于智能数据提取。',
       },
     },
   ],
@@ -83,9 +110,32 @@ export class FirecrawlScrape extends AgentBaseTool<FirecrawlToolParams> {
 
   schema = z.object({
     url: z.string().describe('The URL to scrape'),
+    formats: z
+      .array(
+        z.enum([
+          'markdown',
+          'html',
+          'rawHtml',
+          'links',
+          'screenshot',
+          'screenshot@fullPage',
+          'json',
+          'changeTracking',
+        ]),
+      )
+      .describe('Output formats to return')
+      .default(['markdown']),
+    onlyMainContent: z.boolean().describe('Whether to extract only main content').default(true),
+    includeTags: z.array(z.string()).describe('HTML tags to include').optional(),
+    excludeTags: z.array(z.string()).describe('HTML tags to exclude').optional(),
+    maxAge: z.number().describe('Maximum age of cached content in seconds').optional(),
+    waitFor: z.number().describe('Time to wait for dynamic content in milliseconds').optional(),
+    mobile: z.boolean().describe('Whether to use mobile user agent').default(false),
+    parsePDF: z.boolean().describe('Whether to parse PDF content').default(false),
   });
 
-  description = 'A web scraper. Useful for when you need to scrape a website.';
+  description =
+    'Scrapes a single URL and returns content in LLM-ready formats (markdown, HTML, structured data, screenshots). Supports dynamic content, PDFs, and custom actions like clicking and scrolling.';
 
   protected client: FirecrawlClient;
 
@@ -100,9 +150,23 @@ export class FirecrawlScrape extends AgentBaseTool<FirecrawlToolParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<string> {
     const data = await this.client.scrape({
       url: input.url,
-      formats: ['markdown'],
+      formats: input.formats,
+      onlyMainContent: input.onlyMainContent,
+      includeTags: input.includeTags,
+      excludeTags: input.excludeTags,
+      maxAge: input.maxAge,
+      waitFor: input.waitFor,
+      mobile: input.mobile,
+      parsePDF: input.parsePDF,
     });
-    return data.data?.markdown ?? '';
+
+    // Return markdown if available, otherwise return the full response
+    if (input.formats.includes('markdown') && data.data?.markdown) {
+      return data.data.markdown;
+    }
+
+    // Return structured data for other formats
+    return JSON.stringify(data.data);
   }
 }
 
@@ -113,10 +177,17 @@ export class FirecrawlSearch extends AgentBaseTool<FirecrawlToolParams> {
   schema = z.object({
     query: z.string().describe('The search query to execute'),
     limit: z.number().describe('The number of results to return').default(5),
+    tbs: z.string().describe('Time-based search filter (e.g., "qdr:d" for last day)').optional(),
+    location: z.string().describe('Geographic location for search results').optional(),
+    timeout: z.number().describe('Timeout for search operation in seconds').default(30),
+    ignoreInvalidURLs: z
+      .boolean()
+      .describe('Whether to ignore invalid URLs in results')
+      .default(false),
   });
 
   description =
-    'A search engine. Useful for when you need to answer questions about current events.';
+    'Searches the web and returns full content from results. Useful for answering questions about current events and getting comprehensive information from multiple sources.';
 
   protected client: FirecrawlClient;
 
@@ -131,8 +202,176 @@ export class FirecrawlSearch extends AgentBaseTool<FirecrawlToolParams> {
     const data = await this.client.search({
       query: input.query,
       limit: input.limit,
+      tbs: input.tbs,
+      location: input.location,
+      timeout: input.timeout,
+      ignoreInvalidURLs: input.ignoreInvalidURLs,
     });
     return JSON.stringify(data);
+  }
+}
+
+export class FirecrawlCrawl extends AgentBaseTool<FirecrawlToolParams> {
+  name = 'crawl';
+  toolsetKey = FirecrawlToolsetDefinition.key;
+
+  schema = z.object({
+    url: z.string().describe('The starting URL to crawl'),
+    maxDepth: z.number().describe('Maximum depth of crawling').default(2),
+    maxDiscoveryDepth: z.number().describe('Maximum depth for discovering new URLs').default(3),
+    limit: z.number().describe('Maximum number of pages to crawl').default(10),
+    excludePaths: z.array(z.string()).describe('Paths to exclude from crawling').optional(),
+    includePaths: z.array(z.string()).describe('Paths to include in crawling').optional(),
+    delay: z.number().describe('Delay between requests in milliseconds').default(1000),
+    ignoreSitemap: z.boolean().describe('Whether to ignore sitemap.xml').default(false),
+    ignoreQueryParameters: z
+      .boolean()
+      .describe('Whether to ignore query parameters in URLs')
+      .default(false),
+    allowBackwardLinks: z
+      .boolean()
+      .describe('Whether to allow crawling backward links')
+      .default(false),
+    allowExternalLinks: z
+      .boolean()
+      .describe('Whether to allow crawling external links')
+      .default(false),
+  });
+
+  description =
+    'Crawls a URL and all accessible subpages, returning content in LLM-ready format. Supports custom depth limits, path filtering, and batch processing for comprehensive website analysis.';
+
+  protected client: FirecrawlClient;
+
+  constructor(params: FirecrawlToolParams) {
+    super(params);
+    this.client = new FirecrawlClient({
+      apiKey: params.apiKey,
+      baseUrl: params.baseUrl,
+    });
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+    const crawlResponse = await this.client.crawl({
+      url: input.url,
+      maxDepth: input.maxDepth,
+      maxDiscoveryDepth: input.maxDiscoveryDepth,
+      limit: input.limit,
+      excludePaths: input.excludePaths,
+      includePaths: input.includePaths,
+      delay: input.delay,
+      ignoreSitemap: input.ignoreSitemap,
+      ignoreQueryParameters: input.ignoreQueryParameters,
+      allowBackwardLinks: input.allowBackwardLinks,
+      allowExternalLinks: input.allowExternalLinks,
+    });
+
+    // Return the crawl ID and instructions for checking status
+    return JSON.stringify({
+      crawlId: crawlResponse.id,
+      message: 'Crawl started successfully. Use the crawl ID to check status and retrieve results.',
+      statusUrl: `https://api.firecrawl.dev/v1/crawl/${crawlResponse.id}`,
+    });
+  }
+}
+
+export class FirecrawlMap extends AgentBaseTool<FirecrawlToolParams> {
+  name = 'map';
+  toolsetKey = FirecrawlToolsetDefinition.key;
+
+  schema = z.object({
+    url: z.string().describe('The URL to map'),
+    limit: z.number().describe('Maximum number of links to discover').default(100),
+    includeSubdomains: z.boolean().describe('Whether to include subdomains').default(false),
+    search: z.string().describe('Search term to filter links').optional(),
+    ignoreSitemap: z.boolean().describe('Whether to ignore sitemap.xml').default(false),
+    sitemapOnly: z.boolean().describe('Whether to only use sitemap for mapping').default(false),
+    timeout: z.number().describe('Timeout for the mapping operation in seconds').default(30),
+  });
+
+  description =
+    'Maps a website to discover all URLs and links. Extremely fast for getting a complete overview of website structure without scraping content.';
+
+  protected client: FirecrawlClient;
+
+  constructor(params: FirecrawlToolParams) {
+    super(params);
+    this.client = new FirecrawlClient({
+      apiKey: params.apiKey,
+      baseUrl: params.baseUrl,
+    });
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+    const data = await this.client.map({
+      url: input.url,
+      limit: input.limit,
+      includeSubdomains: input.includeSubdomains,
+      search: input.search,
+      ignoreSitemap: input.ignoreSitemap,
+      sitemapOnly: input.sitemapOnly,
+      timeout: input.timeout,
+    });
+    return JSON.stringify(data);
+  }
+}
+
+export class FirecrawlExtract extends AgentBaseTool<FirecrawlToolParams> {
+  name = 'extract';
+  toolsetKey = FirecrawlToolsetDefinition.key;
+
+  schema = z.object({
+    urls: z.array(z.string()).describe('Array of URLs to extract data from'),
+    prompt: z.string().describe('Natural language prompt describing what to extract').optional(),
+    schema: z
+      .record(z.any())
+      .describe('JSON schema defining the structure of data to extract')
+      .optional(),
+    enableWebSearch: z
+      .boolean()
+      .describe('Whether to enable web search for additional context')
+      .default(false),
+    showSources: z
+      .boolean()
+      .describe('Whether to include source URLs in the response')
+      .default(true),
+    ignoreSitemap: z.boolean().describe('Whether to ignore sitemap.xml').default(false),
+    includeSubdomains: z.boolean().describe('Whether to include subdomains').default(false),
+    ignoreInvalidURLs: z.boolean().describe('Whether to ignore invalid URLs').default(false),
+  });
+
+  description =
+    'Uses AI to extract structured data from single pages, multiple pages, or entire websites. Supports custom schemas and natural language prompts for intelligent data extraction.';
+
+  protected client: FirecrawlClient;
+
+  constructor(params: FirecrawlToolParams) {
+    super(params);
+    this.client = new FirecrawlClient({
+      apiKey: params.apiKey,
+      baseUrl: params.baseUrl,
+    });
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+    const extractResponse = await this.client.extract({
+      urls: input.urls,
+      prompt: input.prompt,
+      schema: input.schema,
+      enableWebSearch: input.enableWebSearch,
+      showSources: input.showSources,
+      ignoreSitemap: input.ignoreSitemap,
+      includeSubdomains: input.includeSubdomains,
+      ignoreInvalidURLs: input.ignoreInvalidURLs,
+    });
+
+    // Return the extract ID and instructions for checking status
+    return JSON.stringify({
+      extractId: extractResponse.id,
+      message:
+        'Data extraction started successfully. Use the extract ID to check status and retrieve results.',
+      statusUrl: `https://api.firecrawl.dev/v1/extract/${extractResponse.id}`,
+    });
   }
 }
 
@@ -141,5 +380,8 @@ export class FirecrawlToolset extends AgentBaseToolset<FirecrawlToolParams> {
   tools = [
     FirecrawlScrape,
     FirecrawlSearch,
+    FirecrawlCrawl,
+    FirecrawlMap,
+    FirecrawlExtract,
   ] satisfies readonly AgentToolConstructor<FirecrawlToolParams>[];
 }
