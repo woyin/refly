@@ -51,7 +51,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
   const [resourceLibraryType, setResourceLibraryType] = useState<
     'uploads' | 'stepRecord' | 'resultRecord'
-  >('uploads');
+  >('resultRecord');
   const { nodes } = useCanvasData();
 
   // Group items by source and create canvas-based items
@@ -414,8 +414,6 @@ const CustomMention = Mention.extend({
       textContainer.className = 'mention-text';
       textContainer.textContent = node.attrs.label || node.attrs.id;
 
-      // Get variable type and render the appropriate icon
-      // Align logic with MentionList and allItems handling
       const variableType = node.attrs.variableType || node.attrs.source;
 
       let reactRoot: any = null;
@@ -677,9 +675,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       editable: !readonly,
       onUpdate: ({ editor }) => {
         const content = editor.getText();
-        const processedContent = convertMentionsToHandlebars(content);
+        // Keep raw text in state for UX; convert to handlebars only on send
         internalUpdateRef.current = true;
-        setQuery(processedContent);
+        setQuery(content);
       },
       editorProps: {
         attributes: {
@@ -813,8 +811,10 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
               },
             ],
           } as any;
+          internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
         } else {
+          internalUpdateRef.current = true;
           editor.commands.setContent(nextText);
         }
       }
