@@ -80,7 +80,7 @@ export class AuthController {
   async resendVerification(
     @Body() { sessionId }: ResendVerificationRequest,
   ): Promise<ResendVerificationResponse> {
-    await this.authService.addSendVerificationEmailJob(sessionId);
+    await this.authService.sendVerificationEmail(sessionId);
     return buildSuccessResponse();
   }
 

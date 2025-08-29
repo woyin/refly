@@ -5867,6 +5867,25 @@ export type UpdateWorkflowVariablesResponse = BaseResponse & {
   data?: Array<WorkflowVariable>;
 };
 
+export type SendEmailRequest = {
+  /**
+   * Email subject
+   */
+  subject: string;
+  /**
+   * Email HTML content
+   */
+  html: string;
+  /**
+   * Email recipient. If not specified, the email will be sent to current user.
+   */
+  to?: string;
+  /**
+   * Email sender. If not specified, server will use the default sender.
+   */
+  from?: string;
+};
+
 export type GenerateAppTemplateRequest = {
   /**
    * Canvas ID to generate template for

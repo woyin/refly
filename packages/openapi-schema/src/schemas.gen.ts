@@ -8389,6 +8389,29 @@ export const UpdateWorkflowVariablesResponseSchema = {
   ],
 } as const;
 
+export const SendEmailRequestSchema = {
+  type: 'object',
+  required: ['subject', 'html'],
+  properties: {
+    subject: {
+      type: 'string',
+      description: 'Email subject',
+    },
+    html: {
+      type: 'string',
+      description: 'Email HTML content',
+    },
+    to: {
+      type: 'string',
+      description: 'Email recipient. If not specified, the email will be sent to current user.',
+    },
+    from: {
+      type: 'string',
+      description: 'Email sender. If not specified, server will use the default sender.',
+    },
+  },
+} as const;
+
 export const GenerateAppTemplateRequestSchema = {
   type: 'object',
   required: ['canvasId'],

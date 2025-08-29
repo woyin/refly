@@ -18,6 +18,8 @@ import { AuthService } from '../auth/auth.service';
 import { MediaGeneratorService } from '../media-generator/media-generator.service';
 import { ActionService } from '../action/action.service';
 import { InternalToolService } from '../tool/internal-tool.service';
+import { NotificationService } from '../notification/notification.service';
+import { genBaseRespDataFromError } from 'src/utils/exception';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -33,6 +35,7 @@ export class SkillEngineService implements OnModuleInit {
   private mediaGeneratorService: MediaGeneratorService;
   private actionService: ActionService;
   private internalToolService: InternalToolService;
+  private notificationService: NotificationService;
   private engine: SkillEngine;
 
   constructor(
@@ -51,6 +54,7 @@ export class SkillEngineService implements OnModuleInit {
     this.mediaGeneratorService = this.moduleRef.get(MediaGeneratorService, { strict: false });
     this.actionService = this.moduleRef.get(ActionService, { strict: false });
     this.internalToolService = this.moduleRef.get(InternalToolService, { strict: false });
+    this.notificationService = this.moduleRef.get(NotificationService, { strict: false });
   }
 
   /**
@@ -180,6 +184,16 @@ export class SkillEngineService implements OnModuleInit {
             content: '',
             metadata: { url, error: error.message },
           };
+        }
+      },
+      sendEmail: async (user, req) => {
+        try {
+          await this.notificationService.sendEmail(req, user);
+          return buildSuccessResponse();
+        } catch (error) {
+          const baseRespData = genBaseRespDataFromError(error);
+          this.logger.error(`Failed to send email: ${error.stack}`);
+          return baseRespData;
         }
       },
       generateJwtToken: async (user) => {

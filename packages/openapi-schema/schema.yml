@@ -9377,6 +9377,24 @@ components:
               description: Updated list of workflow variables
               items:
                 $ref: '#/components/schemas/WorkflowVariable'
+    SendEmailRequest:
+      type: object
+      required:
+        - subject
+        - html
+      properties:
+        subject:
+          type: string
+          description: Email subject
+        html:
+          type: string
+          description: Email HTML content
+        to:
+          type: string
+          description: Email recipient. If not specified, the email will be sent to current user.
+        from:
+          type: string
+          description: Email sender. If not specified, server will use the default sender.
 
     GenerateAppTemplateRequest:
       type: object
