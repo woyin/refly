@@ -74,7 +74,6 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const [cloneAskAIRunning, setCloneAskAIRunning] = useState(false);
     const [copyRunning, setCopyRunning] = useState(false);
     const [downloadRunning, setDownloadRunning] = useState(false);
-    const [extractRunning, setExtractRunning] = useState(false);
 
     const shouldShowButtons =
       !readonly &&
@@ -160,23 +159,6 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       nodeActionEmitter.emit(createNodeEventName(nodeId, 'download'));
     }, [nodeId]);
 
-    // Keep local extract state in sync with external events
-    useEffect(() => {
-      const onStarted = () => setExtractRunning(true);
-      const onCompleted = () => setExtractRunning(false);
-
-      nodeActionEmitter.on(createNodeEventName(nodeId, 'extractVariables.started'), onStarted);
-      nodeActionEmitter.on(createNodeEventName(nodeId, 'extractVariables.completed'), onCompleted);
-
-      return () => {
-        nodeActionEmitter.off(createNodeEventName(nodeId, 'extractVariables.started'), onStarted);
-        nodeActionEmitter.off(
-          createNodeEventName(nodeId, 'extractVariables.completed'),
-          onCompleted,
-        );
-      };
-    }, [nodeId]);
-
     const actionButtons = useMemo(() => {
       const buttons: ActionButtonType[] = [];
 
@@ -215,13 +197,8 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             key: 'variable',
             icon: IconVariable,
             tooltip: t('canvas.nodeActions.extractVariables' as any) || t('canvas.nodeActions.run'),
-            onClick: () => {
-              // Emit started event for global consumers (e.g., input component)
-              setExtractRunning(true);
-              nodeActionEmitter.emit(createNodeEventName(nodeId, 'extractVariables.started'));
-              nodeActionEmitter.emit(createNodeEventName(nodeId, 'extractVariables'));
-            },
-            loading: extractRunning || !!isExtracting,
+            onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'extractVariables')),
+            loading: isExtracting,
           });
           break;
 

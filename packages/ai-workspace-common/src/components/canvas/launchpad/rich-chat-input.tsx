@@ -461,7 +461,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
-    const [isExtracting, setIsExtracting] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
     const searchStore = useSearchStoreShallow((state) => ({
@@ -661,9 +660,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         if (isV && isAlt && (isCmd || isCtrl)) {
           if (selectedSkillNodeId) {
             e.preventDefault();
-            nodeActionEmitter.emit(
-              createNodeEventName(selectedSkillNodeId, 'extractVariables.started'),
-            );
             nodeActionEmitter.emit(createNodeEventName(selectedSkillNodeId, 'extractVariables'));
           }
         }
@@ -673,38 +669,10 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       return () => window.removeEventListener('keydown', onKeyDown);
     }, [selectedSkillNodeId]);
 
-    // Listen extracting events for current selected skill node
-    useEffect(() => {
-      if (!selectedSkillNodeId) return;
-
-      const onStarted = () => setIsExtracting(true);
-      const onCompleted = () => setIsExtracting(false);
-
-      nodeActionEmitter.on(
-        createNodeEventName(selectedSkillNodeId, 'extractVariables.started'),
-        onStarted,
-      );
-      nodeActionEmitter.on(
-        createNodeEventName(selectedSkillNodeId, 'extractVariables.completed'),
-        onCompleted,
-      );
-
-      return () => {
-        nodeActionEmitter.off(
-          createNodeEventName(selectedSkillNodeId, 'extractVariables.started'),
-          onStarted,
-        );
-        nodeActionEmitter.off(
-          createNodeEventName(selectedSkillNodeId, 'extractVariables.completed'),
-          onCompleted,
-        );
-      };
-    }, [selectedSkillNodeId]);
-
     const editor = useEditor({
       extensions: [StarterKit, mentionExtension],
       content: query,
-      editable: !readonly && !isExtracting,
+      editable: !readonly,
       onUpdate: ({ editor }) => {
         const content = editor.getText();
         // Keep raw text in state for UX; convert to handlebars only on send
@@ -722,11 +690,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         },
       },
     });
-
-    // Keep editor editable state in sync when extracting changes
-    useEffect(() => {
-      editor?.setEditable(!readonly && !isExtracting);
-    }, [editor, readonly, isExtracting]);
 
     // Function to convert mentions to Handlebars format
     const convertMentionsToHandlebars = useCallback(
@@ -777,8 +740,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           };
         };
 
-        // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
-        while ((match = varRegex.exec(content)) !== null) {
+        for (;;) {
+          match = varRegex.exec(content);
+          if (match === null) break;
           const start = match.index;
           const end = varRegex.lastIndex;
           const varName = match[1];
@@ -858,7 +822,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
-        if (readonly || isExtracting) {
+        if (readonly) {
           e.preventDefault();
           return;
         }
@@ -877,20 +841,20 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           }
 
           // Ctrl/Meta + Enter should always send the message
-          if (!isExtracting && (e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
+          if ((e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
             e.preventDefault();
             handleSendMessageWithHandlebars();
             return;
           }
 
           // For regular Enter key, send message if not in mention suggestion
-          if (!isExtracting && !e.shiftKey && (query?.trim() || !isLogin)) {
+          if (!e.shiftKey && (query?.trim() || !isLogin)) {
             e.preventDefault();
             handleSendMessageWithHandlebars();
           }
         }
       },
-      [query, readonly, handleSendMessageWithHandlebars, searchStore, isLogin, isExtracting],
+      [query, readonly, handleSendMessageWithHandlebars, searchStore, isLogin],
     );
 
     // Handle focus event and propagate it upward
@@ -944,7 +908,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           className={cn(
             'w-full h-full flex flex-col flex-grow overflow-y-auto relative',
             isDragging && 'ring-2 ring-green-500 ring-opacity-50 rounded-lg',
-            (readonly || isExtracting) && 'opacity-70 cursor-not-allowed',
+            readonly && 'opacity-70 cursor-not-allowed',
           )}
           onDragOver={(e) => {
             e.preventDefault();
@@ -995,11 +959,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             onPaste={handlePaste}
           >
             {editor ? (
-              <EditorContent
-                editor={editor}
-                className={cn('h-full', isExtracting && 'text-gray-400')}
-                data-cy="rich-chat-input"
-              />
+              <EditorContent editor={editor} className="h-full" data-cy="rich-chat-input" />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-400">
                 {t('canvas.richChatInput.loadingEditor')}
