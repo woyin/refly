@@ -87,6 +87,13 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '向指定收件人发送带有主题和HTML内容的电子邮件。',
       },
     },
+    {
+      name: 'get_time',
+      descriptionDict: {
+        en: 'Get the current date and time information.',
+        'zh-CN': '获取当前日期和时间信息。',
+      },
+    },
   ],
 };
 
@@ -483,6 +490,40 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
   }
 }
 
+export class BuiltinGetTime extends AgentBaseTool<BuiltinToolParams> {
+  name = 'get_time';
+  toolsetKey = BuiltinToolsetDefinition.key;
+
+  schema = z.object({});
+
+  description = 'Get the current date and time information in various formats.';
+
+  protected params: BuiltinToolParams;
+
+  constructor(params: BuiltinToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(_input: z.infer<typeof this.schema>): Promise<string> {
+    try {
+      const now = new Date();
+      const result = {
+        currentTime: now.toISOString(),
+        timestamp: now.getTime(),
+        date: now.toDateString(),
+        time: now.toTimeString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        utcOffset: now.getTimezoneOffset(),
+      };
+
+      return JSON.stringify(result);
+    } catch (error) {
+      return `Error getting time: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
+  }
+}
+
 export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   toolsetKey = BuiltinToolsetDefinition.key;
   tools = [
@@ -496,5 +537,6 @@ export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
     BuiltinGenerateDoc,
     BuiltinGenerateCodeArtifact,
     BuiltinSendEmail,
+    BuiltinGetTime,
   ] satisfies readonly AgentToolConstructor<BuiltinToolParams>[];
 }
