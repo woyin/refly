@@ -1,5 +1,24 @@
 import { StructuredTool } from '@langchain/core/tools';
 
+export interface ToolCallResult {
+  /**
+   * Status of the tool call result
+   */
+  status: 'success' | 'error';
+  /**
+   * Data of the tool call result, should be JSON serializable
+   */
+  data?: any;
+  /**
+   * Error message of the tool call result
+   */
+  error?: string;
+  /**
+   * Summary of the tool call result, should be human readable
+   */
+  summary?: string;
+}
+
 /**
  * A typed constructor interface for agent tools.
  * Supports both parameterless and parameterized constructors so that

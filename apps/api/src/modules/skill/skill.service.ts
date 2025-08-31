@@ -42,7 +42,6 @@ import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
 import { InvokeSkillJobData, CheckStuckActionsJobData } from './skill.dto';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
-import { SubscriptionService } from '../subscription/subscription.service';
 import { CreditService } from '../credit/credit.service';
 import {
   ModelUsageQuotaExceeded,
@@ -83,7 +82,6 @@ export class SkillService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly knowledgeService: KnowledgeService,
-    private readonly subscriptionService: SubscriptionService,
     private readonly credit: CreditService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly providerService: ProviderService,

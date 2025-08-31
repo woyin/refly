@@ -202,7 +202,7 @@ ${recentHistory.map((msg) => `${(msg as HumanMessage)?.getType?.()}: ${msg.conte
     }
 
     // Create document with generated title
-    const res = await this.engine.service.createDocument(user, {
+    const doc = await this.engine.service.createDocument(user, {
       title: documentTitle || optimizedQuery,
       initialContent: '',
     });
@@ -212,8 +212,8 @@ ${recentHistory.map((msg) => `${(msg as HumanMessage)?.getType?.()}: ${msg.conte
 
     const artifact: Artifact = {
       type: 'document',
-      entityId: res.data?.docId || '',
-      title: res.data?.title || '',
+      entityId: doc?.docId || '',
+      title: doc?.title || '',
     };
     this.emitEvent(
       {

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CommonModule } from '../common/common.module';
 import { CanvasModule } from '../canvas/canvas.module';
+import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 import { SkillModule } from '../skill/skill.module';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
 import { WorkflowService } from './workflow.service';
@@ -16,6 +17,7 @@ import { isDesktop } from '../../utils/runtime';
   imports: [
     CommonModule,
     CanvasModule,
+    CanvasSyncModule,
     SkillModule,
     McpServerModule,
     KnowledgeModule,

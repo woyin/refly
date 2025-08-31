@@ -27,6 +27,7 @@ import {
   getSubscriptionPlans,
   getSubscriptionUsage,
   getWorkflowVariables,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -96,6 +97,8 @@ import {
   GetSubscriptionUsageError,
   GetWorkflowVariablesData,
   GetWorkflowVariablesError,
+  ListAccountsData,
+  ListAccountsError,
   ListActionsError,
   ListCanvasesData,
   ListCanvasesError,
@@ -215,6 +218,21 @@ export const useGetAuthConfigSuspense = <
     queryKey: Common.UseGetAuthConfigKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getAuthConfig({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useListAccountsSuspense = <
+  TData = Common.ListAccountsDefaultResponse,
+  TError = ListAccountsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListAccountsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListAccountsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listAccounts({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetCollabTokenSuspense = <

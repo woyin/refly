@@ -50,11 +50,7 @@ import { SyncPilotStepJobData } from '../pilot/pilot.processor';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
 import { SyncWorkflowJobData } from '../workflow/workflow.dto';
 import { ProviderService } from '../provider/provider.service';
-import { CodeArtifactService } from '../code-artifact/code-artifact.service';
-import { CollabService } from '../collab/collab.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
-import { CanvasService } from '../canvas/canvas.service';
-import { CanvasSyncService } from '../canvas/canvas-sync.service';
 import { ActionService } from '../action/action.service';
 import { extractChunkContent } from '../../utils/llm';
 import { ToolService } from '../tool/tool.service';
@@ -70,12 +66,8 @@ export class SkillInvokerService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly miscService: MiscService,
-    private readonly canvasService: CanvasService,
-    private readonly canvasSyncService: CanvasSyncService,
-    private readonly collabService: CollabService,
     private readonly providerService: ProviderService,
     private readonly toolService: ToolService,
-    private readonly codeArtifactService: CodeArtifactService,
     private readonly skillEngineService: SkillEngineService,
     private readonly actionService: ActionService,
     @Optional()

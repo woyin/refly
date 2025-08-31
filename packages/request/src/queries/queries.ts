@@ -85,6 +85,7 @@ import {
   importCanvas,
   initializeWorkflow,
   invokeSkill,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -305,6 +306,8 @@ import {
   InitializeWorkflowError,
   InvokeSkillData,
   InvokeSkillError,
+  ListAccountsData,
+  ListAccountsError,
   ListActionsError,
   ListCanvasesData,
   ListCanvasesError,
@@ -494,6 +497,21 @@ export const useGetAuthConfig = <
     queryKey: Common.UseGetAuthConfigKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getAuthConfig({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useListAccounts = <
+  TData = Common.ListAccountsDefaultResponse,
+  TError = ListAccountsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListAccountsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListAccountsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listAccounts({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetCollabToken = <

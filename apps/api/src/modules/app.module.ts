@@ -9,6 +9,7 @@ import api from '@opentelemetry/api';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { RAGModule } from './rag/rag.module';
+import { NotificationModule } from './notification/notification.module';
 
 import configuration from './config/app.config';
 import { AppController } from './app.controller';
@@ -82,6 +83,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     AuthModule,
     UserModule,
     RAGModule,
+    NotificationModule,
     KnowledgeModule,
     SkillModule,
     PilotModule,
