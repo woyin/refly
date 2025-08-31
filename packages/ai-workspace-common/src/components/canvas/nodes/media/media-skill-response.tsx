@@ -1,6 +1,11 @@
 import { memo, useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useReactFlow, Position } from '@xyflow/react';
-import { CanvasNode, CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
+import {
+  CanvasNode,
+  CanvasNodeData,
+  convertContextItemsToNodeFilters,
+  ResponseNodeMeta,
+} from '@refly/canvas-common';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import {
   useNodeSize,
@@ -37,6 +42,8 @@ import { CanvasNodeType } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { MediaType } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
+import { IContextItem } from '@refly/common-types';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 
 interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   mediaType?: MediaType;
@@ -78,6 +85,7 @@ const MediaSkillResponseNode = memo(
     const { addNode } = useAddNode();
     const { deleteNode } = useDeleteNode();
     const { canvasId, readonly } = useCanvasContext();
+    const { previewNode } = useNodePreviewControl({ canvasId });
 
     const node = useMemo(() => getNode(id), [id, getNode]);
 
@@ -158,7 +166,7 @@ const MediaSkillResponseNode = memo(
           const newNode: Partial<CanvasNode<any>> = {
             type: mediaType as CanvasNodeType,
             data: {
-              title: prompt,
+              title: currentNode?.data?.title as string,
               entityId,
               metadata: {
                 [urlKey]: outputUrl,
@@ -166,6 +174,8 @@ const MediaSkillResponseNode = memo(
                 prompt: nodeMeta?.prompt,
                 resultId: nodeMeta?.resultId,
                 selectedModel: nodeMeta?.selectedModel,
+                contextItems: nodeMeta?.contextItems,
+                modelInfo: nodeMeta?.modelInfo,
               },
             },
             position: nodePosition,
@@ -180,9 +190,7 @@ const MediaSkillResponseNode = memo(
 
           // Find the mediaSkill node that connects to this node
           const mediaSkillNode = nodes?.find((node) => {
-            return (
-              node.type === 'mediaSkill' && incomingEdges.some((edge) => edge.source === node.id)
-            );
+            return node.type === 'skill' && incomingEdges.some((edge) => edge.source === node.id);
           });
 
           const connectedTo: CanvasNodeFilter[] = [];
@@ -190,10 +198,30 @@ const MediaSkillResponseNode = memo(
           if (mediaSkillNode) {
             // Connect the new media node to the mediaSkill node's source
             connectedTo.push({
-              type: 'mediaSkill' as CanvasNodeType,
+              type: 'skill' as CanvasNodeType,
               entityId: mediaSkillNode.data?.entityId as string,
               handleType: 'source',
             });
+          }
+
+          // Add the new media node at the same position
+          const newPosition = addNode(
+            newNode,
+            convertContextItemsToNodeFilters(data.metadata?.contextItems as IContextItem[]),
+            false,
+            true,
+          );
+
+          // Preview the new media node after creation
+          if (newPosition) {
+            // Use setTimeout to ensure the new node is fully created before previewing
+            setTimeout(() => {
+              const newNodeForPreview = {
+                ...newNode,
+                position: newPosition,
+              } as CanvasNode;
+              previewNode(newNodeForPreview);
+            }, 100);
           }
 
           // Delete this MediaSkillResponse node
@@ -209,9 +237,6 @@ const MediaSkillResponseNode = memo(
             },
           );
 
-          // Add the new media node at the same position
-          addNode(newNode, connectedTo, false, true);
-
           message.success(
             t('canvas.nodes.mediaSkillResponse.success', 'Media generated successfully!'),
           );
@@ -222,7 +247,19 @@ const MediaSkillResponseNode = memo(
           );
         }
       },
-      [mediaType, prompt, id, data, getNode, getEdges, getNodes, addNode, deleteNode, t],
+      [
+        mediaType,
+        prompt,
+        id,
+        data,
+        getNode,
+        getEdges,
+        getNodes,
+        addNode,
+        deleteNode,
+        previewNode,
+        t,
+      ],
     );
 
     const handleRetry = useCallback(async () => {

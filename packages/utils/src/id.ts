@@ -1,6 +1,7 @@
 import md5 from 'md5';
 import { v4 as UUIDV4 } from 'uuid';
 import { createId } from '@paralleldrive/cuid2';
+import { getYYYYMM, getYYYYMMDD } from './time';
 
 export enum IDPrefix {
   UID = 'u-',
@@ -24,6 +25,7 @@ export enum IDPrefix {
   WORKFLOW_NODE_EXECUTION = 'wne-',
   PROVIDER = 'pr-',
   PROVIDER_ITEM = 'pi-',
+  TOOLSET = 'ts-',
   CONTENT_SELECTOR = 'cs-',
   MEMO = 'm-',
   VERIFICATION_SESSION = 'vs-',
@@ -144,6 +146,10 @@ export function genProviderItemID(): string {
   return IDPrefix.PROVIDER_ITEM + createId();
 }
 
+export function genToolsetID(): string {
+  return IDPrefix.TOOLSET + createId();
+}
+
 export function genSkillID(): string {
   return IDPrefix.SKILL + createId();
 }
@@ -195,9 +201,12 @@ export const genCanvasVersionId = () => {
   return `cv-${timestamp}-${createId()}`;
 };
 
-export const genCreditRechargeId = () => {
-  const timestamp = Date.now();
-  return `${IDPrefix.CREDIT_RECHARGE}${timestamp}-${createId()}`;
+export const genSubscriptionRechargeId = (uid: string, t: Date) => {
+  return `${IDPrefix.CREDIT_RECHARGE}subscription-${uid}-${getYYYYMM(t)}`;
+};
+
+export const genDailyCreditRechargeId = (uid: string, t: Date) => {
+  return `${IDPrefix.CREDIT_RECHARGE}daily-${uid}-${getYYYYMMDD(t)}`;
 };
 
 export const genCreditUsageId = () => {

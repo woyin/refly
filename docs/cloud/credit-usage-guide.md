@@ -91,8 +91,8 @@ For example, you can use credits to:
 
 ### Q3: How do I know how many credits I've used? Can I control usage?
 
-**A:** We provide detailed credit consumption records and prediction prompts:
-- Shows estimated consumption before each generation (e.g., calling Kimi K2 consumes 1 credit)
+**A:** We provide detailed credit consumption records:
+- When selecting a model, you can see the corresponding credit consumption
 - Supports credit balance queries
 
 ### Q4: Which models are supported? Are credits sufficient?
@@ -118,4 +118,4 @@ For example, you can use credits to:
 - ✅ World-class model trials
 - ✅ Support for uploading 100 files
 
-Plus, there are friend invitation rewards and periodic promotional activities to easily unlock more credits! !
+Plus, there are friend invitation rewards and periodic promotional activities to easily unlock more credits! 

@@ -11,12 +11,18 @@ import {
   SkillRuntimeConfig,
   SkillTemplateConfig,
   Skill,
+  GenericToolset,
 } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'motion/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { parseMarkdownCitationsAndCanvasTags, safeParseJSON } from '@refly/utils/parse';
-import { useDocumentStoreShallow, useUserStoreShallow } from '@refly/stores';
+import { convertResultContextToItems } from '@refly/canvas-common';
+import {
+  useDocumentStoreShallow,
+  useLaunchpadStoreShallow,
+  useUserStoreShallow,
+} from '@refly/stores';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
 import { editorEmitter, EditorOperation } from '@refly/utils/event-emitter/editor';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -50,6 +56,14 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     hasEditorSelection: state.hasEditorSelection,
     activeDocumentId: state.activeDocumentId,
   }));
+
+  const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+    selectedToolsets: state.selectedToolsets,
+  }));
+
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
+    selectedToolsetsFromStore ?? [],
+  );
 
   // Add state for follow-up question input with full functionality
   const [showFollowUpInput, setShowFollowUpInput] = useState(false);
@@ -172,12 +186,36 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   // Initialize context items with current node when showing input
   const initializeFollowUpInput = useCallback(() => {
     if (result?.resultId) {
+      // Get the original context items from the result's context and history
+      const originalContextItems = convertResultContextToItems(
+        result.context || {},
+        result.history || [],
+      );
+
+      // Create merged context items similar to skill-response.tsx handleAskAI
       const currentNodeContext: IContextItem = {
         type: 'skillResponse',
         entityId: result.resultId,
         title: result.title || '',
+        metadata: {
+          withHistory: true,
+        },
       };
-      setFollowUpContextItems([currentNodeContext]);
+
+      // Include the original context items from the response
+      const mergedContextItems = [
+        currentNodeContext,
+        // Include the original context items from the response
+        ...originalContextItems.map((item: IContextItem) => ({
+          ...item,
+          metadata: {
+            ...item.metadata,
+            withHistory: undefined,
+          },
+        })),
+      ];
+
+      setFollowUpContextItems(mergedContextItems);
     }
 
     // Set default model if available
@@ -266,6 +304,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
       {
         query: followUpQuery,
         resultId,
+        selectedToolsets,
         selectedSkill: followUpSkill,
         modelInfo,
         tplConfig,
@@ -279,7 +318,16 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
       },
     );
 
-    // Add node to canvas with connection to the current node
+    // Create connection filters - include both the response and its context items
+    const contextItemsForConnection = followUpContextItems.filter(
+      (item) => item.type !== 'skillResponse',
+    );
+    const connectFilters = contextItemsForConnection.map((item) => ({
+      type: item.type as any,
+      entityId: item.entityId,
+    }));
+
+    // Add node to canvas with connection to the current node and its context
     const connectTo = result?.resultId
       ? [
           {
@@ -287,6 +335,10 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
             entityId: result.resultId,
             handleType: 'source' as const,
           },
+          ...connectFilters.map((filter) => ({
+            ...filter,
+            handleType: 'source' as const,
+          })),
         ]
       : undefined;
 
@@ -298,10 +350,12 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
           entityId: resultId,
           metadata: {
             status: 'executing',
+            selectedToolsets,
             selectedSkill: followUpSkill,
             modelInfo,
             runtimeConfig: followUpRuntimeConfig,
             tplConfig,
+            contextItems: followUpContextItems,
             structuredData: {
               query: followUpQuery,
             },
@@ -310,6 +364,8 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
         },
       },
       connectTo,
+      true,
+      true,
     );
 
     // Clear input and hide input box
@@ -337,6 +393,7 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
     getFinalProjectId,
     form,
     t,
+    selectedToolsets,
   ]);
 
   // Image upload handlers for follow-up
@@ -375,7 +432,12 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
   }
 
   return (
-    <div className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3">
+    <div
+      className="border-[1px] border-solid border-b-0 border-x-0 border-refly-Card-Border pt-3"
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
       <div className="flex flex-row items-center justify-between bg-refly-tertiary-default px-3 py-2 rounded-xl mx-3">
         <div className="flex flex-row items-center px-2">
           <span className="font-[600] pr-4">{t('canvas.nodeActions.nextStepSuggestions')}</span>
@@ -534,6 +596,8 @@ const ActionContainerComponent = ({ result, step }: ActionContainerProps) => {
                   onUploadImage={handleFollowUpImageUpload}
                   contextItems={followUpContextItems}
                   form={form}
+                  selectedToolsets={selectedToolsets}
+                  setSelectedToolsets={setSelectedToolsets}
                 />
               </motion.div>
             </div>

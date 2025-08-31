@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
 import { getNodeCommonStyles } from './shared/styles';
 import {
+  ModelCapabilities,
   ModelInfo,
   Skill,
   SkillRuntimeConfig,
@@ -18,7 +19,7 @@ import {
 import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow } from '@refly/stores';
+import { useChatStoreShallow, useLaunchpadStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
 import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
 import { cleanupNodeEvents } from '@refly-packages/ai-workspace-common/events/nodeActions';
@@ -42,6 +43,8 @@ import { edgeEventsEmitter } from '@refly-packages/ai-workspace-common/events/ed
 import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
+import { GenericToolset } from '@refly/openapi-schema';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 const NODE_WIDTH = 480;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
@@ -72,10 +75,19 @@ export const SkillNode = memo(
       contextItems = [],
       tplConfig,
       runtimeConfig,
+      selectedToolsets: metadataSelectedToolsets,
     } = metadata;
     const skill = useFindSkill(selectedSkill?.name);
 
+    const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+      selectedToolsets: state.selectedToolsets,
+    }));
+
     const [localQuery, setLocalQuery] = useState(query);
+    const [selectedToolsets, setLocalSelectedToolsets] = useState<GenericToolset[]>(
+      metadataSelectedToolsets ?? selectedToolsetsFromStore ?? [],
+    );
+
     const { data: workflowVariables } = useGetWorkflowVariables({
       query: {
         canvasId,
@@ -187,6 +199,14 @@ export const SkillNode = memo(
       [id, setNodeData],
     );
 
+    const setSelectedToolsets = useCallback(
+      (toolsets: GenericToolset[]) => {
+        setLocalSelectedToolsets(toolsets);
+        updateNodeData({ metadata: { selectedToolsets: toolsets } });
+      },
+      [updateNodeData],
+    );
+
     const setNodeDataByEntity = useSetNodeDataByEntity();
     const setTplConfig = useCallback(
       (config: SkillTemplateConfig) => {
@@ -194,6 +214,12 @@ export const SkillNode = memo(
       },
       [id],
     );
+
+    useEffect(() => {
+      if (!metadataSelectedToolsets) {
+        setSelectedToolsets(selectedToolsetsFromStore ?? []);
+      }
+    }, [selectedToolsetsFromStore, metadataSelectedToolsets]);
 
     useEffect(() => {
       setNodeStyle(id, NODE_SIDE_CONFIG);
@@ -258,6 +284,37 @@ export const SkillNode = memo(
       const { runtimeConfig: contextRuntimeConfig } = useContextPanelStore.getState();
       const finalProjectId = getFinalProjectId(projectId);
 
+      // Check if this is a media generation model
+      const isMediaGeneration = modelInfo?.category === 'mediaGeneration';
+
+      if (isMediaGeneration) {
+        // Handle media generation using existing media generation flow
+        // Parse capabilities from modelInfo
+        const capabilities = modelInfo?.capabilities as ModelCapabilities;
+        const mediaType = capabilities?.image
+          ? 'image'
+          : capabilities?.video
+            ? 'video'
+            : capabilities?.audio
+              ? 'audio'
+              : 'image'; // Default fallback
+
+        // Emit media generation event
+        nodeOperationsEmitter.emit('generateMedia', {
+          providerItemId: modelInfo?.providerItemId ?? '',
+          targetType: 'canvas',
+          targetId: canvasId ?? '',
+          mediaType,
+          query,
+          modelInfo,
+          nodeId: id,
+          contextItems,
+        });
+
+        return;
+      }
+
+      // Original skill execution logic for non-media models
       const resultId = genActionResultID();
       invokeAction(
         {
@@ -269,6 +326,7 @@ export const SkillNode = memo(
             ...runtimeConfig,
           },
           projectId: finalProjectId,
+          selectedToolsets,
         },
         {
           entityId: canvasId,
@@ -286,6 +344,7 @@ export const SkillNode = memo(
               status: 'executing',
               contextItems,
               tplConfig,
+              selectedToolsets,
               selectedSkill,
               modelInfo,
               runtimeConfig: {
@@ -304,7 +363,17 @@ export const SkillNode = memo(
       );
 
       deleteElements({ nodes: [node] });
-    }, [id, getNode, deleteElements, invokeAction, canvasId, addNode, form]);
+    }, [
+      id,
+      getNode,
+      deleteElements,
+      invokeAction,
+      canvasId,
+      addNode,
+      form,
+      selectedToolsets,
+      contextItems,
+    ]);
 
     const handleDelete = useCallback(() => {
       const currentNode = getNode(id);
@@ -430,6 +499,8 @@ export const SkillNode = memo(
               (v) => v.source === 'stepRecord' || v.source === 'resultRecord',
             )}
             enableRichInput={true}
+            selectedToolsets={selectedToolsets}
+            onSelectedToolsetsChange={setSelectedToolsets}
           />
         </div>
       </div>

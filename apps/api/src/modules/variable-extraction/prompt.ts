@@ -1,8 +1,4 @@
-import {
-  WorkflowVariable,
-  CanvasContext,
-  HistoricalData,
-} from 'src/modules/variable-extraction/variable-extraction.dto';
+import { WorkflowVariable, CanvasContext, HistoricalData } from './variable-extraction.dto';
 
 // Import examples for reference and testing
 import { VARIABLE_EXTRACTION_EXAMPLES } from './examples';
@@ -20,11 +16,9 @@ export function buildUnifiedPrompt(
 ): string {
   const existingVarsText = buildExistingVariablesText(existingVariables);
   const canvasContextText = buildCanvasContextText(canvasContext);
-  const historicalContext = historicalData ? buildHistoricalContext(historicalData) : '';
+  const historicalContextText = buildHistoricalContextText(historicalData);
 
   return `# AI Workflow Variable Intelligent Extraction Expert
-
-You are a professional workflow analysis expert specialized in intelligently extracting parameterizable variables from users' natural language input to build efficient, reusable workflow templates.
 
 ## Mission Statement
 Transform user prompts into structured variable templates while maintaining semantic integrity and enforcing strict quantity controls for optimal workflow efficiency.
@@ -43,13 +37,14 @@ Transform user prompts into structured variable templates while maintaining sema
 ${userPrompt}
 \`\`\`
 
-### Existing Variable Library
-${existingVarsText}
-
-### Workflow Context
+### Canvas Context
 ${canvasContextText}
 
-${historicalContext ? `### Historical Learning Context\n${historicalContext}` : ''}
+### Existing Variables
+${existingVarsText}
+
+### Historical Context
+${historicalContextText}
 
 ## Variable Type Definitions & Quantity Limits
 
@@ -121,10 +116,10 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 \`\`\`json
 {
   "analysis": {
-    "userIntent": "Concise description of user intent",
-    "extractionConfidence": 0.95,
-    "complexityScore": 3,
-    "extractedEntityCount": 5,
+    "userIntent": "Brief description of what the user wants to accomplish",
+    "extractionConfidence": 0.85,
+    "complexityScore": 0.6,
+    "extractedEntityCount": 3,
     "variableTypeDistribution": {
       "string": 3,
       "resource": 1, 
@@ -139,27 +134,40 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
   },
   "variables": [
     {
-      "name": "variable_name",
-      "value": ["Specific extracted value or empty string"],
-      "description": "Variable purpose description",
+      "name": "project_name",
+      "value": [
+        {
+          "type": "text",
+          "text": "Marketing Campaign"
+        }
+      ],
+      "description": "Name of the marketing project",
       "variableType": "string",
       "source": "startNode",
-      "extractionReason": "Why extract this variable",
-      "confidence": 0.92
+      "extractionReason": "User specified project name in prompt",
+      "confidence": 0.9
     }
   ],
   "reusedVariables": [
     {
-      "detectedText": "Text fragment reused in original text",
-      "reusedVariableName": "Reused variable name",
-      "confidence": 0.89,
-      "reason": "Specific reason for reuse"
+      "detectedText": "existing project template",
+      "reusedVariableName": "project_template",
+      "confidence": 0.8,
+      "reason": "User mentioned using existing template"
     }
   ],
-  "processedPrompt": "Template string after variable replacement, using {{variable_name}} format",
+  "processedPrompt": "Create a {{project_name}} using the {{project_template}}",
   "originalPrompt": "Original user input"
 }
 \`\`\`
+
+## Variable Value Structure
+
+Each variable must have a \`value\` array containing \`VariableValue\` objects:
+
+- **For string variables**: Use \`{"type": "text", "text": "actual value"}\`
+- **For resource variables**: Use \`{"type": "resource", "resource": {"name": "file_name", "fileType": "document", "storageKey": ""}}\`
+- **For option variables**: Use \`{"type": "text", "text": "selected_option"}\`
 
 ## Quality Standards & Validation Checklist
 
@@ -232,102 +240,91 @@ function buildExistingVariablesText(existingVariables: WorkflowVariable[]): stri
 
   return existingVariables
     .map((v) => {
-      const value = Array.isArray(v.value) ? v.value.join(', ') : v.value;
-      return `- ${v.name} (${v.variableType}): ${v.description} [Current value: ${value || 'Empty'}]`;
+      // Handle new VariableValue structure - display ALL values, not just the first one
+      let valueText = 'Empty';
+      if (v.value && Array.isArray(v.value) && v.value.length > 0) {
+        const valueTexts: string[] = [];
+
+        for (const valueItem of v.value) {
+          if (valueItem.type === 'text' && valueItem.text) {
+            valueTexts.push(valueItem.text);
+          } else if (valueItem.type === 'resource' && valueItem.resource) {
+            valueTexts.push(`${valueItem.resource.name} (${valueItem.resource.fileType})`);
+          }
+        }
+
+        valueText = valueTexts.length > 0 ? valueTexts.join(', ') : 'Empty';
+      }
+
+      return `- ${v.name} (${v.variableType}): ${v.description} [Current values: ${valueText}]`;
     })
     .join('\n');
 }
 
 /**
  * Build canvas context text - internal utility function
- * Purpose: format canvas context information into structured text description
+ * Purpose: format canvas context into readable text description
  */
 function buildCanvasContextText(canvasContext: CanvasContext): string {
-  const {
-    nodeCount = 0,
-    complexity = 0,
-    resourceCount = 0,
-    workflowType = 'Generic Workflow',
-    primarySkills = ['Content Generation'],
-    lastExtractionTime,
-    recentVariablePatterns = [],
-  } = canvasContext;
+  const parts: string[] = [];
 
-  let contextText = `- Canvas Nodes: ${nodeCount}
-- Workflow Type: ${workflowType}
-- Primary Skills: ${Array.isArray(primarySkills) ? primarySkills.join(', ') : primarySkills}
-- Complexity Score: ${complexity}/100
-- Resource Count: ${resourceCount}
-`;
-
-  if (lastExtractionTime) {
-    contextText += `\n- Last Extraction Time: ${new Date(lastExtractionTime).toLocaleString()}`;
+  if (canvasContext.nodeCount > 0) {
+    parts.push(`${canvasContext.nodeCount} nodes`);
   }
 
-  if (recentVariablePatterns.length > 0) {
-    contextText += `\n- Recent Variable Patterns: ${recentVariablePatterns.slice(0, 5).join(', ')}`;
+  if (canvasContext.complexity > 0) {
+    const complexityLevel =
+      canvasContext.complexity < 30
+        ? 'simple'
+        : canvasContext.complexity < 70
+          ? 'medium'
+          : 'complex';
+    parts.push(`complexity: ${complexityLevel} (${canvasContext.complexity})`);
   }
 
-  return contextText;
+  if (canvasContext.resourceCount > 0) {
+    parts.push(`${canvasContext.resourceCount} resources`);
+  }
+
+  if (canvasContext.workflowType) {
+    parts.push(`workflow type: ${canvasContext.workflowType}`);
+  }
+
+  if (canvasContext.primarySkills?.length > 0) {
+    parts.push(`primary skills: ${canvasContext.primarySkills.join(', ')}`);
+  }
+
+  if (parts.length === 0) {
+    return '- Basic canvas context';
+  }
+
+  return parts.join(', ');
 }
 
 /**
- * Build historical context - internal utility function
- * Purpose: analyze historical data and generate structured historical learning context
+ * Build historical context text - internal utility function
+ * Purpose: format historical data into readable text description
  */
-function buildHistoricalContext(historicalData: HistoricalData): string {
-  if (
-    !historicalData ||
-    !historicalData.extractionHistory ||
-    historicalData.extractionHistory.length === 0
-  ) {
-    return 'No historical extraction records, standard extraction strategy will be used';
+function buildHistoricalContextText(historicalData?: HistoricalData): string {
+  if (!historicalData) {
+    return '- No historical data available';
   }
 
-  const recentExtractions = historicalData.extractionHistory.slice(0, 5);
-  const variableTypes = new Map<string, number>();
-  const commonPatterns = new Set<string>();
-  const successRates = new Map<string, number>();
+  const parts: string[] = [];
 
-  for (const record of recentExtractions) {
-    try {
-      const variables = JSON.parse(record.extractedVariables);
-      for (const variable of variables) {
-        // Count variable type distribution
-        const type = variable.variableType || 'unknown';
-        variableTypes.set(type, (variableTypes.get(type) || 0) + 1);
-
-        // Collect common patterns
-        if (variable.description) {
-          commonPatterns.add(variable.description);
-        }
-      }
-
-      // Count success rate
-      const status = record.status || 'unknown';
-      successRates.set(status, (successRates.get(status) || 0) + 1);
-    } catch {
-      // Ignore records with parsing errors
-    }
+  if (historicalData.extractionHistory?.length > 0) {
+    parts.push(`${historicalData.extractionHistory.length} previous extractions`);
   }
 
-  // Build historical context description
-  const typeDistribution = Array.from(variableTypes.entries())
-    .map(([type, count]) => `${type}: ${count}`)
-    .join(', ');
+  if (historicalData.canvasPatterns?.length > 0) {
+    parts.push(`${historicalData.canvasPatterns.length} variable patterns`);
+  }
 
-  const patternList = Array.from(commonPatterns).slice(0, 3).join('、');
+  if (parts.length === 0) {
+    return '- Limited historical context';
+  }
 
-  const successRate = successRates.get('applied') || 0;
-  const totalRecords = recentExtractions.length;
-  const successPercentage = totalRecords > 0 ? Math.round((successRate / totalRecords) * 100) : 0;
-
-  return `Based on ${historicalData.extractionHistory.length} historical extraction experiences:
-- Variable type distribution: ${typeDistribution}
-- Common patterns: ${patternList || 'No specific patterns'}
-- Last extraction time: ${recentExtractions[0]?.createdAt?.toLocaleDateString() || 'Unknown'}
-- Historical success rate: ${successPercentage}% (${successRate}/${totalRecords})
-- Recent extraction records: ${recentExtractions.length} records`;
+  return parts.join(', ');
 }
 
 // Legacy function for backward compatibility

@@ -21,6 +21,7 @@ import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { getAvailableFileCount } from '@refly/utils/quota';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 export const ImportResourceModal = memo(() => {
   const { t } = useTranslation();
@@ -100,7 +101,12 @@ export const ImportResourceModal = memo(() => {
     setSaveLoading(true);
     try {
       const batchCreateResourceData: UpsertResourceRequest[] = waitingList
-        .filter((item) => item.file?.type !== 'image')
+        .filter(
+          (item) =>
+            item.file?.type !== 'image' &&
+            item.file?.type !== 'video' &&
+            item.file?.type !== 'audio',
+        )
         .map((item) => {
           // For weblink items, use the link data if available
           if (item.type === 'weblink' && item.link) {
@@ -168,18 +174,36 @@ export const ImportResourceModal = memo(() => {
         });
       });
 
-      const images = waitingList.filter((item) => item.file?.type === 'image');
-      for (const item of images) {
+      const mediaFiles = waitingList.filter(
+        (item) =>
+          item.file?.type === 'image' || item.file?.type === 'video' || item.file?.type === 'audio',
+      );
+      for (const item of mediaFiles) {
+        // Create metadata based on file type
+        const metadata: Record<string, any> = {
+          storageKey: item.file?.storageKey,
+        };
+
+        // Set the appropriate URL field based on file type
+        switch (item.file?.type) {
+          case 'image':
+            metadata.imageUrl = item.file?.url;
+            break;
+          case 'video':
+            metadata.videoUrl = item.file?.url;
+            break;
+          case 'audio':
+            metadata.audioUrl = item.file?.url;
+            break;
+        }
+
         nodeOperationsEmitter.emit('addNode', {
           node: {
-            type: 'image',
+            type: item.file?.type as CanvasNodeType,
             data: {
               title: item.title,
               entityId: item.file?.storageKey,
-              metadata: {
-                imageUrl: item.file?.url,
-                storageKey: item.file?.storageKey,
-              },
+              metadata,
             },
           },
         });
@@ -272,7 +296,7 @@ export const ImportResourceModal = memo(() => {
           <div className="flex flex-col gap-3 p-3 pb-1.5 rounded-xl border-solid border-[1px] border-refly-Card-Border">
             <Segmented
               shape="round"
-              className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center "
+              className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"
               options={importResourceOptions}
               value={selectedMenuItem}
               onChange={(value) => {

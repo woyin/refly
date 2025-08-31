@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { ActionResult } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { Button, message } from 'antd';
@@ -29,9 +29,11 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
 
   const error = guessModelProviderError(result?.errors?.[0] ?? '');
 
-  const errDescription = useMemo(() => {
-    return `${errCode} ${errMsg} ${rawError ? `: ${String(rawError)}` : ''}`;
-  }, [errCode, errMsg, rawError]);
+  const errDescription = t('canvas.skillResponse.error.description', {
+    errCode,
+    errMsg,
+    rawError,
+  });
 
   const { data: balanceData, isSuccess: isBalanceSuccess } = useGetCreditBalance();
   const creditBalance = balanceData?.data?.creditBalance ?? 0;
@@ -47,7 +49,12 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
   );
 
   return (
-    <div className="mt-2 flex flex-col gap-2 border border-solid border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-md">
+    <div
+      className="mt-2 flex flex-col gap-2 border border-solid border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-md"
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+    >
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1 min-w-0">
           <div className="font-medium text-sm flex items-center gap-2">

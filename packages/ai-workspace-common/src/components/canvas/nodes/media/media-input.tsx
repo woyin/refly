@@ -119,7 +119,13 @@ const MediaChatInput = memo(
             const mediaQueryData: MediaQueryData = {
               mediaType: currentMediaType,
               query,
-              model: selectedModel?.config?.modelId || '',
+              modelInfo: {
+                name: selectedModel?.config?.modelId || '',
+                label: selectedModel?.name || '',
+                provider: selectedModel?.provider?.name || '',
+                contextLimit: 0,
+                maxOutput: 0,
+              },
               providerItemId: selectedModel?.itemId ?? '',
             };
             setMediaQueryData(mediaQueryData);
@@ -131,7 +137,13 @@ const MediaChatInput = memo(
               targetId: canvasId ?? '',
               mediaType: currentMediaType,
               query,
-              model: selectedModel?.config?.modelId || '',
+              modelInfo: {
+                name: selectedModel?.config?.modelId || '',
+                label: selectedModel?.name || '',
+                provider: selectedModel?.provider?.name || '',
+                contextLimit: 0,
+                maxOutput: 0,
+              },
               nodeId: nodeId || '',
             });
           }
@@ -212,7 +224,7 @@ const MediaChatInput = memo(
     return (
       <div>
         <TextArea
-          style={{ paddingLeft: 0, paddingRight: 0, height: '100%' }}
+          style={{ paddingLeft: 0, paddingRight: 0, paddingTop: '4px', paddingBottom: '4px' }}
           className={cn(
             'flex-1 flex-shrink-0 !m-0 bg-transparent outline-none box-border border-none focus:outline-none focus:shadow-none focus:border-none focus:ring-0',
             readonly && 'cursor-not-allowed !text-black !bg-transparent',

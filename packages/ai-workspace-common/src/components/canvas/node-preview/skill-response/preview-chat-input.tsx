@@ -32,7 +32,8 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
   return (
     <div
       className="rounded-lg bg-refly-bg-control-z0 p-2 hover:bg-refly-tertiary-hover cursor-pointer"
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         if (!readonly) {
           setEditMode(true);
         }

@@ -14,7 +14,7 @@ export const useFindImages = () => {
         startNode = nodes.find((node) => node.data?.entityId === resultId) as CanvasNode;
       }
 
-      if (!startNode || startNode.type !== 'image') return [];
+      if (!startNode || !['image', 'video', 'audio'].includes(startNode.type)) return [];
 
       // Extract the storageKey and other metadata
       const imageData = {

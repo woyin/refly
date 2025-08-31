@@ -6,6 +6,7 @@ import {
   Artifact,
   CanvasNodeType,
   CodeArtifactType,
+  GenericToolset,
   IndexError,
   IndexStatus,
   MediaType,
@@ -86,6 +87,7 @@ export type SkillNodeMeta = {
   resultId?: string;
   version?: number;
   selectedSkill?: Skill;
+  selectedToolsets?: GenericToolset[];
   modelInfo?: ModelInfo | null;
   contextItems?: IContextItem[];
   tplConfig?: SkillTemplateConfig;
@@ -113,9 +115,11 @@ export type MediaSkillNodeMeta = {
 export type MediaSkillResponseNodeMeta = {
   prompt: string;
   status: ActionStatus;
+  contextItems?: IContextItem[];
   mediaType?: MediaType;
   resultId?: string;
   selectedModel?: ProviderItem | null;
+  modelInfo?: ModelInfo;
 };
 
 export type ToolNodeMeta = {
@@ -159,6 +163,8 @@ export type ImageNodeMeta = {
   sizeMode?: 'compact' | 'adaptive';
   style?: React.CSSProperties;
   originalWidth?: number;
+  contextItems?: IContextItem[];
+  modelInfo?: ModelInfo;
 };
 
 // Website node metadata
