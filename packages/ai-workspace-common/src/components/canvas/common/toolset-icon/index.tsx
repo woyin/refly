@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 import { GenericToolset } from '@refly/openapi-schema';
 import { Mcp } from 'refly-icons';
@@ -8,10 +9,10 @@ interface ToolsetIconConfig {
   className?: string;
 }
 
-export const ToolsetIcon = ({
-  toolset,
-  config,
-}: { toolset: GenericToolset; config?: ToolsetIconConfig }) => {
+export const ToolsetIcon: React.FC<{
+  toolset: GenericToolset;
+  config?: ToolsetIconConfig;
+}> = React.memo(({ toolset, config }) => {
   const { size = 24, className } = config ?? {};
 
   if (toolset.type === 'mcp') {
@@ -23,8 +24,11 @@ export const ToolsetIcon = ({
   }
 
   return (
-    <div className={cn('flex items-center justify-center overflow-hidden', className)}>
-      <Favicon url={toolset.toolset?.definition?.domain} size={size} />
+    <div
+      className={cn('flex items-center justify-center overflow-hidden', className)}
+      aria-label={`Toolset icon for ${toolset.toolset?.definition?.domain ?? 'unknown domain'}`}
+    >
+      <Favicon url={toolset.toolset?.definition?.domain ?? ''} size={size} />
     </div>
   );
-};
+});
