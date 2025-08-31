@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { User } from '@refly/openapi-schema';
 import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
-import { CanvasSyncService } from '../canvas/canvas-sync.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ProviderService } from '../provider/provider.service';
 import { genVariableExtractionSessionID } from '@refly/utils';
 import { buildUnifiedPrompt } from './prompt';

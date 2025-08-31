@@ -4,7 +4,7 @@ import { PrismaService } from '../common/prisma.service';
 import { SkillService } from '../skill/skill.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { McpServerService } from '../mcp-server/mcp-server.service';
-import { CanvasSyncService } from '../canvas/canvas-sync.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 

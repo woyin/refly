@@ -5,7 +5,6 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { PrismaService } from '../common/prisma.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { CollabService } from '../collab/collab.service';
-import { CanvasService } from '../canvas/canvas.service';
 import { CollabContext } from '../collab/collab.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
@@ -17,6 +16,7 @@ import {
   generateDocPromptModule,
   codeArtifactsPromptModule,
 } from '@refly/skill-template';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
 export class InternalToolService {
@@ -27,7 +27,7 @@ export class InternalToolService {
     private readonly knowledgeService: KnowledgeService,
     private readonly providerService: ProviderService,
     private readonly collabService: CollabService,
-    private readonly canvasService: CanvasService,
+    private readonly canvasSyncService: CanvasSyncService,
     private readonly codeArtifactService: CodeArtifactService,
   ) {}
 
@@ -77,7 +77,7 @@ export class InternalToolService {
 
       // Add node to canvas if canvasId is provided
       if (canvasId) {
-        await this.canvasService.addNodeToCanvas(
+        await this.canvasSyncService.addNodeToCanvas(
           user,
           canvasId,
           {
@@ -180,7 +180,7 @@ export class InternalToolService {
 
       // Add node to canvas if canvasId is provided
       if (canvasId) {
-        await this.canvasService.addNodeToCanvas(
+        await this.canvasSyncService.addNodeToCanvas(
           user,
           canvasId,
           {
