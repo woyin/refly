@@ -372,7 +372,7 @@ export const ToolsDependency = () => {
   const { nodes } = useCanvasData();
 
   const { data } = useListTools({ query: { enabled: true } }, [], {
-    enabled: open && isLogin,
+    enabled: isLogin,
     refetchOnWindowFocus: false,
   });
 
@@ -450,7 +450,9 @@ export const ToolsDependency = () => {
 
   const currentTools = categorizedTools[activeTab as keyof typeof categorizedTools] || [];
 
-  const uninstalledCount = categorizedTools.uninstalled.length;
+  const uninstalledCount = useMemo(() => {
+    return isLogin ? categorizedTools.uninstalled.length : 0;
+  }, [isLogin, categorizedTools]);
 
   const options = useMemo(() => {
     return [
