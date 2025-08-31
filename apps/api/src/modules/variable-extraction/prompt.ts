@@ -18,51 +18,109 @@ export function buildUnifiedPrompt(
   const canvasContextText = buildCanvasContextText(canvasContext);
   const historicalContextText = buildHistoricalContextText(historicalData);
 
-  return `# Variable Extraction Task
+  return `# AI Workflow Variable Intelligent Extraction Expert
 
-## Task Description
-Extract workflow variables from the user's prompt and generate a processed template. The goal is to identify variables that can be parameterized to make the workflow reusable.
+## Mission Statement
+Transform user prompts into structured variable templates while maintaining semantic integrity, enforcing strict quantity controls, and extracting ONLY the most essential variables that capture the user's main intent.
 
-## User Input
+## Core Tasks
+1. **Precise Identification**: Analyze user input, identify ONLY core variable parameters that represent the PRIMARY INTENT of the user's request
+2. **Quantity Control**: Strictly limit each variable type to maximum 10 variables (string ≤ 10, resource ≤ 10, option ≤ 10)
+3. **Minimal Extraction**: Follow the examples in the reference materials - extract as FEW variables as possible while preserving workflow functionality
+4. **Intelligent Classification**: Categorize parameters into string/resource/option three types
+5. **Variable Reuse**: Mandatory check and reuse existing variables before creating new ones
+6. **Template Generation**: Generate processedPrompt template with {{variable_name}} placeholders
+
+## Input Context
+
+### User Original Input
+\`\`\`
 ${userPrompt}
+\`\`\`
 
-## Canvas Context
+### Canvas Context
 ${canvasContextText}
 
-## Existing Variables
+### Existing Variables
 ${existingVarsText}
 
-## Historical Context
+### Historical Context
 ${historicalContextText}
 
-## Requirements
+## Variable Type Definitions & Quantity Limits
 
-### 1. Variable Extraction
-Extract variables that represent:
-- **User inputs**: Names, preferences, requirements, etc.
-- **File resources**: Documents, images, data files, etc.
-- **Configuration options**: Styles, formats, settings, etc.
+### CRITICAL RULE: Variable Quantity Control & Minimalism
+- **Maximum Limits**: Each variable type should NOT exceed 10 variables
+  - string variables: Maximum 10
+  - resource variables: Maximum 10  
+  - option variables: Maximum 10
+- **MINIMAL EXTRACTION PRINCIPLE**: Extract as FEW variables as possible - follow examples in reference materials
+- **Quality over Quantity**: Extract only core, essential variables that capture the USER'S PRIMARY INTENT
+- **Reuse First**: Always prioritize reusing existing variables over creating new ones
+- **Focus on Impact**: Only extract variables that significantly affect workflow outcomes
+- **Reference-Based**: Study the provided examples carefully - they demonstrate optimal variable extraction patterns
 
-### 2. Variable Classification
-Classify each variable into one of three types:
-- **string**: Text content, descriptions, preferences
-- **resource**: Files, documents, data sources
-- **option**: Limited choices, style preferences
+### 1. string (Text Variable)
+- **Purpose**: Pure text content, configuration parameters, description information
+- **Examples**: Topic, title, requirements, style, language, etc.
+- **Naming**: topic, title, style, language, requirement
+- **Limit**: Maximum 10 string variables per extraction
 
-### 3. Variable Naming
-- Use descriptive English names in snake_case format
-- Names should be self-explanatory
-- Avoid generic names like "input", "data", "file"
+### 2. resource (Resource Variable) 
+- **Purpose**: Files, documents, images that users need to upload
+- **Examples**: Resume files, reference documents, image materials, etc.
+- **Naming**: resume_file, reference_doc, source_image
+- **Limit**: Maximum 10 resource variables per extraction
 
-### 4. Value Extraction
-For each variable, extract the current value from the prompt:
-- **For string variables**: Extract the actual text value
-- **For resource variables**: Extract file names and types
-- **For option variables**: Extract the selected option
+### 3. option (Option Variable)
+- **Purpose**: Predefined selection items, enumeration values
+- **Examples**: Format selection, mode selection, level selection, etc.
+- **Naming**: output_format, processing_mode, difficulty_level
+- **Limit**: Maximum 10 option variables per extraction
 
-## Output Format
+## Intelligent Analysis Process
 
-Return a JSON object with the following structure:
+### Step 1: Intent Understanding & Reference Study
+- **FIRST**: Study the provided examples to understand optimal variable extraction patterns
+- Analyze user's core goals and expected output
+- Identify task type and complexity level
+- **KEY**: Focus on the PRIMARY INTENT - what is the user's main goal?
+
+### Step 2: Minimal Entity Extraction
+- Scan specific values and concepts in user input
+- **CRITICAL**: Only extract variables that represent the CORE ESSENCE of the user's request
+- Determine which content can be parameterized BUT prioritize minimalism
+- Distinguish between fixed content and variable content
+- **Reference Check**: Compare with examples - are you extracting similar quantities of variables?
+
+### Step 3: Variable Classification
+- string: Text content that users can directly input
+- resource: Files or external resources that need to be uploaded
+- option: Options in limited selection sets
+
+### Step 4: Reuse Detection & Minimalist Validation
+- **Mandatory Reuse Check**: Before creating any new variable, check existing variables for reuse possibilities
+- Semantic similarity matching (threshold 0.8+)
+- Pronoun detection ("this", "above", "just now")  
+- Context association analysis
+- **Quantity Validation**: Ensure each variable type stays within 10-variable limit
+- **Minimalist Check**: Are you extracting FEWER variables than the maximum? (Examples typically show 3-6 variables total)
+- **Primary Intent Check**: Does each variable directly support the user's main goal?
+- **Prioritization**: If approaching limits, prioritize most impactful variables
+
+### Step 5: Variable Naming
+- Use English snake_case format
+- Names should be self-explanatory and concise
+- Avoid conflicts with existing variable names
+
+### Step 6: Template Construction
+- Replace extracted variable values with {{variable_name}} placeholders
+- Maintain original semantic and structural integrity
+- Ensure template readability and practicality
+
+## Output Format Requirements
+
+**Must** return standard JSON format, no format errors allowed:
 
 \`\`\`json
 {
@@ -72,9 +130,15 @@ Return a JSON object with the following structure:
     "complexityScore": 0.6,
     "extractedEntityCount": 3,
     "variableTypeDistribution": {
-      "string": 2,
-      "resource": 1,
-      "option": 0
+      "string": 3,
+      "resource": 1, 
+      "option": 1
+    },
+    "quantityValidation": {
+      "stringWithinLimit": true,
+      "resourceWithinLimit": true,
+      "optionWithinLimit": true,
+      "totalVariablesCount": 5
     }
   },
   "variables": [
@@ -114,23 +178,92 @@ Each variable must have a \`value\` array containing \`VariableValue\` objects:
 - **For resource variables**: Use \`{"type": "resource", "resource": {"name": "file_name", "fileType": "document", "storageKey": ""}}\`
 - **For option variables**: Use \`{"type": "text", "text": "selected_option"}\`
 
-## Quality Standards
-- Variable names: Clear, consistent, self-explanatory
-- Variable types: Accurate classification, conforming to three type definitions
-- Reuse detection: High accuracy, reduce redundant variables
-- Processed template: Maintain original meaning, correct placeholder replacement
+## Quality Standards & Validation Checklist
+
+### Variable Quantity Control ✓
+- [ ] String variables ≤ 10 (PREFER much fewer - examples show 2-5 typically)
+- [ ] Resource variables ≤ 10 (PREFER much fewer - examples show 0-2 typically)
+- [ ] Option variables ≤ 10 (PREFER much fewer - examples show 0-3 typically)
+- [ ] Total variables count verified and justified (TARGET: 3-6 variables total)
+- [ ] **Examples Reference Check**: Variable count similar to reference examples
+
+### Variable Quality & Minimalism ✓
+- [ ] Variable names: Clear, consistent, self-explanatory (snake_case format)
+- [ ] Variable types: Accurate classification, conforming to three type definitions
+- [ ] Reuse detection: High accuracy, reduce redundant variables
+- [ ] **Primary Intent Focus**: Only variables that capture the user's MAIN GOAL
+- [ ] **Minimalist Principle**: Extracted as FEW variables as possible while preserving functionality
+- [ ] **Examples Compliance**: Extraction pattern matches reference examples
+
+### Template Quality ✓
+- [ ] Processed template: Maintain original meaning, correct placeholder replacement
+- [ ] All variables properly referenced in template with {{variable_name}} format
+- [ ] Template readability and semantic integrity preserved
+
+### Extraction Validation ✓
+- [ ] Each extracted variable has clear justification for its necessity
+- [ ] Existing variables checked for reuse before creating new ones
+- [ ] Variable descriptions are precise and actionable
 
 ${VARIABLE_EXTRACTION_EXAMPLES}
 
-## Key Learning Points from Examples
+## Key Learning Points from Examples - STUDY THESE CAREFULLY
 
-1. **Variable Naming**: Use descriptive English names in snake_case format (e.g., departure_city, daily_routes)
-2. **Type Classification**: 
-   - string: Most common for text content, preferences, descriptions
-   - resource: For files, data sources, uploads
-   - option: For limited choices, style preferences
-3. **Template Construction**: Replace specific values with {{variable_name}} placeholders while maintaining semantic meaning
-4. **Context Preservation**: Keep the original intent and structure of the user's request`;
+### **MANDATORY REFERENCE ANALYSIS** - Study Each Example Pattern:
+
+1. **Quantity Patterns**: 
+   - Product Hunt example: 4 variables (target_date, date_content, generate_content, email_to)
+   - Travel Planning complex: 8 variables (destination, dates, departure_city, goal, accommodation, food, pace, daily_routes)
+   - Travel Planning simple: 6 variables (destination, dates, duration_days, budget, accommodation, activities)
+   - Writing task: 5 variables (topic, platform, audience, length, tone)
+   - Video creation: 5 variables (topic, duration, style, music, subtitle)
+   - Data analysis: 4 variables (data_file, timeframe, metrics, deliverable)
+   - Health plan: 5 variables (goal, diet, exercise, frequency, duration)
+
+2. **Primary Intent Focus**: Each example extracts variables that directly support the MAIN GOAL:
+   - Travel planning → destination, dates, accommodation, activities
+   - Content creation → topic, platform, audience, format requirements
+   - Data analysis → data source, timeframe, metrics, output format
+
+3. **Minimalist Principle**: Examples show 4-8 variables total, NOT 30 variables
+4. **Variable Naming**: Use descriptive English names in snake_case format (e.g., departure_city, daily_routes, target_date, email_to)
+5. **Type Classification**: 
+   - string: Most common for text content, preferences, descriptions (e.g., destination, dates, goal)
+   - resource: For files, data sources, uploads (e.g., data_file, resume_file)
+   - option: For limited choices, style preferences (e.g., tone, style)
+6. **Template Construction**: Replace specific values with {{variable_name}} placeholders while maintaining semantic meaning
+7. **Context Preservation**: Keep the original intent and structure of the user's request
+8. **Reuse Strategy**: Look for opportunities to reuse variables across different contexts (e.g., "destination" can be reused for different travel scenarios)
+
+### **CRITICAL SUCCESS METRIC**: Your extraction should match these example patterns in variable count and focus on primary intent
+
+## Final Validation Reminder - CRITICAL CHECKS
+Before submitting extraction results, verify:
+- ✅ **EXAMPLES REFERENCE**: Variable count matches reference examples (typically 4-8 variables total)
+- ✅ **PRIMARY INTENT FOCUS**: Each variable directly supports the user's main goal
+- ✅ Each variable type count ≤ 10 (MANDATORY LIMIT, but aim for much fewer)
+- ✅ Existing variables checked for reuse (MANDATORY CHECK)
+- ✅ **MINIMALIST PRINCIPLE**: Extracted as FEW variables as possible while preserving functionality
+- ✅ All variables properly integrated into processedPrompt template
+- ✅ JSON format is valid and complete
+- ✅ quantityValidation fields accurately reflect variable counts
+
+## Extraction Success Criteria - MANDATORY STANDARDS
+A successful extraction MUST:
+1. **Follow Reference Examples**: Variable count and pattern similar to provided examples
+2. **Capture Primary Intent**: Focus only on variables that represent the user's MAIN GOAL
+3. Stay within quantity limits (≤10 per variable type, but aim for 3-6 total)
+4. Reuse existing variables when semantically appropriate
+5. Focus on workflow-critical variables only
+6. Maintain original user intent in processedPrompt
+7. Provide clear, actionable variable descriptions
+8. Return valid JSON with all required fields
+
+## FINAL EXTRACTION PRINCIPLE
+**LESS IS MORE**: Study the examples, extract minimal variables that capture the PRIMARY INTENT. 
+Examples show 4-8 variables per scenario - this is your target range, NOT the maximum limits.
+
+Remember: QUALITY, MINIMALISM, and REUSE over creating many variables. The best extraction captures the essence with the fewest variables.`;
 }
 
 /**

@@ -186,24 +186,33 @@ export class VariableExtractionService {
   }
 
   /**
-   * Basic quality check
+   * Enhanced quality check with minimalist principles
+   * Aligns with prompt engineering requirements
    */
   private performBasicQualityCheck(
     result: VariableExtractionResult,
     context: ExtractionContext,
   ): number {
     try {
-      // 1. Syntax validation
+      // 1. Variable quantity validation (CRITICAL from prompt)
+      const quantityValid = this.validateVariableQuantity(result);
+
+      // 2. Minimalist extraction validation
+      const minimalistValid = this.validateMinimalistExtraction(result);
+
+      // 3. Syntax validation
       const syntaxValid = this.validateSyntax(result);
 
-      // 2. Context relevance check
+      // 4. Context relevance check
       const contextRelevant = this.checkContextRelevance(result, context);
 
-      // 3. Variable completeness check
+      // 5. Variable completeness check
       const variableCompleteness = this.checkVariableCompleteness(result);
 
-      // 4. Calculate overall score
-      const overallScore = this.calculateOverallScore(
+      // 6. Calculate overall score with new weights
+      const overallScore = this.calculateEnhancedOverallScore(
+        quantityValid,
+        minimalistValid,
         syntaxValid,
         contextRelevant,
         variableCompleteness,
@@ -211,7 +220,7 @@ export class VariableExtractionService {
 
       return overallScore;
     } catch (error) {
-      this.logger.error(`Basic quality check failed: ${error.message}`);
+      this.logger.error(`Enhanced quality check failed: ${error.message}`);
       return 0.5; // Return medium score as fallback
     }
   }
@@ -246,6 +255,64 @@ export class VariableExtractionService {
   }
 
   /**
+   * Variable quantity validation - CRITICAL from prompt requirements
+   * Ensures each variable type stays within 10-variable limit
+   */
+  private validateVariableQuantity(result: VariableExtractionResult): number {
+    if (result.variables.length === 0) return 0;
+
+    const typeCounts = new Map<string, number>();
+
+    // Count variables by type
+    for (const variable of result.variables) {
+      const type = variable.variableType || 'string';
+      typeCounts.set(type, (typeCounts.get(type) || 0) + 1);
+    }
+
+    let totalScore = 0;
+    let typeCount = 0;
+
+    // Check each type against 10-variable limit
+    for (const [_type, count] of typeCounts) {
+      typeCount++;
+      if (count <= 10) {
+        // Bonus for staying well under limit (prefer 3-6 total variables)
+        if (count <= 6) {
+          totalScore += 1.0; // Perfect score
+        } else {
+          totalScore += 0.8; // Good score
+        }
+      } else {
+        totalScore += 0.2; // Penalty for exceeding limit
+      }
+    }
+
+    // Average score across all types
+    return typeCount > 0 ? totalScore / typeCount : 0;
+  }
+
+  /**
+   * Minimalist extraction validation - ensures quality over quantity
+   * Aligns with prompt engineering principle of extracting only essential variables
+   */
+  private validateMinimalistExtraction(result: VariableExtractionResult): number {
+    if (result.variables.length === 0) return 0;
+
+    // Target range: 3-6 variables total (from examples analysis)
+    const totalVariables = result.variables.length;
+
+    if (totalVariables >= 3 && totalVariables <= 6) {
+      return 1.0; // Perfect minimalist extraction
+    } else if (totalVariables <= 8) {
+      return 0.8; // Good extraction
+    } else if (totalVariables <= 10) {
+      return 0.6; // Acceptable but not ideal
+    } else {
+      return 0.3; // Too many variables - violates minimalist principle
+    }
+  }
+
+  /**
    * Variable completeness check
    */
   private checkVariableCompleteness(result: VariableExtractionResult): boolean {
@@ -260,7 +327,37 @@ export class VariableExtractionService {
   }
 
   /**
-   * Calculate overall score
+   * Enhanced overall score calculation with minimalist principles
+   */
+  private calculateEnhancedOverallScore(
+    quantityValid: number,
+    minimalistValid: number,
+    syntaxValid: boolean,
+    contextRelevant: boolean,
+    variableCompleteness: boolean,
+  ): number {
+    let score = 0;
+
+    // Quantity validation has highest weight (30%) - critical from prompt
+    score += quantityValid * 0.3;
+
+    // Minimalist extraction validation (25%) - new requirement
+    score += minimalistValid * 0.25;
+
+    // Syntax validation (20%)
+    score += (syntaxValid ? 1 : 0) * 0.2;
+
+    // Context relevance (15%)
+    score += (contextRelevant ? 1 : 0) * 0.15;
+
+    // Variable completeness (10%)
+    score += (variableCompleteness ? 1 : 0) * 0.1;
+
+    return score;
+  }
+
+  /**
+   * Legacy overall score calculation (kept for backward compatibility)
    */
   private calculateOverallScore(
     syntaxValid: boolean,
@@ -989,8 +1086,8 @@ export class VariableExtractionService {
   }
 
   /**
-   * Calculate overall confidence of extraction result
-   * Integrated with quality check for more reliable evaluation
+   * Enhanced confidence calculation with prompt engineering validation
+   * Ensures extraction results align with prompt requirements
    */
   private calculateOverallConfidence(
     result: VariableExtractionResult,
@@ -1023,23 +1120,23 @@ export class VariableExtractionService {
 
     // 3. Calculate confidence adjustments with better weighting
     const adjustments = {
-      // Quality score has highest weight (40%)
-      quality: qualityScore * 0.4,
+      // Quality score has highest weight (35%) - includes prompt validation
+      quality: qualityScore * 0.35,
 
-      // LLM confidence has significant weight (35%)
-      llmConfidence: baseConfidence * 0.35,
+      // LLM confidence has significant weight (30%)
+      llmConfidence: baseConfidence * 0.3,
 
-      // Variable count adjustment (15%) - less aggressive
-      variableCount: Math.max(0.7, 1 - (result.variables.length - 1) * 0.02) * 0.15,
+      // Prompt engineering compliance (20%) - NEW: validates against prompt requirements
+      promptCompliance: this.validatePromptEngineeringCompliance(result) * 0.2,
 
-      // Type distribution (5%)
-      typeDistribution: this.calculateTypeDistributionConfidence(result.variables) * 0.05,
+      // Variable count adjustment (10%) - less aggressive
+      variableCount: Math.max(0.7, 1 - (result.variables.length - 1) * 0.02) * 0.1,
 
-      // Reuse bonus (3%)
-      reuseBonus: Math.min(0.03, result.reusedVariables.length * 0.01),
+      // Type distribution (3%)
+      typeDistribution: this.calculateTypeDistributionConfidence(result.variables) * 0.03,
 
-      // Prompt processing quality (2%)
-      promptQuality: this.assessProcessedPromptQuality(result) * 0.02,
+      // Reuse bonus (2%)
+      reuseBonus: Math.min(0.02, result.reusedVariables.length * 0.01),
     };
 
     // 4. Calculate final confidence with weighted sum
@@ -1070,6 +1167,32 @@ export class VariableExtractionService {
     const typeDiversity = typeCounts.size / Math.min(totalVariables, 3); // Max 3 types
 
     return 0.8 + typeDiversity * 0.2; // 0.8-1.0 range
+  }
+
+  /**
+   * Validate prompt engineering compliance - NEW method
+   * Ensures extraction results follow prompt engineering principles
+   */
+  private validatePromptEngineeringCompliance(result: VariableExtractionResult): number {
+    let score = 0;
+
+    // 1. Variable quantity compliance (CRITICAL from prompt)
+    const quantityScore = this.validateVariableQuantity(result);
+    score += quantityScore * 0.4;
+
+    // 2. Minimalist extraction compliance
+    const minimalistScore = this.validateMinimalistExtraction(result);
+    score += minimalistScore * 0.3;
+
+    // 3. Variable reuse compliance
+    const reuseScore = result.reusedVariables.length > 0 ? 1.0 : 0.5;
+    score += reuseScore * 0.2;
+
+    // 4. Template quality compliance
+    const templateScore = this.assessProcessedPromptQuality(result) * 10; // Scale to 0-1
+    score += templateScore * 0.1;
+
+    return Math.min(1, score);
   }
 
   /**

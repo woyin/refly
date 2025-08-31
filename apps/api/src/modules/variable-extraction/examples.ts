@@ -6,6 +6,26 @@
 // Examples for variable extraction (buildUnifiedPrompt)
 export const VARIABLE_EXTRACTION_EXAMPLES = `## Variable Extraction Reference Examples
 
+### Product Hunt Aggregation Examples
+
+#### Complex PH Top 10 Aggregation and Publishing
+**Original Prompt**: 帮我抓取 Product Hunt 今日的 Top 10产品数据（产品名、一句话描述、产品介绍、数据表现「votes数 comment数」、maker 团队信息、网站链接等、产品官网截图），如果产品的 maker 有留 LinkedIn 链接则从 LinkedIn 公开Profile 中总结他的当前职位与过往工作、教育经历。将这些内容整理成为适合公众号发表的文章，一个美观漂亮的中文可视化网页，以及一个音频播客；将上述三个产物的链接总结成一条清楚的消息，发送到我的邮箱
+信息源：{{target_date}} 
+抓取内容：{{date_content}} 
+输出格式：{{generate_content}} 
+邮箱： {{email_to}}
+
+**Extracted Variables**:
+- target_date (string): 信息源日期
+- date_content (string): 抓取内容范围/描述
+- generate_content (string): 产出格式与形态
+- email_to (string): 接收邮箱
+
+**Processed Prompt**: 请抓取 Product Hunt 今日的 Top 10 产品数据（产品名、一句话描述、产品介绍、数据表现「votes数、comment数」、maker 团队信息、网站链接、产品官网截图）。若发现 maker 留有 LinkedIn 链接，请基于公开 Profile 总结其当前职位与过往工作、教育经历。把以上内容整理为适合公众号发表的文章、一页美观的中文可视化网页、以及一段音频播客；并将三者链接汇总为一条清晰消息发送至 {{email_to}}。
+信息源：{{target_date}} 
+抓取内容：{{date_content}} 
+输出格式：{{generate_content}}
+
 ### Travel Planning Examples
 
 #### Complex Travel Planning
@@ -117,6 +137,23 @@ export const VARIABLE_EXTRACTION_EXAMPLES = `## Variable Extraction Reference Ex
 
 // Examples for APP publishing template generation (buildAppPublishPrompt)
 export const APP_PUBLISH_EXAMPLES = `## APP Publishing Template Reference Examples
+
+### Product Hunt Aggregation Examples
+
+#### Complex PH Top 10 Aggregation and Publishing
+**Original Prompt**: 帮我抓取 Product Hunt 今日的 Top 10产品数据（产品名、一句话描述、产品介绍、数据表现「votes数 comment数」、maker 团队信息、网站链接等、产品官网截图），如果产品的 maker 有留 LinkedIn 链接则从 LinkedIn 公开Profile 中总结他的当前职位与过往工作、教育经历。将这些内容整理成为适合公众号发表的文章，一个美观漂亮的中文可视化网页，以及一个音频播客；将上述三个产物的链接总结成一条清楚的消息，发送到我的邮箱
+信息源：{{target_date}} 
+抓取内容：{{date_content}} 
+输出格式：{{generate_content}} 
+邮箱： {{email_to}}
+
+**Extracted Variables**:
+- target_date (string): 信息源日期
+- date_content (string): 抓取内容范围/描述
+- generate_content (string): 产出格式与形态
+- email_to (string): 接收邮箱
+
+**Workflow Publishing Template String**: 我将基于 {{target_date}} 的 Product Hunt 榜单抓取 Top 10 产品，覆盖 {{date_content}}（包含产品名、一句话描述、产品介绍、votes 数、comment 数、maker 团队信息、网站链接、产品官网截图，并在可用时基于 LinkedIn 公开 Profile 总结 maker 的当前职位与过往工作、教育经历）。随后产出三类内容：适合公众号发表的文章、一页美观的中文可视化网页、以及音频播客。完成后会把三者链接汇总为一条清晰消息并发送到 {{email_to}}。产出形态要求：{{generate_content}}。
 
 ### Travel Planning Examples
 
