@@ -9,6 +9,7 @@ import {
   GenericToolset,
   IndexError,
   IndexStatus,
+  MediaModelParameter,
   MediaType,
   ModelInfo,
   ProviderItem,
@@ -120,6 +121,7 @@ export type MediaSkillResponseNodeMeta = {
   resultId?: string;
   selectedModel?: ProviderItem | null;
   modelInfo?: ModelInfo;
+  inputParameters?: MediaModelParameter[];
 };
 
 export type ToolNodeMeta = {

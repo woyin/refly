@@ -309,6 +309,7 @@ export const useListenNodeOperationEvents = () => {
                 contextItems,
                 modelInfo,
                 selectedModel: omit(mediaSelectedModel, ['creditBilling', 'provider']),
+                inputParameters: processedInputParameters,
               },
             },
           };
