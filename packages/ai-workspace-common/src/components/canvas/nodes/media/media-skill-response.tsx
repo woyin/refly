@@ -44,6 +44,7 @@ import { MediaType } from '@refly-packages/ai-workspace-common/events/nodeOperat
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { IContextItem } from '@refly/common-types';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
+import { MediaModelParameter } from '@refly/openapi-schema';
 
 interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   mediaType?: MediaType;
@@ -51,6 +52,7 @@ interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
   model?: string;
   resultId?: string;
   providerItemId?: string;
+  inputParameters?: MediaModelParameter[];
 }
 
 interface MediaSkillResponseNodeProps extends NodeProps {
@@ -286,6 +288,7 @@ const MediaSkillResponseNode = memo(
             providerItemId,
             targetType: 'canvas',
             targetId: canvasId,
+            inputParameters: data?.metadata?.inputParameters,
           },
         });
 

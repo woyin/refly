@@ -20,11 +20,10 @@ import {
   IconMemo,
   IconResource,
   IconWebsite,
-  IconMedia,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { IoAnalyticsOutline } from 'react-icons/io5';
 import { useEdgeVisible } from '@refly-packages/ai-workspace-common/hooks/canvas/use-edge-visible';
-import { genMemoID, genSkillID, genMediaSkillID } from '@refly/utils/id';
+import { genMemoID, genSkillID } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { cn } from '@refly/utils/cn';
 import { HoverCard, HoverContent } from '@refly-packages/ai-workspace-common/components/hover-card';
@@ -111,14 +110,6 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
     );
   };
 
-  const createMediaGenerateSkillNode = (position: { x: number; y: number }) => {
-    addNode({
-      type: 'mediaSkill',
-      data: { title: 'Media', entityId: genMediaSkillID() },
-      position: position,
-    });
-  };
-
   const createMemo = (position: { x: number; y: number }) => {
     const memoId = genMemoID();
     addNode(
@@ -169,12 +160,7 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
         videoUrl: 'https://static.refly.ai/onboarding/menuPopper/menuPopper-askAI.webm',
       },
     },
-    {
-      key: 'mediaGenerate',
-      icon: IconMedia,
-      type: 'button',
-      title: t('canvas.toolbar.mediaGenerate'),
-    },
+
     { key: 'divider-creation-1', type: 'divider' },
     {
       key: 'createCodeArtifact',
@@ -368,10 +354,6 @@ export const ContextMenu: FC<ContextMenuProps> = ({ open, position, setOpen }) =
     switch (key) {
       case 'askAI':
         createSkillNode(position);
-        setOpen(false);
-        break;
-      case 'mediaGenerate':
-        createMediaGenerateSkillNode(position);
         setOpen(false);
         break;
       case 'createDocument':
