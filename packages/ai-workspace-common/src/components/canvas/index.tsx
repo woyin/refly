@@ -79,6 +79,7 @@ import { ResourceOverview } from './canvas-resources/share/resource-overview';
 import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
 import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
 import { WorkflowRun } from './workflow-run';
+import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
 
 const GRID_SIZE = 10;
 
@@ -249,6 +250,11 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     showSlideshow: state.showSlideshow,
     setShowSlideshow: state.setShowSlideshow,
     setContextMenuOpenedCanvasId: state.setContextMenuOpenedCanvasId,
+  }));
+
+  const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setShowWorkflowRun: state.setShowWorkflowRun,
+    showWorkflowRun: state.showWorkflowRun,
   }));
 
   const { handleNodePreview } = useNodePreviewControl({ canvasId });
@@ -491,6 +497,10 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
     if (isPilotOpen) {
       setActiveSessionId(null);
+    }
+
+    if (showWorkflowRun) {
+      setShowWorkflowRun(false);
     }
 
     const unsubscribe = locateToNodePreviewEmitter.on(
@@ -1216,6 +1226,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 });
 
 export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
+  const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
   const { canvasId, readonly } = props;
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
 
@@ -1328,7 +1339,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
               min={480}
               max={maxPanelWidth}
             >
-              {showWorkflowRun ? (
+              {showWorkflowRun && !readonly && !isPreviewCanvas ? (
                 <WorkflowRun />
               ) : (
                 <Popover

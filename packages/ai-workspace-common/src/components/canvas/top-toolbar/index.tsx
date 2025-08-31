@@ -21,6 +21,7 @@ import { useAuthStoreShallow } from '@refly/stores';
 import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/canvas-layout-controls';
 import { TooltipButton } from './buttons';
 import { ToolsDependency } from '../tools-dependency';
+import cn from 'classnames';
 
 const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
@@ -51,7 +52,8 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
     setLoginModalOpen: state.setLoginModalOpen,
   }));
 
-  const { setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
+  const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
+    showWorkflowRun: state.showWorkflowRun,
     setShowWorkflowRun: state.setShowWorkflowRun,
   }));
 
@@ -84,7 +86,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
       setLoginModalOpen(true);
       return;
     }
-    setShowWorkflowRun(true);
+    setShowWorkflowRun(!showWorkflowRun);
   };
 
   return (
@@ -142,13 +144,18 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
           )}
           <CanvasLayoutControls />
 
-          <TooltipButton
-            tooltip={t('canvas.toolbar.tooltip.initializeWorkflow') || 'Initialize Workflow'}
-            onClick={handleInitializeWorkflow}
-            className={buttonClass}
-          >
-            <Play size={16} />
-          </TooltipButton>
+          {!readonly && !isPreviewCanvas && (
+            <TooltipButton
+              tooltip={t('canvas.toolbar.tooltip.initializeWorkflow') || 'Initialize Workflow'}
+              onClick={handleInitializeWorkflow}
+              className={cn(buttonClass, showWorkflowRun && '!bg-gradient-tools-open')}
+            >
+              <Play
+                size={16}
+                color={showWorkflowRun ? 'var(--refly-primary-default)' : 'var(--refly-text-0)'}
+              />
+            </TooltipButton>
+          )}
 
           <ToolsDependency />
 
