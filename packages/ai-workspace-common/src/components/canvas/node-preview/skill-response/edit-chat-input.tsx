@@ -245,8 +245,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
       currentNode = nodes.find((node) => (node.data?.metadata as any)?.resultId === resultId);
     }
 
-    console.log('currentNode', currentNode);
-
     if (!currentNode) {
       return;
     }
