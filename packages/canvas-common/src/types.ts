@@ -140,6 +140,7 @@ export type ResponseNodeMeta = {
   errors?: string[];
   structuredData?: Record<string, unknown>;
   selectedSkill?: Skill;
+  selectedToolsets?: GenericToolset[];
   contextItems?: IContextItem[];
   tplConfig?: SkillTemplateConfig;
   runtimeConfig?: SkillRuntimeConfig;
