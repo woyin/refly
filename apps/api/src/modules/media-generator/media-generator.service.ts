@@ -402,9 +402,19 @@ export class MediaGeneratorService {
     request: MediaGenerateRequest,
     supportedLanguages: string[],
   ): Promise<Record<string, any>> {
-    if (!request?.inputParameters) {
+    if (
+      !request?.inputParameters ||
+      (Array.isArray(request.inputParameters) && request.inputParameters.length === 0)
+    ) {
       const languageDetection = await this.promptProcessor.detectLanguage(request?.prompt);
-      if (languageDetection.isEnglish || !supportedLanguages.includes(languageDetection.language)) {
+      // Check if supportedLanguages is empty or undefined for backward compatibility
+      const shouldTranslate =
+        !languageDetection.isEnglish &&
+        Array.isArray(supportedLanguages) &&
+        supportedLanguages.length > 0 &&
+        !supportedLanguages.includes(languageDetection.language);
+
+      if (shouldTranslate) {
         const translatedPrompt = await this.promptProcessor.translateToEnglish(
           request?.prompt,
           languageDetection.language,
@@ -435,10 +445,14 @@ export class MediaGeneratorService {
             const languageDetection = await this.promptProcessor.detectLanguage(
               param.value as string,
             );
-            if (
-              languageDetection.isEnglish /*||
-              !supportedLanguages.includes(languageDetection.language)*/
-            ) {
+            // Check if supportedLanguages is empty or undefined for backward compatibility
+            const shouldTranslate =
+              !languageDetection.isEnglish &&
+              Array.isArray(supportedLanguages) &&
+              supportedLanguages.length > 0 &&
+              !supportedLanguages.includes(languageDetection.language);
+
+            if (shouldTranslate) {
               input[param.name] = param.value;
             } else {
               const translatedPrompt = await this.promptProcessor.translateToEnglish(
