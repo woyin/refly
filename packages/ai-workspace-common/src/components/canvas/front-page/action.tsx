@@ -1,13 +1,12 @@
-import { Button, Tooltip, Switch } from 'antd';
+import { Button, Tooltip } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
-import { LinkOutlined } from '@ant-design/icons';
 import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useUserStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
 import { ModelInfo, GenericToolset } from '@refly/openapi-schema';
-import { cn, extractUrlsWithLinkify } from '@refly/utils/index';
+import { cn } from '@refly/utils/index';
 import { SkillRuntimeConfig } from '@refly/openapi-schema';
 import { useChatStoreShallow } from '@refly/stores';
 import { ChatModeSelector } from './chat-mode-selector';
@@ -42,8 +41,6 @@ export const Actions = memo(
       query,
       model,
       setModel,
-      runtimeConfig,
-      setRuntimeConfig,
       handleSendMessage,
       handleAbort,
       customActions,
@@ -72,23 +69,6 @@ export const Actions = memo(
     const canSendMessage = useMemo(
       () => !userStore.isLogin || canSendEmptyMessage,
       [userStore.isLogin, canSendEmptyMessage],
-    );
-
-    const detectedUrls = useMemo(() => {
-      if (!query?.trim()) return [];
-      const { detectedUrls } = extractUrlsWithLinkify(query);
-      return detectedUrls;
-    }, [query]);
-
-    // Handle switch change
-    const handleAutoParseLinksChange = useCallback(
-      (checked: boolean) => {
-        setRuntimeConfig({
-          ...runtimeConfig,
-          disableLinkParsing: checked,
-        });
-      },
-      [runtimeConfig, setRuntimeConfig],
     );
 
     // Create a pilot session or directly send message
@@ -121,24 +101,6 @@ export const Actions = memo(
               selectedToolsets={selectedToolsets}
               onSelectedToolsetsChange={onSelectedToolsetsChange}
             />
-          )}
-
-          {detectedUrls?.length > 0 && (
-            <div className="flex items-center gap-1 ml-2">
-              <Switch
-                size="small"
-                checked={runtimeConfig?.disableLinkParsing}
-                onChange={handleAutoParseLinksChange}
-              />
-              <Tooltip
-                className="flex flex-row items-center gap-1 cursor-pointer"
-                title={t('skill.runtimeConfig.parseLinksHint', {
-                  count: detectedUrls?.length,
-                })}
-              >
-                <LinkOutlined className="text-sm text-gray-500 flex items-center justify-center cursor-pointer" />
-              </Tooltip>
-            </div>
           )}
         </div>
         <div className="flex flex-row items-center gap-2">
