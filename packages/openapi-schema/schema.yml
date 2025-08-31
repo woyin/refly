@@ -6398,6 +6398,9 @@ components:
         initialContent:
           type: string
           description: Document initial content
+        resultId:
+          type: string
+          description: Action result ID to bind with
     UpsertDocumentResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

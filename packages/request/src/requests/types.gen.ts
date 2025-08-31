@@ -2941,6 +2941,10 @@ export type UpsertDocumentRequest = {
    * Document initial content
    */
   initialContent?: string;
+  /**
+   * Action result ID to bind with
+   */
+  resultId?: string;
 };
 
 export type UpsertDocumentResponse = BaseResponse & {

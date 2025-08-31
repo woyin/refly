@@ -194,9 +194,6 @@ export class BuiltinCreateDocument extends AgentBaseTool<BuiltinToolParams> {
   schema = z.object({
     title: z.string().describe('Title of the document to create'),
     initialContent: z.string().describe('Initial content of the document'),
-    description: z.string().optional().describe('Optional description of the document'),
-    projectId: z.string().optional().describe('Optional project ID to associate with the document'),
-    canvasId: z.string().optional().describe('Optional canvas ID to associate with the document'),
   });
 
   description = 'Create a new document in the knowledge base.';
@@ -208,14 +205,17 @@ export class BuiltinCreateDocument extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _: any,
+    config: RunnableConfig,
+  ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const document = await reflyService.createDocument(user, {
         title: input.title,
         initialContent: input.initialContent,
-        projectId: input.projectId,
-        canvasId: input.canvasId,
+        resultId: config.configurable?.resultId,
       });
 
       return {

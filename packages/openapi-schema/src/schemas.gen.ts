@@ -4056,6 +4056,10 @@ export const UpsertDocumentRequestSchema = {
       type: 'string',
       description: 'Document initial content',
     },
+    resultId: {
+      type: 'string',
+      description: 'Action result ID to bind with',
+    },
   },
 } as const;
 
