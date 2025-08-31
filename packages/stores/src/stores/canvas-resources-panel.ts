@@ -19,6 +19,7 @@ interface CanvasResourcesPanelState {
   // Change from single activeNode to map of canvasId to activeNode
   activeNodes: Record<string, CanvasNode | null>;
   searchKeyword: string;
+  showWorkflowRun: boolean;
 
   // Methods
   setPanelWidth: (width: number) => void;
@@ -32,7 +33,7 @@ interface CanvasResourcesPanelState {
   // Add helper method to get activeNode for a specific canvas
   getActiveNode: (canvasId: string) => CanvasNode | null;
   setSearchKeyword: (keyword: string) => void;
-
+  setShowWorkflowRun: (show: boolean) => void;
   resetState: () => void;
 }
 
@@ -45,6 +46,7 @@ const defaultState = {
   activeTab: 'stepsRecord' as const,
   // Initialize activeNodes as empty object
   searchKeyword: '',
+  showWorkflowRun: false,
 };
 
 export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
@@ -76,6 +78,13 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
         return state.activeNodes[canvasId] ?? null;
       },
       setSearchKeyword: (keyword: string) => set({ searchKeyword: keyword }),
+      setShowWorkflowRun: (show: boolean) => {
+        if (show) {
+          set({ showWorkflowRun: show, sidePanelVisible: true });
+        } else {
+          set({ showWorkflowRun: show });
+        }
+      },
       resetState: () => set(defaultState),
     }),
     {
@@ -88,6 +97,7 @@ export const useCanvasResourcesPanelStore = create<CanvasResourcesPanelState>()(
         panelWidth: state.panelWidth,
         sidePanelVisible: state.sidePanelVisible,
         wideScreenVisible: state.wideScreenVisible,
+        showWorkflowRun: state.showWorkflowRun,
       }),
     },
   ),

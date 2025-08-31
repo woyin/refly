@@ -1202,7 +1202,7 @@ const translations = {
       tooltip: {
         undo: '撤销',
         redo: '重做',
-        initializeWorkflow: '初始化工作流',
+        initializeWorkflow: '运行调试',
         initializeWorkflowInNewCanvas: '初始化工作流到新画布',
         zoom: '缩放百分比',
         zoomReset: '重置',
@@ -1298,6 +1298,10 @@ const translations = {
         typeLimitReached: '{{type}}类型的变量数量已达上限，无法提交。',
         startNode: '起始节点',
         resourceLibrary: '资源库',
+      },
+      run: {
+        title: '运行调试',
+        run: '运行',
       },
     },
     connectionTimeout: {

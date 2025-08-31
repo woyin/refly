@@ -1223,7 +1223,7 @@ const translations = {
         undo: 'Undo',
         redo: 'Redo',
         zoom: 'Zoom Percentage',
-        initializeWorkflow: 'Initialize Workflow',
+        initializeWorkflow: 'Run Workflow',
         initializeWorkflowInNewCanvas: 'Initialize Workflow in New Canvas',
         zoomReset: 'Reset',
         zoomIn: 'Zoom In',
@@ -1320,6 +1320,10 @@ const translations = {
           '{{type}} type variables have reached the maximum limit and cannot be submitted.',
         startNode: 'Start Node',
         resourceLibrary: 'Resource Library',
+      },
+      run: {
+        title: 'Run Workflow',
+        run: 'Run',
       },
     },
     connectionTimeout: {
