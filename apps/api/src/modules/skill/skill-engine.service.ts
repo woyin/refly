@@ -4,12 +4,10 @@ import { ReflyService } from '@refly/agent-tools';
 import { SkillEngine, SkillEngineOptions, SkillRunnableConfig } from '@refly/skill-template';
 import { CanvasService } from '../canvas/canvas.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
-import { McpServerService } from '../mcp-server/mcp-server.service';
 import { ProviderService } from '../provider/provider.service';
 import { RAGService } from '../rag/rag.service';
 import { SearchService } from '../search/search.service';
 import { buildSuccessResponse } from '../../utils';
-import { mcpServerPO2DTO } from '../mcp-server/mcp-server.dto';
 import { canvasPO2DTO } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
 import { documentPO2DTO, referencePO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
@@ -30,7 +28,6 @@ export class SkillEngineService implements OnModuleInit {
   private ragService: RAGService;
   private canvasService: CanvasService;
   private providerService: ProviderService;
-  private mcpServerService: McpServerService;
   private authService: AuthService;
   private mediaGeneratorService: MediaGeneratorService;
   private actionService: ActionService;
@@ -49,7 +46,6 @@ export class SkillEngineService implements OnModuleInit {
     this.ragService = this.moduleRef.get(RAGService, { strict: false });
     this.canvasService = this.moduleRef.get(CanvasService, { strict: false });
     this.providerService = this.moduleRef.get(ProviderService, { strict: false });
-    this.mcpServerService = this.moduleRef.get(McpServerService, { strict: false });
     this.authService = this.moduleRef.get(AuthService, { strict: false });
     this.mediaGeneratorService = this.moduleRef.get(MediaGeneratorService, { strict: false });
     this.actionService = this.moduleRef.get(ActionService, { strict: false });
@@ -74,10 +70,6 @@ export class SkillEngineService implements OnModuleInit {
         const result = await this.actionService.getActionResult(user, req);
         return result;
       },
-      listMcpServers: async (user, req) => {
-        const servers = await this.mcpServerService.listMcpServers(user, req);
-        return buildSuccessResponse(servers.map(mcpServerPO2DTO));
-      },
       createCanvas: async (user, req) => {
         const canvas = await this.canvasService.createCanvas(user, req);
         return buildSuccessResponse(canvasPO2DTO(canvas));
@@ -96,15 +88,14 @@ export class SkillEngineService implements OnModuleInit {
       },
       createDocument: async (user, req) => {
         const canvas = await this.knowledgeService.createDocument(user, req);
-        return buildSuccessResponse(documentPO2DTO(canvas));
+        return documentPO2DTO(canvas);
       },
       listDocuments: async (user, param) => {
         const canvasList = await this.knowledgeService.listDocuments(user, param);
-        return buildSuccessResponse(canvasList.map((canvas) => documentPO2DTO(canvas)));
+        return canvasList.map((canvas) => documentPO2DTO(canvas));
       },
       deleteDocument: async (user, param) => {
         await this.knowledgeService.deleteDocument(user, param);
-        return buildSuccessResponse({});
       },
       getResourceDetail: async (user, req) => {
         const resource = await this.knowledgeService.getResourceDetail(user, req);

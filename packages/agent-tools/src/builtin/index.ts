@@ -1,9 +1,8 @@
 import { z } from 'zod/v3';
-import { ToolParams } from '@langchain/core/tools';
-import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor } from '../base';
+import { RunnableConfig } from '@langchain/core/runnables';
+import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
 import { ToolsetDefinition, User } from '@refly/openapi-schema';
 import { ReflyService } from './interface';
-import { RunnableConfig } from '@langchain/core/dist/runnables/types';
 
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
@@ -29,20 +28,6 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
       descriptionDict: {
         en: 'Search the web for current information and news.',
         'zh-CN': '在网络上搜索最新信息和新闻。',
-      },
-    },
-    {
-      name: 'create_canvas',
-      descriptionDict: {
-        en: 'Create a new canvas for organizing ideas and content.',
-        'zh-CN': '创建新的画布来组织想法和内容。',
-      },
-    },
-    {
-      name: 'list_canvases',
-      descriptionDict: {
-        en: 'List available canvases for the user.',
-        'zh-CN': '列出用户可用的画布。',
       },
     },
     {
@@ -97,7 +82,7 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
   ],
 };
 
-interface BuiltinToolParams extends ToolParams {
+interface BuiltinToolParams {
   user: User;
   reflyService: ReflyService;
 }
@@ -126,7 +111,7 @@ export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.librarySearch(
@@ -141,9 +126,20 @@ export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
         { enableReranker: true },
       );
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully performed library search for query: "${input.query}" with ${result.data?.length ?? 0} results`,
+      };
     } catch (error) {
-      return `Error performing search: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error performing library search',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while performing library search',
+      };
     }
   }
 }
@@ -153,11 +149,10 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
   toolsetKey = BuiltinToolsetDefinition.key;
 
   schema = z.object({
-    query: z.string().describe('The web search query to execute'),
-    limit: z.number().describe('Maximum number of results to return').default(5),
+    query: z.string().describe('The search query to execute'),
+    num_results: z.number().describe('Number of results to return').default(5),
   });
-
-  description = 'Search the web for current information and news.';
+  description = 'Search the web for current information.';
 
   protected params: BuiltinToolParams;
 
@@ -166,86 +161,28 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.webSearch(user, {
         q: input.query,
-        limit: input.limit,
+        limit: input.num_results,
       });
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully performed web search for query: "${input.query}" with ${result.data?.length ?? 0} results`,
+      };
     } catch (error) {
-      return `Error performing web search: ${error instanceof Error ? error.message : 'Unknown error'}`;
-    }
-  }
-}
-
-export class BuiltinCreateCanvas extends AgentBaseTool<BuiltinToolParams> {
-  name = 'create_canvas';
-  toolsetKey = BuiltinToolsetDefinition.key;
-
-  schema = z.object({
-    title: z.string().describe('Title of the canvas to create'),
-    description: z.string().optional().describe('Optional description of the canvas'),
-    projectId: z.string().optional().describe('Optional project ID to associate with the canvas'),
-  });
-
-  description = 'Create a new canvas for organizing ideas and content.';
-
-  protected params: BuiltinToolParams;
-
-  constructor(params: BuiltinToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
-    try {
-      const { reflyService, user } = this.params;
-      const result = await reflyService.createCanvas(user, {
-        title: input.title,
-        projectId: input.projectId,
-      });
-
-      return JSON.stringify(result);
-    } catch (error) {
-      return `Error creating canvas: ${error instanceof Error ? error.message : 'Unknown error'}`;
-    }
-  }
-}
-
-export class BuiltinListCanvases extends AgentBaseTool<BuiltinToolParams> {
-  name = 'list_canvases';
-  toolsetKey = BuiltinToolsetDefinition.key;
-
-  schema = z.object({
-    pageSize: z.number().describe('Maximum number of canvases to return').default(20),
-    page: z.number().describe('Page number (1-based)').default(1),
-    projectId: z.string().optional().describe('Optional project ID to filter canvases'),
-  });
-
-  description = 'List available canvases for the user.';
-
-  protected params: BuiltinToolParams;
-
-  constructor(params: BuiltinToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
-    try {
-      const { reflyService, user } = this.params;
-      const result = await reflyService.listCanvases(user, {
-        pageSize: input.pageSize,
-        page: input.page,
-        projectId: input.projectId,
-      });
-
-      return JSON.stringify(result);
-    } catch (error) {
-      return `Error listing canvases: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error performing web search',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while performing web search',
+      };
     }
   }
 }
@@ -271,19 +208,28 @@ export class BuiltinCreateDocument extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
-      const result = await reflyService.createDocument(user, {
+      const document = await reflyService.createDocument(user, {
         title: input.title,
         initialContent: input.initialContent,
         projectId: input.projectId,
         canvasId: input.canvasId,
       });
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: document,
+        summary: `Successfully created document: "${input.title}" with ID: ${document?.docId}`,
+      };
     } catch (error) {
-      return `Error creating document: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error creating document',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while creating document',
+      };
     }
   }
 }
@@ -308,19 +254,28 @@ export class BuiltinListDocuments extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
-      const result = await reflyService.listDocuments(user, {
+      const documents = await reflyService.listDocuments(user, {
         pageSize: input.pageSize,
         page: input.page,
         projectId: input.projectId,
         canvasId: input.canvasId,
       });
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: documents,
+        summary: `Successfully listed ${documents?.length ?? 0} documents for user.`,
+      };
     } catch (error) {
-      return `Error listing documents: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error listing documents',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while listing documents',
+      };
     }
   }
 }
@@ -361,7 +316,7 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.generateMedia(user, {
@@ -374,9 +329,18 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
         wait: true,
       });
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully generated media: ${input.mediaType} with URL: ${result?.outputUrl}`,
+      };
     } catch (error) {
-      return `Error generating media: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error generating media',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while generating media',
+      };
     }
   }
 }
@@ -398,14 +362,29 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>, _: any, config: RunnableConfig): Promise<string> {
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _: any,
+    config: RunnableConfig,
+  ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.generateDoc(user, input.title, config);
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully generated document: "${input.title}" with ID: ${result.docId}`,
+      };
     } catch (error) {
-      return `Error generating document: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error generating document',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while generating document',
+      };
     }
   }
 }
@@ -438,14 +417,29 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>, _: any, config: RunnableConfig): Promise<string> {
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _: any,
+    config: RunnableConfig,
+  ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.generateCodeArtifact(user, input.title, input.type, config);
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully generated code artifact: "${input.title}" with ID: ${result.artifactId}`,
+      };
     } catch (error) {
-      return `Error generating code artifact: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error generating code artifact',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while generating code artifact',
+      };
     }
   }
 }
@@ -474,7 +468,7 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.sendEmail(user, {
@@ -483,9 +477,18 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
         to: input.to,
       });
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully sent email to ${input.to || 'user'} with subject: "${input.subject}"`,
+      };
     } catch (error) {
-      return `Error sending email: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error sending email',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while sending email',
+      };
     }
   }
 }
@@ -505,7 +508,7 @@ export class BuiltinGetTime extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(_input: z.infer<typeof this.schema>): Promise<string> {
+  async _call(_input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const now = new Date();
       const result = {
@@ -517,9 +520,18 @@ export class BuiltinGetTime extends AgentBaseTool<BuiltinToolParams> {
         utcOffset: now.getTimezoneOffset(),
       };
 
-      return JSON.stringify(result);
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully retrieved current time: ${result.currentTime}`,
+      };
     } catch (error) {
-      return `Error getting time: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return {
+        status: 'error',
+        error: 'Error getting time',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while getting time',
+      };
     }
   }
 }
@@ -529,8 +541,6 @@ export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   tools = [
     BuiltinLibrarySearch,
     BuiltinWebSearch,
-    BuiltinCreateCanvas,
-    BuiltinListCanvases,
     BuiltinCreateDocument,
     BuiltinListDocuments,
     BuiltinGenerateMedia,

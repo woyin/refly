@@ -1,7 +1,7 @@
 import { z } from 'zod/v3';
 import { ToolParams } from '@langchain/core/tools';
 import { FirecrawlClient } from './client';
-import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor } from '../base';
+import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
 
 export const FirecrawlToolsetDefinition: ToolsetDefinition = {
@@ -137,36 +137,55 @@ export class FirecrawlScrape extends AgentBaseTool<FirecrawlToolParams> {
   description =
     'Scrapes a single URL and returns content in LLM-ready formats (markdown, HTML, structured data, screenshots). Supports dynamic content, PDFs, and custom actions like clicking and scrolling.';
 
-  protected client: FirecrawlClient;
+  protected params: FirecrawlToolParams;
 
   constructor(params: FirecrawlToolParams) {
     super(params);
-    this.client = new FirecrawlClient({
-      apiKey: params.apiKey,
-      baseUrl: params.baseUrl,
-    });
+    this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
-    const data = await this.client.scrape({
-      url: input.url,
-      formats: input.formats,
-      onlyMainContent: input.onlyMainContent,
-      includeTags: input.includeTags,
-      excludeTags: input.excludeTags,
-      maxAge: input.maxAge,
-      waitFor: input.waitFor,
-      mobile: input.mobile,
-      parsePDF: input.parsePDF,
-    });
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new FirecrawlClient({
+        apiKey: this.params.apiKey,
+        baseUrl: this.params.baseUrl,
+      });
 
-    // Return markdown if available, otherwise return the full response
-    if (input.formats.includes('markdown') && data.data?.markdown) {
-      return data.data.markdown;
+      const data = await client.scrape({
+        url: input.url,
+        formats: input.formats,
+        onlyMainContent: input.onlyMainContent,
+        includeTags: input.includeTags,
+        excludeTags: input.excludeTags,
+        maxAge: input.maxAge,
+        waitFor: input.waitFor,
+        mobile: input.mobile,
+        parsePDF: input.parsePDF,
+      });
+
+      // Return markdown if available, otherwise return the full response
+      if (input.formats.includes('markdown') && data.data?.markdown) {
+        return {
+          status: 'success',
+          data: { content: data.data.markdown, fullResponse: data.data },
+          summary: `Successfully scraped URL: ${input.url} and extracted markdown content`,
+        };
+      }
+
+      // Return structured data for other formats
+      return {
+        status: 'success',
+        data: data.data,
+        summary: `Successfully scraped URL: ${input.url} in requested formats`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error scraping URL',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while scraping URL',
+      };
     }
-
-    // Return structured data for other formats
-    return JSON.stringify(data.data);
   }
 }
 
@@ -189,25 +208,43 @@ export class FirecrawlSearch extends AgentBaseTool<FirecrawlToolParams> {
   description =
     'Searches the web and returns full content from results. Useful for answering questions about current events and getting comprehensive information from multiple sources.';
 
-  protected client: FirecrawlClient;
+  protected params: FirecrawlToolParams;
 
   constructor(params: FirecrawlToolParams) {
     super(params);
-    this.client = new FirecrawlClient({
-      apiKey: params.apiKey,
-    });
+    this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
-    const data = await this.client.search({
-      query: input.query,
-      limit: input.limit,
-      tbs: input.tbs,
-      location: input.location,
-      timeout: input.timeout,
-      ignoreInvalidURLs: input.ignoreInvalidURLs,
-    });
-    return JSON.stringify(data);
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new FirecrawlClient({
+        apiKey: this.params.apiKey,
+      });
+
+      const data = await client.search({
+        query: input.query,
+        limit: input.limit,
+        tbs: input.tbs,
+        location: input.location,
+        timeout: input.timeout,
+        ignoreInvalidURLs: input.ignoreInvalidURLs,
+      });
+
+      return {
+        status: 'success',
+        data: data,
+        summary: `Successfully performed web search for query: "${input.query}" and found ${data.data?.length ?? 0} results`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error performing web search',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while performing web search',
+      };
+    }
   }
 }
 
@@ -241,37 +278,53 @@ export class FirecrawlCrawl extends AgentBaseTool<FirecrawlToolParams> {
   description =
     'Crawls a URL and all accessible subpages, returning content in LLM-ready format. Supports custom depth limits, path filtering, and batch processing for comprehensive website analysis.';
 
-  protected client: FirecrawlClient;
+  protected params: FirecrawlToolParams;
 
   constructor(params: FirecrawlToolParams) {
     super(params);
-    this.client = new FirecrawlClient({
-      apiKey: params.apiKey,
-      baseUrl: params.baseUrl,
-    });
+    this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
-    const crawlResponse = await this.client.crawl({
-      url: input.url,
-      maxDepth: input.maxDepth,
-      maxDiscoveryDepth: input.maxDiscoveryDepth,
-      limit: input.limit,
-      excludePaths: input.excludePaths,
-      includePaths: input.includePaths,
-      delay: input.delay,
-      ignoreSitemap: input.ignoreSitemap,
-      ignoreQueryParameters: input.ignoreQueryParameters,
-      allowBackwardLinks: input.allowBackwardLinks,
-      allowExternalLinks: input.allowExternalLinks,
-    });
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new FirecrawlClient({
+        apiKey: this.params.apiKey,
+        baseUrl: this.params.baseUrl,
+      });
 
-    // Return the crawl ID and instructions for checking status
-    return JSON.stringify({
-      crawlId: crawlResponse.id,
-      message: 'Crawl started successfully. Use the crawl ID to check status and retrieve results.',
-      statusUrl: `https://api.firecrawl.dev/v1/crawl/${crawlResponse.id}`,
-    });
+      const crawlResponse = await client.crawl({
+        url: input.url,
+        maxDepth: input.maxDepth,
+        maxDiscoveryDepth: input.maxDiscoveryDepth,
+        limit: input.limit,
+        excludePaths: input.excludePaths,
+        includePaths: input.includePaths,
+        delay: input.delay,
+        ignoreSitemap: input.ignoreSitemap,
+        ignoreQueryParameters: input.ignoreQueryParameters,
+        allowBackwardLinks: input.allowBackwardLinks,
+        allowExternalLinks: input.allowExternalLinks,
+      });
+
+      // Return the crawl ID and instructions for checking status
+      return {
+        status: 'success',
+        data: {
+          crawlId: crawlResponse.id,
+          message:
+            'Crawl started successfully. Use the crawl ID to check status and retrieve results.',
+          statusUrl: `https://api.firecrawl.dev/v1/crawl/${crawlResponse.id}`,
+        },
+        summary: `Successfully started crawling website: ${input.url} with max depth ${input.maxDepth}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error crawling website',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while crawling website',
+      };
+    }
   }
 }
 
@@ -292,27 +345,43 @@ export class FirecrawlMap extends AgentBaseTool<FirecrawlToolParams> {
   description =
     'Maps a website to discover all URLs and links. Extremely fast for getting a complete overview of website structure without scraping content.';
 
-  protected client: FirecrawlClient;
+  protected params: FirecrawlToolParams;
 
   constructor(params: FirecrawlToolParams) {
     super(params);
-    this.client = new FirecrawlClient({
-      apiKey: params.apiKey,
-      baseUrl: params.baseUrl,
-    });
+    this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
-    const data = await this.client.map({
-      url: input.url,
-      limit: input.limit,
-      includeSubdomains: input.includeSubdomains,
-      search: input.search,
-      ignoreSitemap: input.ignoreSitemap,
-      sitemapOnly: input.sitemapOnly,
-      timeout: input.timeout,
-    });
-    return JSON.stringify(data);
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new FirecrawlClient({
+        apiKey: this.params.apiKey,
+        baseUrl: this.params.baseUrl,
+      });
+
+      const data = await client.map({
+        url: input.url,
+        limit: input.limit,
+        includeSubdomains: input.includeSubdomains,
+        search: input.search,
+        ignoreSitemap: input.ignoreSitemap,
+        sitemapOnly: input.sitemapOnly,
+        timeout: input.timeout,
+      });
+
+      return {
+        status: 'success',
+        data: data,
+        summary: `Successfully mapped website: ${input.url} and discovered ${data.links?.length ?? 0} links`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error mapping website',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while mapping website',
+      };
+    }
   }
 }
 
@@ -343,35 +412,50 @@ export class FirecrawlExtract extends AgentBaseTool<FirecrawlToolParams> {
   description =
     'Uses AI to extract structured data from single pages, multiple pages, or entire websites. Supports custom schemas and natural language prompts for intelligent data extraction.';
 
-  protected client: FirecrawlClient;
+  protected params: FirecrawlToolParams;
 
   constructor(params: FirecrawlToolParams) {
     super(params);
-    this.client = new FirecrawlClient({
-      apiKey: params.apiKey,
-      baseUrl: params.baseUrl,
-    });
+    this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<string> {
-    const extractResponse = await this.client.extract({
-      urls: input.urls,
-      prompt: input.prompt,
-      schema: input.schema,
-      enableWebSearch: input.enableWebSearch,
-      showSources: input.showSources,
-      ignoreSitemap: input.ignoreSitemap,
-      includeSubdomains: input.includeSubdomains,
-      ignoreInvalidURLs: input.ignoreInvalidURLs,
-    });
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new FirecrawlClient({
+        apiKey: this.params.apiKey,
+        baseUrl: this.params.baseUrl,
+      });
 
-    // Return the extract ID and instructions for checking status
-    return JSON.stringify({
-      extractId: extractResponse.id,
-      message:
-        'Data extraction started successfully. Use the extract ID to check status and retrieve results.',
-      statusUrl: `https://api.firecrawl.dev/v1/extract/${extractResponse.id}`,
-    });
+      const extractResponse = await client.extract({
+        urls: input.urls,
+        prompt: input.prompt,
+        schema: input.schema,
+        enableWebSearch: input.enableWebSearch,
+        showSources: input.showSources,
+        ignoreSitemap: input.ignoreSitemap,
+        includeSubdomains: input.includeSubdomains,
+        ignoreInvalidURLs: input.ignoreInvalidURLs,
+      });
+
+      // Return the extract ID and instructions for checking status
+      return {
+        status: 'success',
+        data: {
+          extractId: extractResponse.id,
+          message:
+            'Data extraction started successfully. Use the extract ID to check status and retrieve results.',
+          statusUrl: `https://api.firecrawl.dev/v1/extract/${extractResponse.id}`,
+        },
+        summary: `Successfully started data extraction from ${input.urls.length} URLs using AI extraction`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error extracting data',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while extracting data',
+      };
+    }
   }
 }
 
