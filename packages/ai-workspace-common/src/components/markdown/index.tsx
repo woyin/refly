@@ -155,7 +155,6 @@ export const Markdown = memo(
                     plugins.RemarkMath,
                   ]}
                   rehypePlugins={[
-                    // Ensure MCPCallElement processes before other plugins that might affect URLs
                     ...rehypePlugins,
                     [
                       plugins.RehypeHighlight,
