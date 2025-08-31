@@ -27,6 +27,7 @@ import {
   getSubscriptionPlans,
   getSubscriptionUsage,
   getWorkflowVariables,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -72,6 +73,7 @@ import {
   GetProjectDetailData,
   GetResourceDetailData,
   GetWorkflowVariablesData,
+  ListAccountsData,
   ListCanvasesData,
   ListCanvasTemplatesData,
   ListCodeArtifactsData,
@@ -132,6 +134,14 @@ export const prefetchUseGetAuthConfig = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetAuthConfigKeyFn(clientOptions),
     queryFn: () => getAuthConfig({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseListAccounts = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListAccountsData, true> = {},
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseListAccountsKeyFn(clientOptions),
+    queryFn: () => listAccounts({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetCollabToken = (
   queryClient: QueryClient,

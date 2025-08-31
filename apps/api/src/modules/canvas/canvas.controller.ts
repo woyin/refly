@@ -29,7 +29,7 @@ import {
   SetCanvasStateRequest,
   WorkflowVariable,
 } from '@refly/openapi-schema';
-import { CanvasSyncService } from './canvas-sync.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Controller('v1/canvas')
 export class CanvasController {

@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException, Optional } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import argon2 from 'argon2';
 import ms from 'ms';
@@ -6,7 +6,11 @@ import { Profile } from 'passport';
 import { CookieOptions, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { User as UserModel, VerificationSession } from '../../generated/client';
+import {
+  User as UserModel,
+  VerificationSession,
+  Account as AccountModel,
+} from '../../generated/client';
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -19,12 +23,12 @@ import {
 } from '@refly/utils';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { Resend } from 'resend';
 import {
   User,
   AuthConfigItem,
   CheckVerificationRequest,
   CreateVerificationRequest,
+  ListAccountsData,
 } from '@refly/openapi-schema';
 import {
   AccountNotFoundError,
@@ -35,17 +39,13 @@ import {
   ParamsError,
   PasswordIncorrect,
 } from '@refly/errors';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
-import { QUEUE_SEND_VERIFICATION_EMAIL } from '../../utils/const';
 import { ProviderService } from '../provider/provider.service';
-import { isDesktop } from '../../utils/runtime';
 import { logEvent } from '@refly/telemetry-node';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AuthService {
   private logger = new Logger(AuthService.name);
-  private resend: Resend;
 
   constructor(
     private prisma: PrismaService,
@@ -53,10 +53,8 @@ export class AuthService {
     private jwtService: JwtService,
     private miscService: MiscService,
     private providerService: ProviderService,
-    @Optional() @InjectQueue(QUEUE_SEND_VERIFICATION_EMAIL) private emailQueue?: Queue,
-  ) {
-    this.resend = new Resend(this.configService.get('auth.email.resendApiKey'));
-  }
+    private notificationService: NotificationService,
+  ) {}
 
   getAuthConfig(): AuthConfigItem[] {
     const items: AuthConfigItem[] = [];
@@ -87,6 +85,14 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async listAccounts(user: User, params: ListAccountsData['query']): Promise<AccountModel[]> {
+    const { type, provider } = params;
+    const accounts = await this.prisma.account.findMany({
+      where: { uid: user.uid, type, provider },
+    });
+    return accounts;
   }
 
   private async generateRefreshToken(uid: string): Promise<string> {
@@ -430,32 +436,23 @@ export class AuthService {
       },
     });
 
-    await this.addSendVerificationEmailJob(sessionId);
+    // Send verification email using notification service
+    await this.sendVerificationEmail(sessionId, session);
 
     return session;
   }
 
-  async addSendVerificationEmailJob(sessionId: string) {
-    if (this.emailQueue) {
-      await this.emailQueue.add('verifyEmail', { sessionId });
-    } else if (isDesktop()) {
-      // In desktop mode, send email directly since queue is not available
-      await this.sendVerificationEmail(sessionId);
-    } else {
-      this.logger.warn('Email queue not available and not in desktop mode');
-    }
-  }
+  async sendVerificationEmail(sessionId: string, session?: VerificationSession) {
+    const sessionToSend =
+      session ??
+      (await this.prisma.verificationSession.findUnique({
+        where: { sessionId },
+      }));
 
-  async sendVerificationEmail(sessionId: string, _session?: VerificationSession) {
-    let session = _session;
-    if (!session) {
-      session = await this.prisma.verificationSession.findUnique({ where: { sessionId } });
-    }
-    await this.resend.emails.send({
-      from: this.configService.get('auth.email.sender'),
-      to: session.email,
+    await this.notificationService.sendEmail({
+      to: sessionToSend.email,
       subject: 'Email Verification Code',
-      html: `Your verification code is: ${session.code}`,
+      html: `Your verification code is: ${sessionToSend.code}`,
     });
   }
 

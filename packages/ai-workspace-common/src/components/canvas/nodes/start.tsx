@@ -242,6 +242,13 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
       <CreateVariablesModal
         visible={showCreateVariablesModal}
         onCancel={setShowCreateVariablesModal}
+        onViewCreatedVariable={() => {
+          // For start node variables, we can reopen the modal in edit mode
+          setShowCreateVariablesModal(false);
+          setTimeout(() => {
+            setShowCreateVariablesModal(true);
+          }, 100);
+        }}
       />
     </div>
   );

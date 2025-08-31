@@ -1256,6 +1256,7 @@ const translations = {
         loadError: '加载变量失败',
         saveError: '保存变量失败',
         saveSuccess: '变量保存成功',
+        updateSuccess: '变量更新成功',
         deleteConfirm: '确定要删除这个变量吗？',
         empty: '暂未定义变量',
         addVariable: '新建',
@@ -1298,6 +1299,8 @@ const translations = {
         typeLimitReached: '{{type}}类型的变量数量已达上限，无法提交。',
         startNode: '起始节点',
         resourceLibrary: '资源库',
+        viewAndEdit: '查看',
+        variableCreatedInfo: '变量已创建，您可以从变量列表中编辑它。',
       },
     },
     connectionTimeout: {
@@ -1373,6 +1376,7 @@ const translations = {
       nodeNotFound: '源节点未找到或已被删除，请先添加到画布',
     },
     nodeActions: {
+      extractVariables: '提取变量',
       dragToConnect: '拖拽连线',
       clickToAdd: '点击添加',
       duplicateMemo: '复制备忘录',
@@ -1565,6 +1569,11 @@ const translations = {
       new: {
         document: '新建文档',
         resource: '添加资源',
+      },
+      tip: {
+        stepsRecord: '来源于 Ask AI 的问答，运行时会由 AI 更新回复。',
+        resultsRecord: '来源于产物（文档/图片/视频/音频），运行时由 AI 生成新的结果。',
+        myUpload: '来源于你手动上传的文件或内容，运行时保持不变。',
       },
       importResource: '导入资源',
       createDocument: '新建文档',

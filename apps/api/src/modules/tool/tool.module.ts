@@ -6,9 +6,9 @@ import { InternalToolService } from './internal-tool.service';
 import { McpServerModule } from '../mcp-server/mcp-server.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
-import { CanvasModule } from '../canvas/canvas.module';
 import { CollabModule } from '../collab/collab.module';
 import { ProviderModule } from '../provider/provider.module';
+import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { ProviderModule } from '../provider/provider.module';
     CodeArtifactModule,
     CollabModule,
     KnowledgeModule,
-    CanvasModule,
+    CanvasSyncModule,
     ProviderModule,
   ],
   controllers: [ToolController],

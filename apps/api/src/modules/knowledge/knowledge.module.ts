@@ -21,12 +21,14 @@ import {
 } from '../../utils/const';
 import { ProviderModule } from '../provider/provider.module';
 import { isDesktop } from '../../utils/runtime';
+import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 
 @Module({
   imports: [
     CommonModule,
     RAGModule,
     MiscModule,
+    CanvasSyncModule,
     ProviderModule,
     SubscriptionModule,
     ...(isDesktop()

@@ -1,5 +1,5 @@
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { memo, useMemo, useState } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
 import { Divider, Button, Popconfirm, message } from 'antd';
 import { Add, Edit, Delete, Image, Doc2, Video, Audio } from 'refly-icons';
 import type { WorkflowVariable } from '@refly/openapi-schema';
@@ -31,12 +31,14 @@ const VariableItem = memo(
     refetchWorkflowVariables,
     variable,
     onEdit,
+    readonly,
   }: {
     canvasId: string;
     totalVariables: WorkflowVariable[];
     refetchWorkflowVariables: () => void;
     variable: WorkflowVariable;
     onEdit?: (variable: WorkflowVariable) => void;
+    readonly: boolean;
   }) => {
     const { name, variableType, required, isSingle } = variable;
     const { t } = useTranslation();
@@ -97,33 +99,35 @@ const VariableItem = memo(
           </div>
         )}
 
-        <div
-          className={`items-center gap-1 flex-shrik-0 ${
-            isPopconfirmOpen ? 'flex' : 'hidden group-hover:flex'
-          }`}
-        >
-          <Button
-            type="text"
-            size="small"
-            icon={<Edit size={16} />}
-            onClick={() => onEdit?.(variable)}
-          />
-          <Popconfirm
-            title={t('canvas.workflow.variables.deleteConfirm') || 'Delete this variable?'}
-            onConfirm={() => handleDeleteVariable(variable)}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
-            onOpenChange={setIsPopconfirmOpen}
-            okButtonProps={{ loading: isDeleting }}
+        {!readonly && (
+          <div
+            className={`items-center gap-1 flex-shrik-0 ${
+              isPopconfirmOpen ? 'flex' : 'hidden group-hover:flex'
+            }`}
           >
             <Button
               type="text"
               size="small"
-              icon={<Delete size={16} />}
-              className={isPopconfirmOpen ? 'bg-refly-tertiary-hover' : ''}
+              icon={<Edit size={16} />}
+              onClick={() => onEdit?.(variable)}
             />
-          </Popconfirm>
-        </div>
+            <Popconfirm
+              title={t('canvas.workflow.variables.deleteConfirm') || 'Delete this variable?'}
+              onConfirm={() => handleDeleteVariable(variable)}
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
+              onOpenChange={setIsPopconfirmOpen}
+              okButtonProps={{ loading: isDeleting }}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<Delete size={16} />}
+                className={isPopconfirmOpen ? 'bg-refly-tertiary-hover' : ''}
+              />
+            </Popconfirm>
+          </div>
+        )}
       </div>
     );
   },
@@ -155,15 +159,15 @@ const VariableTypeSection = ({
     setCurrentVariable(null);
   };
 
-  const handleAddVariable = () => {
+  const handleAddVariable = useCallback(() => {
     setCurrentVariable(null);
     setShowCreateVariablesModal(true);
-  };
+  }, []);
 
-  const handleEditVariable = (variable: WorkflowVariable) => {
+  const handleEditVariable = useCallback((variable: WorkflowVariable) => {
     setCurrentVariable(variable);
     setShowCreateVariablesModal(true);
-  };
+  }, []);
 
   return (
     <div className="space-y-3">
@@ -175,7 +179,7 @@ const VariableTypeSection = ({
           </div>
         </div>
 
-        {variables.length > 0 && variables.length < MAX_VARIABLE_LENGTH[type] && (
+        {!readonly && variables.length > 0 && variables.length < MAX_VARIABLE_LENGTH[type] && (
           <Button
             type="text"
             size="small"
@@ -197,6 +201,7 @@ const VariableTypeSection = ({
               variable={variable}
               refetchWorkflowVariables={refetchWorkflowVariables}
               onEdit={handleEditVariable}
+              readonly={readonly}
             />
           ))}
         </div>
@@ -223,6 +228,7 @@ const VariableTypeSection = ({
         onCancel={handleCloseModal}
         variableType={type}
         defaultValue={currentVariable}
+        onViewCreatedVariable={handleEditVariable}
       />
     </div>
   );

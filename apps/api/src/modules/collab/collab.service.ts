@@ -27,7 +27,7 @@ import ms from 'ms';
 import pLimit from 'p-limit';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { isDesktop } from '../../utils/runtime';
-import { CanvasSyncService } from '../canvas/canvas-sync.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
 export class CollabService {
