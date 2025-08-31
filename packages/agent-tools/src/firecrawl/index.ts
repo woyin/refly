@@ -49,14 +49,6 @@ export const FirecrawlToolsetDefinition: ToolsetDefinition = {
           '映射网站以发现所有 URL 和链接。非常快速地获取网站结构的完整概览，而无需抓取内容。',
       },
     },
-    {
-      name: 'extract',
-      descriptionDict: {
-        en: 'Uses AI to extract structured data from single pages, multiple pages, or entire websites. Supports custom schemas and natural language prompts for intelligent data extraction.',
-        'zh-CN':
-          '使用 AI 从单个页面、多个页面或整个网站提取结构化数据。支持自定义模式和自然语言提示，用于智能数据提取。',
-      },
-    },
   ],
   requiresAuth: true,
   authPatterns: [
@@ -385,80 +377,6 @@ export class FirecrawlMap extends AgentBaseTool<FirecrawlToolParams> {
   }
 }
 
-export class FirecrawlExtract extends AgentBaseTool<FirecrawlToolParams> {
-  name = 'extract';
-  toolsetKey = FirecrawlToolsetDefinition.key;
-
-  schema = z.object({
-    urls: z.array(z.string()).describe('Array of URLs to extract data from'),
-    prompt: z.string().describe('Natural language prompt describing what to extract').optional(),
-    schema: z
-      .record(z.any())
-      .describe('JSON schema defining the structure of data to extract')
-      .optional(),
-    enableWebSearch: z
-      .boolean()
-      .describe('Whether to enable web search for additional context')
-      .default(false),
-    showSources: z
-      .boolean()
-      .describe('Whether to include source URLs in the response')
-      .default(true),
-    ignoreSitemap: z.boolean().describe('Whether to ignore sitemap.xml').default(false),
-    includeSubdomains: z.boolean().describe('Whether to include subdomains').default(false),
-    ignoreInvalidURLs: z.boolean().describe('Whether to ignore invalid URLs').default(false),
-  });
-
-  description =
-    'Uses AI to extract structured data from single pages, multiple pages, or entire websites. Supports custom schemas and natural language prompts for intelligent data extraction.';
-
-  protected params: FirecrawlToolParams;
-
-  constructor(params: FirecrawlToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
-    try {
-      const client = new FirecrawlClient({
-        apiKey: this.params.apiKey,
-        baseUrl: this.params.baseUrl,
-      });
-
-      const extractResponse = await client.extract({
-        urls: input.urls,
-        prompt: input.prompt,
-        schema: input.schema,
-        enableWebSearch: input.enableWebSearch,
-        showSources: input.showSources,
-        ignoreSitemap: input.ignoreSitemap,
-        includeSubdomains: input.includeSubdomains,
-        ignoreInvalidURLs: input.ignoreInvalidURLs,
-      });
-
-      // Return the extract ID and instructions for checking status
-      return {
-        status: 'success',
-        data: {
-          extractId: extractResponse.id,
-          message:
-            'Data extraction started successfully. Use the extract ID to check status and retrieve results.',
-          statusUrl: `https://api.firecrawl.dev/v1/extract/${extractResponse.id}`,
-        },
-        summary: `Successfully started data extraction from ${input.urls.length} URLs using AI extraction`,
-      };
-    } catch (error) {
-      return {
-        status: 'error',
-        error: 'Error extracting data',
-        summary:
-          error instanceof Error ? error.message : 'Unknown error occurred while extracting data',
-      };
-    }
-  }
-}
-
 export class FirecrawlToolset extends AgentBaseToolset<FirecrawlToolParams> {
   toolsetKey = FirecrawlToolsetDefinition.key;
   tools = [
@@ -466,6 +384,5 @@ export class FirecrawlToolset extends AgentBaseToolset<FirecrawlToolParams> {
     FirecrawlSearch,
     FirecrawlCrawl,
     FirecrawlMap,
-    FirecrawlExtract,
   ] satisfies readonly AgentToolConstructor<FirecrawlToolParams>[];
 }
