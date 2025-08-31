@@ -7,6 +7,7 @@ export interface CreateVariablesModalProps {
   onCancel: (val: boolean) => void;
   onSave?: (variable: WorkflowVariable) => void;
   mode?: 'create' | 'edit';
+  onViewCreatedVariable?: (variable: WorkflowVariable) => void;
 }
 
 export interface VariableFormData {
