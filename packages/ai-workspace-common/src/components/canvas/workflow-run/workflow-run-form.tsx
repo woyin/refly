@@ -1,6 +1,6 @@
 import type { WorkflowVariable } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Select, Form } from 'antd';
+import { Button, Input, Select, Form, Typography } from 'antd';
 import { Play } from 'refly-icons';
 import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -15,8 +15,23 @@ import cn from 'classnames';
 const RequiredTagText = () => {
   const { t } = useTranslation();
   return (
-    <div className="text-[10px] text-refly-text-2 leading-[16px] px-1 border-[1px] border-solid border-refly-Card-Border rounded-[4px]">
+    <div className="flex-shrink-0 text-[10px] text-refly-text-2 leading-[16px] px-1 border-[1px] border-solid border-refly-Card-Border rounded-[4px]">
       {t('canvas.workflow.variables.required') || 'Required'}
+    </div>
+  );
+};
+
+const FormItemLabel = ({ name, required }: { name: string; required: boolean }) => {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <Typography.Paragraph
+        ellipsis={{ rows: 1, tooltip: true }}
+        className="!m-0 text-xs font-semibold text-refly-text-0 leading-4"
+      >
+        {name}
+      </Typography.Paragraph>
+
+      {required && <RequiredTagText />}
     </div>
   );
 };
@@ -300,12 +315,7 @@ export const WorkflowRunForm = ({
       return (
         <Form.Item
           key={name}
-          label={
-            <div className="flex items-center gap-2">
-              <span>{name}</span>
-              {required && <RequiredTagText />}
-            </div>
-          }
+          label={<FormItemLabel name={name} required={required} />}
           name={name}
           rules={
             required
@@ -329,12 +339,7 @@ export const WorkflowRunForm = ({
       return (
         <Form.Item
           key={name}
-          label={
-            <div className="flex items-center gap-2">
-              <span>{name}</span>
-              {required && <RequiredTagText />}
-            </div>
-          }
+          label={<FormItemLabel name={name} required={required} />}
           name={name}
           rules={
             required
@@ -359,12 +364,7 @@ export const WorkflowRunForm = ({
       return (
         <Form.Item
           key={name}
-          label={
-            <div className="flex items-center gap-1">
-              <span>{name}</span>
-              {required && <RequiredTagText />}
-            </div>
-          }
+          label={<FormItemLabel name={name} required={required} />}
           name={name}
           rules={
             required

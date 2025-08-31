@@ -23,13 +23,13 @@ export const WorkflowRun = () => {
   const { getNodes } = useReactFlow();
   const startNode = getNodes().filter((node) => node.type === 'start')[0] as CanvasNode;
 
-  const { activeNode, setActiveNode } = useActiveNode(canvasId);
+  const { setActiveNode } = useActiveNode(canvasId);
   const handleClose = () => {
     setShowWorkflowRun(false);
     setSidePanelVisible(false);
-    if (activeNode) {
-      setActiveNode(null);
-    }
+    // if (activeNode) {
+    //   setActiveNode(null);
+    // }
   };
 
   const handleAddVariable = () => {
