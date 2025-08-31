@@ -81,7 +81,7 @@ const VariableItem = memo(
               {t('canvas.workflow.variables.required')}
             </div>
           )}
-          {['option', 'resource'].includes(variableType) && (
+          {['option'].includes(variableType) && (
             <div className="h-4 px-1 flex items-center justify-center text-refly-text-2 text-[10px] leading-[14px] border-[1px] border-solid border-refly-Card-Border rounded-[4px] flex-shrink-0">
               {t(`canvas.workflow.variables.${isSingle ? 'singleSelect' : 'multipleSelect'}`)}
             </div>

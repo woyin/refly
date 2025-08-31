@@ -1314,12 +1314,16 @@ const translations = {
         deleteSuccess: 'Variable deleted successfully',
         inputPlaceholder: 'Please enter',
         selectPlaceholder: 'Please select',
+        uploadPlaceholder: 'Please upload file',
         duplicateOption: 'Option values cannot be duplicated',
         upload: 'Upload Files',
         typeLimitReached:
           '{{type}} type variables have reached the maximum limit and cannot be submitted.',
         startNode: 'Start Node',
         resourceLibrary: 'Resource Library',
+        acceptResourceTypes: 'Accept Resource Types: ',
+        fileSizeLimit: '{{type}}(less than {{size}}M)',
+        unsupportedFileType: 'Unsupported file type: {{type}}',
       },
       run: {
         title: 'Run Workflow',

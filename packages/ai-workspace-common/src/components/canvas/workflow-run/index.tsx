@@ -7,6 +7,7 @@ import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.sv
 import { useReactFlow } from '@xyflow/react';
 import { CanvasNode } from '@refly/canvas-common';
 import { WorkflowRunForm } from './workflow-run-form';
+import './index.scss';
 
 export const WorkflowRun = () => {
   const { t } = useTranslation();
@@ -18,7 +19,7 @@ export const WorkflowRun = () => {
   );
 
   const { canvasId, workflow, readonly } = useCanvasContext();
-  const { workflowVariables, workflowVariablesLoading } = workflow;
+  const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
   const { getNodes } = useReactFlow();
   const startNode = getNodes().filter((node) => node.type === 'start')[0] as CanvasNode;
 
@@ -89,7 +90,10 @@ export const WorkflowRun = () => {
         ) : workflowVariables.length === 0 ? (
           renderEmpty()
         ) : (
-          <WorkflowRunForm workflowVariables={workflowVariables} />
+          <WorkflowRunForm
+            workflowVariables={workflowVariables}
+            refetchWorkflowVariables={refetchWorkflowVariables}
+          />
         )}
       </div>
     </div>

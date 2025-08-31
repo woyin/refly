@@ -9,9 +9,9 @@ import {
   defaultStyles,
 } from '@refly-packages/ai-workspace-common/components/common/resource-icon';
 import {
+  RESOURCE_TYPE,
   ACCEPT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
-  RESOURCE_TYPE,
   DOCUMENT_FILE_EXTENSIONS,
   AUDIO_FILE_EXTENSIONS,
   VIDEO_FILE_EXTENSIONS,
