@@ -17,7 +17,7 @@ import { MediaGeneratorService } from '../media-generator/media-generator.servic
 import { ActionService } from '../action/action.service';
 import { InternalToolService } from '../tool/internal-tool.service';
 import { NotificationService } from '../notification/notification.service';
-import { genBaseRespDataFromError } from 'src/utils/exception';
+import { genBaseRespDataFromError } from '../../utils/exception';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
