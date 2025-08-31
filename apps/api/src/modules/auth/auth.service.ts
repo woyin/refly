@@ -6,7 +6,11 @@ import { Profile } from 'passport';
 import { CookieOptions, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { User as UserModel, VerificationSession } from '../../generated/client';
+import {
+  User as UserModel,
+  VerificationSession,
+  Account as AccountModel,
+} from '../../generated/client';
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -24,6 +28,7 @@ import {
   AuthConfigItem,
   CheckVerificationRequest,
   CreateVerificationRequest,
+  ListAccountsData,
 } from '@refly/openapi-schema';
 import {
   AccountNotFoundError,
@@ -80,6 +85,14 @@ export class AuthService {
       accessToken,
       refreshToken,
     };
+  }
+
+  async listAccounts(user: User, params: ListAccountsData['query']): Promise<AccountModel[]> {
+    const { type, provider } = params;
+    const accounts = await this.prisma.account.findMany({
+      where: { uid: user.uid, type, provider },
+    });
+    return accounts;
   }
 
   private async generateRefreshToken(uid: string): Promise<string> {

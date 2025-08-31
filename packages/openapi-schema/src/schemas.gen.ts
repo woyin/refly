@@ -772,6 +772,58 @@ export const UserSchema = {
   },
 } as const;
 
+export const AuthTypeSchema = {
+  type: 'string',
+  description: 'Auth type',
+  enum: ['email', 'oauth'],
+} as const;
+
+export const AccountSchema = {
+  type: 'object',
+  description: 'Auth account',
+  required: ['type', 'provider', 'providerAccountId'],
+  properties: {
+    type: {
+      $ref: '#/components/schemas/AuthType',
+      description: 'Auth type',
+    },
+    provider: {
+      type: 'string',
+      description: 'Provider',
+    },
+    scope: {
+      type: 'string',
+      description: 'Auth scope',
+    },
+    providerAccountId: {
+      type: 'string',
+      description: 'Provider account ID',
+    },
+  },
+} as const;
+
+export const ListAccountsResponseSchema = {
+  type: 'object',
+  description: 'List auth accounts response',
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'List of auth accounts',
+          items: {
+            $ref: '#/components/schemas/Account',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const ShareUserSchema = {
   type: 'object',
   description: 'Refly user in shared entity',

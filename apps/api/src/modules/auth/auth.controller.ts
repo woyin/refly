@@ -8,6 +8,7 @@ import {
   Body,
   Req,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -27,11 +28,14 @@ import {
   CreateVerificationResponse,
   ResendVerificationResponse,
   User,
+  type AuthType,
+  ListAccountsResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 import { hours, minutes, seconds, Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { REFRESH_TOKEN_COOKIE } from '@refly/utils';
+import { accountPO2DTO } from './auth.dto';
 
 @Controller('v1/auth')
 export class AuthController {
@@ -169,5 +173,16 @@ export class AuthController {
       this.logger.error(`Logout failed for user ${user.uid}:`, error.stack);
       throw error;
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('accounts')
+  async listAccounts(
+    @LoginedUser() user: User,
+    @Query('type') type: AuthType,
+    @Query('provider') provider: string,
+  ): Promise<ListAccountsResponse> {
+    const accounts = await this.authService.listAccounts(user, { type, provider });
+    return buildSuccessResponse(accounts.map(accountPO2DTO));
   }
 }

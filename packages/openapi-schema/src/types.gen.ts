@@ -483,6 +483,43 @@ export type User = {
 };
 
 /**
+ * Auth type
+ */
+export type AuthType = 'email' | 'oauth';
+
+/**
+ * Auth account
+ */
+export type Account = {
+  /**
+   * Auth type
+   */
+  type: AuthType;
+  /**
+   * Provider
+   */
+  provider: string;
+  /**
+   * Auth scope
+   */
+  scope?: string;
+  /**
+   * Provider account ID
+   */
+  providerAccountId: string;
+};
+
+/**
+ * List auth accounts response
+ */
+export type ListAccountsResponse = BaseResponse & {
+  /**
+   * List of auth accounts
+   */
+  data?: Array<Account>;
+};
+
+/**
  * Refly user in shared entity
  */
 export type ShareUser = {
@@ -6183,6 +6220,23 @@ export type CheckVerificationData = {
 export type CheckVerificationResponse = BaseResponse;
 
 export type CheckVerificationError = unknown;
+
+export type ListAccountsData = {
+  query?: {
+    /**
+     * Auth provider
+     */
+    provider?: string;
+    /**
+     * Auth type
+     */
+    type?: AuthType;
+  };
+};
+
+export type ListAccountsResponse2 = ListAccountsResponse;
+
+export type ListAccountsError = unknown;
 
 export type LogoutResponse = unknown;
 
