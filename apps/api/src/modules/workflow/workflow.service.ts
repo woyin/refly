@@ -13,7 +13,6 @@ import { ResponseNodeMeta, CanvasNodeFilter } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
 import { convertResultContextToItems } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
-import { McpServerService } from '../mcp-server/mcp-server.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import {
   genWorkflowExecutionID,
@@ -37,7 +36,6 @@ export class WorkflowService {
     private readonly prisma: PrismaService,
     private readonly skillService: SkillService,
     private readonly canvasService: CanvasService,
-    private readonly mcpServerService: McpServerService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly workflowVariableService: WorkflowVariableService,
     private readonly knowledgeService: KnowledgeService,
@@ -108,23 +106,6 @@ export class WorkflowService {
       this.logger.warn(`Failed to process query with variables: ${error.message}`);
       // Return original query if processing fails
       return query;
-    }
-  }
-
-  /**
-   * Get user's selected MCP servers
-   * Simple implementation that returns enabled MCP servers for the user
-   */
-  private async getSelectedMcpServers(user: User): Promise<string[]> {
-    try {
-      // Get all enabled MCP servers for the user
-      const servers = await this.mcpServerService.listMcpServers(user, { enabled: true });
-
-      // Return the names of enabled servers
-      return servers.map((server) => server.name);
-    } catch (error) {
-      this.logger.warn(`Failed to get selected MCP servers for user ${user.uid}: ${error.message}`);
-      return [];
     }
   }
 
@@ -295,7 +276,7 @@ export class WorkflowService {
     }
 
     const { data } = node;
-    const { metadata } = data;
+    const metadata = data?.metadata as ResponseNodeMeta;
 
     if (!metadata) {
       this.logger.warn('Node metadata is missing, skipping processing');
@@ -303,7 +284,13 @@ export class WorkflowService {
     }
 
     // Extract required parameters from ResponseNodeMeta
-    const { selectedSkill, tplConfig = {}, runtimeConfig = {}, modelInfo } = metadata;
+    const {
+      selectedSkill,
+      tplConfig = {},
+      runtimeConfig = {},
+      modelInfo,
+      selectedToolsets,
+    } = metadata;
 
     // Initialize context and history
     let context: SkillContext = { resources: [], documents: [], codeArtifacts: [] };
@@ -499,13 +486,13 @@ export class WorkflowService {
       context,
       resultHistory,
       skillName: selectedSkill?.name || 'commonQnA',
-      selectedMcpServers: await this.getSelectedMcpServers(user), // Get selected MCP servers from backend
+      toolsets: selectedToolsets,
       tplConfig,
       runtimeConfig,
       // Add workflow fields to the request
       workflowExecutionId: workflowNodeExecution?.executionId,
       workflowNodeExecutionId: workflowNodeExecution?.nodeExecutionId,
-    } as any; // Use 'as any' to bypass TypeScript type checking for workflow fields
+    };
 
     // Send the invoke skill task
     await this.skillService.sendInvokeSkillTask(user, invokeRequest);

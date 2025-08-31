@@ -161,15 +161,12 @@ export class CreditService {
    * Uses distributed lock to prevent concurrent creation of gift credits
    */
   private async lazyLoadDailyGiftCredits(uid: string): Promise<void> {
-    this.logger.log(`Lazy loading daily gift credits for user ${uid}`);
-
     const lockKey = `gift_credit_lock:${uid}`;
 
     // Try to acquire distributed lock
     const releaseLock = await this.redis.acquireLock(lockKey);
 
     if (!releaseLock) {
-      this.logger.log(`Failed to acquire lock for user ${uid}, skipping gift credit creation`);
       return; // Another process is handling this user
     }
 
@@ -195,9 +192,6 @@ export class CreditService {
       });
 
       if (existingGiftRecharge) {
-        this.logger.log(
-          `User ${uid} already has gift credits for today, skipping gift credit creation`,
-        );
         return; // Already has gift credits for today
       }
 
