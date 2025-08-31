@@ -3,14 +3,13 @@ import { IContextItem } from '@refly/common-types';
 import { useMemo, memo, useState, useCallback, useEffect, useRef } from 'react';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
-import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
+import { RichChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/rich-chat-input';
 import {
   ChatActions,
   CustomAction,
 } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import {
   ModelInfo,
-  Skill,
   SkillRuntimeConfig,
   SkillTemplateConfig,
 } from '@refly-packages/ai-workspace-common/requests/types.gen';
@@ -31,6 +30,8 @@ import { GenericToolset } from '@refly/openapi-schema';
 import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
+import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 
 interface EditChatInputProps {
   enabled: boolean;
@@ -333,36 +334,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     addNode,
   ]);
 
-  const handleSelectSkill = useCallback(
-    (skill: Skill) => {
-      setLocalActionMeta({
-        icon: skill.icon,
-        name: skill.name,
-      });
-
-      // Reset form when skill changes
-      if (skill.configSchema?.items?.length > 0) {
-        const newConfig = {};
-
-        // Process each item in the schema to create default values
-        for (const item of skill.configSchema.items) {
-          if (item.defaultValue !== undefined) {
-            newConfig[item.key] = {
-              value: item.defaultValue,
-              label: item.labelDict?.en ?? item.key,
-              displayValue: String(item.defaultValue),
-            };
-          }
-        }
-
-        form.setFieldValue('tplConfig', newConfig);
-      } else {
-        form.setFieldValue('tplConfig', undefined);
-      }
-    },
-    [form],
-  );
-
   const handleImageUpload = async (file: File) => {
     const nodeData = await uploadImageHook(file, canvasId);
     if (nodeData) {
@@ -423,6 +394,17 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     ],
   );
 
+  // Fetch workflow variables for mentions (startNode/resourceLibrary)
+  const { data: workflowVariables } = useGetWorkflowVariables({
+    query: {
+      canvasId,
+    },
+  });
+
+  const variables: MentionVariable[] = useMemo(() => {
+    return (workflowVariables?.data ?? []) as MentionVariable[];
+  }, [workflowVariables?.data]);
+
   if (!enabled) {
     return null;
   }
@@ -448,19 +430,18 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         />
       )}
       <ContextManager contextItems={editContextItems} setContextItems={setEditContextItems} />
-      <ChatInput
+      <RichChatInput
         ref={textareaRef}
         readonly={canvasReadonly}
         query={editQuery}
         setQuery={setEditQuery}
         selectedSkillName={localActionMeta?.name}
         handleSendMessage={handleSendMessage}
-        handleSelectSkill={(skill) => {
-          setEditQuery(editQuery?.slice(0, -1));
-          handleSelectSkill(skill);
-        }}
         onUploadImage={handleImageUpload}
         onUploadMultipleImages={handleMultipleImagesUpload}
+        contextItems={editContextItems}
+        setContextItems={setEditContextItems}
+        variables={variables}
       />
 
       {skill?.configSchema?.items?.length > 0 && (
