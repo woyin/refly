@@ -1630,6 +1630,7 @@ const translations = {
       startNode: 'Start Node',
       resourceLibrary: 'Resource Hub',
       myUploads: 'Uploads',
+      myUpload: 'Upload',
       stepRecord: 'Step',
       resultRecord: 'Result',
       noUploadFiles: 'No uploaded files',
@@ -1638,6 +1639,7 @@ const translations = {
       hoverToViewVariables: 'Hover over categories to view variables',
       untitledStep: 'Untitled Step',
       untitledResult: 'Untitled Result',
+      untitledUpload: 'Untitled Upload',
       loadingEditor: 'Loading editor...',
     },
     toolsDepencency: {

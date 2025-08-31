@@ -11,6 +11,7 @@ import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
 import SVGX from '../../../assets/x.svg';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import type { IContextItem } from '@refly/common-types';
 import {
   getStartNodeIcon,
@@ -25,6 +26,16 @@ import {
   nodeActionEmitter,
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
+
+// Define the type for mention items based on actual data structure
+interface MentionItem {
+  name: string;
+  description: string;
+  source: 'startNode' | 'resourceLibrary' | 'stepRecord' | 'resultRecord' | 'myUpload';
+  variableType: string;
+  entityId: string;
+  nodeId: string;
+}
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -45,7 +56,9 @@ interface RichChatInputProps {
   onFocus?: () => void;
 }
 // Custom mention suggestion component with improved UI design
-const MentionList = ({ items, command }: { items: any[]; command: any }) => {
+const MentionList = ({ items, command }: { items: MentionItem[]; command: any }) => {
+  console.log('items-------', items, command);
+
   const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
@@ -58,6 +71,7 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
   const groupedItems = useMemo(() => {
     const startNodeItems = items.filter((item) => item.source === 'startNode');
     const resourceLibraryItems = items.filter((item) => item.source === 'resourceLibrary');
+    const myUploadItems = items.filter((item) => item.source === 'myUpload');
 
     // Get skillResponse nodes for step records
     const stepRecordItems =
@@ -92,10 +106,11 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
       resourceLibrary: resourceLibraryItems,
       stepRecord: stepRecordItems,
       resultRecord: resultRecordItems,
+      uploads: myUploadItems,
     };
   }, [items, nodes]);
 
-  const selectItem = (item: any) => {
+  const selectItem = (item: MentionItem) => {
     command(item);
   };
 
@@ -283,8 +298,8 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
               </div>
               <div className="py-2  px-2 max-h-40 overflow-y-auto">
                 {resourceLibraryType === 'uploads' &&
-                  groupedItems.resourceLibrary?.length > 0 &&
-                  groupedItems.resourceLibrary.map((item) => (
+                  groupedItems.uploads?.length > 0 &&
+                  groupedItems.uploads.map((item) => (
                     <div
                       key={item.name}
                       className="p-1.5 cursor-pointer hover:bg-refly-fill-hover transition-colors rounded-md border-6px"
@@ -340,17 +355,22 @@ const MentionList = ({ items, command }: { items: any[]; command: any }) => {
                   ))}
 
                 {/* Show empty state when no items in selected type */}
-                {((resourceLibraryType === 'uploads' &&
-                  groupedItems.resourceLibrary?.length === 0) ||
-                  (resourceLibraryType === 'stepRecord' && groupedItems.stepRecord?.length === 0) ||
-                  (resourceLibraryType === 'resultRecord' &&
-                    groupedItems.resultRecord?.length === 0)) && (
+                {resourceLibraryType === 'stepRecord' && groupedItems.stepRecord?.length === 0 && (
                   <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                    {resourceLibraryType === 'uploads' && t('canvas.richChatInput.noUploadFiles')}
-                    {resourceLibraryType === 'stepRecord' &&
-                      t('canvas.richChatInput.noStepRecords')}
-                    {resourceLibraryType === 'resultRecord' &&
-                      t('canvas.richChatInput.noResultRecords')}
+                    {t('canvas.richChatInput.noStepRecords')}
+                  </div>
+                )}
+
+                {resourceLibraryType === 'resultRecord' &&
+                  groupedItems.resultRecord?.length === 0 && (
+                    <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                      {t('canvas.richChatInput.noResultRecords')}
+                    </div>
+                  )}
+
+                {resourceLibraryType === 'uploads' && groupedItems.uploads?.length === 0 && (
+                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                    {t('canvas.richChatInput.noUploadFiles')}
                   </div>
                 )}
               </div>
@@ -463,23 +483,49 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
+    const { nodes: realtimeNodes } = useRealtimeCanvasData();
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
 
     // Get all available items including canvas nodes with fallback data
-    const allItems = useMemo(() => {
+    const allItems: MentionItem[] = useMemo(() => {
       // Default variables if none provided
-      const variableItems =
+      const variableItems: MentionItem[] =
         variables?.length > 0
-          ? variables.filter(
-              (variable) =>
-                variable.source === 'startNode' || variable.source === 'resourceLibrary',
-            )
+          ? variables
+              .filter(
+                (variable) =>
+                  variable.source === 'startNode' || variable.source === 'resourceLibrary',
+              )
+              .map((variable) => {
+                // Handle both WorkflowVariable and CanvasRecordVariable types
+                if ('variableId' in variable) {
+                  // WorkflowVariable
+                  return {
+                    name: variable.name,
+                    description: variable.description || '',
+                    source: variable.source || 'startNode',
+                    variableType: variable.variableType || 'string',
+                    entityId: variable.variableId || '',
+                    nodeId: variable.variableId || '',
+                  };
+                } else {
+                  // CanvasRecordVariable
+                  return {
+                    name: variable.name,
+                    description: variable.description || '',
+                    source: variable.source,
+                    variableType: variable.variableType || 'string',
+                    entityId: variable.entityId || '',
+                    nodeId: variable.nodeId || '',
+                  };
+                }
+              })
           : [];
 
       // Get skillResponse nodes for step records
-      const stepRecordItems =
+      const stepRecordItems: MentionItem[] =
         nodes
           ?.filter((node) => node.type === 'skillResponse')
           ?.map((node) => ({
@@ -487,12 +533,12 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             description: t('canvas.richChatInput.stepRecord'),
             source: 'stepRecord' as const,
             variableType: 'step' as const,
-            entityId: node.data?.entityId,
+            entityId: node.data?.entityId || '',
             nodeId: node.id,
           })) ?? [];
 
       // Get non-skill nodes for result records
-      const resultRecordItems =
+      const resultRecordItems: MentionItem[] =
         nodes
           ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
           ?.map((node) => ({
@@ -500,12 +546,28 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             description: t('canvas.richChatInput.resultRecord'),
             source: 'resultRecord' as const,
             variableType: 'result' as const,
-            entityId: node.data?.entityId,
+            entityId: node.data?.entityId || '',
             nodeId: node.id,
           })) ?? [];
 
-      return [...variableItems, ...stepRecordItems, ...resultRecordItems];
-    }, [variables, nodes]);
+      // Get my upload items from realtime canvas data
+      const myUploadItems: MentionItem[] =
+        realtimeNodes
+          ?.filter(
+            (node) =>
+              node.type === 'resource' || (node.type === 'image' && !node.data?.metadata?.resultId),
+          )
+          ?.map((node) => ({
+            name: node.data?.title ?? t('canvas.richChatInput.untitledUpload'),
+            description: t('canvas.richChatInput.myUpload'),
+            source: 'myUpload' as const,
+            variableType: node.type,
+            entityId: node.data?.entityId || '',
+            nodeId: node.id,
+          })) ?? [];
+
+      return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
+    }, [variables, nodes, realtimeNodes]);
 
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {

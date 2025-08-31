@@ -1592,6 +1592,7 @@ const translations = {
       startNode: '开始节点',
       resourceLibrary: '资源库',
       myUploads: '我的上传',
+      myUpload: '上传',
       stepRecord: '步骤记录',
       resultRecord: '结果记录',
       noUploadFiles: '暂无上传文件',
@@ -1600,6 +1601,7 @@ const translations = {
       hoverToViewVariables: '悬停左侧分类查看变量',
       untitledStep: '未命名步骤',
       untitledResult: '未命名结果',
+      untitledUpload: '未命名上传',
       loadingEditor: '加载编辑器中...',
     },
     toolsDepencency: {
