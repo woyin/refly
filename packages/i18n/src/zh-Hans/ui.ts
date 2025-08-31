@@ -1569,6 +1569,11 @@ const translations = {
         document: '新建文档',
         resource: '添加资源',
       },
+      tip: {
+        stepsRecord: '来源于 Ask AI 的问答，运行时会由 AI 更新回复。',
+        resultsRecord: '来源于产物（文档/图片/视频/音频），运行时由 AI 生成新的结果。',
+        myUpload: '来源于你手动上传的文件或内容，运行时保持不变。',
+      },
       importResource: '导入资源',
       createDocument: '新建文档',
       importFromKnowledgeBase: '从知识库导入',

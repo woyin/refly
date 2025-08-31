@@ -1,6 +1,6 @@
 import { Button, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { X, Delete } from 'refly-icons';
+import { X as XBorder, Delete } from 'refly-icons';
 import { CanvasNode } from '@refly/canvas-common';
 import cn from 'classnames';
 import { useCallback, useState } from 'react';
@@ -167,7 +167,7 @@ export const ResourceItemAction = ({
           <Button
             type="text"
             size="small"
-            icon={<X size={16} />}
+            icon={<XBorder size={16} />}
             onClick={(e) => {
               e.stopPropagation();
               handleCreateVariable(node);
