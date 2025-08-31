@@ -2,11 +2,8 @@ import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { ExtractVariablesRequest, GenerateAppTemplateRequest, User } from '@refly/openapi-schema';
-import {
-  AppTemplateResult,
-  VariableExtractionResult,
-} from 'src/modules/variable-extraction/variable-extraction.dto';
-import { VariableExtractionService } from 'src/modules/variable-extraction/variable-extraction.service';
+import { AppTemplateResult, VariableExtractionResult } from './variable-extraction.dto';
+import { VariableExtractionService } from './variable-extraction.service';
 
 @Controller('v1/variable-extraction')
 export class VariableExtractionController {
