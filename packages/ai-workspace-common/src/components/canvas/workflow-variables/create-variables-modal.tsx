@@ -21,7 +21,7 @@ import { BiText } from 'react-icons/bi';
 import { RESOURCE_TYPE } from './constants';
 
 export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.memo(
-  ({ visible, onCancel, defaultValue, variableType: initialVariableType }) => {
+  ({ visible, onCancel, defaultValue, variableType: initialVariableType, mode }) => {
     const { t } = useTranslation();
     const [form] = Form.useForm<VariableFormData>();
     const [variableType, setVariableType] = useState<string>(
@@ -475,8 +475,14 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="text-refly-text-0 text-lg font-semibold leading-6">
-              {t(`canvas.workflow.variables.${defaultValue ? 'editTitle' : 'addTitle'}`) ||
-                (defaultValue ? 'Edit Variable' : 'Add Variable')}
+              {t(
+                `canvas.workflow.variables.${mode === 'create' ? 'addTitle' : defaultValue ? 'editTitle' : 'addTitle'}`,
+              ) ||
+                (mode === 'create'
+                  ? 'Add Variable'
+                  : defaultValue
+                    ? 'Edit Variable'
+                    : 'Add Variable')}
             </div>
             <Button type="text" icon={<Close size={24} />} onClick={handleModalClose} />
           </div>
