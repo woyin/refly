@@ -60,19 +60,25 @@ export class WorkflowVariableService {
     const resourceVars: WorkflowVariableType[] = [];
 
     for (const variable of variables) {
-      const value = variable.value;
+      const values = variable.value;
 
       if (variable.variableType === 'resource') {
         // Mark for resource injection, remove from query
-        resourceVars.push({ ...variable, value });
-        // Remove {{name}} from query
-        processedQuery = processedQuery.replace(new RegExp(`{{\s*${variable.name}\s*}}`, 'g'), '');
+        resourceVars.push({ ...variable, value: values });
+        // Remove @name from query
+        processedQuery = processedQuery.replace(new RegExp(`@${variable.name}\\s`, 'g'), '');
       } else {
-        // string/option: convert array to string for template processing
-        const stringValue = Array.isArray(value) ? value.join(', ') : (value ?? '');
+        // string/option: extract text values from VariableValue array
+        const textValues =
+          values
+            ?.filter((v) => v.type === 'text' && v.text)
+            .map((v) => v.text)
+            .filter(Boolean) ?? [];
+
+        const stringValue = textValues.length > 0 ? textValues.join(', ') : '';
         processedQuery = processedQuery.replace(
-          new RegExp(`{{\s*${variable.name}\s*}}`, 'g'),
-          stringValue,
+          new RegExp(`@${variable.name}\\s`, 'g'),
+          `${stringValue} `,
         );
       }
     }

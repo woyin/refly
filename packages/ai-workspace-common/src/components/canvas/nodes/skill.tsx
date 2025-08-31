@@ -86,7 +86,9 @@ export const SkillNode = memo(
     }));
 
     const [localQuery, setLocalQuery] = useState(query);
-    const [extractionResult, setExtractionResult] = useState<VariableExtractionResult | null>(null);
+    const [_extractionResult, setExtractionResult] = useState<VariableExtractionResult | null>(
+      null,
+    );
     const [isExtracting, setIsExtracting] = useState(false);
     const [selectedToolsets, setLocalSelectedToolsets] = useState<GenericToolset[]>(
       metadataSelectedToolsets ?? selectedToolsetsFromStore ?? [],
@@ -321,145 +323,60 @@ export const SkillNode = memo(
         return;
       }
 
-      // Original skill execution logic for non-media models
-      // If we have extraction result with sessionId, use it directly
-      if (extractionResult?.sessionId) {
-        const resultId = genActionResultID();
-        invokeAction(
-          {
-            resultId,
-            ...data?.metadata,
-            tplConfig,
-            runtimeConfig: {
-              ...contextRuntimeConfig,
-              ...runtimeConfig,
-            },
-            projectId: finalProjectId,
-            selectedToolsets,
-          },
-          {
-            entityId: canvasId,
-            entityType: 'canvas',
-          },
-        );
-        addNode(
-          {
-            type: 'skillResponse',
-            data: {
-              title: query,
-              entityId: resultId,
-              metadata: {
-                ...data?.metadata,
-                status: 'executing',
-                contextItems,
-                tplConfig,
-                selectedToolsets,
-                selectedSkill,
-                modelInfo,
-                runtimeConfig: {
-                  ...contextRuntimeConfig,
-                  ...runtimeConfig,
-                },
-                structuredData: {
-                  query,
-                },
-                projectId: finalProjectId,
-              },
-            },
-            position: node.position,
-          },
-          convertContextItemsToNodeFilters(contextItems),
-        );
-        deleteElements({ nodes: [node] });
+      // Direct skill execution without automatic variable extraction
+      // Only use extraction result if it was manually triggered via button
+      const prompt = query || localQuery;
+      if (!canvasId || !prompt) {
         return;
       }
 
-      // If no sessionId, extract variables first then send
-      const extractAndSend = async () => {
-        const prompt = query || localQuery;
-        if (!canvasId || !prompt) {
-          return;
-        }
-
-        const payload: ExtractVariablesRequest = {
-          prompt,
-          canvasId,
-          mode: 'direct', // Use direct mode to apply variables immediately
-        };
-
-        try {
-          setIsExtracting(true);
-          const result = await extractVariablesMutation.mutateAsync({ body: payload });
-          const extractionData = result?.data;
-
-          // Update local state and editor content using processed prompt when available
-          const nextPrompt = extractionData?.processedPrompt ?? prompt;
-          setExtractionResult(extractionData ?? null);
-          setQuery(nextPrompt);
-          setLocalQuery(nextPrompt);
-          updateNodeData({
-            title: nextPrompt,
+      const resultId = genActionResultID();
+      invokeAction(
+        {
+          resultId,
+          ...data?.metadata,
+          tplConfig,
+          runtimeConfig: {
+            ...contextRuntimeConfig,
+            ...runtimeConfig,
+          },
+          projectId: finalProjectId,
+          selectedToolsets,
+        },
+        {
+          entityId: canvasId,
+          entityType: 'canvas',
+        },
+      );
+      addNode(
+        {
+          type: 'skillResponse',
+          data: {
+            title: prompt,
+            entityId: resultId,
             metadata: {
               ...data?.metadata,
-              query: nextPrompt,
-            },
-          });
-          await refetchWorkflowVariables();
-
-          // Now send (with or without sessionId)
-          const resultId = genActionResultID();
-          invokeAction(
-            {
-              resultId,
-              ...data?.metadata,
+              status: 'executing',
+              contextItems,
               tplConfig,
+              selectedToolsets,
+              selectedSkill,
+              modelInfo,
               runtimeConfig: {
                 ...contextRuntimeConfig,
                 ...runtimeConfig,
               },
+              structuredData: {
+                query: prompt,
+              },
               projectId: finalProjectId,
             },
-            {
-              entityId: canvasId,
-              entityType: 'canvas',
-            },
-          );
-          addNode(
-            {
-              type: 'skillResponse',
-              data: {
-                title: nextPrompt,
-                entityId: resultId,
-                metadata: {
-                  ...data?.metadata,
-                  status: 'executing',
-                  contextItems,
-                  tplConfig,
-                  selectedSkill,
-                  modelInfo,
-                  runtimeConfig: {
-                    ...contextRuntimeConfig,
-                    ...runtimeConfig,
-                  },
-                  structuredData: {
-                    query: nextPrompt,
-                  },
-                  projectId: finalProjectId,
-                },
-              },
-              position: node.position,
-            },
-            convertContextItemsToNodeFilters(contextItems),
-          );
-          deleteElements({ nodes: [node] });
-        } catch (error) {
-          console.error('Failed to extract variables:', error);
-        } finally {
-          setIsExtracting(false);
-        }
-      };
-
-      extractAndSend();
+          },
+          position: node.position,
+        },
+        convertContextItemsToNodeFilters(contextItems),
+      );
+      deleteElements({ nodes: [node] });
     }, [
       id,
       getNode,
@@ -467,8 +384,6 @@ export const SkillNode = memo(
       invokeAction,
       canvasId,
       addNode,
-      form,
-      extractionResult,
       localQuery,
       selectedToolsets,
       contextItems,

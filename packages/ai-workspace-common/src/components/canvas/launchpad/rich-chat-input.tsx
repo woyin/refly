@@ -767,9 +767,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             const mentionName = node.attrs.label || node.attrs.id;
             const source = node.attrs.source;
 
-            // Only convert startNode and resourceLibrary variables to Handlebars format
+            // Only convert startNode and resourceLibrary variables to @variableName format
             if (mentionName && (source === 'startNode' || source === 'resourceLibrary')) {
-              processedContent += `{{${mentionName}}}`;
+              processedContent += `@${mentionName} `;
             } else {
               // For other types (stepRecord, resultRecord), just add the name without @
               processedContent += mentionName;
@@ -784,12 +784,12 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       [editor],
     );
 
-    // Build tiptap JSON content from a string with handlebars variables like {{var}}
+    // Build tiptap JSON content from a string with @variableName format
     const buildContentFromHandlebars = useCallback(
       (content: string) => {
         const nodes: any[] = [];
         if (!content) return nodes;
-        const varRegex = /{{\s*([a-zA-Z0-9_\-\.]+)\s*}}/g;
+        const varRegex = /@(\w+)\s/g;
         let lastIndex = 0;
         let match: RegExpExecArray | null;
 

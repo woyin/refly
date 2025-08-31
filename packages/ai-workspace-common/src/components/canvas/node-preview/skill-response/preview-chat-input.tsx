@@ -3,6 +3,8 @@ import { IContextItem } from '@refly/common-types';
 import { PreviewContextManager } from './preview-context-manager';
 import { useMemo, memo } from 'react';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
+import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
+
 const { Paragraph } = Typography;
 
 interface PreviewChatInputProps {
@@ -24,6 +26,29 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
     () => !actionMeta || actionMeta?.name === 'commonQnA' || !actionMeta?.name,
     [actionMeta],
   );
+
+  // Function to render query with @variableName format as components
+  const renderQueryWithVariables = useMemo(() => {
+    if (!query) return null;
+
+    // Split query by @variableName pattern
+    const parts = query.split(/(@\w+\s)/g);
+
+    return parts.map((part, index) => {
+      // Check if this part matches @variableName pattern
+      const match = part.match(/@(\w+)\s/);
+      if (match) {
+        const variableName = match[1];
+        return (
+          <span key={index} className="inline-flex items-center gap-1 text-refly-text-0">
+            {getVariableIcon('string')}
+            <span>{variableName}</span>
+          </span>
+        );
+      }
+      return part;
+    });
+  }, [query]);
 
   if (!enabled) {
     return null;
@@ -54,7 +79,7 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
         className="text-base break-all text-refly-text-0 font-semibold leading-[26px] !mb-0"
         ellipsis={{ rows: 4 }}
       >
-        {query}
+        {renderQueryWithVariables}
       </Paragraph>
     </div>
   );
