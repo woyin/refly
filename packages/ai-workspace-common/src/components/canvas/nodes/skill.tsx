@@ -470,6 +470,13 @@ export const SkillNode = memo(
       form,
       extractionResult,
       localQuery,
+      selectedToolsets,
+      contextItems,
+      tplConfig,
+      selectedSkill,
+      modelInfo,
+      runtimeConfig,
+      getFinalProjectId,
     ]);
 
     const handleDelete = useCallback(() => {
