@@ -1,4 +1,4 @@
-import MCPCallElement from './mcp-call';
+import ToolCallElement from './tool-call';
 import ReflyArtifact from './artifact';
 import ReflyArtifactThinking from './artifact-thinking';
 import CodeElement from './code';
@@ -13,7 +13,7 @@ interface MarkdownElementPlugin {
 
 // Cast the plugins to the interface to avoid TypeScript errors
 const markdownElements: MarkdownElementPlugin[] = [
-  MCPCallElement as MarkdownElementPlugin,
+  ToolCallElement as MarkdownElementPlugin,
 
   ReflyArtifact as MarkdownElementPlugin,
   ReflyArtifactThinking as MarkdownElementPlugin,
