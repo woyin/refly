@@ -430,6 +430,11 @@ export class MediaGeneratorService {
     if (Array.isArray(request?.inputParameters)) {
       for (const param of request.inputParameters) {
         if (param?.name && param?.value !== undefined) {
+          // Skip empty values (empty string or empty array)
+          if (param.value === '' || (Array.isArray(param.value) && param.value.length === 0)) {
+            continue;
+          }
+
           // Handle URL type parameters by converting storage keys to external URLs
           if (param.type === 'url') {
             if (Array.isArray(param.value)) {
