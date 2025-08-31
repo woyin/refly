@@ -207,6 +207,7 @@ const VariableTypeSection = ({
         onCancel={handleCloseModal}
         variableType={type}
         defaultValue={currentVariable}
+        onViewCreatedVariable={handleEditVariable}
       />
     </div>
   );

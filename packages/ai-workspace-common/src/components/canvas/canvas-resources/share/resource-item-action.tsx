@@ -197,6 +197,13 @@ export const ResourceItemAction = ({
           onCancel={handleModalClose}
           defaultValue={getDefaultVariableData()}
           variableType="resource"
+          onViewCreatedVariable={() => {
+            // For resource variables, we can reopen the modal in edit mode
+            handleModalClose(false);
+            setTimeout(() => {
+              handleModalClose(true);
+            }, 100);
+          }}
         />
       </div>
     </>
