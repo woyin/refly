@@ -24,6 +24,8 @@ import {
   purgeContextItems,
   calculateCanvasStateDiff,
   shouldCreateNewVersion,
+  CanvasNodeFilter,
+  prepareAddNode,
 } from '@refly/canvas-common';
 import {
   CanvasNotFoundError,
@@ -35,7 +37,7 @@ import { PrismaService } from '../common/prisma.service';
 import { LockReleaseFn, RedisService } from '../common/redis.service';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { streamToBuffer, streamToString } from '../../utils';
-import { genCanvasVersionId } from '@refly/utils';
+import { genCanvasVersionId, genTransactionId } from '@refly/utils';
 import { IContextItem } from '@refly/common-types';
 
 @Injectable()
@@ -371,6 +373,63 @@ export class CanvasSyncService {
     } finally {
       await releaseLock();
     }
+  }
+
+  /**
+   * Add a node to the canvas
+   * @param user - The user who is adding the node
+   * @param canvasId - The id of the canvas to add the node to
+   * @param node - The node to add
+   * @param connectTo - The nodes to connect to
+   * @param options - Additional options including autoLayout
+   */
+  async addNodeToCanvas(
+    user: User,
+    canvasId: string,
+    node: Pick<CanvasNode, 'type' | 'data'> & Partial<Pick<CanvasNode, 'id'>>,
+    connectTo?: CanvasNodeFilter[],
+    options?: { autoLayout?: boolean },
+  ) {
+    const releaseLock = await this.lockState(canvasId);
+    const { nodes, edges } = await this.getCanvasData(user, { canvasId });
+
+    this.logger.log(
+      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, autoLayout: ${options?.autoLayout}`,
+    );
+    const { newNode, newEdges } = prepareAddNode({
+      node,
+      nodes,
+      edges,
+      connectTo,
+      autoLayout: options?.autoLayout, // Pass autoLayout parameter
+    });
+
+    await this.syncState(
+      user,
+      {
+        canvasId,
+        transactions: [
+          {
+            txId: genTransactionId(),
+            createdAt: Date.now(),
+            syncedAt: Date.now(),
+            nodeDiffs: [
+              {
+                type: 'add',
+                id: newNode.id,
+                to: newNode,
+              },
+            ],
+            edgeDiffs: newEdges.map((edge) => ({
+              type: 'add',
+              id: edge.id,
+              to: edge,
+            })),
+          },
+        ],
+      },
+      { releaseLock },
+    );
   }
 
   async createCanvasVersion(

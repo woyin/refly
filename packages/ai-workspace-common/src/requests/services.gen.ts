@@ -71,6 +71,9 @@ import type {
   CheckVerificationData,
   CheckVerificationError,
   CheckVerificationResponse,
+  ListAccountsData,
+  ListAccountsError,
+  ListAccountsResponse2,
   LogoutError,
   LogoutResponse,
   GetCollabTokenError,
@@ -769,6 +772,19 @@ export const checkVerification = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/auth/verification/check',
+  });
+};
+
+/**
+ * List auth accounts
+ * List auth accounts
+ */
+export const listAccounts = <ThrowOnError extends boolean = false>(
+  options?: Options<ListAccountsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<ListAccountsResponse2, ListAccountsError, ThrowOnError>({
+    ...options,
+    url: '/auth/account/list',
   });
 };
 

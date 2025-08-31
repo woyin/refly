@@ -20,6 +20,7 @@ import { genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/uti
 import { CanvasContentItem } from '../canvas/canvas.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CanvasService } from '../canvas/canvas.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { VariableExtractionService } from '../variable-extraction/variable-extraction.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -45,6 +46,7 @@ export class PilotService {
     private skillService: SkillService,
     private providerService: ProviderService,
     private canvasService: CanvasService,
+    private canvasSyncService: CanvasSyncService,
     private variableExtractionService: VariableExtractionService,
     @InjectQueue(QUEUE_RUN_PILOT) private runPilotQueue: Queue<RunPilotJobData>,
   ) {}
@@ -545,7 +547,7 @@ export class PilotService {
         const contextItems = convertResultContextToItems(context, history);
 
         if (targetType === 'canvas') {
-          await this.canvasService.addNodeToCanvas(
+          await this.canvasSyncService.addNodeToCanvas(
             user,
             targetId,
             {
@@ -787,7 +789,7 @@ export class PilotService {
         const contextItems = convertResultContextToItems(context, history);
 
         if (targetType === 'canvas') {
-          await this.canvasService.addNodeToCanvas(
+          await this.canvasSyncService.addNodeToCanvas(
             user,
             targetId,
             {

@@ -6,6 +6,7 @@ import {
   UpdateResourceResponse,
   UpsertResourceRequest,
   User,
+  Document,
   UpsertCanvasRequest,
   CreateCanvasResponse,
   InMemorySearchResponse,
@@ -25,27 +26,22 @@ import {
   GetDocumentDetailData,
   UpsertDocumentRequest,
   ListDocumentsData,
-  CreateDocumentResponse,
   GetDocumentDetailResponse,
-  ListDocumentsResponse,
   ListCanvasesResponse,
   DeleteCanvasResponse,
   DeleteCanvasRequest,
-  DeleteDocumentResponse,
   DeleteDocumentRequest,
-  ListMcpServersData,
-  ListMcpServersResponse,
   MediaGenerateRequest,
   MediaGenerateResponse,
   GetActionResultData,
   CodeArtifactType,
+  SendEmailRequest,
+  BaseResponse,
 } from '@refly/openapi-schema';
-import { Document } from '@langchain/core/documents';
+import { Document as LangChainDocument } from '@langchain/core/documents';
 import { RunnableConfig } from '@langchain/core/dist/runnables/types';
 
 export interface ReflyService {
-  listMcpServers: (user: User, req: ListMcpServersData['query']) => Promise<ListMcpServersResponse>;
-
   createCanvas: (user: User, req: UpsertCanvasRequest) => Promise<CreateCanvasResponse>;
   listCanvases: (user: User, param: ListCanvasesData['query']) => Promise<ListCanvasesResponse>;
   deleteCanvas: (user: User, req: DeleteCanvasRequest) => Promise<DeleteCanvasResponse>;
@@ -53,9 +49,9 @@ export interface ReflyService {
     user: User,
     req: GetDocumentDetailData['query'],
   ) => Promise<GetDocumentDetailResponse>;
-  createDocument: (user: User, req: UpsertDocumentRequest) => Promise<CreateDocumentResponse>;
-  listDocuments: (user: User, param: ListDocumentsData['query']) => Promise<ListDocumentsResponse>;
-  deleteDocument: (user: User, req: DeleteDocumentRequest) => Promise<DeleteDocumentResponse>;
+  createDocument: (user: User, req: UpsertDocumentRequest) => Promise<Document>;
+  listDocuments: (user: User, param: ListDocumentsData['query']) => Promise<Document[]>;
+  deleteDocument: (user: User, req: DeleteDocumentRequest) => Promise<void>;
   getResourceDetail: (
     user: User,
     req: GetResourceDetailData['query'],
@@ -93,10 +89,10 @@ export interface ReflyService {
   inMemorySearchWithIndexing: (
     user: User,
     options: {
-      content: string | Document<any> | Array<Document<any>>;
+      content: string | LangChainDocument<any> | Array<LangChainDocument<any>>;
       query?: string;
       k?: number;
-      filter?: (doc: Document) => boolean;
+      filter?: (doc: LangChainDocument) => boolean;
       needChunk?: boolean;
       additionalMetadata?: Record<string, any>;
     },
@@ -107,6 +103,8 @@ export interface ReflyService {
     user: User,
     url: string,
   ) => Promise<{ title?: string; content?: string; metadata?: Record<string, any> }>;
+
+  sendEmail: (user: User, req: SendEmailRequest) => Promise<BaseResponse>;
 
   // Generate JWT token for user (same as AuthService.login)
   generateJwtToken: (user: User) => Promise<string>;

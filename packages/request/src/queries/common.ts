@@ -85,6 +85,7 @@ import {
   importCanvas,
   initializeWorkflow,
   invokeSkill,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -199,6 +200,16 @@ export const UseGetAuthConfigKeyFn = (
   clientOptions: Options<unknown, true> = {},
   queryKey?: Array<unknown>,
 ) => [useGetAuthConfigKey, ...(queryKey ?? [clientOptions])];
+export type ListAccountsDefaultResponse = Awaited<ReturnType<typeof listAccounts>>['data'];
+export type ListAccountsQueryResult<
+  TData = ListAccountsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListAccountsKey = 'ListAccounts';
+export const UseListAccountsKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListAccountsKey, ...(queryKey ?? [clientOptions])];
 export type GetCollabTokenDefaultResponse = Awaited<ReturnType<typeof getCollabToken>>['data'];
 export type GetCollabTokenQueryResult<
   TData = GetCollabTokenDefaultResponse,

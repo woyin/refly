@@ -5,7 +5,6 @@ import { SkillService } from './skill.service';
 import { SkillController } from './skill.controller';
 import { CommonModule } from '../common/common.module';
 import { SearchModule } from '../search/search.module';
-import { CanvasModule } from '../canvas/canvas.module';
 import { RAGModule } from '../rag/rag.module';
 import {
   QUEUE_SYNC_TOKEN_USAGE,
@@ -21,7 +20,6 @@ import { LabelModule } from '../label/label.module';
 import { SkillProcessor, CheckStuckActionsProcessor } from '../skill/skill.processor';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { CreditModule } from '../credit/credit.module';
-import { CollabModule } from '../collab/collab.module';
 import { MiscModule } from '../misc/misc.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { ProviderModule } from '../provider/provider.module';
@@ -39,12 +37,10 @@ import { ToolModule } from '../tool/tool.module';
     forwardRef(() => ActionModule),
     LabelModule,
     SearchModule,
-    CanvasModule,
     KnowledgeModule,
     RAGModule,
     SubscriptionModule,
     CreditModule,
-    CollabModule,
     MiscModule,
     CodeArtifactModule,
     ProviderModule,

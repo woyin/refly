@@ -14,7 +14,7 @@ import { SkillService } from '../skill/skill.service';
 import { convertResultContextToItems } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
 import { McpServerService } from '../mcp-server/mcp-server.service';
-import { CanvasSyncService } from '../canvas/canvas-sync.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import {
   genWorkflowExecutionID,
   genWorkflowNodeExecutionID,
@@ -40,7 +40,7 @@ export class WorkflowService {
     private readonly mcpServerService: McpServerService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly workflowVariableService: WorkflowVariableService,
-    private readonly knowledgeService: KnowledgeService, // 新增依赖
+    private readonly knowledgeService: KnowledgeService,
     @InjectQueue(QUEUE_SYNC_WORKFLOW) private readonly syncWorkflowQueue?: Queue,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
   ) {}
@@ -411,7 +411,7 @@ export class WorkflowService {
 
       // Add the new node to the new canvas using the canvas service with connection information
       // Note: Don't set status to executing or clear contentPreview here - will be handled before skill invocation
-      await this.canvasService.addNodeToCanvas(
+      await this.canvasSyncService.addNodeToCanvas(
         user,
         canvasId,
         {

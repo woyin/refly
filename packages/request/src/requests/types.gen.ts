@@ -483,6 +483,43 @@ export type User = {
 };
 
 /**
+ * Auth type
+ */
+export type AuthType = 'email' | 'oauth';
+
+/**
+ * Auth account
+ */
+export type Account = {
+  /**
+   * Auth type
+   */
+  type: AuthType;
+  /**
+   * Provider
+   */
+  provider: string;
+  /**
+   * Auth scope
+   */
+  scope?: string;
+  /**
+   * Provider account ID
+   */
+  providerAccountId: string;
+};
+
+/**
+ * List auth accounts response
+ */
+export type ListAccountsResponse = BaseResponse & {
+  /**
+   * List of auth accounts
+   */
+  data?: Array<Account>;
+};
+
+/**
  * Refly user in shared entity
  */
 export type ShareUser = {
@@ -2904,6 +2941,10 @@ export type UpsertDocumentRequest = {
    * Document initial content
    */
   initialContent?: string;
+  /**
+   * Action result ID to bind with
+   */
+  resultId?: string;
 };
 
 export type UpsertDocumentResponse = BaseResponse & {
@@ -5867,6 +5908,25 @@ export type UpdateWorkflowVariablesResponse = BaseResponse & {
   data?: Array<WorkflowVariable>;
 };
 
+export type SendEmailRequest = {
+  /**
+   * Email subject
+   */
+  subject: string;
+  /**
+   * Email HTML content
+   */
+  html: string;
+  /**
+   * Email recipient. If not specified, the email will be sent to current user.
+   */
+  to?: string;
+  /**
+   * Email sender. If not specified, server will use the default sender.
+   */
+  from?: string;
+};
+
 export type GenerateAppTemplateRequest = {
   /**
    * Canvas ID to generate template for
@@ -6164,6 +6224,23 @@ export type CheckVerificationData = {
 export type CheckVerificationResponse = BaseResponse;
 
 export type CheckVerificationError = unknown;
+
+export type ListAccountsData = {
+  query?: {
+    /**
+     * Auth provider
+     */
+    provider?: string;
+    /**
+     * Auth type
+     */
+    type?: AuthType;
+  };
+};
+
+export type ListAccountsResponse2 = ListAccountsResponse;
+
+export type ListAccountsError = unknown;
 
 export type LogoutResponse = unknown;
 

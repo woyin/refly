@@ -589,6 +589,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseResponse'
+  /auth/account/list:
+    get:
+      tags:
+        - auth
+      summary: List auth accounts
+      description: List auth accounts
+      operationId: listAccounts
+      parameters:
+        - name: type
+          in: query
+          description: Auth type
+          schema:
+            $ref: '#/components/schemas/AuthType'
+        - name: provider
+          in: query
+          description: Auth provider
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAccountsResponse'
   /auth/logout:
     post:
       tags:
@@ -3917,6 +3942,44 @@ components:
         email:
           type: string
           description: Email
+    AuthType:
+      type: string
+      description: Auth type
+      enum:
+        - email
+        - oauth
+    Account:
+      type: object
+      description: Auth account
+      required:
+        - type
+        - provider
+        - providerAccountId
+      properties:
+        type:
+          $ref: '#/components/schemas/AuthType'
+          description: Auth type
+        provider:
+          type: string
+          description: Provider
+        scope:
+          type: string
+          description: Auth scope
+        providerAccountId:
+          type: string
+          description: Provider account ID
+    ListAccountsResponse:
+      type: object
+      description: List auth accounts response
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: List of auth accounts
+              items:
+                $ref: '#/components/schemas/Account'
     ShareUser:
       type: object
       description: Refly user in shared entity
@@ -6335,6 +6398,9 @@ components:
         initialContent:
           type: string
           description: Document initial content
+        resultId:
+          type: string
+          description: Action result ID to bind with
     UpsertDocumentResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -9377,6 +9443,24 @@ components:
               description: Updated list of workflow variables
               items:
                 $ref: '#/components/schemas/WorkflowVariable'
+    SendEmailRequest:
+      type: object
+      required:
+        - subject
+        - html
+      properties:
+        subject:
+          type: string
+          description: Email subject
+        html:
+          type: string
+          description: Email HTML content
+        to:
+          type: string
+          description: Email recipient. If not specified, the email will be sent to current user.
+        from:
+          type: string
+          description: Email sender. If not specified, server will use the default sender.
 
     GenerateAppTemplateRequest:
       type: object
