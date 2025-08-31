@@ -13,6 +13,7 @@ import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import {
   CreatePilotSessionRequest,
+  GenericToolset,
   ModelInfo,
   Skill,
   SkillRuntimeConfig,
@@ -25,15 +26,23 @@ export const useCanvasInitialActions = (canvasId: string) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addNode } = useAddNode();
   const { invokeAction } = useInvokeAction({ source: 'canvas-initial-actions' });
-  const { query, selectedSkill, runtimeConfig, tplConfig, reset, mediaQueryData } =
-    useFrontPageStoreShallow((state) => ({
-      query: state.query,
-      selectedSkill: state.selectedSkill,
-      runtimeConfig: state.runtimeConfig,
-      tplConfig: state.tplConfig,
-      reset: state.reset,
-      mediaQueryData: state.mediaQueryData,
-    }));
+  const {
+    query,
+    selectedSkill,
+    runtimeConfig,
+    tplConfig,
+    reset,
+    mediaQueryData,
+    selectedToolsets,
+  } = useFrontPageStoreShallow((state) => ({
+    query: state.query,
+    selectedSkill: state.selectedSkill,
+    runtimeConfig: state.runtimeConfig,
+    tplConfig: state.tplConfig,
+    reset: state.reset,
+    mediaQueryData: state.mediaQueryData,
+    selectedToolsets: state.selectedToolsets,
+  }));
   const { canvasInitialized } = useCanvasStoreShallow((state) => ({
     canvasInitialized: state.canvasInitialized[canvasId],
   }));
@@ -57,6 +66,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
     isPilotActivated?: boolean;
     isMediaGeneration?: boolean;
     mediaQueryData?: MediaQueryData;
+    selectedToolsets?: GenericToolset[];
   } | null>(null);
 
   // Store parameters needed for actions when URL parameters are processed
@@ -86,6 +96,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
         isPilotActivated,
         isMediaGeneration,
         mediaQueryData,
+        selectedToolsets,
       };
     }
   }, [
@@ -97,6 +108,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
     tplConfig,
     runtimeConfig,
     mediaQueryData,
+    selectedToolsets,
   ]);
 
   const handleCreatePilotSession = useCallback(async (param: CreatePilotSessionRequest) => {
@@ -127,6 +139,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
         runtimeConfig,
         isPilotActivated,
         isMediaGeneration,
+        selectedToolsets,
       } = pendingActionRef.current;
 
       if (isMediaGeneration) {
@@ -153,7 +166,6 @@ export const useCanvasInitialActions = (canvasId: string) => {
             title: query,
             input: { query },
             maxEpoch: 3,
-            // providerItemId: modelInfo.providerItemId,
           });
           pendingActionRef.current = null;
 
@@ -169,6 +181,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
             modelInfo,
             tplConfig,
             runtimeConfig,
+            selectedToolsets,
           },
           {
             entityId: canvasId,
@@ -183,6 +196,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
             metadata: {
               status: 'executing',
               selectedSkill,
+              selectedToolsets,
               modelInfo,
               runtimeConfig,
               tplConfig,
@@ -197,5 +211,5 @@ export const useCanvasInitialActions = (canvasId: string) => {
       reset();
       pendingActionRef.current = null;
     }
-  }, [canvasId, canvasInitialized, invokeAction, addNode, reset]);
+  }, [canvasId, canvasInitialized, invokeAction, addNode, reset, handleCreatePilotSession]);
 };

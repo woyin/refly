@@ -26,6 +26,8 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowVariables,
+  listAccounts,
   listActions,
   listCanvases,
   listCanvasTemplateCategories,
@@ -47,6 +49,9 @@ import {
   listSkillInstances,
   listSkills,
   listSkillTriggers,
+  listTools,
+  listToolsetInventory,
+  listToolsets,
   serveStatic,
 } from '../requests/services.gen';
 import {
@@ -67,6 +72,8 @@ import {
   GetPilotSessionDetailData,
   GetProjectDetailData,
   GetResourceDetailData,
+  GetWorkflowVariablesData,
+  ListAccountsData,
   ListCanvasesData,
   ListCanvasTemplatesData,
   ListCodeArtifactsData,
@@ -84,6 +91,8 @@ import {
   ListSharesData,
   ListSkillInstancesData,
   ListSkillTriggersData,
+  ListToolsData,
+  ListToolsetsData,
 } from '../requests/types.gen';
 import * as Common from './common';
 export const ensureUseListMcpServersData = (
@@ -125,6 +134,14 @@ export const ensureUseGetAuthConfigData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetAuthConfigKeyFn(clientOptions),
     queryFn: () => getAuthConfig({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListAccountsData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListAccountsData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListAccountsKeyFn(clientOptions),
+    queryFn: () => listAccounts({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetCollabTokenData = (
   queryClient: QueryClient,
@@ -181,6 +198,14 @@ export const ensureUseGetCanvasTransactionsData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetCanvasTransactionsKeyFn(clientOptions),
     queryFn: () => getCanvasTransactions({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetWorkflowVariablesData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetWorkflowVariablesData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetWorkflowVariablesKeyFn(clientOptions),
+    queryFn: () => getWorkflowVariables({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseListCanvasTemplatesData = (
   queryClient: QueryClient,
@@ -438,6 +463,30 @@ export const ensureUseListProviderItemOptionsData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseListProviderItemOptionsKeyFn(clientOptions),
     queryFn: () => listProviderItemOptions({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListToolsData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListToolsData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListToolsKeyFn(clientOptions),
+    queryFn: () => listTools({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListToolsetInventoryData = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListToolsetInventoryKeyFn(clientOptions),
+    queryFn: () => listToolsetInventory({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListToolsetsData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListToolsetsData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListToolsetsKeyFn(clientOptions),
+    queryFn: () => listToolsets({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseServeStaticData = (
   queryClient: QueryClient,

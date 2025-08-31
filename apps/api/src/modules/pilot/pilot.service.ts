@@ -20,6 +20,8 @@ import { genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/uti
 import { CanvasContentItem } from '../canvas/canvas.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CanvasService } from '../canvas/canvas.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { VariableExtractionService } from '../variable-extraction/variable-extraction.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_RUN_PILOT } from '../../utils/const';
@@ -44,6 +46,8 @@ export class PilotService {
     private skillService: SkillService,
     private providerService: ProviderService,
     private canvasService: CanvasService,
+    private canvasSyncService: CanvasSyncService,
+    private variableExtractionService: VariableExtractionService,
     @InjectQueue(QUEUE_RUN_PILOT) private runPilotQueue: Queue<RunPilotJobData>,
   ) {}
 
@@ -459,6 +463,26 @@ export class PilotService {
           continue;
         }
 
+        // *** NEW: Variable extraction logic (only for updating Canvas variables, does not affect skill calls) ***
+        if (targetType === 'canvas') {
+          this.variableExtractionService
+            .extractVariables(
+              user,
+              rawStep.query, // Original query
+              targetId, // Canvas ID
+              {
+                mode: 'direct',
+                triggerType: 'pilot',
+              },
+            )
+            .then(() => {
+              this.logger.log(`Variable extraction for step ${rawStep.name} completed`);
+            })
+            .catch((error) => {
+              this.logger.warn(`Variable extraction failed for step ${rawStep.name}:`, error);
+            });
+        }
+
         const recommendedContext = await this.buildContextAndHistory(
           canvasContentItems,
           rawStep.contextItemIds,
@@ -523,7 +547,7 @@ export class PilotService {
         const contextItems = convertResultContextToItems(context, history);
 
         if (targetType === 'canvas') {
-          await this.canvasService.addNodeToCanvas(
+          await this.canvasSyncService.addNodeToCanvas(
             user,
             targetId,
             {
@@ -702,6 +726,26 @@ export class PilotService {
           locale,
         });
 
+        // *** NEW: Variable extraction for Summary input (only updates variables, does not affect skill calls) ***
+        if (targetType === 'canvas') {
+          this.variableExtractionService
+            .extractVariables(
+              user,
+              input.query, // Summary query
+              targetId, // Canvas ID
+              {
+                mode: 'direct',
+                triggerType: 'pilot',
+              },
+            )
+            .then(() => {
+              this.logger.log('Variable extraction for summary step completed');
+            })
+            .catch((error) => {
+              this.logger.warn('Variable extraction failed for summary step:', error);
+            });
+        }
+
         const actionResult = await this.prisma.actionResult.create({
           data: {
             uid: user.uid,
@@ -745,7 +789,7 @@ export class PilotService {
         const contextItems = convertResultContextToItems(context, history);
 
         if (targetType === 'canvas') {
-          await this.canvasService.addNodeToCanvas(
+          await this.canvasSyncService.addNodeToCanvas(
             user,
             targetId,
             {

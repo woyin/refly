@@ -15,8 +15,9 @@ export const QUEUE_POST_DELETE_CANVAS = 'postDeleteCanvas';
 export const QUEUE_VERIFY_NODE_ADDITION = 'verifyNodeAddition';
 export const QUEUE_RUN_PILOT = 'runPilot';
 export const QUEUE_SYNC_PILOT_STEP = 'syncPilotStep';
+export const QUEUE_SYNC_WORKFLOW = 'syncWorkflow';
+export const QUEUE_RUN_WORKFLOW = 'runWorkflow';
 
-export const QUEUE_SEND_VERIFICATION_EMAIL = 'sendVerificationEmail';
 export const QUEUE_CHECK_CANCELED_SUBSCRIPTIONS = 'checkCanceledSubscriptions';
 export const QUEUE_EXPIRE_AND_RECHARGE_CREDITS = 'expireAndRechargeCredits';
 export const QUEUE_SYNC_REQUEST_USAGE = 'syncRequestUsage';

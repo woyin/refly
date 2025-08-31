@@ -77,6 +77,8 @@ import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/
 import { CanvasResources, CanvasResourcesWidescreenModal } from './canvas-resources';
 import { ResourceOverview } from './canvas-resources/share/resource-overview';
 import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/components/canvas/node-preview';
+import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
+import { WorkflowRun } from './workflow-run';
 
 const GRID_SIZE = 10;
 
@@ -167,6 +169,8 @@ const MiniMapNode = (props: any) => {
 
 const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
+
+  useHandleOrphanNode();
 
   useCanvasInitialActions(canvasId);
   // useFollowPilotSteps();
@@ -597,6 +601,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           break;
         case 'video':
           menuNodeType = 'video';
+          break;
+        case 'start':
+          menuNodeType = 'start';
           break;
         default:
           return; // Don't show context menu for unknown node types
@@ -1218,12 +1225,14 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     setResourcesPanelWidth,
     showLeftOverview,
     setShowLeftOverview,
+    showWorkflowRun,
   } = useCanvasResourcesPanelStoreShallow((state) => ({
     sidePanelVisible: state.sidePanelVisible,
     resourcesPanelWidth: state.panelWidth,
     setResourcesPanelWidth: state.setPanelWidth,
     showLeftOverview: state.showLeftOverview,
     setShowLeftOverview: state.setShowLeftOverview,
+    showWorkflowRun: state.showWorkflowRun,
   }));
 
   useEffect(() => {
@@ -1319,25 +1328,29 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
               min={480}
               max={maxPanelWidth}
             >
-              <Popover
-                classNames={{
-                  root: 'resources-panel-popover',
-                }}
-                open={showLeftOverview}
-                onOpenChange={setShowLeftOverview}
-                arrow={false}
-                content={
-                  <div className="flex w-[360px] h-full" data-refly-resources-popover="true">
-                    <ResourceOverview />
-                  </div>
-                }
-                placement="left"
-                align={{
-                  offset: [0, 0],
-                }}
-              >
-                <CanvasResources />
-              </Popover>
+              {showWorkflowRun ? (
+                <WorkflowRun />
+              ) : (
+                <Popover
+                  classNames={{
+                    root: 'resources-panel-popover',
+                  }}
+                  open={showLeftOverview}
+                  onOpenChange={setShowLeftOverview}
+                  arrow={false}
+                  content={
+                    <div className="flex w-[360px] h-full" data-refly-resources-popover="true">
+                      <ResourceOverview />
+                    </div>
+                  }
+                  placement="left"
+                  align={{
+                    offset: [0, 0],
+                  }}
+                >
+                  <CanvasResources />
+                </Popover>
+              )}
             </Splitter.Panel>
           </Splitter>
           <CanvasResourcesWidescreenModal />

@@ -9,6 +9,7 @@ import api from '@opentelemetry/api';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { RAGModule } from './rag/rag.module';
+import { NotificationModule } from './notification/notification.module';
 
 import configuration from './config/app.config';
 import { AppController } from './app.controller';
@@ -34,6 +35,9 @@ import { McpServerModule } from './mcp-server/mcp-server.module';
 import { InternalMcpModule } from './internal-mcp/internal-mcp.module';
 import { MediaGeneratorModule } from './media-generator/media-generator.module';
 import { CreditModule } from './credit/credit.module';
+import { WorkflowModule } from './workflow/workflow.module';
+import { ToolModule } from './tool/tool.module';
+import { VariableExtractionModule } from './variable-extraction/variable-extraction.module';
 
 import { isDesktop } from '../utils/runtime';
 
@@ -79,6 +83,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     AuthModule,
     UserModule,
     RAGModule,
+    NotificationModule,
     KnowledgeModule,
     SkillModule,
     PilotModule,
@@ -92,6 +97,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     ActionModule,
     ShareModule,
     ProviderModule,
+    ToolModule,
     TemplateModule,
     CodeArtifactModule,
     PagesModule,
@@ -100,6 +106,8 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     InternalMcpModule,
     MediaGeneratorModule,
     CreditModule,
+    WorkflowModule,
+    VariableExtractionModule,
     ...(isDesktop()
       ? []
       : [

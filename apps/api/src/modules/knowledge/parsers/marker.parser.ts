@@ -102,7 +102,11 @@ export class MarkerParser extends BaseParser {
 
       // Add the file content
       const fileBuf = Buffer.isBuffer(input) ? input : Buffer.from(input);
-      const blob = new Blob([fileBuf], { type: 'application/pdf' });
+      const arrayBuffer = fileBuf.buffer.slice(
+        fileBuf.byteOffset,
+        fileBuf.byteOffset + fileBuf.byteLength,
+      ) as ArrayBuffer;
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
       formData.append('file', blob, `${this.options.resourceId || 'document'}.pdf`);
 
       // formData.append('langs', 'English');

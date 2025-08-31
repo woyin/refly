@@ -1,7 +1,7 @@
 import { FC, memo } from 'react';
 import { useMatch } from 'react-router-dom';
 import { Button, Divider, message } from 'antd';
-import { useSiderStoreShallow } from '@refly/stores';
+import { useCanvasResourcesPanelStoreShallow, useSiderStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
 import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
@@ -15,11 +15,12 @@ import ShareSettings from './share-settings';
 import { useUserStoreShallow } from '@refly/stores';
 import './index.scss';
 import { IconLink } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Undo, Redo, Copy } from 'refly-icons';
+import { Undo, Redo, Copy, Play } from 'refly-icons';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
 import { useAuthStoreShallow } from '@refly/stores';
 import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/canvas-layout-controls';
 import { TooltipButton } from './buttons';
+import { ToolsDependency } from '../tools-dependency';
 
 const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
@@ -49,6 +50,11 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
+
+  const { setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setShowWorkflowRun: state.setShowWorkflowRun,
+  }));
+
   const isShareCanvas = useMatch('/share/canvas/:canvasId');
   const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
 
@@ -64,12 +70,21 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
   const canvasTitle = shareData?.title || canvasTitleFromStore;
 
   const { duplicateCanvas, loading: duplicating } = useDuplicateCanvas();
+
   const handleDuplicate = () => {
     if (!isLogin) {
       setLoginModalOpen(true);
       return;
     }
     duplicateCanvas(canvasId);
+  };
+
+  const handleInitializeWorkflow = () => {
+    if (!isLogin) {
+      setLoginModalOpen(true);
+      return;
+    }
+    setShowWorkflowRun(true);
   };
 
   return (
@@ -126,6 +141,16 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
             </>
           )}
           <CanvasLayoutControls />
+
+          <TooltipButton
+            tooltip={t('canvas.toolbar.tooltip.initializeWorkflow') || 'Initialize Workflow'}
+            onClick={handleInitializeWorkflow}
+            className={buttonClass}
+          >
+            <Play size={16} />
+          </TooltipButton>
+
+          <ToolsDependency />
 
           {isPreviewCanvas ? (
             <Button

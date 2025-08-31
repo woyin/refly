@@ -75,6 +75,7 @@ import {
   DocumentNotFoundError,
   CanvasNotFoundError,
   ProjectNotFoundError,
+  ActionResultNotFoundError,
 } from '@refly/errors';
 import { DeleteCanvasNodesJobData } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
@@ -84,6 +85,7 @@ import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { DocxParser } from '../knowledge/parsers/docx.parser';
 import { PdfParser } from '../knowledge/parsers/pdf.parser';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
 export class KnowledgeService {
@@ -94,6 +96,7 @@ export class KnowledgeService {
     private prisma: PrismaService,
     private ragService: RAGService,
     private miscService: MiscService,
+    private canvasSyncService: CanvasSyncService,
     private providerService: ProviderService,
     private subscriptionService: SubscriptionService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
@@ -1000,6 +1003,22 @@ export class KnowledgeService {
       await this.checkProjectExists(user, param.projectId);
     }
 
+    if (param.resultId) {
+      const result = await this.prisma.actionResult.findFirst({
+        where: { resultId: param.resultId, uid: user.uid },
+        orderBy: { version: 'desc' },
+      });
+      if (!result) {
+        throw new ActionResultNotFoundError(`Action result ${param.resultId} not found`);
+      }
+      if (result.targetType === 'canvas') {
+        param.canvasId = result.targetId;
+      }
+      if (result.projectId) {
+        param.projectId = result.projectId;
+      }
+    }
+
     const createInput: Prisma.DocumentCreateInput = {
       docId: param.docId,
       title: param.title,
@@ -1054,6 +1073,24 @@ export class KnowledgeService {
       createdAt: doc.createdAt.toJSON(),
       updatedAt: doc.updatedAt.toJSON(),
     });
+
+    if (param.canvasId && param.resultId) {
+      await this.canvasSyncService.addNodeToCanvas(
+        user,
+        param.canvasId,
+        {
+          type: 'document',
+          data: {
+            title: doc.title,
+            entityId: doc.docId,
+            metadata: {
+              status: 'finish',
+            },
+          },
+        },
+        [{ type: 'skillResponse', entityId: param.resultId }],
+      );
+    }
 
     await this.syncStorageUsage(user);
 
@@ -1568,6 +1605,25 @@ export class KnowledgeService {
         uid: user.uid,
         deletedAt: null,
       },
+    });
+  }
+
+  /**
+   * Get resource by storage key (rawFileKey)
+   */
+  async getResourceByStorageKey(user: User, storageKey: string) {
+    return this.prisma.resource.findFirst({
+      where: { rawFileKey: storageKey, deletedAt: null, uid: user.uid },
+    });
+  }
+
+  /**
+   * Bind resource to canvas
+   */
+  async bindResourceToCanvas(resourceId: string, canvasId: string) {
+    return this.prisma.resource.update({
+      where: { resourceId },
+      data: { canvasId },
     });
   }
 }
