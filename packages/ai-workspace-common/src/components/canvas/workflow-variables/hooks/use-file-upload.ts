@@ -63,10 +63,16 @@ export const useFileUpload = () => {
 
         // File validation
         const { maxSize, category, fileType } = getFileCategoryAndLimit(file);
+        console.log('maxSize', maxSize);
+        console.log('category', category);
+        console.log('fileType', fileType);
 
         // Check if file type is supported
         if (category === 'unknown') {
-          message.error(t('common.unsupportedFileType') || `Unsupported file type: .${fileType}`);
+          message.error(
+            t('canvas.workflow.variables.unsupportedFileType', { type: fileType }) ||
+              `Unsupported file type: .${fileType}`,
+          );
           return false;
         }
 
@@ -74,10 +80,11 @@ export const useFileUpload = () => {
         const allowedMimeTypes =
           MIME_TYPE_VALIDATION[category as keyof typeof MIME_TYPE_VALIDATION] || [];
         const isValidMimeType = allowedMimeTypes.some((type) => file.type.startsWith(type));
+        console.log('isValidMimeType', allowedMimeTypes, isValidMimeType, file);
 
         if (!isValidMimeType) {
           message.error(
-            t('common.unsupportedFileType') ||
+            t('canvas.workflow.variables.unsupportedFileType', { type: file.type }) ||
               `File MIME type not supported for ${category}: ${file.type}`,
           );
           return false;

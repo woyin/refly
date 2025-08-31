@@ -1,5 +1,10 @@
 import type { FileCategoryInfo } from './types';
-import { IMAGE_FILE_EXTENSIONS, AUDIO_FILE_EXTENSIONS, VIDEO_FILE_EXTENSIONS } from './constants';
+import {
+  IMAGE_FILE_EXTENSIONS,
+  AUDIO_FILE_EXTENSIONS,
+  VIDEO_FILE_EXTENSIONS,
+  FILE_SIZE_LIMITS,
+} from './constants';
 import type { VariableResourceType } from '@refly-packages/ai-workspace-common/requests/types.gen';
 
 export const getFileExtension = (filename: string): string => {
@@ -30,21 +35,25 @@ export const getFileCategoryAndLimit = (file: File): FileCategoryInfo => {
 
   // Image types
   if (fileType === 'image') {
-    return { category: 'image', maxSize: 10 * 1024 * 1024, fileType: fileType };
+    return { category: 'image', maxSize: FILE_SIZE_LIMITS.image * 1024 * 1024, fileType: fileType };
   }
 
   // Audio types
   if (fileType === 'audio') {
-    return { category: 'audio', maxSize: 50 * 1024 * 1024, fileType: fileType };
+    return { category: 'audio', maxSize: FILE_SIZE_LIMITS.audio * 1024 * 1024, fileType: fileType };
   }
 
   // Video types
   if (fileType === 'video') {
-    return { category: 'video', maxSize: 100 * 1024 * 1024, fileType: fileType };
+    return { category: 'video', maxSize: FILE_SIZE_LIMITS.video * 1024 * 1024, fileType: fileType };
   }
 
   // default document type
-  return { category: 'document', maxSize: 20 * 1024 * 1024, fileType: fileType };
+  return {
+    category: 'document',
+    maxSize: FILE_SIZE_LIMITS.document * 1024 * 1024,
+    fileType: fileType,
+  };
 };
 
 export const ensureUniqueOptions = (options: string[]): string[] => {

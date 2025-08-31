@@ -1202,7 +1202,7 @@ const translations = {
       tooltip: {
         undo: '撤销',
         redo: '重做',
-        initializeWorkflow: '初始化工作流',
+        initializeWorkflow: '运行调试',
         initializeWorkflowInNewCanvas: '初始化工作流到新画布',
         zoom: '缩放百分比',
         zoomReset: '重置',
@@ -1294,6 +1294,7 @@ const translations = {
         deleteSuccess: '变量删除成功',
         inputPlaceholder: '请输入',
         selectPlaceholder: '请选择',
+        uploadPlaceholder: '请上传',
         duplicateOption: '可选项不能存在重复值',
         upload: '上传文件',
         typeLimitReached: '{{type}}类型的变量数量已达上限，无法提交。',
@@ -1301,6 +1302,13 @@ const translations = {
         resourceLibrary: '资源库',
         viewAndEdit: '查看',
         variableCreatedInfo: '变量已创建，您可以从变量列表中编辑它。',
+        acceptResourceTypes: '支持的资源类型：',
+        fileSizeLimit: '{{type}}（小于{{size}}M）',
+        unsupportedFileType: '不支持的文件类型：{{type}}',
+      },
+      run: {
+        title: '运行调试',
+        run: '运行',
       },
     },
     connectionTimeout: {

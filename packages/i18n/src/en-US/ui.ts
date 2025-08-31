@@ -1223,7 +1223,7 @@ const translations = {
         undo: 'Undo',
         redo: 'Redo',
         zoom: 'Zoom Percentage',
-        initializeWorkflow: 'Initialize Workflow',
+        initializeWorkflow: 'Run Workflow',
         initializeWorkflowInNewCanvas: 'Initialize Workflow in New Canvas',
         zoomReset: 'Reset',
         zoomIn: 'Zoom In',
@@ -1315,6 +1315,7 @@ const translations = {
         deleteSuccess: 'Variable deleted successfully',
         inputPlaceholder: 'Please enter',
         selectPlaceholder: 'Please select',
+        uploadPlaceholder: 'Please upload file',
         duplicateOption: 'Option values cannot be duplicated',
         upload: 'Upload Files',
         typeLimitReached:
@@ -1323,6 +1324,13 @@ const translations = {
         resourceLibrary: 'Resource Library',
         viewAndEdit: 'View',
         variableCreatedInfo: 'Variable has been created. You can edit it from the variables list.',
+        acceptResourceTypes: 'Accept Resource Types: ',
+        fileSizeLimit: '{{type}}(less than {{size}}M)',
+        unsupportedFileType: 'Unsupported file type: {{type}}',
+      },
+      run: {
+        title: 'Run Workflow',
+        run: 'Run',
       },
     },
     connectionTimeout: {

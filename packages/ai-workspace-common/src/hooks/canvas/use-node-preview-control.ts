@@ -51,9 +51,12 @@ export const useNodePreviewControl = ({
     canvasInitialized: state.canvasInitialized[canvasId],
   }));
   const { setActiveNode } = useActiveNode(canvasId);
-  const { setSidePanelVisible } = useCanvasResourcesPanelStoreShallow((state) => ({
-    setSidePanelVisible: state.setSidePanelVisible,
-  }));
+  const { setSidePanelVisible, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow(
+    (state) => ({
+      setSidePanelVisible: state.setSidePanelVisible,
+      setShowWorkflowRun: state.setShowWorkflowRun,
+    }),
+  );
 
   // Cleanup non-existent node previews
   useEffect(() => {
@@ -159,11 +162,20 @@ export const useNodePreviewControl = ({
       addNodePreview(canvasId, node);
       setActiveNode(node);
       setSidePanelVisible(true);
+      setShowWorkflowRun(false);
       setSelectedNode(node);
       locateToNodePreviewEmitter.emit('locateToNodePreview', { canvasId, id: node.id });
       return true;
     },
-    [canvasId, clickToPreview, addNodePreview, setSelectedNode, setActiveNode, setSidePanelVisible],
+    [
+      canvasId,
+      clickToPreview,
+      addNodePreview,
+      setSelectedNode,
+      setActiveNode,
+      setSidePanelVisible,
+      setShowWorkflowRun,
+    ],
   );
 
   return {

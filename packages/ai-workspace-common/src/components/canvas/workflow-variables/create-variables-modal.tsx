@@ -241,6 +241,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
 
     const handleFileUpload = useCallback(
       async (file: File) => {
+        console.log('file', file);
         const result = await uploadFile(file, fileList);
         if (result && typeof result === 'object' && 'storageKey' in result) {
           // Add file to list with storageKey
