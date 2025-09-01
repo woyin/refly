@@ -137,8 +137,11 @@ export class ShareService {
     // Set up concurrency limit for image processing
     const limit = pLimit(5); // Limit to 5 concurrent operations
 
-    // Find all image nodes
-    const imageNodes = canvasData.nodes?.filter((node) => node.type === 'image') ?? [];
+    // Find all image video audio nodes
+    const imageNodes =
+      canvasData.nodes?.filter(
+        (node) => node.type === 'image' || node.type === 'video' || node.type === 'audio',
+      ) ?? [];
 
     // Process all images in parallel with concurrency control
     const imageProcessingPromises = imageNodes.map((node) => {

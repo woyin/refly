@@ -78,7 +78,7 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
     refetch: refetchWorkflowVariables,
     isLoading: isLoadingVariables,
   } = useGetWorkflowVariables({ query: { canvasId } }, undefined, {
-    enabled: false, // Initially disabled, will be triggered on hover
+    enabled: !!canvasId, // Always enable when canvasId is available
   });
 
   // Trigger variable fetch when hovering startNode
@@ -617,6 +617,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
     const { nodes: realtimeNodes } = useRealtimeCanvasData();
+    const { canvasId } = useCanvasContext();
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
@@ -723,6 +724,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     useEffect(() => {
       contextItemsRef.current = contextItems;
     }, [contextItems]);
+
+    // Use ref to track previous canvas data to avoid infinite loops
+    const prevCanvasDataRef = useRef({ canvasId: '', allItemsLength: 0, variablesLength: 0 });
 
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
@@ -1003,6 +1007,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         if (!content) return nodes;
 
         const findVarMeta = (name: string) => {
+          // Priority 1: Look in allItems first (includes canvas-based items and workflow variables)
           const foundFromAll = (allItems || []).find((it: any) => it?.name === name);
           if (foundFromAll) {
             return {
@@ -1010,10 +1015,20 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
               variableType: foundFromAll?.variableType ?? 'string',
             };
           }
-          const found = (variables || []).find((v: any) => v?.name === name);
+
+          // Priority 2: Look in variables prop (most reliable for startNode)
+          const foundInVariables = (variables || []).find((v: any) => v?.name === name);
+          if (foundInVariables) {
+            return {
+              source: foundInVariables?.source ?? 'startNode',
+              variableType: foundInVariables?.variableType ?? 'string',
+            };
+          }
+
+          // Fallback: Default to startNode with string type
           return {
-            source: found?.source ?? 'startNode',
-            variableType: found?.variableType ?? 'string',
+            source: 'startNode',
+            variableType: 'string',
           };
         };
 
@@ -1120,6 +1135,51 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         }
       }
     }, [query, editor, buildContentFromHandlebars]);
+
+    // Additional effect to re-render content when canvas data becomes available
+    useEffect(() => {
+      if (!editor || !query) return;
+
+      // Check if canvas data has actually changed to avoid infinite loops
+      const currentCanvasData = {
+        canvasId: canvasId || '',
+        allItemsLength: allItems?.length || 0,
+        variablesLength: variables?.length || 0,
+      };
+
+      const prevCanvasData = prevCanvasDataRef.current;
+      const hasCanvasDataChanged =
+        currentCanvasData.canvasId !== prevCanvasData.canvasId ||
+        currentCanvasData.allItemsLength !== prevCanvasData.allItemsLength ||
+        currentCanvasData.variablesLength !== prevCanvasData.variablesLength;
+
+      if (!hasCanvasDataChanged) return;
+
+      // Update the ref with current data
+      prevCanvasDataRef.current = currentCanvasData;
+
+      // Check if we have the necessary data to render mentions
+      const hasCanvasData = allItems && allItems.length > 0;
+      const hasVariables = variables && variables.length > 0;
+
+      if (hasCanvasData || hasVariables) {
+        // Try to re-render with current data
+        const nodes = buildContentFromHandlebars(query);
+        if (nodes.length > 0) {
+          const jsonDoc = {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: nodes,
+              },
+            ],
+          } as any;
+          internalUpdateRef.current = true;
+          editor.commands.setContent(jsonDoc);
+        }
+      }
+    }, [canvasId, editor, query, buildContentFromHandlebars, allItems, variables]);
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
