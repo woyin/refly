@@ -87,7 +87,7 @@ export const SkillNode = memo(
     }));
 
     const [localQuery, setLocalQuery] = useState(query);
-    const [_extractionResult, setExtractionResult] = useState<VariableExtractionResult | null>(
+    const [_extractionResult, _setExtractionResult] = useState<VariableExtractionResult | null>(
       null,
     );
     const [isExtracting, setIsExtracting] = useState(false);
@@ -436,24 +436,25 @@ export const SkillNode = memo(
         };
 
         try {
-          const result = await extractVariablesMutation.mutateAsync({ body: payload });
-          const extractionData = result?.data;
+          const _result = await extractVariablesMutation.mutateAsync({ body: payload });
+          console.log('🚀 ~ handleExtractVariables ~ _result:', _result);
+          // const extractionData = result?.data;
 
-          if (extractionData) {
-            setExtractionResult(extractionData);
-            // Update the query with processed prompt
-            setQuery(extractionData.processedPrompt);
-            setLocalQuery(extractionData.processedPrompt);
-            updateNodeData({
-              title: extractionData.processedPrompt,
-              metadata: {
-                ...data?.metadata,
-                query: extractionData.processedPrompt,
-              },
-            });
-          }
+          // if (extractionData) {
+          //   setExtractionResult(extractionData);
+          //   // Update the query with processed prompt
+          //   setQuery(extractionData.processedPrompt);
+          //   setLocalQuery(extractionData.processedPrompt);
+          //   updateNodeData({
+          //     title: extractionData.processedPrompt,
+          //     metadata: {
+          //       ...data?.metadata,
+          //       query: extractionData.processedPrompt,
+          //     },
+          //   });
+          // }
           // Refresh workflow variables so RichChatInput can render latest variables
-          await refetchWorkflowVariables();
+          // await refetchWorkflowVariables();
         } catch {
           // No-op: UI toasts can be added by caller if needed
         } finally {
