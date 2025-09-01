@@ -1,7 +1,7 @@
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { useUserStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { McpServerList } from './McpServerList';
 import { ContentHeader } from '../contentHeader';
 import { Button, Modal, Segmented } from 'antd';
@@ -12,7 +12,7 @@ import '../model-providers/index.scss';
 import { McpServerDTO } from '@refly-packages/ai-workspace-common/requests';
 import { ToolList } from './tools/tool-list';
 import { ToolStore } from './tools/tool-store';
-import { useListToolsets } from '@refly-packages/ai-workspace-common/queries';
+import { useListToolsets, useListTools } from '@refly-packages/ai-workspace-common/queries';
 
 export const McpServerTab = ({ visible }: { visible: boolean }) => {
   const { t } = useTranslation();
@@ -28,6 +28,10 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
     refetchOnWindowFocus: false,
   });
 
+  const { refetch: refetchEnabledTools } = useListTools({ query: { enabled: true } }, [], {
+    enabled: false,
+  });
+
   const {
     data: toolsets,
     refetch: refetchToolsets,
@@ -36,6 +40,11 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
     enabled: true,
   });
   const toolInstances = toolsets?.data || [];
+
+  const refetchToolsOnUpdate = useCallback(() => {
+    refetchToolsets();
+    refetchEnabledTools();
+  }, [refetchToolsets, refetchEnabledTools]);
 
   // const mcpServers = mcpServersData?.data || [];
   const renderCustomActions = useMemo(() => {
@@ -91,7 +100,7 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
         {selectedTab === 'tools' ? (
           <ToolList
             toolInstances={toolInstances}
-            refetchToolsets={refetchToolsets}
+            refetchToolsets={refetchToolsOnUpdate}
             isLoadingToolsets={isLoadingToolsets}
           />
         ) : (

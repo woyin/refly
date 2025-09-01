@@ -47,7 +47,7 @@ export const useAddNode = () => {
   const { canvasId } = useCanvasContext();
   const { calculatePosition, layoutBranchAndUpdatePositions, setNodeCenter } = useNodePosition();
   const { previewNode } = useNodePreviewControl({ canvasId });
-  const { setNodes, setEdges } = useReactFlow();
+  const { setNodes, setEdges, getNodes } = useReactFlow();
 
   // Clean up ghost nodes when menu closes
   const handleCleanGhost = () => {
@@ -63,6 +63,18 @@ export const useAddNode = () => {
       needSetCenter = false,
       retryCount = 0,
     ): XYPosition | undefined => {
+      const connectToFinal = connectTo ?? [];
+      if (!connectToFinal?.length) {
+        const startNode = getNodes().find((n) => n.type === 'start');
+        const connectToStart: CanvasNodeFilter = {
+          type: 'start',
+          entityId: startNode?.data?.entityId as string,
+          handleType: 'source',
+        };
+
+        connectToFinal.push(connectToStart);
+      }
+
       const { canvasInitialized } = useCanvasStore.getState();
 
       if (!canvasInitialized[canvasId]) {
@@ -78,7 +90,7 @@ export const useAddNode = () => {
         const delay = Math.min(INITIAL_RETRY_DELAY * 2 ** retryCount, MAX_RETRY_DELAY);
 
         setTimeout(() => {
-          addNode(node, connectTo, shouldPreview, needSetCenter, retryCount + 1);
+          addNode(node, connectToFinal, shouldPreview, needSetCenter, retryCount + 1);
         }, delay);
         return undefined;
       }
@@ -134,7 +146,7 @@ export const useAddNode = () => {
 
       const { newNode, newEdges } = prepareAddNode({
         node: node as SchemaCanvasNode,
-        connectTo,
+        connectTo: connectToFinal,
         nodes,
         edges,
       });

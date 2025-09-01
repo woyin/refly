@@ -236,7 +236,7 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
                           className="flex items-center !h-9 !w-9 rounded-full border-none"
                           size="small"
                           type="primary"
-                          icon={<Send size={20} />}
+                          icon={<Send size={20} color="white" />}
                           onClick={handleSendMessage}
                           disabled={isExecuting || !query?.trim()}
                           loading={isExecuting}
