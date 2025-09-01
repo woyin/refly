@@ -258,7 +258,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
       <div
         ref={ref}
         className={cn(
-          'w-full h-full flex flex-col flex-grow overflow-y-auto relative',
+          'w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden relative ',
           isDragging && 'ring-2 ring-green-500 ring-opacity-50 rounded-lg',
           readonly && 'opacity-70 cursor-not-allowed',
         )}
