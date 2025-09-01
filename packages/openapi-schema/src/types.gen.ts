@@ -3848,14 +3848,17 @@ export type InvokeSkillRequest = {
   resultHistory?: Array<ActionResult>;
   /**
    * Skill runtime config
+   * @deprecated
    */
   runtimeConfig?: SkillRuntimeConfig;
   /**
    * Skill template config
+   * @deprecated
    */
   tplConfig?: SkillTemplateConfig;
   /**
    * Skill name (if not provided, commonQnA will be used)
+   * @deprecated
    */
   skillName?: string;
   /**
@@ -7532,6 +7535,10 @@ export type DeleteProviderItemError = unknown;
 
 export type ListToolsData = {
   query?: {
+    /**
+     * Whether the tool is enabled. If not passed, return both enabled and disabled tools.
+     */
+    enabled?: boolean;
     /**
      * Whether the tool is global. If not passed, return both global and user-specific tools.
      */

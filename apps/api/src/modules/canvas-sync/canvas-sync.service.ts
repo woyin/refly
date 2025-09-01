@@ -285,13 +285,19 @@ export class CanvasSyncService {
     const releaseLock: LockReleaseFn = options?.releaseLock ?? (await this.lockState(canvasId));
 
     this.logger.log(
-      `[syncState] sync state for canvas ${canvasId}, transactions: ${JSON.stringify(transactions)}`,
+      `[syncState] sync state for canvas ${canvasId}, version: ${versionToSync}, ` +
+        `transactions: ${transactions.map((tx) => tx.txId).join(', ')}`,
     );
     try {
-      const state = await this.getState(user, { canvasId, version });
+      const state = await this.getState(user, { canvasId, version: versionToSync });
       updateCanvasState(state, transactions);
       state.updatedAt = Date.now();
       await this.saveState(canvasId, state);
+    } catch (err) {
+      this.logger.error(
+        `[syncState] error syncing canvas state for canvas ${canvasId}: ${err?.stack}`,
+      );
+      throw err;
     } finally {
       await releaseLock();
     }

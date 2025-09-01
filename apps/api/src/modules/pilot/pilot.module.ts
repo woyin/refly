@@ -12,6 +12,7 @@ import { PilotService } from './pilot.service';
 import { PilotController } from './pilot.controller';
 import { RunPilotProcessor, SyncPilotStepProcessor } from './pilot.processor';
 import { QUEUE_RUN_PILOT } from '../../utils/const';
+import { ToolModule } from '../tool/tool.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { QUEUE_RUN_PILOT } from '../../utils/const';
     CanvasModule,
     CanvasSyncModule,
     SkillModule,
+    ToolModule,
     ProviderModule,
     KnowledgeModule,
     CodeArtifactModule,

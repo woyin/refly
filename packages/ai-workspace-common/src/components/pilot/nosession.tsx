@@ -6,6 +6,7 @@ import {
   useFrontPageStoreShallow,
   useUserStoreShallow,
   usePilotStoreShallow,
+  useLaunchpadStoreShallow,
 } from '@refly/stores';
 import { MediaChatInput } from '@refly-packages/ai-workspace-common/components/canvas/nodes/media/media-input';
 import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
@@ -32,7 +33,14 @@ export const NoSession = memo(({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
 
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
-  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
+
+  const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+    selectedToolsets: state.selectedToolsets,
+  }));
+
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
+    selectedToolsetsFromStore ?? [],
+  );
 
   const { query, setQuery, clearCanvasQuery } = useFrontPageStoreShallow((state) => ({
     query: state.getQuery?.(canvasId) || '',
