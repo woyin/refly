@@ -93,12 +93,12 @@ In this middle stage, focus on analyzing the information collected using analyti
 - Choose tools that can compare different perspectives and approaches
 
 ### Query Format Requirements:
-- Queries should reference the data analysis process
+- Queries MUST explicitly name the analysis-capable tool
 - Examples:
-  * "Analyze the web search results to identify key market trends and patterns"
-  * "Process the scraped data to evaluate competitive positioning and opportunities"
-  * "Compare findings from multiple research sources to identify contradictions and insights"
-  * "Evaluate the quality and reliability of collected information sources"
+  * "Use [analysis_tool] to analyze the web search results and identify key market trends and patterns"
+  * "Use [processing_tool] to process the scraped data and evaluate competitive positioning and opportunities"
+  * "Use [comparison_tool] to compare findings from multiple research sources and surface contradictions and insights"
+  * "Use [evaluation_tool] to assess the quality and reliability of collected information sources"
 
 ### Guidelines:
 - Identify patterns, contradictions, and insights from gathered data
@@ -125,12 +125,12 @@ In this late middle stage, focus on organizing and planning outputs using synthe
 - Draft outlines for documents or applications
 
 ### Query Format Requirements:
-- Queries should focus on organization and planning
+- Queries MUST explicitly name the synthesis/organization tool
 - Examples:
-  * "Create a detailed outline for the final report based on analysis findings"
-  * "Organize research findings into coherent themes and frameworks"
-  * "Plan the structure and content for the final deliverable"
-  * "Design the interface requirements for the visualization dashboard"
+  * "Use [synthesis_tool] to create a detailed outline for the final report based on analysis findings"
+  * "Use [organization_tool] to organize research findings into coherent themes and frameworks"
+  * "Use [planning_tool] to plan the structure of final deliverables"
+  * "Use [design_tool] to draft interface requirements for the visualization dashboard"
 
 ### Guidelines:
 - Organize information into coherent frameworks
@@ -235,10 +235,10 @@ Each step should have:
 - "Use scrape tool to extract content from the Tesla investor relations page"
 - "Use search tool to find comprehensive information about climate change impacts on agriculture"
 
-**Analysis Stage Queries** - Reference tools with analytical capabilities:
-- "Analyze the collected market data to identify key trends and patterns"
-- "Process the research findings to evaluate investment opportunities and risks"
-- "Compare and contrast the different renewable energy technologies based on gathered data"
+**Analysis Stage Queries** - MUST explicitly name an analysis-capable tool:
+- "Use [analysis_tool] to analyze the collected market data and identify key trends and patterns"
+- "Use [processing_tool] to process the research findings and evaluate investment opportunities and risks"
+- "Use [comparison_tool] to compare and contrast different renewable energy technologies based on gathered data"
 
 **Creation Stage Queries** - MUST explicitly specify the generation tool and parameters:
 - "Use generate_doc to create a comprehensive market analysis report based on research findings"
@@ -322,11 +322,11 @@ Every step query MUST explicitly mention which specific tools to use from the av
   * "Use search tool to gather comprehensive data on climate change impacts"
 
 **Analysis Stage (Mid Epochs):**
-- Queries should reference analytical processing of gathered data
+- Queries MUST explicitly name an analysis-capable tool
 - Examples:
-  * "Analyze the web search results to identify key market trends"
-  * "Process the scraped data to evaluate competitive positioning"
-  * "Compare findings from multiple sources to identify patterns"
+  * "Use [analysis_tool] to analyze the web search results and identify key market trends"
+  * "Use [processing_tool] to process the scraped data and evaluate competitive positioning"
+  * "Use [comparison_tool] to compare findings from multiple sources and identify patterns"
 
 **Creation Stage (Final Epochs):**
 - Queries MUST explicitly specify the generation tool and parameters

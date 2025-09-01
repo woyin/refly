@@ -1,6 +1,7 @@
 import { PilotSession, PilotStep, ToolsetDefinition, GenericToolset } from '@refly/openapi-schema';
 import { CanvasContentItem } from '../../canvas/canvas.dto';
 import { PilotStepRawOutput } from './schema';
+import { safeParseJSON } from '@refly/utils';
 
 /**
  * Formats the canvas content items into a detailed, structured string format
@@ -83,7 +84,7 @@ export function formatTodoMd(session: PilotSession, steps: PilotStep[]): string 
   markdown += '### Pending\n';
   if (pendingSteps?.length > 0) {
     for (const step of pendingSteps) {
-      const rawOutput: PilotStepRawOutput = JSON.parse(step.rawOutput ?? '{}');
+      const rawOutput: PilotStepRawOutput = safeParseJSON(step.rawOutput ?? '{}');
       const { priority, query, workflowStage } = rawOutput;
 
       // Format: - [ ] task-id: task name (Priority: X)

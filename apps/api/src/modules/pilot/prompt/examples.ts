@@ -590,7 +590,7 @@ IMPORTANT: Always follow the sequence appropriate for the current epoch. Each ep
 
 CRITICAL RULES FOR TOOL USAGE IN QUERIES:
 - ALL queries MUST explicitly mention which specific tool to use
-- Research queries MUST start with "Use web_search to...", "Use library_search to...", "Use scrape tool to...", etc.
+- Research queries MUST start with "Use web_search to..." or "Use library_search to..."
 - Creation queries MUST specify "Use generate_doc to...", "Use generate_code_artifact to...", "Use generate_media with mediaType: [type] to..."
 - Toolsets with generation tools (generate_doc, generate_code_artifact, generate_media) MUST ONLY be selected in the final 1-2 steps of the workflow
 - These toolsets MUST reference previous context items in almost all cases

@@ -5,11 +5,21 @@ import { z } from 'zod';
  */
 export const pilotStepSchema = z
   .object({
-    name: z.string().describe('A clear and concise title for the step'),
-    priority: z.number().min(1).max(5).describe('Priority level from 1 (highest) to 5 (lowest)'),
-    query: z.string().describe('The query to execute with the selected tools for this step'),
+    name: z.string().trim().min(1).describe('A clear and concise title for the step'),
+    priority: z
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .describe('Priority level from 1 (highest) to 5 (lowest)'),
+    query: z
+      .string()
+      .trim()
+      .min(1)
+      .describe('The query to execute with the selected tools for this step'),
     contextItemIds: z
-      .array(z.string())
+      .array(z.string().trim().min(1))
+      .default([])
       .describe('The ID list of the relevant canvas items for this step'),
     workflowStage: z
       .enum(['research', 'analysis', 'synthesis', 'creation'])
