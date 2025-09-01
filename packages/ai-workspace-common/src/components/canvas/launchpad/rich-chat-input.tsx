@@ -569,6 +569,14 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
     }, [variables, nodes, realtimeNodes]);
 
+    // Use ref to store latest contextItems to avoid performance issues
+    const contextItemsRef = useRef(contextItems);
+
+    // Update ref when contextItems changes
+    useEffect(() => {
+      contextItemsRef.current = contextItems;
+    }, [contextItems]);
+
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
       return CustomMention.configure({
@@ -582,7 +590,11 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             const item = props;
 
             // For step and result records, add to context instead of inserting text
-            if (item.source === 'stepRecord' || item.source === 'resultRecord') {
+            if (
+              item.source === 'stepRecord' ||
+              item.source === 'resultRecord' ||
+              item.source === 'myUpload'
+            ) {
               if (setContextItems && item.entityId) {
                 // Create context item
                 const contextItem: IContextItem = {
@@ -595,13 +607,17 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                   },
                 };
 
-                // Check if already in context
-                const isAlreadyInContext = contextItems.some(
-                  (ctxItem) => ctxItem.entityId === item.entityId,
-                );
+                // Add to context items using ref to get latest value
+                if (setContextItems) {
+                  // Check if already in context using ref
+                  const currentContextItems = contextItemsRef.current || [];
+                  const isAlreadyInContext = currentContextItems.some(
+                    (ctxItem) => ctxItem.entityId === item.entityId,
+                  );
 
-                if (!isAlreadyInContext) {
-                  setContextItems([...contextItems, contextItem]);
+                  if (!isAlreadyInContext) {
+                    setContextItems([...currentContextItems, contextItem]);
+                  }
                 }
 
                 // Insert a placeholder text to show the selection
@@ -698,7 +714,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           },
         },
       });
-    }, [allItems, contextItems, setContextItems]);
+    }, [allItems, setContextItems]);
 
     // Create Tiptap editor
     const internalUpdateRef = useRef(false);
