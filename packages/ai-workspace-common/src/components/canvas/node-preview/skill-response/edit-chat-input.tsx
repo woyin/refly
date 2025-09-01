@@ -32,6 +32,7 @@ import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/event
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
+import { processQueryWithVariables } from '@refly-packages/ai-workspace-common/utils/workflow-variable-processor';
 
 interface EditChatInputProps {
   enabled: boolean;
@@ -288,11 +289,15 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     addEdges(edgesToAdd);
     deleteElements({ edges: edgesToDelete });
 
+    // Process query with workflow variables
+    const variables = (workflowVariables?.data ?? []) as MentionVariable[];
+    const { query: processedQuery } = processQueryWithVariables(editQuery, variables);
+
     invokeAction(
       {
         resultId,
         version: (version ?? 0) + 1,
-        query: editQuery,
+        query: processedQuery, // Use processed query for skill execution
         contextItems: editContextItems,
         modelInfo: editModelInfo,
         selectedSkill: skill,
@@ -305,9 +310,18 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         entityType: 'canvas',
       },
     );
+    // Update node data with processed query for title and original query in structuredData
     setNodeDataByEntity(
       { entityId: resultId, type: 'skillResponse' },
-      { metadata: { selectedToolsets } },
+      {
+        title: processedQuery, // Use processed query for title
+        metadata: {
+          selectedToolsets,
+          structuredData: {
+            query: editQuery, // Store original query in structuredData
+          },
+        },
+      },
     );
 
     setEditMode(false);
@@ -362,7 +376,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   const customActions: CustomAction[] = useMemo(
     () => [
       {
-        icon: <Undo className="flex items-center" />,
+        icon: <Undo className="flex items-center w-5 h-5" />,
         title: t('copilot.chatActions.discard'),
         onClick: async () => {
           setEditMode(false);
