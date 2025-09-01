@@ -244,9 +244,8 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
 
   schema = z.object({
     title: z.string().describe('Title of the document to generate'),
-    initialContent: z.string().describe('Initial markdown content of the document'),
+    content: z.string().describe('Markdown content of the document'),
   });
-
   description = 'Generate a new document based on a title and content.';
 
   protected params: BuiltinToolParams;
@@ -265,7 +264,7 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
       const { reflyService, user } = this.params;
       const document = await reflyService.createDocument(user, {
         title: input.title,
-        initialContent: input.initialContent,
+        initialContent: input.content,
         resultId: config.configurable?.resultId,
       });
 
@@ -304,10 +303,10 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
         'application/refly.artifacts.mindmap',
       ])
       .describe('Type of code artifact'),
-    codeContent: z.string().describe('Actual code content'),
+    content: z.string().describe('Actual code content'),
   });
 
-  description = 'Create a new code artifact with title, type, and code content.';
+  description = 'Create a new code artifact with title, type, and content.';
 
   protected params: BuiltinToolParams;
 
@@ -326,7 +325,7 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
       const result = await reflyService.createCodeArtifact(user, {
         title: input.title,
         type: input.type,
-        content: input.codeContent,
+        content: input.content,
         resultId: config.configurable?.resultId,
       });
 
