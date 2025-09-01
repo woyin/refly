@@ -129,7 +129,10 @@ export const ToolStore = ({ visible, toolInstances }: ToolStoreProps) => {
     enabled: visible,
   });
 
-  const tools = (data?.data || []).filter((tool) => tool.key !== 'builtin');
+  const tools = useMemo(
+    () => (data?.data || []).filter((tool) => tool.key !== 'builtin'),
+    [data?.data],
+  );
 
   // Debounce search text to improve performance
   useEffect(() => {
