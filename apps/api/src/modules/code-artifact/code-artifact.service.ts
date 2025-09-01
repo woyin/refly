@@ -28,30 +28,37 @@ export class CodeArtifactService {
 
   async createCodeArtifact(user: User, param: UpsertCodeArtifactRequest) {
     const { uid } = user;
-    const { title, type, language, content } = param;
+    const { title, type, language, content, previewStorageKey, resultId } = param;
+    let { canvasId, resultVersion } = param;
     const artifactId = genCodeArtifactID();
     const storageKey = `code-artifact/${artifactId}`;
 
-    if (param.canvasId) {
+    if (canvasId) {
       const canvas = await this.prisma.canvas.findUnique({
         select: { pk: true },
-        where: { canvasId: param.canvasId, uid, deletedAt: null },
+        where: { canvasId, uid, deletedAt: null },
       });
       if (!canvas) {
         throw new CanvasNotFoundError();
       }
     }
 
-    if (param.resultId) {
+    if (resultId) {
       const result = await this.prisma.actionResult.findFirst({
-        where: { resultId: param.resultId, uid: user.uid },
+        where: { resultId, uid: user.uid },
         orderBy: { version: 'desc' },
       });
       if (!result) {
-        throw new ActionResultNotFoundError(`Action result ${param.resultId} not found`);
+        throw new ActionResultNotFoundError(`Action result ${resultId} not found`);
       }
+
+      resultVersion = result.version;
+
       if (result.targetType === 'canvas') {
-        param.canvasId = result.targetId;
+        if (canvasId && canvasId !== result.targetId) {
+          throw new ParamsError('resultId target canvasId mismatch');
+        }
+        canvasId = result.targetId;
       }
     }
 
@@ -62,8 +69,11 @@ export class CodeArtifactService {
         type,
         language,
         storageKey,
+        previewStorageKey,
         uid,
-        canvasId: param.canvasId,
+        canvasId,
+        resultId,
+        resultVersion,
       },
     });
 
@@ -71,10 +81,10 @@ export class CodeArtifactService {
       await this.oss.putObject(storageKey, content);
     }
 
-    if (param.resultId) {
+    if (resultId && canvasId) {
       await this.canvasSyncService.addNodeToCanvas(
         user,
-        param.canvasId,
+        canvasId,
         {
           type: 'codeArtifact',
           data: {
@@ -88,6 +98,7 @@ export class CodeArtifactService {
           },
         },
         [{ type: 'skillResponse', entityId: param.resultId }],
+        { autoLayout: true },
       );
     }
 

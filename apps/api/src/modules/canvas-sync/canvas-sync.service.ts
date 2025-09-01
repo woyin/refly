@@ -289,7 +289,7 @@ export class CanvasSyncService {
         `transactions: ${transactions.map((tx) => tx.txId).join(', ')}`,
     );
     try {
-      const state = await this.getState(user, { canvasId, version });
+      const state = await this.getState(user, { canvasId, version: versionToSync });
       updateCanvasState(state, transactions);
       state.updatedAt = Date.now();
       await this.saveState(canvasId, state);
