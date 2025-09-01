@@ -1641,6 +1641,8 @@ const translations = {
       untitledResult: 'Untitled Result',
       untitledUpload: 'Untitled Upload',
       loadingEditor: 'Loading editor...',
+      loadingVariables: 'Loading variables...',
+      noStartNodeVariables: 'No start node variables',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',

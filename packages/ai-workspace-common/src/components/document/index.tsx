@@ -185,6 +185,7 @@ const StatusBar = memo(
     const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
       selectedToolsets: state.selectedToolsets,
     }));
+
     const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
       selectedToolsetsFromStore ?? [],
     );

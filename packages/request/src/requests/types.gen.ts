@@ -7536,6 +7536,10 @@ export type DeleteProviderItemError = unknown;
 export type ListToolsData = {
   query?: {
     /**
+     * Whether the tool is enabled. If not passed, return both enabled and disabled tools.
+     */
+    enabled?: boolean;
+    /**
      * Whether the tool is global. If not passed, return both global and user-specific tools.
      */
     isGlobal?: boolean;

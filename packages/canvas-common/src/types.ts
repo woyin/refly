@@ -97,6 +97,7 @@ export type SkillNodeMeta = {
   style?: React.CSSProperties;
   originalWidth?: number;
   projectId?: string;
+  structuredData?: Record<string, unknown>;
 };
 
 export type MediaSkillNodeMeta = {

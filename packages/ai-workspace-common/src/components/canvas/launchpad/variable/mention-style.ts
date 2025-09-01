@@ -1,6 +1,6 @@
-// Add custom styles for the editor and mention
+// Add custom styles for the editor and mention, scoped to rich-chat-input only
 export const mentionStyles = `
-  .ProseMirror {
+  [data-cy="rich-chat-input"] .ProseMirror {
     outline: none;
     border: none;
     background: transparent;
@@ -16,7 +16,7 @@ export const mentionStyles = `
     overflow-y: auto;
   }
 
-  .ProseMirror p {
+  [data-cy="rich-chat-input"] .ProseMirror p {
     margin: 0;
     padding: 0;
     line-height: 26px;
@@ -28,13 +28,13 @@ export const mentionStyles = `
   }
 
   /* Ensure text content is also vertically centered */
-  .ProseMirror p > *:not(.mention) {
+  [data-cy="rich-chat-input"] .ProseMirror p > *:not(.mention) {
     display: inline-flex;
     align-items: center;
     line-height: 1;
   }
   
-  .ProseMirror p.is-editor-empty:first-child::before {
+  [data-cy="rich-chat-input"] .ProseMirror p.is-editor-empty:first-child::before {
     color: var(--refly-text-3);
     content: attr(data-placeholder);
     float: left;
@@ -42,10 +42,10 @@ export const mentionStyles = `
     pointer-events: none;
   }
   
-  .mention {
+  [data-cy="rich-chat-input"] .mention {
     background-color: var(--refly-fill-default);
     border-radius: 4px;
-    padding: 1px 4px;
+    padding: 2px 4px 2px;
     border: 1px solid var(--refly-Card-Border);
     color: var(--text-icon-refly-text-0, #1C1F23);
     font-weight: 600;
@@ -66,23 +66,23 @@ export const mentionStyles = `
     top: -1px;
   }
   
-  .mention .mention-icon {
+  [data-cy="rich-chat-input"] .mention .mention-icon {
     width: 14px;
     height: 14px;
     display: inline-block;
     vertical-align: middle;
     margin-right: 2px;
     position: relative;
-    top: -1px;
+   
   }
   
-  .mention .mention-icon svg {
+  [data-cy="rich-chat-input"] .mention .mention-icon svg {
     width: 14px;
     height: 14px;
     display: block;
   }
   
-  .mention .mention-text {
+  [data-cy="rich-chat-input"] .mention .mention-text {
     font-weight: 500;
     font-size: 12px;
     overflow: hidden;
@@ -94,23 +94,23 @@ export const mentionStyles = `
     line-height: 1.2;
   }
   
-  .mention:hover {
+  [data-cy="rich-chat-input"] .mention:hover {
     background-color: var(--refly-fill-hover);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   /* Custom tippy styles to override default black border */
-  .tippy-box {
+  [data-cy="rich-chat-input"] .tippy-box {
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
   }
   
-  .tippy-arrow {
+  [data-cy="rich-chat-input"] .tippy-arrow {
     display: none !important;
   }
   
-  .tippy-content {
+  [data-cy="rich-chat-input"] .tippy-content {
     padding: 0 !important;
     background: transparent !important;
   }

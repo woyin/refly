@@ -47,6 +47,7 @@ import { GenericToolset } from '@refly/openapi-schema';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useExtractVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { ExtractVariablesRequest, VariableExtractionResult } from '@refly/openapi-schema';
+import { processQueryWithVariables } from '@refly-packages/ai-workspace-common/utils/workflow-variable-processor';
 
 const NODE_WIDTH = 480;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
@@ -86,7 +87,7 @@ export const SkillNode = memo(
     }));
 
     const [localQuery, setLocalQuery] = useState(query);
-    const [_extractionResult, setExtractionResult] = useState<VariableExtractionResult | null>(
+    const [_extractionResult, _setExtractionResult] = useState<VariableExtractionResult | null>(
       null,
     );
     const [isExtracting, setIsExtracting] = useState(false);
@@ -325,16 +326,24 @@ export const SkillNode = memo(
 
       // Direct skill execution without automatic variable extraction
       // Only use extraction result if it was manually triggered via button
-      const prompt = query || localQuery;
-      if (!canvasId || !prompt) {
+      const originalQuery = query || localQuery;
+      if (!canvasId || !originalQuery) {
         return;
       }
+
+      // Process query with workflow variables
+      const variables = (workflowVariables?.data ?? []) as MentionVariable[];
+      const { query: processedQuery } = processQueryWithVariables(originalQuery, variables);
 
       const resultId = genActionResultID();
       invokeAction(
         {
           resultId,
-          ...data?.metadata,
+          query: processedQuery, // Use processed query for skill execution
+          modelInfo,
+          contextItems,
+          selectedSkill,
+          version: data?.metadata.version,
           tplConfig,
           runtimeConfig: {
             ...contextRuntimeConfig,
@@ -342,6 +351,9 @@ export const SkillNode = memo(
           },
           projectId: finalProjectId,
           selectedToolsets,
+          structuredData: {
+            query: originalQuery,
+          },
         },
         {
           entityId: canvasId,
@@ -352,7 +364,7 @@ export const SkillNode = memo(
         {
           type: 'skillResponse',
           data: {
-            title: prompt,
+            title: processedQuery, // Use processed query for title
             entityId: resultId,
             metadata: {
               ...data?.metadata,
@@ -367,7 +379,7 @@ export const SkillNode = memo(
                 ...runtimeConfig,
               },
               structuredData: {
-                query: prompt,
+                query: originalQuery, // Store original query in structuredData
               },
               projectId: finalProjectId,
             },
@@ -424,24 +436,25 @@ export const SkillNode = memo(
         };
 
         try {
-          const result = await extractVariablesMutation.mutateAsync({ body: payload });
-          const extractionData = result?.data;
+          const _result = await extractVariablesMutation.mutateAsync({ body: payload });
+          console.log('🚀 ~ handleExtractVariables ~ _result:', _result);
+          // const extractionData = result?.data;
 
-          if (extractionData) {
-            setExtractionResult(extractionData);
-            // Update the query with processed prompt
-            setQuery(extractionData.processedPrompt);
-            setLocalQuery(extractionData.processedPrompt);
-            updateNodeData({
-              title: extractionData.processedPrompt,
-              metadata: {
-                ...data?.metadata,
-                query: extractionData.processedPrompt,
-              },
-            });
-          }
+          // if (extractionData) {
+          //   setExtractionResult(extractionData);
+          //   // Update the query with processed prompt
+          //   setQuery(extractionData.processedPrompt);
+          //   setLocalQuery(extractionData.processedPrompt);
+          //   updateNodeData({
+          //     title: extractionData.processedPrompt,
+          //     metadata: {
+          //       ...data?.metadata,
+          //       query: extractionData.processedPrompt,
+          //     },
+          //   });
+          // }
           // Refresh workflow variables so RichChatInput can render latest variables
-          await refetchWorkflowVariables();
+          // await refetchWorkflowVariables();
         } catch {
           // No-op: UI toasts can be added by caller if needed
         } finally {

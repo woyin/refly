@@ -3,7 +3,6 @@ import { IContextItem } from '@refly/common-types';
 import { PreviewContextManager } from './preview-context-manager';
 import { useMemo, memo } from 'react';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
-import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 
 const { Paragraph } = Typography;
 
@@ -31,23 +30,8 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
   const renderQueryWithVariables = useMemo(() => {
     if (!query) return null;
 
-    // Split query by @variableName pattern
-    const parts = query.split(/(@\w+\s)/g);
-
-    return parts.map((part, index) => {
-      // Check if this part matches @variableName pattern
-      const match = part.match(/@(\w+)\s/);
-      if (match) {
-        const variableName = match[1];
-        return (
-          <span key={index} className="inline-flex items-center gap-1 text-refly-text-0">
-            {getVariableIcon('string')}
-            <span>{variableName}</span>
-          </span>
-        );
-      }
-      return part;
-    });
+    // Return the original query text without variable parsing
+    return query;
   }, [query]);
 
   if (!enabled) {

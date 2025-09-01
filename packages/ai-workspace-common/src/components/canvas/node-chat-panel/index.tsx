@@ -36,6 +36,7 @@ import { NodeIcon } from '../nodes/shared/node-icon';
 
 import './index.scss';
 import { logEvent } from '@refly/telemetry-web';
+import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 
 // Memoized Premium Banner Component
 export const PremiumBanner = memo(() => {
@@ -393,13 +394,13 @@ export const ChatPanel = memo(
 
     const renderContent = () => (
       <>
-        {/* <ContextManager
+        <ContextManager
           className={classNames({
             'py-2': isList,
           })}
           contextItems={contextItems}
           setContextItems={setContextItems}
-        /> */}
+        />
 
         {enableRichInput &&
         (workflowVariables?.length > 0 || extendedWorkflowVariables?.length > 0) ? (
