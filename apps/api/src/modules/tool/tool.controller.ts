@@ -24,9 +24,11 @@ export class ToolController {
   async listTools(
     @LoginedUser() user: UserModel,
     @Query('isGlobal', new ParseBoolPipe({ optional: true })) isGlobal: boolean,
+    @Query('enabled', new ParseBoolPipe({ optional: true })) enabled: boolean,
   ): Promise<ListToolsResponse> {
     const tools = await this.toolService.listTools(user, {
       isGlobal,
+      enabled,
     });
     return buildSuccessResponse(tools);
   }

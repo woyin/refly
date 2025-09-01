@@ -51,10 +51,11 @@ export class ToolService {
         definition: BuiltinToolsetDefinition,
       },
     };
-    const { isGlobal } = param;
+    const { isGlobal, enabled } = param;
     const toolsets = await this.prisma.toolset.findMany({
       where: {
         OR: [{ isGlobal }, { uid: user.uid }],
+        enabled,
         deletedAt: null,
       },
     });
@@ -62,9 +63,9 @@ export class ToolService {
   }
 
   async listMcpTools(user: User, param: ListToolsData['query']): Promise<GenericToolset[]> {
-    const { isGlobal } = param;
+    const { isGlobal, enabled } = param;
     const servers = await this.mcpServerService.listMcpServers(user, {
-      enabled: true,
+      enabled,
       isGlobal,
     });
     return servers.map(mcpServerPo2GenericToolset);
