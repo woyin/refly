@@ -12,7 +12,6 @@ import {
 // types
 import { GraphState } from '../scheduler/types';
 // utils
-import { truncateSource } from '../scheduler/utils/truncator';
 import { buildFinalRequestMessages, SkillPromptModule } from '../scheduler/utils/message';
 
 // prompts
@@ -232,7 +231,7 @@ export class Agent extends BaseSkill {
       buildUserPrompt: commonQnA.buildCommonQnAUserPrompt,
     };
 
-    const { requestMessages, sources } = await this.commonPreprocess(
+    const { requestMessages } = await this.commonPreprocess(
       state,
       config,
       module,
@@ -240,24 +239,6 @@ export class Agent extends BaseSkill {
     );
 
     config.metadata.step = { name: 'answerQuestion' };
-
-    if (sources.length > 0) {
-      const truncatedSources = truncateSource(sources);
-      await this.emitLargeDataEvent(
-        {
-          data: truncatedSources,
-          buildEventData: (chunk, { isPartial, chunkIndex, totalChunks }) => ({
-            structuredData: {
-              sources: chunk,
-              isPartial,
-              chunkIndex,
-              totalChunks,
-            },
-          }),
-        },
-        config,
-      );
-    }
 
     try {
       const result = await compiledLangGraphApp.invoke(
