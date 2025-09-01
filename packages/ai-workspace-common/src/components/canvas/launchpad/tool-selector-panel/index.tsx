@@ -71,6 +71,20 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
     }
   }, [selectedToolsets, builtinToolsets, onSelectedToolsetsChange, setSelectedToolsets]);
 
+  useEffect(() => {
+    if (selectedToolsets?.length && toolsets?.length) {
+      const availableToolsetIds = new Set(toolsets.map((toolset) => toolset.id));
+      const filteredSelectedToolsets = selectedToolsets.filter((toolset) =>
+        availableToolsetIds.has(toolset.id),
+      );
+
+      if (filteredSelectedToolsets.length !== selectedToolsets.length) {
+        onSelectedToolsetsChange?.(filteredSelectedToolsets);
+        setSelectedToolsets?.(filteredSelectedToolsets);
+      }
+    }
+  }, [toolsets, selectedToolsets, onSelectedToolsetsChange, setSelectedToolsets]);
+
   const handleToolSelect = useCallback(
     (toolset: GenericToolset) => {
       hasInitializedBuiltinToolsets.current = true;
@@ -247,7 +261,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
                     size: 14,
                     className:
                       'bg-refly-bg-body-z0 shadow-refly-s p-0.5 -mr-[7px] last:mr-0 rounded-full',
-                    builtinClassName: '!w-4 !h-4',
+                    builtinClassName: '!w-3.5 !h-3.5',
                   }}
                 />
               );

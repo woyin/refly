@@ -6,3 +6,12 @@
     }
   }
 }
+
+.more-tools-dropdown {
+  .ant-dropdown-menu-submenu-title{
+    padding-left: 6px!important;
+    &:hover {
+      background-color: var(--refly-tertiary-hover)!important;
+    }
+  }
+}

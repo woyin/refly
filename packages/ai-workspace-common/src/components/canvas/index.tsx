@@ -282,6 +282,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           },
         });
       }
+      message.success(t(`canvas.toolbar.modeChangeSuccess.${mode}`));
     },
     [setLocalSettings, isLogin, updateSettings],
   );
