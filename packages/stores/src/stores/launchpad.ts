@@ -36,6 +36,7 @@ export const useLaunchpadStore = create<LaunchpadState>()(
         name: 'launchpad-storage',
         partialize: (state) => ({
           showPremiumBanner: state.showPremiumBanner,
+          selectedToolsets: state.selectedToolsets,
         }),
       },
     ),
