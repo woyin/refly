@@ -1,4 +1,5 @@
 import { memo, useCallback, forwardRef, useEffect, useState, useMemo, useRef } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchStoreShallow } from '@refly/stores';
 import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
@@ -13,12 +14,8 @@ import SVGX from '../../../assets/x.svg';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import type { IContextItem } from '@refly/common-types';
-import type { CanvasNodeType } from '@refly/openapi-schema';
-import {
-  getStartNodeIcon,
-  getVariableIcon,
-} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
-import { AiChat } from 'refly-icons';
+import type { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
+import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
 import { createRoot } from 'react-dom/client';
 import { useStore } from '@xyflow/react';
@@ -27,6 +24,7 @@ import {
   nodeActionEmitter,
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 
 // Define the type for mention items based on actual data structure
 interface MentionItem {
@@ -36,6 +34,11 @@ interface MentionItem {
   variableType: string;
   entityId: string;
   nodeId: string;
+  metadata?: {
+    imageUrl?: string | undefined;
+    resourceType?: ResourceType;
+    resourceMeta?: ResourceMeta;
+  };
 }
 
 interface RichChatInputProps {
@@ -58,8 +61,6 @@ interface RichChatInputProps {
 }
 // Custom mention suggestion component with improved UI design
 const MentionList = ({ items, command }: { items: MentionItem[]; command: any }) => {
-  console.log('items-------', items, command);
-
   const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
@@ -87,11 +88,13 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
           nodeId: node.id,
         })) ?? [];
 
-    // Get non-skill nodes for result records
+    // Get result record nodes - same logic as ResultList component
     const resultRecordItems =
       nodes
         ?.filter(
-          (node) => node.type !== 'skill' && node.type !== 'skillResponse' && node.type !== 'start',
+          (node) =>
+            ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
+            (node.type === 'image' && !!node.data?.metadata?.resultId),
         )
         ?.map((node) => ({
           name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
@@ -100,6 +103,11 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
           variableType: node.type, // Use actual node type
           entityId: node.data?.entityId,
           nodeId: node.id,
+          metadata: {
+            imageUrl: node.data?.metadata?.imageUrl,
+            resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
+            resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
+          },
         })) ?? [];
 
     return {
@@ -307,7 +315,14 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        {getVariableIcon(item.variableType)}
+                        <NodeIcon
+                          type={item.variableType as CanvasNodeType}
+                          small
+                          filled={false}
+                          url={item.variableType === 'image' ? item.metadata?.imageUrl : undefined}
+                          resourceType={item.metadata?.resourceType}
+                          resourceMeta={item.metadata?.resourceMeta}
+                        />
                         <div className="flex flex-col flex-1">
                           <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
                             {item.name}
@@ -326,7 +341,7 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        <AiChat className="bg-[#FC8800] rounded-md p-1" size={20} color="white" />
+                        <NodeIcon type="skillResponse" small />
                         <div className="flex flex-col flex-1 min-w-0">
                           <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
                             {item.name}
@@ -345,7 +360,14 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
                       onClick={() => selectItem(item)}
                     >
                       <div className="flex items-center gap-3">
-                        {getVariableIcon(item.variableType)}
+                        <NodeIcon
+                          type={item.variableType as CanvasNodeType}
+                          small
+                          filled={false}
+                          url={item.variableType === 'image' ? item.metadata?.imageUrl : undefined}
+                          resourceType={item.metadata?.resourceType}
+                          resourceMeta={item.metadata?.resourceMeta}
+                        />
                         <div className="flex flex-col flex-1">
                           <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
                             {item.name}
@@ -390,6 +412,37 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
   );
 };
 
+// Helper function to render NodeIcon consistently
+const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) => {
+  if (source === 'stepRecord') {
+    return React.createElement(NodeIcon, {
+      type: 'skillResponse' as CanvasNodeType,
+      small: true,
+      filled: false,
+      className: '!w-3.5 !h-3.5',
+    });
+  } else if (source === 'resultRecord' || source === 'myUpload') {
+    const nodeType = variableType || 'document';
+    return React.createElement(NodeIcon, {
+      type: nodeType as CanvasNodeType,
+      small: true,
+      filled: false,
+      url: nodeType === 'image' ? nodeAttrs.url : undefined,
+      resourceType: nodeAttrs.resourceType,
+      resourceMeta: nodeAttrs.resourceMeta,
+      className: '!w-3.5 !h-3.5',
+    });
+  } else {
+    const nodeType = variableType || 'document';
+    return React.createElement(NodeIcon, {
+      type: nodeType as CanvasNodeType,
+      small: true,
+      filled: false,
+      className: '!w-3.5 !h-3.5',
+    });
+  }
+};
+
 // Custom Mention extension with icon support
 const CustomMention = Mention.extend({
   addAttributes() {
@@ -407,6 +460,18 @@ const CustomMention = Mention.extend({
           };
         },
       },
+      url: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-url'),
+        renderHTML: (attributes) => {
+          if (!attributes.url) {
+            return {};
+          }
+          return {
+            'data-url': attributes.url,
+          };
+        },
+      },
       variableType: {
         default: null,
         parseHTML: (element) => element.getAttribute('data-variable-type'),
@@ -416,6 +481,30 @@ const CustomMention = Mention.extend({
           }
           return {
             'data-variable-type': attributes.variableType,
+          };
+        },
+      },
+      resourceType: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-resource-type'),
+        renderHTML: (attributes) => {
+          if (!attributes.resourceType) {
+            return {};
+          }
+          return {
+            'data-resource-type': attributes.resourceType,
+          };
+        },
+      },
+      resourceMeta: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-resource-meta'),
+        renderHTML: (attributes) => {
+          if (!attributes.resourceMeta) {
+            return {};
+          }
+          return {
+            'data-resource-meta': JSON.stringify(attributes.resourceMeta),
           };
         },
       },
@@ -436,11 +525,13 @@ const CustomMention = Mention.extend({
       textContainer.textContent = node.attrs.label || node.attrs.id;
 
       const variableType = node.attrs.variableType || node.attrs.source;
+      const source = node.attrs.source;
 
       let reactRoot: any = null;
       reactRoot = createRoot(iconContainer);
 
-      reactRoot.render(getVariableIcon(variableType));
+      // Use NodeIcon based on source type
+      reactRoot.render(renderNodeIcon(source, variableType, node.attrs));
 
       dom.appendChild(iconContainer);
       dom.appendChild(textContainer);
@@ -538,20 +629,26 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             nodeId: node.id,
           })) ?? [];
 
-      // Get non-skill nodes for result records
+      // Get result record nodes - same logic as ResultList component
       const resultRecordItems: MentionItem[] =
         nodes
           ?.filter(
             (node) =>
-              node.type !== 'skill' && node.type !== 'skillResponse' && node.type !== 'start',
+              ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
+              (node.type === 'image' && !!node.data?.metadata?.resultId),
           )
           ?.map((node) => ({
             name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
             description: t('canvas.richChatInput.resultRecord'),
             source: 'resultRecord' as const,
             variableType: node.type, // Use actual node type
-            entityId: node.data?.entityId || '',
+            entityId: node.data?.entityId,
             nodeId: node.id,
+            metadata: {
+              imageUrl: node.data?.metadata?.imageUrl,
+              resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
+              resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
+            },
           })) ?? [];
 
       // Get my upload items from realtime canvas data
@@ -568,6 +665,11 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             variableType: node.type,
             entityId: node.data?.entityId || '',
             nodeId: node.id,
+            metadata: {
+              imageUrl: node.data?.metadata?.imageUrl as string | undefined,
+              resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
+              resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
+            },
           })) ?? [];
 
       return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
@@ -679,6 +781,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                         label: item.name, // Don't include @ in label
                         source: item.source, // Store source for later processing
                         variableType: item.variableType || item.source,
+                        url: item.metadata?.imageUrl,
+                        resourceType: item.metadata?.resourceType,
+                        resourceMeta: item.metadata?.resourceMeta,
                       },
                     },
                     {
@@ -702,6 +807,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                       label: item.name, // Don't include @ in label
                       source: item.source, // Store source for later processing
                       variableType: item.variableType || item.source,
+                      url: item.metadata?.imageUrl,
+                      resourceType: item.metadata?.resourceType,
+                      resourceMeta: item.metadata?.resourceMeta,
                     },
                   },
                   {
