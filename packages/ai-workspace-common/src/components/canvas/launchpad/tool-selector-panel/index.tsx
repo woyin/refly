@@ -171,7 +171,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
             const labelName =
               toolset?.type === 'mcp'
                 ? toolset.mcpServer?.name
-                : toolset?.toolset?.definition?.labelDict?.[currentLanguage];
+                : (toolset?.toolset?.definition?.labelDict?.[currentLanguage] as string);
 
             const isBuiltin = toolset.id === 'builtin';
             return (
