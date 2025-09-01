@@ -193,7 +193,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
                     />
                     <div className="flex-1 min-w-0 flex flex-col">
                       <div className="text-sm text-refly-text-0 font-semibold block truncate leading-5">
-                        {toolset.id === 'builtin' ? labelName : toolset.name}
+                        {labelName || toolset.name}
                       </div>
                       <div className="text-xs text-refly-text-2 font-normal block truncate leading-4">
                         {description as string}
