@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { ToolInstallModal } from './tool-install-modal';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { Favicon } from '@refly-packages/ai-workspace-common/components/common/favicon';
+import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 
 const ActionDropdown = ({
   tool,
@@ -81,6 +82,11 @@ const ToolItem = ({
   const desc = (tool?.definition?.descriptionDict?.[currentLanguage] ||
     tool?.definition?.descriptionDict?.en ||
     '') as string;
+
+  const labelName = (tool?.definition?.labelDict?.[currentLanguage] ||
+    tool?.definition?.labelDict?.en) as string;
+
+  const isBuiltin = tool.toolsetId === 'builtin';
   const [visible, setVisible] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -134,19 +140,25 @@ const ToolItem = ({
       key={tool.toolsetId}
     >
       <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-refly-tertiary-default flex items-center justify-center">
-        <Favicon url={tool.definition?.domain} size={24} />
+        {isBuiltin ? (
+          <Logo logoProps={{ show: true, className: '!w-6 !h-6' }} textProps={{ show: false }} />
+        ) : (
+          <Favicon url={tool.definition?.domain} size={24} />
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="font-semibold text-refly-text-0 leading-5 text-sm">{tool.name}</div>
+            <div className="font-semibold text-refly-text-0 leading-5 text-sm">
+              {tool.toolsetId === 'builtin' ? labelName : tool.name}
+            </div>
             {desc && (
               <div className="mt-0.5 text-refly-text-1 text-xs leading-4 line-clamp-2">{desc}</div>
             )}
           </div>
 
-          {!tool.isGlobal && (
+          {!tool.isGlobal && !isBuiltin && (
             <div className="flex items-center gap-2">
               <Switch
                 size="small"
