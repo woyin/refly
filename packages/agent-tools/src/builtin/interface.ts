@@ -7,6 +7,7 @@ import {
   UpsertResourceRequest,
   User,
   Document,
+  CodeArtifact,
   UpsertCanvasRequest,
   CreateCanvasResponse,
   InMemorySearchResponse,
@@ -37,6 +38,7 @@ import {
   CodeArtifactType,
   SendEmailRequest,
   BaseResponse,
+  UpsertCodeArtifactRequest,
 } from '@refly/openapi-schema';
 import { Document as LangChainDocument } from '@langchain/core/documents';
 import { RunnableConfig } from '@langchain/core/dist/runnables/types';
@@ -62,6 +64,7 @@ export interface ReflyService {
     req: UpsertResourceRequest[],
   ) => Promise<BatchCreateResourceResponse>;
   updateResource: (user: User, req: UpsertResourceRequest) => Promise<UpdateResourceResponse>;
+  createCodeArtifact: (user: User, req: UpsertCodeArtifactRequest) => Promise<CodeArtifact>;
   webSearch: (
     user: User,
     req: WebSearchRequest | BatchWebSearchRequest,

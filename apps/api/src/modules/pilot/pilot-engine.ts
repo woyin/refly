@@ -2,13 +2,11 @@ import { Logger } from '@nestjs/common';
 import { BaseChatModel } from '@refly/providers';
 import { extractJsonFromMarkdown } from '@refly/utils';
 import { CanvasContentItem } from '../canvas/canvas.dto';
-import { PilotSession, PilotStep } from '@refly/openapi-schema';
+import { PilotSession, PilotStep, GenericToolset } from '@refly/openapi-schema';
+import { multiStepSchema, PilotStepRawOutput } from './prompt/schema';
 import {
-  multiStepSchema,
   generatePlanningPrompt,
-  generateBootstrapPrompt,
   generateFallbackPrompt,
-  PilotStepRawOutput,
   getRecommendedStageForEpoch,
 } from './prompt';
 import { MAX_EPOCH, MAX_STEPS_PER_EPOCH } from './pilot.service';
@@ -24,6 +22,7 @@ export class PilotEngine {
 
   async run(
     contentItems: CanvasContentItem[],
+    toolsets: GenericToolset[],
     maxStepsPerEpoch = MAX_STEPS_PER_EPOCH,
     locale?: string,
   ): Promise<PilotStepRawOutput[]> {
@@ -47,7 +46,8 @@ export class PilotEngine {
       }
 
       this.logger.log(
-        `Planning research steps for "${userQuestion}" with ${contentItems.length} content items. Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}. Note: Creation tools (generateDoc, codeArtifacts) must ONLY be used in the final 1-2 steps and MUST reference previous context`,
+        `Planning research steps for "${userQuestion}" with ${contentItems.length} content items. ` +
+          `Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}`,
       );
 
       // First attempt: Use LLM structured output capability
@@ -55,14 +55,15 @@ export class PilotEngine {
         const structuredLLM = this.model.withStructuredOutput(multiStepSchema);
 
         // Generate the full prompt with optimized guidelines
-        const fullPrompt = generatePlanningPrompt(
+        const fullPrompt = generatePlanningPrompt({
           userQuestion,
-          this.session,
-          this.steps,
+          session: this.session,
+          steps: this.steps,
+          availableToolsets: toolsets,
           contentItems,
           maxStepsPerEpoch,
           locale,
-        );
+        });
 
         const { steps } = await structuredLLM.invoke(fullPrompt);
 
@@ -104,14 +105,15 @@ export class PilotEngine {
       }
 
       // Second attempt: Manual JSON parsing approach
-      const fallbackPrompt = generateFallbackPrompt(
+      const fallbackPrompt = generateFallbackPrompt({
         userQuestion,
-        this.session,
-        this.steps,
+        session: this.session,
+        steps: this.steps,
         contentItems,
+        availableToolsets: toolsets,
         maxStepsPerEpoch,
         locale,
-      );
+      });
 
       const response = await this.model.invoke(fallbackPrompt);
       const responseText = response.content.toString();
@@ -131,86 +133,6 @@ export class PilotEngine {
       return steps;
     } catch (error) {
       this.logger.error(`Error generating research plan: ${error.message}`);
-      return [];
-    }
-  }
-
-  /**
-   * Generates research steps based solely on the user question when no canvas content is available
-   * @param userQuestion The user's research question
-   * @param maxStepsPerEpoch The maximum number of steps to generate
-   * @param locale The user's preferred output locale
-   */
-  private async generateResearchWithoutContent(
-    userQuestion: string,
-    maxStepsPerEpoch = 3,
-    locale?: string,
-  ): Promise<PilotStepRawOutput[]> {
-    // Create an empty list of content items for the bootstrap process
-    const emptyContentItems: CanvasContentItem[] = [];
-
-    // Get the current epoch information
-    const currentEpoch = this.session?.currentEpoch ?? 0;
-    const totalEpochs = this.session?.maxEpoch ?? 2;
-    const recommendedStage = getRecommendedStageForEpoch(currentEpoch, totalEpochs);
-
-    this.logger.log(
-      `Bootstrap planning for "${userQuestion}" without content. Current epoch: ${currentEpoch + 1}/${totalEpochs + 1}, recommended stage: ${recommendedStage}`,
-    );
-
-    try {
-      // First attempt: Use LLM structured output capability with empty context
-      try {
-        const structuredLLM = this.model.withStructuredOutput(multiStepSchema);
-
-        // Use the bootstrap prompt with optimized guidelines
-        const fullPrompt = generateBootstrapPrompt(
-          userQuestion,
-          this.session,
-          this.steps,
-          emptyContentItems,
-          maxStepsPerEpoch,
-          locale,
-        );
-
-        const { steps } = await structuredLLM.invoke(fullPrompt);
-
-        this.logger.log(`Generated bootstrap research plan: ${JSON.stringify(steps)}`);
-
-        return steps;
-      } catch (structuredError) {
-        this.logger.warn(
-          `Structured output for bootstrap plan failed: ${structuredError.message}, trying fallback approach`,
-        );
-        // Continue to fallback
-      }
-
-      // Second attempt: Manual JSON parsing approach
-      const fallbackPrompt = generateFallbackPrompt(
-        userQuestion,
-        this.session,
-        this.steps,
-        emptyContentItems,
-        maxStepsPerEpoch,
-        locale,
-      );
-
-      const response = await this.model.invoke(fallbackPrompt);
-      const responseText = response.content.toString();
-
-      // Extract and parse JSON
-      const extraction = extractJsonFromMarkdown(responseText);
-
-      if (extraction.error) {
-        throw new Error(`JSON extraction failed for bootstrap plan: ${extraction.error.message}`);
-      }
-
-      const { steps } = await multiStepSchema.parseAsync(extraction.result);
-
-      this.logger.log(`Successfully generated bootstrap research plan with ${steps?.length} steps`);
-      return steps;
-    } catch (error) {
-      this.logger.error(`Error generating bootstrap research plan: ${error.message}`);
       return [];
     }
   }

@@ -3848,14 +3848,17 @@ export type InvokeSkillRequest = {
   resultHistory?: Array<ActionResult>;
   /**
    * Skill runtime config
+   * @deprecated
    */
   runtimeConfig?: SkillRuntimeConfig;
   /**
    * Skill template config
+   * @deprecated
    */
   tplConfig?: SkillTemplateConfig;
   /**
    * Skill name (if not provided, commonQnA will be used)
+   * @deprecated
    */
   skillName?: string;
   /**

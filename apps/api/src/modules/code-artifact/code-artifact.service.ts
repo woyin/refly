@@ -7,21 +7,29 @@ import {
   User,
 } from '@refly/openapi-schema';
 import { streamToString } from '../../utils';
-import { CanvasNotFoundError, CodeArtifactNotFoundError, ParamsError } from '@refly/errors';
+import {
+  ActionResultNotFoundError,
+  CanvasNotFoundError,
+  CodeArtifactNotFoundError,
+  ParamsError,
+} from '@refly/errors';
 import { genCodeArtifactID } from '@refly/utils';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { CodeArtifact as CodeArtifactModel } from '../../generated/client';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 @Injectable()
 export class CodeArtifactService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly canvasSyncService: CanvasSyncService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
   ) {}
 
-  async createCodeArtifact(user: User, body: UpsertCodeArtifactRequest) {
+  async createCodeArtifact(user: User, param: UpsertCodeArtifactRequest) {
     const { uid } = user;
-    const { title, type, language, content, canvasId } = body;
+    const { title, type, language, content, previewStorageKey, resultId } = param;
+    let { canvasId, resultVersion } = param;
     const artifactId = genCodeArtifactID();
     const storageKey = `code-artifact/${artifactId}`;
 
@@ -35,6 +43,25 @@ export class CodeArtifactService {
       }
     }
 
+    if (resultId) {
+      const result = await this.prisma.actionResult.findFirst({
+        where: { resultId, uid: user.uid },
+        orderBy: { version: 'desc' },
+      });
+      if (!result) {
+        throw new ActionResultNotFoundError(`Action result ${resultId} not found`);
+      }
+
+      resultVersion = result.version;
+
+      if (result.targetType === 'canvas') {
+        if (canvasId && canvasId !== result.targetId) {
+          throw new ParamsError('resultId target canvasId mismatch');
+        }
+        canvasId = result.targetId;
+      }
+    }
+
     const codeArtifact = await this.prisma.codeArtifact.create({
       data: {
         artifactId,
@@ -42,13 +69,37 @@ export class CodeArtifactService {
         type,
         language,
         storageKey,
+        previewStorageKey,
         uid,
         canvasId,
+        resultId,
+        resultVersion,
       },
     });
 
     if (content) {
       await this.oss.putObject(storageKey, content);
+    }
+
+    if (resultId && canvasId) {
+      await this.canvasSyncService.addNodeToCanvas(
+        user,
+        canvasId,
+        {
+          type: 'codeArtifact',
+          data: {
+            title,
+            entityId: codeArtifact.artifactId,
+            metadata: {
+              status: 'finish',
+            },
+            // Use the first 10 lines of content for preview
+            contentPreview: (content?.split(/\r?\n/) ?? []).slice(0, 10).join('\n'),
+          },
+        },
+        [{ type: 'skillResponse', entityId: param.resultId }],
+        { autoLayout: true },
+      );
     }
 
     return codeArtifact;

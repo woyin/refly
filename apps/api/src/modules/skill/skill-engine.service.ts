@@ -18,6 +18,8 @@ import { ActionService } from '../action/action.service';
 import { InternalToolService } from '../tool/internal-tool.service';
 import { NotificationService } from '../notification/notification.service';
 import { genBaseRespDataFromError } from '../../utils/exception';
+import { CodeArtifactService } from '../code-artifact/code-artifact.service';
+import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -33,6 +35,7 @@ export class SkillEngineService implements OnModuleInit {
   private actionService: ActionService;
   private internalToolService: InternalToolService;
   private notificationService: NotificationService;
+  private codeArtifactService: CodeArtifactService;
   private engine: SkillEngine;
 
   constructor(
@@ -51,6 +54,7 @@ export class SkillEngineService implements OnModuleInit {
     this.actionService = this.moduleRef.get(ActionService, { strict: false });
     this.internalToolService = this.moduleRef.get(InternalToolService, { strict: false });
     this.notificationService = this.moduleRef.get(NotificationService, { strict: false });
+    this.codeArtifactService = this.moduleRef.get(CodeArtifactService, { strict: false });
   }
 
   /**
@@ -112,6 +116,10 @@ export class SkillEngineService implements OnModuleInit {
       updateResource: async (user, req) => {
         const resource = await this.knowledgeService.updateResource(user, req);
         return buildSuccessResponse(resourcePO2DTO(resource));
+      },
+      createCodeArtifact: async (user, req) => {
+        const result = await this.codeArtifactService.createCodeArtifact(user, req);
+        return codeArtifactPO2DTO(result);
       },
       webSearch: async (user, req) => {
         const result = await this.searchService.webSearch(user, req);

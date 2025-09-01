@@ -40,7 +40,7 @@ export class ToolService {
       .sort((a, b) => a.key.localeCompare(b.key));
   }
 
-  async listRegularTools(user: User, param: ListToolsData['query']): Promise<GenericToolset[]> {
+  async listRegularTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
     const builtinToolset: GenericToolset = {
       type: 'regular',
       id: 'builtin',
@@ -51,7 +51,7 @@ export class ToolService {
         definition: BuiltinToolsetDefinition,
       },
     };
-    const { isGlobal, enabled } = param;
+    const { isGlobal, enabled } = param ?? {};
     const toolsets = await this.prisma.toolset.findMany({
       where: {
         OR: [{ isGlobal }, { uid: user.uid }],
@@ -62,8 +62,8 @@ export class ToolService {
     return [builtinToolset, ...toolsets.map(toolsetPo2GenericToolset)];
   }
 
-  async listMcpTools(user: User, param: ListToolsData['query']): Promise<GenericToolset[]> {
-    const { isGlobal, enabled } = param;
+  async listMcpTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
+    const { isGlobal, enabled } = param ?? {};
     const servers = await this.mcpServerService.listMcpServers(user, {
       enabled,
       isGlobal,
@@ -71,7 +71,7 @@ export class ToolService {
     return servers.map(mcpServerPo2GenericToolset);
   }
 
-  async listTools(user: User, param: ListToolsData['query']): Promise<GenericToolset[]> {
+  async listTools(user: User, param?: ListToolsData['query']): Promise<GenericToolset[]> {
     const [regularTools, mcpTools] = await Promise.all([
       this.listRegularTools(user, param),
       this.listMcpTools(user, param),

@@ -273,9 +273,10 @@ export class SkillInvokerService {
 
   private async _invokeSkill(user: User, data: InvokeSkillJobData, res?: Response) {
     const { input, result } = data;
-    this.logger.log(`invoke skill with data: ${JSON.stringify(data)}`);
-
     const { resultId, version, actionMeta, tier } = result;
+    this.logger.log(
+      `invoke skill with input: ${JSON.stringify(input)}, resultId: ${resultId}, version: ${version}`,
+    );
 
     if (input.images?.length > 0) {
       input.images = await this.miscService.generateImageUrls(user, input.images);

@@ -5444,15 +5444,17 @@ export const InvokeSkillRequestSchema = {
     runtimeConfig: {
       description: 'Skill runtime config',
       $ref: '#/components/schemas/SkillRuntimeConfig',
+      deprecated: true,
     },
     tplConfig: {
       description: 'Skill template config',
       $ref: '#/components/schemas/SkillTemplateConfig',
+      deprecated: true,
     },
     skillName: {
       type: 'string',
       description: 'Skill name (if not provided, commonQnA will be used)',
-      default: 'commonQnA',
+      deprecated: true,
     },
     target: {
       description: 'Skill invocation target',
