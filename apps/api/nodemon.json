@@ -2,6 +2,7 @@
   "watch": [
     "src/modules",
     "src/server",
+    "../../packages/agent-tools",
     "../../packages/canvas-common",
     "../../packages/common-types",
     "../../packages/errors",
