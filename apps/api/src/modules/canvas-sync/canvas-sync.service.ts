@@ -293,6 +293,11 @@ export class CanvasSyncService {
       updateCanvasState(state, transactions);
       state.updatedAt = Date.now();
       await this.saveState(canvasId, state);
+    } catch (err) {
+      this.logger.error(
+        `[syncState] error syncing canvas state for canvas ${canvasId}: ${err?.stack}`,
+      );
+      throw err;
     } finally {
       await releaseLock();
     }

@@ -31,20 +31,6 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
       },
     },
     {
-      name: 'create_document',
-      descriptionDict: {
-        en: 'Create a new document in the knowledge base.',
-        'zh-CN': '在知识库中创建新文档。',
-      },
-    },
-    {
-      name: 'list_documents',
-      descriptionDict: {
-        en: 'List available documents for the user.',
-        'zh-CN': '列出用户可用的文档。',
-      },
-    },
-    {
       name: 'generate_media',
       descriptionDict: {
         en: 'Generate images, audio, or video content using AI.',
@@ -54,15 +40,15 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
     {
       name: 'generate_doc',
       descriptionDict: {
-        en: 'Generate a new document using AI based on a title and configuration.',
-        'zh-CN': '基于标题和配置使用 AI 生成新文档。',
+        en: 'Generate a new document based on a title and content.',
+        'zh-CN': '基于标题和内容生成新文档。',
       },
     },
     {
       name: 'generate_code_artifact',
       descriptionDict: {
-        en: 'Generate a new code artifact using AI based on title, type, and configuration.',
-        'zh-CN': '基于标题、类型和配置使用 AI 生成新的代码工件。',
+        en: 'Generate a new code artifact based on title, type, and content.',
+        'zh-CN': '基于标题、类型和内容生成新的代码组件。',
       },
     },
     {
@@ -187,99 +173,6 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
   }
 }
 
-export class BuiltinCreateDocument extends AgentBaseTool<BuiltinToolParams> {
-  name = 'create_document';
-  toolsetKey = BuiltinToolsetDefinition.key;
-
-  schema = z.object({
-    title: z.string().describe('Title of the document to create'),
-    initialContent: z.string().describe('Initial content of the document'),
-  });
-
-  description = 'Create a new document in the knowledge base.';
-
-  protected params: BuiltinToolParams;
-
-  constructor(params: BuiltinToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(
-    input: z.infer<typeof this.schema>,
-    _: any,
-    config: RunnableConfig,
-  ): Promise<ToolCallResult> {
-    try {
-      const { reflyService, user } = this.params;
-      const document = await reflyService.createDocument(user, {
-        title: input.title,
-        initialContent: input.initialContent,
-        resultId: config.configurable?.resultId,
-      });
-
-      return {
-        status: 'success',
-        data: document,
-        summary: `Successfully created document: "${input.title}" with ID: ${document?.docId}`,
-      };
-    } catch (error) {
-      return {
-        status: 'error',
-        error: 'Error creating document',
-        summary:
-          error instanceof Error ? error.message : 'Unknown error occurred while creating document',
-      };
-    }
-  }
-}
-
-export class BuiltinListDocuments extends AgentBaseTool<BuiltinToolParams> {
-  name = 'list_documents';
-  toolsetKey = BuiltinToolsetDefinition.key;
-
-  schema = z.object({
-    pageSize: z.number().describe('Maximum number of documents to return').default(20),
-    page: z.number().describe('Page number (1-based)').default(1),
-    projectId: z.string().optional().describe('Optional project ID to filter documents'),
-    canvasId: z.string().optional().describe('Optional canvas ID to filter documents'),
-  });
-
-  description = 'List available documents for the user.';
-
-  protected params: BuiltinToolParams;
-
-  constructor(params: BuiltinToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
-    try {
-      const { reflyService, user } = this.params;
-      const documents = await reflyService.listDocuments(user, {
-        pageSize: input.pageSize,
-        page: input.page,
-        projectId: input.projectId,
-        canvasId: input.canvasId,
-      });
-
-      return {
-        status: 'success',
-        data: documents,
-        summary: `Successfully listed ${documents?.length ?? 0} documents for user.`,
-      };
-    } catch (error) {
-      return {
-        status: 'error',
-        error: 'Error listing documents',
-        summary:
-          error instanceof Error ? error.message : 'Unknown error occurred while listing documents',
-      };
-    }
-  }
-}
-
 export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
   name = 'generate_media';
   toolsetKey = BuiltinToolsetDefinition.key;
@@ -351,9 +244,10 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
 
   schema = z.object({
     title: z.string().describe('Title of the document to generate'),
+    initialContent: z.string().describe('Initial markdown content of the document'),
   });
 
-  description = 'Generate a new document using AI based on a title.';
+  description = 'Generate a new document based on a title and content.';
 
   protected params: BuiltinToolParams;
 
@@ -369,12 +263,16 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
   ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
-      const result = await reflyService.generateDoc(user, input.title, config);
+      const document = await reflyService.createDocument(user, {
+        title: input.title,
+        initialContent: input.initialContent,
+        resultId: config.configurable?.resultId,
+      });
 
       return {
         status: 'success',
-        data: result,
-        summary: `Successfully generated document: "${input.title}" with ID: ${result.docId}`,
+        data: document,
+        summary: `Successfully generated document: "${input.title}" with ID: ${document.docId}`,
       };
     } catch (error) {
       return {
@@ -405,10 +303,11 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
         'text/html',
         'application/refly.artifacts.mindmap',
       ])
-      .describe('Type of code artifact to generate'),
+      .describe('Type of code artifact'),
+    codeContent: z.string().describe('Actual code content'),
   });
 
-  description = 'Generate a new code artifact using AI based on title and type.';
+  description = 'Create a new code artifact with title, type, and code content.';
 
   protected params: BuiltinToolParams;
 
@@ -424,7 +323,12 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
   ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
-      const result = await reflyService.generateCodeArtifact(user, input.title, input.type, config);
+      const result = await reflyService.createCodeArtifact(user, {
+        title: input.title,
+        type: input.type,
+        content: input.codeContent,
+        resultId: config.configurable?.resultId,
+      });
 
       return {
         status: 'success',
@@ -541,8 +445,6 @@ export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   tools = [
     BuiltinLibrarySearch,
     BuiltinWebSearch,
-    BuiltinCreateDocument,
-    BuiltinListDocuments,
     BuiltinGenerateMedia,
     BuiltinGenerateDoc,
     BuiltinGenerateCodeArtifact,
