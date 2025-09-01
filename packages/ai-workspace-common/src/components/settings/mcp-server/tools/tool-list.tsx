@@ -151,7 +151,7 @@ const ToolItem = ({
         <div className="flex items-center justify-between gap-2">
           <div>
             <div className="font-semibold text-refly-text-0 leading-5 text-sm">
-              {labelName || tool.name}
+              {tool.toolsetId === 'builtin' ? labelName : tool.name}
             </div>
             {desc && (
               <div className="mt-0.5 text-refly-text-1 text-xs leading-4 line-clamp-2">{desc}</div>
