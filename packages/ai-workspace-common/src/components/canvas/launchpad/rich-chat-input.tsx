@@ -948,12 +948,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                   variableType: meta.variableType,
                 },
               });
-              // Consume '@' + name
+              // Consume '@' + name but do NOT consume trailing whitespace to preserve original spacing
               i = i + 1 + matchedName.length;
-              // Optionally consume a single trailing whitespace if present (common pattern "@name ")
-              if (content[i] === ' ') {
-                i += 1;
-              }
               continue;
             }
           }
