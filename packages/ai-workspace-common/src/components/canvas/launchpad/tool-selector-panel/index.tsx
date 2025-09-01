@@ -152,6 +152,13 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
               toolset?.type === 'mcp'
                 ? toolset.mcpServer.url
                 : toolset?.toolset?.definition?.descriptionDict?.[currentLanguage];
+
+            const labelName =
+              toolset?.type === 'mcp'
+                ? toolset.mcpServer?.name
+                : toolset?.toolset?.definition?.labelDict?.[currentLanguage];
+
+            const isBuiltin = toolset.id === 'builtin';
             return (
               <div
                 key={toolset.id}
@@ -164,10 +171,14 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
               >
                 <div className="flex-1 min-w-0 flex flex-col">
                   <div className="flex items-center gap-3">
-                    <ToolsetIcon toolset={toolset} />
+                    <ToolsetIcon
+                      toolset={toolset}
+                      isBuiltin={isBuiltin}
+                      config={{ builtinClassName: '!w-6 !h-6' }}
+                    />
                     <div className="flex-1 min-w-0 flex flex-col">
                       <div className="text-sm text-refly-text-0 font-semibold block truncate leading-5">
-                        {toolset.name}
+                        {(labelName as string) || toolset.name}
                       </div>
                       <div className="text-xs text-refly-text-2 font-normal block truncate leading-4">
                         {description as string}
@@ -216,10 +227,12 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
                 <ToolsetIcon
                   key={toolset.id}
                   toolset={toolset}
+                  isBuiltin={toolset.id === 'builtin'}
                   config={{
                     size: 14,
                     className:
                       'bg-refly-bg-body-z0 shadow-refly-s p-0.5 -mr-[7px] last:mr-0 rounded-full',
+                    builtinClassName: '!w-4 !h-4',
                   }}
                 />
               );
