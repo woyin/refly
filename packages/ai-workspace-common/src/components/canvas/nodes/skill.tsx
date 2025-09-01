@@ -437,6 +437,7 @@ export const SkillNode = memo(
 
         try {
           const _result = await extractVariablesMutation.mutateAsync({ body: payload });
+          console.log('🚀 ~ handleExtractVariables ~ _result:', _result);
           // const extractionData = result?.data;
 
           // if (extractionData) {
