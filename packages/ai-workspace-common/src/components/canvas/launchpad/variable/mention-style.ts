@@ -45,7 +45,7 @@ export const mentionStyles = `
   .mention {
     background-color: var(--refly-fill-default);
     border-radius: 4px;
-    padding: 1px 4px;
+    padding: 2px 4px 2px;
     border: 1px solid var(--refly-Card-Border);
     color: var(--text-icon-refly-text-0, #1C1F23);
     font-weight: 600;
@@ -73,7 +73,7 @@ export const mentionStyles = `
     vertical-align: middle;
     margin-right: 2px;
     position: relative;
-    top: -1px;
+   
   }
   
   .mention .mention-icon svg {
