@@ -35,7 +35,19 @@ export const deduplicateEdges = (edges: CanvasEdge[]) => {
 export const prepareAddNode = (
   param: AddNodeParam,
 ): { newNode: CanvasNode; newEdges: CanvasEdge[] } => {
-  const { node = {}, connectTo, nodes, edges, viewport, autoLayout } = param;
+  const { node = {}, connectTo = [], nodes, edges, viewport, autoLayout } = param;
+
+  // If connectTo is not provided, connect the new node to the start node
+  if (!connectTo?.length) {
+    const startNode = nodes.find((n) => n.type === 'start');
+    const connectToStart: CanvasNodeFilter = {
+      type: 'start',
+      entityId: startNode?.data?.entityId as string,
+      handleType: 'source',
+    };
+
+    connectTo.push(connectToStart);
+  }
 
   // Purge context items if they exist
   if (node.data?.metadata?.contextItems) {
@@ -107,19 +119,6 @@ export const prepareAddNode = (
 
   // Create new edges based on connection types
   const newEdges: CanvasEdge[] = [];
-
-  // If connectTo is not provided, connect the new node to the start node
-  const connectToFinal = connectTo ?? [];
-  if (!connectToFinal?.length) {
-    const startNode = nodes.find((n) => n.type === 'start');
-    const connectToStart: CanvasNodeFilter = {
-      type: 'start',
-      entityId: startNode?.data?.entityId as string,
-      handleType: 'source',
-    };
-
-    connectToFinal.push(connectToStart);
-  }
 
   // Create edges from source nodes to new node (source -> new node)
   if (sourceNodes && sourceNodes.length > 0) {

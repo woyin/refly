@@ -770,6 +770,7 @@ export class PilotService {
             },
           },
           convertContextItemsToNodeFilters(contextItems),
+          { autoLayout: true },
         );
       }
 
