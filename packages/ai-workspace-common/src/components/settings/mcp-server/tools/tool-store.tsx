@@ -129,7 +129,7 @@ export const ToolStore = ({ visible, toolInstances }: ToolStoreProps) => {
     enabled: visible,
   });
 
-  const tools = data?.data || [];
+  const tools = (data?.data || []).filter((tool) => tool.key !== 'builtin');
 
   // Debounce search text to improve performance
   useEffect(() => {
