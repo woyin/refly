@@ -29,7 +29,6 @@ import {
   User,
   Document,
   ActionResult,
-  ActionMeta,
   LLMModelConfig,
   CodeArtifact,
   MediaGenerationModelConfig,
@@ -433,7 +432,6 @@ export class SkillService implements OnModuleInit {
 
       param.modelName ??= existingResult.modelName;
       param.modelItemId ??= existingResult.providerItemId;
-      param.skillName ??= safeParseJSON(existingResult.actionMeta).name;
       param.context ??= safeParseJSON(existingResult.context);
       param.resultHistory ??= safeParseJSON(existingResult.history);
       param.tplConfig ??= safeParseJSON(existingResult.tplConfig);
@@ -678,11 +676,6 @@ export class SkillService implements OnModuleInit {
               targetType: param.target?.entityType,
               modelName: modelConfigMap.chat.modelId,
               projectId: param.projectId ?? null,
-              actionMeta: JSON.stringify({
-                type: 'skill',
-                name: param.skillName,
-                icon: skill.icon,
-              } as ActionMeta),
               errors: JSON.stringify([]),
               input: JSON.stringify(param.input),
               context: JSON.stringify(purgeContext(param.context)),
@@ -716,11 +709,6 @@ export class SkillService implements OnModuleInit {
           modelName: modelConfigMap.chat.modelId,
           type: 'skill',
           status: 'executing',
-          actionMeta: JSON.stringify({
-            type: 'skill',
-            name: param.skillName,
-            icon: skill.icon,
-          } as ActionMeta),
           projectId: param.projectId,
           input: JSON.stringify(param.input),
           context: JSON.stringify(purgeContext(param.context)),
@@ -792,11 +780,6 @@ export class SkillService implements OnModuleInit {
           targetType: param.target?.entityType,
           modelName: param.modelName ?? 'unknown',
           projectId: param.projectId,
-          actionMeta: JSON.stringify({
-            type: 'skill',
-            name: param.skillName ?? 'unknown',
-            icon: 'error',
-          }),
           errors: JSON.stringify([errorMessage]),
           input: JSON.stringify(param.input ?? {}),
           context: JSON.stringify(param.context ?? {}),
