@@ -893,51 +893,82 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       (content: string) => {
         const nodes: any[] = [];
         if (!content) return nodes;
-        const varRegex = /@(\w+)\s/g;
-        let lastIndex = 0;
-        let match: RegExpExecArray | null;
 
         const findVarMeta = (name: string) => {
-          // Try to find variable in provided variables prop
+          const foundFromAll = (allItems || []).find((it: any) => it?.name === name);
+          if (foundFromAll) {
+            return {
+              source: foundFromAll?.source ?? 'startNode',
+              variableType: foundFromAll?.variableType ?? 'string',
+            };
+          }
           const found = (variables || []).find((v: any) => v?.name === name);
           return {
-            source: found?.source || 'startNode',
-            variableType: found?.variableType || 'string',
+            source: found?.source ?? 'startNode',
+            variableType: found?.variableType ?? 'string',
           };
         };
 
-        for (;;) {
-          match = varRegex.exec(content);
-          if (match === null) break;
-          const start = match.index;
-          const end = varRegex.lastIndex;
-          const varName = match[1];
+        // Prepare name list sorted by length desc to prefer the longest match
+        const allNames = Array.from(
+          new Set((allItems || []).map((it: any) => it?.name).filter(Boolean)),
+        ) as string[];
+        allNames.sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0));
 
-          if (start > lastIndex) {
-            nodes.push({ type: 'text', text: content.slice(lastIndex, start) });
+        let i = 0;
+        let textBuffer = '';
+        while (i < content.length) {
+          const ch = content[i];
+          if (ch === '@') {
+            // Try to match any known name right after '@'
+            let matchedName: string | null = null;
+            for (const name of allNames) {
+              const candidate = content.slice(i + 1, i + 1 + name.length);
+              if (candidate === name) {
+                const nextChar = content[i + 1 + name.length] ?? '';
+                if (nextChar === ' ' || nextChar === '\n' || nextChar === '' || nextChar === '\t') {
+                  matchedName = name;
+                  break;
+                }
+              }
+            }
+
+            if (matchedName) {
+              if (textBuffer) {
+                nodes.push({ type: 'text', text: textBuffer });
+                textBuffer = '';
+              }
+              const meta = findVarMeta(matchedName);
+              nodes.push({
+                type: 'mention',
+                attrs: {
+                  id: matchedName,
+                  label: matchedName,
+                  source: meta.source,
+                  variableType: meta.variableType,
+                },
+              });
+              // Consume '@' + name
+              i = i + 1 + matchedName.length;
+              // Optionally consume a single trailing whitespace if present (common pattern "@name ")
+              if (content[i] === ' ') {
+                i += 1;
+              }
+              continue;
+            }
           }
-
-          const meta = findVarMeta(varName);
-          nodes.push({
-            type: 'mention',
-            attrs: {
-              id: varName,
-              label: varName,
-              source: meta.source,
-              variableType: meta.variableType,
-            },
-          });
-
-          lastIndex = end;
+          // Default: accumulate as plain text
+          textBuffer += ch;
+          i += 1;
         }
 
-        if (lastIndex < content.length) {
-          nodes.push({ type: 'text', text: content.slice(lastIndex) });
+        if (textBuffer) {
+          nodes.push({ type: 'text', text: textBuffer });
         }
 
         return nodes;
       },
-      [variables],
+      [variables, allItems],
     );
 
     // Enhanced handleSendMessage that converts mentions to Handlebars
