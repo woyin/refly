@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useEffect } from 'react';
-import { Form, Upload, Button, message, Select } from 'antd';
+import { Form, Upload, Button, message, Select, Tooltip } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Refresh, Delete, Close } from 'refly-icons';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -211,18 +211,23 @@ export const ResourceTypeForm: React.FC<ResourceTypeFormProps> = React.memo(
                   </div>
 
                   <div className="fl">
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<Refresh size={16} color="var(--refly-text-1)" />}
-                      onClick={onRefreshFile}
-                    />
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<Delete size={16} color="var(--refly-text-1)" />}
-                      onClick={() => handleRemove(file)}
-                    />
+                    <Tooltip title={t('canvas.workflow.variables.reloadFile')}>
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={<Refresh size={16} color="var(--refly-text-1)" />}
+                        onClick={onRefreshFile}
+                      />
+                    </Tooltip>
+
+                    <Tooltip title={t('common.delete')}>
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={<Delete size={16} color="var(--refly-text-1)" />}
+                        onClick={() => handleRemove(file)}
+                      />
+                    </Tooltip>
                   </div>
                 </div>
               </Spin>

@@ -1257,6 +1257,10 @@ const translations = {
       removeFromProject: 'Remove from Project',
       openResourcesPanel: 'Open Resource Panel',
       closeResourcesPanel: 'Close Panel',
+      modeChangeSuccess: {
+        mouse: 'Switched to mouse mode',
+        touchpad: 'Switched to touchpad mode',
+      },
     },
     workflow: {
       variables: {
@@ -1327,6 +1331,7 @@ const translations = {
         acceptResourceTypes: 'Accept Resource Types: ',
         fileSizeLimit: '{{type}}(less than {{size}}M)',
         unsupportedFileType: 'Unsupported file type: {{type}}',
+        reloadFile: 'Reload File',
       },
       run: {
         title: 'Run Workflow',
