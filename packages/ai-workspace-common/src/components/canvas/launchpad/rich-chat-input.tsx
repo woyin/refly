@@ -12,6 +12,7 @@ import tippy from 'tippy.js';
 import SVGX from '../../../assets/x.svg';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { IContextItem } from '@refly/common-types';
 import {
   getStartNodeIcon,
@@ -26,6 +27,7 @@ import {
   nodeActionEmitter,
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 // Define the type for mention items based on actual data structure
 interface MentionItem {
@@ -66,10 +68,39 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
     'uploads' | 'stepRecord' | 'resultRecord'
   >('resultRecord');
   const { nodes } = useCanvasData();
+  const { canvasId } = useCanvasContext();
+
+  // Fetch workflow variables on demand when hovering startNode
+  const {
+    data: workflowVariablesData,
+    refetch: refetchWorkflowVariables,
+    isLoading: isLoadingVariables,
+  } = useGetWorkflowVariables({ query: { canvasId } }, undefined, {
+    enabled: false, // Initially disabled, will be triggered on hover
+  });
+
+  // Trigger variable fetch when hovering startNode
+  useEffect(() => {
+    if (hoveredCategory === 'startNode' && canvasId) {
+      refetchWorkflowVariables();
+    }
+  }, [hoveredCategory, canvasId, refetchWorkflowVariables]);
 
   // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
-    const startNodeItems = items.filter((item) => item.source === 'startNode');
+    // Use fetched workflow variables for startNode items instead of prop items
+    const workflowVariables = workflowVariablesData?.data || [];
+    const startNodeItems = workflowVariables
+      .filter((variable) => variable.source === 'startNode')
+      .map((variable) => ({
+        name: variable.name,
+        description: variable.description || '',
+        source: 'startNode' as const,
+        variableType: variable.variableType || 'string',
+        entityId: variable.variableId || '',
+        nodeId: variable.variableId || '',
+      }));
+
     const resourceLibraryItems = items.filter((item) => item.source === 'resourceLibrary');
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
 
@@ -108,7 +139,7 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
       resultRecord: resultRecordItems,
       uploads: myUploadItems,
     };
-  }, [items, nodes]);
+  }, [workflowVariablesData, items, nodes, t]);
 
   const selectItem = (item: MentionItem) => {
     command(item);
@@ -231,25 +262,35 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
 
         {/* Second level menu - Variables */}
         <div className="flex-1 max-w-[400px]">
-          {hoveredCategory === 'startNode' && groupedItems.startNode?.length > 0 && (
+          {hoveredCategory === 'startNode' && (
             <div className="p-2 max-h-40 overflow-y-auto">
-              {groupedItems.startNode.map((item) => (
-                <div
-                  key={item.name}
-                  className="p-1.5 cursor-pointer hover:bg-refly-fill-hover transition-colors rounded-md border-6px"
-                  onClick={() => selectItem(item)}
-                >
-                  <div className="flex items-center gap-2">
-                    <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
-                    <div className="flex flex-col flex-1 min-w-0 ">
-                      <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
-                        {item.name}
-                      </span>
-                    </div>
-                    <div className="flex">{getStartNodeIcon(item.variableType)}</div>
-                  </div>
+              {isLoadingVariables ? (
+                <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                  {t('canvas.richChatInput.loadingVariables')}
                 </div>
-              ))}
+              ) : groupedItems.startNode?.length > 0 ? (
+                groupedItems.startNode.map((item) => (
+                  <div
+                    key={item.name}
+                    className="p-1.5 cursor-pointer hover:bg-refly-fill-hover transition-colors rounded-md border-6px"
+                    onClick={() => selectItem(item)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
+                      <div className="flex flex-col flex-1 min-w-0 ">
+                        <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="flex">{getStartNodeIcon(item.variableType)}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                  {t('canvas.richChatInput.noStartNodeVariables')}
+                </div>
+              )}
             </div>
           )}
 
