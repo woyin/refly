@@ -457,7 +457,7 @@ export class MediaGeneratorService {
               supportedLanguages.length > 0 &&
               !supportedLanguages.includes(languageDetection.language);
 
-            if (shouldTranslate) {
+            if (!shouldTranslate) {
               input[param.name] = param.value;
             } else {
               const translatedPrompt = await this.promptProcessor.translateToEnglish(

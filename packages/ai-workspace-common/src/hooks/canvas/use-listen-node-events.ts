@@ -184,6 +184,9 @@ export const useListenNodeOperationEvents = () => {
       const skillResponseItems =
         contextItems?.filter((item) => item.type === 'skillResponse') ?? [];
 
+      const documentItems = contextItems?.filter((item) => item.type === 'document') ?? [];
+
+      // Process skill response items
       if (skillResponseItems.length > 0) {
         const { resultMap } = useActionResultStore.getState();
         const skillResponseContents: string[] = [];
@@ -201,6 +204,28 @@ export const useListenNodeOperationEvents = () => {
         if (skillResponseContents.length > 0) {
           // Remove the "Previous responses:" label as per requirements
           enhancedQuery = `${query}\n\n${skillResponseContents.join('\n\n')}`;
+        }
+      }
+
+      // Process document items and append their content
+      if (documentItems.length > 0) {
+        const documentContents: string[] = [];
+
+        for (const item of documentItems) {
+          try {
+            const { data, error } = await getClient().getDocumentDetail({
+              query: { docId: item.entityId },
+            });
+            if (!error && data?.data?.content) {
+              documentContents.push(data.data.content);
+            }
+          } catch (error) {
+            console.error('Error fetching document content:', error);
+          }
+        }
+
+        if (documentContents.length > 0) {
+          enhancedQuery = `${enhancedQuery}\n\n${documentContents.join('\n\n')}`;
         }
       }
 
