@@ -1086,6 +1086,7 @@ export class KnowledgeService {
             metadata: {
               status: 'finish',
             },
+            contentPreview: doc.contentPreview,
           },
         },
         [{ type: 'skillResponse', entityId: param.resultId }],

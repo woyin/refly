@@ -306,7 +306,11 @@ const ToolsDependencyContent = React.memo(
                     >
                       {/* Tool Header */}
                       <div className="py-1 px-2 flex items-center justify-between gap-3">
-                        <ToolsetIcon toolset={toolset} />
+                        <ToolsetIcon
+                          toolset={toolset}
+                          isBuiltin={toolset.id === 'builtin'}
+                          config={{ builtinClassName: '!w-6 !h-6' }}
+                        />
 
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <div className="flex items-center gap-1">

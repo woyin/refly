@@ -7,7 +7,6 @@ import {
   CreatePilotSessionRequest,
   UpdatePilotSessionRequest,
   EntityType,
-  ActionMeta,
 } from '@refly/openapi-schema';
 import {
   convertContextItemsToNodeFilters,
@@ -31,11 +30,12 @@ import { pilotSessionPO2DTO, pilotStepPO2DTO } from './pilot.dto';
 import { buildSummarySkillInput } from './prompt/summary';
 import { buildSubtaskSkillInput } from './prompt/subtask';
 import { findBestMatch } from '../../utils/similarity';
+import { ToolService } from '../tool/tool.service';
 
 export const MAX_STEPS_PER_EPOCH = 3;
 export const MAX_SUMMARY_STEPS_PER_EPOCH = 1;
 
-export const MAX_EPOCH = 3;
+export const MAX_EPOCH = 1;
 
 @Injectable()
 export class PilotService {
@@ -45,6 +45,7 @@ export class PilotService {
     private prisma: PrismaService,
     private skillService: SkillService,
     private providerService: ProviderService,
+    private toolService: ToolService,
     private canvasService: CanvasService,
     private canvasSyncService: CanvasSyncService,
     private variableExtractionService: VariableExtractionService,
@@ -59,8 +60,6 @@ export class PilotService {
    */
   async createPilotSession(user: User, request: CreatePilotSessionRequest) {
     const sessionId = genPilotSessionID();
-
-    // TODO: maybe later we can use the provider item specified in the request
     const providerItem = await this.providerService.findDefaultProviderItem(user, 'agent');
 
     if (!providerItem) {
@@ -433,7 +432,8 @@ export class PilotService {
         pilotSessionPO2DTO(pilotSession),
         steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
       );
-      const rawSteps = await engine.run(canvasContentItems, MAX_STEPS_PER_EPOCH, locale);
+      const toolsets = await this.toolService.listTools(user);
+      const rawSteps = await engine.run(canvasContentItems, toolsets, MAX_STEPS_PER_EPOCH, locale);
 
       if (rawSteps.length === 0) {
         await this.prisma.pilotSession.update({
@@ -443,8 +443,6 @@ export class PilotService {
         this.logger.log(`Pilot session ${sessionId} finished due to no steps`);
         return;
       }
-
-      const skills = this.skillService.listSkills(true);
 
       const latestSummarySteps =
         steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') ||
@@ -457,13 +455,8 @@ export class PilotService {
 
       for (const rawStep of rawSteps) {
         const stepId = genPilotStepID();
-        const skill = skills.find((skill) => skill.name === rawStep.skillName);
-        if (!skill) {
-          this.logger.warn(`Skill ${rawStep.skillName} not found, skip this step`);
-          continue;
-        }
 
-        // *** NEW: Variable extraction logic (only for updating Canvas variables, does not affect skill calls) ***
+        // *** NEW: Variable extraction logic (only for updating Canvas variables, does not affect actor agents) ***
         if (targetType === 'canvas') {
           this.variableExtractionService
             .extractVariables(
@@ -490,25 +483,11 @@ export class PilotService {
 
         const resultId = genActionResultID();
 
-        // Prepare tplConfig based on skill type
-        let tplConfig = {};
-        if (skill.name === 'webSearch') {
-          // Force enable Deep Search for webSearch skill
-          tplConfig = {
-            enableDeepReasonWebSearch: { value: true, label: 'Deep Search', displayValue: 'true' },
-          };
-        }
-
         const actionResult = await this.prisma.actionResult.create({
           data: {
             uid: user.uid,
             resultId,
             title: rawStep.name,
-            actionMeta: JSON.stringify({
-              type: 'skill',
-              name: skill.name,
-              icon: skill.icon,
-            } as ActionMeta),
             input: JSON.stringify(
               buildSubtaskSkillInput({
                 userQuestion,
@@ -526,7 +505,6 @@ export class PilotService {
             pilotStepId: stepId,
             pilotSessionId: sessionId,
             runtimeConfig: '{}',
-            tplConfig: JSON.stringify(tplConfig),
             providerItemId: chatPi.itemId,
           },
         });
@@ -558,7 +536,7 @@ export class PilotService {
                 metadata: {
                   status: 'executing',
                   contextItems,
-                  tplConfig: JSON.stringify(tplConfig),
+                  tplConfig: '{}',
                   runtimeConfig: '{}',
                   modelInfo: {
                     modelId: chatModelId,
@@ -585,8 +563,7 @@ export class PilotService {
           modelItemId: chatPi.itemId,
           context: recommendedContext.context,
           resultHistory: recommendedContext.history,
-          skillName: skill.name,
-          selectedMcpServers: [],
+          toolsets,
         });
       }
 
@@ -687,8 +664,6 @@ export class PilotService {
       }
       const chatModelId = JSON.parse(chatPi.config).modelId;
 
-      const skills = this.skillService.listSkills(true);
-
       const { steps } = await this.getPilotSessionDetail(user, sessionId);
 
       const recommendedContext = await this.buildContextAndHistory(
@@ -696,137 +671,121 @@ export class PilotService {
         steps.map(({ step }) => step.entityId),
       );
 
-      {
-        const stepId = genPilotStepID();
-        const skill = skills.find((skill) => skill.name === 'commonQnA');
-        if (!skill) {
-          this.logger.warn('Skill commonQnA not found, skip this step');
-          return;
-        }
+      const stepId = genPilotStepID();
+      const latestSubtaskSteps =
+        steps?.filter(({ step }) => step.epoch === currentEpoch && step.mode === 'subtask') || [];
 
-        const { steps } = await this.getPilotSessionDetail(user, sessionId);
-        const latestSubtaskSteps =
-          steps?.filter(({ step }) => step.epoch === currentEpoch && step.mode === 'subtask') || [];
+      const contextEntityIds = latestSubtaskSteps.map(({ step }) => step.entityId);
 
-        const contextEntityIds = latestSubtaskSteps.map(({ step }) => step.entityId);
+      const { context, history } = await this.buildContextAndHistory(
+        canvasContentItems,
+        contextEntityIds,
+      );
+      const resultId = genActionResultID();
 
-        const { context, history } = await this.buildContextAndHistory(
-          canvasContentItems,
-          contextEntityIds,
-        );
-        const resultId = genActionResultID();
+      const input = buildSummarySkillInput({
+        userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
+        currentEpoch,
+        maxEpoch,
+        subtaskTitles:
+          latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ?? [],
+        locale,
+      });
 
-        const input = buildSummarySkillInput({
-          userQuestion: JSON.parse(pilotSession.input ?? '{}')?.query ?? '',
-          currentEpoch,
-          maxEpoch,
-          subtaskTitles:
-            latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ??
-            [],
-          locale,
-        });
-
-        // *** NEW: Variable extraction for Summary input (only updates variables, does not affect skill calls) ***
-        if (targetType === 'canvas') {
-          this.variableExtractionService
-            .extractVariables(
-              user,
-              input.query, // Summary query
-              targetId, // Canvas ID
-              {
-                mode: 'direct',
-                triggerType: 'pilot',
-              },
-            )
-            .then(() => {
-              this.logger.log('Variable extraction for summary step completed');
-            })
-            .catch((error) => {
-              this.logger.warn('Variable extraction failed for summary step:', error);
-            });
-        }
-
-        const actionResult = await this.prisma.actionResult.create({
-          data: {
-            uid: user.uid,
-            resultId,
-            title: summaryTitle,
-            actionMeta: JSON.stringify({
-              type: 'skill',
-              name: skill.name,
-              icon: skill.icon,
-            } as ActionMeta),
-            input: JSON.stringify(input),
-            status: 'waiting',
-            targetId,
-            targetType,
-            context: JSON.stringify(context),
-            history: JSON.stringify(history),
-            modelName: chatModelId,
-            tier: chatPi.tier,
-            errors: '[]',
-            pilotStepId: stepId,
-            pilotSessionId: sessionId,
-            runtimeConfig: '{}',
-            tplConfig: '{}',
-            providerItemId: chatPi.itemId,
-          },
-        });
-        await this.prisma.pilotStep.create({
-          data: {
-            stepId,
-            name: summaryTitle,
-            sessionId,
-            epoch: currentEpoch,
-            entityId: actionResult.resultId,
-            entityType: 'skillResponse',
-            rawOutput: JSON.stringify({}),
-            status: 'executing',
-            mode: 'summary',
-          },
-        });
-
-        const contextItems = convertResultContextToItems(context, history);
-
-        if (targetType === 'canvas') {
-          await this.canvasSyncService.addNodeToCanvas(
+      // *** NEW: Variable extraction for Summary input (only updates variables, does not affect skill calls) ***
+      if (targetType === 'canvas') {
+        this.variableExtractionService
+          .extractVariables(
             user,
-            targetId,
+            input.query, // Summary query
+            targetId, // Canvas ID
             {
-              type: 'skillResponse',
-              data: {
-                title: summaryTitle,
-                entityId: resultId,
-                metadata: {
-                  status: 'executing',
-                  contextItems,
-                  tplConfig: '{}',
-                  runtimeConfig: '{}',
-                  modelInfo: {
-                    modelId: chatModelId,
-                  },
+              mode: 'direct',
+              triggerType: 'pilot',
+            },
+          )
+          .then(() => {
+            this.logger.log('Variable extraction for summary step completed');
+          })
+          .catch((error) => {
+            this.logger.warn('Variable extraction failed for summary step:', error);
+          });
+      }
+
+      const actionResult = await this.prisma.actionResult.create({
+        data: {
+          uid: user.uid,
+          resultId,
+          title: summaryTitle,
+          input: JSON.stringify(input),
+          status: 'waiting',
+          targetId,
+          targetType,
+          context: JSON.stringify(context),
+          history: JSON.stringify(history),
+          modelName: chatModelId,
+          tier: chatPi.tier,
+          errors: '[]',
+          pilotStepId: stepId,
+          pilotSessionId: sessionId,
+          runtimeConfig: '{}',
+          tplConfig: '{}',
+          providerItemId: chatPi.itemId,
+        },
+      });
+      await this.prisma.pilotStep.create({
+        data: {
+          stepId,
+          name: summaryTitle,
+          sessionId,
+          epoch: currentEpoch,
+          entityId: actionResult.resultId,
+          entityType: 'skillResponse',
+          rawOutput: JSON.stringify({}),
+          status: 'executing',
+          mode: 'summary',
+        },
+      });
+
+      const contextItems = convertResultContextToItems(context, history);
+
+      if (targetType === 'canvas') {
+        await this.canvasSyncService.addNodeToCanvas(
+          user,
+          targetId,
+          {
+            type: 'skillResponse',
+            data: {
+              title: summaryTitle,
+              entityId: resultId,
+              metadata: {
+                status: 'executing',
+                contextItems,
+                tplConfig: '{}',
+                runtimeConfig: '{}',
+                modelInfo: {
+                  modelId: chatModelId,
                 },
               },
             },
-            convertContextItemsToNodeFilters(contextItems),
-          );
-        }
-
-        await this.skillService.sendInvokeSkillTask(user, {
-          resultId,
-          input: input,
-          target: {
-            entityId: targetId,
-            entityType: targetType as EntityType,
           },
-          modelName: chatModelId,
-          modelItemId: chatPi.itemId,
-          context: recommendedContext.context,
-          resultHistory: recommendedContext.history,
-          skillName: skill.name,
-          selectedMcpServers: [],
-        });
+          convertContextItemsToNodeFilters(contextItems),
+        );
       }
+
+      await this.skillService.sendInvokeSkillTask(user, {
+        resultId,
+        input: input,
+        target: {
+          entityId: targetId,
+          entityType: targetType as EntityType,
+        },
+        modelName: chatModelId,
+        modelItemId: chatPi.itemId,
+        context: recommendedContext.context,
+        resultHistory: recommendedContext.history,
+        toolsets: [],
+      });
 
       // Rotate the session status to waiting
       await this.prisma.pilotSession.update({

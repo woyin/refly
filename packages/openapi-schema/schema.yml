@@ -3213,6 +3213,11 @@ paths:
           description: Whether the tool is global. If not passed, return both global and user-specific tools.
           schema:
             type: boolean
+        - name: enabled
+          in: query
+          description: Whether the tool is enabled. If not passed, return both enabled and disabled tools.
+          schema:
+            type: boolean
       responses:
         '200':
           description: successful operation
@@ -7329,13 +7334,15 @@ components:
         runtimeConfig:
           description: Skill runtime config
           $ref: '#/components/schemas/SkillRuntimeConfig'
+          deprecated: true
         tplConfig:
           description: Skill template config
           $ref: '#/components/schemas/SkillTemplateConfig'
+          deprecated: true
         skillName:
           type: string
           description: Skill name (if not provided, commonQnA will be used)
-          default: commonQnA
+          deprecated: true
         target:
           description: Skill invocation target
           $ref: '#/components/schemas/Entity'
