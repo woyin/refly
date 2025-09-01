@@ -2,18 +2,18 @@
  * This file contains example workflows that demonstrate proper tool sequencing
  * based on the requirements for the Pilot workflow system:
  *
- * 1. Research stage (early): MUST use webSearch, librarySearch, commonQnA for information gathering
- * 2. Analysis stage (middle): MUST use commonQnA for analyzing gathered information
- * 3. Synthesis stage (optional): MUST use commonQnA for organizing and planning outputs
- * 4. Creation stage (final): MUST ONLY use generateDoc and codeArtifacts in the final 1-2 steps after sufficient context gathering
+ * 1. Research stage (early): MUST use toolsets with web_search, library_search, and information gathering tools
+ * 2. Analysis stage (middle): MUST use toolsets with analytical and processing capabilities
+ * 3. Synthesis stage (optional): MUST use toolsets with organizational and planning tools
+ * 4. Creation stage (final): MUST ONLY use toolsets with generation tools (generate_doc, generate_code_artifact, generate_media) in the final 1-2 steps after sufficient context gathering
  *
  * The workflow MUST follow the correct sequence: research → analysis → synthesis → creation
- * Final output tools (generateDoc, codeArtifacts) MUST ONLY be used in the final 1-2 steps
- * Final output tools MUST almost always reference previous context items (only in extremely rare cases can they generate without context dependency)
- * All codeArtifacts for visualizations MUST produce self-contained single-page HTML files
+ * Creation toolsets MUST ONLY be used in the final 1-2 steps
+ * Creation toolsets MUST almost always reference previous context items (only in extremely rare cases can they generate without context dependency)
+ * All code artifacts for visualizations MUST produce self-contained single-page HTML files
  */
 
-import { type PilotStepRawOutput } from './index';
+import { type PilotStepRawOutput } from './schema';
 
 /**
  * Builds example user questions for various research scenarios
@@ -34,7 +34,7 @@ export function exampleUserQuestions() {
 /**
  * Example 1: Market Research Workflow for Electric Vehicles
  * Demonstrates proper sequencing of tasks from research → analysis → creation
- * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * Note: Creation toolsets (with generate_doc, generate_code_artifact tools) are ONLY used in the final 1-2 steps
  * and MUST reference previous context items
  */
 export function evMarketResearchExample(): PilotStepRawOutput[] {
@@ -42,32 +42,32 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
     // RESEARCH STAGE - Begin with information gathering
     {
       name: 'Overview of global EV market',
-      skillName: 'webSearch',
-      query: 'current state of global electric vehicle market 2023 statistics',
+      query:
+        'Use web_search to find current state of global electric vehicle market 2023 statistics and trends',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Major EV manufacturers research',
-      skillName: 'webSearch',
-      query: 'leading electric vehicle manufacturers market share comparison',
+      query:
+        'Use web_search to research leading electric vehicle manufacturers and their market share comparison',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Current EV technology trends',
-      skillName: 'webSearch',
-      query: 'latest electric vehicle technology trends battery range charging',
+      query:
+        'Use web_search to find latest electric vehicle technology trends including battery range and charging infrastructure',
       contextItemIds: ['ev-market-overview-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Consumer adoption barriers',
-      skillName: 'librarySearch',
-      query: 'barriers to electric vehicle adoption consumer concerns',
+      query:
+        'Use web_search to research barriers to electric vehicle adoption and consumer concerns',
       contextItemIds: ['ev-market-overview-node-id'],
       workflowStage: 'research',
       priority: 2,
@@ -76,9 +76,8 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
     // ANALYSIS STAGE - Process and analyze the gathered information
     {
       name: 'EV market trends analysis',
-      skillName: 'commonQnA',
       query:
-        'Analyze the current trends and future trajectory of the electric vehicle market based on the research',
+        'Analyze the current trends and future trajectory of the electric vehicle market based on the research data collected',
       contextItemIds: [
         'ev-market-overview-node-id',
         'ev-manufacturers-node-id',
@@ -89,8 +88,8 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
     },
     {
       name: 'EV adoption challenges analysis',
-      skillName: 'commonQnA',
-      query: 'Analyze the main barriers to EV adoption and potential solutions',
+      query:
+        'Analyze the main barriers to EV adoption and evaluate potential solutions based on research findings',
       contextItemIds: ['ev-market-overview-node-id', 'ev-consumer-barriers-node-id'],
       workflowStage: 'analysis',
       priority: 3,
@@ -99,9 +98,8 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
     // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'EV market comprehensive report',
-      skillName: 'generateDoc',
       query:
-        'Create a comprehensive report on the EV market, including major players, technology trends, and consumer adoption barriers',
+        'Use generate_doc to create a comprehensive report on the EV market, including major players, technology trends, and consumer adoption barriers',
       contextItemIds: [
         'ev-market-overview-node-id',
         'ev-manufacturers-node-id',
@@ -115,9 +113,8 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
     },
     {
       name: 'EV market visualization',
-      skillName: 'codeArtifacts',
       query:
-        'Create a single-page HTML visualization dashboard showing EV market share by manufacturer and projected growth. Include interactive bar charts and trend lines with tooltips in a self-contained HTML file with all JavaScript, CSS, and data embedded directly in the file.',
+        'Use generate_code_artifact to create a single-page HTML visualization dashboard showing EV market share by manufacturer and projected growth. Include interactive bar charts and trend lines with tooltips in a self-contained HTML file with all JavaScript, CSS, and data embedded directly in the file.',
       contextItemIds: [
         'ev-market-overview-node-id',
         'ev-manufacturers-node-id',
@@ -132,7 +129,7 @@ export function evMarketResearchExample(): PilotStepRawOutput[] {
 /**
  * Example 2: Web Research and Comprehensive Analysis on Climate Change Impacts
  * Shows how to structure a complex research workflow with proper tool sequencing
- * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * Note: Creation toolsets are ONLY used in the final 1-2 steps
  * and MUST reference previous context items
  */
 export function climateChangeResearchExample(): PilotStepRawOutput[] {
@@ -140,48 +137,44 @@ export function climateChangeResearchExample(): PilotStepRawOutput[] {
     // RESEARCH STAGE - Begin with information gathering from various sources
     {
       name: 'Overview of climate change',
-      skillName: 'webSearch',
-      query: 'latest data on global climate change trends and projections',
+      query: 'Use web_search to find latest data on global climate change trends and projections',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Climate impact on agriculture',
-      skillName: 'webSearch',
-      query: 'impacts of climate change on global agriculture and food security',
+      query:
+        'Use web_search to research impacts of climate change on global agriculture and food security',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Economic impacts of climate change',
-      skillName: 'webSearch',
-      query: 'economic impacts of climate change by region and industry',
+      query: 'Use web_search to find economic impacts of climate change by region and industry',
       contextItemIds: ['climate-overview-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Climate-induced migration patterns',
-      skillName: 'webSearch',
-      query: 'climate change population displacement and migration patterns',
+      query:
+        'Use web_search to research climate change population displacement and migration patterns',
       contextItemIds: ['climate-overview-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Climate policy research',
-      skillName: 'librarySearch',
-      query: 'global climate policy frameworks and mitigation strategies',
+      query: 'Use web_search to find global climate policy frameworks and mitigation strategies',
       contextItemIds: ['climate-overview-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Climate case studies collection',
-      skillName: 'librarySearch',
-      query: 'case studies of climate change impacts in vulnerable regions',
+      query: 'Use web_search to find case studies of climate change impacts in vulnerable regions',
       contextItemIds: [
         'climate-agriculture-node-id',
         'climate-economic-node-id',
@@ -194,7 +187,6 @@ export function climateChangeResearchExample(): PilotStepRawOutput[] {
     // ANALYSIS STAGE - Process and synthesize the research data
     {
       name: 'Climate research synthesis',
-      skillName: 'commonQnA',
       query: 'Synthesize key findings from all climate research into main themes and connections',
       contextItemIds: [
         'climate-overview-node-id',
@@ -209,9 +201,8 @@ export function climateChangeResearchExample(): PilotStepRawOutput[] {
     },
     {
       name: 'Future climate scenarios analysis',
-      skillName: 'commonQnA',
       query:
-        'Analyze potential future climate scenarios and their projected impacts based on current research',
+        'Analyze potential future climate scenarios and their projected impacts based on current research data',
       contextItemIds: [
         'climate-overview-node-id',
         'climate-policy-node-id',
@@ -224,18 +215,16 @@ export function climateChangeResearchExample(): PilotStepRawOutput[] {
     // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'Climate change comprehensive report',
-      skillName: 'generateDoc',
       query:
-        'Create a comprehensive report on climate change impacts on agriculture, economy, and population migration',
+        'Use generate_doc to create a comprehensive report on climate change impacts on agriculture, economy, and population migration',
       contextItemIds: ['climate-synthesis-node-id', 'climate-scenarios-node-id'],
       workflowStage: 'creation',
       priority: 4,
     },
     {
       name: 'Climate impacts visualization',
-      skillName: 'codeArtifacts',
       query:
-        'Create a single-page HTML dashboard visualization showing climate change impacts across sectors and regions. Include an interactive heatmap, line charts for trends, and a choropleth map, all in one self-contained HTML file with all data and JavaScript embedded directly in the file.',
+        'Use generate_code_artifact to create a single-page HTML dashboard visualization showing climate change impacts across sectors and regions. Include an interactive heatmap, line charts for trends, and a choropleth map, all in one self-contained HTML file with all data and JavaScript embedded directly in the file.',
       contextItemIds: ['climate-synthesis-node-id'],
       workflowStage: 'creation',
       priority: 4,
@@ -246,7 +235,7 @@ export function climateChangeResearchExample(): PilotStepRawOutput[] {
 /**
  * Example 3: Deep Research and Presentation Creation for Renewable Energy Investment
  * Demonstrates thorough research before creating investment presentation
- * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * Note: Creation toolsets are ONLY used in the final 1-2 steps
  * and MUST reference previous context items
  */
 export function renewableEnergyExample(): PilotStepRawOutput[] {
@@ -254,40 +243,39 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
     // RESEARCH STAGE - Comprehensive research on multiple sectors
     {
       name: 'Renewable energy market overview',
-      skillName: 'webSearch',
-      query: 'global renewable energy market overview investment trends 2023',
+      query:
+        'Use web_search to find global renewable energy market overview and investment trends 2023',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Solar energy investment research',
-      skillName: 'webSearch',
-      query: 'solar energy industry investment opportunities key companies',
+      query:
+        'Use web_search to research solar energy industry investment opportunities and key companies',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Wind energy investment research',
-      skillName: 'webSearch',
-      query: 'wind energy industry investment opportunities key companies',
+      query:
+        'Use web_search to research wind energy industry investment opportunities and key companies',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Hydrogen energy investment research',
-      skillName: 'webSearch',
-      query: 'hydrogen energy industry investment opportunities key companies',
+      query:
+        'Use web_search to research hydrogen energy industry investment opportunities and key companies',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Renewable technology advancements',
-      skillName: 'librarySearch',
-      query: 'latest technological advancements in renewable energy sectors',
+      query: 'Use web_search to find latest technological advancements in renewable energy sectors',
       contextItemIds: [
         'renewable-solar-node-id',
         'renewable-wind-node-id',
@@ -298,8 +286,8 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
     },
     {
       name: 'Renewable energy policies research',
-      skillName: 'webSearch',
-      query: 'global renewable energy policies subsidies incentives by region',
+      query:
+        'Use web_search to find global renewable energy policies, subsidies, and incentives by region',
       contextItemIds: ['renewable-market-node-id'],
       workflowStage: 'research',
       priority: 2,
@@ -308,9 +296,8 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
     // ANALYSIS STAGE - In-depth analysis of research findings
     {
       name: 'Renewable investment risk analysis',
-      skillName: 'commonQnA',
       query:
-        'Analyze the risks and challenges associated with different renewable energy investments',
+        'Analyze the risks and challenges associated with different renewable energy investments based on collected research',
       contextItemIds: [
         'renewable-market-node-id',
         'renewable-solar-node-id',
@@ -322,8 +309,8 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
     },
     {
       name: 'Renewable ROI comparison',
-      skillName: 'commonQnA',
-      query: 'Compare projected returns on investment for different renewable energy sectors',
+      query:
+        'Compare projected returns on investment for different renewable energy sectors based on research data',
       contextItemIds: [
         'renewable-solar-node-id',
         'renewable-wind-node-id',
@@ -335,8 +322,8 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
     },
     {
       name: 'Investment strategy recommendations',
-      skillName: 'commonQnA',
-      query: 'Formulate strategic recommendations for investing in renewable energy',
+      query:
+        'Formulate strategic recommendations for investing in renewable energy based on analysis findings',
       contextItemIds: [
         'renewable-market-node-id',
         'renewable-risk-node-id',
@@ -350,9 +337,8 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
     // SYNTHESIS STAGE - Organize information for presentation
     {
       name: 'Presentation outline creation',
-      skillName: 'commonQnA',
       query:
-        'Create a detailed outline for a professional renewable energy investment presentation',
+        'Create a detailed outline for a professional renewable energy investment presentation based on research and analysis',
       contextItemIds: [
         'renewable-market-node-id',
         'renewable-solar-node-id',
@@ -367,18 +353,16 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
     // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'Renewable investment data visualizations',
-      skillName: 'codeArtifacts',
       query:
-        'Create a single-page HTML dashboard comparing renewable energy sectors, returns, and growth projections. Include stacked bar charts, ROI comparison charts, and trend lines all integrated in one page.',
+        'Use generate_code_artifact to create a single-page HTML dashboard comparing renewable energy sectors, returns, and growth projections. Include stacked bar charts, ROI comparison charts, and trend lines all integrated in one page.',
       contextItemIds: ['renewable-market-node-id', 'renewable-roi-node-id'],
       workflowStage: 'creation',
       priority: 4,
     },
     {
       name: 'Professional investment presentation',
-      skillName: 'codeArtifacts',
       query:
-        'Create a single-page HTML presentation for potential renewable energy investors. Build a complete slideshow interface with all slides embedded, charts, and interactive elements in one self-contained HTML file. Include all JavaScript, CSS, and data directly in the file.',
+        'Use generate_code_artifact to create a single-page HTML presentation for potential renewable energy investors. Build a complete slideshow interface with all slides embedded, charts, and interactive elements in one self-contained HTML file. Include all JavaScript, CSS, and data directly in the file.',
       contextItemIds: [
         'renewable-outline-node-id',
         'renewable-strategy-node-id',
@@ -394,7 +378,7 @@ export function renewableEnergyExample(): PilotStepRawOutput[] {
 /**
  * Example 4: Interactive Data Visualization for Global City Livability
  * Shows proper sequencing from research to data processing to final interactive output
- * Note: Creation tasks (generateDoc, codeArtifacts) are ONLY used in the final 1-2 steps
+ * Note: Creation toolsets are ONLY used in the final 1-2 steps
  * and MUST reference previous context items
  */
 export function cityLivabilityExample(): PilotStepRawOutput[] {
@@ -402,64 +386,59 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
     // RESEARCH STAGE - Gather fundamental data
     {
       name: 'Major cities selection',
-      skillName: 'webSearch',
-      query: 'list of 50 major global cities by population and significance',
+      query: 'Use web_search to find list of 50 major global cities by population and significance',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Livability metrics definition',
-      skillName: 'commonQnA',
-      query: 'Define key metrics and weights for city livability assessment',
+      query: 'Use web_search to find key metrics and weights for city livability assessment',
       contextItemIds: [],
       workflowStage: 'research',
       priority: 1,
     },
     {
       name: 'Housing cost data collection',
-      skillName: 'webSearch',
-      query: 'housing costs comparison across major global cities',
+      query: 'Use web_search to find housing costs comparison across major global cities',
       contextItemIds: ['cities-list-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Environmental quality data',
-      skillName: 'webSearch',
-      query: 'environmental quality air pollution water quality rankings global cities',
+      query:
+        'Use web_search to find environmental quality, air pollution, and water quality rankings for global cities',
       contextItemIds: ['cities-list-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Transportation data collection',
-      skillName: 'webSearch',
-      query: 'public transportation quality and convenience in major global cities',
+      query:
+        'Use web_search to find public transportation quality and convenience data in major global cities',
       contextItemIds: ['cities-list-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Safety index research',
-      skillName: 'webSearch',
-      query: 'safety rankings and crime rates in major global cities',
+      query: 'Use web_search to find safety rankings and crime rates in major global cities',
       contextItemIds: ['cities-list-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Healthcare quality research',
-      skillName: 'webSearch',
-      query: 'healthcare quality and accessibility in major global cities',
+      query:
+        'Use web_search to find healthcare quality and accessibility data in major global cities',
       contextItemIds: ['cities-list-node-id'],
       workflowStage: 'research',
       priority: 2,
     },
     {
       name: 'Education quality research',
-      skillName: 'webSearch',
-      query: 'education quality rankings for major global cities',
+      query: 'Use web_search to find education quality rankings for major global cities',
       contextItemIds: ['cities-list-node-id'],
       workflowStage: 'research',
       priority: 2,
@@ -468,9 +447,8 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
     // ANALYSIS STAGE - Process and analyze the collected data
     {
       name: 'Data standardization plan',
-      skillName: 'commonQnA',
       query:
-        'Develop approach for standardizing different metrics across cities into comparable scores',
+        'Develop approach for standardizing different metrics across cities into comparable scores based on collected data',
       contextItemIds: [
         'livability-metrics-node-id',
         'housing-data-node-id',
@@ -485,18 +463,16 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
     },
     {
       name: 'Livability score calculation',
-      skillName: 'commonQnA',
       query:
-        'Define algorithm for calculating comprehensive livability scores based on weighted factors',
+        'Define algorithm for calculating comprehensive livability scores based on weighted factors from research data',
       contextItemIds: ['livability-metrics-node-id', 'standardization-node-id'],
       workflowStage: 'analysis',
       priority: 3,
     },
     {
       name: 'City data analysis',
-      skillName: 'commonQnA',
       query:
-        'Analyze patterns and insights from city data, identifying key trends and correlations',
+        'Analyze patterns and insights from city data, identifying key trends and correlations in livability factors',
       contextItemIds: [
         'housing-data-node-id',
         'environment-data-node-id',
@@ -512,8 +488,8 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
     // SYNTHESIS STAGE - Design planning before implementation
     {
       name: 'Visualization interface design',
-      skillName: 'commonQnA',
-      query: 'Design interface requirements for interactive city livability visualization',
+      query:
+        'Design interface requirements for interactive city livability visualization based on analysis results',
       contextItemIds: ['livability-score-node-id', 'city-analysis-node-id'],
       workflowStage: 'synthesis',
       priority: 4,
@@ -522,18 +498,16 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
     // CREATION STAGE - ONLY in the final 1-2 steps and MUST reference previous context items
     {
       name: 'City livability data dashboard',
-      skillName: 'codeArtifacts',
       query:
-        'Create a single-page HTML dashboard with built-in data processing for the city livability data. Include the data transformation logic directly in the HTML file with all normalization and scoring calculations.',
+        'Use generate_code_artifact to create a single-page HTML dashboard with built-in data processing for the city livability data. Include the data transformation logic directly in the HTML file with all normalization and scoring calculations.',
       contextItemIds: ['standardization-node-id', 'livability-score-node-id'],
       workflowStage: 'creation',
       priority: 4,
     },
     {
       name: 'Interactive city map visualization',
-      skillName: 'codeArtifacts',
       query:
-        'Create a single-page HTML map visualization showing cities colored by livability score. Include the complete interactive map with all necessary data embedded in the HTML file.',
+        'Use generate_code_artifact to create a single-page HTML map visualization showing cities colored by livability score. Include the complete interactive map with all necessary data embedded in the HTML file.',
       contextItemIds: [
         'cities-list-node-id',
         'livability-score-node-id',
@@ -544,18 +518,16 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
     },
     {
       name: 'City comparison tool',
-      skillName: 'codeArtifacts',
       query:
-        'Create a single-page HTML tool that allows users to compare selected cities across different metrics. Include all data and interactive elements in a self-contained HTML file.',
+        'Use generate_code_artifact to create a single-page HTML tool that allows users to compare selected cities across different metrics. Include all data and interactive elements in a self-contained HTML file.',
       contextItemIds: ['interface-design-node-id', 'data-processing-node-id'],
       workflowStage: 'creation',
       priority: 5,
     },
     {
       name: 'Complete livability web application',
-      skillName: 'codeArtifacts',
       query:
-        'Create a comprehensive single-page HTML application that integrates all city livability visualizations, comparison tools, and data. Include all functionality in one self-contained HTML file with embedded data and scripts.',
+        'Use generate_code_artifact to create a comprehensive single-page HTML application that integrates all city livability visualizations, comparison tools, and data. Include all functionality in one self-contained HTML file with embedded data and scripts.',
       contextItemIds: ['city-map-node-id', 'comparison-tool-node-id', 'interface-design-node-id'],
       workflowStage: 'creation',
       priority: 5,
@@ -566,7 +538,6 @@ export function cityLivabilityExample(): PilotStepRawOutput[] {
 /**
  * Builds formatted examples showing proper tool sequencing for LLM consumption
  * Includes examples for all workflow stages with clear labeling
- * @param stage The current workflow stage ('research', 'analysis', 'synthesis', or 'creation')
  */
 export function buildFormattedExamples(): string {
   // Get the full workflow examples
@@ -587,37 +558,44 @@ export function buildFormattedExamples(): string {
   const creationSteps = getStageSteps(cityLivabilitySteps, 'creation').slice(0, 3);
 
   return `
-## Proper Tool Sequencing Based on Epoch Progress
+## Proper Tool Selection and Sequencing Based on Epoch Progress
 
-Research projects are divided into epochs (iterations), with each epoch representing progress through the workflow:
+Task decomposition projects are divided into epochs (iterations), with each epoch representing progress through the workflow:
 
 1. **Early Epochs (0-40% Progress)**
    - Stage: RESEARCH
-   - Tools: webSearch, librarySearch, commonQnA for information gathering
+   - Tool Selection: Select toolsets with web_search, library_search, and information gathering tools
+   - Query Format: ALL queries MUST start with "Use [tool_name] to..."
    - Focus: Collecting foundational information and diverse perspectives
 
 2. **Middle Epochs (40-70% Progress)**
    - Stage: ANALYSIS
-   - Tools: primarily commonQnA for analysis
+   - Tool Selection: Select toolsets with analytical and processing capabilities
+   - Query Format: Reference analytical processing of gathered data
    - Focus: Analyzing gathered information, identifying patterns and insights
 
 3. **Late Middle Epochs (70-85% Progress)**
    - Stage: SYNTHESIS
-   - Tools: commonQnA for organization and planning
+   - Tool Selection: Select toolsets with organizational and planning tools
+   - Query Format: Focus on organization and planning activities
    - Focus: Organizing findings and planning final deliverables
 
 4. **Final Epochs (85-100% Progress)**
    - Stage: CREATION
-   - Tools: generateDoc, codeArtifacts for final outputs
+   - Tool Selection: Select toolsets with generation tools (generate_doc, generate_code_artifact, generate_media)
+   - Query Format: MUST explicitly specify "Use [tool_name] to..." with parameters
    - Focus: Creating polished deliverables based on all previous work
 
 IMPORTANT: Always follow the sequence appropriate for the current epoch. Each epoch should primarily contain steps from its corresponding stage, but can include a few steps from adjacent stages as needed for smooth transition.
 
-CRITICAL RULES FOR CREATION TOOLS:
-- generateDoc and codeArtifacts MUST ONLY be used in the final 1-2 steps of the workflow
-- These tools MUST reference previous context items in almost all cases
+CRITICAL RULES FOR TOOL USAGE IN QUERIES:
+- ALL queries MUST explicitly mention which specific tool to use
+- Research queries MUST start with "Use web_search to...", "Use library_search to...", "Use scrape tool to...", etc.
+- Creation queries MUST specify "Use generate_doc to...", "Use generate_code_artifact to...", "Use generate_media with mediaType: [type] to..."
+- Toolsets with generation tools (generate_doc, generate_code_artifact, generate_media) MUST ONLY be selected in the final 1-2 steps of the workflow
+- These toolsets MUST reference previous context items in almost all cases
 - Only in extremely rare cases can they generate without context dependency
-- Never use these tools until sufficient research and analysis has been completed
+- Never select these toolsets until sufficient research and analysis has been completed
 
 ## Research Stage Examples (Early Epochs)
 User Question: "${exampleUserQuestions().marketResearch}"
@@ -629,8 +607,10 @@ Canvas Content:
 This document provides a basic overview of the current state of the electric vehicle market, including trends and major players.
 **Context ID:** ev-market-overview-node-id
 
-Examples of good research steps for early epochs:
+Examples of good research steps with explicit tool usage in queries:
 ${JSON.stringify(researchSteps, null, 2)}
+
+Note: Every research query explicitly mentions which tool to use (web_search, library_search, scrape, etc.)
 
 ## Analysis Stage Examples (Middle Epochs)
 User Question: "${exampleUserQuestions().climateImpacts}"
@@ -648,8 +628,10 @@ This document provides an overview of global climate change science and observed
 Climate change affects agriculture through changing precipitation patterns, temperature increases, extreme weather events, and shifting growing seasons.
 **Context ID:** climate-agriculture-node-id
 
-Examples of good analysis steps for middle epochs:
+Examples of good analysis steps that process collected data:
 ${JSON.stringify(analysisSteps, null, 2)}
+
+Note: Analysis queries focus on processing and analyzing the data collected in research stages.
 
 ## Synthesis Stage Examples (Late Middle Epochs)
 User Question: "${exampleUserQuestions().renewableEnergy}"
@@ -667,8 +649,10 @@ This document provides an overview of the current state of the global renewable 
 Major solar energy companies include First Solar, SunPower, JinkoSolar, Canadian Solar, and Tesla Solar with varying market shares and specializations.
 **Context ID:** renewable-solar-node-id
 
-Examples of good synthesis steps for late middle epochs:
+Examples of good synthesis steps for organizing information:
 ${JSON.stringify(synthesisSteps, null, 2)}
+
+Note: Synthesis queries focus on organizing and planning based on analysis results.
 
 ## Creation Stage Examples (Final Epochs)
 User Question: "${exampleUserQuestions().cityLivability}"
@@ -692,18 +676,19 @@ Key livability metrics include housing affordability, environmental quality, pub
 Analysis shows correlations between public transportation quality, environmental factors, and overall livability scores. Cities with strong public infrastructure tend to score higher overall.
 **Context ID:** city-analysis-node-id
 
-Examples of good creation steps for final epochs:
-${JSON.stringify(creationSteps, null, 2)}`;
+Examples of good creation steps with explicit tool specification:
+${JSON.stringify(creationSteps, null, 2)}
+
+CRITICAL: Every creation query explicitly specifies which generation tool to use (generate_doc, generate_code_artifact, generate_media) and references previous context items.`;
 }
 
-// Alias for backward compatibility - now accepts stage parameter
+// Alias for backward compatibility
 export function buildDetailedExamples(): string {
   return buildFormattedExamples();
 }
 
 /**
- * Builds examples relevant to the current research stage
- * @param stage The current workflow stage ('research', 'analysis', 'synthesis', or 'creation')
+ * Builds examples relevant to the current research stage with intelligent tool selection
  */
 export function buildResearchStepExamples(): string {
   return buildFormattedExamples();
