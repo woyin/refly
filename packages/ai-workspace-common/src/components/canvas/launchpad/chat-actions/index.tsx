@@ -144,7 +144,13 @@ export const ChatActions = memo(
         <div className="flex flex-row items-center gap-2">
           {customActions?.map((action, index) => (
             <Tooltip title={action.title} key={index}>
-              <Button size="small" icon={action.icon} onClick={action.onClick} className="mr-0" />
+              <Button
+                type="text"
+                size="small"
+                icon={action.icon}
+                onClick={action.onClick}
+                className="h-7 w-7 flex items-center justify-center"
+              />
             </Tooltip>
           ))}
 

@@ -572,6 +572,8 @@ export const useInvokeAction = (params?: { source?: string }) => {
         selectedToolsets = [],
       } = payload;
 
+      const originalQuery = payload.structuredData?.query as string;
+
       logEvent('model::invoke_trigger', Date.now(), {
         source,
         resultId,
@@ -620,6 +622,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         resultId,
         input: {
           query,
+          originalQuery,
           images,
         },
         target,

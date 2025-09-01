@@ -13,6 +13,7 @@ import SVGX from '../../../assets/x.svg';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import type { IContextItem } from '@refly/common-types';
+import type { CanvasNodeType } from '@refly/openapi-schema';
 import {
   getStartNodeIcon,
   getVariableIcon,
@@ -81,7 +82,7 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
           name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
           description: t('canvas.richChatInput.stepRecord'),
           source: 'stepRecord' as const,
-          variableType: node.type,
+          variableType: node.type, // Use actual node type
           entityId: node.data?.entityId,
           nodeId: node.id,
         })) ?? [];
@@ -96,7 +97,7 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
           name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
           description: t('canvas.richChatInput.resultRecord'),
           source: 'resultRecord' as const,
-          variableType: node.type,
+          variableType: node.type, // Use actual node type
           entityId: node.data?.entityId,
           nodeId: node.id,
         })) ?? [];
@@ -532,7 +533,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
             description: t('canvas.richChatInput.stepRecord'),
             source: 'stepRecord' as const,
-            variableType: 'step' as const,
+            variableType: node.type, // Use actual node type
             entityId: node.data?.entityId || '',
             nodeId: node.id,
           })) ?? [];
@@ -540,12 +541,15 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       // Get non-skill nodes for result records
       const resultRecordItems: MentionItem[] =
         nodes
-          ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
+          ?.filter(
+            (node) =>
+              node.type !== 'skill' && node.type !== 'skillResponse' && node.type !== 'start',
+          )
           ?.map((node) => ({
             name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
             description: t('canvas.richChatInput.resultRecord'),
             source: 'resultRecord' as const,
-            variableType: 'result' as const,
+            variableType: node.type, // Use actual node type
             entityId: node.data?.entityId || '',
             nodeId: node.id,
           })) ?? [];
@@ -569,6 +573,14 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
     }, [variables, nodes, realtimeNodes]);
 
+    // Use ref to store latest contextItems to avoid performance issues
+    const contextItemsRef = useRef(contextItems);
+
+    // Update ref when contextItems changes
+    useEffect(() => {
+      contextItemsRef.current = contextItems;
+    }, [contextItems]);
+
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
       return CustomMention.configure({
@@ -582,26 +594,77 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             const item = props;
 
             // For step and result records, add to context instead of inserting text
-            if (item.source === 'stepRecord' || item.source === 'resultRecord') {
+            if (
+              item.source === 'stepRecord' ||
+              item.source === 'resultRecord' ||
+              item.source === 'myUpload'
+            ) {
               if (setContextItems && item.entityId) {
-                // Create context item
+                // Create context item with correct type mapping
                 const contextItem: IContextItem = {
                   entityId: item.entityId,
                   title: item.name,
-                  type: item.source === 'stepRecord' ? 'skillResponse' : 'document',
+                  type: (() => {
+                    if (item.source === 'stepRecord') {
+                      // For step records, use skillResponse type
+                      return 'skillResponse' as CanvasNodeType;
+                    } else if (item.source === 'resultRecord' || item.source === 'myUpload') {
+                      // For result records and uploads, use the actual node type
+                      // Validate that variableType is a valid CanvasNodeType
+                      const validCanvasNodeTypes: CanvasNodeType[] = [
+                        'document',
+                        'codeArtifact',
+                        'website',
+                        'resource',
+                        'skill',
+                        'tool',
+                        'skillResponse',
+                        'toolResponse',
+                        'memo',
+                        'group',
+                        'image',
+                        'video',
+                        'audio',
+                        'mediaSkill',
+                        'mediaSkillResponse',
+                        'start',
+                      ];
+
+                      if (validCanvasNodeTypes.includes(item.variableType as CanvasNodeType)) {
+                        return item.variableType as CanvasNodeType;
+                      }
+
+                      // Log warning for unknown types and fallback to document
+                      console.warn(
+                        `Unknown variableType "${item.variableType}" for source "${item.source}", falling back to "document"`,
+                        { item, validTypes: validCanvasNodeTypes },
+                      );
+                      return 'document' as CanvasNodeType;
+                    }
+                    // Fallback for unexpected sources
+                    console.warn(`Unexpected source "${item.source}", falling back to "document"`, {
+                      item,
+                    });
+                    return 'document' as CanvasNodeType;
+                  })(),
                   metadata: {
                     nodeId: item.nodeId,
                     source: item.source,
+                    variableType: item.variableType, // Include variableType in metadata for debugging
                   },
                 };
 
-                // Check if already in context
-                const isAlreadyInContext = contextItems.some(
-                  (ctxItem) => ctxItem.entityId === item.entityId,
-                );
+                // Add to context items using ref to get latest value
+                if (setContextItems) {
+                  // Check if already in context using ref
+                  const currentContextItems = contextItemsRef.current || [];
+                  const isAlreadyInContext = currentContextItems.some(
+                    (ctxItem) => ctxItem.entityId === item.entityId,
+                  );
 
-                if (!isAlreadyInContext) {
-                  setContextItems([...contextItems, contextItem]);
+                  if (!isAlreadyInContext) {
+                    setContextItems([...currentContextItems, contextItem]);
+                  }
                 }
 
                 // Insert a placeholder text to show the selection
@@ -698,7 +761,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           },
         },
       });
-    }, [allItems, contextItems, setContextItems]);
+    }, [allItems, setContextItems]);
 
     // Create Tiptap editor
     const internalUpdateRef = useRef(false);
