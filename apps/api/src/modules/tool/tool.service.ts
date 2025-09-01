@@ -48,7 +48,7 @@ export class ToolService {
       toolset: {
         toolsetId: 'builtin',
         name: 'Builtin',
-        ...BuiltinToolsetDefinition,
+        definition: BuiltinToolsetDefinition,
       },
     };
     const { isGlobal } = param;
