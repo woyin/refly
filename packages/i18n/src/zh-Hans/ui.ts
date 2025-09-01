@@ -1603,6 +1603,8 @@ const translations = {
       untitledResult: '未命名结果',
       untitledUpload: '未命名上传',
       loadingEditor: '加载编辑器中...',
+      loadingVariables: '加载变量中...',
+      noStartNodeVariables: '暂无开始节点变量',
     },
     toolsDepencency: {
       title: '工具依赖',

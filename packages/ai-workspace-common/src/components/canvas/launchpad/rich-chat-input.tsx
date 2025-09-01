@@ -12,6 +12,7 @@ import tippy from 'tippy.js';
 import SVGX from '../../../assets/x.svg';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
+import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { IContextItem } from '@refly/common-types';
 import type { CanvasNodeType } from '@refly/openapi-schema';
 import {
@@ -27,6 +28,7 @@ import {
   nodeActionEmitter,
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 // Define the type for mention items based on actual data structure
 interface MentionItem {
@@ -67,10 +69,39 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
     'uploads' | 'stepRecord' | 'resultRecord'
   >('resultRecord');
   const { nodes } = useCanvasData();
+  const { canvasId } = useCanvasContext();
+
+  // Fetch workflow variables on demand when hovering startNode
+  const {
+    data: workflowVariablesData,
+    refetch: refetchWorkflowVariables,
+    isLoading: isLoadingVariables,
+  } = useGetWorkflowVariables({ query: { canvasId } }, undefined, {
+    enabled: false, // Initially disabled, will be triggered on hover
+  });
+
+  // Trigger variable fetch when hovering startNode
+  useEffect(() => {
+    if (hoveredCategory === 'startNode' && canvasId) {
+      refetchWorkflowVariables();
+    }
+  }, [hoveredCategory, canvasId, refetchWorkflowVariables]);
 
   // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
-    const startNodeItems = items.filter((item) => item.source === 'startNode');
+    // Use fetched workflow variables for startNode items instead of prop items
+    const workflowVariables = workflowVariablesData?.data || [];
+    const startNodeItems = workflowVariables
+      .filter((variable) => variable.source === 'startNode')
+      .map((variable) => ({
+        name: variable.name,
+        description: variable.description || '',
+        source: 'startNode' as const,
+        variableType: variable.variableType || 'string',
+        entityId: variable.variableId || '',
+        nodeId: variable.variableId || '',
+      }));
+
     const resourceLibraryItems = items.filter((item) => item.source === 'resourceLibrary');
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
 
@@ -109,7 +140,7 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
       resultRecord: resultRecordItems,
       uploads: myUploadItems,
     };
-  }, [items, nodes]);
+  }, [workflowVariablesData, items, nodes, t]);
 
   const selectItem = (item: MentionItem) => {
     command(item);
@@ -232,25 +263,35 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
 
         {/* Second level menu - Variables */}
         <div className="flex-1 max-w-[400px]">
-          {hoveredCategory === 'startNode' && groupedItems.startNode?.length > 0 && (
+          {hoveredCategory === 'startNode' && (
             <div className="p-2 max-h-40 overflow-y-auto">
-              {groupedItems.startNode.map((item) => (
-                <div
-                  key={item.name}
-                  className="p-1.5 cursor-pointer hover:bg-refly-fill-hover transition-colors rounded-md border-6px"
-                  onClick={() => selectItem(item)}
-                >
-                  <div className="flex items-center gap-2">
-                    <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
-                    <div className="flex flex-col flex-1 min-w-0 ">
-                      <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
-                        {item.name}
-                      </span>
-                    </div>
-                    <div className="flex">{getStartNodeIcon(item.variableType)}</div>
-                  </div>
+              {isLoadingVariables ? (
+                <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                  {t('canvas.richChatInput.loadingVariables')}
                 </div>
-              ))}
+              ) : groupedItems.startNode?.length > 0 ? (
+                groupedItems.startNode.map((item) => (
+                  <div
+                    key={item.name}
+                    className="p-1.5 cursor-pointer hover:bg-refly-fill-hover transition-colors rounded-md border-6px"
+                    onClick={() => selectItem(item)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
+                      <div className="flex flex-col flex-1 min-w-0 ">
+                        <span className="text-sm font-medium text-gray-900 truncate max-w-[100px] dark:text-gray-100">
+                          {item.name}
+                        </span>
+                      </div>
+                      <div className="flex">{getStartNodeIcon(item.variableType)}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                  {t('canvas.richChatInput.noStartNodeVariables')}
+                </div>
+              )}
             </div>
           )}
 
@@ -852,51 +893,78 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       (content: string) => {
         const nodes: any[] = [];
         if (!content) return nodes;
-        const varRegex = /@(\w+)\s/g;
-        let lastIndex = 0;
-        let match: RegExpExecArray | null;
 
         const findVarMeta = (name: string) => {
-          // Try to find variable in provided variables prop
+          const foundFromAll = (allItems || []).find((it: any) => it?.name === name);
+          if (foundFromAll) {
+            return {
+              source: foundFromAll?.source ?? 'startNode',
+              variableType: foundFromAll?.variableType ?? 'string',
+            };
+          }
           const found = (variables || []).find((v: any) => v?.name === name);
           return {
-            source: found?.source || 'startNode',
-            variableType: found?.variableType || 'string',
+            source: found?.source ?? 'startNode',
+            variableType: found?.variableType ?? 'string',
           };
         };
 
-        for (;;) {
-          match = varRegex.exec(content);
-          if (match === null) break;
-          const start = match.index;
-          const end = varRegex.lastIndex;
-          const varName = match[1];
+        // Prepare name list sorted by length desc to prefer the longest match
+        const allNames = Array.from(
+          new Set((allItems || []).map((it: any) => it?.name).filter(Boolean)),
+        ) as string[];
+        allNames.sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0));
 
-          if (start > lastIndex) {
-            nodes.push({ type: 'text', text: content.slice(lastIndex, start) });
+        let i = 0;
+        let textBuffer = '';
+        while (i < content.length) {
+          const ch = content[i];
+          if (ch === '@') {
+            // Try to match any known name right after '@'
+            let matchedName: string | null = null;
+            for (const name of allNames) {
+              const candidate = content.slice(i + 1, i + 1 + name.length);
+              if (candidate === name) {
+                const nextChar = content[i + 1 + name.length] ?? '';
+                if (nextChar === ' ' || nextChar === '\n' || nextChar === '' || nextChar === '\t') {
+                  matchedName = name;
+                  break;
+                }
+              }
+            }
+
+            if (matchedName) {
+              if (textBuffer) {
+                nodes.push({ type: 'text', text: textBuffer });
+                textBuffer = '';
+              }
+              const meta = findVarMeta(matchedName);
+              nodes.push({
+                type: 'mention',
+                attrs: {
+                  id: matchedName,
+                  label: matchedName,
+                  source: meta.source,
+                  variableType: meta.variableType,
+                },
+              });
+              // Consume '@' + name but do NOT consume trailing whitespace to preserve original spacing
+              i = i + 1 + matchedName.length;
+              continue;
+            }
           }
-
-          const meta = findVarMeta(varName);
-          nodes.push({
-            type: 'mention',
-            attrs: {
-              id: varName,
-              label: varName,
-              source: meta.source,
-              variableType: meta.variableType,
-            },
-          });
-
-          lastIndex = end;
+          // Default: accumulate as plain text
+          textBuffer += ch;
+          i += 1;
         }
 
-        if (lastIndex < content.length) {
-          nodes.push({ type: 'text', text: content.slice(lastIndex) });
+        if (textBuffer) {
+          nodes.push({ type: 'text', text: textBuffer });
         }
 
         return nodes;
       },
-      [variables],
+      [variables, allItems],
     );
 
     // Enhanced handleSendMessage that converts mentions to Handlebars
