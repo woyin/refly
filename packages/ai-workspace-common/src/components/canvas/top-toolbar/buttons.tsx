@@ -1,15 +1,9 @@
-import { useState, useCallback, memo, useMemo } from 'react';
+import { useCallback, memo, useMemo } from 'react';
 import { Button, Tooltip, Dropdown, Divider } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { TFunction } from 'i18next';
-import {
-  IconAskAI,
-  IconSlideshow,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Download, Touchpad, Mouse, ArrowDown, SideLeft } from 'refly-icons';
-
-import { HoverCard } from '@refly-packages/ai-workspace-common/components/hover-card';
-import { useHoverCard } from '@refly-packages/ai-workspace-common/hooks/use-hover-card';
+import { IconSlideshow } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { Download, Touchpad, Mouse, ArrowDown, Resource, More } from 'refly-icons';
 import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
 import { useCanvasStoreShallow, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -33,6 +27,16 @@ interface ModeSelectorProps {
   setOpen: (open: boolean) => void;
   items: any[]; // Type this according to your items structure
   onModeChange: (mode: 'mouse' | 'touchpad') => void;
+  t: TFunction;
+}
+
+interface MoreMenuProps {
+  readonly: boolean;
+  mode: 'mouse' | 'touchpad';
+  modeItems: any[];
+  onModeChange: (mode: 'mouse' | 'touchpad') => void;
+  onSlideshowClick: () => void;
+  onExportImageClick: () => void;
   t: TFunction;
 }
 
@@ -72,6 +76,83 @@ const ModeSelector = memo(({ mode, open, setOpen, items, onModeChange, t }: Mode
 ));
 ModeSelector.displayName = 'ModeSelector';
 
+const MoreMenu = memo(
+  ({
+    mode,
+    modeItems,
+    onModeChange,
+    onSlideshowClick,
+    onExportImageClick,
+    t,
+    readonly,
+  }: MoreMenuProps) => {
+    const moreMenuItems = useMemo(
+      () => [
+        ...(readonly
+          ? []
+          : [
+              {
+                key: 'slideshow',
+                label: (
+                  <div className="flex items-center gap-2" onClick={onSlideshowClick}>
+                    <IconSlideshow size={18} />
+                    {t('canvas.toolbar.slideshow')}
+                  </div>
+                ),
+              },
+            ]),
+        {
+          key: 'exportImage',
+          label: (
+            <div className="flex items-center gap-2" onClick={onExportImageClick}>
+              <Download size={18} />
+              {t('canvas.toolbar.exportImage')}
+            </div>
+          ),
+        },
+        {
+          type: 'divider' as const,
+        },
+        {
+          key: 'mode',
+          label: (
+            <div className="flex items-center gap-2">
+              {mode === 'mouse' ? <Mouse size={18} /> : <Touchpad size={18} />}
+              {t('canvas.toolbar.tooltip.mode')}
+            </div>
+          ),
+          children: modeItems.map((item) => ({
+            key: item.key,
+            label: item.label,
+            onClick: () => onModeChange(item.key as 'mouse' | 'touchpad'),
+          })),
+        },
+      ],
+      [mode, modeItems, onSlideshowClick, onExportImageClick, onModeChange, t, readonly],
+    );
+
+    return (
+      <Dropdown
+        menu={{
+          items: moreMenuItems,
+          className:
+            'more-tools-dropdown dark:bg-gray-800 dark:[&_.ant-dropdown-menu-item-selected]:bg-gray-700',
+        }}
+        trigger={['click']}
+      >
+        <Tooltip title={t('common.more')} arrow={false}>
+          <Button
+            type="text"
+            icon={<More size={18} />}
+            className="!p-0 h-[30px] w-[30px] flex items-center justify-center"
+          />
+        </Tooltip>
+      </Dropdown>
+    );
+  },
+);
+MoreMenu.displayName = 'MoreMenu';
+
 export const ToolbarButtons = memo(
   ({
     canvasTitle,
@@ -83,28 +164,25 @@ export const ToolbarButtons = memo(
     changeMode: (mode: 'mouse' | 'touchpad') => void;
   }) => {
     const { t } = useTranslation();
-    const { exportCanvasAsImage, isLoading } = useExportCanvasAsImage();
-    const [modeOpen, setModeOpen] = useState(false);
-    const { hoverCardEnabled } = useHoverCard();
+    const { exportCanvasAsImage } = useExportCanvasAsImage();
     const { readonly, canvasId } = useCanvasContext();
-    const { sidePanelVisible, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow(
-      (state) => ({
+    const { sidePanelVisible, setSidePanelVisible, showWorkflowRun, setShowWorkflowRun } =
+      useCanvasResourcesPanelStoreShallow((state) => ({
         sidePanelVisible: state.sidePanelVisible,
         setSidePanelVisible: state.setSidePanelVisible,
-      }),
-    );
+        showWorkflowRun: state.showWorkflowRun,
+        setShowWorkflowRun: state.setShowWorkflowRun,
+      }));
 
     const handleResourcesPanelOpen = useCallback(() => {
       setSidePanelVisible(true);
-    }, [setSidePanelVisible]);
+      setShowWorkflowRun(false);
+    }, [setSidePanelVisible, setShowWorkflowRun]);
 
-    const { showSlideshow, showLinearThread, setShowSlideshow, setShowLinearThread } =
-      useCanvasStoreShallow((state) => ({
-        showSlideshow: state.showSlideshow,
-        showLinearThread: state.showLinearThread,
-        setShowSlideshow: state.setShowSlideshow,
-        setShowLinearThread: state.setShowLinearThread,
-      }));
+    const { showSlideshow, setShowSlideshow } = useCanvasStoreShallow((state) => ({
+      showSlideshow: state.showSlideshow,
+      setShowSlideshow: state.setShowSlideshow,
+    }));
 
     // Memoize static configurations for mode selector
     const modeItems = useMemo(
@@ -131,99 +209,43 @@ export const ToolbarButtons = memo(
       [t],
     );
 
-    const linearThreadButtonConfig = {
-      title: t(`canvas.toolbar.${showLinearThread ? 'hideLaunchpad' : 'showLaunchpad'}`, {
-        defaultValue: showLinearThread ? 'Hide Pilot' : 'Show Pilot',
-      }),
-      description: t('canvas.toolbar.toggleLaunchpadTitle', {
-        defaultValue: 'Toggle the visibility of Pilot Panel',
-      }),
-      placement: 'bottom' as const,
-    };
+    const handleSlideshowClick = useCallback(() => {
+      logEvent('canvas::canvas_demo_click', Date.now(), {
+        canvas_id: canvasId,
+      });
+      setShowSlideshow(!showSlideshow);
+    }, [canvasId, showSlideshow, setShowSlideshow]);
 
-    const linearThreadButton = (
-      <Button
-        type="text"
-        icon={
-          <span
-            className={`flex items-center justify-center text-sm font-semibold ${
-              showLinearThread ? 'text-green-600' : 'text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            <IconAskAI className="w-4 h-4 mr-2" />
-            {t('canvas.toolbar.askAI')}
-          </span>
-        }
-        onClick={() => setShowLinearThread(!showLinearThread)}
-        className="!w-20 h-6 flex items-center justify-center"
-      />
-    );
-
-    const exportImageButton = (
-      <Button
-        type="text"
-        loading={isLoading}
-        icon={<Download size={18} />}
-        onClick={() => {
-          logEvent('canvas::canvas_download_image', Date.now(), {
-            canvas_id: canvasId,
-          });
-          exportCanvasAsImage(canvasTitle);
-        }}
-      />
-    );
-
-    const slideshowButton = (
-      <Button
-        type="text"
-        icon={<IconSlideshow size={18} />}
-        onClick={() => {
-          logEvent('canvas::canvas_demo_click', Date.now(), {
-            canvas_id: canvasId,
-          });
-          setShowSlideshow(!showSlideshow);
-        }}
-      />
-    );
+    const handleExportImageClick = useCallback(() => {
+      logEvent('canvas::canvas_download_image', Date.now(), {
+        canvas_id: canvasId,
+      });
+      exportCanvasAsImage(canvasTitle);
+    }, [canvasId, exportCanvasAsImage, canvasTitle]);
 
     return (
       <>
-        {false && (
-          <div className="flex items-center h-9 bg-[#ffffff] rounded-lg px-2 border border-solid border-1 border-[#EAECF0] box-shadow-[0px_2px_6px_0px_rgba(0,0,0,0.1)] dark:bg-gray-900 dark:border-gray-700">
-            {hoverCardEnabled ? (
-              <HoverCard {...linearThreadButtonConfig}>{linearThreadButton}</HoverCard>
-            ) : (
-              <Tooltip title={linearThreadButtonConfig.title}>{linearThreadButton}</Tooltip>
-            )}
-          </div>
-        )}
-
         <div className="flex items-center">
-          {!readonly && <Tooltip title={t('canvas.toolbar.slideshow')}>{slideshowButton}</Tooltip>}
-
-          <Tooltip title={t('canvas.toolbar.exportImage')}>{exportImageButton}</Tooltip>
-
-          <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
-
-          <ModeSelector
+          <MoreMenu
+            readonly={readonly}
             mode={mode}
-            open={modeOpen}
-            setOpen={setModeOpen}
-            items={modeItems}
+            modeItems={modeItems}
             onModeChange={changeMode}
+            onSlideshowClick={handleSlideshowClick}
+            onExportImageClick={handleExportImageClick}
             t={t}
           />
 
           <Help />
 
-          {!sidePanelVisible && (
+          {(!sidePanelVisible || showWorkflowRun) && (
             <>
               <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
 
               <Tooltip title={t('canvas.toolbar.openResourcesPanel')} arrow={false}>
                 <Button
                   type="text"
-                  icon={<SideLeft size={18} />}
+                  icon={<Resource size={18} />}
                   onClick={handleResourcesPanelOpen}
                 />
               </Tooltip>

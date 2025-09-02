@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Button, Upload, Spin } from 'antd';
+import { Button, Upload, Spin, Tooltip } from 'antd';
 import { Attachment, Refresh, Delete } from 'refly-icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useTranslation } from 'react-i18next';
@@ -144,13 +144,15 @@ export const ResourceUpload: React.FC<ResourceUploadProps> = React.memo(
 
                 <div className="flex gap-1">
                   {onRefresh && (
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<Refresh size={16} color="var(--refly-text-1)" />}
-                      onClick={handleRefresh}
-                      disabled={uploading}
-                    />
+                    <Tooltip title={t('canvas.workflow.variables.reloadFile')}>
+                      <Button
+                        size="small"
+                        type="text"
+                        icon={<Refresh size={16} color="var(--refly-text-1)" />}
+                        onClick={handleRefresh}
+                        disabled={uploading}
+                      />
+                    </Tooltip>
                   )}
                   <Button
                     size="small"

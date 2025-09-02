@@ -1,11 +1,8 @@
-import { Tooltip, Button, Skeleton, Empty } from 'antd';
+import { Tooltip, Button, Skeleton } from 'antd';
 import { SideRight } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
-import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
+import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
-import { useReactFlow } from '@xyflow/react';
-import { CanvasNode } from '@refly/canvas-common';
 import { WorkflowRunForm } from './workflow-run-form';
 import './index.scss';
 
@@ -18,55 +15,15 @@ export const WorkflowRun = () => {
     }),
   );
 
-  const { canvasId, workflow, readonly } = useCanvasContext();
+  const { workflow } = useCanvasContext();
   const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
-  const { getNodes } = useReactFlow();
-  const startNode = getNodes().filter((node) => node.type === 'start')[0] as CanvasNode;
 
-  const { setActiveNode } = useActiveNode(canvasId);
   const handleClose = () => {
     setShowWorkflowRun(false);
     setSidePanelVisible(false);
     // if (activeNode) {
     //   setActiveNode(null);
     // }
-  };
-
-  const handleAddVariable = () => {
-    setShowWorkflowRun(false);
-    setActiveNode(startNode);
-  };
-
-  const renderEmpty = () => {
-    return (
-      <div className="p-4 flex flex-col items-center justify-center h-full">
-        <Empty
-          description={null}
-          image={EmptyImage}
-          imageStyle={{
-            width: 150,
-            height: 150,
-            marginBottom: -20,
-          }}
-        >
-          <div className="flex items-center justify-center">
-            <div className="text-[13px] text-refly-text-1 leading-5">
-              {t('canvas.workflow.variables.empty') || 'No variables defined'}
-            </div>
-            {!readonly && (
-              <Button
-                type="text"
-                size="small"
-                className="text-[13px] leading-5 font-semibold !text-refly-primary-default p-0.5 !h-5 box-border hover:bg-refly-tertiary-hover"
-                onClick={handleAddVariable}
-              >
-                {t('canvas.workflow.variables.addVariable') || 'Add'}
-              </Button>
-            )}
-          </div>
-        </Empty>
-      </div>
-    );
   };
 
   return (
@@ -87,8 +44,6 @@ export const WorkflowRun = () => {
           <div className="p-4">
             <Skeleton paragraph={{ rows: 10 }} active title={false} />
           </div>
-        ) : workflowVariables.length === 0 ? (
-          renderEmpty()
         ) : (
           <WorkflowRunForm
             workflowVariables={workflowVariables}

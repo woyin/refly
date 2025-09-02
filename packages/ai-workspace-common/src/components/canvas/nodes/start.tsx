@@ -24,6 +24,7 @@ import { genSkillID } from '@refly/utils/id';
 import { IContextItem } from '@refly/common-types';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { CanvasNode } from '@refly/openapi-schema';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
 export const VARIABLE_TYPE_ICON_MAP = {
@@ -79,9 +80,10 @@ InputParameterRow.displayName = 'InputParameterRow';
 // Define StartNodeProps type
 type StartNodeProps = NodeProps & {
   onNodeClick?: () => void;
+  data: CanvasNode;
 };
 
-export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) => {
+export const StartNode = memo(({ id, selected, onNodeClick, data }: StartNodeProps) => {
   const { t } = useTranslation();
   const [isHovered, setIsHovered] = useState(false);
   const { edges } = useCanvasData();
@@ -117,7 +119,7 @@ export const StartNode = memo(({ id, selected, onNodeClick }: StartNodeProps) =>
     }) => {
       // For start node, we can create a skill node with workflow variables as context
       const { position, connectTo } = getConnectionInfo(
-        { entityId: id, type: 'start' },
+        { entityId: data?.entityId as string, type: 'start' },
         event?.dragCreateInfo,
       );
 

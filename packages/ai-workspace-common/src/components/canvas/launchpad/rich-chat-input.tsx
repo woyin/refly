@@ -16,7 +16,10 @@ import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { IContextItem } from '@refly/common-types';
 import type { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
-import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
+import {
+  getStartNodeIcon,
+  getVariableIcon,
+} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
 import { createRoot } from 'react-dom/client';
 import { useStore } from '@xyflow/react';
@@ -455,7 +458,10 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
 
 // Helper function to render NodeIcon consistently
 const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) => {
-  if (source === 'stepRecord') {
+  if (source === 'startNode') {
+    // For startNode variables, use getStartNodeIcon to render variable type icons
+    return getVariableIcon(variableType);
+  } else if (source === 'stepRecord') {
     return React.createElement(NodeIcon, {
       type: 'skillResponse' as CanvasNodeType,
       small: true,

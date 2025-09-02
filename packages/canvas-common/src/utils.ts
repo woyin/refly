@@ -35,7 +35,19 @@ export const deduplicateEdges = (edges: CanvasEdge[]) => {
 export const prepareAddNode = (
   param: AddNodeParam,
 ): { newNode: CanvasNode; newEdges: CanvasEdge[] } => {
-  const { node = {}, connectTo, nodes, edges, viewport, autoLayout } = param;
+  const { node = {}, connectTo = [], nodes, edges, viewport, autoLayout } = param;
+
+  // If connectTo is not provided, connect the new node to the start node
+  if (!connectTo?.length) {
+    const startNode = nodes.find((n) => n.type === 'start');
+    const connectToStart: CanvasNodeFilter = {
+      type: 'start',
+      entityId: startNode?.data?.entityId as string,
+      handleType: 'source',
+    };
+
+    connectTo.push(connectToStart);
+  }
 
   // Purge context items if they exist
   if (node.data?.metadata?.contextItems) {
@@ -108,44 +120,38 @@ export const prepareAddNode = (
   // Create new edges based on connection types
   const newEdges: CanvasEdge[] = [];
 
-  if (connectTo && connectTo.length > 0) {
-    // Create edges from source nodes to new node (source -> new node)
-    if (sourceNodes && sourceNodes.length > 0) {
-      const sourceEdges = sourceNodes
-        .filter((sourceNode) => {
-          // Filter out the source nodes that already have an edge
-          return !edges?.some(
-            (edge) => edge.source === sourceNode.id && edge.target === newNode.id,
-          );
-        })
-        .map((sourceNode) => ({
-          id: `edge-${genUniqueId()}`,
-          source: sourceNode.id,
-          target: newNode.id,
-          // style: edgeStyles.default,
-          type: 'default',
-        }));
-      newEdges.push(...sourceEdges);
-    }
+  // Create edges from source nodes to new node (source -> new node)
+  if (sourceNodes && sourceNodes.length > 0) {
+    const sourceEdges = sourceNodes
+      .filter((sourceNode) => {
+        // Filter out the source nodes that already have an edge
+        return !edges?.some((edge) => edge.source === sourceNode.id && edge.target === newNode.id);
+      })
+      .map((sourceNode) => ({
+        id: `edge-${genUniqueId()}`,
+        source: sourceNode.id,
+        target: newNode.id,
+        // style: edgeStyles.default,
+        type: 'default',
+      }));
+    newEdges.push(...sourceEdges);
+  }
 
-    // Create edges from new node to target nodes (new node -> target)
-    if (targetNodes && targetNodes.length > 0) {
-      const targetEdges = targetNodes
-        .filter((targetNode) => {
-          // Filter out the target nodes that already have an edge
-          return !edges?.some(
-            (edge) => edge.source === newNode.id && edge.target === targetNode.id,
-          );
-        })
-        .map((targetNode) => ({
-          id: `edge-${genUniqueId()}`,
-          source: newNode.id,
-          target: targetNode.id,
-          // style: edgeStyles.default,
-          type: 'default',
-        }));
-      newEdges.push(...targetEdges);
-    }
+  // Create edges from new node to target nodes (new node -> target)
+  if (targetNodes && targetNodes.length > 0) {
+    const targetEdges = targetNodes
+      .filter((targetNode) => {
+        // Filter out the target nodes that already have an edge
+        return !edges?.some((edge) => edge.source === newNode.id && edge.target === targetNode.id);
+      })
+      .map((targetNode) => ({
+        id: `edge-${genUniqueId()}`,
+        source: newNode.id,
+        target: targetNode.id,
+        // style: edgeStyles.default,
+        type: 'default',
+      }));
+    newEdges.push(...targetEdges);
   }
 
   return { newNode, newEdges };

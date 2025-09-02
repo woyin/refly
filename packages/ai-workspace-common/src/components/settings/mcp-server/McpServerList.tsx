@@ -19,6 +19,7 @@ import { McpServerDTO } from '@refly/openapi-schema';
 
 import {
   useDeleteMcpServer,
+  useListTools,
   useUpdateMcpServer,
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
@@ -249,6 +250,15 @@ export const McpServerList: React.FC<McpServerListProps> = ({
     refetchOnWindowFocus: false,
   });
 
+  const { refetch: refetchEnabledTools } = useListTools({ query: { enabled: true } }, [], {
+    enabled: false,
+  });
+
+  const refetchToolsOnUpdate = useCallback(() => {
+    refetch();
+    refetchEnabledTools();
+  }, [refetch, refetchEnabledTools]);
+
   const mcpServers = useMemo(() => data?.data || [], [data]);
 
   // Load tool data from localStorage
@@ -276,7 +286,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
     onSuccess: () => {
       message.success(t('settings.mcpServer.deleteSuccess'));
       // Refresh list data
-      refetch();
+      refetchToolsOnUpdate();
     },
     onError: (error) => {
       message.error(t('settings.mcpServer.deleteError'));
@@ -289,7 +299,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
     onSuccess: () => {
       message.success(t('settings.mcpServer.updateSuccess'));
       // Refresh list data
-      refetch();
+      refetchToolsOnUpdate();
     },
     onError: (error) => {
       message.error(t('settings.mcpServer.updateError'));
@@ -331,7 +341,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
     setIsFormVisible(false);
     setEditingServer(null);
     // Refresh list data
-    refetch();
+    refetchToolsOnUpdate();
   };
 
   // Handle edit button click

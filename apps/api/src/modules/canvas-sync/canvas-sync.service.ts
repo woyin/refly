@@ -400,7 +400,9 @@ export class CanvasSyncService {
     const { nodes, edges } = await this.getCanvasData(user, { canvasId });
 
     this.logger.log(
-      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, autoLayout: ${options?.autoLayout}`,
+      `[addNodeToCanvas] add node to canvas ${canvasId}, node: ${JSON.stringify(node)}, ` +
+        `connectTo: ${JSON.stringify(connectTo)}, options: ${JSON.stringify(options)}, ` +
+        `existing nodes: ${nodes.length}, existing edges: ${edges.length}`,
     );
     const { newNode, newEdges } = prepareAddNode({
       node,

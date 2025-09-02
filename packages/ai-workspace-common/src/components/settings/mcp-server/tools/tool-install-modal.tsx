@@ -11,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { Close } from 'refly-icons';
-import { useListToolsets } from '@refly-packages/ai-workspace-common/queries';
+import { useListTools, useListToolsets } from '@refly-packages/ai-workspace-common/queries';
 import './index.scss';
 
 const { TextArea } = Input;
@@ -218,8 +218,11 @@ export const ToolInstallModal = React.memo(
     const { data, refetch: refetchToolsets } = useListToolsets({}, [], {
       enabled: true,
     });
+
+    const { refetch: refetchEnabledTools } = useListTools({ query: { enabled: true } }, [], {
+      enabled: false,
+    });
     const toolInstances = data?.data || [];
-    console.log('toolInstances', toolInstances);
 
     const currentLocale = i18n.language || 'en';
 
@@ -268,6 +271,7 @@ export const ToolInstallModal = React.memo(
 
     useEffect(() => {
       if (visible && sourceData) {
+        form?.resetFields();
         const initialValues: Record<string, unknown> = {
           name: defaultName,
           enabled: mode === 'update' ? (toolInstance?.enabled ?? true) : true,
@@ -294,12 +298,9 @@ export const ToolInstallModal = React.memo(
           );
         }
 
-        console.log('initialValues', initialValues);
-
         form.setFieldsValue(initialValues);
-      }
-      if (!visible && form) {
-        form.resetFields();
+      } else {
+        form?.resetFields();
       }
     }, [visible, sourceData, mode, toolInstance, defaultName, form, authPatterns]);
 
@@ -393,11 +394,15 @@ export const ToolInstallModal = React.memo(
       );
     }, [configItems, currentLocale, form, handleConfigValueChange, mode]);
 
+    const refetchToolsOnUpdate = useCallback(() => {
+      refetchToolsets();
+      refetchEnabledTools();
+    }, [refetchToolsets, refetchEnabledTools]);
+
     // Handle form submission
     const handleSubmit = useCallback(async () => {
       try {
         const values = await form.validateFields();
-        console.log(values);
         setLoading(true);
 
         const requestData: UpsertToolsetRequest = {
@@ -440,8 +445,7 @@ export const ToolInstallModal = React.memo(
           return;
         }
 
-        message.success(t(`settings.toolStore.install.${mode}Success`));
-        refetchToolsets();
+        refetchToolsOnUpdate();
         onSuccess?.();
         onCancel();
       } catch (error) {
@@ -449,7 +453,17 @@ export const ToolInstallModal = React.memo(
       } finally {
         setLoading(false);
       }
-    }, [form, mode, sourceData, selectedAuthType, toolInstance, onSuccess, onCancel]);
+    }, [
+      form,
+      mode,
+      sourceData,
+      selectedAuthType,
+      toolInstance,
+      onSuccess,
+      onCancel,
+      refetchToolsOnUpdate,
+      refetchEnabledTools,
+    ]);
 
     return (
       <Modal
