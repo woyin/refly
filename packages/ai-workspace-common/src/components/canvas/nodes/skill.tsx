@@ -57,6 +57,7 @@ type SkillNode = Node<CanvasNodeData<SkillNodeMeta>, 'skill'>;
 export const SkillNode = memo(
   ({ data, selected, id }: NodeProps<SkillNode>) => {
     const [isHovered, setIsHovered] = useState(false);
+    const [isMediaGenerating, setIsMediaGenerating] = useState(false);
     const { edges, nodes } = useCanvasData();
     const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
@@ -298,6 +299,13 @@ export const SkillNode = memo(
       const isMediaGeneration = modelInfo?.category === 'mediaGeneration';
 
       if (isMediaGeneration) {
+        // Prevent multiple clicks during media generation
+        if (isMediaGenerating) {
+          return;
+        }
+
+        setIsMediaGenerating(true);
+
         // Handle media generation using existing media generation flow
         // Parse capabilities from modelInfo
         const capabilities = modelInfo?.capabilities as ModelCapabilities;
@@ -463,14 +471,33 @@ export const SkillNode = memo(
       };
       const handleNodeDelete = () => handleDelete();
 
+      // Handle media generation completion events
+      const handleMediaGenerationComplete = ({
+        nodeId: completedNodeId,
+        success,
+        error,
+      }: { nodeId: string; success: boolean; error?: string }) => {
+        // Reset loading state if this is the node we're waiting for
+        if (completedNodeId === id) {
+          setIsMediaGenerating(false);
+
+          // Show error message if generation failed
+          if (!success && error) {
+            console.error('Media generation failed:', error);
+          }
+        }
+      };
+
       nodeActionEmitter.on(createNodeEventName(id, 'run'), handleNodeRun);
       nodeActionEmitter.on(createNodeEventName(id, 'extractVariables'), handleExtractVariables);
       nodeActionEmitter.on(createNodeEventName(id, 'delete'), handleNodeDelete);
+      nodeOperationsEmitter.on('mediaGenerationComplete', handleMediaGenerationComplete);
 
       return () => {
         nodeActionEmitter.off(createNodeEventName(id, 'run'), handleNodeRun);
         nodeActionEmitter.off(createNodeEventName(id, 'extractVariables'), handleExtractVariables);
         nodeActionEmitter.off(createNodeEventName(id, 'delete'), handleNodeDelete);
+        nodeOperationsEmitter.off('mediaGenerationComplete', handleMediaGenerationComplete);
         cleanupNodeEvents(id);
       };
     }, [
@@ -589,6 +616,7 @@ export const SkillNode = memo(
             enableRichInput={true}
             selectedToolsets={selectedToolsets}
             onSelectedToolsetsChange={setSelectedToolsets}
+            loading={isMediaGenerating}
           />
         </div>
       </div>

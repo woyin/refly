@@ -231,6 +231,7 @@ export interface ChatPanelProps {
   enableRichInput?: boolean;
   selectedToolsets?: GenericToolset[];
   onSelectedToolsetsChange?: (toolsets: GenericToolset[]) => void;
+  loading?: boolean; // Add loading state for media generation
 }
 
 export const ChatPanel = memo(
@@ -254,6 +255,7 @@ export const ChatPanel = memo(
     className = '',
     mode = 'node',
     resultId,
+    loading = false,
     projectId,
     handleProjectChange,
     workflowVariables = [],
@@ -465,6 +467,7 @@ export const ChatPanel = memo(
           setRuntimeConfig={setRuntimeConfig}
           selectedToolsets={selectedToolsets}
           setSelectedToolsets={onSelectedToolsetsChange}
+          isExecuting={loading}
         />
       </>
     );
