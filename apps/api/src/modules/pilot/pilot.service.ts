@@ -12,7 +12,6 @@ import {
   convertContextItemsToNodeFilters,
   convertResultContextToItems,
 } from '@refly/canvas-common';
-import { PilotEngine } from './pilot-engine';
 import { PilotSession } from '../../generated/client';
 import { SkillService } from '../skill/skill.service';
 import { genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/utils';
@@ -26,13 +25,13 @@ import { Queue } from 'bullmq';
 import { QUEUE_RUN_PILOT } from '../../utils/const';
 import { RunPilotJobData } from './pilot.processor';
 import { ProviderItemNotFoundError } from '@refly/errors';
-import { pilotSessionPO2DTO, pilotStepPO2DTO } from './pilot.dto';
+
 import { buildSummarySkillInput } from './prompt/summary';
 import { buildSubtaskSkillInput } from './prompt/subtask';
 import { findBestMatch } from '../../utils/similarity';
 import { ToolService } from '../tool/tool.service';
-import { IntentAnalysisService } from './intent-analysis.service';
-import { ProgressPlan, PilotSessionWithProgress } from './pilot.types';
+import { PilotEngineService } from './pilot-engine.service';
+import { PilotSessionWithProgress, PilotStepWithMode, ActionResultWithOutput } from './pilot.types';
 
 export const MAX_STEPS_PER_EPOCH = 3;
 export const MAX_SUMMARY_STEPS_PER_EPOCH = 1;
@@ -51,7 +50,7 @@ export class PilotService {
     private canvasService: CanvasService,
     private canvasSyncService: CanvasSyncService,
     private variableExtractionService: VariableExtractionService,
-    private intentAnalysisService: IntentAnalysisService,
+    private pilotEngineService: PilotEngineService,
     @InjectQueue(QUEUE_RUN_PILOT) private runPilotQueue: Queue<RunPilotJobData>,
   ) {}
 
@@ -209,6 +208,66 @@ export class PilotService {
     }));
 
     return { session, steps: stepsWithResults };
+  }
+
+  /**
+   * Convert PilotSession to PilotSessionWithProgress
+   */
+  private convertToPilotSessionWithProgress(
+    session: PilotSession,
+    progress?: string | null,
+  ): PilotSessionWithProgress {
+    return {
+      pk: BigInt(0), // Default value, will be overridden by actual data
+      sessionId: session.sessionId || '',
+      uid: session.uid || '',
+      currentEpoch: session.currentEpoch || 0,
+      maxEpoch: session.maxEpoch || MAX_EPOCH,
+      title: session.title || '',
+      input: session.input || '',
+      progress: progress || undefined,
+      modelName: session.modelName || '',
+      targetType: session.targetType || '',
+      targetId: session.targetId || '',
+      providerItemId: session.providerItemId || '',
+      status: session.status || 'waiting',
+      createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
+      updatedAt: session.updatedAt ? new Date(session.updatedAt) : new Date(),
+    };
+  }
+
+  /**
+   * Convert PilotStep to PilotStepWithMode
+   */
+  private convertToPilotStepWithMode(step: any, mode?: string): PilotStepWithMode {
+    return {
+      stepId: step.stepId || '',
+      name: step.name || '',
+      epoch: step.epoch || 0,
+      entityId: step.entityId,
+      entityType: step.entityType,
+      status: step.status || 'waiting',
+      rawOutput: step.rawOutput,
+      mode: mode || 'subtask',
+      createdAt: step.createdAt ? new Date(step.createdAt) : new Date(),
+      updatedAt: step.updatedAt ? new Date(step.updatedAt) : new Date(),
+    };
+  }
+
+  /**
+   * Convert ActionResult to ActionResultWithOutput
+   */
+  private convertToActionResultWithOutput(result: any): ActionResultWithOutput {
+    return {
+      resultId: result.resultId || '',
+      title: result.title || '',
+      input: result.input || '',
+      output: result.output,
+      errors: result.errors,
+      status: result.status || 'waiting',
+      createdAt: result.createdAt ? new Date(result.createdAt) : new Date(),
+      updatedAt: result.updatedAt ? new Date(result.updatedAt) : new Date(),
+    };
   }
 
   private async buildContextAndHistory(
@@ -372,62 +431,6 @@ export class PilotService {
 
       const { targetId, targetType, currentEpoch, maxEpoch } = pilotSession;
 
-      // Check if progress plan exists, if not, generate it
-      let progressPlan: ProgressPlan | null = null;
-      const sessionWithProgress = pilotSession as PilotSessionWithProgress;
-      if (sessionWithProgress.progress) {
-        try {
-          progressPlan = JSON.parse(sessionWithProgress.progress) as ProgressPlan;
-        } catch (error) {
-          this.logger.warn(`Failed to parse progress plan for session ${sessionId}:`, error);
-        }
-      }
-
-      // If no progress plan exists, generate it through intent analysis
-      if (!progressPlan) {
-        this.logger.log(`Generating progress plan for session ${sessionId}`);
-
-        const sessionInputObj = JSON.parse(pilotSession.input ?? '{}');
-        const userQuestion = sessionInputObj?.query ?? '';
-        const canvasContentItems: CanvasContentItem[] =
-          await this.canvasService.getCanvasContentItems(user, targetId, true);
-        const toolsets = await this.toolService.listTools(user, { enabled: true });
-
-        const agentPi = await this.providerService.findProviderItemById(
-          user,
-          pilotSession.providerItemId,
-        );
-        if (!agentPi || agentPi.category !== 'llm' || !agentPi.enabled) {
-          throw new ProviderItemNotFoundError(
-            `provider item ${pilotSession.providerItemId} not valid for agent`,
-          );
-        }
-        const agentModel = await this.providerService.prepareChatModel(user, agentPi.itemId);
-
-        // Get user's output locale preference
-        const userPo = await this.prisma.user.findUnique({
-          select: { outputLocale: true },
-          where: { uid: user.uid },
-        });
-        const locale = userPo?.outputLocale;
-
-        progressPlan = await this.intentAnalysisService.analyzeIntentAndPlan(
-          agentModel,
-          userQuestion,
-          toolsets,
-          canvasContentItems,
-          locale,
-        );
-
-        // Store the progress plan
-        await this.prisma.pilotSession.update({
-          where: { sessionId },
-          data: { progress: JSON.stringify(progressPlan) },
-        });
-
-        this.logger.log(`Progress plan generated and stored for session ${sessionId}`);
-      }
-
       // Find all steps in the same epoch
       const epochSteps = await this.prisma.pilotStep.findMany({
         where: {
@@ -440,25 +443,25 @@ export class PilotService {
       const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
 
       if (mode === 'subtask') {
-        if (epochSubtaskSteps.length !== 0) {
+        if (epochSubtaskSteps.length !== 0 || epochSummarySteps.length !== 0) {
           return;
         }
       } else {
-        if (epochSummarySteps.length !== 0) {
+        if (epochSummarySteps.length !== 0 || epochSubtaskSteps.length === 0) {
           return;
         }
 
         return this.runPilotSummary(user, sessionId, session, mode);
       }
 
+      this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
+
+      // Get common resources needed for execution
       const sessionInputObj = JSON.parse(pilotSession.input ?? '{}');
       const userQuestion = sessionInputObj?.query ?? '';
       const canvasContentItems: CanvasContentItem[] =
         await this.canvasService.getCanvasContentItems(user, targetId, true);
-
-      const { steps } = await this.getPilotSessionDetail(user, sessionId);
-
-      this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
+      const toolsets = await this.toolService.listTools(user, { enabled: true });
 
       // Get user's output locale preference
       const userPo = await this.prisma.user.findUnique({
@@ -486,14 +489,15 @@ export class PilotService {
       }
       const chatModelId = JSON.parse(chatPi.config).modelId;
 
-      const engine = new PilotEngine(
+      // Use PilotEngineService to handle all planning and execution logic
+      const rawSteps = await this.pilotEngineService.runPilot(
         agentModel,
-        pilotSessionPO2DTO(pilotSession),
-        steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
-        progressPlan,
+        sessionId,
+        userQuestion,
+        toolsets,
+        canvasContentItems,
+        locale,
       );
-      const toolsets = await this.toolService.listTools(user, { enabled: true });
-      const rawSteps = await engine.run(canvasContentItems, toolsets, MAX_STEPS_PER_EPOCH, locale);
 
       if (rawSteps.length === 0) {
         await this.prisma.pilotSession.update({
@@ -504,6 +508,8 @@ export class PilotService {
         return;
       }
 
+      // Get session details for context building
+      const { steps } = await this.getPilotSessionDetail(user, sessionId);
       const latestSummarySteps =
         steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') ||
         [];

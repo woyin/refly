@@ -2,6 +2,9 @@
  * Progress plan types for dynamic stage planning and execution tracking
  */
 
+import { GenericToolset } from '@refly/openapi-schema';
+import { CanvasContentItem } from '../canvas/canvas.dto';
+
 export interface ProgressSubtask {
   id: string;
   name: string;
@@ -25,6 +28,7 @@ export interface ProgressStage {
   subtasks: ProgressSubtask[];
   toolCategories: string[]; // Recommended tool categories for this stage
   priority: number; // Stage priority (1 = highest)
+  stageProgress?: number; // Stage progress percentage (0-100)
 }
 
 export interface ProgressPlan {
@@ -35,6 +39,16 @@ export interface ProgressPlan {
   planningLogic: string; // Description of how stages were planned
   userIntent: string; // Analyzed user intent
   estimatedTotalEpochs: number; // Estimated epochs needed based on plan
+}
+
+export interface ProgressPlanWithSubtasks extends ProgressPlan {
+  currentStageSubtasks: ProgressSubtask[];
+  planningContext: {
+    isInitialPlan: boolean;
+    previousExecutionSummary?: string;
+    userIntent: string;
+    currentStageIndex: number;
+  };
 }
 
 export interface IntentAnalysisResult {
@@ -78,4 +92,30 @@ export interface PilotSessionWithProgress {
   status: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Extended PilotStep type with mode field
+export interface PilotStepWithMode {
+  stepId: string;
+  name: string;
+  epoch: number;
+  entityId?: string;
+  entityType?: string;
+  status: string;
+  rawOutput?: string;
+  mode?: string; // 'subtask' | 'summary'
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Extended ActionResult type with output field
+export interface ActionResultWithOutput {
+  resultId: string;
+  title: string;
+  input: string;
+  output?: string;
+  errors?: string;
+  status: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
