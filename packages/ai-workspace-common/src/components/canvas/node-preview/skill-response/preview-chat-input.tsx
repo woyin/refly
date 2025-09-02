@@ -31,7 +31,7 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
     if (!query) return null;
 
     // Return the original query text without variable parsing
-    return query;
+    return String(query);
   }, [query]);
 
   if (!enabled) {
