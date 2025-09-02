@@ -14,6 +14,20 @@ import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canva
 import { useReactFlow } from '@xyflow/react';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 
+const isToolsetInstalled = (
+  toolset: GenericToolset,
+  installedToolsets: GenericToolset[],
+): boolean => {
+  return installedToolsets.some((t) => {
+    if (toolset.type === 'regular') {
+      return t.toolset?.definition?.key === toolset.toolset?.definition?.key;
+    } else if (toolset.type === 'mcp') {
+      return t.name === toolset.name;
+    }
+    return false;
+  });
+};
+
 interface ReferencedNode {
   id: string;
   entityId: string;
@@ -293,7 +307,7 @@ const ToolsDependencyContent = React.memo(
                 <EmptyContent searchTerm={searchTerm} />
               ) : (
                 currentTools.map(({ toolset, referencedNodes }) => {
-                  const isInstalled = installedToolsets.some((t) => t.id === toolset.id);
+                  const isInstalled = isToolsetInstalled(toolset, installedToolsets);
                   const description =
                     toolset?.type === 'mcp'
                       ? toolset.mcpServer.url
@@ -436,13 +450,13 @@ export const ToolsDependency = () => {
   }, [toolsetsWithNodes, searchTerm]);
 
   const categorizedTools = useMemo(() => {
-    const installedToolIds = new Set(installedToolsets.map((tool) => tool.id));
-
     const installed: ToolWithNodes[] = [];
     const uninstalled: ToolWithNodes[] = [];
 
     for (const toolWithNodes of filteredToolsets) {
-      if (installedToolIds.has(toolWithNodes.toolset.id)) {
+      const isInstalled = isToolsetInstalled(toolWithNodes.toolset, installedToolsets);
+
+      if (isInstalled) {
         installed.push(toolWithNodes);
       } else {
         uninstalled.push(toolWithNodes);
@@ -461,9 +475,9 @@ export const ToolsDependency = () => {
   const uninstalledCount = useMemo(() => {
     if (!isLogin) return 0;
     if (!toolsetsWithNodes.length) return 0;
-    return toolsetsWithNodes.filter(
-      (tool) => !installedToolsets.some((t) => t.id === tool.toolset.id),
-    ).length;
+    return toolsetsWithNodes.filter((tool) => {
+      return !isToolsetInstalled(tool.toolset, installedToolsets);
+    }).length;
   }, [isLogin, installedToolsets, toolsetsWithNodes]);
 
   const options = useMemo(() => {
