@@ -81,6 +81,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowDetail,
   getWorkflowVariables,
   importCanvas,
   initializeWorkflow,
@@ -298,6 +299,8 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetWorkflowDetailData,
+  GetWorkflowDetailError,
   GetWorkflowVariablesData,
   GetWorkflowVariablesError,
   ImportCanvasData,
@@ -957,6 +960,21 @@ export const useGetPilotSessionDetail = <
       getPilotSessionDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useGetWorkflowDetail = <
+  TData = Common.GetWorkflowDetailDefaultResponse,
+  TError = GetWorkflowDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowDetail({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetSettings = <
