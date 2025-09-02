@@ -220,14 +220,12 @@ export const ResourceTypeForm: React.FC<ResourceTypeFormProps> = React.memo(
                       />
                     </Tooltip>
 
-                    <Tooltip title={t('common.delete')}>
-                      <Button
-                        size="small"
-                        type="text"
-                        icon={<Delete size={16} color="var(--refly-text-1)" />}
-                        onClick={() => handleRemove(file)}
-                      />
-                    </Tooltip>
+                    <Button
+                      size="small"
+                      type="text"
+                      icon={<Delete size={16} color="var(--refly-text-1)" />}
+                      onClick={() => handleRemove(file)}
+                    />
                   </div>
                 </div>
               </Spin>

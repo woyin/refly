@@ -1310,6 +1310,8 @@ const translations = {
         fileSizeLimit: '{{type}}（小于{{size}}M）',
         unsupportedFileType: '不支持的文件类型：{{type}}',
         reloadFile: '替换文件',
+        duplicateFileName: '相同文件名已存在，请替换文件',
+        tooManyFiles: '最多可上传{{max}}个文件',
       },
       run: {
         title: '运行调试',

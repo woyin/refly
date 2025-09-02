@@ -192,11 +192,22 @@ export const WorkflowRunForm = ({
   const handleRefreshFile = useCallback(
     (variableName: string) => {
       const currentFileList = variableValues[variableName] || [];
-      refreshFile(currentFileList, (newFileList: UploadFile[]) => {
-        handleValueChange(variableName, newFileList);
-      });
+      // Find the variable to get its resourceTypes
+      const variable = workflowVariables.find((v) => v.name === variableName);
+      const resourceTypes = variable?.resourceTypes;
+
+      refreshFile(
+        currentFileList,
+        (newFileList: UploadFile[]) => {
+          handleValueChange(variableName, newFileList);
+          form.setFieldsValue({
+            [variableName]: newFileList,
+          });
+        },
+        resourceTypes,
+      );
     },
-    [refreshFile, variableValues, handleValueChange],
+    [refreshFile, variableValues, handleValueChange, form, workflowVariables],
   );
 
   // Update form values when workflowVariables change

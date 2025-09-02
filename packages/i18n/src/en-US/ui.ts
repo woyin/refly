@@ -1332,6 +1332,8 @@ const translations = {
         fileSizeLimit: '{{type}}(less than {{size}}M)',
         unsupportedFileType: 'Unsupported file type: {{type}}',
         reloadFile: 'Reload File',
+        duplicateFileName: 'File with the same name already exists, please replace the file',
+        tooManyFiles: 'Maximum {{max}} file allowed',
       },
       run: {
         title: 'Run Workflow',
