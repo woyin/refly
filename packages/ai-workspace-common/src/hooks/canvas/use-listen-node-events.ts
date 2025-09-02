@@ -274,13 +274,13 @@ export const useListenNodeOperationEvents = () => {
 
             if (urlParameters.length === 1) {
               // Single url parameter - use original logic
-              if (storageKeys?.length === 1) {
+              if (storageKeys?.length === 1 && !Array.isArray(param.value)) {
                 // Single URL as string
                 return {
                   ...param,
                   value: storageKeys[0],
                 };
-              } else if (storageKeys?.length > 1) {
+              } else {
                 // Multiple URLs as array
                 return {
                   ...param,

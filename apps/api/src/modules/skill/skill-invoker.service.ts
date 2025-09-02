@@ -759,15 +759,21 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
               }),
             ]
           : []),
-        ...(result.workflowNodeExecutionId
-          ? [
-              this.prisma.workflowNodeExecution.updateMany({
-                where: { nodeExecutionId: result.workflowNodeExecutionId },
-                data: { status, endTime: new Date() },
-              }),
-            ]
-          : []),
       ]);
+
+      if (result.workflowNodeExecutionId) {
+        try {
+          await this.prisma.workflowNodeExecution.updateMany({
+            where: { nodeExecutionId: result.workflowNodeExecutionId },
+            data: { status, endTime: new Date() },
+          });
+        } catch (error) {
+          this.logger.error(
+            `Failed to update workflow node execution ${result.workflowNodeExecutionId}:`,
+            error,
+          );
+        }
+      }
 
       writeSSEResponse(res, { event: 'end', resultId, version });
 
