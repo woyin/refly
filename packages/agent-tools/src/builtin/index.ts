@@ -209,7 +209,11 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _: any,
+    config: RunnableConfig,
+  ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.generateMedia(user, {
@@ -220,6 +224,7 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
         targetType: input.targetType,
         targetId: input.targetId,
         wait: true,
+        parentResultId: config.configurable?.resultId,
       });
 
       return {

@@ -5730,6 +5730,10 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Media generation result ID',
     },
+    parentResultId: {
+      type: 'string',
+      description: 'Parent result ID for the media generation (usually the actor agent result ID)',
+    },
     apiKey: {
       type: 'string',
       description: 'API key for the provider',

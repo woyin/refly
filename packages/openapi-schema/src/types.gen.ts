@@ -4043,6 +4043,10 @@ export type MediaGenerateRequest = {
    */
   resultId?: string;
   /**
+   * Parent result ID for the media generation (usually the actor agent result ID)
+   */
+  parentResultId?: string;
+  /**
    * API key for the provider
    */
   apiKey?: string;
