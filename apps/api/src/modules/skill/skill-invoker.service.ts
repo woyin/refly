@@ -166,8 +166,8 @@ export class SkillInvokerService {
 
     const config: SkillRunnableConfig = {
       configurable: {
-        ...context,
         user,
+        context,
         modelConfigMap,
         provider,
         locale: displayLocale,

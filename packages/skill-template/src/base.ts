@@ -180,7 +180,7 @@ export abstract class BaseSkill {
     };
 
     // Preprocess query and context
-    config.configurable.preprocessResult ??= await preprocess(input.query, config, this);
+    config.configurable.preprocessResult ??= await preprocess(input.query, config);
 
     const response = await this.toRunnable().invoke(input, {
       ...config,
@@ -209,7 +209,7 @@ export abstract class BaseSkill {
     };
 
     // Preprocess query and context
-    config.configurable.preprocessResult ??= await preprocess(input.query, config, this);
+    config.configurable.preprocessResult ??= await preprocess(input.query, config);
 
     const runnable = this.toRunnable();
 
@@ -274,8 +274,9 @@ export interface SkillRunnableMeta extends Record<string, unknown>, SkillMeta {
 }
 
 export interface SkillRunnableConfig extends RunnableConfig {
-  configurable?: SkillContext & {
+  configurable?: {
     user: User;
+    context: SkillContext;
     resultId?: string;
     canvasId?: string;
     locale?: string;
