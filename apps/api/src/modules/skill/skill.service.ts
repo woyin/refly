@@ -330,9 +330,6 @@ export class SkillService implements OnModuleInit {
           configSchema: tplConfigMap.get(instance.tplName)?.configSchema
             ? JSON.stringify(tplConfigMap.get(instance.tplName)?.configSchema)
             : undefined,
-          invocationConfig: tplConfigMap.get(instance.tplName)?.invocationConfig
-            ? JSON.stringify(tplConfigMap.get(instance.tplName)?.invocationConfig)
-            : undefined,
         },
       })),
     });

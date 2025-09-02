@@ -2,7 +2,7 @@ import { START, END, StateGraphArgs, StateGraph } from '@langchain/langgraph';
 import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
-import { Icon, SkillInvocationConfig, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 import { GraphState } from '../scheduler/types';
 import { safeStringifyJSON } from '@refly/utils';
 
@@ -72,8 +72,6 @@ export class CustomPrompt extends BaseSkill {
       },
     ],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = 'Use a custom system prompt to control assistant behavior';
 

@@ -5,7 +5,7 @@ import { GraphState } from '../scheduler/types';
 import { z } from 'zod';
 import { extractStructuredData } from '../scheduler/utils/extractor';
 import { truncateSource } from '../scheduler/utils/truncator';
-import { Icon, SkillInvocationConfig, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 
 // Schema for recommended questions with reasoning
 const recommendQuestionsSchema = z.object({
@@ -41,8 +41,6 @@ export class RecommendQuestions extends BaseSkill {
       },
     ],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   schema = z.object({
     query: z.string().describe('The query to recommend questions'),

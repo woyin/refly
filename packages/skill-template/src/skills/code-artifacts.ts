@@ -2,12 +2,7 @@ import { START, END, StateGraphArgs, StateGraph } from '@langchain/langgraph';
 import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
-import {
-  Icon,
-  SkillInvocationConfig,
-  SkillTemplateConfigDefinition,
-  Artifact,
-} from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition, Artifact } from '@refly/openapi-schema';
 import { GraphState } from '../scheduler/types';
 
 // Import prompt sections
@@ -85,8 +80,6 @@ export class CodeArtifacts extends BaseSkill {
       },
     ],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description =
     'Generate artifacts for the given query, including code snippets, html, svg, markdown, and more';

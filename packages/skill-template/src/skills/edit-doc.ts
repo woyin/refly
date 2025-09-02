@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, SkillRunnableConfig, baseStateGraphArgs } from '../base';
 import { CanvasEditConfig } from '@refly/utils';
-import { Icon, SkillInvocationConfig, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 // types
 import { GraphState } from '../scheduler/types';
 // utils
@@ -35,8 +35,6 @@ export class EditDoc extends BaseSkill {
   configSchema: SkillTemplateConfigDefinition = {
     items: [],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = 'Edit the document';
 

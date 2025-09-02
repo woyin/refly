@@ -10,7 +10,6 @@ import {
   SkillContext,
   SkillInput,
   SkillTemplateConfigDefinition,
-  SkillInvocationConfig,
   SkillMeta,
   User,
   SkillEvent,
@@ -48,10 +47,6 @@ export abstract class BaseSkill {
    * Skill template config schema
    */
   abstract configSchema: SkillTemplateConfigDefinition;
-  /**
-   * Skill invocation config
-   */
-  abstract invocationConfig: SkillInvocationConfig;
   /**
    * Langgraph state definition
    */
