@@ -270,8 +270,8 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
     );
 
     const handleRefreshFile = useCallback(() => {
-      refreshFile(fileList, handleFileListChange);
-    }, [fileList, handleFileListChange, refreshFile]);
+      refreshFile(fileList, handleFileListChange, resourceFormData.resourceTypes);
+    }, [fileList, handleFileListChange, refreshFile, resourceFormData.resourceTypes]);
 
     const resetState = useCallback(() => {
       resetFormData();
@@ -314,7 +314,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                 <Button
                   type="link"
                   size="small"
-                  className="p-0 h-auto text-refly-primary-default hover:text-refly-primary-hover"
+                  className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
                   onClick={() => {
                     // Call the callback to view/edit the created variable
                     if (onViewCreatedVariable) {

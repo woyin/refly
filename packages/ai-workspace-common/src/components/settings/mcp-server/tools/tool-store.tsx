@@ -1,16 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { useListToolsetInventory } from '@refly-packages/ai-workspace-common/queries';
-import { Col, Empty, Row, Button, Typography, Skeleton, Input } from 'antd';
-import { ToolsetDefinition, ToolsetInstance } from '@refly-packages/ai-workspace-common/requests';
-import { Search, Checked } from 'refly-icons';
+import { Col, Empty, Row, Button, Typography, Skeleton, Input, message } from 'antd';
+import { ToolsetDefinition } from '@refly-packages/ai-workspace-common/requests';
+import { Search } from 'refly-icons';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ToolInstallModal } from './tool-install-modal';
 import { Favicon } from '@refly-packages/ai-workspace-common/components/common/favicon';
 
 interface ToolStoreProps {
   visible: boolean;
-  toolInstances: ToolsetInstance[];
-  onInstallSuccess?: () => void;
+  setToolStoreVisible: (visible: boolean) => void;
 }
 
 const ToolItemSkeleton = () => {
@@ -40,13 +39,11 @@ const ToolItemSkeleton = () => {
 
 const ToolItem = ({
   tool,
-  toolInstances,
-}: { tool: ToolsetDefinition; toolInstances: ToolsetInstance[] }) => {
+  setToolStoreVisible,
+}: { tool: ToolsetDefinition; setToolStoreVisible: (visible: boolean) => void }) => {
   const { i18n, t } = useTranslation();
   const currentLanguage = i18n.language as 'en' | 'zh';
   const [openInstallModal, setOpenInstallModal] = useState(false);
-
-  const isInstalled = toolInstances.some((instance) => instance.key === tool.key);
 
   const name = (tool.labelDict[currentLanguage] as string) ?? (tool.labelDict.en as string);
   const description =
@@ -56,6 +53,28 @@ const ToolItem = ({
 
   const handleInstall = () => {
     setOpenInstallModal(true);
+  };
+
+  const handleInstallSuccess = () => {
+    const closeMessage = message.success(
+      <div className="flex items-center gap-2">
+        <span>
+          {t('settings.toolStore.install.installSuccess') || 'Tool installed successfully'}
+        </span>
+        <Button
+          type="link"
+          size="small"
+          className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
+          onClick={() => {
+            closeMessage();
+            setToolStoreVisible(false);
+          }}
+        >
+          {t('common.view') || 'View'}
+        </Button>
+      </div>,
+      5,
+    );
   };
 
   return (
@@ -90,24 +109,12 @@ const ToolItem = ({
       {/* Action section */}
       <div className="flex items-center justify-between gap-3">
         <Button
-          disabled={isInstalled}
           onClick={handleInstall}
           size="middle"
           type="text"
-          className={`h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default ${
-            isInstalled
-              ? '!bg-[#f6ffed] hover:!bg-[#f6ffed] !border-[#52c41a] !text-[#52c41a]'
-              : 'hover:!bg-refly-tertiary-hover'
-          }`}
+          className="h-8 flex-1 cursor-pointer font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg bg-refly-tertiary-default hover:!bg-refly-tertiary-hover"
         >
-          {isInstalled ? (
-            <div className="flex items-center gap-2">
-              <Checked size={16} />
-              {t('settings.toolStore.install.installed')}
-            </div>
-          ) : (
-            t('settings.toolStore.install.install')
-          )}
+          {t('settings.toolStore.install.install')}
         </Button>
       </div>
 
@@ -116,12 +123,13 @@ const ToolItem = ({
         toolDefinition={tool}
         visible={openInstallModal}
         onCancel={() => setOpenInstallModal(false)}
+        onSuccess={handleInstallSuccess}
       />
     </div>
   );
 };
 
-export const ToolStore = ({ visible, toolInstances }: ToolStoreProps) => {
+export const ToolStore = ({ visible, setToolStoreVisible }: ToolStoreProps) => {
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState('');
   const [debouncedSearchText, setDebouncedSearchText] = useState('');
@@ -212,7 +220,7 @@ export const ToolStore = ({ visible, toolInstances }: ToolStoreProps) => {
           <Row gutter={[16, 12]}>
             {filteredTools.map((tool, index) => (
               <Col key={index} xs={24} sm={12} md={6} lg={6} xl={6}>
-                <ToolItem tool={tool} toolInstances={toolInstances} />
+                <ToolItem tool={tool} setToolStoreVisible={setToolStoreVisible} />
               </Col>
             ))}
           </Row>

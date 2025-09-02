@@ -146,6 +146,7 @@ const translations = {
     yes: 'Yes',
     no: 'No',
     sharing: 'Sharing...',
+    view: 'View',
   },
   mode: {
     ask: 'Ask',
@@ -1332,10 +1333,13 @@ const translations = {
         fileSizeLimit: '{{type}}(less than {{size}}M)',
         unsupportedFileType: 'Unsupported file type: {{type}}',
         reloadFile: 'Reload File',
+        duplicateFileName: 'File with the same name already exists, please replace the file',
+        tooManyFiles: 'Maximum {{max}} file allowed',
       },
       run: {
         title: 'Run Workflow',
         run: 'Run',
+        empty: 'No variables defined, the workflow will be executed once if continued.',
       },
     },
     connectionTimeout: {

@@ -192,11 +192,22 @@ export const WorkflowRunForm = ({
   const handleRefreshFile = useCallback(
     (variableName: string) => {
       const currentFileList = variableValues[variableName] || [];
-      refreshFile(currentFileList, (newFileList: UploadFile[]) => {
-        handleValueChange(variableName, newFileList);
-      });
+      // Find the variable to get its resourceTypes
+      const variable = workflowVariables.find((v) => v.name === variableName);
+      const resourceTypes = variable?.resourceTypes;
+
+      refreshFile(
+        currentFileList,
+        (newFileList: UploadFile[]) => {
+          handleValueChange(variableName, newFileList);
+          form.setFieldsValue({
+            [variableName]: newFileList,
+          });
+        },
+        resourceTypes,
+      );
     },
-    [refreshFile, variableValues, handleValueChange],
+    [refreshFile, variableValues, handleValueChange, form, workflowVariables],
   );
 
   // Update form values when workflowVariables change
@@ -392,9 +403,18 @@ export const WorkflowRunForm = ({
   return (
     <div className="w-full h-full flex flex-col gap-2">
       <div className="p-4 flex-1 overflow-y-auto">
-        <Form form={form} layout="vertical" className="space-y-4" initialValues={variableValues}>
-          {workflowVariables.map((variable) => renderFormField(variable))}
-        </Form>
+        {workflowVariables.length > 0 ? (
+          <Form form={form} layout="vertical" className="space-y-4" initialValues={variableValues}>
+            {workflowVariables.map((variable) => renderFormField(variable))}
+          </Form>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full px-3 py-6 gap-0.5 flex items-center justify-center bg-refly-bg-control-z0 rounded-lg text-xs text-refly-text-1 leading-4">
+              {t('canvas.workflow.run.empty') ||
+                'No variables defined, the workflow will be executed once if continued.'}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-3 border-solid border-[1px] border-x-0 border-b-0 border-refly-Card-Border rounded-b-lg">
