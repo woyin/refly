@@ -221,6 +221,8 @@ model PilotSession {
   title          String   @map("title")
   /// Input (JSON)
   input          String   @map("input")
+  /// Progress plan (JSON) - dynamic stage planning and execution status
+  progress       String?  @map("progress") @db.Text
   /// Used model
   modelName      String?  @map("model_name")
   /// Action target type

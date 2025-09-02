@@ -31,11 +31,13 @@ import { buildSummarySkillInput } from './prompt/summary';
 import { buildSubtaskSkillInput } from './prompt/subtask';
 import { findBestMatch } from '../../utils/similarity';
 import { ToolService } from '../tool/tool.service';
+import { IntentAnalysisService } from './intent-analysis.service';
+import { ProgressPlan, PilotSessionWithProgress } from './pilot.types';
 
 export const MAX_STEPS_PER_EPOCH = 3;
 export const MAX_SUMMARY_STEPS_PER_EPOCH = 1;
 
-export const MAX_EPOCH = 1;
+export const MAX_EPOCH = 10;
 
 @Injectable()
 export class PilotService {
@@ -49,6 +51,7 @@ export class PilotService {
     private canvasService: CanvasService,
     private canvasSyncService: CanvasSyncService,
     private variableExtractionService: VariableExtractionService,
+    private intentAnalysisService: IntentAnalysisService,
     @InjectQueue(QUEUE_RUN_PILOT) private runPilotQueue: Queue<RunPilotJobData>,
   ) {}
 
@@ -369,6 +372,62 @@ export class PilotService {
 
       const { targetId, targetType, currentEpoch, maxEpoch } = pilotSession;
 
+      // Check if progress plan exists, if not, generate it
+      let progressPlan: ProgressPlan | null = null;
+      const sessionWithProgress = pilotSession as PilotSessionWithProgress;
+      if (sessionWithProgress.progress) {
+        try {
+          progressPlan = JSON.parse(sessionWithProgress.progress) as ProgressPlan;
+        } catch (error) {
+          this.logger.warn(`Failed to parse progress plan for session ${sessionId}:`, error);
+        }
+      }
+
+      // If no progress plan exists, generate it through intent analysis
+      if (!progressPlan) {
+        this.logger.log(`Generating progress plan for session ${sessionId}`);
+
+        const sessionInputObj = JSON.parse(pilotSession.input ?? '{}');
+        const userQuestion = sessionInputObj?.query ?? '';
+        const canvasContentItems: CanvasContentItem[] =
+          await this.canvasService.getCanvasContentItems(user, targetId, true);
+        const toolsets = await this.toolService.listTools(user, { enabled: true });
+
+        const agentPi = await this.providerService.findProviderItemById(
+          user,
+          pilotSession.providerItemId,
+        );
+        if (!agentPi || agentPi.category !== 'llm' || !agentPi.enabled) {
+          throw new ProviderItemNotFoundError(
+            `provider item ${pilotSession.providerItemId} not valid for agent`,
+          );
+        }
+        const agentModel = await this.providerService.prepareChatModel(user, agentPi.itemId);
+
+        // Get user's output locale preference
+        const userPo = await this.prisma.user.findUnique({
+          select: { outputLocale: true },
+          where: { uid: user.uid },
+        });
+        const locale = userPo?.outputLocale;
+
+        progressPlan = await this.intentAnalysisService.analyzeIntentAndPlan(
+          agentModel,
+          userQuestion,
+          toolsets,
+          canvasContentItems,
+          locale,
+        );
+
+        // Store the progress plan
+        await this.prisma.pilotSession.update({
+          where: { sessionId },
+          data: { progress: JSON.stringify(progressPlan) },
+        });
+
+        this.logger.log(`Progress plan generated and stored for session ${sessionId}`);
+      }
+
       // Find all steps in the same epoch
       const epochSteps = await this.prisma.pilotStep.findMany({
         where: {
@@ -431,8 +490,9 @@ export class PilotService {
         agentModel,
         pilotSessionPO2DTO(pilotSession),
         steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
+        progressPlan,
       );
-      const toolsets = await this.toolService.listTools(user);
+      const toolsets = await this.toolService.listTools(user, { enabled: true });
       const rawSteps = await engine.run(canvasContentItems, toolsets, MAX_STEPS_PER_EPOCH, locale);
 
       if (rawSteps.length === 0) {
@@ -453,6 +513,7 @@ export class PilotService {
         contextEntityIds,
       );
 
+      // Process all steps in parallel instead of sequentially
       for (const rawStep of rawSteps) {
         const stepId = genPilotStepID();
 
