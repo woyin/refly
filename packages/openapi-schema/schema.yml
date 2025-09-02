@@ -9373,7 +9373,7 @@ components:
       enum:
         - init
         - executing
-        - finished
+        - finish
         - failed
     WorkflowExecution:
       type: object

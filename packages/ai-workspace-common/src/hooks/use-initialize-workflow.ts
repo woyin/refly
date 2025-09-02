@@ -1,28 +1,73 @@
 import { useCallback, useState } from 'react';
-import { message } from 'antd';
+import { message, notification } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { genCanvasID } from '@refly/utils';
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
+import { useWorkflowExecutionPolling } from './use-workflow-execution-polling';
+import { useCanvasStoreShallow } from '@refly/stores';
 
-export const useInitializeWorkflow = () => {
+export const useInitializeWorkflow = (canvasId?: string) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [newModeLoading, setNewModeLoading] = useState(false);
   const { getCanvasList } = useHandleSiderData();
 
+  const { executionId, setCanvasExecutionId } = useCanvasStoreShallow((state) => ({
+    executionId: canvasId ? state.canvasExecutionId[canvasId] || null : null,
+    setCanvasExecutionId: state.setCanvasExecutionId,
+  }));
+
+  console.log('executionId', executionId);
+
+  // Use the polling hook for workflow execution monitoring
+  const {
+    status: workflowStatus,
+    data: workflowDetail,
+    error: pollingError,
+    isPolling: isCurrentlyPolling,
+    startPolling,
+    stopPolling,
+  } = useWorkflowExecutionPolling({
+    executionId,
+    canvasId: canvasId || '',
+    enabled: !!executionId || !!canvasId,
+    interval: 5000,
+
+    onComplete: (status, _data) => {
+      if (status === 'finish') {
+        notification.success({
+          message:
+            t('canvas.workflow.run.completed') || 'Workflow execution completed successfully',
+        });
+      } else if (status === 'failed') {
+        notification.error({
+          message: t('canvas.workflow.run.failed') || 'Workflow execution failed',
+        });
+      }
+    },
+    onError: (_error) => {
+      notification.error({
+        message: t('canvas.workflow.run.error') || 'Error monitoring workflow execution',
+      });
+    },
+  });
+
   const initializeWorkflow = useCallback(
     async (canvasId: string) => {
       try {
         setLoading(true);
-        const { error } = await getClient().initializeWorkflow({ body: { canvasId } });
+        const { data, error } = await getClient().initializeWorkflow({ body: { canvasId } });
 
         if (error) {
           console.error('Failed to initialize workflow:', error);
           message.error(t('common.operationFailed') || 'Operation failed');
           return false;
+        }
+        if (data?.data?.workflowExecutionId && canvasId) {
+          setCanvasExecutionId(canvasId, data.data.workflowExecutionId);
         }
 
         message.success(t('common.putSuccess') || 'Workflow initialized successfully');
@@ -84,5 +129,13 @@ export const useInitializeWorkflow = () => {
     initializeWorkflowInNewCanvas,
     loading,
     newModeLoading,
+    // Workflow execution polling state
+    executionId,
+    workflowStatus,
+    workflowDetail,
+    isPolling: isCurrentlyPolling,
+    pollingError,
+    startPolling,
+    stopPolling,
   };
 };

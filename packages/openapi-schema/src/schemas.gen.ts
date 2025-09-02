@@ -8318,7 +8318,7 @@ export const WorkflowNodeExecutionSchema = {
 
 export const WorkflowExecutionStatusSchema = {
   type: 'string',
-  enum: ['init', 'executing', 'finished', 'failed'],
+  enum: ['init', 'executing', 'finish', 'failed'],
 } as const;
 
 export const WorkflowExecutionSchema = {

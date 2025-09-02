@@ -47,6 +47,7 @@ export interface CanvasState {
   canvasTitle: Record<string, string>;
   canvasInitialized: Record<string, boolean>;
   canvasInitializedAt: Record<string, number | undefined>;
+  canvasExecutionId: Record<string, string>;
 
   setInitialFitViewCompleted: (completed: boolean) => void;
   deleteCanvasData: (canvasId: string) => void;
@@ -77,6 +78,7 @@ export interface CanvasState {
   setContextMenuOpenedCanvasId: (canvasId: string | null) => void;
   setCanvasTitle: (canvasId: string, title: string) => void;
   setCanvasInitialized: (canvasId: string, initialized: boolean) => void;
+  setCanvasExecutionId: (canvasId: string, executionId: string | null) => void;
 }
 
 const defaultCanvasConfig = (): CanvasConfig => ({
@@ -105,6 +107,7 @@ const defaultCanvasState = () => ({
   canvasTitle: {},
   canvasInitialized: {},
   canvasInitializedAt: {},
+  canvasExecutionId: {},
 });
 
 // Create our custom storage with appropriate configuration
@@ -452,6 +455,20 @@ export const useCanvasStore = create<CanvasState>()(
             [canvasId]: initialized ? Date.now() : undefined,
           },
         })),
+
+      setCanvasExecutionId: (canvasId, executionId) =>
+        set((state) => {
+          const newCanvasExecutionId = { ...state.canvasExecutionId };
+          if (executionId === null) {
+            delete newCanvasExecutionId[canvasId];
+          } else {
+            newCanvasExecutionId[canvasId] = executionId;
+          }
+          return {
+            ...state,
+            canvasExecutionId: newCanvasExecutionId,
+          };
+        }),
     }),
     {
       name: 'canvas-storage',
@@ -468,6 +485,7 @@ export const useCanvasStore = create<CanvasState>()(
         showSlideshow: state.showSlideshow,
         canvasPage: state.canvasPage,
         canvasTitle: state.canvasTitle,
+        canvasExecutionId: state.canvasExecutionId,
       }),
     },
   ),
