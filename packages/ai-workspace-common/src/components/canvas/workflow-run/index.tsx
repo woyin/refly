@@ -5,8 +5,25 @@ import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { WorkflowRunForm } from './workflow-run-form';
 import './index.scss';
+import { FC } from 'react';
 
-export const WorkflowRun = () => {
+interface WorkflowRunProps {
+  initializeWorkflow: (canvasId: string) => void;
+  loading: boolean;
+  executionId?: string | null;
+  workflowStatus?: any;
+  isPolling?: boolean;
+  pollingError?: any;
+}
+
+export const WorkflowRun: FC<WorkflowRunProps> = ({
+  initializeWorkflow,
+  loading,
+  executionId,
+  workflowStatus,
+  isPolling,
+  pollingError,
+}) => {
   const { t } = useTranslation();
   const { setShowWorkflowRun, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow(
     (state) => ({
@@ -48,6 +65,12 @@ export const WorkflowRun = () => {
           <WorkflowRunForm
             workflowVariables={workflowVariables}
             refetchWorkflowVariables={refetchWorkflowVariables}
+            initializeWorkflow={initializeWorkflow}
+            loading={loading}
+            executionId={executionId}
+            workflowStatus={workflowStatus}
+            isPolling={isPolling}
+            pollingError={pollingError}
           />
         )}
       </div>

@@ -1339,7 +1339,17 @@ const translations = {
       run: {
         title: 'Run Workflow',
         run: 'Run',
+        executing: 'Running...',
         empty: 'No variables defined, the workflow will be executed once if continued.',
+        completed: 'Workflow execution completed successfully',
+        failed: 'Workflow execution failed',
+        error: 'Error monitoring workflow execution',
+        nodeStatus: {
+          waiting: 'Waiting',
+          executing: 'Running',
+          finish: 'Completed',
+          failed: 'Failed',
+        },
       },
     },
     connectionTimeout: {

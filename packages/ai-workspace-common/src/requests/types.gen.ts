@@ -5788,6 +5788,86 @@ export type InitializeWorkflowResponse = BaseResponse & {
   };
 };
 
+export type WorkflowNodeExecution = {
+  /**
+   * Node execution ID
+   */
+  nodeExecutionId?: string;
+  /**
+   * Node ID
+   */
+  nodeId: string;
+  /**
+   * Node type
+   */
+  nodeType?: string;
+  /**
+   * Node entity ID
+   */
+  entityId?: string;
+  /**
+   * New node entity ID
+   */
+  newEntityId?: string;
+  /**
+   * Node title
+   */
+  title?: string;
+  /**
+   * Node status
+   */
+  status?: ActionStatus;
+  /**
+   * Node progress
+   */
+  progress?: number;
+  /**
+   * Node creation timestamp
+   */
+  createdAt?: string;
+  /**
+   * Node update timestamp
+   */
+  updatedAt?: string;
+};
+
+export type WorkflowExecutionStatus = 'init' | 'executing' | 'finish' | 'failed';
+
+export type WorkflowExecution = {
+  /**
+   * Workflow execution ID
+   */
+  executionId: string;
+  /**
+   * Canvas ID
+   */
+  canvasId?: string;
+  /**
+   * Workflow title
+   */
+  title?: string;
+  /**
+   * Workflow status
+   */
+  status?: WorkflowExecutionStatus;
+  /**
+   * Node executions
+   */
+  nodeExecutions?: Array<WorkflowNodeExecution>;
+  /**
+   * Workflow creation timestamp
+   */
+  createdAt?: string;
+  /**
+   * Workflow update timestamp
+   */
+  updatedAt?: string;
+};
+
+export type GetWorkflowDetailResponse = BaseResponse & {
+  data?: WorkflowExecution;
+};
+
 export type VariableType = 'text' | 'resource';
 
 export type ResourceValue = {
@@ -7286,6 +7366,19 @@ export type InitializeWorkflowData = {
 export type InitializeWorkflowResponse2 = InitializeWorkflowResponse;
 
 export type InitializeWorkflowError = unknown;
+
+export type GetWorkflowDetailData = {
+  query: {
+    /**
+     * Workflow execution ID
+     */
+    executionId: string;
+  };
+};
+
+export type GetWorkflowDetailResponse2 = GetWorkflowDetailResponse;
+
+export type GetWorkflowDetailError = unknown;
 
 export type GetSettingsResponse = GetUserSettingsResponse;
 

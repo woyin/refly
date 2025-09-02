@@ -2663,6 +2663,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InitializeWorkflowResponse'
+  /workflow/detail:
+    get:
+      tags:
+        - workflow
+      summary: Get workflow detail
+      description: Get detail for a workflow execution
+      operationId: getWorkflowDetail
+      parameters:
+        - name: executionId
+          in: query
+          description: Workflow execution ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWorkflowDetailResponse'
   /user/settings:
     get:
       tags:
@@ -9310,6 +9331,88 @@ components:
                   type: string
                   description: Workflow execution ID
                   example: "we-abc123"
+    WorkflowNodeExecution:
+      type: object
+      required:
+        - nodeId
+      properties:
+        nodeExecutionId:
+          type: string
+          description: Node execution ID
+        nodeId:
+          type: string
+          description: Node ID
+        nodeType:
+          type: string
+          description: Node type
+        entityId:
+          type: string
+          description: Node entity ID
+        newEntityId:
+          type: string
+          description: New node entity ID
+        title:
+          type: string
+          description: Node title
+        status:
+          description: Node status
+          $ref: '#/components/schemas/ActionStatus'
+        progress:
+          type: number
+          description: Node progress
+        createdAt:
+          type: string
+          format: date-time
+          description: Node creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Node update timestamp
+    WorkflowExecutionStatus:
+      type: string
+      enum:
+        - init
+        - executing
+        - finish
+        - failed
+    WorkflowExecution:
+      type: object
+      required:
+        - executionId
+      properties:
+        executionId:
+          type: string
+          description: Workflow execution ID
+        canvasId:
+          type: string
+          description: Canvas ID
+        title:
+          type: string
+          description: Workflow title
+        status:
+          $ref: '#/components/schemas/WorkflowExecutionStatus'
+          description: Workflow status
+        nodeExecutions:
+          type: array
+          description: Node executions
+          items:
+            $ref: '#/components/schemas/WorkflowNodeExecution'
+        createdAt:
+          type: string
+          format: date-time
+          description: Workflow creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Workflow update timestamp
+    GetWorkflowDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              $ref: '#/components/schemas/WorkflowExecution'
     VariableType:
       type: string
       enum:
