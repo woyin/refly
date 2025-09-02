@@ -661,6 +661,10 @@ export class SkillService implements OnModuleInit {
           data: { status: 'executing' },
         });
         data.result = actionResultPO2DTO(result);
+        if (param.workflowExecutionId && param.workflowNodeExecutionId) {
+          data.result.workflowExecutionId = param.workflowExecutionId;
+          data.result.workflowNodeExecutionId = param.workflowNodeExecutionId;
+        }
       } else {
         const [result] = await this.prisma.$transaction([
           this.prisma.actionResult.create({
