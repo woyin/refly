@@ -113,7 +113,6 @@ export const useWorkflowExecutionPolling = ({
 
     // If finished or failed, stop polling and clear executionId and nodeExecutions from store
     if (currentStatus === 'finish' || currentStatus === 'failed') {
-      console.log('stopPolling', currentStatus);
       stopPolling();
       if (canvasId) {
         setCanvasExecutionId(canvasId, null);

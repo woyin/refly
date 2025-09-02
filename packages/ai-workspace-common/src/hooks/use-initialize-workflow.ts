@@ -20,8 +20,6 @@ export const useInitializeWorkflow = (canvasId?: string) => {
     setCanvasExecutionId: state.setCanvasExecutionId,
   }));
 
-  console.log('executionId', executionId);
-
   // Use the polling hook for workflow execution monitoring
   const {
     status: workflowStatus,

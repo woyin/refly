@@ -5831,7 +5831,7 @@ export type WorkflowNodeExecution = {
   updatedAt?: string;
 };
 
-export type WorkflowExecutionStatus = 'init' | 'executing' | 'finished' | 'failed';
+export type WorkflowExecutionStatus = 'init' | 'executing' | 'finish' | 'failed';
 
 export type WorkflowExecution = {
   /**

@@ -1,16 +1,17 @@
 import { memo } from 'react';
 import cn from 'classnames';
 import { BorderBeam } from '../../../magicui/border-beam';
+import { ActionStatus } from '@refly/openapi-schema';
 
 interface NodeExecutionOverlayProps {
-  status: 'waiting' | 'executing' | 'finish' | 'failed' | null;
+  status: ActionStatus;
   className?: string;
 }
 
 /**
  * Component to display execution overlay for nodes with different states
  */
-export const NodeExecutionOverlay = memo(({ status }: NodeExecutionOverlayProps) => {
+export const NodeExecutionOverlay = memo(({ status, className }: NodeExecutionOverlayProps) => {
   if (!status) {
     return null;
   }
@@ -35,7 +36,7 @@ export const NodeExecutionOverlay = memo(({ status }: NodeExecutionOverlayProps)
   }
 
   return (
-    <div className={cn('absolute inset-0 rounded-2xl z-10', config)}>
+    <div className={cn('absolute inset-0 rounded-2xl z-10', config, className)}>
       {status === 'executing' && (
         <BorderBeam
           size={50}
