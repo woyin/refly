@@ -38,10 +38,13 @@ export const useWorkflowExecutionPolling = ({
   const isPollingRef = useRef(false);
 
   // Read executionId from canvas store (persisted) and provide a way to clear it when done
-  const { storeExecutionId, setCanvasExecutionId } = useCanvasStoreShallow((state) => ({
-    storeExecutionId: state.canvasExecutionId[canvasId] ?? null,
-    setCanvasExecutionId: state.setCanvasExecutionId,
-  }));
+  const { storeExecutionId, setCanvasExecutionId, setCanvasNodeExecutions } = useCanvasStoreShallow(
+    (state) => ({
+      storeExecutionId: state.canvasExecutionId[canvasId] ?? null,
+      setCanvasExecutionId: state.setCanvasExecutionId,
+      setCanvasNodeExecutions: state.setCanvasNodeExecutions,
+    }),
+  );
 
   // Prefer store executionId; fallback to provided one
   const currentExecutionId = (storeExecutionId ?? executionId) || null;
@@ -88,6 +91,14 @@ export const useWorkflowExecutionPolling = ({
 
   // Extract status from the response data
   const currentStatus = data?.data?.status as WorkflowExecutionStatus | undefined;
+  const nodeExecutions = data?.data?.nodeExecutions || [];
+
+  // Update nodeExecutions in canvas store when data changes
+  useEffect(() => {
+    if (nodeExecutions?.length > 0 && canvasId) {
+      setCanvasNodeExecutions(canvasId, nodeExecutions);
+    }
+  }, [nodeExecutions, canvasId, setCanvasNodeExecutions]);
 
   // Update status when data changes
   useEffect(() => {
@@ -100,12 +111,13 @@ export const useWorkflowExecutionPolling = ({
       onStatusChange?.(currentStatus);
     }
 
-    // If finished or failed, stop polling and clear executionId from store
+    // If finished or failed, stop polling and clear executionId and nodeExecutions from store
     if (currentStatus === 'finish' || currentStatus === 'failed') {
       console.log('stopPolling', currentStatus);
       stopPolling();
       if (canvasId) {
         setCanvasExecutionId(canvasId, null);
+        setCanvasNodeExecutions(canvasId, null);
       }
       onComplete?.(currentStatus, data);
     }
@@ -117,6 +129,7 @@ export const useWorkflowExecutionPolling = ({
     data,
     canvasId,
     setCanvasExecutionId,
+    setCanvasNodeExecutions,
     stopPolling,
   ]);
 

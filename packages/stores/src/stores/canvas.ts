@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { CanvasNode, CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
 import { createAutoEvictionStorage, CacheInfo } from '../utils/storage';
+import { WorkflowNodeExecution } from '@refly/openapi-schema';
 
 interface NodePreviewData {
   metadata?: Record<string, unknown>;
@@ -48,6 +49,7 @@ export interface CanvasState {
   canvasInitialized: Record<string, boolean>;
   canvasInitializedAt: Record<string, number | undefined>;
   canvasExecutionId: Record<string, string>;
+  canvasNodeExecutions: Record<string, WorkflowNodeExecution[]>;
 
   setInitialFitViewCompleted: (completed: boolean) => void;
   deleteCanvasData: (canvasId: string) => void;
@@ -79,6 +81,10 @@ export interface CanvasState {
   setCanvasTitle: (canvasId: string, title: string) => void;
   setCanvasInitialized: (canvasId: string, initialized: boolean) => void;
   setCanvasExecutionId: (canvasId: string, executionId: string | null) => void;
+  setCanvasNodeExecutions: (
+    canvasId: string,
+    nodeExecutions: WorkflowNodeExecution[] | null,
+  ) => void;
 }
 
 const defaultCanvasConfig = (): CanvasConfig => ({
@@ -108,6 +114,7 @@ const defaultCanvasState = () => ({
   canvasInitialized: {},
   canvasInitializedAt: {},
   canvasExecutionId: {},
+  canvasNodeExecutions: {},
 });
 
 // Create our custom storage with appropriate configuration
@@ -467,6 +474,20 @@ export const useCanvasStore = create<CanvasState>()(
           return {
             ...state,
             canvasExecutionId: newCanvasExecutionId,
+          };
+        }),
+
+      setCanvasNodeExecutions: (canvasId, nodeExecutions) =>
+        set((state) => {
+          const newCanvasNodeExecutions = { ...state.canvasNodeExecutions };
+          if (nodeExecutions === null) {
+            delete newCanvasNodeExecutions[canvasId];
+          } else {
+            newCanvasNodeExecutions[canvasId] = nodeExecutions;
+          }
+          return {
+            ...state,
+            canvasNodeExecutions: newCanvasNodeExecutions,
           };
         }),
     }),

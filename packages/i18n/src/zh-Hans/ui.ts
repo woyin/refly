@@ -1322,6 +1322,12 @@ const translations = {
         completed: 'Workflow 运行完成',
         failed: 'Workflow 运行失败',
         error: 'Workflow 运行状态时出错',
+        nodeStatus: {
+          waiting: '等待中',
+          executing: '运行中',
+          finish: '完成',
+          failed: '运行失败',
+        },
       },
     },
     connectionTimeout: {

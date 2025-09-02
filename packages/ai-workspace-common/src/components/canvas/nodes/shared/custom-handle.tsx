@@ -65,7 +65,7 @@ export const CustomHandle = React.memo(
           boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
           opacity: 1,
           cursor: 'crosshair',
-          zIndex: 10,
+          zIndex: 11,
           transition: 'all 0.2s ease',
         }
       : {
@@ -91,7 +91,7 @@ export const CustomHandle = React.memo(
             position === Position.Left || position === Position.Right
               ? 'translateY(-50%)'
               : 'translateX(-50%)',
-          zIndex: 5,
+          zIndex: 11,
           transition: 'all 0.2s ease',
         };
 

@@ -44,6 +44,12 @@ import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import {
+  useNodeExecutionStatus,
+  useNodeExecutionFocus,
+} from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { NodeExecutionStatus } from './shared/node-execution-status';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
@@ -209,6 +215,19 @@ export const SkillResponseNode = memo(
     const { getEdges } = useReactFlow();
     const updateNodeTitle = useUpdateNodeTitle();
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
+    const { readonly, canvasId } = useCanvasContext();
+
+    // Get node execution status
+    const { status: executionStatus, isExecuting } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
+
+    // Auto-focus on node when executing
+    useNodeExecutionFocus({
+      isExecuting,
+      canvasId: canvasId || '',
+    });
 
     const nodeStyle = useMemo(
       () => (isPreview ? { width: NODE_WIDTH, height: 214 } : NODE_SIDE_CONFIG),
@@ -217,8 +236,6 @@ export const SkillResponseNode = memo(
 
     const { t, i18n } = useTranslation();
     const language = i18n.languages?.[0];
-
-    const { canvasId, readonly } = useCanvasContext();
 
     const { title, contentPreview: content, metadata, createdAt, entityId } = data ?? {};
     const { errMsg } = useSkillError(metadata?.errors?.[0]);
@@ -655,10 +672,16 @@ export const SkillResponseNode = memo(
             />
           </>
         )}
+
+        <NodeExecutionOverlay status={executionStatus} />
+
         <div
           style={nodeStyle}
           className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
         >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
+
           <NodeHeader
             showIcon
             disabled={readonly}

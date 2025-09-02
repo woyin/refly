@@ -1344,6 +1344,12 @@ const translations = {
         completed: 'Workflow execution completed successfully',
         failed: 'Workflow execution failed',
         error: 'Error monitoring workflow execution',
+        nodeStatus: {
+          waiting: 'Waiting',
+          executing: 'Running',
+          finish: 'Completed',
+          failed: 'Failed',
+        },
       },
     },
     connectionTimeout: {
