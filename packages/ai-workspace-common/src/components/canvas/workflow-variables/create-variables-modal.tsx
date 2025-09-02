@@ -314,7 +314,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                 <Button
                   type="link"
                   size="small"
-                  className="p-0 h-auto text-refly-primary-default hover:text-refly-primary-hover"
+                  className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
                   onClick={() => {
                     // Call the callback to view/edit the created variable
                     if (onViewCreatedVariable) {

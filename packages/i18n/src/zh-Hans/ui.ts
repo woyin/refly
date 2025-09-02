@@ -312,6 +312,7 @@ const translations = {
     yes: '是',
     no: '否',
     sharing: '分享中...',
+    view: '查看',
   },
   mode: {
     ask: '提问',
@@ -1316,6 +1317,7 @@ const translations = {
       run: {
         title: '运行调试',
         run: '运行',
+        empty: '当前暂无变量，若继续运行，系统将重复执行一次当前 workflow。',
       },
     },
     connectionTimeout: {

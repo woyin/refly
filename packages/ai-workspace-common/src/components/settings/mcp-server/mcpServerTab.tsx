@@ -137,7 +137,7 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
             />
           </div>
 
-          <ToolStore visible={openMcpStoreModal} toolInstances={toolInstances} />
+          <ToolStore visible={openMcpStoreModal} setToolStoreVisible={setOpenMcpStoreModal} />
         </div>
       </Modal>
     </div>

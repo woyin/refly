@@ -271,6 +271,7 @@ export const ToolInstallModal = React.memo(
 
     useEffect(() => {
       if (visible && sourceData) {
+        form?.resetFields();
         const initialValues: Record<string, unknown> = {
           name: defaultName,
           enabled: mode === 'update' ? (toolInstance?.enabled ?? true) : true,
@@ -297,12 +298,9 @@ export const ToolInstallModal = React.memo(
           );
         }
 
-        console.log('initialValues', initialValues);
-
         form.setFieldsValue(initialValues);
-      }
-      if (!visible && form) {
-        form.resetFields();
+      } else {
+        form?.resetFields();
       }
     }, [visible, sourceData, mode, toolInstance, defaultName, form, authPatterns]);
 
@@ -447,7 +445,6 @@ export const ToolInstallModal = React.memo(
           return;
         }
 
-        message.success(t(`settings.toolStore.install.${mode}Success`));
         refetchToolsOnUpdate();
         onSuccess?.();
         onCancel();

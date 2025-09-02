@@ -315,7 +315,11 @@ const ToolsDependencyContent = React.memo(
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <div className="flex items-center gap-1">
                             <div className="min-w-0 max-w-full text-refly-text-0 text-sm font-semibold leading-5 truncate">
-                              {toolset.name}
+                              {toolset.type === 'regular' && toolset.id === 'builtin'
+                                ? (toolset?.toolset?.definition?.labelDict?.[
+                                    currentLanguage
+                                  ] as string)
+                                : toolset.name}
                             </div>
 
                             {isLogin && (
@@ -455,8 +459,12 @@ export const ToolsDependency = () => {
   const currentTools = categorizedTools[activeTab as keyof typeof categorizedTools] || [];
 
   const uninstalledCount = useMemo(() => {
-    return isLogin ? categorizedTools.uninstalled.length : 0;
-  }, [isLogin, categorizedTools]);
+    if (!isLogin) return 0;
+    if (!toolsetsWithNodes.length) return 0;
+    return toolsetsWithNodes.filter(
+      (tool) => !installedToolsets.some((t) => t.id === tool.toolset.id),
+    ).length;
+  }, [isLogin, installedToolsets, toolsetsWithNodes]);
 
   const options = useMemo(() => {
     return [

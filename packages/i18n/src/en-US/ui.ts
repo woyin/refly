@@ -146,6 +146,7 @@ const translations = {
     yes: 'Yes',
     no: 'No',
     sharing: 'Sharing...',
+    view: 'View',
   },
   mode: {
     ask: 'Ask',
@@ -1338,6 +1339,7 @@ const translations = {
       run: {
         title: 'Run Workflow',
         run: 'Run',
+        empty: 'No variables defined, the workflow will be executed once if continued.',
       },
     },
     connectionTimeout: {
