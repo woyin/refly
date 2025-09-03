@@ -1,7 +1,10 @@
+import { Typography } from 'antd';
 import { IContextItem } from '@refly/common-types';
 import { PreviewContextManager } from './preview-context-manager';
 import { useMemo, memo } from 'react';
 import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
+
+const { Paragraph } = Typography;
 
 interface PreviewChatInputProps {
   enabled: boolean;
@@ -56,9 +59,12 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
         />
       )}
       {contextItems?.length > 0 && <PreviewContextManager contextItems={contextItems} />}
-      <div className="text-base break-all text-refly-text-0 font-semibold leading-[26px] !mb-0 max-h-[104px] overflow-hidden line-clamp-4">
+      <Paragraph
+        className="text-base break-all text-refly-text-0 font-semibold leading-[26px] !mb-0"
+        ellipsis={{ rows: 4 }}
+      >
         {renderQueryWithVariables}
-      </div>
+      </Paragraph>
     </div>
   );
 };

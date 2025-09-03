@@ -222,7 +222,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     invokeAction(
       {
         resultId,
-        query: currentQuery,
+        query: title,
         selectedSkill: {
           name: actionMeta?.name || 'commonQnA',
         },
