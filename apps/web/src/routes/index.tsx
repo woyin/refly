@@ -13,6 +13,7 @@ import {
   ArtifactGalleryPage,
   UseCasesGalleryPage,
   ProjectPage,
+  WorkflowAppPage,
 } from '@refly/web-core';
 
 import type { RouteObject } from 'react-router-dom';
@@ -69,5 +70,9 @@ export const RoutesList: RouteObject[] = [
   {
     path: '/project/:projectId',
     element: <ProjectPage />,
+  },
+  {
+    path: '/app/:appId',
+    element: <WorkflowAppPage />,
   },
 ];

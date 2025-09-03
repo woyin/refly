@@ -26,6 +26,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
   listAccounts,
@@ -73,6 +74,7 @@ import {
   GetPilotSessionDetailData,
   GetProjectDetailData,
   GetResourceDetailData,
+  GetWorkflowAppDetailData,
   GetWorkflowDetailData,
   GetWorkflowVariablesData,
   ListAccountsData,
@@ -385,6 +387,14 @@ export const prefetchUseGetWorkflowDetail = (
   queryClient.prefetchQuery({
     queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions),
     queryFn: () => getWorkflowDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const prefetchUseGetWorkflowAppDetail = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetWorkflowAppDetailData, true>,
+) =>
+  queryClient.prefetchQuery({
+    queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions),
+    queryFn: () => getWorkflowAppDetail({ ...clientOptions }).then((response) => response.data),
   });
 export const prefetchUseGetSettings = (
   queryClient: QueryClient,

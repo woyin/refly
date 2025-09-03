@@ -8,6 +8,7 @@ import {
   ActionResult,
   CanvasNodeType,
   CanvasNode,
+  WorkflowVariable,
 } from '@refly/openapi-schema';
 import { ResponseNodeMeta, CanvasNodeFilter } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
@@ -120,6 +121,7 @@ export class WorkflowService {
     user: User,
     canvasId: string,
     newCanvasId?: string,
+    variables?: WorkflowVariable[],
     startNodes?: string[],
   ): Promise<string> {
     try {
@@ -146,6 +148,10 @@ export class WorkflowService {
         await this.canvasService.createCanvas(user, {
           canvasId: newCanvasId,
           title: canvas?.title,
+        });
+        await this.canvasSyncService.updateWorkflowVariables(user, {
+          canvasId: newCanvasId,
+          variables,
         });
       }
 

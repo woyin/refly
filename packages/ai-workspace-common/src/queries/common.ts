@@ -35,6 +35,7 @@ import {
   createSkillTrigger,
   createToolset,
   createVerification,
+  createWorkflowApp,
   deleteCanvas,
   deleteDocument,
   deleteLabelClass,
@@ -56,6 +57,7 @@ import {
   duplicateShare,
   emailLogin,
   emailSignup,
+  executeWorkflowApp,
   exportCanvas,
   exportDocument,
   extractVariables,
@@ -81,6 +83,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
   importCanvas,
@@ -539,6 +542,18 @@ export const UseGetWorkflowDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetWorkflowDetailKey, ...(queryKey ?? [clientOptions])];
+export type GetWorkflowAppDetailDefaultResponse = Awaited<
+  ReturnType<typeof getWorkflowAppDetail>
+>['data'];
+export type GetWorkflowAppDetailQueryResult<
+  TData = GetWorkflowAppDetailDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetWorkflowAppDetailKey = 'GetWorkflowAppDetail';
+export const UseGetWorkflowAppDetailKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetWorkflowAppDetailKey, ...(queryKey ?? [clientOptions])];
 export type GetSettingsDefaultResponse = Awaited<ReturnType<typeof getSettings>>['data'];
 export type GetSettingsQueryResult<
   TData = GetSettingsDefaultResponse,
@@ -1131,6 +1146,18 @@ export type InitializeWorkflowMutationResult = Awaited<ReturnType<typeof initial
 export const useInitializeWorkflowKey = 'InitializeWorkflow';
 export const UseInitializeWorkflowKeyFn = (mutationKey?: Array<unknown>) => [
   useInitializeWorkflowKey,
+  ...(mutationKey ?? []),
+];
+export type CreateWorkflowAppMutationResult = Awaited<ReturnType<typeof createWorkflowApp>>;
+export const useCreateWorkflowAppKey = 'CreateWorkflowApp';
+export const UseCreateWorkflowAppKeyFn = (mutationKey?: Array<unknown>) => [
+  useCreateWorkflowAppKey,
+  ...(mutationKey ?? []),
+];
+export type ExecuteWorkflowAppMutationResult = Awaited<ReturnType<typeof executeWorkflowApp>>;
+export const useExecuteWorkflowAppKey = 'ExecuteWorkflowApp';
+export const UseExecuteWorkflowAppKeyFn = (mutationKey?: Array<unknown>) => [
+  useExecuteWorkflowAppKey,
   ...(mutationKey ?? []),
 ];
 export type CreateCheckoutSessionMutationResult = Awaited<ReturnType<typeof createCheckoutSession>>;

@@ -8303,6 +8303,157 @@ export const GetWorkflowDetailResponseSchema = {
   ],
 } as const;
 
+export const CreateWorkflowAppRequestSchema = {
+  type: 'object',
+  required: ['canvasId', 'title', 'description', 'query', 'variables'],
+  properties: {
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Workflow app title',
+    },
+    description: {
+      type: 'string',
+      description: 'Workflow app description',
+    },
+    query: {
+      type: 'string',
+      description: 'Workflow app query',
+    },
+    variables: {
+      type: 'array',
+      description: 'Workflow app variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
+  },
+} as const;
+
+export const WorkflowAppSchema = {
+  type: 'object',
+  required: ['appId', 'canvasId', 'variables'],
+  properties: {
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Workflow app title',
+    },
+    description: {
+      type: 'string',
+      description: 'Workflow app description',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    query: {
+      type: 'string',
+      description: 'Workflow app query',
+    },
+    variables: {
+      type: 'array',
+      description: 'Workflow app variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Workflow app creation timestamp',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Workflow app update timestamp',
+    },
+  },
+} as const;
+
+export const CreateWorkflowAppResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/WorkflowApp',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetWorkflowAppDetailResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/WorkflowApp',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const ExecuteWorkflowAppRequestSchema = {
+  type: 'object',
+  required: ['appId', 'variables'],
+  properties: {
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
+    },
+    variables: {
+      type: 'array',
+      description: 'Workflow app variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
+  },
+} as const;
+
+export const ExecuteWorkflowAppResultSchema = {
+  type: 'object',
+  required: ['executionId'],
+  properties: {
+    executionId: {
+      type: 'string',
+      description: 'Workflow execution ID',
+    },
+  },
+} as const;
+
+export const ExecuteWorkflowAppResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/ExecuteWorkflowAppResult',
+        },
+      },
+    },
+  ],
+} as const;
+
 export const VariableTypeSchema = {
   type: 'string',
   enum: ['text', 'resource'],

@@ -36,6 +36,7 @@ import { InternalMcpModule } from './internal-mcp/internal-mcp.module';
 import { MediaGeneratorModule } from './media-generator/media-generator.module';
 import { CreditModule } from './credit/credit.module';
 import { WorkflowModule } from './workflow/workflow.module';
+import { WorkflowAppModule } from './workflow-app/workflow-app.module';
 import { ToolModule } from './tool/tool.module';
 import { VariableExtractionModule } from './variable-extraction/variable-extraction.module';
 
@@ -107,6 +108,7 @@ class CustomThrottlerGuard extends ThrottlerGuard {
     MediaGeneratorModule,
     CreditModule,
     WorkflowModule,
+    WorkflowAppModule,
     VariableExtractionModule,
     ...(isDesktop()
       ? []

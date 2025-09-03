@@ -2,8 +2,6 @@ import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-s
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select, Form, Typography } from 'antd';
 import { Play } from 'refly-icons';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useFileUpload } from '../workflow-variables';
@@ -56,8 +54,7 @@ const FormItemLabel = ({ name, required }: { name: string; required: boolean }) 
 
 interface WorkflowRunFormProps {
   workflowVariables: WorkflowVariable[];
-  refetchWorkflowVariables: () => void;
-  initializeWorkflow: (canvasId: string, startNodes?: string[]) => void;
+  onSubmitVariables: (variables: WorkflowVariable[]) => Promise<void>;
   loading: boolean;
   executionId?: string | null;
   workflowStatus?: WorkflowExecutionStatus | null;
@@ -67,13 +64,11 @@ interface WorkflowRunFormProps {
 
 export const WorkflowRunForm = ({
   workflowVariables,
-  refetchWorkflowVariables,
-  initializeWorkflow,
+  onSubmitVariables,
   loading,
   isPolling,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
-  const { canvasId } = useCanvasContext();
 
   const [isRunning, setIsRunning] = useState(false);
   const [form] = Form.useForm();
@@ -244,35 +239,8 @@ export const WorkflowRunForm = ({
     form.setFieldsValue(newValues);
   }, [workflowVariables, form]);
 
-  const saveWorkflowVariables = async () => {
-    const newVariables = convertFormValueToVariable();
-    setIsRunning(true);
-    try {
-      const { data } = await getClient().updateWorkflowVariables({
-        body: {
-          canvasId,
-          variables: newVariables,
-        },
-      });
-      if (data.success) {
-        refetchWorkflowVariables();
-        setTimeout(() => {
-          setIsRunning(false);
-        }, 500);
-
-        return true;
-      }
-      setIsRunning(false);
-      return false;
-    } catch (error) {
-      console.error('Failed to save workflow variables:', error);
-      setIsRunning(false);
-      return false;
-    }
-  };
-
   const handleRun = async () => {
-    if (!canvasId || loading || isRunning) {
+    if (loading || isRunning) {
       return;
     }
 
@@ -281,11 +249,10 @@ export const WorkflowRunForm = ({
       await form.validateFields();
 
       // If validation passes, proceed with running
-      const success = await saveWorkflowVariables();
-      if (!success) {
-        return;
-      }
-      initializeWorkflow(canvasId);
+      const newVariables = convertFormValueToVariable();
+      setIsRunning(true);
+
+      await onSubmitVariables(newVariables);
     } catch (error) {
       // Form validation failed, scroll to first error
       if (error?.errorFields && error.errorFields.length > 0) {
@@ -338,6 +305,8 @@ export const WorkflowRunForm = ({
           }
         }
       }
+    } finally {
+      setIsRunning(false);
     }
   };
 
@@ -364,7 +333,7 @@ export const WorkflowRunForm = ({
         >
           <Input
             variant="filled"
-            placeholder="请输入"
+            placeholder={t('canvas.workflow.variables.inputPlaceholder')}
             value={value}
             onChange={(e) => handleValueChange(name, e.target.value)}
             data-field-name={name}

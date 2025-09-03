@@ -5,7 +5,7 @@ import { useCanvasStoreShallow } from '@refly/stores';
 
 interface UseWorkflowExecutionPollingOptions {
   executionId: string | null;
-  canvasId: string;
+  canvasId?: string;
   enabled?: boolean;
   interval?: number;
   onStatusChange?: (status: WorkflowExecutionStatus) => void;
