@@ -296,6 +296,14 @@ export class ToolsetNotFoundError extends BaseError {
   };
 }
 
+export class WorkflowExecutionNotFoundError extends BaseError {
+  code = 'E1021';
+  messageDict = {
+    en: 'Workflow execution not found, please refresh',
+    'zh-CN': '工作流执行不存在，请刷新重试',
+  };
+}
+
 export class StorageQuotaExceeded extends BaseError {
   code = 'E2001';
   messageDict = {
@@ -407,6 +415,7 @@ const errorMap = {
   E1018: CanvasVersionNotFoundError,
   E1019: ProviderMisconfigurationError,
   E1020: ToolsetNotFoundError,
+  E1021: WorkflowExecutionNotFoundError,
   E2001: StorageQuotaExceeded,
   E2002: ModelUsageQuotaExceeded,
   E2003: ModelNotSupportedError,

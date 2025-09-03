@@ -1,8 +1,7 @@
-import type { WorkflowVariable } from '@refly/openapi-schema';
+import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select, Form, Typography } from 'antd';
 import { Play } from 'refly-icons';
-import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -39,15 +38,24 @@ const FormItemLabel = ({ name, required }: { name: string; required: boolean }) 
 interface WorkflowRunFormProps {
   workflowVariables: WorkflowVariable[];
   refetchWorkflowVariables: () => void;
+  initializeWorkflow: (canvasId: string) => void;
+  loading: boolean;
+  executionId?: string | null;
+  workflowStatus?: WorkflowExecutionStatus | null;
+  isPolling?: boolean;
+  pollingError?: any;
 }
 
 export const WorkflowRunForm = ({
   workflowVariables,
   refetchWorkflowVariables,
+  initializeWorkflow,
+  loading,
+  isPolling,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { canvasId } = useCanvasContext();
-  const { initializeWorkflow, loading } = useInitializeWorkflow();
+
   const [isRunning, setIsRunning] = useState(false);
   const [form] = Form.useForm();
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
@@ -403,6 +411,7 @@ export const WorkflowRunForm = ({
   return (
     <div className="w-full h-full flex flex-col gap-2">
       <div className="p-4 flex-1 overflow-y-auto">
+        {/* Workflow variables form */}
         {workflowVariables.length > 0 ? (
           <Form form={form} layout="vertical" className="space-y-4" initialValues={variableValues}>
             {workflowVariables.map((variable) => renderFormField(variable))}
@@ -421,16 +430,20 @@ export const WorkflowRunForm = ({
         <Button
           className={cn(
             'w-full',
-            !isFormValid &&
+            (!isFormValid || isPolling) &&
               'bg-refly-bg-control-z0 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
           )}
           type="primary"
-          icon={<Play size={16} color={!isFormValid ? 'var(--refly-text-3)' : 'white'} />}
+          icon={
+            <Play size={16} color={!isFormValid || isPolling ? 'var(--refly-text-3)' : 'white'} />
+          }
           onClick={handleRun}
-          loading={loading || isRunning}
-          disabled={loading || isRunning}
+          loading={loading || isRunning || isPolling}
+          disabled={loading || isRunning || isPolling}
         >
-          {t('canvas.workflow.run.run') || 'Run'}
+          {isPolling
+            ? t('canvas.workflow.run.executing') || 'Executing...'
+            : t('canvas.workflow.run.run') || 'Run'}
         </Button>
       </div>
     </div>

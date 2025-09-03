@@ -5,6 +5,7 @@ import {
   MediaGenerateResponse,
   CreditBilling,
   MediaGenerationModelConfig,
+  EntityType,
 } from '@refly/openapi-schema';
 
 import { ModelUsageQuotaExceeded, ProviderItemNotFoundError } from '@refly/errors';
@@ -17,9 +18,12 @@ import { MiscService } from '../misc/misc.service';
 import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
 import { PromptProcessorService } from './prompt-processor.service';
-import { genActionResultID } from '@refly/utils';
+import { genActionResultID, genMediaID } from '@refly/utils';
 import { fal } from '@fal-ai/client';
 import Replicate from 'replicate';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { ActionResult } from '../../generated/client';
+import { providerItemPO2DTO } from '../provider/provider.dto';
 
 @Injectable()
 export class MediaGeneratorService {
@@ -40,6 +44,7 @@ export class MediaGeneratorService {
     private readonly miscService: MiscService,
     private readonly credit: CreditService,
     private readonly providerService: ProviderService,
+    private readonly canvasSyncService: CanvasSyncService,
     private readonly promptProcessor: PromptProcessorService,
     @InjectQueue(QUEUE_SYNC_MEDIA_CREDIT_USAGE)
     private readonly mediaCreditUsageReportQueue: Queue<SyncMediaCreditUsageJobData>,
@@ -155,7 +160,8 @@ export class MediaGeneratorService {
     try {
       const resultId = request.resultId || genActionResultID();
 
-      const { mediaType, model, prompt, targetType, targetId, providerItemId, wait } = request;
+      const { mediaType, model, prompt, providerItemId, wait, parentResultId } = request;
+      let { targetType, targetId } = request;
 
       // If no model or providerItemId is specified, try to get user's default configuration
       let finalModel = model;
@@ -202,8 +208,29 @@ export class MediaGeneratorService {
       }
       this.logger.log(`Media generation request validation passed for user ${user.uid}`);
 
+      // If parentResultId is provided, use the targetId and targetType from the parent result
+      if (parentResultId) {
+        const parentResult = await this.prisma.actionResult.findFirst({
+          select: {
+            targetId: true,
+            targetType: true,
+          },
+          where: { resultId: parentResultId },
+          orderBy: { version: 'desc' },
+        });
+
+        if (!parentResult) {
+          this.logger.warn(`Parent result ${parentResultId} not found`);
+        } else {
+          if (!targetId || !targetType) {
+            targetId = parentResult.targetId;
+            targetType = parentResult.targetType as EntityType;
+          }
+        }
+      }
+
       // Creating an ActionResult Record
-      await this.prisma.actionResult.create({
+      const result = await this.prisma.actionResult.create({
         data: {
           resultId,
           uid: user.uid,
@@ -220,6 +247,7 @@ export class MediaGeneratorService {
             providerItemId: finalProviderItemId,
           }),
           version: 0,
+          parentResultId,
         },
       });
 
@@ -231,7 +259,7 @@ export class MediaGeneratorService {
       };
 
       // Start media generation asynchronously
-      this.executeGenerate(user, resultId, finalRequest).catch((error) => {
+      this.executeGenerate(user, result, finalRequest).catch((error) => {
         this.logger.error(`Media generation failed for ${resultId}:`, error);
       });
 
@@ -271,18 +299,20 @@ export class MediaGeneratorService {
   /**
    * Execute synchronous media generation tasks
    * @param user User Information
-   * @param resultId Result ID
+   * @param result ActionResult record
    * @param request Media Generation Request
    */
   private async executeGenerate(
     user: User,
-    resultId: string,
+    result: ActionResult,
     request: MediaGenerateRequest,
   ): Promise<void> {
+    const { mediaType } = request;
+    const { pk, resultId, parentResultId, title, targetType, targetId } = result;
     try {
       // Update status to executing
       await this.prisma.actionResult.update({
-        where: { resultId_version: { resultId, version: 0 } },
+        where: { pk },
         data: {
           status: 'executing',
         },
@@ -359,13 +389,41 @@ export class MediaGeneratorService {
 
       // Update status to completed, saving the storage information inside the system
       await this.prisma.actionResult.update({
-        where: { resultId_version: { resultId, version: 0 } },
+        where: { pk },
         data: {
           status: 'finish',
           outputUrl: uploadResult.url, // Using system internal URL
           storageKey: uploadResult.storageKey, // Save storage key
         },
       });
+
+      if (parentResultId && targetType === 'canvas' && targetId) {
+        await this.canvasSyncService.addNodeToCanvas(
+          user,
+          targetId,
+          {
+            type: mediaType,
+            data: {
+              title,
+              entityId: genMediaID(mediaType),
+              metadata: {
+                resultId,
+                storageKey: uploadResult.storageKey,
+                [`${mediaType}Url`]: uploadResult.url,
+                modelInfo: {
+                  name: request.model,
+                  label: providerItem.name,
+                  provider: providerItem.provider.providerKey,
+                  providerItemId: request.providerItemId,
+                },
+                selectedModel: providerItemPO2DTO(providerItem),
+              },
+            },
+          },
+          [{ type: 'skillResponse', entityId: parentResultId }],
+          { autoLayout: true },
+        );
+      }
 
       if (this.mediaCreditUsageReportQueue && creditBilling) {
         const basicUsageData = {
@@ -388,7 +446,7 @@ export class MediaGeneratorService {
 
       // Update status to failed
       await this.prisma.actionResult.update({
-        where: { resultId_version: { resultId, version: 0 } },
+        where: { pk },
         data: {
           status: 'failed',
           errors: JSON.stringify([error instanceof Error ? error.message : 'Unknown error']),

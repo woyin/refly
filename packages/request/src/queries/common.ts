@@ -81,6 +81,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowDetail,
   getWorkflowVariables,
   importCanvas,
   initializeWorkflow,
@@ -526,6 +527,18 @@ export const UseGetPilotSessionDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetPilotSessionDetailKey, ...(queryKey ?? [clientOptions])];
+export type GetWorkflowDetailDefaultResponse = Awaited<
+  ReturnType<typeof getWorkflowDetail>
+>['data'];
+export type GetWorkflowDetailQueryResult<
+  TData = GetWorkflowDetailDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetWorkflowDetailKey = 'GetWorkflowDetail';
+export const UseGetWorkflowDetailKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetWorkflowDetailKey, ...(queryKey ?? [clientOptions])];
 export type GetSettingsDefaultResponse = Awaited<ReturnType<typeof getSettings>>['data'];
 export type GetSettingsQueryResult<
   TData = GetSettingsDefaultResponse,

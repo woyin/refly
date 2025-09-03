@@ -70,6 +70,11 @@ export default () => ({
       password: process.env.ELASTICSEARCH_PASSWORD,
     },
   },
+  email: {
+    sender: process.env.EMAIL_SENDER || 'Refly <notifications@refly.ai>',
+    payloadMode: process.env.EMAIL_PAYLOAD_MODE || 'base64', // 'url' or 'base64'
+    resendApiKey: process.env.RESEND_API_KEY || 're_123',
+  },
   auth: {
     skipVerification: process.env.AUTH_SKIP_VERIFICATION === 'true' || false,
     redirectUrl: process.env.LOGIN_REDIRECT_URL,
@@ -88,8 +93,6 @@ export default () => ({
     },
     email: {
       enabled: process.env.EMAIL_AUTH_ENABLED === 'true' || true,
-      sender: process.env.EMAIL_SENDER || 'Refly <notifications@refly.ai>',
-      resendApiKey: process.env.RESEND_API_KEY || 're_123',
     },
     github: {
       enabled: process.env.GITHUB_AUTH_ENABLED === 'true' || false,

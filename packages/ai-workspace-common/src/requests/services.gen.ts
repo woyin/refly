@@ -327,6 +327,9 @@ import type {
   InitializeWorkflowData,
   InitializeWorkflowError,
   InitializeWorkflowResponse2,
+  GetWorkflowDetailData,
+  GetWorkflowDetailError,
+  GetWorkflowDetailResponse2,
   GetSettingsError,
   GetSettingsResponse,
   UpdateSettingsData,
@@ -2160,6 +2163,23 @@ export const initializeWorkflow = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow/initialize',
+  });
+};
+
+/**
+ * Get workflow detail
+ * Get detail for a workflow execution
+ */
+export const getWorkflowDetail = <ThrowOnError extends boolean = false>(
+  options: Options<GetWorkflowDetailData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetWorkflowDetailResponse2,
+    GetWorkflowDetailError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow/detail',
   });
 };
 

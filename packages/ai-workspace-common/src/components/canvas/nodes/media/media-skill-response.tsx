@@ -27,7 +27,7 @@ import {
   IconRerun,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { HiOutlineFilm, HiOutlineSpeakerWave } from 'react-icons/hi2';
-import { genImageID, genVideoID, genAudioID } from '@refly/utils/id';
+import { genMediaID } from '@refly/utils/id';
 import { Button, Spin, message } from 'antd';
 import { cn } from '@refly/utils/cn';
 import { NodeProps } from '@xyflow/react';
@@ -150,12 +150,7 @@ const MediaSkillResponseNode = memo(
     const handleCreateMediaNode = useCallback(
       async (outputUrl: string, storageKey: string) => {
         try {
-          const entityId =
-            mediaType === 'image'
-              ? genImageID()
-              : mediaType === 'video'
-                ? genVideoID()
-                : genAudioID();
+          const entityId = genMediaID(mediaType);
 
           const urlKey =
             mediaType === 'image' ? 'imageUrl' : mediaType === 'video' ? 'videoUrl' : 'audioUrl';

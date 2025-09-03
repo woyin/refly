@@ -2663,6 +2663,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InitializeWorkflowResponse'
+  /workflow/detail:
+    get:
+      tags:
+        - workflow
+      summary: Get workflow detail
+      description: Get detail for a workflow execution
+      operationId: getWorkflowDetail
+      parameters:
+        - name: executionId
+          in: query
+          description: Workflow execution ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWorkflowDetailResponse'
   /user/settings:
     get:
       tags:
@@ -4633,7 +4654,6 @@ components:
       required:
         - name
         - displayName
-        - provideContextKeys
       properties:
         name:
           description: Simple event name
@@ -4641,11 +4661,6 @@ components:
         displayName:
           type: object
           description: Simple event display name (key is locale, value is display name)
-        provideContextKeys:
-          type: array
-          description: Context keys to provide
-          items:
-            $ref: '#/components/schemas/SkillContextKey'
     TimerInterval:
       type: string
       description: Timer interval
@@ -4794,9 +4809,6 @@ components:
             tplConfigSchema:
               description: Skill template config schema
               $ref: '#/components/schemas/SkillTemplateConfigDefinition'
-            invocationConfig:
-              description: Skill invocation config
-              $ref: '#/components/schemas/SkillInvocationConfig'
             pinnedAt:
               type: string
               format: date-time
@@ -7183,6 +7195,35 @@ components:
         metadata:
           type: object
           description: URL context metadata
+    SkillContextMediaItem:
+      type: object
+      description: Skill context media item
+      required:
+        - mediaType
+        - entityId
+        - title
+        - url
+        - storageKey
+      properties:
+        mediaType:
+          type: string
+          description: Media type
+          $ref: '#/components/schemas/MediaType'
+        entityId:
+          type: string
+          description: Media entity ID
+        title:
+          type: string
+          description: Media title
+        url:
+          type: string
+          description: Media URL
+        storageKey:
+          type: string
+          description: Media storage key
+        metadata:
+          type: object
+          description: Media context metadata
     SkillContext:
       type: object
       description: Skill invocation context
@@ -7212,13 +7253,12 @@ components:
           description: List of URLs
           items:
             $ref: '#/components/schemas/SkillContextUrlItem'
-    SkillContextKey:
-      type: string
-      enum:
-        - resources
-        - documents
-        - contentList
-        - urls
+          deprecated: true
+        mediaList:
+          type: array
+          description: List of media
+          items:
+            $ref: '#/components/schemas/SkillContextMediaItem'
     SelectionKey:
       type: string
       enum:
@@ -7229,94 +7269,12 @@ components:
         - documentCursorSelection
         - documentBeforeCursorSelection
         - documentAfterCursorSelection
-    SkillContextRule:
-      type: object
-      required:
-        - key
-      properties:
-        key:
-          type: string
-          description: Context key
-          $ref: '#/components/schemas/SkillContextKey'
-        limit:
-          type: number
-          description: Maximum number of items
-          default: 50
-        required:
-          type: boolean
-          description: Whether this context is required
-          default: false
-        preferredSelectionKeys:
-          type: array
-          description: Preferred selection keys (only applicable when key is `contentList`)
-          items:
-            $ref: '#/components/schemas/SelectionKey'
-    ContextRuleGroupRelation:
-      type: string
-      enum:
-        - regular
-        - mutuallyExclusive
-    SkillContextRuleGroup:
-      type: object
-      required:
-        - rules
-      properties:
-        rules:
-          type: array
-          description: Skill context rules
-          items:
-            $ref: '#/components/schemas/SkillContextRule'
-        relation:
-          type: string
-          description: Rule group relation
-          default: regular
-          $ref: '#/components/schemas/ContextRuleGroupRelation'
-        preferredContextKeys:
-          type: array
-          description: Preferred context keys
-          items:
-            $ref: '#/components/schemas/SkillContextKey'
-    SkillInvocationConfig:
-      type: object
-      properties:
-        context:
-          description: Skill context rule group
-          $ref: '#/components/schemas/SkillContextRuleGroup'
     ActionType:
       type: string
       enum:
         - skill
         - tool
         - media
-    ActionContextType:
-      type: string
-      enum:
-        - resource
-        - document
-    ActionContextEntity:
-      type: object
-      properties:
-        title:
-          type: string
-          description: Entity title
-        content:
-          type: string
-          description: Entity content
-    ActionContextItem:
-      type: object
-      properties:
-        type:
-          description: Context item type
-          $ref: '#/components/schemas/ActionContextType'
-        entityId:
-          type: string
-          description: Entity ID
-        entityData:
-          description: Entity data (will be auto populated if not provided)
-          $ref: '#/components/schemas/ActionContextEntity'
-        metadata:
-          type: object
-          description: Context metadata
     InvokeSkillRequest:
       type: object
       properties:
@@ -7529,6 +7487,9 @@ components:
           resultId:
             type: string
             description: Media generation result ID
+          parentResultId:
+            type: string
+            description: Parent result ID for the media generation (usually the actor agent result ID)
           apiKey:
             type: string
             description: API key for the provider
@@ -9310,6 +9271,88 @@ components:
                   type: string
                   description: Workflow execution ID
                   example: "we-abc123"
+    WorkflowNodeExecution:
+      type: object
+      required:
+        - nodeId
+      properties:
+        nodeExecutionId:
+          type: string
+          description: Node execution ID
+        nodeId:
+          type: string
+          description: Node ID
+        nodeType:
+          type: string
+          description: Node type
+        entityId:
+          type: string
+          description: Node entity ID
+        newEntityId:
+          type: string
+          description: New node entity ID
+        title:
+          type: string
+          description: Node title
+        status:
+          description: Node status
+          $ref: '#/components/schemas/ActionStatus'
+        progress:
+          type: number
+          description: Node progress
+        createdAt:
+          type: string
+          format: date-time
+          description: Node creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Node update timestamp
+    WorkflowExecutionStatus:
+      type: string
+      enum:
+        - init
+        - executing
+        - finish
+        - failed
+    WorkflowExecution:
+      type: object
+      required:
+        - executionId
+      properties:
+        executionId:
+          type: string
+          description: Workflow execution ID
+        canvasId:
+          type: string
+          description: Canvas ID
+        title:
+          type: string
+          description: Workflow title
+        status:
+          $ref: '#/components/schemas/WorkflowExecutionStatus'
+          description: Workflow status
+        nodeExecutions:
+          type: array
+          description: Node executions
+          items:
+            $ref: '#/components/schemas/WorkflowNodeExecution'
+        createdAt:
+          type: string
+          format: date-time
+          description: Workflow creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Workflow update timestamp
+    GetWorkflowDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              $ref: '#/components/schemas/WorkflowExecution'
     VariableType:
       type: string
       enum:
@@ -9468,7 +9511,11 @@ components:
         from:
           type: string
           description: Email sender. If not specified, server will use the default sender.
-
+        attachments:
+          type: array
+          description: Email attachments, should be array of URLs.
+          items:
+            type: string
     GenerateAppTemplateRequest:
       type: object
       required:
