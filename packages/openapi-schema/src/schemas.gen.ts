@@ -1637,7 +1637,7 @@ export const SimpleEventNameSchema = {
 
 export const SimpleEventSchema = {
   type: 'object',
-  required: ['name', 'displayName', 'provideContextKeys'],
+  required: ['name', 'displayName'],
   properties: {
     name: {
       description: 'Simple event name',
@@ -1646,13 +1646,6 @@ export const SimpleEventSchema = {
     displayName: {
       type: 'object',
       description: 'Simple event display name (key is locale, value is display name)',
-    },
-    provideContextKeys: {
-      type: 'array',
-      description: 'Context keys to provide',
-      items: {
-        $ref: '#/components/schemas/SkillContextKey',
-      },
     },
   },
 } as const;
@@ -1845,10 +1838,6 @@ export const SkillInstanceSchema = {
         tplConfigSchema: {
           description: 'Skill template config schema',
           $ref: '#/components/schemas/SkillTemplateConfigDefinition',
-        },
-        invocationConfig: {
-          description: 'Skill invocation config',
-          $ref: '#/components/schemas/SkillInvocationConfig',
         },
         pinnedAt: {
           type: 'string',
@@ -5246,6 +5235,39 @@ export const SkillContextUrlItemSchema = {
   },
 } as const;
 
+export const SkillContextMediaItemSchema = {
+  type: 'object',
+  description: 'Skill context media item',
+  required: ['mediaType', 'entityId', 'title', 'url', 'storageKey'],
+  properties: {
+    mediaType: {
+      type: 'string',
+      description: 'Media type',
+      $ref: '#/components/schemas/MediaType',
+    },
+    entityId: {
+      type: 'string',
+      description: 'Media entity ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Media title',
+    },
+    url: {
+      type: 'string',
+      description: 'Media URL',
+    },
+    storageKey: {
+      type: 'string',
+      description: 'Media storage key',
+    },
+    metadata: {
+      type: 'object',
+      description: 'Media context metadata',
+    },
+  },
+} as const;
+
 export const SkillContextSchema = {
   type: 'object',
   description: 'Skill invocation context',
@@ -5284,13 +5306,16 @@ export const SkillContextSchema = {
       items: {
         $ref: '#/components/schemas/SkillContextUrlItem',
       },
+      deprecated: true,
+    },
+    mediaList: {
+      type: 'array',
+      description: 'List of media',
+      items: {
+        $ref: '#/components/schemas/SkillContextMediaItem',
+      },
     },
   },
-} as const;
-
-export const SkillContextKeySchema = {
-  type: 'string',
-  enum: ['resources', 'documents', 'contentList', 'urls'],
 } as const;
 
 export const SelectionKeySchema = {
@@ -5306,121 +5331,9 @@ export const SelectionKeySchema = {
   ],
 } as const;
 
-export const SkillContextRuleSchema = {
-  type: 'object',
-  required: ['key'],
-  properties: {
-    key: {
-      type: 'string',
-      description: 'Context key',
-      $ref: '#/components/schemas/SkillContextKey',
-    },
-    limit: {
-      type: 'number',
-      description: 'Maximum number of items',
-      default: 50,
-    },
-    required: {
-      type: 'boolean',
-      description: 'Whether this context is required',
-      default: false,
-    },
-    preferredSelectionKeys: {
-      type: 'array',
-      description: 'Preferred selection keys (only applicable when key is `contentList`)',
-      items: {
-        $ref: '#/components/schemas/SelectionKey',
-      },
-    },
-  },
-} as const;
-
-export const ContextRuleGroupRelationSchema = {
-  type: 'string',
-  enum: ['regular', 'mutuallyExclusive'],
-} as const;
-
-export const SkillContextRuleGroupSchema = {
-  type: 'object',
-  required: ['rules'],
-  properties: {
-    rules: {
-      type: 'array',
-      description: 'Skill context rules',
-      items: {
-        $ref: '#/components/schemas/SkillContextRule',
-      },
-    },
-    relation: {
-      type: 'string',
-      description: 'Rule group relation',
-      default: 'regular',
-      $ref: '#/components/schemas/ContextRuleGroupRelation',
-    },
-    preferredContextKeys: {
-      type: 'array',
-      description: 'Preferred context keys',
-      items: {
-        $ref: '#/components/schemas/SkillContextKey',
-      },
-    },
-  },
-} as const;
-
-export const SkillInvocationConfigSchema = {
-  type: 'object',
-  properties: {
-    context: {
-      description: 'Skill context rule group',
-      $ref: '#/components/schemas/SkillContextRuleGroup',
-    },
-  },
-} as const;
-
 export const ActionTypeSchema = {
   type: 'string',
   enum: ['skill', 'tool', 'media'],
-} as const;
-
-export const ActionContextTypeSchema = {
-  type: 'string',
-  enum: ['resource', 'document'],
-} as const;
-
-export const ActionContextEntitySchema = {
-  type: 'object',
-  properties: {
-    title: {
-      type: 'string',
-      description: 'Entity title',
-    },
-    content: {
-      type: 'string',
-      description: 'Entity content',
-    },
-  },
-} as const;
-
-export const ActionContextItemSchema = {
-  type: 'object',
-  properties: {
-    type: {
-      description: 'Context item type',
-      $ref: '#/components/schemas/ActionContextType',
-    },
-    entityId: {
-      type: 'string',
-      description: 'Entity ID',
-    },
-    entityData: {
-      description: 'Entity data (will be auto populated if not provided)',
-      $ref: '#/components/schemas/ActionContextEntity',
-    },
-    metadata: {
-      type: 'object',
-      description: 'Context metadata',
-    },
-  },
 } as const;
 
 export const InvokeSkillRequestSchema = {
@@ -5729,6 +5642,10 @@ export const MediaGenerateRequestSchema = {
     resultId: {
       type: 'string',
       description: 'Media generation result ID',
+    },
+    parentResultId: {
+      type: 'string',
+      description: 'Parent result ID for the media generation (usually the actor agent result ID)',
     },
     apiKey: {
       type: 'string',
@@ -8267,6 +8184,117 @@ export const InitializeWorkflowResponseSchema = {
   ],
 } as const;
 
+export const WorkflowNodeExecutionSchema = {
+  type: 'object',
+  required: ['nodeId'],
+  properties: {
+    nodeExecutionId: {
+      type: 'string',
+      description: 'Node execution ID',
+    },
+    nodeId: {
+      type: 'string',
+      description: 'Node ID',
+    },
+    nodeType: {
+      type: 'string',
+      description: 'Node type',
+    },
+    entityId: {
+      type: 'string',
+      description: 'Node entity ID',
+    },
+    newEntityId: {
+      type: 'string',
+      description: 'New node entity ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Node title',
+    },
+    status: {
+      description: 'Node status',
+      $ref: '#/components/schemas/ActionStatus',
+    },
+    progress: {
+      type: 'number',
+      description: 'Node progress',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Node creation timestamp',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Node update timestamp',
+    },
+  },
+} as const;
+
+export const WorkflowExecutionStatusSchema = {
+  type: 'string',
+  enum: ['init', 'executing', 'finish', 'failed'],
+} as const;
+
+export const WorkflowExecutionSchema = {
+  type: 'object',
+  required: ['executionId'],
+  properties: {
+    executionId: {
+      type: 'string',
+      description: 'Workflow execution ID',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Workflow title',
+    },
+    status: {
+      $ref: '#/components/schemas/WorkflowExecutionStatus',
+      description: 'Workflow status',
+    },
+    nodeExecutions: {
+      type: 'array',
+      description: 'Node executions',
+      items: {
+        $ref: '#/components/schemas/WorkflowNodeExecution',
+      },
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Workflow creation timestamp',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Workflow update timestamp',
+    },
+  },
+} as const;
+
+export const GetWorkflowDetailResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          $ref: '#/components/schemas/WorkflowExecution',
+        },
+      },
+    },
+  ],
+} as const;
+
 export const VariableTypeSchema = {
   type: 'string',
   enum: ['text', 'resource'],
@@ -8466,6 +8494,13 @@ export const SendEmailRequestSchema = {
     from: {
       type: 'string',
       description: 'Email sender. If not specified, server will use the default sender.',
+    },
+    attachments: {
+      type: 'array',
+      description: 'Email attachments, should be array of URLs.',
+      items: {
+        type: 'string',
+      },
     },
   },
 } as const;

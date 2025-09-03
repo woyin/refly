@@ -20,7 +20,6 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "inlineSources": true,
-    "baseUrl": "./",
     "rootDir": "./src",
     "composite": true,
     "noEmit": false,

@@ -1,4 +1,4 @@
-import { ActionResult, CanvasNodeType, SkillContext } from '@refly/openapi-schema';
+import { ActionResult, CanvasNodeType, MediaType, SkillContext } from '@refly/openapi-schema';
 import { IContextItem } from '@refly/common-types';
 import { Node, Edge } from '@xyflow/react';
 import { getClientOrigin, omit } from '@refly/utils';
@@ -192,7 +192,7 @@ export const convertContextItemsToInvokeParams = (
     (item) => `${item.metadata.entityId}-${(item.content || '').substring(0, 100)}`,
   );
 
-  const context = {
+  const context: SkillContext = {
     contentList: combinedContentList,
     resources: deduplicate(
       purgedItems
@@ -270,6 +270,18 @@ export const convertContextItemsToInvokeParams = (
           ];
         }),
       (item) => item.url,
+    ),
+    mediaList: deduplicate(
+      items
+        ?.filter((item) => ['image', 'video', 'audio'].includes(item?.type as string))
+        .map((item) => ({
+          entityId: item.entityId,
+          mediaType: item.type as MediaType,
+          title: item.title,
+          url: item.metadata?.[`${item?.type}Url`],
+          storageKey: item.metadata?.storageKey,
+        })),
+      (item) => item.entityId,
     ),
   };
   // Process history items - get all skill responses
@@ -382,10 +394,16 @@ export const purgeContextItems = (items: IContextItem[]): IContextItem[] => {
   if (!Array.isArray(items)) {
     return [];
   }
-  return items.map((item) => ({
-    ...omit(item, ['metadata']),
-    metadata: {
-      withHistory: item.metadata?.withHistory,
-    },
-  }));
+  return items.map((item) => {
+    // Skip media items
+    if (['image', 'video', 'audio'].includes(item.type as string)) {
+      return item;
+    }
+    return {
+      ...omit(item, ['metadata']),
+      metadata: {
+        withHistory: item.metadata?.withHistory,
+      },
+    };
+  });
 };

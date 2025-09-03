@@ -26,6 +26,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowDetail,
   getWorkflowVariables,
   listAccounts,
   listActions,
@@ -95,6 +96,8 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetWorkflowDetailData,
+  GetWorkflowDetailError,
   GetWorkflowVariablesData,
   GetWorkflowVariablesError,
   ListAccountsData,
@@ -678,6 +681,21 @@ export const useGetPilotSessionDetailSuspense = <
       getPilotSessionDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useGetWorkflowDetailSuspense = <
+  TData = Common.GetWorkflowDetailDefaultResponse,
+  TError = GetWorkflowDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowDetail({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetSettingsSuspense = <

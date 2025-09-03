@@ -140,8 +140,6 @@ export const buildCommonQnAUserPrompt = ({
     ${chatHistoryReminder()}
 
     ## Hint
-    ${buildLocaleFollowInstruction(locale)}
-
     ${buildFormatDisplayInstruction()}
     ${buildSimpleDetailedExplanationInstruction()}
     `;

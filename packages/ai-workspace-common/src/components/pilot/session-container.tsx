@@ -14,7 +14,6 @@ import { cn } from '@refly/utils/cn';
 import { PilotStepItem } from './pilot-step-item';
 import { IconPilot } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useFrontPageStoreShallow, usePilotStoreShallow } from '@refly/stores';
-// import { SessionChat } from './session-chat';
 import { NoSession } from '@refly-packages/ai-workspace-common/components/pilot/nosession';
 import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
 import { Send, Thinking } from 'refly-icons';
@@ -253,7 +252,7 @@ export const SessionContainer = memo(
         setIsPolling(false);
       }
     }, [shouldPoll, isPolling]);
-    console.log('Session status:', isNewTask);
+
     return (
       <div className={containerClassName}>
         {/* Header */}

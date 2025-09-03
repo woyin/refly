@@ -158,6 +158,8 @@ model ActionResult {
   outputUrl               String?      @map("output_url")
   /// Media result storage key
   storageKey              String?      @map("storage_key")
+  /// Parent result id
+  parentResultId          String?      @map("parent_result_id")
   /// Create timestamp
   createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -304,41 +306,41 @@ model WorkflowExecution {
 
 model WorkflowNodeExecution {
   /// Primary key
-  pk              BigInt             @id @default(autoincrement())
+  pk              BigInt    @id @default(autoincrement())
   /// Node execution id
-  nodeExecutionId String             @unique @map("node_execution_id")
+  nodeExecutionId String    @unique @map("node_execution_id")
   /// Workflow execution id
-  executionId     String             @map("execution_id")
+  executionId     String    @map("execution_id")
   /// Canvas node id
-  nodeId          String             @map("node_id")
+  nodeId          String    @map("node_id")
   /// New canvas node id
-  newNodeId       String?            @map("new_node_id")
+  newNodeId       String?   @map("new_node_id")
   /// Node type
-  nodeType        String             @map("node_type")
+  nodeType        String    @map("node_type")
   /// Node entity id
-  entityId        String             @map("entity_id")
+  entityId        String    @map("entity_id")
   /// New node entity id
-  newEntityId     String?            @map("new_entity_id")
+  newEntityId     String?   @map("new_entity_id")
   /// Node title
-  title           String             @map("title")
-  /// Node status: waiting, executing, finish, failed
-  status          WorkflowNodeStatus @default(waiting) @map("status")
+  title           String    @map("title")
+  /// Node status (waiting, executing, finish, failed)
+  status          String    @default("waiting") @map("status")
   /// Execution progress (0-100)
-  progress        Int                @default(0) @map("progress")
+  progress        Int       @default(0) @map("progress")
   /// Parent node ids (JSON array)
-  parentNodeIds   String             @default("[]") @map("parent_node_ids")
+  parentNodeIds   String    @default("[]") @map("parent_node_ids")
   /// Child node ids (JSON array)
-  childNodeIds    String             @default("[]") @map("child_node_ids")
+  childNodeIds    String    @default("[]") @map("child_node_ids")
   /// Execution start time
-  startTime       DateTime?          @map("start_time") @db.Timestamptz()
+  startTime       DateTime? @map("start_time") @db.Timestamptz()
   /// Execution end time
-  endTime         DateTime?          @map("end_time") @db.Timestamptz()
+  endTime         DateTime? @map("end_time") @db.Timestamptz()
   /// Error message if failed
-  errorMessage    String?            @map("error_message")
+  errorMessage    String?   @map("error_message")
   /// Create timestamp
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
-  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
   @@index([executionId, nodeId])
   @@index([executionId, status])
