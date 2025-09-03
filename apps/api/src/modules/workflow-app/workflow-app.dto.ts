@@ -1,8 +1,9 @@
 import { WorkflowApp, WorkflowVariable } from '@refly/openapi-schema';
+import { WorkflowApp as WorkflowAppPO } from '../../generated/client';
 
-export function workflowAppPO2DTO(dbWorkflowApp: any): WorkflowApp {
+export function workflowAppPO2DTO(dbWorkflowApp: WorkflowAppPO): WorkflowApp | null {
   if (!dbWorkflowApp) {
-    throw new Error('Workflow app not found');
+    return null;
   }
 
   // Parse variables from JSON string to WorkflowVariable array
