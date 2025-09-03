@@ -556,6 +556,50 @@ When analyzing execution results, pay special attention to:
 - **Good**: "Use generate_doc to create a comprehensive market analysis report about the renewable energy sector"
 - **Bad**: "Generate a report about renewable energy"
 
+## SPECIAL CONTENT FORMAT GUIDELINES
+
+### Podcast Script Format Requirements:
+When generating podcast scripts, the output MUST follow this exact format:
+
+**Format Structure:**
+\`\`\`
+Speaker 1: [Natural conversation starter or response]
+Speaker 2: [Engaging response that builds on Speaker 1's point]
+Speaker 1: [Follow-up that creates natural flow]
+Speaker 2: [Transition to main topic or deeper discussion]
+\`\`\`
+
+**Critical Format Rules:**
+- **MUST use "Speaker 1:" and "Speaker 2:" labels** - no variations allowed
+- **MUST maintain natural conversational flow** - each speaker builds on the previous
+- **MUST include natural transitions** - from casual topics to main discussion
+- **MUST use conversational language** - avoid formal or academic tone
+- **MUST create engaging dialogue** - include questions, reactions, and natural speech patterns
+- **MUST avoid monologues** - keep responses concise and interactive
+- **MUST include topic introduction** - naturally introduce the main subject matter
+
+**Podcast Script Quality Standards:**
+- **Conversational Tone**: Use natural, spoken language with contractions and informal expressions
+- **Engaging Hooks**: Start with relatable, attention-grabbing topics
+- **Smooth Transitions**: Seamlessly move from casual conversation to main topic
+- **Interactive Elements**: Include questions, reactions, and natural dialogue flow
+- **Appropriate Length**: Each speaker response should be 1-3 sentences for optimal flow
+- **Topic Integration**: Naturally weave the main topic into the conversation
+
+**Example of Correct Podcast Script Format:**
+\`\`\`
+Speaker 1: Hey, did you catch the game last night?
+Speaker 2: Of course! What a match—it had me on the edge of my seat. But you know what's been getting me even more excited lately?
+Speaker 1: Oh yeah? Don't tell me you've found a new favorite team.
+Speaker 2: Not a team, but a whole new league of players. I'm talking about the explosion of AI tools that are completely changing how we work, create, and even manage our finances.
+\`\`\`
+
+**When to Apply Podcast Script Format:**
+- User requests mention "podcast", "script", "dialogue", "conversation", or "interview"
+- Content type is clearly conversational or audio-focused
+- User specifically requests dialogue format or speaker-based content
+- Task involves creating engaging, spoken content for audio consumption
+
 ## STAGE LOGIC AND DEPENDENCY GUIDELINES
 
 ### Objective Logic Alignment:
@@ -575,6 +619,12 @@ When analyzing execution results, pay special attention to:
 - **Analysis Stage**: 1-2 subtasks (data analysis, pattern identification)
 - **Synthesis Stage**: 1-2 subtasks (content generation, review)
 - **Simple Stages**: 1 subtask may be sufficient
+- **Podcast Script Generation**: 2-3 subtasks (research topic, create dialogue structure, generate script with proper format)
+
+### Special Content Type Considerations:
+- **Podcast Scripts**: When generating podcast content, ensure subtasks include format validation and conversational flow optimization
+- **Dialogue Content**: For any dialogue-based content, apply the same format standards as podcast scripts
+- **Audio Content**: Consider spoken language patterns, natural pauses, and conversational elements
 
 ## OUTPUT FORMAT
 Provide a JSON response with the following structure:
@@ -596,7 +646,7 @@ Provide a JSON response with the following structure:
   "currentStageSubtasks": [
     {
       "name": "Clear, specific task name",
-      "query": "EXPLICIT tool usage instruction - specify the exact tool name and what it should accomplish. Example: 'Use web_search to find current information about [specific topic]' or 'Use generate_doc to create a [specific type] document about [topic]'",
+      "query": "EXPLICIT tool usage instruction - specify the exact tool name and what it should accomplish. Example: 'Use web_search to find current information about [specific topic]' or 'Use generate_doc to create a [specific type] document about [topic]'. For podcast scripts, specify: 'Use generate_doc to create a podcast script in the exact format: Speaker 1: [dialogue] Speaker 2: [dialogue] with natural conversational flow and proper topic introduction'",
       "status": "pending"
     }
   ],
@@ -662,6 +712,13 @@ Before submitting, verify:
 □ ${isInitialPlan ? 'All stages are properly planned' : 'Completed stage summaries have been thoroughly reviewed and insights applied'}
 □ ${isInitialPlan ? 'Tool categories are appropriately assigned' : 'Tool categories have been adjusted based on execution results'}
 □ ${isInitialPlan ? 'Time estimates are realistic' : 'Time estimates have been updated based on actual execution experience'}
+
+### Special Content Format Validation:
+□ For podcast/dialogue content: Subtask queries specify exact format requirements (Speaker 1:, Speaker 2:)
+□ For podcast/dialogue content: Include format validation and conversational flow optimization
+□ For audio content: Consider spoken language patterns and natural conversation elements
+□ For dialogue content: Ensure proper speaker labeling and natural flow between speakers
+□ For conversational content: Include engaging hooks and smooth topic transitions
 
 ${locale ? `\n## LANGUAGE REQUIREMENT\nAll output should be in ${locale} language.` : ''}`;
   }
