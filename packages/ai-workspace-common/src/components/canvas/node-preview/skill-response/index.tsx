@@ -157,8 +157,15 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   // 2. structuredData.query (from node metadata)
   // 3. result.input.query (from action result)
   // 4. title (fallback)
-  const query =
-    currentQuery ?? (structuredData?.query as string) ?? (result?.input?.query as string) ?? title;
+  const query = useMemo(() => {
+    const computedQuery =
+      currentQuery ??
+      (structuredData?.query as string) ??
+      (result?.input?.query as string) ??
+      title;
+
+    return computedQuery;
+  }, [currentQuery, structuredData?.query, result?.input?.query, title]);
 
   const { steps = [], context, history = [] } = result ?? {};
   const contextItems = useMemo(() => {

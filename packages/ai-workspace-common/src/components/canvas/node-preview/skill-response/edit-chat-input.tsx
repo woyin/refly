@@ -78,6 +78,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   const [editModelInfo, setEditModelInfo] = useState<ModelInfo>(modelInfo);
   const [editRuntimeConfig, setEditRuntimeConfig] = useState<SkillRuntimeConfig>(runtimeConfig);
   const contextItemsRef = useRef(editContextItems);
+  const isInternalUpdateRef = useRef(false);
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -190,6 +191,9 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     const currentNode = nodes.find((node) => node.data?.entityId === resultId);
 
     if (currentNode && editQuery !== query) {
+      // Mark this as an internal update to prevent circular dependency
+      isInternalUpdateRef.current = true;
+
       // Update the query in real-time to MinIO
       updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
 
@@ -200,10 +204,19 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     }
   }, [editQuery, resultId, query, getNodes, updateNodeQuery, onQueryChange]);
 
-  // Sync internal state with props changes
+  // Sync internal state with props changes - but avoid circular updates
   useEffect(() => {
-    setEditQuery(query);
-  }, [query]);
+    // Only update if the query prop is different from current editQuery
+    // and it's not coming from our own update (avoid circular dependency)
+    if (query !== editQuery && !isInternalUpdateRef.current) {
+      setEditQuery(query);
+    }
+
+    // Reset the internal update flag
+    if (isInternalUpdateRef.current) {
+      isInternalUpdateRef.current = false;
+    }
+  }, [query, editQuery]);
 
   useEffect(() => {
     setEditContextItems(contextItems);
