@@ -26,6 +26,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowDetail,
   getWorkflowVariables,
   listAccounts,
   listActions,
@@ -72,6 +73,7 @@ import {
   GetPilotSessionDetailData,
   GetProjectDetailData,
   GetResourceDetailData,
+  GetWorkflowDetailData,
   GetWorkflowVariablesData,
   ListAccountsData,
   ListCanvasesData,
@@ -375,6 +377,14 @@ export const ensureUseGetPilotSessionDetailData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetPilotSessionDetailKeyFn(clientOptions),
     queryFn: () => getPilotSessionDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetWorkflowDetailData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetWorkflowDetailData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions),
+    queryFn: () => getWorkflowDetail({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSettingsData = (
   queryClient: QueryClient,

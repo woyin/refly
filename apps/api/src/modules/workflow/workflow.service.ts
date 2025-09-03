@@ -27,6 +27,7 @@ import { CanvasContentItem } from '../canvas/canvas.dto';
 import { SkillContext } from '@refly/openapi-schema';
 import { WorkflowVariableService } from './workflow-variable.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
+import { WorkflowExecutionNotFoundError } from '@refly/errors';
 
 @Injectable()
 export class WorkflowService {
@@ -942,5 +943,31 @@ export class WorkflowService {
     }
 
     return { context, history, images };
+  }
+
+  /**
+   * Get workflow execution detail with node executions
+   * @param user - The user requesting the workflow detail
+   * @param executionId - The workflow execution ID
+   * @returns Promise<WorkflowExecution> - The workflow execution detail
+   */
+  async getWorkflowDetail(user: User, executionId: string) {
+    // Get workflow execution
+    const workflowExecution = await this.prisma.workflowExecution.findUnique({
+      where: { executionId, uid: user.uid },
+    });
+
+    if (!workflowExecution) {
+      throw new WorkflowExecutionNotFoundError(`Workflow execution ${executionId} not found`);
+    }
+
+    // Get node executions
+    const nodeExecutions = await this.prisma.workflowNodeExecution.findMany({
+      where: { executionId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Return workflow execution detail
+    return { ...workflowExecution, nodeExecutions };
   }
 }

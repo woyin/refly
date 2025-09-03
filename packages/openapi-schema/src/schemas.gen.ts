@@ -8275,6 +8275,117 @@ export const InitializeWorkflowResponseSchema = {
   ],
 } as const;
 
+export const WorkflowNodeExecutionSchema = {
+  type: 'object',
+  required: ['nodeId'],
+  properties: {
+    nodeExecutionId: {
+      type: 'string',
+      description: 'Node execution ID',
+    },
+    nodeId: {
+      type: 'string',
+      description: 'Node ID',
+    },
+    nodeType: {
+      type: 'string',
+      description: 'Node type',
+    },
+    entityId: {
+      type: 'string',
+      description: 'Node entity ID',
+    },
+    newEntityId: {
+      type: 'string',
+      description: 'New node entity ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Node title',
+    },
+    status: {
+      description: 'Node status',
+      $ref: '#/components/schemas/ActionStatus',
+    },
+    progress: {
+      type: 'number',
+      description: 'Node progress',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Node creation timestamp',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Node update timestamp',
+    },
+  },
+} as const;
+
+export const WorkflowExecutionStatusSchema = {
+  type: 'string',
+  enum: ['init', 'executing', 'finish', 'failed'],
+} as const;
+
+export const WorkflowExecutionSchema = {
+  type: 'object',
+  required: ['executionId'],
+  properties: {
+    executionId: {
+      type: 'string',
+      description: 'Workflow execution ID',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID',
+    },
+    title: {
+      type: 'string',
+      description: 'Workflow title',
+    },
+    status: {
+      $ref: '#/components/schemas/WorkflowExecutionStatus',
+      description: 'Workflow status',
+    },
+    nodeExecutions: {
+      type: 'array',
+      description: 'Node executions',
+      items: {
+        $ref: '#/components/schemas/WorkflowNodeExecution',
+      },
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Workflow creation timestamp',
+    },
+    updatedAt: {
+      type: 'string',
+      format: 'date-time',
+      description: 'Workflow update timestamp',
+    },
+  },
+} as const;
+
+export const GetWorkflowDetailResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          $ref: '#/components/schemas/WorkflowExecution',
+        },
+      },
+    },
+  ],
+} as const;
+
 export const VariableTypeSchema = {
   type: 'string',
   enum: ['text', 'resource'],
