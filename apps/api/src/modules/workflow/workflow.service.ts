@@ -728,6 +728,24 @@ export class WorkflowService {
         return;
       }
 
+      // Get all parent nodes for this child
+      const parentNodeIds = JSON.parse(nodeExecution.parentNodeIds || '[]') as string[];
+
+      // Check if all parents are finished
+      const allParentsFinished =
+        (await this.prisma.workflowNodeExecution.count({
+          where: {
+            executionId: nodeExecution.executionId,
+            nodeId: { in: parentNodeIds },
+            status: 'finish',
+          },
+        })) === parentNodeIds.length;
+
+      if (!allParentsFinished) {
+        this.logger.warn(`Node ${nodeId} has unfinished parents`);
+        return;
+      }
+
       // Update node status to executing
       await this.prisma.workflowNodeExecution.update({
         where: { nodeExecutionId: nodeExecution.nodeExecutionId },
