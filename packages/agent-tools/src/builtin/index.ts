@@ -365,6 +365,7 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
         'The email address of the recipient. If not provided, the email will be sent to the user.',
       )
       .optional(),
+    attachments: z.array(z.string()).describe('The URLs of the attachments').optional(),
   });
 
   description = 'Send an email to a specified recipient with subject and HTML content.';
@@ -383,6 +384,7 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
         subject: input.subject,
         html: input.html,
         to: input.to,
+        attachments: input.attachments,
       });
 
       return {

@@ -291,7 +291,7 @@ export class MiscService implements OnModuleInit {
     return `${endpoint}/${storageKey}`;
   }
 
-  async downloadFile(file: FileObject) {
+  async downloadFile(file: FileObject): Promise<Buffer> {
     const { storageKey, visibility = 'private' } = file;
     const stream = await this.minioClient(visibility).getObject(storageKey);
     return streamToBuffer(stream);
@@ -308,6 +308,22 @@ export class MiscService implements OnModuleInit {
     const stream = await this.minioClient('private').getObject(storageKey);
     await this.minioClient('public').putObject(storageKey, stream);
     return this.generateFileURL({ visibility: 'public', storageKey });
+  }
+
+  /**
+   * Generate a temporary public URL for a private file
+   * @param storageKey - The storage key of the file to generate a temporary public URL for
+   * @param expiresIn - The number of seconds the URL will be valid for
+   * @returns The temporary public URL
+   */
+  async generateTempPublicURL(storageKey: string, expiresIn: number): Promise<string> {
+    if (!storageKey) {
+      return '';
+    }
+    if (expiresIn <= 0) {
+      throw new ParamsError('[generateTempPublicURL] expiresIn must be greater than 0');
+    }
+    return this.minioClient('private').presignedGetObject(storageKey, expiresIn);
   }
 
   async uploadBuffer(
@@ -702,7 +718,7 @@ export class MiscService implements OnModuleInit {
 
           // For private files, generate a signed URL that expires in given time
           try {
-            const signedUrl = await this.minioClient(visibility).presignedGetObject(
+            const signedUrl = await this.generateTempPublicURL(
               storageKey,
               this.config.get('image.presignExpiry'),
             );

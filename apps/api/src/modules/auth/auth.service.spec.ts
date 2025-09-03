@@ -24,7 +24,7 @@ describe('AuthService', () => {
           useValue: {
             get: jest.fn((key: string) => {
               switch (key) {
-                case 'auth.email.resendApiKey':
+                case 'email.resendApiKey':
                   return 're_123';
                 default:
                   return null;
