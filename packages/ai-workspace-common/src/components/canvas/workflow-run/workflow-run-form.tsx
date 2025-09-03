@@ -10,12 +10,31 @@ import { useFileUpload } from '../workflow-variables';
 import { ResourceUpload } from './resource-upload';
 import { getFileExtension } from '../workflow-variables/utils';
 import cn from 'classnames';
+import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 
 const RequiredTagText = () => {
   const { t } = useTranslation();
   return (
     <div className="flex-shrink-0 text-[10px] text-refly-text-2 leading-[16px] px-1 border-[1px] border-solid border-refly-Card-Border rounded-[4px]">
       {t('canvas.workflow.variables.required') || 'Required'}
+    </div>
+  );
+};
+
+const EmptyContent = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center">
+      <img src={EmptyImage} alt="no variables" className="w-[120px] h-[120px] -mb-4" />
+      <div className="text-sm text-refly-text-2 leading-5">
+        {t('canvas.workflow.run.emptyTitle', 'No variables defined')}
+      </div>
+      <div className="text-sm text-refly-text-2 leading-5">
+        {t(
+          'canvas.workflow.run.emptyDescription',
+          ' the workflow will be executed once if continued.',
+        )}
+      </div>
     </div>
   );
 };
@@ -417,12 +436,7 @@ export const WorkflowRunForm = ({
             {workflowVariables.map((variable) => renderFormField(variable))}
           </Form>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="w-full px-3 py-6 gap-0.5 flex items-center justify-center bg-refly-bg-control-z0 rounded-lg text-xs text-refly-text-1 leading-4">
-              {t('canvas.workflow.run.empty') ||
-                'No variables defined, the workflow will be executed once if continued.'}
-            </div>
-          </div>
+          <EmptyContent />
         )}
       </div>
 
