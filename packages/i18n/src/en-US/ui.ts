@@ -3424,6 +3424,16 @@ const translations = {
     noDescription: 'No description',
     emptyList: 'Zero templates? No problem! Create yours now and inspire the community!',
   },
+  workflowApp: {
+    title: 'Title',
+    description: 'Description',
+    titlePlaceholder: 'Please enter title',
+    descriptionPlaceholder: 'Please enter description',
+    publish: 'Publish',
+    publishSuccess: 'Published successfully',
+    runLogs: 'Run Logs',
+    products: 'Products',
+  },
   project: {
     create: 'Create Project',
     viewAllProjects: 'View All Projects',

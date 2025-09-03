@@ -46,8 +46,10 @@ export const AppLayout = (props: AppLayoutProps) => {
     }));
 
   const isPublicAccessPage = usePublicAccessPage();
+  console.log('isPublicAccessPage', isPublicAccessPage);
   const matchPricing = useMatch('/pricing');
   const matchLogin = useMatch('/login');
+  const matchApp = useMatch('/app/:appId');
 
   useBindCommands();
 
@@ -58,7 +60,9 @@ export const AppLayout = (props: AppLayoutProps) => {
     isCheckingLoginStatus: state.isCheckingLoginStatus,
   }));
 
-  const showSider = isPublicAccessPage || (!!userStore.userProfile && !matchPricing && !matchLogin);
+  const showSider =
+    (isPublicAccessPage || (!!userStore.userProfile && !matchPricing && !matchLogin)) && !matchApp;
+  console.log('showSider', showSider);
 
   // Get storage user profile
   const storageUserProfile = safeParseJSON(localStorage.getItem('refly-user-profile'));

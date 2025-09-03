@@ -3170,6 +3170,16 @@ const translations = {
     noDescription: '暂无描述',
     emptyList: '暂无模版，快来发挥你的创造力，为社区贡献模版吧～',
   },
+  workflowApp: {
+    title: '标题',
+    description: '描述',
+    titlePlaceholder: '请输入标题',
+    descriptionPlaceholder: '请输入描述',
+    publish: '发布',
+    publishSuccess: '发布成功',
+    runLogs: '运行日志',
+    products: '结果产物',
+  },
   project: {
     create: '创建知识库',
     viewAllProjects: '查看所有知识库',
