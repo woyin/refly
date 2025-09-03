@@ -510,9 +510,7 @@ export class PilotService {
 
       // Get session details for context building
       const { steps } = await this.getPilotSessionDetail(user, sessionId);
-      const latestSummarySteps =
-        steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') ||
-        [];
+      const latestSummarySteps = steps?.filter(({ step }) => step.epoch === currentEpoch - 1) || [];
       const contextEntityIds = latestSummarySteps.map(({ step }) => step.entityId);
       const { context, history } = await this.buildContextAndHistory(
         canvasContentItems,
@@ -543,10 +541,10 @@ export class PilotService {
             });
         }
 
-        const recommendedContext = await this.buildContextAndHistory(
-          canvasContentItems,
-          rawStep.contextItemIds,
-        );
+        // const recommendedContext = await this.buildContextAndHistory(
+        //   canvasContentItems,
+        //   rawStep.contextItemIds,
+        // );
 
         const resultId = genActionResultID();
 
@@ -628,8 +626,8 @@ export class PilotService {
           },
           modelName: chatModelId,
           modelItemId: chatPi.itemId,
-          context: recommendedContext.context,
-          resultHistory: recommendedContext.history,
+          context: context,
+          resultHistory: history,
           toolsets,
         });
       }
@@ -733,10 +731,10 @@ export class PilotService {
 
       const { steps } = await this.getPilotSessionDetail(user, sessionId);
 
-      const recommendedContext = await this.buildContextAndHistory(
-        canvasContentItems,
-        steps.map(({ step }) => step.entityId),
-      );
+      // const recommendedContext = await this.buildContextAndHistory(
+      //   canvasContentItems,
+      //   steps.map(({ step }) => step.entityId),
+      // );
 
       const stepId = genPilotStepID();
       const latestSubtaskSteps =
@@ -850,8 +848,8 @@ export class PilotService {
         },
         modelName: chatModelId,
         modelItemId: chatPi.itemId,
-        context: recommendedContext.context,
-        resultHistory: recommendedContext.history,
+        context: context,
+        resultHistory: history,
         toolsets: [],
       });
 

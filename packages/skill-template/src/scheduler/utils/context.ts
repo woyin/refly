@@ -17,7 +17,7 @@ type Block = {
 };
 
 // Fallback summarizer trims text to budget using token-based middle-out truncation
-const fallbackSummarize = async (
+export const fallbackSummarize = async (
   _query: string,
   content: string,
   budget: number,

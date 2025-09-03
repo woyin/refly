@@ -7,7 +7,7 @@ export function buildSubtaskSkillInput(params: {
 }): SkillInput {
   const { userQuestion, query } = params;
 
-  const prompt = `ROLE:
+  const _prompt = `ROLE:
 You are executing a focused subtask as part of a larger multi-epoch plan.
 
 GOAL CONTEXT:
@@ -17,5 +17,5 @@ THIS SUBTASK:
 - Query: "${query}"
 `;
 
-  return { query: prompt };
+  return { query: query };
 }
