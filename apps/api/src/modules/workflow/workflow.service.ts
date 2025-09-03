@@ -198,15 +198,16 @@ export class WorkflowService {
         }
       }
 
-      if (startNodes.length === 0) {
+      const realStartNodes = startNodes || [];
+      if (realStartNodes.length === 0) {
         for (const [nodeId, parents] of parentMap) {
           if (parents.length === 0) {
-            startNodes.push(nodeId);
+            realStartNodes.push(nodeId);
           }
         }
       }
 
-      if (startNodes.length === 0) {
+      if (realStartNodes.length === 0) {
         throw new Error('No start nodes found in workflow');
       }
 
@@ -229,7 +230,7 @@ export class WorkflowService {
       };
 
       // Determine which nodes should be in 'waiting' status
-      const subtreeNodes = findSubtreeNodes(startNodes);
+      const subtreeNodes = findSubtreeNodes(realStartNodes);
 
       // If there's a new canvas ID, generate new node IDs for each node and store them in the new database field
       // Create node execution records
@@ -265,7 +266,7 @@ export class WorkflowService {
 
       // Add start nodes to runWorkflowQueue
       if (this.runWorkflowQueue) {
-        for (const startNodeId of startNodes) {
+        for (const startNodeId of realStartNodes) {
           // Find the node execution record to get the new node ID
           const nodeExecution = nodeExecutions.find((ne) => ne.nodeId === startNodeId);
           await this.runWorkflowQueue.add('runWorkflow', {
