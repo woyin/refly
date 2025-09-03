@@ -316,14 +316,19 @@ export class MiscService implements OnModuleInit {
    * @param expiresIn - The number of seconds the URL will be valid for
    * @returns The temporary public URL
    */
-  async generateTempPublicURL(storageKey: string, expiresIn: number): Promise<string> {
+  async generateTempPublicURL(storageKey: string, expiresIn?: number): Promise<string> {
     if (!storageKey) {
       return '';
     }
-    if (expiresIn <= 0) {
-      throw new ParamsError('[generateTempPublicURL] expiresIn must be greater than 0');
+    const fallback = Number(this.config.get<number>('image.presignExpiry') ?? 300);
+    const raw = expiresIn ?? fallback;
+    const expiry = Number(raw);
+    const MAX = 7 * 24 * 60 * 60; // 7 days
+    if (!Number.isFinite(expiry) || expiry <= 0) {
+      throw new ParamsError('[generateTempPublicURL] invalid expiresIn');
     }
-    return this.minioClient('private').presignedGetObject(storageKey, expiresIn);
+    const safeExpiry = Math.min(Math.floor(expiry), MAX);
+    return this.minioClient('private').presignedGetObject(storageKey, safeExpiry);
   }
 
   async uploadBuffer(
@@ -718,10 +723,8 @@ export class MiscService implements OnModuleInit {
 
           // For private files, generate a signed URL that expires in given time
           try {
-            const signedUrl = await this.generateTempPublicURL(
-              storageKey,
-              this.config.get('image.presignExpiry'),
-            );
+            const expiry = Number(this.config.get<number>('image.presignExpiry') ?? 300);
+            const signedUrl = await this.generateTempPublicURL(storageKey, expiry);
             return signedUrl;
           } catch (error) {
             this.logger.error(

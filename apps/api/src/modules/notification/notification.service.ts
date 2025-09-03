@@ -76,6 +76,10 @@ export class NotificationService {
     const { to, subject, html, from, attachments: attachmentUrls } = param;
     const sender = from || this.configService.get('email.sender');
 
+    if (!sender) {
+      throw new ParamsError('Email sender is not configured');
+    }
+
     let receiver = to;
 
     // Validate email address and fallback to user email if invalid

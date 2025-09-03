@@ -221,14 +221,14 @@ const compressContext = async (
  */
 export async function prepareContext(
   query: string,
-  ctx: SkillContext,
+  context: SkillContext,
   options: {
     maxTokens: number;
     engine: SkillEngine;
     summarizerConcurrentLimit?: number;
   },
 ): Promise<{ contextStr: string }> {
-  if (!ctx) {
+  if (!context) {
     return { contextStr: '' };
   }
 
@@ -248,8 +248,8 @@ export async function prepareContext(
   };
 
   // Process user selected content
-  if (ctx?.contentList?.length > 0) {
-    const items = (ctx?.contentList ?? [])
+  if (context?.contentList?.length > 0) {
+    const items = (context?.contentList ?? [])
       .map((item) => {
         const metadata = (item?.metadata ?? {}) as Record<string, unknown>;
         const title = (metadata as any)?.title ?? 'Untitled Content';
@@ -277,8 +277,8 @@ export async function prepareContext(
   }
 
   // Process knowledge base documents
-  if (ctx?.documents?.length > 0) {
-    const items = (ctx?.documents ?? [])
+  if (context?.documents?.length > 0) {
+    const items = (context?.documents ?? [])
       .filter((item) => item?.document?.content)
       .map((item) => {
         const doc = item?.document;
@@ -296,8 +296,8 @@ export async function prepareContext(
   }
 
   // Process knowledge base resources
-  if (ctx?.resources?.length > 0) {
-    const items = (ctx?.resources ?? [])
+  if (context?.resources?.length > 0) {
+    const items = (context?.resources ?? [])
       .filter((item) => item?.resource?.content)
       .map((item) => {
         const resource = item?.resource;
@@ -316,8 +316,8 @@ export async function prepareContext(
   }
 
   // Process code artifacts
-  if (ctx?.codeArtifacts?.length > 0) {
-    const items = (ctx?.codeArtifacts ?? [])
+  if (context?.codeArtifacts?.length > 0) {
+    const items = (context?.codeArtifacts ?? [])
       .filter((item) => item?.codeArtifact?.content)
       .map((item) => {
         const artifact = item?.codeArtifact;
@@ -336,8 +336,8 @@ export async function prepareContext(
   }
 
   // Process media items
-  if (ctx?.mediaList?.length > 0) {
-    const items = (ctx?.mediaList ?? [])
+  if (context?.mediaList?.length > 0) {
+    const items = (context?.mediaList ?? [])
       .map((item) => {
         const entityId = item?.entityId;
         const title = item?.title ?? 'Untitled Media';
@@ -357,8 +357,8 @@ export async function prepareContext(
   }
 
   // Process deprecated URLs (for backward compatibility)
-  if (ctx?.urls?.length > 0) {
-    const items = (ctx?.urls ?? [])
+  if (context?.urls?.length > 0) {
+    const items = (context?.urls ?? [])
       .map((item) => {
         const url = item?.url;
         const metadata = (item?.metadata ?? {}) as Record<string, unknown>;

@@ -17,7 +17,7 @@ export const preprocess = async (
   config: SkillRunnableConfig,
   engine: SkillEngine,
 ): Promise<PreprocessResult> => {
-  const { context } = config.configurable;
+  const context = config?.configurable?.context ?? undefined;
 
   // Use shared query processor
   const { optimizedQuery, usedChatHistory, hasContext, remainingTokens, rewrittenQueries } =
