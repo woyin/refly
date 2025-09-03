@@ -8240,6 +8240,14 @@ export const InitializeWorkflowRequestSchema = {
       description: 'New canvas ID',
       example: 'canvas-456',
     },
+    startNodes: {
+      type: 'array',
+      description: 'Start node IDs',
+      items: {
+        type: 'string',
+        example: 'node-123',
+      },
+    },
   },
 } as const;
 
