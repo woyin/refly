@@ -6,9 +6,10 @@ import { CanvasService } from '../canvas/canvas.service';
 import { MiscService } from '../misc/misc.service';
 import { genCanvasID, genWorkflowAppID } from '@refly/utils';
 import { WorkflowService } from '../workflow/workflow.service';
-import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { workflowAppPO2DTO } from './workflow-app.dto';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class WorkflowAppService {
   private logger = new Logger(WorkflowAppService.name);
 
@@ -17,7 +18,6 @@ export class WorkflowAppService {
     private readonly canvasService: CanvasService,
     private readonly miscService: MiscService,
     private readonly workflowService: WorkflowService,
-    private readonly canvasSyncService: CanvasSyncService,
   ) {}
 
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
