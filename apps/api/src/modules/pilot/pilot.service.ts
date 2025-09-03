@@ -912,36 +912,18 @@ export class PilotService {
       }
 
       const epochSubtaskSteps = epochSteps.filter((step) => step.mode === 'subtask');
-      const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
 
       const isAllSubtaskStepsFinished =
         epochSubtaskSteps.length > 0 &&
         epochSubtaskSteps.every((step) => step.status === 'finish' || step.status === 'failed');
 
-      const isAllSummaryStepsFinished =
-        epochSummarySteps.length > 0 &&
-        epochSummarySteps.every((step) => step.status === 'finish' || step.status === 'failed');
-
       const reachedMaxEpoch = step.epoch > session.maxEpoch - 1;
       this.logger.log(
         `Epoch (${session.currentEpoch}/${session.maxEpoch}) for session ${step.sessionId}: ` +
-          `steps are ${isAllSummaryStepsFinished ? 'finished' : 'not finished'}`,
+          `subtask steps are ${isAllSubtaskStepsFinished ? 'finished' : 'not finished'}`,
       );
 
-      if (isAllSubtaskStepsFinished && epochSummarySteps.length === 0) {
-        await this.runPilotQueue.add(
-          `run-pilot-${step.sessionId}-${session.currentEpoch}`,
-          {
-            user,
-            sessionId: step.sessionId,
-            mode: 'summary',
-          },
-          { removeOnComplete: true, removeOnFail: 100 },
-        );
-        return;
-      }
-
-      if (isAllSubtaskStepsFinished && isAllSummaryStepsFinished) {
+      if (isAllSubtaskStepsFinished) {
         await this.prisma.pilotSession.update({
           where: { sessionId: step.sessionId },
           data: {

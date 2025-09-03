@@ -85,7 +85,11 @@ export class PilotEngineService {
         );
 
         // Update the progress plan with re-planned results
-        progressPlan = Object.assign(progressPlan, replannedPlan);
+        if (replannedPlan) {
+          progressPlan = Object.assign(progressPlan, replannedPlan);
+        } else {
+          this.logger.warn('Re-planned plan is null or undefined, keeping original plan');
+        }
       }
 
       // Persist the updated plan
@@ -766,25 +770,34 @@ export class PilotEngineService {
         locale,
       );
 
+      // Validate the result
+      if (!planWithSubtasks) {
+        this.logger.warn(
+          'analyzeIntentAndPlanWithSubtasks returned null/undefined, using current plan',
+        );
+        return currentPlan;
+      }
+
       // Convert ProgressPlanWithSubtasks to ProgressPlan
       const replannedPlan: ProgressPlan = {
-        stages: planWithSubtasks.stages,
+        stages: planWithSubtasks.stages || currentPlan.stages,
         currentStageIndex: currentPlan.currentStageIndex,
-        overallProgress: planWithSubtasks.overallProgress,
-        lastUpdated: planWithSubtasks.lastUpdated,
-        planningLogic: planWithSubtasks.planningLogic,
-        userIntent: planWithSubtasks.userIntent,
-        estimatedTotalEpochs: planWithSubtasks.estimatedTotalEpochs,
+        overallProgress: planWithSubtasks.overallProgress ?? currentPlan.overallProgress,
+        lastUpdated: planWithSubtasks.lastUpdated || new Date().toISOString(),
+        planningLogic: planWithSubtasks.planningLogic || currentPlan.planningLogic,
+        userIntent: planWithSubtasks.userIntent || currentPlan.userIntent,
+        estimatedTotalEpochs:
+          planWithSubtasks.estimatedTotalEpochs ?? currentPlan.estimatedTotalEpochs,
       };
 
       // Add current stage subtasks to the current stage
       const currentStage = replannedPlan.stages[replannedPlan.currentStageIndex];
-      if (currentStage && planWithSubtasks.currentStageSubtasks.length > 0) {
+      if (currentStage && planWithSubtasks.currentStageSubtasks?.length > 0) {
         currentStage.subtasks = planWithSubtasks.currentStageSubtasks;
       }
 
       this.logger.log(
-        `Dynamic re-planning completed. Updated ${replannedPlan.stages.length} stages with ${planWithSubtasks.currentStageSubtasks.length} current stage subtasks`,
+        `Dynamic re-planning completed. Updated ${replannedPlan.stages.length} stages with ${planWithSubtasks.currentStageSubtasks?.length || 0} current stage subtasks`,
       );
       return replannedPlan;
     } catch (error) {

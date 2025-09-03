@@ -195,11 +195,89 @@ export class IntentAnalysisService {
       }
 
       // Process the extracted result similar to structured output
-      const _result = extraction.result;
-      // ... (similar processing logic)
+      const result = extraction.result;
 
-      // For now, return a default plan if fallback also fails
-      return this.generateDefaultPlanWithSubtasks(userQuestion);
+      // Validate the extracted result
+      if (!result || typeof result !== 'object') {
+        throw new Error('Invalid JSON structure in fallback response');
+      }
+
+      // Convert to ProgressPlanWithSubtasks (similar to structured output logic)
+      const stages: ProgressStage[] = (result.stages || []).map(
+        (stageInfo: any, _index: number) => {
+          const stageId = genPilotStepID();
+          return {
+            id: stageId,
+            name: stageInfo.name || 'Unnamed Stage',
+            description: stageInfo.description || 'No description',
+            objectives: stageInfo.objectives || ['Complete task'],
+            status: stageInfo.status || 'pending',
+            createdAt: new Date().toISOString(),
+            startedAt: stageInfo.status === 'in_progress' ? new Date().toISOString() : undefined,
+            subtasks: [],
+            toolCategories: stageInfo.toolCategories || ['general'],
+            priority: stageInfo.priority || 1,
+          };
+        },
+      );
+
+      const currentStageSubtasks: ProgressSubtask[] = (result.currentStageSubtasks || []).map(
+        (subtaskInfo: any, index: number) => ({
+          id: `subtask_${Date.now()}_${index}`,
+          name: subtaskInfo.name || 'Unnamed Subtask',
+          query: subtaskInfo.query || userQuestion,
+          status: subtaskInfo.status || 'pending',
+          createdAt: new Date().toISOString(),
+        }),
+      );
+
+      // Find current stage index
+      const currentStageIndex = stages.findIndex((stage) => stage.status === 'in_progress');
+
+      return {
+        stages:
+          stages.length > 0
+            ? stages
+            : [
+                {
+                  id: genPilotStepID(),
+                  name: 'General Task Execution',
+                  description: 'Default stage for task execution',
+                  objectives: ['Complete the requested task'],
+                  status: 'in_progress',
+                  createdAt: new Date().toISOString(),
+                  startedAt: new Date().toISOString(),
+                  subtasks: [],
+                  toolCategories: ['web_search', 'analysis', 'generation'],
+                  priority: 1,
+                },
+              ],
+        currentStageIndex: currentStageIndex >= 0 ? currentStageIndex : 0,
+        overallProgress: progressPlan?.overallProgress || 0,
+        lastUpdated: new Date().toISOString(),
+        planningLogic: result.planningLogic || 'Fallback planning with manual JSON parsing',
+        userIntent: result.userIntent || userQuestion,
+        estimatedTotalEpochs: result.estimatedTotalEpochs || 2,
+        currentStageSubtasks:
+          currentStageSubtasks.length > 0
+            ? currentStageSubtasks
+            : [
+                {
+                  id: `subtask_${Date.now()}_0`,
+                  name: 'Execute General Task',
+                  query: userQuestion,
+                  status: 'pending',
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+        planningContext: {
+          isInitialPlan,
+          previousExecutionSummary:
+            result.previousExecutionSummary || 'No previous execution summary',
+          userIntent: result.userIntent || userQuestion,
+          currentStageIndex: currentStageIndex >= 0 ? currentStageIndex : 0,
+        },
+      };
     }
   }
 
