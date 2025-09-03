@@ -2,6 +2,7 @@ import { Source } from '@refly/openapi-schema';
 import { SkillRunnableConfig } from '../../base';
 import { processQuery } from './queryProcessor';
 import { prepareContext } from './context';
+import { SkillEngine } from '../../engine';
 
 export interface PreprocessResult {
   optimizedQuery: string;
@@ -14,6 +15,7 @@ export interface PreprocessResult {
 export const preprocess = async (
   query: string,
   config: SkillRunnableConfig,
+  engine: SkillEngine,
 ): Promise<PreprocessResult> => {
   const { context } = config.configurable;
 
@@ -32,7 +34,10 @@ export const preprocess = async (
   };
 
   if (needPrepareContext) {
-    const preparedRes = await prepareContext(context);
+    const preparedRes = await prepareContext(query, context, {
+      maxTokens: remainingTokens,
+      engine,
+    });
 
     result.context = preparedRes.contextStr;
 

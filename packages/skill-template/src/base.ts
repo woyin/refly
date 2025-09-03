@@ -180,7 +180,7 @@ export abstract class BaseSkill {
     };
 
     // Preprocess query and context
-    config.configurable.preprocessResult ??= await preprocess(input.query, config);
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this.engine);
 
     const response = await this.toRunnable().invoke(input, {
       ...config,
@@ -209,7 +209,7 @@ export abstract class BaseSkill {
     };
 
     // Preprocess query and context
-    config.configurable.preprocessResult ??= await preprocess(input.query, config);
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this.engine);
 
     const runnable = this.toRunnable();
 
