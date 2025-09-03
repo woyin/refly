@@ -2,7 +2,7 @@ import { START, END, StateGraphArgs, StateGraph } from '@langchain/langgraph';
 import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
-import { Icon, SkillInvocationConfig, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 import { GraphState } from '../scheduler/types';
 
 // utils
@@ -33,8 +33,6 @@ export class WebSearch extends BaseSkill {
       },
     ],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = 'Search the web and provide answers based on search results';
 

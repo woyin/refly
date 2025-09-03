@@ -10,7 +10,6 @@ import {
   SkillContext,
   SkillInput,
   SkillTemplateConfigDefinition,
-  SkillInvocationConfig,
   SkillMeta,
   User,
   SkillEvent,
@@ -48,10 +47,6 @@ export abstract class BaseSkill {
    * Skill template config schema
    */
   abstract configSchema: SkillTemplateConfigDefinition;
-  /**
-   * Skill invocation config
-   */
-  abstract invocationConfig: SkillInvocationConfig;
   /**
    * Langgraph state definition
    */
@@ -185,7 +180,7 @@ export abstract class BaseSkill {
     };
 
     // Preprocess query and context
-    config.configurable.preprocessResult ??= await preprocess(input.query, config, this);
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this.engine);
 
     const response = await this.toRunnable().invoke(input, {
       ...config,
@@ -214,7 +209,7 @@ export abstract class BaseSkill {
     };
 
     // Preprocess query and context
-    config.configurable.preprocessResult ??= await preprocess(input.query, config, this);
+    config.configurable.preprocessResult ??= await preprocess(input.query, config, this.engine);
 
     const runnable = this.toRunnable();
 
@@ -279,8 +274,9 @@ export interface SkillRunnableMeta extends Record<string, unknown>, SkillMeta {
 }
 
 export interface SkillRunnableConfig extends RunnableConfig {
-  configurable?: SkillContext & {
+  configurable?: {
     user: User;
+    context: SkillContext;
     resultId?: string;
     canvasId?: string;
     locale?: string;

@@ -2,7 +2,7 @@ import { START, END, StateGraphArgs, StateGraph } from '@langchain/langgraph';
 import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
-import { Icon, SkillInvocationConfig, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 
 // types
 import { GraphState } from '../scheduler/types';
@@ -21,8 +21,6 @@ export class CommonQnA extends BaseSkill {
   configSchema: SkillTemplateConfigDefinition = {
     items: [],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = 'Answer common questions';
 

@@ -209,7 +209,11 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
     this.params = params;
   }
 
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _: any,
+    config: RunnableConfig,
+  ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
       const result = await reflyService.generateMedia(user, {
@@ -220,6 +224,7 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
         targetType: input.targetType,
         targetId: input.targetId,
         wait: true,
+        parentResultId: config.configurable?.resultId,
       });
 
       return {
@@ -246,7 +251,8 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
     title: z.string().describe('Title of the document to generate'),
     content: z.string().describe('Markdown content of the document'),
   });
-  description = 'Generate a new document based on a title and content.';
+  description =
+    'Create or save content to a document (e.g., when the user says "save to document"). Provide a title and Markdown content.';
 
   protected params: BuiltinToolParams;
 
@@ -360,6 +366,7 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
         'The email address of the recipient. If not provided, the email will be sent to the user.',
       )
       .optional(),
+    attachments: z.array(z.string()).describe('The URLs of the attachments').optional(),
   });
 
   description = 'Send an email to a specified recipient with subject and HTML content.';
@@ -378,6 +385,7 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
         subject: input.subject,
         html: input.html,
         to: input.to,
+        attachments: input.attachments,
       });
 
       return {

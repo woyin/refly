@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
 import {
   Icon,
-  SkillInvocationConfig,
   SkillTemplateConfigDefinition,
   MediaGenerateRequest,
   Artifact,
@@ -47,8 +46,6 @@ export class GenerateMedia extends BaseSkill {
       },
     ],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description =
     'Generate multimedia content including images, videos, and audio using external generation services with real-time progress tracking';

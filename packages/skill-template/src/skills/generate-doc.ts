@@ -4,12 +4,7 @@ import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
 import { safeStringifyJSON } from '@refly/utils';
-import {
-  Artifact,
-  Icon,
-  SkillInvocationConfig,
-  SkillTemplateConfigDefinition,
-} from '@refly/openapi-schema';
+import { Artifact, Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 // types
 import { GraphState } from '../scheduler/types';
 // utils
@@ -39,8 +34,6 @@ export class GenerateDoc extends BaseSkill {
   configSchema: SkillTemplateConfigDefinition = {
     items: [],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = 'Generate a document according to the user query';
 

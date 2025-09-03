@@ -1,728 +1,391 @@
-import { IContext } from '../types';
-import { countContextTokens, countSourcesTokens, checkHasContext } from './token';
-import {
-  processSelectedContentWithSimilarity,
-  processDocumentsWithSimilarity,
-  processResourcesWithSimilarity,
-  processMentionedContextWithSimilarity,
-} from './semanticSearch';
-import { BaseSkill, SkillRunnableConfig } from '../../base';
-import { truncateContext } from './truncator';
-import { flattenMergedContextToSources, concatMergedContextToStr } from './summarizer';
-import { LLMModelConfig, SkillTemplateConfig, Source } from '@refly/openapi-schema';
-import { uniqBy } from 'lodash';
-import { MAX_CONTEXT_RATIO, MAX_URL_SOURCES_RATIO } from './constants';
-import { safeStringifyJSON } from '@refly/utils';
-import { callMultiLingualLibrarySearch } from '../module/multiLingualLibrarySearch';
-import { checkIsSupportedModel, checkModelContextLenSupport } from './model';
-import { SkillContextContentItemMetadata } from '../types';
-import { processUrlSourcesWithSimilarity } from './semanticSearch';
+import { SkillContext } from '@refly/openapi-schema';
+import { BaseChatModel } from '@refly/providers';
+import { encode, decode } from 'gpt-tokenizer';
+import { SkillEngine } from '../../engine';
 
-export async function prepareContext(
-  {
-    query,
-    mentionedContext,
-    maxTokens,
-    enableMentionedContext,
-    rewrittenQueries,
-    urlSources = [],
-  }: {
-    query: string;
-    mentionedContext: IContext;
-    maxTokens: number;
-    enableMentionedContext: boolean;
-    rewrittenQueries?: string[];
-    urlSources?: Source[];
-  },
-  ctx: {
-    config: SkillRunnableConfig;
-    ctxThis: BaseSkill;
-    tplConfig: SkillTemplateConfig;
-  },
-): Promise<{ contextStr: string; sources: Source[] }> {
-  try {
-    const enableWebSearch = ctx.tplConfig?.enableWebSearch?.value;
-    const enableKnowledgeBaseSearch = ctx.tplConfig?.enableKnowledgeBaseSearch?.value;
-    ctx.ctxThis.engine.logger.log(`Enable Web Search: ${enableWebSearch}`);
-    ctx.ctxThis.engine.logger.log(`Enable Knowledge Base Search: ${enableKnowledgeBaseSearch}`);
-    ctx.ctxThis.engine.logger.log(`URL Sources Count: ${urlSources?.length || 0}`);
+export type Summarizer = (query: string, content: string, maxTokens: number) => Promise<string>;
 
-    const maxContextTokens = Math.floor(maxTokens * MAX_CONTEXT_RATIO);
-
-    // Process URL sources with similarity search
-    const MAX_URL_SOURCES_TOKENS = Math.floor(maxContextTokens * MAX_URL_SOURCES_RATIO);
-
-    let processedUrlSources: Source[] = [];
-    if (urlSources?.length > 0) {
-      processedUrlSources = await processUrlSourcesWithSimilarity(
-        query,
-        urlSources,
-        MAX_URL_SOURCES_TOKENS,
-        ctx,
-      );
-    }
-
-    // Calculate tokens used by processed URL sources
-    const urlSourcesTokens = countSourcesTokens(processedUrlSources);
-    let remainingTokens = maxContextTokens - urlSourcesTokens;
-    ctx.ctxThis.engine.logger.log(`URL Sources Tokens: ${urlSourcesTokens}`);
-
-    const { modelConfigMap } = ctx.config.configurable;
-    const modelInfo = modelConfigMap.queryAnalysis;
-    const isSupportedModel = checkIsSupportedModel(modelInfo);
-
-    // 1. web search context
-    const processedWebSearchContext: IContext = {
-      contentList: [],
-      resources: [],
-      documents: [],
-      webSearchSources: [],
-    };
-    const webSearchContextTokens = countSourcesTokens(processedWebSearchContext.webSearchSources);
-    remainingTokens -= webSearchContextTokens;
-    ctx.ctxThis.engine.logger.log(`Web Search Context Tokens: ${webSearchContextTokens}`);
-    ctx.ctxThis.engine.logger.log(`Remaining Tokens after web search: ${remainingTokens}`);
-
-    // 2. library search context
-    let processedLibrarySearchContext: IContext = {
-      contentList: [],
-      resources: [],
-      documents: [],
-      librarySearchSources: [],
-    };
-    if (enableKnowledgeBaseSearch) {
-      const librarySearchRes = await performLibrarySearchContext(
-        {
-          query,
-          modelInfo,
-          rewrittenQueries,
-          enableQueryRewrite: true,
-          enableSearchWholeSpace: true,
-        },
-        ctx,
-      );
-      processedLibrarySearchContext = librarySearchRes.processedLibrarySearchContext;
-      // Adjust remaining tokens based on library search results
-      const librarySearchContextTokens = countSourcesTokens(
-        processedLibrarySearchContext.librarySearchSources,
-      );
-      remainingTokens -= librarySearchContextTokens;
-      ctx.ctxThis.engine.logger.log(`Library Search Context Tokens: ${librarySearchContextTokens}`);
-      ctx.ctxThis.engine.logger.log(`Remaining Tokens after library search: ${remainingTokens}`);
-    }
-
-    // 3. mentioned context
-    let processedMentionedContext: IContext = {
-      contentList: [],
-      resources: [],
-      documents: [],
-    };
-    if (enableMentionedContext && isSupportedModel) {
-      const mentionContextRes = await prepareMentionedContext(
-        {
-          query,
-          mentionedContext,
-          maxMentionedContextTokens: remainingTokens,
-        },
-        ctx,
-      );
-
-      processedMentionedContext = mentionContextRes.processedMentionedContext;
-      remainingTokens -= mentionContextRes.mentionedContextTokens || 0;
-      ctx.ctxThis.engine.logger.log(
-        `Mentioned Context Tokens: ${mentionContextRes.mentionedContextTokens || 0}`,
-      );
-      ctx.ctxThis.engine.logger.log(`Remaining Tokens after mentioned context: ${remainingTokens}`);
-    }
-
-    // 4. relevant context from user-provided content (if there are tokens remaining)
-    let relevantContext: IContext = {
-      contentList: [],
-      resources: [],
-      documents: [],
-    };
-    if (
-      remainingTokens > 0 &&
-      (ctx.config.configurable.contentList?.length > 0 ||
-        ctx.config.configurable.resources?.length > 0 ||
-        ctx.config.configurable.documents?.length > 0)
-    ) {
-      const { contentList = [], resources = [], documents = [] } = ctx.config.configurable;
-
-      // Remove overlapping items with mentioned context
-      const filteredContext = removeOverlappingContextItems(processedMentionedContext, {
-        contentList,
-        resources,
-        documents,
-      });
-
-      // Get relevant context directly
-      relevantContext = await prepareRelevantContext(
-        {
-          query,
-          context: filteredContext,
-        },
-        ctx,
-      );
-
-      // Calculate tokens before truncation
-      const relevantContextTokensBeforeTruncation = countContextTokens(relevantContext);
-      ctx.ctxThis.engine.logger.log(
-        `Relevant Context Tokens Before Truncation: ${relevantContextTokensBeforeTruncation}`,
-      );
-
-      // Truncate to fit within token limits
-      if (relevantContextTokensBeforeTruncation > remainingTokens) {
-        relevantContext = truncateContext(relevantContext, remainingTokens);
-        const relevantContextTokensAfterTruncation = countContextTokens(relevantContext);
-        ctx.ctxThis.engine.logger.log(
-          `Relevant Context Tokens After Truncation: ${relevantContextTokensAfterTruncation}`,
-        );
-        remainingTokens -= relevantContextTokensAfterTruncation;
-      } else {
-        remainingTokens -= relevantContextTokensBeforeTruncation;
-      }
-
-      ctx.ctxThis.engine.logger.log(`Remaining Tokens after relevant context: ${remainingTokens}`);
-    }
-
-    ctx.ctxThis.engine.logger.log(
-      `Prepared Relevant Context: ${safeStringifyJSON(relevantContext)}`,
-    );
-
-    // Merge all contexts with proper deduplication
-    const deduplicatedRelevantContext = deduplicateContexts(relevantContext);
-    const mergedContext = {
-      urlSources: processedUrlSources,
-      mentionedContext: processedMentionedContext,
-      relevantContext: deduplicatedRelevantContext,
-      webSearchSources: processedWebSearchContext.webSearchSources,
-      librarySearchSources: removeOverlappingLibrarySearchSources(
-        processedLibrarySearchContext.librarySearchSources,
-        processedMentionedContext,
-        deduplicatedRelevantContext,
-        ctx.ctxThis.engine.logger,
-      ),
-    };
-
-    ctx.ctxThis.engine.logger.log(`Merged Context: ${safeStringifyJSON(mergedContext)}`);
-
-    const hasMentionedContext = checkHasContext(processedMentionedContext);
-    const hasRelevantContext = checkHasContext(relevantContext);
-
-    // Limit search sources count when we have other context
-    const LIMIT_SEARCH_SOURCES_COUNT = 10;
-    if (hasMentionedContext || hasRelevantContext) {
-      mergedContext.webSearchSources = mergedContext.webSearchSources.slice(
-        0,
-        LIMIT_SEARCH_SOURCES_COUNT,
-      );
-      mergedContext.librarySearchSources = mergedContext.librarySearchSources.slice(
-        0,
-        LIMIT_SEARCH_SOURCES_COUNT,
-      );
-    }
-
-    // Generate final context string and sources
-    const contextStr = concatMergedContextToStr(mergedContext);
-    const sources = flattenMergedContextToSources(mergedContext);
-
-    return { contextStr, sources };
-  } catch (error) {
-    // If any unexpected error occurs at the top level, log and return empty results
-    ctx.ctxThis.engine.logger.error(`Unexpected error in prepareContext: ${error}`);
-    return { contextStr: '', sources: [] };
-  }
-}
-
-export async function prepareMentionedContext(
-  {
-    query,
-    mentionedContext,
-    maxMentionedContextTokens,
-  }: {
-    query: string;
-    mentionedContext: IContext;
-    maxMentionedContextTokens: number;
-  },
-  ctx: { config: SkillRunnableConfig; ctxThis: BaseSkill },
-): Promise<{
-  mentionedContextTokens: number;
-  processedMentionedContext: IContext;
-}> {
-  ctx.ctxThis.engine.logger.log('Prepare Mentioned Context...');
-
-  let processedMentionedContext: IContext = {
-    contentList: [],
-    resources: [],
-    documents: [],
-    ...mentionedContext,
-  };
-
-  const allMentionedContextTokens = countContextTokens(mentionedContext);
-  ctx.ctxThis.engine.logger.log(`All Mentioned Context Tokens: ${allMentionedContextTokens}`);
-
-  if (allMentionedContextTokens === 0) {
-    return {
-      mentionedContextTokens: 0,
-      processedMentionedContext: mentionedContext,
-    };
-  }
-  // if mentioned context is not empty, we need to mutate the metadata of the mentioned context
-  const { contentList = [], resources = [], documents = [] } = ctx.config.configurable;
-  const context: IContext = {
-    contentList,
-    resources,
-    documents,
-  };
-
-  ctx.ctxThis.engine.logger.log('Mutate Context Metadata...');
-  mutateContextMetadata(mentionedContext, context);
-
-  let mentionedContextTokens = allMentionedContextTokens;
-
-  if (allMentionedContextTokens > maxMentionedContextTokens) {
-    ctx.ctxThis.engine.logger.log('Process Mentioned Context With Similarity...');
-    processedMentionedContext = await processMentionedContextWithSimilarity(
-      query,
-      mentionedContext,
-      maxMentionedContextTokens,
-      ctx,
-    );
-    mentionedContextTokens = countContextTokens(processedMentionedContext);
-
-    if (mentionedContextTokens > maxMentionedContextTokens) {
-      processedMentionedContext = truncateContext(
-        processedMentionedContext,
-        maxMentionedContextTokens,
-      );
-      mentionedContextTokens = countContextTokens(processedMentionedContext);
-    }
-  }
-
-  ctx.ctxThis.engine.logger.log(
-    `Prepared Mentioned Context successfully! ${safeStringifyJSON(processedMentionedContext)}`,
-  );
-
-  return {
-    mentionedContextTokens,
-    processedMentionedContext,
-  };
-}
-
-export async function prepareRelevantContext(
-  {
-    query,
-    context,
-  }: {
-    query: string;
-    context: IContext;
-  },
-  ctx: { config: SkillRunnableConfig; ctxThis: BaseSkill },
-): Promise<IContext> {
-  const { contentList = [], resources = [], documents = [] } = context;
-  const relevantContexts: IContext = {
-    contentList: [],
-    resources: [],
-    documents: [],
-  };
-
-  ctx.ctxThis.engine.logger.log(`Prepare Relevant Context..., ${safeStringifyJSON(context)}`);
-
-  // 1. selected content context
-  relevantContexts.contentList =
-    contentList.length > 0
-      ? await processSelectedContentWithSimilarity(
-          query,
-          contentList,
-          Number.POSITIVE_INFINITY,
-          ctx,
-        )
-      : [];
-
-  // 2. documents context
-  relevantContexts.documents =
-    documents.length > 0
-      ? await processDocumentsWithSimilarity(query, documents, Number.POSITIVE_INFINITY, ctx)
-      : [];
-
-  // 3. resources context
-  relevantContexts.resources =
-    resources.length > 0
-      ? await processResourcesWithSimilarity(query, resources, Number.POSITIVE_INFINITY, ctx)
-      : [];
-
-  ctx.ctxThis.engine.logger.log(
-    `Prepared Relevant Context successfully! ${safeStringifyJSON(relevantContexts)}`,
-  );
-
-  return relevantContexts;
-}
-
-export function deduplicateContexts(context: IContext): IContext {
-  return {
-    contentList: uniqBy(context.contentList || [], 'content'),
-    resources: uniqBy(context.resources || [], (item) => item.resource?.content),
-    documents: uniqBy(context.documents || [], (item) => item.document?.content),
-    webSearchSources: uniqBy(context.webSearchSources || [], (item) => item?.pageContent),
-    librarySearchSources: uniqBy(context.librarySearchSources || [], (item) => item?.pageContent),
-  };
-}
-
-export function removeOverlappingContextItems(
-  context: IContext,
-  originalContext: IContext,
-): IContext {
-  const deduplicatedContext: IContext = {
-    contentList: [],
-    resources: [],
-    documents: [],
-  };
-
-  // Helper function to check if an item exists in the context
-  const itemExistsInContext = (item: any, contextArray: any[], idField: string) => {
-    return contextArray.some((contextItem) => contextItem[idField] === item[idField]);
-  };
-
-  // Deduplicate contentList
-  deduplicatedContext.contentList = (originalContext?.contentList || []).filter(
-    (item) => !itemExistsInContext(item, context?.contentList || [], 'metadata.entityId'),
-  );
-
-  // Deduplicate resources
-  deduplicatedContext.resources = (originalContext?.resources || []).filter(
-    (item) =>
-      !itemExistsInContext(
-        item.resource,
-        (context?.resources || []).map((r) => r.resource),
-        'resourceId',
-      ),
-  );
-
-  // Deduplicate documents
-  deduplicatedContext.documents = (originalContext?.documents || []).filter(
-    (item) =>
-      !itemExistsInContext(
-        item.document,
-        (context?.documents || []).map((n) => n.document),
-        'docId',
-      ),
-  );
-
-  return deduplicatedContext;
-}
-
-export const mutateContextMetadata = (
-  mentionedContext: IContext,
-  originalContext: IContext,
-): IContext => {
-  // Process documents
-  for (const mentionedDocument of mentionedContext.documents) {
-    const index = originalContext.documents.findIndex(
-      (n) => n.document.docId === mentionedDocument.document.docId,
-    );
-    if (index !== -1) {
-      originalContext.documents[index] = {
-        ...originalContext.documents[index],
-        metadata: {
-          ...originalContext.documents[index].metadata,
-          useWholeContent: mentionedDocument.metadata?.useWholeContent,
-        },
-      };
-    }
-  }
-
-  // Process resources
-  for (const mentionedResource of mentionedContext.resources) {
-    const index = originalContext.resources.findIndex(
-      (r) => r.resource.resourceId === mentionedResource.resource.resourceId,
-    );
-    if (index !== -1) {
-      originalContext.resources[index] = {
-        ...originalContext.resources[index],
-        metadata: {
-          ...originalContext.resources[index].metadata,
-          useWholeContent: mentionedResource.metadata?.useWholeContent,
-        },
-      };
-    }
-  }
-
-  // Process contentList
-  for (const mentionedContent of mentionedContext.contentList) {
-    const index = originalContext.contentList.findIndex(
-      (c) => c.metadata.entityId === mentionedContent.metadata.entityId,
-    );
-    if (index !== -1) {
-      originalContext.contentList[index] = {
-        ...originalContext.contentList[index],
-        metadata: {
-          ...originalContext.contentList[index].metadata,
-          useWholeContent: mentionedContent.metadata?.useWholeContent,
-        },
-      };
-    }
-  }
-
-  return originalContext;
+// Internal block representation for middle-out compression
+type Block = {
+  section: string;
+  // Markdown before the variable body (e.g. headers and metadata)
+  prefix: string;
+  // The variable body part that can be summarized or trimmed
+  body: string;
+  // Markdown after the body (e.g. code block fences)
+  suffix: string;
 };
 
-export async function performLibrarySearchContext(
-  {
-    query,
-    modelInfo,
-    rewrittenQueries,
-    enableQueryRewrite = true,
-    enableTranslateQuery = false,
-    enableTranslateResult = false,
-    enableSearchWholeSpace = false,
-  }: {
-    query: string;
-    modelInfo: LLMModelConfig;
-    rewrittenQueries?: string[];
-    enableQueryRewrite?: boolean;
-    enableTranslateQuery?: boolean;
-    enableTranslateResult?: boolean;
-    enableSearchWholeSpace?: boolean;
-  },
-  ctx: {
-    config: SkillRunnableConfig;
-    ctxThis: BaseSkill;
-    tplConfig: SkillTemplateConfig;
-  },
-): Promise<{
-  processedLibrarySearchContext: IContext;
-}> {
-  ctx.ctxThis.engine.logger.log('Prepare Library Search Context...');
+// Fallback summarizer trims text to budget using token-based middle-out truncation
+const fallbackSummarize = async (
+  _query: string,
+  content: string,
+  budget: number,
+): Promise<string> => {
+  // Keep short content unchanged
+  const tokens = encode(content ?? '');
+  if (tokens.length <= budget) return content ?? '';
 
-  // Configure search parameters
-  const enableDeepSearch = (ctx.tplConfig?.enableDeepSearch?.value as boolean) || false;
-  const { locale = 'en' } = ctx?.config?.configurable || {};
+  // Allocate 45/10/45 head/summary/tail by tokens
+  const summaryBudget = Math.max(48, Math.min(128, Math.floor(budget * 0.2)));
+  const headBudget = Math.max(1, Math.floor((budget - summaryBudget) / 2));
+  const tailBudget = Math.max(1, budget - summaryBudget - headBudget);
 
-  let searchLimit = 10;
-  const enableRerank = true;
-  const searchLocaleList: string[] = ['en'];
-  let rerankRelevanceThreshold = 0.2;
+  const headTokens = tokens.slice(0, headBudget);
+  const tailTokens = tokens.slice(tokens.length - tailBudget);
 
-  if (enableDeepSearch) {
-    searchLimit = 20;
-    enableTranslateQuery = true;
-    rerankRelevanceThreshold = 0.4;
+  const head = decode(headTokens);
+  const tail = decode(tailTokens);
+
+  // Use a simple placeholder for the middle in fallback mode
+  const middleNote = `\n\n...[${tokens.length - headTokens.length - tailTokens.length} tokens compressed]...\n\n`;
+
+  return `${head}${middleNote}${tail}`;
+};
+
+// Join all sections with proper spacing
+const renderAll = (items: Block[]) => {
+  if (!items?.length) return '';
+
+  const bySection: Record<string, Block[]> = {};
+  for (const it of items) {
+    const key = it.section ?? 'General';
+    if (!bySection[key]) bySection[key] = [];
+    bySection[key].push(it);
   }
 
-  const processedLibrarySearchContext: IContext = {
-    contentList: [],
-    resources: [],
-    documents: [],
-    librarySearchSources: [],
-  };
-
-  // Call multiLingualLibrarySearch
-  const searchResult = await callMultiLingualLibrarySearch(
-    {
-      query,
-      rewrittenQueries,
-      searchLimit,
-      searchLocaleList,
-      resultDisplayLocale: locale || 'auto',
-      enableRerank,
-      enableTranslateQuery,
-      enableTranslateResult,
-      rerankRelevanceThreshold,
-      translateConcurrencyLimit: 10,
-      libraryConcurrencyLimit: 3,
-      batchSize: 5,
-      enableDeepSearch,
-      enableQueryRewrite,
-      enableSearchWholeSpace,
-    },
-    {
-      config: ctx.config,
-      ctxThis: ctx.ctxThis,
-    },
-  );
-
-  // Take only first 10 sources for models with limited context length
-  const isModelContextLenSupport = checkModelContextLenSupport(modelInfo);
-  let librarySearchSources = searchResult.sources || [];
-  if (!isModelContextLenSupport) {
-    librarySearchSources = librarySearchSources.slice(0, 10);
+  const renderedSections: string[] = [];
+  for (const [sectionTitle, sectionBlocks] of Object.entries(bySection)) {
+    const rendered = sectionBlocks
+      .map((b) => `${b.prefix}${b.body}${b.suffix}`)
+      .join('\n\n---\n\n');
+    renderedSections.push(`## ${sectionTitle}\n\n${rendered}`);
   }
 
-  // Store the sources in the context
-  processedLibrarySearchContext.librarySearchSources = librarySearchSources;
+  return `# Context\n\n${renderedSections.join('\n\n')}`;
+};
 
-  // Process sources into documents and resources based on their metadata
-  const uniqueResourceIds = new Set<string>();
-  const uniqueDocIds = new Set<string>();
+const summarizer = async (
+  model: BaseChatModel,
+  query: string,
+  content: string,
+  maxTokens: number,
+) => {
+  const summarizerModel = model;
 
-  for (const source of librarySearchSources) {
-    const metadata = source.metadata || {};
-    const entityType = metadata.entityType;
-    const entityId = metadata.entityId;
+  // Build concise, instruction-following messages for deterministic summarization
+  const requestMessages = [
+    {
+      role: 'system',
+      content:
+        'You are a helpful assistant that compresses context strictly and preserves key structure. ' +
+        'Summarize with the given query in mind. Keep headings, bullet points and code blocks concise. ' +
+        'Do not add commentary. Output plain text only. Keep within the token budget.',
+    },
+    {
+      role: 'user',
+      content: `Query:\n${query}\n\nContext to compress:\n${content ?? ''}`,
+    },
+  ];
 
-    if (entityType === 'resource' && entityId && !uniqueResourceIds.has(entityId)) {
-      uniqueResourceIds.add(entityId);
-      processedLibrarySearchContext.resources.push({
-        resource: {
-          resourceId: entityId,
-          content: source.pageContent || '',
-          title: source.title || '',
-          resourceType: 'text',
-          data: {
-            url: source.url || '',
-          },
-        },
-      });
-    } else if (entityType === 'document' && entityId && !uniqueDocIds.has(entityId)) {
-      uniqueDocIds.add(entityId);
-      processedLibrarySearchContext.documents.push({
-        document: {
-          docId: entityId,
-          content: source.pageContent || '',
-          title: source.title || '',
-        },
-      });
+  const responseMessage: any = await summarizerModel.invoke(requestMessages);
+
+  // Extract plain text from the model response
+  const raw = ((): string => {
+    const maybeContent = responseMessage?.content ?? responseMessage;
+    if (typeof maybeContent === 'string') return maybeContent;
+    if (Array.isArray(maybeContent)) {
+      const textParts = maybeContent
+        .filter((part) => part?.type === 'text' && typeof part?.text === 'string')
+        .map((part) => part.text);
+      if (textParts?.length > 0) return textParts.join('');
     }
+    if (typeof maybeContent === 'object') {
+      const text = maybeContent?.text ?? maybeContent?.value ?? '';
+      if (typeof text === 'string') return text;
+    }
+    return String(maybeContent ?? '');
+  })();
+
+  // Best-effort enforcement of maxTokens: allow model to limit, but trim if needed
+  try {
+    const { encode, decode } = await import('gpt-tokenizer');
+    const tokens = encode(raw ?? '');
+    if (tokens.length <= (maxTokens ?? 0)) return raw ?? '';
+
+    // Middle-out fallback trimming: keep head and tail, elide the middle
+    const budget = Math.max(64, maxTokens ?? 256);
+    const summaryBudget = Math.max(32, Math.min(96, Math.floor(budget * 0.2)));
+    const headBudget = Math.max(1, Math.floor((budget - summaryBudget) / 2));
+    const tailBudget = Math.max(1, budget - summaryBudget - headBudget);
+
+    const headTokens = tokens.slice(0, headBudget);
+    const tailTokens = tokens.slice(tokens.length - tailBudget);
+    const head = decode(headTokens);
+    const tail = decode(tailTokens);
+
+    return `${head}\n\n...[compressed]...\n\n${tail}`;
+  } catch {
+    // If tokenizer unavailable for some reason, fallback to a rough character-based trim
+    const safe = raw ?? '';
+    return fallbackSummarize(query, safe, maxTokens);
   }
-
-  ctx.ctxThis.engine.logger.log(
-    `Prepared Library Search Context successfully! ${safeStringifyJSON(processedLibrarySearchContext)}`,
-  );
-
-  return {
-    processedLibrarySearchContext,
-  };
-}
+};
 
 /**
- * Removes library search sources that overlap with mentioned or relevant context
- * Library search has the lowest priority, so we should deduplicate it against other contexts
+ *  Middle-out compression across blocks
+ * Determine compressible blocks (non-empty bodies)
  */
-export function removeOverlappingLibrarySearchSources(
-  librarySearchSources: Source[],
-  mentionedContext: IContext | null,
-  relevantContext: IContext | null,
-  logger?: any,
-): Source[] {
-  if (!librarySearchSources?.length) {
-    return [];
+const compressContext = async (
+  query: string,
+  contextStr: string,
+  blocks: Block[],
+  options: {
+    maxTokens: number;
+    engine: SkillEngine;
+  },
+) => {
+  const maxTokens = options.maxTokens;
+  const engine = options.engine;
+
+  engine.logger.log(
+    `Starting context compression for ${query} (${blocks.length} blocks) with maxTokens: ${maxTokens}`,
+  );
+
+  const compressibleIndexes = blocks
+    .map((b, i) => ({ i, tokens: encode(b.body ?? '').length }))
+    .filter((x) => x.tokens > 0)
+    .map((x) => x.i);
+
+  if (compressibleIndexes.length === 0) {
+    // Nothing to compress structurally; fallback to whole-string fallback summarization
+    const trimmed = await fallbackSummarize(query, contextStr, maxTokens);
+    return { contextStr: trimmed };
   }
 
-  if (!mentionedContext && !relevantContext) {
-    return librarySearchSources;
+  // Generate middle-out order of indices
+  const N = blocks.length;
+  const order: number[] = [];
+  const center = Math.floor((N - 1) / 2);
+  for (let offset = 0; offset < N; offset += 1) {
+    const left = center - offset;
+    const right = center + offset + (N % 2 === 0 ? 1 : 0);
+    if (left >= 0) order.push(left);
+    if (right < N) order.push(right);
+    if (order.length >= N) break;
+  }
+  // Keep only compressible ones
+  const compressOrder = order.filter((idx) => compressibleIndexes.includes(idx));
+
+  // Iteratively summarize middle blocks until within budget
+  const currentBlocks = blocks.map((b) => ({ ...b }));
+  let currentStr = renderAll(currentBlocks);
+  let currentTokens = encode(currentStr ?? '').length;
+
+  const summarizerModel = engine.chatModel({ temperature: 0, maxTokens }, 'queryAnalysis');
+
+  for (const idx of compressOrder) {
+    if (currentTokens <= maxTokens) break;
+
+    const original = currentBlocks[idx];
+    const bodyTokens = encode(original?.body ?? '').length;
+    if (bodyTokens === 0) continue;
+
+    // Target reduction: shrink this block body to ~30% of its size or a reasonable cap
+    const targetBodyBudget = Math.max(64, Math.floor(Math.min(bodyTokens * 0.3, maxTokens * 0.15)));
+
+    const summarized = await summarizer(
+      summarizerModel,
+      query,
+      original?.body ?? '',
+      targetBodyBudget,
+    );
+    currentBlocks[idx] = { ...original, body: summarized ?? '' };
+
+    currentStr = renderAll(currentBlocks);
+    currentTokens = encode(currentStr ?? '').length;
   }
 
-  // Extract all entity IDs from mentioned and relevant context
-  const existingEntityIds = new Set<string>();
+  // If still over budget, aggressively trim the entire rendered context with fallback
+  if (currentTokens > maxTokens) {
+    const trimmed = await fallbackSummarize(query, currentStr, maxTokens);
+    return { contextStr: trimmed };
+  }
 
-  // Helper function to collect entity IDs from context
-  const collectEntityIds = (context: IContext | null) => {
-    if (!context) return;
+  return { contextStr: currentStr };
+};
 
-    // Collect from resources
-    for (const item of context.resources || []) {
-      if (item.resource?.resourceId) {
-        existingEntityIds.add(`resource-${item.resource.resourceId}`);
-      }
-    }
+/**
+ * Prepare context from SkillContext into a structured markdown format for LLM consumption
+ * Converts user-selected context items into clear markdown structure
+ */
+export async function prepareContext(
+  query: string,
+  context: SkillContext,
+  options: {
+    maxTokens: number;
+    engine: SkillEngine;
+    summarizerConcurrentLimit?: number;
+  },
+): Promise<{ contextStr: string }> {
+  if (!context) {
+    return { contextStr: '' };
+  }
 
-    // Collect from documents
-    for (const item of context.documents || []) {
-      if (item.document?.docId) {
-        existingEntityIds.add(`document-${item.document.docId}`);
-      }
-    }
+  const maxTokens = options?.maxTokens ?? 0;
 
-    // Collect from contentList
-    for (const item of context.contentList || []) {
-      const metadata = item.metadata as any as SkillContextContentItemMetadata;
-      if (metadata?.entityId && metadata?.domain) {
-        existingEntityIds.add(`${metadata.domain}-${metadata.entityId}`);
-      }
-    }
+  const blocks: Block[] = [];
+  const sections: string[] = [];
+
+  // Helper to push a rendered section made of blocks
+  const pushSection = (sectionTitle: string, items: Block[]) => {
+    if (!items?.length) return;
+    blocks.push(...items);
+
+    const rendered = items.map((b) => `${b.prefix}${b.body}${b.suffix}`).join('\n\n---\n\n');
+
+    sections.push(`## ${sectionTitle}\n\n${rendered}`);
   };
 
-  // Collect entity IDs from both contexts
-  collectEntityIds(mentionedContext);
-  collectEntityIds(relevantContext);
+  // Process user selected content
+  if (context?.contentList?.length > 0) {
+    const items = (context?.contentList ?? [])
+      .map((item) => {
+        const metadata = (item?.metadata ?? {}) as Record<string, unknown>;
+        const title = (metadata as any)?.title ?? 'Untitled Content';
+        const domain = (metadata as any)?.domain ?? 'unknown';
+        const entityId = (metadata as any)?.entityId;
+        const url = (metadata as any)?.url;
 
-  // Filter out library search sources that match by entity ID or have identical content
-  const uniqueLibrarySearchSources = librarySearchSources.filter((source) => {
-    const metadata = source.metadata || {};
-    const entityType = metadata.entityType;
-    const entityId = metadata.entityId;
+        let sourceInfo = `**Source:** ${domain}`;
+        if (entityId) {
+          sourceInfo += ` (ID: ${entityId})`;
+        }
+        if (url) {
+          sourceInfo += `\n**URL:** ${url}`;
+        }
 
-    // Check if this source has a matching entity ID in mentioned or relevant context
-    if (entityType && entityId) {
-      const key = `${entityType}-${entityId}`;
-      if (existingEntityIds.has(key)) {
-        return false; // Skip this source as it already exists in higher priority context
-      }
-    }
+        const prefix = `### ${title}\n\n${sourceInfo}\n\n`;
+        const body = item?.content ?? '';
+        const suffix = '';
 
-    // Check for duplicate content in mentioned context
-    if (mentionedContext) {
-      // Check in resources
-      if (
-        mentionedContext.resources?.some(
-          (resource) => resource.resource?.content === source.pageContent,
-        )
-      ) {
-        return false;
-      }
+        return { section: 'User Selected Content', prefix, body, suffix } as Block;
+      })
+      .filter(Boolean);
 
-      // Check in documents
-      if (
-        mentionedContext.documents?.some(
-          (document) => document.document?.content === source.pageContent,
-        )
-      ) {
-        return false;
-      }
-
-      // Check in contentList
-      if (mentionedContext.contentList?.some((content) => content.content === source.pageContent)) {
-        return false;
-      }
-    }
-
-    // Check for duplicate content in relevant context
-    if (relevantContext) {
-      // Check in resources
-      if (
-        relevantContext.resources?.some(
-          (resource) => resource.resource?.content === source.pageContent,
-        )
-      ) {
-        return false;
-      }
-
-      // Check in documents
-      if (
-        relevantContext.documents?.some(
-          (document) => document.document?.content === source.pageContent,
-        )
-      ) {
-        return false;
-      }
-
-      // Check in contentList
-      if (relevantContext.contentList?.some((content) => content.content === source.pageContent)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  // Log how many items were removed
-  const removedCount = librarySearchSources.length - uniqueLibrarySearchSources.length;
-  if (removedCount > 0 && logger) {
-    logger.log(
-      `Removed ${removedCount} duplicate library search sources that already exist in mentioned or relevant context`,
-    );
+    pushSection('User Selected Content', items);
   }
 
-  return uniqueLibrarySearchSources;
+  // Process knowledge base documents
+  if (context?.documents?.length > 0) {
+    const items = (context?.documents ?? [])
+      .filter((item) => item?.document?.content)
+      .map((item) => {
+        const doc = item?.document;
+        const docId = doc?.docId ?? 'unknown';
+        const title = doc?.title ?? 'Untitled Document';
+        const body = doc?.content ?? '';
+
+        const prefix = `### ${title}\n\n**Document ID:** ${docId}\n\n`;
+        const suffix = '';
+
+        return { section: 'Knowledge Base Documents', prefix, body, suffix } as Block;
+      });
+
+    pushSection('Knowledge Base Documents', items);
+  }
+
+  // Process knowledge base resources
+  if (context?.resources?.length > 0) {
+    const items = (context?.resources ?? [])
+      .filter((item) => item?.resource?.content)
+      .map((item) => {
+        const resource = item?.resource;
+        const resourceId = resource?.resourceId ?? 'unknown';
+        const title = resource?.title ?? 'Untitled Resource';
+        const body = resource?.content ?? '';
+        const resourceType = resource?.resourceType ?? 'unknown';
+
+        const prefix = `### ${title}\n\n**Resource ID:** ${resourceId}\n**Type:** ${resourceType}\n\n`;
+        const suffix = '';
+
+        return { section: 'Knowledge Base Resources', prefix, body, suffix } as Block;
+      });
+
+    pushSection('Knowledge Base Resources', items);
+  }
+
+  // Process code artifacts
+  if (context?.codeArtifacts?.length > 0) {
+    const items = (context?.codeArtifacts ?? [])
+      .filter((item) => item?.codeArtifact?.content)
+      .map((item) => {
+        const artifact = item?.codeArtifact;
+        const artifactId = artifact?.artifactId ?? 'unknown';
+        const title = artifact?.title ?? 'Untitled Code Artifact';
+        const body = artifact?.content ?? '';
+        const language = artifact?.language ?? 'text';
+
+        const prefix = `### ${title}\n\n**Artifact ID:** ${artifactId}\n**Language:** ${language}\n\n\`\`\`${language}\n`;
+        const suffix = '\n```';
+
+        return { section: 'Code Artifacts', prefix, body, suffix } as Block;
+      });
+
+    pushSection('Code Artifacts', items);
+  }
+
+  // Process media items
+  if (context?.mediaList?.length > 0) {
+    const items = (context?.mediaList ?? [])
+      .map((item) => {
+        const entityId = item?.entityId;
+        const title = item?.title ?? 'Untitled Media';
+        const url = item?.url;
+        const mediaType = item?.mediaType;
+        const storageKey = item?.storageKey;
+
+        const prefix = `### ${title}\n\n**Media ID:** ${entityId}\n**Type:** ${mediaType}\n**URL:** ${url}\n**Storage Key:** ${storageKey}\n\n`;
+        const body = `*Media file: ${title}*`;
+        const suffix = '';
+
+        return { section: 'Media Items', prefix, body, suffix } as Block;
+      })
+      .filter(Boolean);
+
+    pushSection('Media Items', items);
+  }
+
+  // Process deprecated URLs (for backward compatibility)
+  if (context?.urls?.length > 0) {
+    const items = (context?.urls ?? [])
+      .map((item) => {
+        const url = item?.url;
+        const metadata = (item?.metadata ?? {}) as Record<string, unknown>;
+        const title = (metadata as any)?.title ?? url ?? 'URL';
+
+        const prefix = `### ${title}\n\n**URL:** ${url}`;
+        const body = '';
+        const suffix = '';
+
+        return { section: 'URLs', prefix, body, suffix } as Block;
+      })
+      .filter(Boolean);
+
+    pushSection('URLs', items);
+  }
+
+  const contextStr = sections.length > 0 ? `# Context\n\n${sections.join('\n\n')}` : '';
+
+  if (maxTokens <= 0) {
+    return { contextStr };
+  }
+
+  // If within limit, return directly
+  const totalTokens = encode(contextStr ?? '').length;
+  if (totalTokens <= maxTokens) {
+    return { contextStr };
+  }
+
+  return await compressContext(query, contextStr, blocks, options);
 }

@@ -2,12 +2,7 @@ import { START, END, StateGraphArgs, StateGraph, MessagesAnnotation } from '@lan
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { z } from 'zod';
 import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } from '../base';
-import {
-  Icon,
-  SkillInvocationConfig,
-  SkillTemplateConfigDefinition,
-  User,
-} from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition, User } from '@refly/openapi-schema';
 
 // types
 import { GraphState } from '../scheduler/types';
@@ -75,8 +70,6 @@ export class Agent extends BaseSkill {
     items: [],
   };
 
-  invocationConfig: SkillInvocationConfig = {};
-
   description = 'Answer common questions';
 
   schema = z.object({
@@ -95,7 +88,7 @@ export class Agent extends BaseSkill {
     customInstructions?: string,
   ) => {
     const { query, messages = [], images = [] } = state;
-    const { locale = 'en', preprocessResult } = config.configurable;
+    const { locale = 'auto', preprocessResult } = config.configurable;
     const { optimizedQuery, rewrittenQueries, context, sources, usedChatHistory } =
       preprocessResult;
 

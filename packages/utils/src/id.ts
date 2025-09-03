@@ -122,6 +122,19 @@ export function genAudioID(): string {
   return IDPrefix.AUDIO + createId();
 }
 
+export function genMediaID(mediaType: 'image' | 'video' | 'audio'): string {
+  switch (mediaType) {
+    case 'image':
+      return IDPrefix.IMAGE + createId();
+    case 'video':
+      return IDPrefix.VIDEO + createId();
+    case 'audio':
+      return IDPrefix.AUDIO + createId();
+    default:
+      return `media-${createId()}`;
+  }
+}
+
 export function genMediaSkillResponseID(): string {
   return IDPrefix.MEDIA_SKILL_RESPONSE + createId();
 }

@@ -158,6 +158,8 @@ model ActionResult {
   outputUrl               String?      @map("output_url")
   /// Media result storage key
   storageKey              String?      @map("storage_key")
+  /// Parent result id
+  parentResultId          String?      @map("parent_result_id")
   /// Create timestamp
   createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
