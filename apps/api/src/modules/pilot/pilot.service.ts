@@ -12,7 +12,6 @@ import {
   convertContextItemsToNodeFilters,
   convertResultContextToItems,
 } from '@refly/canvas-common';
-import { PilotEngine } from './pilot-engine';
 import { PilotSession } from '../../generated/client';
 import { SkillService } from '../skill/skill.service';
 import { genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/utils';
@@ -26,16 +25,18 @@ import { Queue } from 'bullmq';
 import { QUEUE_RUN_PILOT } from '../../utils/const';
 import { RunPilotJobData } from './pilot.processor';
 import { ProviderItemNotFoundError } from '@refly/errors';
-import { pilotSessionPO2DTO, pilotStepPO2DTO } from './pilot.dto';
+
 import { buildSummarySkillInput } from './prompt/summary';
 import { buildSubtaskSkillInput } from './prompt/subtask';
 import { findBestMatch } from '../../utils/similarity';
 import { ToolService } from '../tool/tool.service';
+import { PilotEngineService } from './pilot-engine.service';
+import { PilotSessionWithProgress, PilotStepWithMode, ActionResultWithOutput } from './pilot.types';
 
-export const MAX_STEPS_PER_EPOCH = 3;
+export const MAX_STEPS_PER_EPOCH = 10;
 export const MAX_SUMMARY_STEPS_PER_EPOCH = 1;
 
-export const MAX_EPOCH = 1;
+export const MAX_EPOCH = 10;
 
 @Injectable()
 export class PilotService {
@@ -49,6 +50,7 @@ export class PilotService {
     private canvasService: CanvasService,
     private canvasSyncService: CanvasSyncService,
     private variableExtractionService: VariableExtractionService,
+    private pilotEngineService: PilotEngineService,
     @InjectQueue(QUEUE_RUN_PILOT) private runPilotQueue: Queue<RunPilotJobData>,
   ) {}
 
@@ -206,6 +208,66 @@ export class PilotService {
     }));
 
     return { session, steps: stepsWithResults };
+  }
+
+  /**
+   * Convert PilotSession to PilotSessionWithProgress
+   */
+  private convertToPilotSessionWithProgress(
+    session: PilotSession,
+    progress?: string | null,
+  ): PilotSessionWithProgress {
+    return {
+      pk: BigInt(0), // Default value, will be overridden by actual data
+      sessionId: session.sessionId || '',
+      uid: session.uid || '',
+      currentEpoch: session.currentEpoch || 0,
+      maxEpoch: session.maxEpoch || MAX_EPOCH,
+      title: session.title || '',
+      input: session.input || '',
+      progress: progress || undefined,
+      modelName: session.modelName || '',
+      targetType: session.targetType || '',
+      targetId: session.targetId || '',
+      providerItemId: session.providerItemId || '',
+      status: session.status || 'waiting',
+      createdAt: session.createdAt ? new Date(session.createdAt) : new Date(),
+      updatedAt: session.updatedAt ? new Date(session.updatedAt) : new Date(),
+    };
+  }
+
+  /**
+   * Convert PilotStep to PilotStepWithMode
+   */
+  private convertToPilotStepWithMode(step: any, mode?: string): PilotStepWithMode {
+    return {
+      stepId: step.stepId || '',
+      name: step.name || '',
+      epoch: step.epoch || 0,
+      entityId: step.entityId,
+      entityType: step.entityType,
+      status: step.status || 'waiting',
+      rawOutput: step.rawOutput,
+      mode: mode || 'subtask',
+      createdAt: step.createdAt ? new Date(step.createdAt) : new Date(),
+      updatedAt: step.updatedAt ? new Date(step.updatedAt) : new Date(),
+    };
+  }
+
+  /**
+   * Convert ActionResult to ActionResultWithOutput
+   */
+  private convertToActionResultWithOutput(result: any): ActionResultWithOutput {
+    return {
+      resultId: result.resultId || '',
+      title: result.title || '',
+      input: result.input || '',
+      output: result.output,
+      errors: result.errors,
+      status: result.status || 'waiting',
+      createdAt: result.createdAt ? new Date(result.createdAt) : new Date(),
+      updatedAt: result.updatedAt ? new Date(result.updatedAt) : new Date(),
+    };
   }
 
   private async buildContextAndHistory(
@@ -381,25 +443,25 @@ export class PilotService {
       const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
 
       if (mode === 'subtask') {
-        if (epochSubtaskSteps.length !== 0) {
+        if (epochSubtaskSteps.length !== 0 || epochSummarySteps.length !== 0) {
           return;
         }
       } else {
-        if (epochSummarySteps.length !== 0) {
+        if (epochSummarySteps.length !== 0 || epochSubtaskSteps.length === 0) {
           return;
         }
 
         return this.runPilotSummary(user, sessionId, session, mode);
       }
 
+      this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
+
+      // Get common resources needed for execution
       const sessionInputObj = JSON.parse(pilotSession.input ?? '{}');
       const userQuestion = sessionInputObj?.query ?? '';
       const canvasContentItems: CanvasContentItem[] =
         await this.canvasService.getCanvasContentItems(user, targetId, true);
-
-      const { steps } = await this.getPilotSessionDetail(user, sessionId);
-
-      this.logger.log(`Epoch (${currentEpoch}/${maxEpoch}) for session ${sessionId} started`);
+      const toolsets = await this.toolService.listTools(user, { enabled: true });
 
       // Get user's output locale preference
       const userPo = await this.prisma.user.findUnique({
@@ -427,13 +489,15 @@ export class PilotService {
       }
       const chatModelId = JSON.parse(chatPi.config).modelId;
 
-      const engine = new PilotEngine(
+      // Use PilotEngineService to handle all planning and execution logic
+      const rawSteps = await this.pilotEngineService.runPilot(
         agentModel,
-        pilotSessionPO2DTO(pilotSession),
-        steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
+        sessionId,
+        userQuestion,
+        toolsets,
+        canvasContentItems,
+        locale,
       );
-      const toolsets = await this.toolService.listTools(user);
-      const rawSteps = await engine.run(canvasContentItems, toolsets, MAX_STEPS_PER_EPOCH, locale);
 
       if (rawSteps.length === 0) {
         await this.prisma.pilotSession.update({
@@ -444,15 +508,16 @@ export class PilotService {
         return;
       }
 
-      const latestSummarySteps =
-        steps?.filter(({ step }) => step.epoch === currentEpoch - 1 && step.mode === 'summary') ||
-        [];
+      // Get session details for context building
+      const { steps } = await this.getPilotSessionDetail(user, sessionId);
+      const latestSummarySteps = steps?.filter(({ step }) => step.epoch === currentEpoch - 1) || [];
       const contextEntityIds = latestSummarySteps.map(({ step }) => step.entityId);
       const { context, history } = await this.buildContextAndHistory(
         canvasContentItems,
         contextEntityIds,
       );
 
+      // Process all steps in parallel instead of sequentially
       for (const rawStep of rawSteps) {
         const stepId = genPilotStepID();
 
@@ -476,10 +541,10 @@ export class PilotService {
             });
         }
 
-        const recommendedContext = await this.buildContextAndHistory(
-          canvasContentItems,
-          rawStep.contextItemIds,
-        );
+        // const recommendedContext = await this.buildContextAndHistory(
+        //   canvasContentItems,
+        //   rawStep.contextItemIds,
+        // );
 
         const resultId = genActionResultID();
 
@@ -561,8 +626,8 @@ export class PilotService {
           },
           modelName: chatModelId,
           modelItemId: chatPi.itemId,
-          context: recommendedContext.context,
-          resultHistory: recommendedContext.history,
+          context: context,
+          resultHistory: history,
           toolsets,
         });
       }
@@ -666,10 +731,10 @@ export class PilotService {
 
       const { steps } = await this.getPilotSessionDetail(user, sessionId);
 
-      const recommendedContext = await this.buildContextAndHistory(
-        canvasContentItems,
-        steps.map(({ step }) => step.entityId),
-      );
+      // const recommendedContext = await this.buildContextAndHistory(
+      //   canvasContentItems,
+      //   steps.map(({ step }) => step.entityId),
+      // );
 
       const stepId = genPilotStepID();
       const latestSubtaskSteps =
@@ -783,8 +848,8 @@ export class PilotService {
         },
         modelName: chatModelId,
         modelItemId: chatPi.itemId,
-        context: recommendedContext.context,
-        resultHistory: recommendedContext.history,
+        context: context,
+        resultHistory: history,
         toolsets: [],
       });
 
@@ -847,34 +912,18 @@ export class PilotService {
       }
 
       const epochSubtaskSteps = epochSteps.filter((step) => step.mode === 'subtask');
-      const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
 
       const isAllSubtaskStepsFinished =
-        epochSubtaskSteps.length > 0 && epochSubtaskSteps.every((step) => step.status === 'finish');
-
-      const isAllSummaryStepsFinished =
-        epochSummarySteps.length > 0 && epochSummarySteps.every((step) => step.status === 'finish');
+        epochSubtaskSteps.length > 0 &&
+        epochSubtaskSteps.every((step) => step.status === 'finish' || step.status === 'failed');
 
       const reachedMaxEpoch = step.epoch > session.maxEpoch - 1;
       this.logger.log(
         `Epoch (${session.currentEpoch}/${session.maxEpoch}) for session ${step.sessionId}: ` +
-          `steps are ${isAllSummaryStepsFinished ? 'finished' : 'not finished'}`,
+          `subtask steps are ${isAllSubtaskStepsFinished ? 'finished' : 'not finished'}`,
       );
 
-      if (isAllSubtaskStepsFinished && epochSummarySteps.length === 0) {
-        await this.runPilotQueue.add(
-          `run-pilot-${step.sessionId}-${session.currentEpoch}`,
-          {
-            user,
-            sessionId: step.sessionId,
-            mode: 'summary',
-          },
-          { removeOnComplete: true, removeOnFail: 100 },
-        );
-        return;
-      }
-
-      if (isAllSubtaskStepsFinished && isAllSummaryStepsFinished) {
+      if (isAllSubtaskStepsFinished) {
         await this.prisma.pilotSession.update({
           where: { sessionId: step.sessionId },
           data: {

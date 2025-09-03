@@ -11,6 +11,8 @@ import { VariableExtractionModule } from '../variable-extraction/variable-extrac
 import { PilotService } from './pilot.service';
 import { PilotController } from './pilot.controller';
 import { RunPilotProcessor, SyncPilotStepProcessor } from './pilot.processor';
+import { IntentAnalysisService } from './intent-analysis.service';
+import { PilotEngineService } from './pilot-engine.service';
 import { QUEUE_RUN_PILOT } from '../../utils/const';
 import { ToolModule } from '../tool/tool.module';
 
@@ -30,7 +32,13 @@ import { ToolModule } from '../tool/tool.module';
     }),
   ],
   controllers: [PilotController],
-  providers: [PilotService, RunPilotProcessor, SyncPilotStepProcessor],
+  providers: [
+    PilotService,
+    IntentAnalysisService,
+    PilotEngineService,
+    RunPilotProcessor,
+    SyncPilotStepProcessor,
+  ],
   exports: [PilotService],
 })
 export class PilotModule {}
