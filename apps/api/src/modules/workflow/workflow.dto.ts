@@ -34,7 +34,15 @@ export const workflowNodeExecutionPO2DTO = (
   nodeExecution: WorkflowNodeExecutionPO,
 ): WorkflowNodeExecution => {
   return {
-    ...pick(nodeExecution, ['nodeExecutionId', 'nodeId', 'newEntityId', 'title', 'progress']),
+    ...pick(nodeExecution, [
+      'nodeExecutionId',
+      'nodeId',
+      'nodeType',
+      'entityId',
+      'newEntityId',
+      'title',
+      'progress',
+    ]),
     status: nodeExecution.status as ActionStatus,
     createdAt: nodeExecution.createdAt.toJSON(),
     updatedAt: nodeExecution.updatedAt.toJSON(),
