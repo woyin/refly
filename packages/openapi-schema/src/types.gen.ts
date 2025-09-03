@@ -5731,6 +5731,10 @@ export type InitializeWorkflowRequest = {
    * New canvas ID
    */
   newCanvasId?: string;
+  /**
+   * Start node IDs
+   */
+  startNodes?: Array<string>;
 };
 
 export type InitializeWorkflowResponse = BaseResponse & {

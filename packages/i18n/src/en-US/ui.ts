@@ -1340,7 +1340,8 @@ const translations = {
         title: 'Run Workflow',
         run: 'Run',
         executing: 'Running...',
-        empty: 'No variables defined, the workflow will be executed once if continued.',
+        emptyTitle: 'No variables defined',
+        emptyDescription: 'Click run, the workflow will be executed once if continued.',
         completed: 'Workflow execution completed successfully',
         failed: 'Workflow execution failed',
         error: 'Error monitoring workflow execution',
@@ -1517,6 +1518,8 @@ const translations = {
       download: 'Download',
       downloadSuccess: 'Download Success',
       downloadError: 'Download Error',
+      runWorkflow: 'Run Workflow from Current Node',
+      existWorkflowRunning: 'Workflow is running',
     },
     nodeStatus: {
       isCreatingDocument: 'Creating Document...',

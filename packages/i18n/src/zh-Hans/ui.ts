@@ -1318,7 +1318,8 @@ const translations = {
         title: '运行调试',
         run: '运行',
         executing: '运行中...',
-        empty: '当前暂无变量，若继续运行，系统将重复执行一次当前 workflow。',
+        emptyTitle: '当前暂无变量',
+        emptyDescription: '点击“运行”，Workflow 将被执行一次',
         completed: 'Workflow 运行完成',
         failed: 'Workflow 运行失败',
         error: 'Workflow 运行状态时出错',
@@ -1481,6 +1482,8 @@ const translations = {
       download: '下载',
       downloadSuccess: '下载成功',
       downloadError: '下载失败',
+      runWorkflow: '从当前节点开始运行工作流',
+      existWorkflowRunning: '工作流正在运行中',
     },
     nodeStatus: {
       isCreatingDocument: '创建中...',

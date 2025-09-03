@@ -3,6 +3,34 @@ import { ToolParams } from '@langchain/core/tools';
 import { FirecrawlClient } from './client';
 import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
+import { encode, decode } from 'gpt-tokenizer';
+
+// Fallback summarizer trims text to budget using token-based middle-out truncation
+export const fallbackSummarize = async (
+  _query: string,
+  content: string,
+  budget: number,
+): Promise<string> => {
+  // Keep short content unchanged
+  const tokens = encode(content ?? '');
+  if (tokens.length <= budget) return content ?? '';
+
+  // Allocate 45/10/45 head/summary/tail by tokens
+  const summaryBudget = Math.max(48, Math.min(128, Math.floor(budget * 0.2)));
+  const headBudget = Math.max(1, Math.floor((budget - summaryBudget) / 2));
+  const tailBudget = Math.max(1, budget - summaryBudget - headBudget);
+
+  const headTokens = tokens.slice(0, headBudget);
+  const tailTokens = tokens.slice(tokens.length - tailBudget);
+
+  const head = decode(headTokens);
+  const tail = decode(tailTokens);
+
+  // Use a simple placeholder for the middle in fallback mode
+  const middleNote = `\n\n...[${tokens.length - headTokens.length - tailTokens.length} tokens compressed]...\n\n`;
+
+  return `${head}${middleNote}${tail}`;
+};
 
 export const FirecrawlToolsetDefinition: ToolsetDefinition = {
   key: 'firecrawl',
@@ -124,6 +152,11 @@ export class FirecrawlScrape extends AgentBaseTool<FirecrawlToolParams> {
     waitFor: z.number().describe('Time to wait for dynamic content in milliseconds').optional(),
     mobile: z.boolean().describe('Whether to use mobile user agent').default(false),
     parsePDF: z.boolean().describe('Whether to parse PDF content').default(false),
+    maxTokens: z
+      .number()
+      .describe('Maximum tokens for markdown content truncation')
+      .default(10000)
+      .optional(),
   });
 
   description =
@@ -157,10 +190,24 @@ export class FirecrawlScrape extends AgentBaseTool<FirecrawlToolParams> {
 
       // Return markdown if available, otherwise return the full response
       if (input.formats.includes('markdown') && data.data?.markdown) {
+        let markdownContent = data.data.markdown;
+
+        // Apply truncation if maxTokens is specified and content is too long
+
+        // Ensure maxTokens is within safe limits (considering total context budget)
+        // Reserve space for tool input (2k) + output (63k) + buffer (10k) = ~75k
+        // Max safe input: 131k - 75k = 56k, but be conservative with 2k
+        const safeMaxTokens = Math.min(input.maxTokens ?? 10000, 10000);
+        markdownContent = await fallbackSummarize(
+          `Scrape content from ${input.url}`,
+          markdownContent,
+          safeMaxTokens,
+        );
+
         return {
           status: 'success',
-          data: { content: data.data.markdown, fullResponse: data.data },
-          summary: `Successfully scraped URL: ${input.url} and extracted markdown content`,
+          data: { content: markdownContent, fullResponse: data.data },
+          summary: `Successfully scraped URL: ${input.url} and extracted markdown content${(input.maxTokens ?? 0) > 0 ? ` (truncated to ${Math.min(input.maxTokens ?? 10000, 10000)} tokens for safety)` : ''}`,
         };
       }
 

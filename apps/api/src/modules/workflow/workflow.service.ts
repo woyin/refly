@@ -122,6 +122,7 @@ export class WorkflowService {
     canvasId: string,
     newCanvasId?: string,
     variables?: WorkflowVariable[],
+    startNodes?: string[],
   ): Promise<string> {
     try {
       // Add a new execution mode: if a new canvas ID is provided, create a new canvas and add nodes to it one by one as they are executed.
@@ -197,17 +198,38 @@ export class WorkflowService {
         }
       }
 
-      // Find start nodes (nodes without parents)
-      const startNodes: string[] = [];
-      for (const [nodeId, parents] of parentMap) {
-        if (parents.length === 0) {
-          startNodes.push(nodeId);
+      if (startNodes.length === 0) {
+        for (const [nodeId, parents] of parentMap) {
+          if (parents.length === 0) {
+            startNodes.push(nodeId);
+          }
         }
       }
 
       if (startNodes.length === 0) {
         throw new Error('No start nodes found in workflow');
       }
+
+      // Helper function to find all nodes in the subtree starting from given start nodes
+      const findSubtreeNodes = (startNodeIds: string[]): Set<string> => {
+        const subtreeNodes = new Set<string>();
+        const queue = [...startNodeIds];
+
+        while (queue.length > 0) {
+          const currentNodeId = queue.shift()!;
+          if (!subtreeNodes.has(currentNodeId)) {
+            subtreeNodes.add(currentNodeId);
+            // Add all children to the queue
+            const children = childMap.get(currentNodeId) || [];
+            queue.push(...children);
+          }
+        }
+
+        return subtreeNodes;
+      };
+
+      // Determine which nodes should be in 'waiting' status
+      const subtreeNodes = findSubtreeNodes(startNodes);
 
       // If there's a new canvas ID, generate new node IDs for each node and store them in the new database field
       // Create node execution records
@@ -220,6 +242,9 @@ export class WorkflowService {
         // Generate new node ID if newCanvasId exists
         const newNodeId = newCanvasId ? genNodeID() : null;
 
+        // Set status based on whether the node is in the subtree
+        const status = subtreeNodes.has(node.id) ? 'waiting' : 'finish';
+
         const nodeExecution = await this.prisma.workflowNodeExecution.create({
           data: {
             nodeExecutionId,
@@ -228,7 +253,7 @@ export class WorkflowService {
             nodeType: node.type,
             entityId: node.data?.entityId || '',
             title: node.data?.title || '',
-            status: startNodes.includes(node.id) ? 'waiting' : 'waiting',
+            status,
             parentNodeIds: JSON.stringify(parents),
             childNodeIds: JSON.stringify(children),
             newNodeId, // Store the new node ID for new canvas mode
@@ -275,12 +300,15 @@ export class WorkflowService {
     canvasId: string,
     executionId?: string,
     newNodeId?: string,
+    startNodeId?: string,
   ): Promise<void> {
     // Check if the node is a skillResponse type
     if (node.type !== 'skillResponse') {
       this.logger.warn(`Node type ${node.type} is not skillResponse, skipping processing`);
       return;
     }
+
+    this.logger.log(`startNodeId: ${startNodeId}`);
 
     const { data } = node;
     const metadata = data?.metadata as ResponseNodeMeta;
@@ -703,6 +731,24 @@ export class WorkflowService {
       // Check if node is already being processed
       if (nodeExecution.status === 'executing') {
         this.logger.warn(`Node ${nodeId} is already being executed`);
+        return;
+      }
+
+      // Get all parent nodes for this child
+      const parentNodeIds = JSON.parse(nodeExecution.parentNodeIds || '[]') as string[];
+
+      // Check if all parents are finished
+      const allParentsFinished =
+        (await this.prisma.workflowNodeExecution.count({
+          where: {
+            executionId: nodeExecution.executionId,
+            nodeId: { in: parentNodeIds },
+            status: 'finish',
+          },
+        })) === parentNodeIds.length;
+
+      if (!allParentsFinished) {
+        this.logger.warn(`Node ${nodeId} has unfinished parents`);
         return;
       }
 

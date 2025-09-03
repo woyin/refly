@@ -1328,7 +1328,18 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   return (
     <EditorPerformanceProvider>
       <ReactFlowProvider>
-        <CanvasProvider readonly={readonly} canvasId={canvasId}>
+        <CanvasProvider
+          readonly={readonly}
+          canvasId={canvasId}
+          workflowRun={{
+            initialize: (startNodes?: string[]) => initializeWorkflow(canvasId, startNodes),
+            loading,
+            executionId,
+            workflowStatus,
+            isPolling,
+            pollingError,
+          }}
+        >
           <Splitter
             className="canvas-splitter w-full h-[calc(100vh-16px)]"
             onResize={handlePanelResize}
