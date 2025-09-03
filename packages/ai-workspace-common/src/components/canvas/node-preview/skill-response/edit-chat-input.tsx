@@ -197,7 +197,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
     // Update the query in real-time to MinIO
     currentNode && updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
-  }, [resultId, editQuery, getNodes, updateNodeQuery, onQueryChange]);
+  }, [resultId, editQuery, getNodes, updateNodeQuery]);
 
   useEffect(() => {
     setEditContextItems(contextItems);
