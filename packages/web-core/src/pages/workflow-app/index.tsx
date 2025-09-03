@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useGetWorkflowAppDetail } from '@refly-packages/ai-workspace-common/queries';
-import { message, Segmented } from 'antd';
+import { message, Segmented, notification } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WorkflowVariable } from '@refly/openapi-schema';
@@ -10,6 +10,7 @@ import { WorkflowAppProducts } from '@refly-packages/ai-workspace-common/compone
 import { WorkflowAppRunLogs } from '@refly-packages/ai-workspace-common/components/workflow-app/run-logs';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { WorkflowRunForm } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/workflow-run-form';
+import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -31,23 +32,73 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [workflowApp]);
 
-  const onSubmit = useCallback(async (variables: WorkflowVariable[]) => {
-    const { data, error } = await getClient().executeWorkflowApp({
-      body: {
-        appId,
-        variables,
-      },
-    });
+  const {
+    status: workflowStatus,
+    data: workflowDetail,
+    error: pollingError,
+    isPolling: isCurrentlyPolling,
+    stopPolling,
+  } = useWorkflowExecutionPolling({
+    executionId,
+    enabled: !!executionId,
+    interval: 5000,
 
-    if (error) {
-      message.error(`executeWorkflowApp error: ${error}`);
-      return;
-    }
+    onComplete: (status, _data) => {
+      // Clear executionId when workflow completes or fails
+      // setExecutionId(null);
 
-    setExecutionId(data?.data?.executionId ?? null);
+      if (status === 'finish') {
+        notification.success({
+          message:
+            t('canvas.workflow.run.completed') || 'Workflow execution completed successfully',
+        });
+      } else if (status === 'failed') {
+        notification.error({
+          message: t('canvas.workflow.run.failed') || 'Workflow execution failed',
+        });
+      }
+    },
+    onError: (_error) => {
+      // Clear executionId on error
+      setExecutionId(null);
+      notification.error({
+        message: t('canvas.workflow.run.error') || 'Error monitoring workflow execution',
+      });
+    },
+  });
 
-    message.success('Workflow started');
-  }, []);
+  const nodeExecutions = useMemo(() => workflowDetail?.nodeExecutions || [], [workflowDetail]);
+
+  // Debug logging for workflow execution
+  console.log('workflowStatus', workflowStatus);
+  console.log('workflowDetail', workflowDetail);
+  console.log('pollingError', pollingError);
+  console.log('isCurrentlyPolling', isCurrentlyPolling);
+
+  const onSubmit = useCallback(
+    async (variables: WorkflowVariable[]) => {
+      const { data, error } = await getClient().executeWorkflowApp({
+        body: {
+          appId,
+          variables,
+        },
+      });
+
+      if (error) {
+        message.error(`executeWorkflowApp error: ${error}`);
+        return;
+      }
+
+      const newExecutionId = data?.data?.executionId ?? null;
+      if (newExecutionId) {
+        setExecutionId(newExecutionId);
+        message.success('Workflow started');
+      } else {
+        message.error('Failed to get execution ID');
+      }
+    },
+    [appId, isCurrentlyPolling, stopPolling],
+  );
 
   const segmentedOptions = useMemo(() => {
     return [
@@ -63,14 +114,14 @@ const WorkflowAppPage: React.FC = () => {
   }, [t]);
 
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col h-full">
       <div className="flex items-center gap-2 p-4">
         <Logo onClick={() => navigate?.('/')} />
         <GithubStar />
       </div>
 
       {/* Hero Section */}
-      <div className="relative mx-auto max-w-5xl px-4 pt-10 md:pt-14">
+      <div className="flex-1 px-4 pt-10 md:pt-14 overflow-y-auto">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
             {workflowApp?.title ?? ''}
@@ -105,7 +156,7 @@ const WorkflowAppPage: React.FC = () => {
           {activeTab === 'products' ? (
             <WorkflowAppProducts appId={appId} executionId={executionId ?? ''} />
           ) : activeTab === 'runLogs' ? (
-            <WorkflowAppRunLogs appId={appId} executionId={executionId ?? ''} />
+            <WorkflowAppRunLogs nodeExecutions={nodeExecutions} />
           ) : null}
         </div>
       </div>

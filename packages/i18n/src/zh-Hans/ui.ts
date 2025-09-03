@@ -3179,6 +3179,7 @@ const translations = {
     publishSuccess: '发布成功',
     runLogs: '运行日志',
     products: '结果产物',
+    emptyLogs: '暂无运行日志，点击创建应用，开始运行',
   },
   project: {
     create: '创建知识库',

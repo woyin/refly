@@ -3433,6 +3433,7 @@ const translations = {
     publishSuccess: 'Published successfully',
     runLogs: 'Run Logs',
     products: 'Products',
+    emptyLogs: 'No run logs, click to create app, start running',
   },
   project: {
     create: 'Create Project',
