@@ -1205,10 +1205,6 @@ export type SimpleEvent = {
   displayName: {
     [key: string]: unknown;
   };
-  /**
-   * Context keys to provide
-   */
-  provideContextKeys: Array<SkillContextKey>;
 };
 
 /**
@@ -1361,10 +1357,6 @@ export type SkillInstance = SkillMeta & {
    * Skill template config schema
    */
   tplConfigSchema?: SkillTemplateConfigDefinition;
-  /**
-   * Skill invocation config
-   */
-  invocationConfig: SkillInvocationConfig;
   /**
    * Skill pinned time
    */
@@ -3718,6 +3710,38 @@ export type SkillContextUrlItem = {
 };
 
 /**
+ * Skill context media item
+ */
+export type SkillContextMediaItem = {
+  /**
+   * Media type
+   */
+  mediaType: MediaType;
+  /**
+   * Media entity ID
+   */
+  entityId: string;
+  /**
+   * Media title
+   */
+  title: string;
+  /**
+   * Media URL
+   */
+  url: string;
+  /**
+   * Media storage key
+   */
+  storageKey: string;
+  /**
+   * Media context metadata
+   */
+  metadata?: {
+    [key: string]: unknown;
+  };
+};
+
+/**
  * Skill invocation context
  */
 export type SkillContext = {
@@ -3739,11 +3763,14 @@ export type SkillContext = {
   contentList?: Array<SkillContextContentItem>;
   /**
    * List of URLs
+   * @deprecated
    */
   urls?: Array<SkillContextUrlItem>;
+  /**
+   * List of media
+   */
+  mediaList?: Array<SkillContextMediaItem>;
 };
-
-export type SkillContextKey = 'resources' | 'documents' | 'contentList' | 'urls';
 
 export type SelectionKey =
   | 'documentSelection'
@@ -3754,84 +3781,7 @@ export type SelectionKey =
   | 'documentBeforeCursorSelection'
   | 'documentAfterCursorSelection';
 
-export type SkillContextRule = {
-  /**
-   * Context key
-   */
-  key: SkillContextKey;
-  /**
-   * Maximum number of items
-   */
-  limit?: number;
-  /**
-   * Whether this context is required
-   */
-  required?: boolean;
-  /**
-   * Preferred selection keys (only applicable when key is `contentList`)
-   */
-  preferredSelectionKeys?: Array<SelectionKey>;
-};
-
-export type ContextRuleGroupRelation = 'regular' | 'mutuallyExclusive';
-
-export type SkillContextRuleGroup = {
-  /**
-   * Skill context rules
-   */
-  rules: Array<SkillContextRule>;
-  /**
-   * Rule group relation
-   */
-  relation?: ContextRuleGroupRelation;
-  /**
-   * Preferred context keys
-   */
-  preferredContextKeys?: Array<SkillContextKey>;
-};
-
-export type SkillInvocationConfig = {
-  /**
-   * Skill context rule group
-   */
-  context?: SkillContextRuleGroup;
-};
-
 export type ActionType = 'skill' | 'tool' | 'media';
-
-export type ActionContextType = 'resource' | 'document';
-
-export type ActionContextEntity = {
-  /**
-   * Entity title
-   */
-  title?: string;
-  /**
-   * Entity content
-   */
-  content?: string;
-};
-
-export type ActionContextItem = {
-  /**
-   * Context item type
-   */
-  type?: ActionContextType;
-  /**
-   * Entity ID
-   */
-  entityId?: string;
-  /**
-   * Entity data (will be auto populated if not provided)
-   */
-  entityData?: ActionContextEntity;
-  /**
-   * Context metadata
-   */
-  metadata?: {
-    [key: string]: unknown;
-  };
-};
 
 export type InvokeSkillRequest = {
   /**
@@ -4042,6 +3992,10 @@ export type MediaGenerateRequest = {
    * Media generation result ID
    */
   resultId?: string;
+  /**
+   * Parent result ID for the media generation (usually the actor agent result ID)
+   */
+  parentResultId?: string;
   /**
    * API key for the provider
    */
@@ -6008,6 +5962,10 @@ export type SendEmailRequest = {
    * Email sender. If not specified, server will use the default sender.
    */
   from?: string;
+  /**
+   * Email attachments, should be array of URLs.
+   */
+  attachments?: Array<string>;
 };
 
 export type GenerateAppTemplateRequest = {

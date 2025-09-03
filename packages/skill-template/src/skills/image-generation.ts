@@ -5,7 +5,6 @@ import { BaseSkill, BaseSkillState, SkillRunnableConfig, baseStateGraphArgs } fr
 import { SystemMessage, AIMessage } from '@langchain/core/messages';
 import {
   Icon,
-  SkillInvocationConfig,
   SkillTemplateConfigDefinition,
   Artifact,
   InputMode,
@@ -168,8 +167,6 @@ export class ImageGeneration extends BaseSkill {
       },
     ],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = '根据文本提示使用AI模型生成图像';
 

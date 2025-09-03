@@ -76,9 +76,10 @@ export const useContextUpdateByEdges = ({
           for (const childNode of childNodes) {
             if (childNode.data?.entityId && !existingEntityIds.has(childNode.data.entityId)) {
               updatedContextItems.push({
-                entityId: childNode.data.entityId,
                 type: childNode.type as CanvasNodeType,
                 title: childNode.data.title || '',
+                entityId: childNode.data.entityId,
+                metadata: childNode.data.metadata,
               });
 
               edgesToAdd.push({
@@ -93,9 +94,10 @@ export const useContextUpdateByEdges = ({
           }
         } else {
           updatedContextItems.push({
-            entityId,
             type: sourceNode.type as CanvasNodeType,
             title: sourceNode.data.title || '',
+            entityId,
+            metadata: sourceNode.data.metadata,
           });
           existingEntityIds.add(entityId);
         }

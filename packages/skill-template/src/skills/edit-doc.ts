@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { BaseSkill, SkillRunnableConfig, baseStateGraphArgs } from '../base';
 import { CanvasEditConfig } from '@refly/utils';
-import { Icon, SkillInvocationConfig, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
+import { Icon, SkillTemplateConfigDefinition } from '@refly/openapi-schema';
 // types
 import { GraphState } from '../scheduler/types';
 // utils
@@ -35,8 +35,6 @@ export class EditDoc extends BaseSkill {
   configSchema: SkillTemplateConfigDefinition = {
     items: [],
   };
-
-  invocationConfig: SkillInvocationConfig = {};
 
   description = 'Edit the document';
 
@@ -83,7 +81,8 @@ export class EditDoc extends BaseSkill {
     state: GraphState,
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
-    const { currentSkill, documents, tplConfig } = config.configurable;
+    const { currentSkill, context, tplConfig } = config.configurable;
+    const { documents } = context;
 
     const currentDoc = documents?.find((doc) => doc?.metadata?.isCurrentContext || doc?.isCurrent);
     const canvasEditConfig = tplConfig?.canvasEditConfig?.value as CanvasEditConfig;
@@ -93,9 +92,9 @@ export class EditDoc extends BaseSkill {
     }
 
     // Filter out documents with isCurrent before proceeding
-    if (config?.configurable?.documents) {
-      config.configurable.documents =
-        config.configurable.documents.filter(
+    if (documents) {
+      config.configurable.context.documents =
+        config.configurable.context.documents.filter(
           (doc) => !(doc?.metadata?.isCurrentContext || doc?.isCurrent),
         ) || [];
     }
