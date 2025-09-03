@@ -8,6 +8,7 @@ import {
   ActionResult,
   CanvasNodeType,
   CanvasNode,
+  WorkflowVariable,
 } from '@refly/openapi-schema';
 import { ResponseNodeMeta, CanvasNodeFilter } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
@@ -120,6 +121,7 @@ export class WorkflowService {
     user: User,
     canvasId: string,
     newCanvasId?: string,
+    variables?: WorkflowVariable[],
   ): Promise<string> {
     try {
       // Add a new execution mode: if a new canvas ID is provided, create a new canvas and add nodes to it one by one as they are executed.
@@ -145,6 +147,10 @@ export class WorkflowService {
         await this.canvasService.createCanvas(user, {
           canvasId: newCanvasId,
           title: canvas?.title,
+        });
+        await this.canvasSyncService.updateWorkflowVariables(user, {
+          canvasId: newCanvasId,
+          variables,
         });
       }
 

@@ -44,6 +44,7 @@ export enum IDPrefix {
   VARIABLE_EXTRACTION_SESSION = 'ves-',
   START = 'start-',
   VARIABLE = 'var-',
+  WorkflowApp = 'wa-',
 }
 
 export function genUID(): string {
@@ -238,4 +239,8 @@ export function genStartID(): string {
 
 export function genNodeID(): string {
   return IDPrefix.NODE + createId();
+}
+
+export function genWorkflowAppID(): string {
+  return IDPrefix.WorkflowApp + createId();
 }
