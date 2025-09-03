@@ -915,10 +915,12 @@ export class PilotService {
       const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
 
       const isAllSubtaskStepsFinished =
-        epochSubtaskSteps.length > 0 && epochSubtaskSteps.every((step) => step.status === 'finish');
+        epochSubtaskSteps.length > 0 &&
+        epochSubtaskSteps.every((step) => step.status === 'finish' || step.status === 'failed');
 
       const isAllSummaryStepsFinished =
-        epochSummarySteps.length > 0 && epochSummarySteps.every((step) => step.status === 'finish');
+        epochSummarySteps.length > 0 &&
+        epochSummarySteps.every((step) => step.status === 'finish' || step.status === 'failed');
 
       const reachedMaxEpoch = step.epoch > session.maxEpoch - 1;
       this.logger.log(

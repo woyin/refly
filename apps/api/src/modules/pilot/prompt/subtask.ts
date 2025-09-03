@@ -17,5 +17,5 @@ THIS SUBTASK:
 - Query: "${query}"
 `;
 
-  return { query: query };
+  return { query: _prompt };
 }
