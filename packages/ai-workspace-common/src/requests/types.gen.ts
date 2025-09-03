@@ -5822,6 +5822,94 @@ export type GetWorkflowDetailResponse = BaseResponse & {
   data?: WorkflowExecution;
 };
 
+export type CreateWorkflowAppRequest = {
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Workflow app title
+   */
+  title: string;
+  /**
+   * Workflow app description
+   */
+  description: string;
+  /**
+   * Workflow app query
+   */
+  query: string;
+  /**
+   * Workflow app variables
+   */
+  variables: Array<WorkflowVariable>;
+};
+
+export type WorkflowApp = {
+  /**
+   * Workflow app ID
+   */
+  appId: string;
+  /**
+   * Workflow app title
+   */
+  title?: string;
+  /**
+   * Workflow app description
+   */
+  description?: string;
+  /**
+   * Canvas ID
+   */
+  canvasId: string;
+  /**
+   * Workflow app query
+   */
+  query?: string;
+  /**
+   * Workflow app variables
+   */
+  variables: Array<WorkflowVariable>;
+  /**
+   * Workflow app creation timestamp
+   */
+  createdAt?: string;
+  /**
+   * Workflow app update timestamp
+   */
+  updatedAt?: string;
+};
+
+export type CreateWorkflowAppResponse = BaseResponse & {
+  data?: WorkflowApp;
+};
+
+export type GetWorkflowAppDetailResponse = BaseResponse & {
+  data?: WorkflowApp;
+};
+
+export type ExecuteWorkflowAppRequest = {
+  /**
+   * Workflow app ID
+   */
+  appId: string;
+  /**
+   * Workflow app variables
+   */
+  variables: Array<WorkflowVariable>;
+};
+
+export type ExecuteWorkflowAppResult = {
+  /**
+   * Workflow execution ID
+   */
+  executionId: string;
+};
+
+export type ExecuteWorkflowAppResponse = BaseResponse & {
+  data?: ExecuteWorkflowAppResult;
+};
+
 export type VariableType = 'text' | 'resource';
 
 export type ResourceValue = {
@@ -7337,6 +7425,35 @@ export type GetWorkflowDetailData = {
 export type GetWorkflowDetailResponse2 = GetWorkflowDetailResponse;
 
 export type GetWorkflowDetailError = unknown;
+
+export type CreateWorkflowAppData = {
+  body: CreateWorkflowAppRequest;
+};
+
+export type CreateWorkflowAppResponse2 = CreateWorkflowAppResponse;
+
+export type CreateWorkflowAppError = unknown;
+
+export type GetWorkflowAppDetailData = {
+  query: {
+    /**
+     * Workflow app ID
+     */
+    appId: string;
+  };
+};
+
+export type GetWorkflowAppDetailResponse2 = GetWorkflowAppDetailResponse;
+
+export type GetWorkflowAppDetailError = unknown;
+
+export type ExecuteWorkflowAppData = {
+  body: ExecuteWorkflowAppRequest;
+};
+
+export type ExecuteWorkflowAppResponse2 = ExecuteWorkflowAppResponse;
+
+export type ExecuteWorkflowAppError = unknown;
 
 export type GetSettingsResponse = GetUserSettingsResponse;
 
