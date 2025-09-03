@@ -3180,6 +3180,11 @@ const translations = {
     runLogs: '运行日志',
     products: '结果产物',
     emptyLogs: '暂无运行日志，点击创建应用，开始运行',
+    run: {
+      completed: 'App 运行成功',
+      failed: 'App 运行失败',
+      error: '运行出错',
+    },
   },
   project: {
     create: '创建知识库',

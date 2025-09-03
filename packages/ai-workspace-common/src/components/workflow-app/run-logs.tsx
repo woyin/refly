@@ -3,9 +3,10 @@ import { LOCALE } from '@refly/common-types';
 import { useTranslation } from 'react-i18next';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 
-import { WorkflowNodeExecution } from '@refly/openapi-schema';
+import { CanvasNodeType, WorkflowNodeExecution } from '@refly/openapi-schema';
 import { cn } from '@refly/utils/cn';
 import { Empty } from 'antd';
+import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 
 export const WorkflowAppRunLogs = ({
   nodeExecutions,
@@ -30,18 +31,21 @@ export const WorkflowAppRunLogs = ({
 
   return (
     <div className="w-full h-full flex flex-col gap-2">
-      {nodeExecutions.length === 0 ? (
+      {nodeExecutions?.length === 0 ? (
         <div className="w-full h-full flex items-center justify-center">
           <Empty description={t('workflowApp.emptyLogs')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       ) : (
         <>
-          {nodeExecutions.map((nodeExecution) => (
+          {nodeExecutions?.map((nodeExecution) => (
             <div
               key={nodeExecution.nodeExecutionId}
-              className="px-3 py-2 border-solid border-refly-Card-Border border-[1px] rounded-lg flex items-center justify-between bg-refly-bg-content-z2 hover:bg-refly-tertiary-hover"
+              className="w-full px-3 py-2 border-solid border-refly-Card-Border border-[1px] rounded-lg flex items-center gap-3 justify-between bg-refly-bg-content-z2 hover:bg-refly-tertiary-hover"
             >
-              <div>{nodeExecution.title}</div>
+              <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
+                <NodeIcon small type={nodeExecution.nodeType as CanvasNodeType} />
+                <div className="min-w-0 flex-1 truncate">{nodeExecution.title}</div>
+              </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div

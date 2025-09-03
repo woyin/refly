@@ -3,7 +3,7 @@ import { useGetWorkflowAppDetail } from '@refly-packages/ai-workspace-common/que
 import { message, Segmented, notification } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { WorkflowVariable } from '@refly/openapi-schema';
+import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/openapi-schema';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { WorkflowAppProducts } from '@refly-packages/ai-workspace-common/components/workflow-app/products';
@@ -20,6 +20,7 @@ const WorkflowAppPage: React.FC = () => {
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [workflowVariables, setWorkflowVariables] = useState<WorkflowVariable[]>([]);
+  const [finalNodeExecutions, setFinalNodeExecutions] = useState<any[]>([]);
 
   const { data, isLoading } = useGetWorkflowAppDetail({ query: { appId } });
   const workflowApp = data?.data;
@@ -33,9 +34,7 @@ const WorkflowAppPage: React.FC = () => {
   }, [workflowApp]);
 
   const {
-    status: workflowStatus,
     data: workflowDetail,
-    error: pollingError,
     isPolling: isCurrentlyPolling,
     stopPolling,
   } = useWorkflowExecutionPolling({
@@ -43,18 +42,22 @@ const WorkflowAppPage: React.FC = () => {
     enabled: !!executionId,
     interval: 5000,
 
-    onComplete: (status, _data) => {
+    onComplete: (status, data) => {
+      // Save final nodeExecutions before clearing executionId
+      if (data?.data?.nodeExecutions) {
+        setFinalNodeExecutions(data.data.nodeExecutions);
+      }
+
       // Clear executionId when workflow completes or fails
-      // setExecutionId(null);
+      setExecutionId(null);
 
       if (status === 'finish') {
         notification.success({
-          message:
-            t('canvas.workflow.run.completed') || 'Workflow execution completed successfully',
+          message: t('workflowApp.run.completed') || 'App run successfully',
         });
       } else if (status === 'failed') {
         notification.error({
-          message: t('canvas.workflow.run.failed') || 'Workflow execution failed',
+          message: t('workflowApp.run.failed') || 'App run failed',
         });
       }
     },
@@ -62,18 +65,31 @@ const WorkflowAppPage: React.FC = () => {
       // Clear executionId on error
       setExecutionId(null);
       notification.error({
-        message: t('canvas.workflow.run.error') || 'Error monitoring workflow execution',
+        message: t('workflowApp.run.error') || 'Run error',
       });
     },
   });
 
-  const nodeExecutions = useMemo(() => workflowDetail?.nodeExecutions || [], [workflowDetail]);
+  useEffect(() => {
+    console.log('workflowDetail', workflowDetail);
+  }, [workflowDetail]);
 
-  // Debug logging for workflow execution
-  console.log('workflowStatus', workflowStatus);
-  console.log('workflowDetail', workflowDetail);
-  console.log('pollingError', pollingError);
-  console.log('isCurrentlyPolling', isCurrentlyPolling);
+  const nodeExecutions = useMemo(() => {
+    // Use current workflowDetail if available, otherwise use final cached results
+    return workflowDetail?.nodeExecutions || finalNodeExecutions || [];
+  }, [workflowDetail, finalNodeExecutions]);
+
+  const products = useMemo(() => {
+    return nodeExecutions.filter((nodeExecution: WorkflowNodeExecution) =>
+      ['document', 'codeArtifact'].includes(nodeExecution.nodeType as CanvasNodeType),
+    );
+  }, [nodeExecutions]);
+
+  const logs = useMemo(() => {
+    return nodeExecutions.filter((nodeExecution: WorkflowNodeExecution) =>
+      ['skillResponse'].includes(nodeExecution.nodeType as CanvasNodeType),
+    );
+  }, [nodeExecutions]);
 
   const onSubmit = useCallback(
     async (variables: WorkflowVariable[]) => {
@@ -121,7 +137,7 @@ const WorkflowAppPage: React.FC = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="flex-1 px-4 pt-10 md:pt-14 overflow-y-auto">
+      <div className="flex-1 px-4 pt-10 overflow-y-auto">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
             {workflowApp?.title ?? ''}
@@ -154,9 +170,9 @@ const WorkflowAppPage: React.FC = () => {
         {/* Content area */}
         <div className="mx-auto mt-3 max-w-4xl">
           {activeTab === 'products' ? (
-            <WorkflowAppProducts appId={appId} executionId={executionId ?? ''} />
+            <WorkflowAppProducts products={products || []} />
           ) : activeTab === 'runLogs' ? (
-            <WorkflowAppRunLogs nodeExecutions={nodeExecutions} />
+            <WorkflowAppRunLogs nodeExecutions={logs || []} />
           ) : null}
         </div>
       </div>

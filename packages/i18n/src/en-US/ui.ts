@@ -3434,6 +3434,11 @@ const translations = {
     runLogs: 'Run Logs',
     products: 'Products',
     emptyLogs: 'No run logs, click to create app, start running',
+    run: {
+      completed: 'App run successfully',
+      failed: 'App run failed',
+      error: 'Run error',
+    },
   },
   project: {
     create: 'Create Project',
