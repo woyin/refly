@@ -73,12 +73,17 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   } = props;
 
   const { getEdges, getNodes, deleteElements, addEdges } = useReactFlow();
-  const [editQuery, setEditQuery] = useState<string>(query);
+  const editQuery = useMemo(() => query, [query]);
+  const setEditQuery = useCallback(
+    (query: string) => {
+      onQueryChange?.(query);
+    },
+    [onQueryChange],
+  );
   const [editContextItems, setEditContextItems] = useState<IContextItem[]>(contextItems);
   const [editModelInfo, setEditModelInfo] = useState<ModelInfo>(modelInfo);
   const [editRuntimeConfig, setEditRuntimeConfig] = useState<SkillRuntimeConfig>(runtimeConfig);
   const contextItemsRef = useRef(editContextItems);
-  const isInternalUpdateRef = useRef(false);
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -190,33 +195,9 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     const nodes = getNodes();
     const currentNode = nodes.find((node) => node.data?.entityId === resultId);
 
-    if (currentNode && editQuery !== query) {
-      // Mark this as an internal update to prevent circular dependency
-      isInternalUpdateRef.current = true;
-
-      // Update the query in real-time to MinIO
-      updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
-
-      // Notify parent component of the query change
-      if (onQueryChange) {
-        onQueryChange(editQuery);
-      }
-    }
-  }, [editQuery, resultId, query, getNodes, updateNodeQuery, onQueryChange]);
-
-  // Sync internal state with props changes - but avoid circular updates
-  useEffect(() => {
-    // Only update if the query prop is different from current editQuery
-    // and it's not coming from our own update (avoid circular dependency)
-    if (query !== editQuery && !isInternalUpdateRef.current) {
-      setEditQuery(query);
-    }
-
-    // Reset the internal update flag
-    if (isInternalUpdateRef.current) {
-      isInternalUpdateRef.current = false;
-    }
-  }, [query, editQuery]);
+    // Update the query in real-time to MinIO
+    currentNode && updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
+  }, [resultId, editQuery, getNodes, updateNodeQuery, onQueryChange]);
 
   useEffect(() => {
     setEditContextItems(contextItems);
