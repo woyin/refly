@@ -29,6 +29,7 @@ export interface ProgressStage {
   toolCategories: string[]; // Recommended tool categories for this stage
   priority: number; // Stage priority (1 = highest)
   stageProgress?: number; // Stage progress percentage (0-100)
+  summary?: string; // Summary of the stage
 }
 
 export interface ProgressPlan {

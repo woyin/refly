@@ -33,7 +33,7 @@ import { ToolService } from '../tool/tool.service';
 import { PilotEngineService } from './pilot-engine.service';
 import { PilotSessionWithProgress, PilotStepWithMode, ActionResultWithOutput } from './pilot.types';
 
-export const MAX_STEPS_PER_EPOCH = 3;
+export const MAX_STEPS_PER_EPOCH = 10;
 export const MAX_SUMMARY_STEPS_PER_EPOCH = 1;
 
 export const MAX_EPOCH = 10;

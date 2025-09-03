@@ -283,19 +283,34 @@ export class IntentAnalysisService {
 **Current Stage**: ${currentStage?.name || 'None'}
 **Pending Stages**: ${pendingStages.map((s) => s.name).join(', ')}
 
-### Completed Stages Summary:
-${completedStages.map((stage) => `- ${stage.name}: ${stage.description}`).join('\n')}
+### Completed Stages with Execution Results:
+${completedStages
+  .map((stage) => {
+    const summary = stage.summary || 'No execution summary available';
+    const processedSummary = this.processStageSummary(summary);
+    return `
+- **${stage.name}**: ${stage.description}
+  - **Objectives**: ${stage.objectives.join(', ')}
+  - **Progress**: ${stage.stageProgress || 0}%
+  - **Tool Categories**: ${stage.toolCategories.join(', ')}
+  - **Execution Summary**: ${processedSummary}
+  - **Completion Status**: ${stage.status}
+  - **Completed At**: ${stage.completedAt || 'Not specified'}`;
+  })
+  .join('\n')}
 
 ### Current Stage Details:
 ${
   currentStage
     ? `
-- Name: ${currentStage.name}
-- Description: ${currentStage.description}
-- Objectives: ${currentStage.objectives.join(', ')}
-- Progress: ${currentStage.stageProgress || 0}%
-- Tool Categories: ${currentStage.toolCategories.join(', ')}
-`
+- **Name**: ${currentStage.name}
+- **Description**: ${currentStage.description}
+- **Objectives**: ${currentStage.objectives.join(', ')}
+- **Progress**: ${currentStage.stageProgress || 0}%
+- **Tool Categories**: ${currentStage.toolCategories.join(', ')}
+- **Status**: ${currentStage.status}
+- **Started At**: ${currentStage.startedAt || 'Not started'}
+- **Current Summary**: ${currentStage.summary ? this.processStageSummary(currentStage.summary) : 'No summary available yet'}`
     : 'No current stage'
 }
 
@@ -303,13 +318,31 @@ ${
 ${pendingStages
   .map(
     (stage) => `
-- Name: ${stage.name}
-- Description: ${stage.description}
-- Objectives: ${stage.objectives.join(', ')}
-- Tool Categories: ${stage.toolCategories.join(', ')}
-`,
+- **Name**: ${stage.name}
+- **Description**: ${stage.description}
+- **Objectives**: ${stage.objectives.join(', ')}
+- **Tool Categories**: ${stage.toolCategories.join(', ')}
+- **Priority**: ${stage.priority}
+- **Status**: ${stage.status}`,
   )
   .join('\n')}
+
+### Execution Quality Assessment:
+${
+  completedStages.length > 0
+    ? `Based on the execution summaries above, assess the quality and completeness of completed stages to inform better planning for remaining stages.
+
+**Note**: Execution summaries have been processed to extract key information including:
+- Progress status (epochs completed, completion percentage)
+- Completed subtasks and their outcomes
+- Current stage status and objectives
+- Target question and scope
+- Language requirements
+- Completeness and evidence quality assessments
+
+Use this structured information to make informed decisions about future stage planning and subtask generation.`
+    : 'No completed stages to assess yet.'
+}
 `;
     }
 
@@ -329,6 +362,35 @@ ${toolInfo}
 ## CANVAS CONTENT
 ${contentInfo}
 ${progressContext}
+
+## EXECUTION RESULT ANALYSIS (For Dynamic Re-planning)
+${
+  !isInitialPlan
+    ? `
+When analyzing execution results, pay special attention to:
+
+### Quality Assessment Criteria:
+- **Completeness**: Were all stage objectives fully achieved?
+- **Accuracy**: Were the results accurate and reliable?
+- **Efficiency**: Was the execution efficient and well-organized?
+- **Quality**: Was the output quality satisfactory?
+- **Gaps**: What was missing or could be improved?
+
+### Learning Integration:
+- **Success Patterns**: What worked well and should be replicated?
+- **Failure Points**: What didn't work and needs adjustment?
+- **Resource Optimization**: How can tools and approaches be better utilized?
+- **Timeline Adjustments**: Were time estimates realistic?
+- **Dependency Refinement**: Do stage dependencies need adjustment?
+
+### Context for Future Planning:
+- **Data Quality**: What data was collected and its reliability?
+- **Tool Effectiveness**: Which tools were most/least effective?
+- **Approach Validation**: Which approaches proved successful?
+- **Scope Refinement**: Does the remaining scope need adjustment?
+`
+    : ''
+}
 
 ## COMPREHENSIVE PLANNING REQUIREMENTS
 
@@ -354,11 +416,13 @@ ${progressContext}
 5. **Current Stage Subtasks**: Generate parallel subtasks for the first stage
 
 ### For Dynamic Re-planning:
-1. **Progress Assessment**: Analyze current execution status and results
-2. **Stage Re-optimization**: Adjust remaining stages based on what has been learned
-3. **Context Integration**: Incorporate insights from completed stages
-4. **Current Stage Subtasks**: Generate or update subtasks for the current active stage
-5. **Adaptive Planning**: Modify future stages based on current progress
+1. **Execution Quality Analysis**: Thoroughly analyze the execution summaries from completed stages
+2. **Progress Assessment**: Evaluate current execution status, quality, and completeness
+3. **Stage Re-optimization**: Adjust remaining stages based on lessons learned from execution results
+4. **Context Integration**: Incorporate insights, findings, and outcomes from completed stages
+5. **Current Stage Subtasks**: Generate or update subtasks for the current active stage based on execution context
+6. **Adaptive Planning**: Modify future stages based on actual execution results and quality assessment
+7. **Quality Improvement**: Identify areas for improvement and adjust planning accordingly
 
 ## OUTPUT FORMAT
 Provide a JSON response with the following structure:
@@ -396,9 +460,12 @@ Provide a JSON response with the following structure:
 - **MUST** ensure subtasks can run simultaneously within a stage
 - **MUST** provide clear dependency explanations between stages
 - **MUST** make each stage and subtask actionable and specific
-- **MUST** ${isInitialPlan ? 'create optimal initial plan' : 're-optimize based on current progress'}
+- **MUST** ${isInitialPlan ? 'create optimal initial plan' : 're-optimize based on current progress and execution results'}
 - **MUST** ensure logical progression between stages
 - **MUST** be realistic about time estimates
+- **MUST** ${isInitialPlan ? 'plan comprehensively from scratch' : 'analyze execution quality and adapt planning accordingly'}
+- **MUST** incorporate insights from completed stage summaries into future planning
+- **MUST** identify and address any quality issues or gaps from previous execution
 
 ## VALIDATION CHECKLIST
 Before submitting, verify:
@@ -409,9 +476,144 @@ Before submitting, verify:
 □ The execution order is logical and necessary
 □ Each stage and subtask has defined objectives
 □ The progression makes sense for the user's request
-□ ${isInitialPlan ? 'Initial plan is comprehensive and optimal' : 'Re-planning incorporates lessons learned'}
+□ ${isInitialPlan ? 'Initial plan is comprehensive and optimal' : 'Re-planning incorporates lessons learned from execution summaries'}
+□ ${isInitialPlan ? 'Initial planning is thorough and well-structured' : 'Execution quality has been analyzed and incorporated into planning'}
+□ ${isInitialPlan ? 'All stages are properly planned' : 'Completed stage summaries have been thoroughly reviewed and insights applied'}
+□ ${isInitialPlan ? 'Tool categories are appropriately assigned' : 'Tool categories have been adjusted based on execution results'}
+□ ${isInitialPlan ? 'Time estimates are realistic' : 'Time estimates have been updated based on actual execution experience'}
 
 ${locale ? `\n## LANGUAGE REQUIREMENT\nAll output should be in ${locale} language.` : ''}`;
+  }
+
+  /**
+   * Process stage summary to extract key information for planning context
+   * Handles both Chinese and English formats, extracts essential execution details
+   */
+  private processStageSummary(summary: string): string {
+    if (!summary || summary.trim() === '') {
+      return 'No execution summary available';
+    }
+
+    try {
+      // Extract key information from structured summary
+      const lines = summary
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      // Key patterns to extract (support both Chinese and English)
+      const patterns = {
+        // Progress information
+        progress:
+          /(?:进度|Progress)[：:]\s*第?\s*(\d+)\/(\d+)\s*周期?\s*\((\d+)%\s*(?:完成|complete)\)/i,
+        progressEn:
+          /(?:Progress|进度)[：:]\s*(\d+)\/(\d+)\s*(?:epochs?|周期?)\s*\((\d+)%\s*(?:complete|完成)\)/i,
+
+        // Completed subtasks
+        completedTasks: /(?:已完成子任务|Completed subtasks?)[：:]\s*(.+)/i,
+        completedTasksEn: /(?:Completed subtasks?|已完成子任务)[：:]\s*(.+)/i,
+
+        // Current stage
+        currentStage: /(?:当前阶段|Current stage)[：:]\s*(.+)/i,
+        currentStageEn: /(?:Current stage|当前阶段)[：:]\s*(.+)/i,
+
+        // Target question
+        targetQuestion: /(?:目标问题|Target question)[：:]\s*[""](.+)[""]/i,
+        targetQuestionEn: /(?:Target question|目标问题)[：:]\s*[""](.+)[""]/i,
+
+        // Language
+        language: /(?:语言|Language)[：:]\s*([a-z-]+)/i,
+        languageEn: /(?:Language|语言)[：:]\s*([a-z-]+)/i,
+
+        // Completeness assessment
+        completeness: /(?:完整性|Completeness)[：:]\s*(\d+)%\s*[-–]\s*(.+)/i,
+        completenessEn: /(?:Completeness|完整性)[：:]\s*(\d+)%\s*[-–]\s*(.+)/i,
+
+        // Evidence quality
+        evidenceQuality:
+          /(?:证据质量|Evidence quality)[：:]\s*(强|中|弱|Strong|Medium|Weak)\s*[-–]\s*(.+)/i,
+        evidenceQualityEn:
+          /(?:Evidence quality|证据质量)[：:]\s*(Strong|Medium|Weak|强|中|弱)\s*[-–]\s*(.+)/i,
+      };
+
+      const extractedInfo: string[] = [];
+
+      // Extract progress information
+      const progressMatch = summary.match(patterns.progress) || summary.match(patterns.progressEn);
+      if (progressMatch) {
+        extractedInfo.push(
+          `Progress: ${progressMatch[1]}/${progressMatch[2]} epochs (${progressMatch[3]}% complete)`,
+        );
+      }
+
+      // Extract completed tasks
+      const completedTasksMatch =
+        summary.match(patterns.completedTasks) || summary.match(patterns.completedTasksEn);
+      if (completedTasksMatch) {
+        const tasks = completedTasksMatch[1]
+          .split(/[,，]/)
+          .map((task) => task.trim())
+          .slice(0, 3); // Limit to first 3 tasks
+        extractedInfo.push(`Completed tasks: ${tasks.join(', ')}`);
+      }
+
+      // Extract current stage
+      const currentStageMatch =
+        summary.match(patterns.currentStage) || summary.match(patterns.currentStageEn);
+      if (currentStageMatch) {
+        extractedInfo.push(`Current stage: ${currentStageMatch[1].trim()}`);
+      }
+
+      // Extract target question (truncated for brevity)
+      const targetQuestionMatch =
+        summary.match(patterns.targetQuestion) || summary.match(patterns.targetQuestionEn);
+      if (targetQuestionMatch) {
+        const question = targetQuestionMatch[1].trim();
+        const truncatedQuestion =
+          // biome-ignore lint/style/useTemplate: <explanation>
+          question.length > 100 ? question.substring(0, 100) + '...' : question;
+        extractedInfo.push(`Target: ${truncatedQuestion}`);
+      }
+
+      // Extract language
+      const languageMatch = summary.match(patterns.language) || summary.match(patterns.languageEn);
+      if (languageMatch) {
+        extractedInfo.push(`Language: ${languageMatch[1]}`);
+      }
+
+      // Extract completeness assessment
+      const completenessMatch =
+        summary.match(patterns.completeness) || summary.match(patterns.completenessEn);
+      if (completenessMatch) {
+        extractedInfo.push(
+          `Completeness: ${completenessMatch[1]}% - ${completenessMatch[2].trim()}`,
+        );
+      }
+
+      // Extract evidence quality
+      const evidenceQualityMatch =
+        summary.match(patterns.evidenceQuality) || summary.match(patterns.evidenceQualityEn);
+      if (evidenceQualityMatch) {
+        extractedInfo.push(
+          `Evidence quality: ${evidenceQualityMatch[1]} - ${evidenceQualityMatch[2].trim()}`,
+        );
+      }
+
+      // If we extracted meaningful information, return it
+      if (extractedInfo.length > 0) {
+        return extractedInfo.join(' | ');
+      }
+
+      // Fallback: extract first few lines and truncate if too long
+      const firstLines = lines.slice(0, 3).join(' | ');
+      // biome-ignore lint/style/useTemplate: <explanation>
+      return firstLines.length > 200 ? firstLines.substring(0, 200) + '...' : firstLines;
+    } catch (error) {
+      this.logger.warn(`Error processing stage summary: ${error.message}`);
+      // Fallback to truncated original summary
+      // biome-ignore lint/style/useTemplate: <explanation>
+      return summary.length > 200 ? summary.substring(0, 200) + '...' : summary;
+    }
   }
 
   /**

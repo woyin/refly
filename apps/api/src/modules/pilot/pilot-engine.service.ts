@@ -252,6 +252,8 @@ export class PilotEngineService {
         },
       });
 
+      currentStage.summary = '';
+
       // Get subtask execution statuses
       const subtaskStatuses = await this.getSubtaskExecutionStatuses(
         currentStage,
@@ -261,9 +263,15 @@ export class PilotEngineService {
 
       // Update stage with current subtask statuses
       await this.updateStageWithSubtaskStatuses(currentStage, subtaskStatuses);
+      progressPlan.currentStageIndex = session.currentEpoch;
 
       // Update stage progress based on database state
-      this.updateStageProgress(currentStage, currentEpochSteps, currentEpochActionResults);
+      await this.updateStageProgress(
+        currentStage,
+        currentEpochSteps,
+        currentEpochActionResults,
+        currentEpoch,
+      );
       this.calculateOverallProgress(progressPlan);
 
       return progressPlan;
@@ -276,13 +284,14 @@ export class PilotEngineService {
   }
 
   /**
-   * Update stage progress based on database state
+   * Update stage progress based on database state and generate stage summary
    */
-  private updateStageProgress(
+  private async updateStageProgress(
     stage: ProgressStage,
     steps: PilotStep[],
-    _actionResults: ActionResult[],
-  ): void {
+    actionResults: ActionResult[],
+    currentEpoch: number,
+  ): Promise<void> {
     try {
       if (steps.length === 0) {
         stage.stageProgress = 0;
@@ -302,8 +311,124 @@ export class PilotEngineService {
           stage.startedAt = new Date().toISOString();
         }
       }
+
+      // Generate stage summary from action results
+      const stageSummary = await this.extractStageSummaryFromActionResults(
+        actionResults,
+        stage,
+        currentEpoch,
+      );
+      if (stageSummary) {
+        stage.summary = stageSummary;
+      }
     } catch (error) {
       this.logger.error(`Error updating stage progress: ${error.message}`);
+    }
+  }
+
+  /**
+   * Extract stage summary from action results, specifically from summary-type results
+   */
+  private async extractStageSummaryFromActionResults(
+    actionResults: ActionResult[],
+    stage: ProgressStage,
+    currentEpoch: number,
+  ): Promise<string | undefined> {
+    try {
+      if (actionResults.length === 0) {
+        return undefined;
+      }
+
+      // Find all steps in the same epoch
+      const epochSteps = await this.prisma.pilotStep.findMany({
+        where: {
+          sessionId: actionResults[0]?.pilotSessionId || '',
+          epoch: currentEpoch,
+        },
+      });
+
+      // Filter for summary steps only
+      const epochSummarySteps = epochSteps.filter((step) => step.mode === 'summary');
+
+      if (epochSummarySteps.length === 0) {
+        // If no summary steps, generate a basic summary from other results
+        const completedResults = actionResults.filter((result) => result.status === 'finish');
+        if (completedResults.length > 0) {
+          return `Stage "${stage.name}" completed ${completedResults.length} actions successfully.`;
+        }
+        return undefined;
+      }
+
+      // Get action step data for summary steps only
+      // We need to get the entityId from PilotStep, then find the corresponding ActionResult
+      const summaryEntityIds = epochSummarySteps.map((step) => step.entityId).filter(Boolean);
+
+      // Find the corresponding action results for summary steps
+      const summaryActionResults = await this.prisma.actionResult.findMany({
+        where: {
+          resultId: { in: summaryEntityIds },
+          version: 0, // Get the latest version
+        },
+      });
+
+      if (summaryActionResults.length === 0) {
+        return undefined;
+      }
+
+      // Get action steps for these action results
+      const summaryResultIds = summaryActionResults.map((result) => result.resultId);
+      const actionSteps = await this.prisma.actionStep.findMany({
+        where: {
+          resultId: { in: summaryResultIds },
+          version: 0, // Get the latest version
+        },
+        orderBy: [{ resultId: 'asc' }, { order: 'asc' }],
+      });
+
+      // Group steps by resultId
+      const stepsByResultId = actionSteps.reduce(
+        (map, step) => {
+          if (!map[step.resultId]) {
+            map[step.resultId] = [];
+          }
+          map[step.resultId].push(step);
+          return map;
+        },
+        {} as Record<string, typeof actionSteps>,
+      );
+
+      // Extract content from summary results
+      const summaries: string[] = [];
+
+      for (const actionResult of summaryActionResults) {
+        try {
+          const steps = stepsByResultId[actionResult.resultId];
+          if (steps && steps.length > 0) {
+            // Get the first step's content (steps[0].content)
+            const firstStep = steps[0];
+            if (firstStep?.content) {
+              summaries.push(firstStep.content);
+            }
+          }
+        } catch (parseError) {
+          this.logger.warn(
+            `Failed to extract summary from action result ${actionResult.resultId}: ${parseError.message}`,
+          );
+          // Fallback to title if parsing fails
+          if (actionResult.title) {
+            summaries.push(actionResult.title);
+          }
+        }
+      }
+
+      if (summaries.length > 0) {
+        return summaries.join('\n\n');
+      }
+
+      return undefined;
+    } catch (error) {
+      this.logger.error(`Error extracting stage summary: ${error.message}`);
+      return undefined;
     }
   }
 
@@ -522,8 +647,8 @@ export class PilotEngineService {
       const updatedSubtasks: ProgressSubtask[] = stage.subtasks.map((existingSubtask) => {
         const statusUpdate = subtaskStatuses.find(
           (status) =>
-            status.stepId === existingSubtask.id ||
-            status.resultId === existingSubtask.resultId ||
+            // status.stepId === existingSubtask.id ||
+            // status.resultId === existingSubtask.resultId ||
             status.name.trim() === existingSubtask.name.trim(),
         );
 
@@ -541,14 +666,15 @@ export class PilotEngineService {
       });
 
       // Add new subtasks that don't exist yet
-      const existingSubtaskIds = new Set(updatedSubtasks.map((st) => st.id));
+      const existingSubtaskNames = new Set(updatedSubtasks.map((st) => st.name));
       const newSubtasks: ProgressSubtask[] = subtaskStatuses
-        .filter((status) => !existingSubtaskIds.has(status.stepId))
+        .filter((status) => !existingSubtaskNames.has(status.name))
         .map((status) => ({
           id: status.stepId,
           name: status.name,
           query: '', // Will be filled when generating new tasks
           status: status.status,
+          output: status.output,
           resultId: status.resultId,
           createdAt: new Date().toISOString(),
           completedAt: status.completedAt,
@@ -643,7 +769,7 @@ export class PilotEngineService {
       // Convert ProgressPlanWithSubtasks to ProgressPlan
       const replannedPlan: ProgressPlan = {
         stages: planWithSubtasks.stages,
-        currentStageIndex: planWithSubtasks.currentStageIndex,
+        currentStageIndex: currentPlan.currentStageIndex,
         overallProgress: planWithSubtasks.overallProgress,
         lastUpdated: planWithSubtasks.lastUpdated,
         planningLogic: planWithSubtasks.planningLogic,
