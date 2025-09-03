@@ -38,7 +38,7 @@ const FormItemLabel = ({ name, required }: { name: string; required: boolean }) 
 interface WorkflowRunFormProps {
   workflowVariables: WorkflowVariable[];
   refetchWorkflowVariables: () => void;
-  initializeWorkflow: (canvasId: string) => void;
+  initializeWorkflow: (canvasId: string, startNodes?: string[]) => void;
   loading: boolean;
   executionId?: string | null;
   workflowStatus?: WorkflowExecutionStatus | null;

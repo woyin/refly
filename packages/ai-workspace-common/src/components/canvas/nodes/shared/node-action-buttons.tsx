@@ -9,7 +9,7 @@ import {
   IconDeleteFile,
   IconVariable,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { AiChat, Reload, Copy, Clone, More, Delete, Download } from 'refly-icons';
+import { AiChat, Reload, Copy, Clone, More, Delete, Download, PlayOutline } from 'refly-icons';
 import cn from 'classnames';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
@@ -29,6 +29,7 @@ type ActionButtonType = {
   color?: string;
   bgColor?: string;
   onChangeBackground?: (bgColor: string) => void;
+  disabled?: boolean;
 };
 
 type NodeActionButtonsProps = {
@@ -44,12 +45,16 @@ type NodeActionButtonsProps = {
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
   ({ nodeId, nodeType, isNodeHovered, bgColor, onChangeBackground, isExtracting }) => {
     const { t } = useTranslation();
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId, workflowRun } = useCanvasContext();
     const { getNode } = useReactFlow();
     const node = useMemo(() => getNode(nodeId), [nodeId, getNode]);
     const { fetchNodeContent } = useGetNodeContent(node);
     const nodeData = useMemo(() => node?.data, [node]);
     const buttonContainerRef = useRef<HTMLDivElement>(null);
+
+    // Shared workflow state from CanvasProvider
+    const initializing = workflowRun?.loading ?? false;
+    const isPolling = workflowRun?.isPolling ?? false;
 
     const showMoreButton = useMemo(() => {
       return !['skill', 'mediaSkill', 'mediaSkillResponse', 'video', 'audio', 'image'].includes(
@@ -71,6 +76,13 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       contextMenuOpenedCanvasId: state.contextMenuOpenedCanvasId,
     }));
 
+    const { activeExecutionId } = useCanvasStoreShallow((state) => ({
+      activeExecutionId: canvasId ? (state.canvasExecutionId[canvasId] ?? null) : null,
+    }));
+    const isRunningWorkflow = useMemo(
+      () => !!(initializing || isPolling || activeExecutionId),
+      [initializing, isPolling, activeExecutionId],
+    );
     const [cloneAskAIRunning, setCloneAskAIRunning] = useState(false);
     const [copyRunning, setCopyRunning] = useState(false);
     const [downloadRunning, setDownloadRunning] = useState(false);
@@ -159,6 +171,11 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       nodeActionEmitter.emit(createNodeEventName(nodeId, 'download'));
     }, [nodeId]);
 
+    const handleRunWorkflow = useCallback(() => {
+      if (!canvasId || isRunningWorkflow) return;
+      workflowRun?.initialize?.([nodeId]);
+    }, [canvasId, nodeId, isRunningWorkflow, workflowRun]);
+
     const actionButtons = useMemo(() => {
       const buttons: ActionButtonType[] = [];
 
@@ -181,6 +198,16 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
             icon: Reload,
             tooltip: t('canvas.nodeActions.rerun'),
             onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'rerun')),
+          });
+
+          buttons.push({
+            key: 'rouWorkflow',
+            icon: PlayOutline,
+            tooltip: t(
+              `canvas.nodeActions.${isRunningWorkflow ? 'existWorkflowRunning' : 'runWorkflow'}`,
+            ),
+            onClick: handleRunWorkflow,
+            disabled: isRunningWorkflow,
           });
 
           buttons.push({
@@ -355,8 +382,18 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
               <Tooltip key={button.key} title={button.tooltip} placement="top">
                 <Button
                   type="text"
+                  disabled={button.disabled}
                   danger={button.danger}
-                  icon={<button.icon color={button.color || 'var(--refly-text-0)'} size={18} />}
+                  icon={
+                    <button.icon
+                      color={
+                        button.disabled
+                          ? 'var(--refly-text-3)'
+                          : button.color || 'var(--refly-text-0)'
+                      }
+                      size={18}
+                    />
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();

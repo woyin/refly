@@ -73,10 +73,16 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   } = props;
 
   const { getEdges, getNodes, deleteElements, addEdges } = useReactFlow();
-  const editQuery = useMemo(() => query, [query]);
+  const [editQuery, setEditQueryState] = useState<string>(query);
+
+  useEffect(() => {
+    setEditQueryState(query ?? '');
+  }, [query]);
+
   const setEditQuery = useCallback(
-    (query: string) => {
-      onQueryChange?.(query);
+    (newQuery: string) => {
+      setEditQueryState(newQuery);
+      onQueryChange?.(newQuery);
     },
     [onQueryChange],
   );
