@@ -8,7 +8,7 @@ import './index.scss';
 import { FC } from 'react';
 
 interface WorkflowRunProps {
-  initializeWorkflow: (canvasId: string) => void;
+  initializeWorkflow: (canvasId: string, startNodes?: string[]) => Promise<boolean>;
   loading: boolean;
   executionId?: string | null;
   workflowStatus?: any;

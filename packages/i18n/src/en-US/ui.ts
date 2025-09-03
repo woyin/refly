@@ -1517,6 +1517,8 @@ const translations = {
       download: 'Download',
       downloadSuccess: 'Download Success',
       downloadError: 'Download Error',
+      runWorkflow: 'Run Workflow from Current Node',
+      existWorkflowRunning: 'Workflow is running',
     },
     nodeStatus: {
       isCreatingDocument: 'Creating Document...',

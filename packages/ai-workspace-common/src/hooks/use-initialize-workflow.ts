@@ -54,10 +54,12 @@ export const useInitializeWorkflow = (canvasId?: string) => {
   });
 
   const initializeWorkflow = useCallback(
-    async (canvasId: string) => {
+    async (canvasId: string, startNodes?: string[]) => {
       try {
         setLoading(true);
-        const { data, error } = await getClient().initializeWorkflow({ body: { canvasId } });
+        const { data, error } = await getClient().initializeWorkflow({
+          body: { canvasId, startNodes },
+        });
 
         if (error) {
           console.error('Failed to initialize workflow:', error);

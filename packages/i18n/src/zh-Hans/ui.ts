@@ -1481,6 +1481,8 @@ const translations = {
       download: '下载',
       downloadSuccess: '下载成功',
       downloadError: '下载失败',
+      runWorkflow: '从当前节点开始运行工作流',
+      existWorkflowRunning: '工作流正在运行中',
     },
     nodeStatus: {
       isCreatingDocument: '创建中...',

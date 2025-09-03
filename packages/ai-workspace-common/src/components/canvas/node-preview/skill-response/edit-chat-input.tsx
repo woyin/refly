@@ -73,7 +73,19 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   } = props;
 
   const { getEdges, getNodes, deleteElements, addEdges } = useReactFlow();
-  const [editQuery, setEditQuery] = useState<string>(query);
+  const [editQuery, setEditQueryState] = useState<string>(query);
+
+  useEffect(() => {
+    setEditQueryState(query ?? '');
+  }, [query]);
+
+  const setEditQuery = useCallback(
+    (newQuery: string) => {
+      setEditQueryState(newQuery);
+      onQueryChange?.(newQuery);
+    },
+    [onQueryChange],
+  );
   const [editContextItems, setEditContextItems] = useState<IContextItem[]>(contextItems);
   const [editModelInfo, setEditModelInfo] = useState<ModelInfo>(modelInfo);
   const [editRuntimeConfig, setEditRuntimeConfig] = useState<SkillRuntimeConfig>(runtimeConfig);
@@ -189,21 +201,9 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     const nodes = getNodes();
     const currentNode = nodes.find((node) => node.data?.entityId === resultId);
 
-    if (currentNode && editQuery !== query) {
-      // Update the query in real-time to MinIO
-      updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
-
-      // Notify parent component of the query change
-      if (onQueryChange) {
-        onQueryChange(editQuery);
-      }
-    }
-  }, [editQuery, resultId, query, getNodes, updateNodeQuery, onQueryChange]);
-
-  // Sync internal state with props changes
-  useEffect(() => {
-    setEditQuery(query);
-  }, [query]);
+    // Update the query in real-time to MinIO
+    currentNode && updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
+  }, [resultId, editQuery, getNodes, updateNodeQuery]);
 
   useEffect(() => {
     setEditContextItems(contextItems);
