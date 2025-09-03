@@ -186,7 +186,7 @@ export class PilotService {
     const actionResults = await this.prisma.actionResult.findMany({
       where: {
         pilotStepId: {
-          in: steps.map((step) => step.stepId).filter(Boolean),
+          in: steps.map((step) => step.stepId).filter((id): id is string => Boolean(id)),
         },
       },
       orderBy: { version: 'desc' },
@@ -239,7 +239,7 @@ export class PilotService {
   /**
    * Convert PilotStep to PilotStepWithMode
    */
-  private convertToPilotStepWithMode(step: any, mode?: string): PilotStepWithMode {
+  private convertToPilotStepWithMode(step: PilotStepWithMode, mode?: string): PilotStepWithMode {
     return {
       stepId: step.stepId || '',
       name: step.name || '',
@@ -257,7 +257,7 @@ export class PilotService {
   /**
    * Convert ActionResult to ActionResultWithOutput
    */
-  private convertToActionResultWithOutput(result: any): ActionResultWithOutput {
+  private convertToActionResultWithOutput(result: ActionResultWithOutput): ActionResultWithOutput {
     return {
       resultId: result.resultId || '',
       title: result.title || '',
@@ -268,6 +268,55 @@ export class PilotService {
       createdAt: result.createdAt ? new Date(result.createdAt) : new Date(),
       updatedAt: result.updatedAt ? new Date(result.updatedAt) : new Date(),
     };
+  }
+
+  /**
+   * Query generated artifact nodes from latestSummarySteps
+   * @param user - The user to query for
+   * @param targetId - The target canvas ID
+   * @param latestSummarySteps - The latest summary steps
+   * @returns Array of generated artifact node IDs
+   */
+  private async queryGeneratedArtifactNodes(
+    user: User,
+    targetId: string,
+    latestSummarySteps: Array<{
+      step: PilotStepWithMode;
+      actionResult: ActionResultWithOutput | null;
+    }>,
+  ): Promise<string[]> {
+    if (!latestSummarySteps?.length) {
+      return [];
+    }
+
+    // Get all action result IDs from latestSummarySteps
+    const actionResultIds = latestSummarySteps
+      .map(({ actionResult }) => actionResult?.resultId)
+      .filter((id): id is string => Boolean(id));
+
+    if (!actionResultIds.length) {
+      return [];
+    }
+
+    // Query canvas content items that have inputIds containing these action result IDs
+    const canvasContentItems = await this.canvasService.getCanvasContentItems(user, targetId, true);
+
+    // Filter for artifact nodes (codeArtifact, document, image, video, audio) that reference these action results
+    const artifactNodeIds: string[] = [];
+
+    for (const item of canvasContentItems) {
+      if (['codeArtifact', 'document', 'image', 'video', 'audio'].includes(item.type)) {
+        // Check if this artifact node references any of the action results
+        const inputIds = item.inputIds || [];
+        const hasReference = actionResultIds.some((resultId) => inputIds.includes(resultId));
+
+        if (hasReference) {
+          artifactNodeIds.push(item.id);
+        }
+      }
+    }
+
+    return artifactNodeIds;
   }
 
   private async buildContextAndHistory(
@@ -305,7 +354,10 @@ export class PilotService {
       // If a match was found and it's reasonably close, add it to the matched items
       // (Using a threshold to avoid completely unrelated matches)
       if (bestMatch) {
-        matchedItems.push(contentItemMap.get(bestMatch));
+        const matchedItem = contentItemMap.get(bestMatch);
+        if (matchedItem) {
+          matchedItems.push(matchedItem);
+        }
       }
     }
 
@@ -511,7 +563,20 @@ export class PilotService {
       // Get session details for context building
       const { steps } = await this.getPilotSessionDetail(user, sessionId);
       const latestSummarySteps = steps?.filter(({ step }) => step.epoch === currentEpoch - 1) || [];
-      const contextEntityIds = latestSummarySteps.map(({ step }) => step.entityId);
+
+      // Query generated artifact nodes from latestSummarySteps
+      const generatedArtifactNodeIds = await this.queryGeneratedArtifactNodes(
+        user,
+        targetId,
+        latestSummarySteps,
+      );
+
+      // Combine context entity IDs with generated artifact node IDs
+      const contextEntityIds = [
+        ...latestSummarySteps.map(({ step }) => step.entityId),
+        ...generatedArtifactNodeIds,
+      ];
+
       const { context, history } = await this.buildContextAndHistory(
         canvasContentItems,
         contextEntityIds,
@@ -740,7 +805,18 @@ export class PilotService {
       const latestSubtaskSteps =
         steps?.filter(({ step }) => step.epoch === currentEpoch && step.mode === 'subtask') || [];
 
-      const contextEntityIds = latestSubtaskSteps.map(({ step }) => step.entityId);
+      // Query generated artifact nodes from latestSubtaskSteps
+      const generatedArtifactNodeIds = await this.queryGeneratedArtifactNodes(
+        user,
+        targetId,
+        latestSubtaskSteps,
+      );
+
+      // Combine context entity IDs with generated artifact node IDs
+      const contextEntityIds = [
+        ...latestSubtaskSteps.map(({ step }) => step.entityId),
+        ...generatedArtifactNodeIds,
+      ];
 
       const { context, history } = await this.buildContextAndHistory(
         canvasContentItems,
@@ -753,7 +829,9 @@ export class PilotService {
         currentEpoch,
         maxEpoch,
         subtaskTitles:
-          latestSubtaskSteps?.map(({ actionResult }) => actionResult?.title)?.filter(Boolean) ?? [],
+          latestSubtaskSteps
+            ?.map(({ actionResult }) => actionResult?.title)
+            ?.filter((title): title is string => Boolean(title)) ?? [],
         locale,
       });
 
