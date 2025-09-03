@@ -251,7 +251,8 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
     title: z.string().describe('Title of the document to generate'),
     content: z.string().describe('Markdown content of the document'),
   });
-  description = 'Generate a new document based on a title and content.';
+  description =
+    'Create or save content to a document (e.g., when the user says "save to document"). Provide a title and Markdown content.';
 
   protected params: BuiltinToolParams;
 
