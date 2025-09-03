@@ -1,5 +1,5 @@
 import { useGetWorkflowAppDetail } from '@refly-packages/ai-workspace-common/queries';
-import { Segmented } from 'antd';
+import { message, Segmented } from 'antd';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { GithubStar } from '@refly-packages/ai-workspace-common/components/commo
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { WorkflowAppProducts } from '@refly-packages/ai-workspace-common/components/workflow-app/products';
 import { WorkflowAppRunLogs } from '@refly-packages/ai-workspace-common/components/workflow-app/run-logs';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 // Types for page labels to support future i18n
 interface TabItem {
@@ -73,6 +74,7 @@ const WorkflowAppPage: React.FC = () => {
   const { appId: routeAppId } = useParams();
   const navigate = useNavigate();
   const appId = routeAppId ?? '';
+  const [executionId, setExecutionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('runLogs');
 
   // All texts are centralized here for future i18n
@@ -136,11 +138,22 @@ const WorkflowAppPage: React.FC = () => {
   console.log('appDetail', workflowApp);
   console.log('isLoading', isLoading);
 
-  const onStart = useCallback(() => {
-    // Placeholder handler. Integrate with actual action later.
-    // This keeps UX consistent during development.
-    // eslint-disable-next-line no-alert
-    window?.alert?.('Start workflow');
+  const onStart = useCallback(async () => {
+    const { data, error } = await getClient().executeWorkflowApp({
+      body: {
+        appId,
+        variables: [],
+      },
+    });
+
+    if (error) {
+      message.error(`executeWorkflowApp error: ${error}`);
+      return;
+    }
+
+    setExecutionId(data?.data?.executionId ?? null);
+
+    message.success('Workflow started');
   }, []);
 
   const segmentedOptions = useMemo(() => {
@@ -197,9 +210,9 @@ const WorkflowAppPage: React.FC = () => {
         {/* Content area */}
         <div className="mx-auto mt-3 max-w-4xl">
           {activeTab === 'products' ? (
-            <WorkflowAppProducts appId={appId} />
+            <WorkflowAppProducts appId={appId} executionId={executionId ?? ''} />
           ) : activeTab === 'runLogs' ? (
-            <WorkflowAppRunLogs appId={appId} />
+            <WorkflowAppRunLogs appId={appId} executionId={executionId ?? ''} />
           ) : null}
         </div>
       </div>
