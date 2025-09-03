@@ -3,7 +3,34 @@ import { ToolParams } from '@langchain/core/tools';
 import { FirecrawlClient } from './client';
 import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
-import { fallbackSummarize } from '../../../skill-template/src/scheduler/utils/context';
+import { encode, decode } from 'gpt-tokenizer';
+
+// Fallback summarizer trims text to budget using token-based middle-out truncation
+export const fallbackSummarize = async (
+  _query: string,
+  content: string,
+  budget: number,
+): Promise<string> => {
+  // Keep short content unchanged
+  const tokens = encode(content ?? '');
+  if (tokens.length <= budget) return content ?? '';
+
+  // Allocate 45/10/45 head/summary/tail by tokens
+  const summaryBudget = Math.max(48, Math.min(128, Math.floor(budget * 0.2)));
+  const headBudget = Math.max(1, Math.floor((budget - summaryBudget) / 2));
+  const tailBudget = Math.max(1, budget - summaryBudget - headBudget);
+
+  const headTokens = tokens.slice(0, headBudget);
+  const tailTokens = tokens.slice(tokens.length - tailBudget);
+
+  const head = decode(headTokens);
+  const tail = decode(tailTokens);
+
+  // Use a simple placeholder for the middle in fallback mode
+  const middleNote = `\n\n...[${tokens.length - headTokens.length - tailTokens.length} tokens compressed]...\n\n`;
+
+  return `${head}${middleNote}${tail}`;
+};
 
 export const FirecrawlToolsetDefinition: ToolsetDefinition = {
   key: 'firecrawl',
@@ -170,7 +197,7 @@ export class FirecrawlScrape extends AgentBaseTool<FirecrawlToolParams> {
         // Ensure maxTokens is within safe limits (considering total context budget)
         // Reserve space for tool input (2k) + output (63k) + buffer (10k) = ~75k
         // Max safe input: 131k - 75k = 56k, but be conservative with 2k
-        const safeMaxTokens = Math.min(input.maxTokens ?? 0, 10000);
+        const safeMaxTokens = Math.min(input.maxTokens ?? 10000, 10000);
         markdownContent = await fallbackSummarize(
           `Scrape content from ${input.url}`,
           markdownContent,
@@ -180,7 +207,7 @@ export class FirecrawlScrape extends AgentBaseTool<FirecrawlToolParams> {
         return {
           status: 'success',
           data: { content: markdownContent, fullResponse: data.data },
-          summary: `Successfully scraped URL: ${input.url} and extracted markdown content${input.maxTokens > 0 ? ` (truncated to ${Math.min(input.maxTokens, 10000)} tokens for safety)` : ''}`,
+          summary: `Successfully scraped URL: ${input.url} and extracted markdown content${(input.maxTokens ?? 0) > 0 ? ` (truncated to ${Math.min(input.maxTokens ?? 10000, 10000)} tokens for safety)` : ''}`,
         };
       }
 

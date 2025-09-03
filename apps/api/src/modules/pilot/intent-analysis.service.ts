@@ -798,6 +798,78 @@ ${locale ? `\n## LANGUAGE REQUIREMENT\nAll output should be in ${locale} languag
   }
 
   /**
+   * Analyze user intent and generate progress plan (simplified version)
+   * This method is used by PilotEngine for backward compatibility
+   */
+  async analyzeIntentAndPlan(
+    model: BaseChatModel,
+    userQuestion: string,
+    availableTools: GenericToolset[],
+    canvasContent: CanvasContentItem[],
+    locale?: string,
+  ): Promise<ProgressPlan> {
+    try {
+      this.logger.log(`Starting intent analysis for: "${userQuestion}"`);
+
+      // Use the comprehensive planning method and extract just the ProgressPlan
+      const planWithSubtasks = await this.analyzeIntentAndPlanWithSubtasks(
+        model,
+        userQuestion,
+        null, // No existing progress plan
+        availableTools,
+        canvasContent,
+        locale,
+      );
+
+      // Convert ProgressPlanWithSubtasks to ProgressPlan
+      const progressPlan: ProgressPlan = {
+        stages: planWithSubtasks.stages,
+        currentStageIndex: planWithSubtasks.currentStageIndex,
+        overallProgress: planWithSubtasks.overallProgress,
+        lastUpdated: planWithSubtasks.lastUpdated,
+        planningLogic: planWithSubtasks.planningLogic,
+        userIntent: planWithSubtasks.userIntent,
+        estimatedTotalEpochs: planWithSubtasks.estimatedTotalEpochs,
+      };
+
+      this.logger.log(`Intent analysis completed. Generated ${progressPlan.stages.length} stages`);
+      return progressPlan;
+    } catch (error) {
+      this.logger.error('Intent analysis failed:', error);
+      // Return a default plan as fallback
+      return this.generateDefaultPlan(userQuestion);
+    }
+  }
+
+  /**
+   * Generate a default progress plan as fallback
+   */
+  private generateDefaultPlan(userQuestion: string): ProgressPlan {
+    const defaultStage: ProgressStage = {
+      id: genPilotStepID(),
+      name: 'Research',
+      description: 'Initial research and data gathering',
+      objectives: ['Gather relevant information', 'Analyze requirements'],
+      toolCategories: ['web', 'search', 'data'],
+      priority: 1,
+      status: 'pending',
+      stageProgress: 0,
+      subtasks: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    return {
+      stages: [defaultStage],
+      currentStageIndex: 0,
+      overallProgress: 0,
+      lastUpdated: new Date().toISOString(),
+      planningLogic: 'Default fallback plan',
+      userIntent: userQuestion,
+      estimatedTotalEpochs: 1,
+    };
+  }
+
+  /**
    * Update progress plan based on current execution status
    */
   async updateProgressPlan(
