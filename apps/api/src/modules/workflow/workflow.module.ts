@@ -11,14 +11,12 @@ import { WorkflowController } from './workflow.controller';
 import { SyncWorkflowProcessor, RunWorkflowProcessor } from './workflow.processor';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { isDesktop } from '../../utils/runtime';
-import { ToolModule } from '../tool/tool.module';
 
 @Module({
   imports: [
     CommonModule,
     CanvasModule,
     CanvasSyncModule,
-    ToolModule,
     SkillModule,
     KnowledgeModule,
     ...(isDesktop()

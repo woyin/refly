@@ -29,7 +29,6 @@ import { SkillContext } from '@refly/openapi-schema';
 import { WorkflowVariableService } from './workflow-variable.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { WorkflowExecutionNotFoundError } from '@refly/errors';
-import { ToolService } from '../tool/tool.service';
 
 @Injectable()
 export class WorkflowService {
@@ -41,7 +40,6 @@ export class WorkflowService {
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly workflowVariableService: WorkflowVariableService,
-    private readonly toolService: ToolService,
     private readonly knowledgeService: KnowledgeService,
     @InjectQueue(QUEUE_SYNC_WORKFLOW) private readonly syncWorkflowQueue?: Queue,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
@@ -510,8 +508,6 @@ export class WorkflowService {
       }
     }
 
-    //const userToolsets = await this.toolService.listTools(user);
-
     // Prepare the invoke skill request
     const invokeRequest: InvokeSkillRequest = {
       resultId,
@@ -526,7 +522,7 @@ export class WorkflowService {
       context,
       resultHistory,
       skillName: selectedSkill?.name || 'commonQnA',
-      toolsets: selectedToolsets, //.concat(userToolsets),
+      toolsets: selectedToolsets,
       tplConfig,
       runtimeConfig,
       // Add workflow fields to the request
