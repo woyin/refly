@@ -17,13 +17,13 @@ import { useFrontPageStoreShallow, usePilotStoreShallow } from '@refly/stores';
 import { NoSession } from '@refly-packages/ai-workspace-common/components/pilot/nosession';
 import SessionHeader from '@refly-packages/ai-workspace-common/components/pilot/session-header';
 import { Send, Thinking } from 'refly-icons';
+import { contextEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/context';
 
 // Define the active statuses that require polling
 const ACTIVE_STATUSES = ['executing', 'waiting'];
 const POLLING_INTERVAL = 2000; // 2 seconds
 
 export interface SessionContainerProps {
-  sessionId: string | null;
   canvasId: string;
   className?: string;
   onStepClick?: (step: PilotStep) => void;
@@ -93,11 +93,7 @@ AnimatedEllipsis.displayName = 'AnimatedEllipsis';
 
 // Component for new task button when session is completed
 export const NewTaskButton = memo(
-  ({
-    className,
-    setIsNewTask,
-    canvasId,
-  }: { className?: string; setIsNewTask: (isNewTask: boolean) => void; canvasId: string }) => {
+  ({ className, canvasId }: { className?: string; canvasId: string }) => {
     const { t } = useTranslation();
     const { setActiveSessionId, setIsPilotOpen } = usePilotStoreShallow((state) => ({
       setActiveSessionId: state.setActiveSessionId,
@@ -107,11 +103,10 @@ export const NewTaskButton = memo(
       clearCanvasQuery: state.clearCanvasQuery,
     }));
     const handleNewTask = useCallback(() => {
-      setIsNewTask(true);
       setIsPilotOpen(true);
-      setActiveSessionId(null);
+      setActiveSessionId(canvasId, null);
       clearCanvasQuery?.(canvasId);
-    }, [setIsNewTask, setIsPilotOpen, setActiveSessionId, clearCanvasQuery, canvasId]);
+    }, [setIsPilotOpen, setActiveSessionId, clearCanvasQuery, canvasId]);
 
     return (
       <motion.div
@@ -142,30 +137,36 @@ export const NewTaskButton = memo(
 NewTaskButton.displayName = 'NewTaskButton';
 
 export const SessionContainer = memo(
-  ({ sessionId, canvasId, className, onStepClick }: SessionContainerProps) => {
+  ({ canvasId, className, onStepClick }: SessionContainerProps) => {
     const { t } = useTranslation();
     const [isPolling, setIsPolling] = useState(false);
-    const [sessionStatus, setSessionStatus] = useState<string | null>(null);
     const { getNodes } = useReactFlow<CanvasNode<any>>();
 
-    const { isPilotOpen, isNewTask, setIsPilotOpen, setActiveSessionId, setIsNewTask } =
-      usePilotStoreShallow((state) => ({
-        isPilotOpen: state.isPilotOpen,
-        isNewTask: state.isNewTask,
-        setIsPilotOpen: state.setIsPilotOpen,
-        activeSessionId: state.activeSessionId,
-        setActiveSessionId: state.setActiveSessionId,
-        setIsNewTask: state.setIsNewTask,
-      }));
-    const { query } = useFrontPageStoreShallow((state) => ({
+    const {
+      isPilotOpen,
+      setIsPilotOpen,
+      contextItems,
+      setContextItems,
+      setActiveSessionId,
+      activeSessionId,
+    } = usePilotStoreShallow((state) => ({
+      isPilotOpen: state.isPilotOpen,
+      setIsPilotOpen: state.setIsPilotOpen,
+      contextItems: state.contextItemsByCanvas?.[canvasId] ?? [],
+      setContextItems: state.setContextItems,
+      activeSessionId: state.activeSessionIdByCanvas?.[canvasId] ?? null,
+      setActiveSessionId: state.setActiveSessionId,
+    }));
+    const { query, clearCanvasQuery } = useFrontPageStoreShallow((state) => ({
       query: state.getQuery?.(canvasId) || '',
+      clearCanvasQuery: state.clearCanvasQuery,
     }));
 
     const handleSessionClick = useCallback(
       (sessionId: string) => {
-        setActiveSessionId(sessionId);
+        setActiveSessionId(canvasId, sessionId);
       },
-      [setActiveSessionId],
+      [setActiveSessionId, canvasId],
     );
     const { setNodeCenter } = useNodePosition();
     const { handleNodePreview } = useNodePreviewControl({ canvasId });
@@ -176,22 +177,19 @@ export const SessionContainer = memo(
     );
 
     // Fetch the pilot session details
-    const {
-      data: sessionData,
-      // isLoading,
-      // error,
-    } = useGetPilotSessionDetail(
+    const { data: sessionData } = useGetPilotSessionDetail(
       {
-        query: { sessionId },
+        query: { sessionId: activeSessionId },
       },
       undefined,
       {
-        enabled: !!sessionId,
+        enabled: !!activeSessionId,
         refetchInterval: isPolling ? POLLING_INTERVAL : false,
       },
     );
 
     const session = useMemo(() => sessionData?.data, [sessionData]);
+    const sessionStatus = useMemo(() => session?.status, [session]);
 
     // Check if the session is in an active state that requires polling
     const shouldPoll = useMemo(() => {
@@ -237,13 +235,6 @@ export const SessionContainer = memo(
       });
     }, [session?.steps]);
 
-    // Update session status whenever it changes
-    useEffect(() => {
-      if (session?.status) {
-        setSessionStatus(session.status);
-      }
-    }, [session?.status]);
-
     // Set up polling based on session status
     useEffect(() => {
       if (shouldPoll && !isPolling) {
@@ -252,6 +243,31 @@ export const SessionContainer = memo(
         setIsPolling(false);
       }
     }, [shouldPoll, isPolling]);
+
+    const handleAddToContext = useCallback(() => {
+      if (['init', 'executing', 'waiting'].includes(sessionStatus ?? '')) {
+        return;
+      } else {
+        setIsPilotOpen(true);
+        setActiveSessionId(canvasId, null);
+        clearCanvasQuery(canvasId);
+      }
+    }, [
+      sessionStatus,
+      canvasId,
+      clearCanvasQuery,
+      setActiveSessionId,
+      isPilotOpen,
+      setIsPilotOpen,
+    ]);
+
+    useEffect(() => {
+      contextEmitter.on('addToContext', handleAddToContext);
+
+      return () => {
+        contextEmitter.off('addToContext', handleAddToContext);
+      };
+    }, [handleAddToContext]);
 
     return (
       <div className={containerClassName}>
@@ -269,7 +285,7 @@ export const SessionContainer = memo(
         {/* )} */}
 
         <AnimatePresence mode="wait">
-          {!session || isNewTask ? (
+          {!activeSessionId ? (
             <motion.div
               key="no-session"
               initial={{ opacity: 0, y: 20 }}
@@ -277,7 +293,11 @@ export const SessionContainer = memo(
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
-              <NoSession canvasId={canvasId} />
+              <NoSession
+                canvasId={canvasId}
+                contextItems={contextItems}
+                setContextItems={(items) => setContextItems(canvasId, items)}
+              />
             </motion.div>
           ) : (
             <div className="flex flex-col h-full">
@@ -323,7 +343,7 @@ export const SessionContainer = memo(
                         ))}
                       </div>
                     </motion.div>
-                  ) : session?.status === 'executing' ? (
+                  ) : sessionStatus === 'executing' ? (
                     <motion.div
                       key="executing-state"
                       className="flex flex-col h-full"
@@ -379,14 +399,17 @@ export const SessionContainer = memo(
                   )}
                 </AnimatePresence>
               </motion.div>
-              {session?.status === 'finish' && (
-                <NewTaskButton setIsNewTask={setIsNewTask} canvasId={canvasId} />
+              {['finish', 'failed'].includes(sessionStatus ?? '') && (
+                <NewTaskButton canvasId={canvasId} />
               )}
             </div>
           )}
         </AnimatePresence>
       </div>
     );
+  },
+  (prevProps, nextProps) => {
+    return prevProps.canvasId === nextProps.canvasId;
   },
 );
 

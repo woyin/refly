@@ -5,11 +5,10 @@ import { IContextItem } from '@refly/common-types';
 type ContextEventTypes = {
   addToContext: {
     contextItem: IContextItem;
-    resultId: string;
+    duplicated: boolean;
   };
   addToContextCompleted: {
     contextItem: IContextItem;
-    resultId: string;
     success: boolean;
   };
 };
@@ -18,17 +17,19 @@ type ContextEventTypes = {
 export const contextEmitter = mitt<ContextEventTypes>();
 
 // Helper function for adding a context item
-export const emitAddToContext = (contextItem: IContextItem, resultId: string) => {
-  contextEmitter.emit('addToContext', { contextItem, resultId });
+export const emitAddToContext = ({
+  contextItem,
+  duplicated,
+}: { contextItem: IContextItem; duplicated: boolean }) => {
+  contextEmitter.emit('addToContext', { contextItem, duplicated });
 };
 
 // Helper function for completing addition of a context item
-export const emitAddToContextCompleted = (
-  contextItem: IContextItem,
-  resultId: string,
-  success: boolean,
-) => {
-  contextEmitter.emit('addToContextCompleted', { contextItem, resultId, success });
+export const emitAddToContextCompleted = ({
+  contextItem,
+  success,
+}: { contextItem: IContextItem; success: boolean }) => {
+  contextEmitter.emit('addToContextCompleted', { contextItem, success });
 };
 
 // Helper function to clean up event handlers
