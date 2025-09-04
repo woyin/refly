@@ -495,9 +495,12 @@ When analyzing execution results, pay special attention to:
 - **Stage-Specific Optimization**: Optimize subtask count based on each stage's specific requirements and logic
 - **Global Optimization**: ${isInitialPlan ? 'Create optimal stage sequence' : 'Re-optimize remaining stages based on progress'}
 
-### 2. PARALLEL SUBTASK GENERATION
-- **Parallel Execution**: Subtasks within a stage must be able to run simultaneously
-- **Independence**: No subtask should depend on another subtask's completion
+### 2. DEPENDENCY ANALYSIS AND SUBTASK GENERATION
+- **Dependency Analysis First**: Before generating subtasks, analyze all task dependencies
+- **Sequential Task Identification**: Identify tasks that must be executed in sequence (e.g., "整理内容然后发送邮件")
+- **Parallel Task Identification**: Identify tasks that can be executed simultaneously (e.g., "搜索A信息和搜索B信息")
+- **Dependency Validation**: Verify that no subtask depends on another subtask's completion
+- **Stage Promotion**: If subtasks have sequential dependencies, promote them to separate stages
 - **Goal-Oriented**: Each subtask should directly contribute to stage objectives
 - **Necessity**: ONLY generate essential subtasks - avoid redundant or overlapping subtasks
 - **Uniqueness**: Each subtask must have distinct objectives and outcomes
@@ -507,9 +510,16 @@ When analyzing execution results, pay special attention to:
 
 ## PLANNING PRINCIPLES
 
+### Dependency Analysis and Task Sequencing:
+- **Dependency-First Approach**: Always analyze task dependencies before generating subtasks
+- **Sequential vs Parallel Identification**: Clearly distinguish between tasks that must be sequential vs those that can be parallel
+- **Logical Flow Validation**: Ensure task sequence follows natural logical progression
+- **Data Dependency Check**: Verify if subsequent tasks depend on previous task outputs
+- **Resource Dependency Analysis**: Check if tasks require resources from previous tasks
+
 ### Subtask Granularity and Quantity Control:
-- **Maximum Granularity**: Break down tasks into the smallest possible independent units
-- **Concurrency Optimization**: Generate as many parallel subtasks as possible to maximize concurrent execution
+- **Dependency-Aware Granularity**: Break down tasks while respecting dependency relationships
+- **Concurrency Optimization**: Generate parallel subtasks ONLY when tasks are truly independent
 - **Resource Utilization**: Ensure each subtask can be executed independently without waiting for others
 - **Quality Over Quantity**: Generate ONLY essential subtasks - avoid redundant, overlapping, or unnecessary subtasks
 - **Minimal Viable Subtasks**: Each subtask must have distinct, non-overlapping objectives and outcomes
@@ -600,6 +610,37 @@ Speaker 2: Not a team, but a whole new league of players. I'm talking about the 
 - User specifically requests dialogue format or speaker-based content
 - Task involves creating engaging, spoken content for audio consumption
 
+## DEPENDENCY ANALYSIS GUIDELINES
+
+### Dependency Identification Principles:
+- **Data Dependency**: Subsequent tasks require output data from previous tasks
+- **Logical Dependency**: Tasks must follow natural logical sequence (e.g., "整理内容" → "发送邮件")
+- **Time Dependency**: Tasks must be executed in specific chronological order
+- **Resource Dependency**: Tasks require resources or results from previous tasks
+
+### Dependency Analysis Methods:
+- **Verb Analysis**: Analyze task verbs to identify sequential patterns (e.g., "收集" → "分析" → "生成")
+- **Input-Output Check**: Verify if subsequent tasks depend on previous task outputs
+- **Logical Flow Validation**: Ensure tasks follow natural execution order
+- **Dependency Chain Detection**: Identify chains of dependent tasks
+
+### Sequential vs Parallel Task Examples:
+- **Sequential Tasks** (Must be separate stages):
+  - "整理内容然后发送邮件" → Stage 1: "整理内容", Stage 2: "发送邮件"
+  - "收集数据然后分析结果" → Stage 1: "收集数据", Stage 2: "分析结果"
+  - "编写代码然后测试功能" → Stage 1: "编写代码", Stage 2: "测试功能"
+
+- **Parallel Tasks** (Can be subtasks in same stage):
+  - "搜索A信息和搜索B信息" → Subtask 1: "搜索A信息", Subtask 2: "搜索B信息"
+  - "分析X数据和Y数据" → Subtask 1: "分析X数据", Subtask 2: "分析Y数据"
+  - "生成报告和准备演示" → Subtask 1: "生成报告", Subtask 2: "准备演示"
+
+### Dependency Validation Rules:
+- **No Circular Dependencies**: Tasks cannot depend on themselves or create cycles
+- **Clear Prerequisites**: Each task must have clearly defined prerequisites
+- **Output Availability**: Ensure required outputs are available when needed
+- **Resource Constraints**: Consider resource limitations and conflicts
+
 ## STAGE LOGIC AND DEPENDENCY GUIDELINES
 
 ### Objective Logic Alignment:
@@ -657,6 +698,18 @@ Provide a JSON response with the following structure:
 \`\`\`
 
 ## CRITICAL REQUIREMENTS
+
+### Dependency Analysis Requirements:
+- **MUST** analyze all task dependencies before generating subtasks
+- **MUST** identify sequential tasks and separate them into different stages
+- **MUST** identify parallel tasks and group them as subtasks within the same stage
+- **MUST** verify that no subtask depends on another subtask's completion
+- **MUST** ensure task sequence follows natural logical progression
+- **MUST** handle data dependencies properly (outputs available when needed)
+- **MUST** consider resource dependencies and resolve conflicts
+- **MUST** avoid circular dependencies in the task graph
+
+### Stage and Subtask Structure Requirements:
 - **MUST** create sequential stages that depend on each other
 - **MUST** generate parallel subtasks for the current active stage
 - **MUST** ensure subtasks can run simultaneously within a stage
@@ -674,7 +727,6 @@ Provide a JSON response with the following structure:
 - **MUST** follow objective logic for stage dependencies and progression
 - **MUST** optimize subtask count based on each stage's specific requirements
 - **MUST** prioritize task completion efficiency over subtask quantity
-- **MUST** maximize subtask granularity for optimal concurrency
 - **MUST** ${isInitialPlan ? 'create optimal initial plan' : 're-optimize based on current progress and execution results'}
 - **MUST** ensure logical progression between stages
 - **MUST** be realistic about time estimates
@@ -684,6 +736,18 @@ Provide a JSON response with the following structure:
 
 ## VALIDATION CHECKLIST
 Before submitting, verify:
+
+### Dependency Analysis Validation:
+□ All task dependencies have been analyzed and identified
+□ Sequential tasks are properly separated into different stages
+□ Parallel tasks are correctly identified as subtasks within the same stage
+□ No subtask depends on another subtask's completion
+□ Task sequence follows natural logical progression
+□ Data dependencies are properly handled (outputs available when needed)
+□ Resource dependencies are considered and resolved
+□ No circular dependencies exist in the task graph
+
+### Stage and Subtask Structure Validation:
 □ Stages are sequential and cannot run in parallel
 □ Subtasks within current stage can run in parallel
 □ Each stage has clear dependencies on previous stages
@@ -696,13 +760,14 @@ Before submitting, verify:
 □ No artificial inflation of subtask count for concurrency sake
 □ Stage dependencies are based on natural, logical progression
 □ Overall plan prioritizes completion efficiency over subtask quantity
+
+### Tool and Execution Validation:
 □ Subtask queries are tool-specific and immediately actionable
 □ Each subtask query explicitly mentions the tool to be used
 □ Built-in tools are properly identified and specified in queries
 □ No ambiguous tool references or vague instructions
 □ Tool usage matches the subtask requirements and objectives
 □ Each tool instruction is specific and actionable
-□ Maximum number of parallel subtasks generated for optimal concurrency
 □ Each subtask can be executed independently with available tools
 □ The execution order is logical and necessary
 □ Each stage and subtask has defined objectives
