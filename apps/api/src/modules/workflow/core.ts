@@ -1,14 +1,83 @@
-import { CanvasData, CanvasNode } from '@refly/openapi-schema';
+import { CanvasData, CanvasNode, CanvasNodeType, WorkflowVariable } from '@refly/openapi-schema';
 import deepmerge from 'deepmerge';
-import { Prisma } from '../../generated/client';
-import { genNodeEntityId, genNodeID, genWorkflowNodeExecutionID } from '@refly/utils';
+import { Prisma, WorkflowNodeExecution } from '../../generated/client';
+import {
+  genNodeEntityId,
+  genNodeID,
+  genWorkflowNodeExecutionID,
+  safeParseJSON,
+} from '@refly/utils';
 import { IContextItem } from '@refly/common-types';
+import { ResponseNodeMeta } from '@refly/canvas-common';
 
-export const prepareNodeExecutions = (
-  executionId: string,
-  canvasData: CanvasData,
-  options: { startNodes?: string[]; isNewCanvas?: boolean },
-): { nodeExecutions: Prisma.WorkflowNodeExecutionCreateManyInput[]; startNodes: string[] } => {
+/**
+ * Enhanced process query with workflow variables
+ * - string: as before
+ * - resource: return special marker for resource injection
+ * - option: use defaultValue array first if value missing
+ */
+export const processQueryWithTypes = (query: string, variables: WorkflowVariable[] = []) => {
+  if (!query || !variables.length) {
+    return query;
+  }
+
+  let processedQuery = query;
+
+  for (const variable of variables) {
+    const values = variable.value;
+
+    if (variable.variableType === 'resource') {
+      continue;
+    }
+
+    // string/option: extract text values from VariableValue array
+    const textValues =
+      values
+        ?.filter((v) => v.type === 'text' && v.text)
+        .map((v) => v.text)
+        .filter(Boolean) ?? [];
+
+    const stringValue = textValues.length > 0 ? textValues.join(', ') : '';
+    processedQuery = processedQuery.replace(
+      new RegExp(`@${variable.name}\\s`, 'g'),
+      `${stringValue} `,
+    );
+  }
+  return processedQuery;
+};
+
+// Helper function to find all nodes in the subtree starting from given start nodes
+const findSubtreeNodes = (startNodeIds: string[], childMap: Map<string, string[]>): Set<string> => {
+  const subtreeNodes = new Set<string>();
+  const queue = [...startNodeIds];
+
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()!;
+    if (!subtreeNodes.has(currentNodeId)) {
+      subtreeNodes.add(currentNodeId);
+      // Add all children to the queue
+      const children = childMap.get(currentNodeId) || [];
+      queue.push(...children);
+    }
+  }
+
+  return subtreeNodes;
+};
+
+/**
+ * Prepare node executions for a workflow execution
+ * @param params - Parameters for preparing node executions
+ * @returns Node executions and start nodes
+ */
+export const prepareNodeExecutions = (params: {
+  executionId: string;
+  canvasId: string;
+  canvasData: CanvasData;
+  variables: WorkflowVariable[];
+  startNodes?: string[];
+  isNewCanvas?: boolean;
+}): { nodeExecutions: Prisma.WorkflowNodeExecutionCreateManyInput[]; startNodes: string[] } => {
+  const { executionId, canvasId, canvasData, variables, isNewCanvas = false } = params;
   const { nodes, edges } = canvasData;
 
   // Build node relationships
@@ -41,7 +110,7 @@ export const prepareNodeExecutions = (
     }
   }
 
-  const startNodes = options?.startNodes || [];
+  const startNodes = params.startNodes || [];
   if (startNodes.length === 0) {
     for (const [nodeId, parents] of parentMap) {
       if (parents.length === 0) {
@@ -54,29 +123,10 @@ export const prepareNodeExecutions = (
     return { nodeExecutions: [], startNodes };
   }
 
-  // Helper function to find all nodes in the subtree starting from given start nodes
-  const findSubtreeNodes = (startNodeIds: string[]): Set<string> => {
-    const subtreeNodes = new Set<string>();
-    const queue = [...startNodeIds];
-
-    while (queue.length > 0) {
-      const currentNodeId = queue.shift()!;
-      if (!subtreeNodes.has(currentNodeId)) {
-        subtreeNodes.add(currentNodeId);
-        // Add all children to the queue
-        const children = childMap.get(currentNodeId) || [];
-        queue.push(...children);
-      }
-    }
-
-    return subtreeNodes;
-  };
-
   // Determine which nodes should be in 'waiting' status
-  const subtreeNodes = findSubtreeNodes(startNodes);
+  const subtreeNodes = findSubtreeNodes(startNodes, childMap);
 
   // When running in new canvas mode, create a consistent id map from old -> new
-  const isNewCanvas = options?.isNewCanvas ?? false;
   const nodeIdMap = new Map<string, string>();
   if (isNewCanvas) {
     for (const node of nodes) {
@@ -120,12 +170,10 @@ export const prepareNodeExecutions = (
         )
       : { ...node };
 
-    // NOTE: If additional transformation of context is needed in new canvas mode,
-    // it should be handled here without mutating the original node.
+    const metadata = (node.data?.metadata as ResponseNodeMeta) ?? {};
 
     if (isNewCanvas && node.type === 'skillResponse') {
-      const originalContextItems: IContextItem[] =
-        (node.data?.metadata?.contextItems as IContextItem[]) || [];
+      const originalContextItems: IContextItem[] = metadata?.contextItems ?? [];
       const replacedContextItems = originalContextItems.map((item) => {
         if (item.entityId) {
           item.entityId = entityMap.get(item.entityId) ?? item.entityId;
@@ -142,22 +190,38 @@ export const prepareNodeExecutions = (
     const mappedParentIds = (parents || []).map((pid) => nodeIdMap.get(pid) ?? pid);
     const mappedChildIds = (children || []).map((cid) => nodeIdMap.get(cid) ?? cid);
 
+    const originalQuery = String(metadata?.structuredData?.query ?? node.data?.title ?? '');
+    const processedQuery = processQueryWithTypes(originalQuery, variables);
+
+    // Build connection filters based on parent entity IDs
+    const connectTo = parents
+      .map((pid) => {
+        const node = nodeMap.get(pid);
+        return {
+          type: node?.type as CanvasNodeType,
+          entityId: entityMap.get(node?.data?.entityId ?? '') ?? '',
+          handleType: 'source',
+        };
+      })
+      .filter((f) => f.type && f.entityId);
+
     const nodeExecution: Prisma.WorkflowNodeExecutionCreateManyInput = {
       nodeExecutionId,
       executionId,
+      canvasId,
       nodeId: targetNodeId,
       nodeType: node.type,
       nodeData: JSON.stringify(nodeForData),
       entityId: targetEntityId,
       title: node.data?.title ?? '',
       status,
-      processedQuery: '', // TODO: set processed query
-      originalQuery: '', // TODO: set original query
-      connectTo: '[]', // TODO: set connect to
+      processedQuery,
+      originalQuery,
+      connectTo: JSON.stringify(connectTo),
       parentNodeIds: JSON.stringify(mappedParentIds),
       childNodeIds: JSON.stringify(mappedChildIds),
       sourceNodeId: node.id, // Store the source node ID for new canvas mode
-      sourceEntityId, // Store the source entity ID for new canvas mode
+      sourceEntityId,
     };
 
     nodeExecutions.push(nodeExecution);
@@ -167,4 +231,31 @@ export const prepareNodeExecutions = (
   const mappedStartNodes = startNodes.map((sid) => nodeIdMap.get(sid) ?? sid);
 
   return { nodeExecutions, startNodes: mappedStartNodes };
+};
+
+/**
+ * Pick ready-to-run child nodes in a single pass using in-memory evaluation.
+ */
+export const pickReadyChildNodes = (
+  childNodeIds: string[],
+  allNodes: Pick<WorkflowNodeExecution, 'nodeId' | 'parentNodeIds' | 'status'>[],
+): string[] => {
+  const nodeById = new Map(allNodes.map((n) => [n.nodeId, n]));
+  const ready: string[] = [];
+
+  for (const childId of childNodeIds) {
+    const node = nodeById.get(childId);
+    if (!node) continue;
+
+    const parents =
+      (safeParseJSON(node.parentNodeIds) as string[] | undefined)?.filter(Boolean) ?? [];
+    const allParentsFinished =
+      parents.length === 0 || parents.every((pid) => nodeById.get(pid)?.status === 'finish');
+
+    if (allParentsFinished && node.status === 'waiting') {
+      ready.push(childId);
+    }
+  }
+
+  return ready;
 };
