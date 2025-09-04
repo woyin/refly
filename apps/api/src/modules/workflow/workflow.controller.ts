@@ -27,7 +27,7 @@ export class WorkflowController {
       request.canvasId,
       request.newCanvasId,
       [],
-      request.startNodes ? request.startNodes : [],
+      { startNodes: request.startNodes },
     );
 
     return buildSuccessResponse({ workflowExecutionId: executionId });

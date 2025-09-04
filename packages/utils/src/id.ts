@@ -2,6 +2,7 @@ import md5 from 'md5';
 import { v4 as UUIDV4 } from 'uuid';
 import { createId } from '@paralleldrive/cuid2';
 import { getYYYYMM, getYYYYMMDD } from './time';
+import { CanvasNodeType } from '@refly/openapi-schema';
 
 export enum IDPrefix {
   UID = 'u-',
@@ -133,6 +134,33 @@ export function genMediaID(mediaType: 'image' | 'video' | 'audio'): string {
       return IDPrefix.AUDIO + createId();
     default:
       return `media-${createId()}`;
+  }
+}
+
+export function genNodeEntityId(nodeType: CanvasNodeType): string {
+  switch (nodeType) {
+    case 'skillResponse':
+      return IDPrefix.ACTION_RESULT + createId();
+    case 'document':
+      return IDPrefix.DOCUMENT + createId();
+    case 'resource':
+      return IDPrefix.RESOURCE + createId();
+    case 'memo':
+      return IDPrefix.MEMO + createId();
+    case 'codeArtifact':
+      return IDPrefix.CODE_ARTIFACT + createId();
+    case 'mediaSkillResponse':
+      return IDPrefix.MEDIA_SKILL_RESPONSE + createId();
+    case 'mediaSkill':
+      return IDPrefix.MEDIA_SKILL + createId();
+    case 'image':
+      return IDPrefix.IMAGE + createId();
+    case 'video':
+      return IDPrefix.VIDEO + createId();
+    case 'audio':
+      return IDPrefix.AUDIO + createId();
+    default:
+      return createId();
   }
 }
 

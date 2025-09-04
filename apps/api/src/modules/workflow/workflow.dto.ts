@@ -22,7 +22,7 @@ export interface RunWorkflowJobData {
   user: JobUser;
   executionId: string;
   nodeId: string;
-  newNodeId?: string; // New node ID for new canvas mode
+  isNewCanvas?: boolean;
 }
 
 export interface InitializeWorkflowResponse {
@@ -39,7 +39,6 @@ export const workflowNodeExecutionPO2DTO = (
       'nodeId',
       'nodeType',
       'entityId',
-      'newEntityId',
       'title',
       'progress',
     ]),
