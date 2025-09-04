@@ -124,15 +124,59 @@ export class Agent extends BaseSkill {
     let llmForGraph: Runnable<BaseMessage[], AIMessage>;
 
     if (selectedTools.length > 0) {
-      llmForGraph = baseLlm.bindTools(selectedTools);
-      actualToolNodeInstance = new ToolNode(selectedTools);
+      // Ensure tool definitions are valid before binding
+      const validTools = selectedTools.filter(
+        (tool) => tool.name && tool.description && tool.schema,
+      );
+
+      if (validTools.length > 0) {
+        this.engine.logger.log(`Binding ${validTools.length} valid tools to LLM`);
+        llmForGraph = baseLlm.bindTools(validTools);
+        actualToolNodeInstance = new ToolNode(validTools);
+      } else {
+        this.engine.logger.warn('No valid tools found, using base LLM without tools');
+        llmForGraph = baseLlm;
+      }
     } else {
+      this.engine.logger.log('No tools selected, using base LLM without tools');
       llmForGraph = baseLlm;
     }
+
+    // Tool call format validation function
+    const validateToolCalls = (message: AIMessage): boolean => {
+      if (message.tool_calls) {
+        for (const toolCall of message.tool_calls) {
+          if (!toolCall.id || !toolCall.name || !toolCall.args) {
+            this.engine.logger.warn('Invalid tool_call format detected:', toolCall);
+            return false;
+          }
+        }
+        return true;
+      }
+      return false;
+    };
 
     const llmNodeForCachedGraph = async (nodeState: typeof MessagesAnnotation.State) => {
       // Use llmForGraph, which is the (potentially tool-bound) LLM instance for the graph
       const response = await llmForGraph.invoke(nodeState.messages);
+
+      // Add debug logging for tool calls
+      this.engine.logger.log('LLM response received:', {
+        hasToolCalls: !!(response as AIMessage).tool_calls,
+        toolCallsCount: (response as AIMessage).tool_calls?.length || 0,
+        toolCalls: (response as AIMessage).tool_calls,
+      });
+
+      // Validate tool calls format if present
+      if ((response as AIMessage).tool_calls) {
+        const isValid = validateToolCalls(response as AIMessage);
+        if (!isValid) {
+          this.engine.logger.error(
+            'Invalid tool_calls format detected, this may cause routing issues',
+          );
+        }
+      }
+
       return { messages: [response as AIMessage] }; // Ensure response is treated as AIMessage
     };
 
@@ -159,11 +203,22 @@ export class Agent extends BaseSkill {
       // @ts-ignore - Suppressing persistent type error with addConditionalEdges and node name mismatch
       workflow.addConditionalEdges('llm', (graphState: typeof MessagesAnnotation.State) => {
         const lastMessage = graphState.messages[graphState.messages.length - 1] as AIMessage;
+
         if (lastMessage.tool_calls && lastMessage.tool_calls.length > 0) {
-          this.engine.logger.log('Tool calls detected, routing to tools node');
-          return 'tools';
+          // Validate tool calls format before routing
+          const isValid = validateToolCalls(lastMessage);
+          if (isValid) {
+            this.engine.logger.log(
+              `Valid tool calls detected (${lastMessage.tool_calls.length} calls), routing to tools node`,
+            );
+            return 'tools';
+          } else {
+            this.engine.logger.warn('Invalid tool calls format detected, routing to END');
+            return END;
+          }
         }
-        this.engine.logger.log('No tool call, routing to END');
+
+        this.engine.logger.log('No tool calls detected, routing to END');
         return END;
       });
     } else {
@@ -234,6 +289,8 @@ export class Agent extends BaseSkill {
     config.metadata.step = { name: 'answerQuestion' };
 
     try {
+      this.engine.logger.log('Starting agent execution with messages:', requestMessages.length);
+
       const result = await compiledLangGraphApp.invoke(
         { messages: requestMessages },
         {
@@ -245,6 +302,16 @@ export class Agent extends BaseSkill {
           },
         },
       );
+
+      // Add debug logging for the final result
+      this.engine.logger.log('Agent execution completed:', {
+        messagesCount: result.messages?.length || 0,
+        hasToolCalls:
+          result.messages?.some((msg) => (msg as AIMessage).tool_calls?.length > 0) || false,
+        lastMessageType:
+          result.messages?.[result.messages.length - 1]?.constructor?.name || 'unknown',
+      });
+
       return { messages: result.messages };
     } finally {
       this.engine.logger.log('agentNode execution finished.');
