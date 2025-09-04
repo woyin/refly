@@ -121,7 +121,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
     }
 
     if (data.data?.sessionId) {
-      setActiveSessionId(data.data?.sessionId);
+      setActiveSessionId(canvasId, data.data?.sessionId);
       setIsPilotOpen(true);
     } else {
       message.error('Failed to create pilot session');

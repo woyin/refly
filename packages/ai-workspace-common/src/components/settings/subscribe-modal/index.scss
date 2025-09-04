@@ -28,7 +28,7 @@
       color: var(--text-icon-refly-text-2, #6b7280);
 
       &:hover {
-        color: var(--text-icon-refly-text-0, #111827);
+        color: var(--refly-text-0, #111827);
       }
     }
   }
@@ -86,7 +86,7 @@
 
         &.active {
           color: var(
-            --text-icon-refly-text-0,
+            --refly-text-0,
             #111827
           ); // Dark text for active item
           background: var(
@@ -161,7 +161,7 @@
         display: flex;
         align-items: center;
 
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
 
         /* 超大标题 */
         font-family: "PingFang SC";
@@ -183,7 +183,7 @@
             font-weight: 400;
             color: #6b7280;
 
-            color: var(--text-icon-refly-text-0, #1c1f23);
+            color: var(--refly-text-0, #1c1f23);
 
             /* 辅助文本-12-bold */
             font-family: "PingFang SC";
@@ -293,7 +293,7 @@
             }
 
             .feature-description {
-              color: var(--text-icon-refly-text-0, #1c1f23);
+              color: var(--refly-text-0, #1c1f23);
 
               font-size: 14px;
               font-weight: 600;

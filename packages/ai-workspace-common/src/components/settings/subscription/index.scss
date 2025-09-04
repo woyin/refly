@@ -59,7 +59,7 @@
       .current-plan-label {
         font-size: 14px;
 
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
 
         font-family: "PingFang SC";
         font-size: 12px;
@@ -72,7 +72,7 @@
         font-size: 24px;
         font-weight: bold;
 
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
 
         font-family: "PingFang SC";
         font-size: 22px;
@@ -138,7 +138,7 @@
     &.plan-starter {
       background-color: rgba(223, 255, 246, 0.7); // Light blue overlay
       .current-plan-name {
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
       }
       .plan-actions {
         .plan-renewal-info {
@@ -147,7 +147,7 @@
         .ant-btn-default {
           background-color: #f0f0f0;
           border-color: #f0f0f0;
-          color: var(--text-icon-refly-text-0, #1c1f23);
+          color: var(--refly-text-0, #1c1f23);
         }
       }
     }
@@ -156,7 +156,7 @@
     &.plan-maker {
       background-color: rgba(223, 255, 246, 0.7); // Light blue overlay
       .current-plan-name {
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
       }
       .plan-actions {
         .plan-renewal-info {
@@ -165,7 +165,7 @@
         .ant-btn-default {
           background-color: #f0f0f0;
           border-color: #f0f0f0;
-          color: var(--text-icon-refly-text-0, #1c1f23);
+          color: var(--refly-text-0, #1c1f23);
         }
       }
     }
@@ -187,7 +187,7 @@
         color: #555;
         margin-bottom: 8px;
 
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
 
         font-family: "PingFang SC";
         font-size: 12px;
@@ -196,7 +196,7 @@
         line-height: 16px;
       }
       .usage-value {
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
 
         font-family: "PingFang SC";
         font-size: 18px;
@@ -227,7 +227,7 @@
       }
 
       .ant-segmented-item-label {
-        color: var(--text-icon-refly-text-0, #1c1f23);
+        color: var(--refly-text-0, #1c1f23);
         text-align: center;
         font-size: 12px;
         font-weight: 400;
@@ -242,7 +242,7 @@
         border-radius: 16px !important;
 
         .ant-segmented-item-label {
-          color: var(--text-icon-refly-text-0, #1c1f23);
+          color: var(--refly-text-0, #1c1f23);
           text-align: center;
           font-size: 12px;
           font-weight: 600;

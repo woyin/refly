@@ -115,13 +115,13 @@ export const CreditWelcomeModal = () => {
             {/* Title section */}
             <div
               className="mt-[16px]
-                  [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+                  [font-family:'PingFang_SC'] text-[color:var(--refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
             >
               {t('subscription.earlyBirdsWelcome.title')}
             </div>
             <div
               className="
-                  [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+                  [font-family:'PingFang_SC'] text-[color:var(--refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
             >
               {t('subscription.earlyBirdsWelcome.subtitle')}
             </div>
@@ -129,19 +129,19 @@ export const CreditWelcomeModal = () => {
             {/* Description text */}
             <div
               className=" mt-[8px]
-                 [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
+                 [font-family:'PingFang_SC'] self-stretch text-[color:var(--refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
             >
               {t('subscription.earlyBirdsWelcome.description1')}
             </div>
             <div
               className="
-                 [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5 mt-2"
+                 [font-family:'PingFang_SC'] self-stretch text-[color:var(--refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5 mt-2"
             >
               {t('subscription.earlyBirdsWelcome.description2')}
             </div>
             <div
               className="
-                 [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5 mt-2"
+                 [font-family:'PingFang_SC'] self-stretch text-[color:var(--refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5 mt-2"
             >
               {t('subscription.earlyBirdsWelcome.description3')}
             </div>
@@ -155,7 +155,7 @@ export const CreditWelcomeModal = () => {
 
             <div
               className={`
-self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal ${i18n.language === 'en' || i18n.language.startsWith('en-') ? 'leading-[40px]' : 'leading-[56px]'} tracking-[-2px]                  
+self-stretch text-[color:var(--refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal ${i18n.language === 'en' || i18n.language.startsWith('en-') ? 'leading-[40px]' : 'leading-[56px]'} tracking-[-2px]                  
 `}
             >
               {t('subscription.earlyBirdsWelcome.slogan')}
@@ -192,13 +192,13 @@ self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white 
             {/* Title section */}
             <div
               className="mt-[16px]
-        [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+        [font-family:'PingFang_SC'] text-[color:var(--refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
             >
               {t('subscription.subscriptionManagement.creditsWelcome.title')}
             </div>
             <div
               className="
-        [font-family:'PingFang_SC'] text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
+        [font-family:'PingFang_SC'] text-[color:var(--refly-text-0,#1C1F23)] dark:text-white text-[22px] font-semibold leading-8"
             >
               {t('subscription.subscriptionManagement.creditsWelcome.subtitle')}
             </div>
@@ -206,13 +206,13 @@ self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white 
             {/* Description text */}
             <div
               className=" mt-[8px]
-       [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
+       [font-family:'PingFang_SC'] self-stretch text-[color:var(--refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
             >
               {t('subscription.subscriptionManagement.creditsWelcome.description1')}
             </div>
             <div
               className="
-       [font-family:'PingFang_SC'] self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
+       [font-family:'PingFang_SC'] self-stretch text-[color:var(--refly-text-0,#1C1F23)] dark:text-gray-200 text-sm font-normal leading-5"
             >
               {t('subscription.subscriptionManagement.creditsWelcome.description2')}
             </div>
@@ -226,7 +226,7 @@ self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white 
 
             <div
               className={`
-self-stretch text-[color:var(--text-icon-refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal ${i18n.language === 'en' || i18n.language.startsWith('en-') ? 'leading-[40px]' : 'leading-[56px]'} tracking-[-2px]                  
+self-stretch text-[color:var(--refly-text-0,#1C1F23)] dark:text-white [font-family:新叶念体] text-4xl font-normal ${i18n.language === 'en' || i18n.language.startsWith('en-') ? 'leading-[40px]' : 'leading-[56px]'} tracking-[-2px]                  
 `}
             >
               {t('subscription.subscriptionManagement.creditsWelcome.slogan')}

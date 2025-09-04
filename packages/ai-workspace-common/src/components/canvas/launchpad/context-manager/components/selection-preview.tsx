@@ -32,7 +32,7 @@ export const SelectionPreview: React.FC<SelectionPreviewProps> = ({ item }) => {
   }, [selection, getNodes, setNodeCenter, setSelectedNode]);
 
   return (
-    <div className="w-64 p-3 rounded-lg max-h-[400px] overflow-y-auto flex flex-col gap-3">
+    <div className="w-64 p-3 rounded-2xl max-h-[400px] overflow-y-auto flex flex-col gap-3 bg-refly-bg-content-z2 border-solid border-[1px] border-refly-Card-Border shadow-refly-m">
       <div className="flex items-center gap-2">
         <div className="w-6 h-6 rounded bg-gray-700 shadow-lg flex items-center justify-center flex-shrink-0">
           <IconQuote className="w-4 h-4 text-white" />

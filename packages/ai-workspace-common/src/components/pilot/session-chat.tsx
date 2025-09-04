@@ -35,7 +35,7 @@ export const SessionChat = ({ canvasId }: { canvasId: string }) => {
 
     const sessionId = data?.data?.sessionId;
     if (sessionId) {
-      setActiveSessionId(sessionId);
+      setActiveSessionId(canvasId, sessionId);
       setSessionId(sessionId);
     } else {
       message.error(
