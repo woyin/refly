@@ -36,6 +36,7 @@ import {
   createSkillTrigger,
   createToolset,
   createVerification,
+  createWorkflowApp,
   deleteCanvas,
   deleteDocument,
   deleteLabelClass,
@@ -57,6 +58,7 @@ import {
   duplicateShare,
   emailLogin,
   emailSignup,
+  executeWorkflowApp,
   exportCanvas,
   exportDocument,
   extractVariables,
@@ -82,6 +84,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
   importCanvas,
@@ -214,6 +217,8 @@ import {
   CreateToolsetError,
   CreateVerificationData,
   CreateVerificationError,
+  CreateWorkflowAppData,
+  CreateWorkflowAppError,
   DeleteCanvasData,
   DeleteCanvasError,
   DeleteDocumentData,
@@ -256,6 +261,8 @@ import {
   EmailLoginError,
   EmailSignupData,
   EmailSignupError,
+  ExecuteWorkflowAppData,
+  ExecuteWorkflowAppError,
   ExportCanvasData,
   ExportCanvasError,
   ExportDocumentData,
@@ -300,6 +307,8 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetWorkflowAppDetailData,
+  GetWorkflowAppDetailError,
   GetWorkflowDetailData,
   GetWorkflowDetailError,
   GetWorkflowVariablesData,
@@ -976,6 +985,23 @@ export const useGetWorkflowDetail = <
     queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getWorkflowDetail({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetWorkflowAppDetail = <
+  TData = Common.GetWorkflowAppDetailDefaultResponse,
+  TError = GetWorkflowAppDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowAppDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowAppDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetSettings = <
@@ -2418,6 +2444,40 @@ export const useInitializeWorkflow = <
   useMutation<TData, TError, Options<InitializeWorkflowData, true>, TContext>({
     mutationKey: Common.UseInitializeWorkflowKeyFn(mutationKey),
     mutationFn: (clientOptions) => initializeWorkflow(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useCreateWorkflowApp = <
+  TData = Common.CreateWorkflowAppMutationResult,
+  TError = CreateWorkflowAppError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<CreateWorkflowAppData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<CreateWorkflowAppData, true>, TContext>({
+    mutationKey: Common.UseCreateWorkflowAppKeyFn(mutationKey),
+    mutationFn: (clientOptions) => createWorkflowApp(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useExecuteWorkflowApp = <
+  TData = Common.ExecuteWorkflowAppMutationResult,
+  TError = ExecuteWorkflowAppError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<ExecuteWorkflowAppData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<ExecuteWorkflowAppData, true>, TContext>({
+    mutationKey: Common.UseExecuteWorkflowAppKeyFn(mutationKey),
+    mutationFn: (clientOptions) => executeWorkflowApp(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateCheckoutSession = <

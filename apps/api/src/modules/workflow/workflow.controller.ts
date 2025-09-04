@@ -26,6 +26,7 @@ export class WorkflowController {
       user,
       request.canvasId,
       request.newCanvasId,
+      [],
       request.startNodes ? request.startNodes : [],
     );
 

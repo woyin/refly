@@ -223,6 +223,8 @@ model PilotSession {
   title          String   @map("title")
   /// Input (JSON)
   input          String   @map("input")
+  /// Progress plan (JSON) - dynamic stage planning and execution status
+  progress       String?  @map("progress") @db.Text
   /// Used model
   modelName      String?  @map("model_name")
   /// Action target type
@@ -753,6 +755,37 @@ model Project {
 
   @@index([uid, deletedAt, updatedAt])
   @@map("projects")
+}
+
+model WorkflowApp {
+  /// Primary key
+  pk            BigInt    @id @default(autoincrement())
+  /// Workflow app id
+  workflowAppId String    @unique @map("workflow_app_id")
+  /// UID
+  uid           String    @map("uid")
+  /// Title
+  title         String    @default("") @map("title")
+  /// Description
+  description   String?   @map("description")
+  /// Query
+  query         String?   @map("query")
+  /// Variables
+  variables     String?   @map("variables")
+  /// Canvas id
+  canvasId      String?   @map("canvas_id")
+  /// Storage key
+  storageKey    String?   @map("storage_key")
+  /// Create timestamp
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  /// Update timestamp
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  /// Soft delete timestamp
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz()
+
+  @@index([canvasId, deletedAt])
+  @@index([workflowAppId, deletedAt])
+  @@map("workflow_apps")
 }
 
 model ShareRecord {

@@ -42,6 +42,8 @@ tags:
     description: Miscellaneous endpoints
   - name: workflow
     description: Workflow management endpoints
+  - name: app
+    description: APP management endpoints
 
 paths:
   /variable-extraction/extract:
@@ -2684,6 +2686,67 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetWorkflowDetailResponse'
+  /workflow-app/new:
+    post:
+      tags:
+        - app
+      summary: Create new workflow app
+      description: Create a new workflow app
+      operationId: createWorkflowApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkflowAppRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateWorkflowAppResponse'
+  /workflow-app/detail:
+    get:
+      tags:
+        - app
+      summary: Get workflow app detail
+      description: Get detail for a workflow app
+      operationId: getWorkflowAppDetail
+      parameters:
+        - name: appId
+          in: query
+          description: Workflow app ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWorkflowAppDetailResponse'
+  /workflow-app/execute:
+    post:
+      tags:
+        - app
+      summary: Execute workflow app
+      description: Execute a workflow app
+      operationId: executeWorkflowApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteWorkflowAppRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteWorkflowAppResponse'
   /user/settings:
     get:
       tags:
@@ -9359,6 +9422,110 @@ components:
             data:
               type: object
               $ref: '#/components/schemas/WorkflowExecution'
+    CreateWorkflowAppRequest:
+      type: object
+      required:
+        - canvasId
+        - title
+        - description
+        - query
+        - variables
+      properties:
+        canvasId:
+          type: string
+          description: Canvas ID
+        title:
+          type: string
+          description: Workflow app title
+        description:
+          type: string
+          description: Workflow app description
+        query:
+          type: string
+          description: Workflow app query
+        variables:
+          type: array
+          description: Workflow app variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
+    WorkflowApp:
+      type: object
+      required:
+        - appId
+        - canvasId
+        - variables
+      properties:
+        appId:
+          type: string
+          description: Workflow app ID
+        title:
+          type: string
+          description: Workflow app title
+        description:
+          type: string
+          description: Workflow app description
+        canvasId:
+          type: string
+          description: Canvas ID
+        query:
+          type: string
+          description: Workflow app query
+        variables:
+          type: array
+          description: Workflow app variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
+        createdAt:
+          type: string
+          format: date-time
+          description: Workflow app creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Workflow app update timestamp
+    CreateWorkflowAppResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/WorkflowApp'
+    GetWorkflowAppDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/WorkflowApp'
+    ExecuteWorkflowAppRequest:
+      type: object
+      required:
+        - appId
+        - variables
+      properties:
+        appId:
+          type: string
+          description: Workflow app ID
+        variables:
+          type: array
+          description: Workflow app variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
+    ExecuteWorkflowAppResult:
+      type: object
+      required:
+        - executionId
+      properties:
+        executionId:
+          type: string
+          description: Workflow execution ID
+    ExecuteWorkflowAppResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ExecuteWorkflowAppResult'
     VariableType:
       type: string
       enum:

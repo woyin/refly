@@ -1048,16 +1048,22 @@ export class KnowledgeService {
 
     // Add to vector store
     if (param.initialContent) {
-      const { size } = await this.ragService.indexDocument(user, {
-        pageContent: param.initialContent,
-        metadata: {
-          nodeType: 'document',
-          docId: param.docId,
-          title: param.title,
-          projectId: param.projectId,
-        },
-      });
-      createInput.vectorSize = size;
+      this.ragService
+        .indexDocument(user, {
+          pageContent: param.initialContent,
+          metadata: {
+            nodeType: 'document',
+            docId: param.docId,
+            title: param.title,
+            projectId: param.projectId,
+          },
+        })
+        .then(({ size }) => {
+          createInput.vectorSize = size;
+        })
+        .catch((error) => {
+          this.logger.error(`failed to index document ${param.docId}: ${error.stack}`);
+        });
     }
 
     const doc = await this.prisma.document.upsert({

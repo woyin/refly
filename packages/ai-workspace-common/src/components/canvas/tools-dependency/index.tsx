@@ -1,4 +1,4 @@
-import { Button, Popover, Input, Segmented, Dropdown, Badge } from 'antd';
+import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography } from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Tools, Close } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
@@ -128,7 +128,14 @@ const ReferencedNodesDisplay = React.memo(({ nodes }: { nodes: Array<ReferencedN
 
   const moreMenuItems = hiddenNodes.map((node) => ({
     key: node.id,
-    label: node.title,
+    label: (
+      <Typography.Paragraph
+        className="max-w-[150px] truncate !m-0 text-xs leading-[16px]"
+        ellipsis={{ rows: 1, tooltip: true }}
+      >
+        {node.title}
+      </Typography.Paragraph>
+    ),
     icon: <NodeIcon type="skillResponse" small />,
     onClick: () => handleLocateNode(node.entityId),
   }));
@@ -152,7 +159,7 @@ const ReferencedNodesDisplay = React.memo(({ nodes }: { nodes: Array<ReferencedN
         {visibleNodes.map((node, index) => (
           <React.Fragment key={node.id}>
             <div
-              className="text-refly-primary-default text-xs leading-[16px] font-semibold node-label flex-shrink-0 cursor-pointer hover:text-refly-primary-hover hover:underline active:text-refly-primary-active"
+              className="text-refly-primary-default text-xs leading-[16px] max-w-[100px] truncate font-semibold node-label flex-shrink-0 cursor-pointer hover:text-refly-primary-hover hover:underline active:text-refly-primary-active"
               onClick={() => handleLocateNode(node.entityId)}
             >
               {node.title}
@@ -165,7 +172,7 @@ const ReferencedNodesDisplay = React.memo(({ nodes }: { nodes: Array<ReferencedN
         {isOverflowing && (
           <>
             <div className="text-refly-text-2 text-xs flex-shrink-0 w-[12px]">...</div>
-            <Dropdown menu={{ items: moreMenuItems }} placement="bottomLeft" trigger={['click']}>
+            <Dropdown menu={{ items: moreMenuItems }} placement="top" trigger={['click']}>
               <Button
                 type="text"
                 size="small"
@@ -186,7 +193,7 @@ const ReferencedNodesDisplay = React.memo(({ nodes }: { nodes: Array<ReferencedN
         {nodes.map((node) => (
           <span
             key={`measure-${node.id}`}
-            className="node-measure-label text-refly-primary-default text-xs leading-[16px] font-semibold inline-block mr-[10px]"
+            className="node-measure-label text-refly-primary-default text-xs leading-[16px] max-w-[100px] truncate font-semibold inline-block mr-[10px]"
           >
             {node.title}
           </span>

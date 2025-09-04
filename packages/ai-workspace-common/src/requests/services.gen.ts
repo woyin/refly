@@ -330,6 +330,15 @@ import type {
   GetWorkflowDetailData,
   GetWorkflowDetailError,
   GetWorkflowDetailResponse2,
+  CreateWorkflowAppData,
+  CreateWorkflowAppError,
+  CreateWorkflowAppResponse2,
+  GetWorkflowAppDetailData,
+  GetWorkflowAppDetailError,
+  GetWorkflowAppDetailResponse2,
+  ExecuteWorkflowAppData,
+  ExecuteWorkflowAppError,
+  ExecuteWorkflowAppResponse2,
   GetSettingsError,
   GetSettingsResponse,
   UpdateSettingsData,
@@ -2180,6 +2189,57 @@ export const getWorkflowDetail = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow/detail',
+  });
+};
+
+/**
+ * Create new workflow app
+ * Create a new workflow app
+ */
+export const createWorkflowApp = <ThrowOnError extends boolean = false>(
+  options: Options<CreateWorkflowAppData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    CreateWorkflowAppResponse2,
+    CreateWorkflowAppError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/new',
+  });
+};
+
+/**
+ * Get workflow app detail
+ * Get detail for a workflow app
+ */
+export const getWorkflowAppDetail = <ThrowOnError extends boolean = false>(
+  options: Options<GetWorkflowAppDetailData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetWorkflowAppDetailResponse2,
+    GetWorkflowAppDetailError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/detail',
+  });
+};
+
+/**
+ * Execute workflow app
+ * Execute a workflow app
+ */
+export const executeWorkflowApp = <ThrowOnError extends boolean = false>(
+  options: Options<ExecuteWorkflowAppData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    ExecuteWorkflowAppResponse2,
+    ExecuteWorkflowAppError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/execute',
   });
 };
 

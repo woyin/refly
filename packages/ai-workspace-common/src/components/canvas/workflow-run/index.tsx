@@ -6,6 +6,8 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { WorkflowRunForm } from './workflow-run-form';
 import './index.scss';
 import { FC } from 'react';
+import { WorkflowVariable } from '@refly/openapi-schema';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
 interface WorkflowRunProps {
   initializeWorkflow: (canvasId: string, startNodes?: string[]) => Promise<boolean>;
@@ -32,7 +34,7 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
     }),
   );
 
-  const { workflow } = useCanvasContext();
+  const { workflow, canvasId } = useCanvasContext();
   const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
 
   const handleClose = () => {
@@ -41,6 +43,32 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
     // if (activeNode) {
     //   setActiveNode(null);
     // }
+  };
+
+  const saveWorkflowVariables = async (variables: WorkflowVariable[]) => {
+    try {
+      const { data } = await getClient().updateWorkflowVariables({
+        body: {
+          canvasId,
+          variables,
+        },
+      });
+      if (data.success) {
+        refetchWorkflowVariables();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to save workflow variables:', error);
+      return false;
+    }
+  };
+
+  const onSubmitVariables = async (variables: WorkflowVariable[]) => {
+    const success = await saveWorkflowVariables(variables);
+    if (success) {
+      initializeWorkflow(canvasId);
+    }
   };
 
   return (
@@ -64,8 +92,7 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
         ) : (
           <WorkflowRunForm
             workflowVariables={workflowVariables}
-            refetchWorkflowVariables={refetchWorkflowVariables}
-            initializeWorkflow={initializeWorkflow}
+            onSubmitVariables={onSubmitVariables}
             loading={loading}
             executionId={executionId}
             workflowStatus={workflowStatus}

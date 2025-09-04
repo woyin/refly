@@ -26,6 +26,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
   listAccounts,
@@ -96,6 +97,8 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetWorkflowAppDetailData,
+  GetWorkflowAppDetailError,
   GetWorkflowDetailData,
   GetWorkflowDetailError,
   GetWorkflowVariablesData,
@@ -696,6 +699,23 @@ export const useGetWorkflowDetailSuspense = <
     queryKey: Common.UseGetWorkflowDetailKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getWorkflowDetail({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetWorkflowAppDetailSuspense = <
+  TData = Common.GetWorkflowAppDetailDefaultResponse,
+  TError = GetWorkflowAppDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetWorkflowAppDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowAppDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetSettingsSuspense = <

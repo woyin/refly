@@ -13,6 +13,7 @@ export const Pricing = lazy(() => import('./pages/pricing'));
 export const ShareCanvasPage = lazy(() => import('./pages/share'));
 export const ShareCodePage = lazy(() => import('./pages/code-share'));
 export const SharePagePage = lazy(() => import('./pages/page-share'));
+export const WorkflowAppPage = lazy(() => import('./pages/workflow-app'));
 export const TemplatePreviewPage = lazy(() => import('./pages/template-preview'));
 export const SkillResponseSharePage = lazy(() => import('./pages/skill-response-share'));
 export const DocumentSharePage = lazy(() => import('./pages/document-share'));
