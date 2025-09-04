@@ -25,6 +25,7 @@ export const useAddToContext = () => {
   const addSingleNodeToContext = useCallback(
     (item: IContextItem) => {
       const nodeType = item?.type;
+      const delay = isPilotOpen ? 0 : 400;
       if (!isPilotOpen) {
         setIsPilotOpen(true);
       }
@@ -72,7 +73,7 @@ export const useAddToContext = () => {
         emitAddToContextCompleted({ contextItem: item, success: true });
 
         return true;
-      }, 400);
+      }, delay);
     },
     [t, isPilotOpen, setIsPilotOpen, canvasId, contextItems, setContextItems],
   );

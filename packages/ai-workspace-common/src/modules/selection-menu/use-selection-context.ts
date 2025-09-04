@@ -141,6 +141,7 @@ export const useSelectionContext = ({
   const addToContext = useCallback(
     async (item: IContextItem) => {
       if (!selectedText) return;
+      const delay = isPilotOpen ? 0 : 400;
       if (!isPilotOpen) {
         setIsPilotOpen(true);
       }
@@ -185,7 +186,7 @@ export const useSelectionContext = ({
 
         // Emit event that adding to context is completed
         emitAddToContextCompleted({ contextItem: item, success: true });
-      }, 400);
+      }, delay);
     },
     [selectedText, contextItems, setContextItems, canvasId],
   );
