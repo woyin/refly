@@ -179,11 +179,24 @@ export const NoSession = memo(
       setIsExecuting(true);
 
       if (chatMode === 'ask' && canvasId) {
-        const connecTo: CanvasNodeFilter[] = contextItems.map((item) => ({
-          type: item.type as CanvasNodeType,
-          entityId: item.entityId,
-          handleType: 'source',
-        }));
+        const connecTo: CanvasNodeFilter[] = contextItems.map((item) => {
+          const isTextSelection = [
+            'documentSelection',
+            'resourceSelection',
+            'skillResponseSelection',
+            'extensionWeblinkSelection',
+            'documentCursorSelection',
+            'documentBeforeCursorSelection',
+            'documentAfterCursorSelection',
+          ].includes(item.type);
+          return {
+            type: isTextSelection
+              ? item?.selection?.sourceEntityType
+              : (item.type as CanvasNodeType),
+            entityId: isTextSelection ? item?.selection?.sourceEntityId : item.entityId,
+            handleType: 'source',
+          };
+        });
 
         const resultId = genActionResultID();
         invokeAction(
