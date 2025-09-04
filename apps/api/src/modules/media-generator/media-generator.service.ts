@@ -369,12 +369,7 @@ export class MediaGeneratorService {
         });
 
         const result = await fal.subscribe(request.model, {
-          input: {
-            video_urls: [
-              'https://storage.googleapis.com/falserverless/example_inputs/ffmpeg-video.mp4',
-              'https://storage.googleapis.com/falserverless/example_inputs/ffmpeg-video.mp4',
-            ],
-          },
+          input: input,
           logs: false,
           onQueueUpdate: (update) => {
             if (update.status === 'IN_PROGRESS') {
