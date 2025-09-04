@@ -2610,13 +2610,17 @@ export type NodeDiff = {
    */
   type: DiffType;
   /**
-   * Node diff from
+   * Node diff from (only the fields that are different will be included)
    */
-  from?: CanvasNode;
+  from?: {
+    [key: string]: unknown;
+  };
   /**
-   * Node diff to
+   * Node diff to (only the fields that are different will be included)
    */
-  to?: CanvasNode;
+  to?: {
+    [key: string]: unknown;
+  };
 };
 
 export type EdgeDiff = {
@@ -2638,6 +2642,25 @@ export type EdgeDiff = {
   to?: CanvasEdge;
 };
 
+/**
+ * Canvas transaction source
+ */
+export type CanvasTransactionSource = {
+  /**
+   * Source type
+   */
+  type?: 'user' | 'system';
+  /**
+   * Source user ID
+   */
+  uid?: string;
+};
+
+/**
+ * Source type
+ */
+export type type3 = 'user' | 'system';
+
 export type CanvasTransaction = {
   /**
    * Transaction ID
@@ -2655,6 +2678,10 @@ export type CanvasTransaction = {
    * Whether the transaction is revoked
    */
   revoked?: boolean;
+  /**
+   * Transaction source
+   */
+  source?: CanvasTransactionSource;
   /**
    * Whether the transaction is deleted
    */
@@ -4925,7 +4952,7 @@ export type MediaModelParameter = {
 /**
  * Parameter type
  */
-export type type3 = 'url' | 'text' | 'option';
+export type type4 = 'url' | 'text' | 'option';
 
 /**
  * Provider config for media generation
@@ -5633,6 +5660,9 @@ export type CanvasNodeType =
   | 'mediaSkillResponse'
   | 'start';
 
+/**
+ * Node data
+ */
 export type CanvasNodeData = {
   /**
    * Node title
@@ -5682,6 +5712,9 @@ export type CanvasNode = {
    * Node offset position
    */
   offsetPosition?: XYPosition;
+  /**
+   * Node data
+   */
   data: CanvasNodeData;
   /**
    * Node style

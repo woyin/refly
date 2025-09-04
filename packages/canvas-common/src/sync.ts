@@ -101,7 +101,7 @@ export const applyCanvasTransaction = (
     switch (nodeDiff.type) {
       case 'add':
         if (nodeDiff.to) {
-          newNodes.push(nodeDiff.to);
+          newNodes.push(nodeDiff.to as CanvasNode);
         }
         break;
       case 'update':
@@ -110,7 +110,7 @@ export const applyCanvasTransaction = (
             const updatedNode = deepmerge(node, nodeDiff.to, {
               arrayMerge: (_target, source) => source,
             });
-            return updatedNode;
+            return updatedNode as CanvasNode;
           }
           return node;
         });
@@ -355,7 +355,7 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
       if (tx) {
         const nodeDiff = tx.nodeDiffs.find((diff) => diff.id === conflictingId);
         if (nodeDiff) {
-          localItem = nodeDiff.to || nodeDiff.from;
+          localItem = (nodeDiff.to as CanvasNode) || (nodeDiff.from as CanvasNode);
           conflictType = 'node';
           break;
         }
@@ -374,7 +374,7 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
       if (tx) {
         const nodeDiff = tx.nodeDiffs.find((diff) => diff.id === conflictingId);
         if (nodeDiff) {
-          remoteItem = nodeDiff.to || nodeDiff.from;
+          remoteItem = (nodeDiff.to as CanvasNode) || (nodeDiff.from as CanvasNode);
           break;
         }
         const edgeDiff = tx.edgeDiffs.find((diff) => diff.id === conflictingId);

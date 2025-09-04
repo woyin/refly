@@ -421,6 +421,7 @@ export class CanvasSyncService {
             txId: genTransactionId(),
             createdAt: Date.now(),
             syncedAt: Date.now(),
+            source: { type: 'system' },
             nodeDiffs: [
               {
                 type: 'add',

@@ -3497,13 +3497,13 @@ export const NodeDiffSchema = {
     },
     from: {
       type: 'object',
-      description: 'Node diff from',
-      $ref: '#/components/schemas/CanvasNode',
+      description: 'Node diff from (only the fields that are different will be included)',
+      additionalProperties: true,
     },
     to: {
       type: 'object',
-      description: 'Node diff to',
-      $ref: '#/components/schemas/CanvasNode',
+      description: 'Node diff to (only the fields that are different will be included)',
+      additionalProperties: true,
     },
   },
 } as const;
@@ -3534,6 +3534,22 @@ export const EdgeDiffSchema = {
   },
 } as const;
 
+export const CanvasTransactionSourceSchema = {
+  type: 'object',
+  description: 'Canvas transaction source',
+  properties: {
+    type: {
+      type: 'string',
+      description: 'Source type',
+      enum: ['user', 'system'],
+    },
+    uid: {
+      type: 'string',
+      description: 'Source user ID',
+    },
+  },
+} as const;
+
 export const CanvasTransactionSchema = {
   type: 'object',
   required: ['txId', 'nodeDiffs', 'edgeDiffs', 'createdAt'],
@@ -3559,6 +3575,11 @@ export const CanvasTransactionSchema = {
     revoked: {
       type: 'boolean',
       description: 'Whether the transaction is revoked',
+    },
+    source: {
+      type: 'object',
+      description: 'Transaction source',
+      $ref: '#/components/schemas/CanvasTransactionSource',
     },
     deleted: {
       type: 'boolean',
@@ -8040,6 +8061,7 @@ export const CanvasNodeTypeSchema = {
 
 export const CanvasNodeDataSchema = {
   type: 'object',
+  description: 'Node data',
   required: ['title', 'entityId'],
   properties: {
     title: {
@@ -8099,6 +8121,7 @@ export const CanvasNodeSchema = {
     },
     data: {
       type: 'object',
+      description: 'Node data',
       $ref: '#/components/schemas/CanvasNodeData',
     },
     style: {
