@@ -21,6 +21,72 @@ import type { Runnable } from '@langchain/core/runnables';
 import { type StructuredToolInterface } from '@langchain/core/tools'; // For MCP Tools
 import { ToolCall } from '@langchain/core/messages/tool';
 
+// Enhanced state interface for intelligent problem-solving
+interface EnhancedGraphState extends GraphState {
+  taskProgress: {
+    completed: string[];
+    pending: string[];
+    failed: string[];
+  };
+  failureHistory: Array<{
+    step: number;
+    error: string;
+    timestamp: Date;
+    recoveryAction: string;
+  }>;
+  retryCount: number;
+  maxRetries: number;
+}
+
+/**
+ * Task decomposition and progress tracking for intelligent problem-solving
+ */
+const TaskTracker = {
+  decomposeTask(userQuery: string): string[] {
+    // Intelligent task decomposition based on user intent
+    const tasks: string[] = [];
+
+    if (userQuery.toLowerCase().includes('search') || userQuery.toLowerCase().includes('find')) {
+      tasks.push('search_information');
+    }
+    if (
+      userQuery.toLowerCase().includes('create') ||
+      userQuery.toLowerCase().includes('generate')
+    ) {
+      tasks.push('create_content');
+    }
+    if (userQuery.toLowerCase().includes('send') || userQuery.toLowerCase().includes('email')) {
+      tasks.push('send_communication');
+    }
+    if (
+      userQuery.toLowerCase().includes('calculate') ||
+      userQuery.toLowerCase().includes('compute')
+    ) {
+      tasks.push('perform_calculation');
+    }
+
+    // If no specific tasks identified, add a general task
+    if (tasks.length === 0) {
+      tasks.push('answer_question');
+    }
+
+    return tasks;
+  },
+
+  updateProgress(state: EnhancedGraphState, completedStep: string): void {
+    if (state.taskProgress) {
+      state.taskProgress.completed.push(completedStep);
+      state.taskProgress.pending = state.taskProgress.pending.filter(
+        (step) => step !== completedStep,
+      );
+    }
+  },
+
+  isTaskComplete(state: EnhancedGraphState): boolean {
+    return state.taskProgress?.pending.length === 0 && state.taskProgress?.failed.length === 0;
+  },
+};
+
 /**
  * Converts LangChain StructuredToolInterface array to MCPTool array.
  * This is used to prepare tools for the system prompt, matching the MCPTool interface.
@@ -265,7 +331,7 @@ export class Agent extends BaseSkill {
     };
 
     const llmNodeForCachedGraph = async (nodeState: typeof MessagesAnnotation.State) => {
-      const maxRetries = 2;
+      const maxRetries = 3;
       let attempts = 0;
 
       while (attempts <= maxRetries) {
@@ -316,19 +382,22 @@ export class Agent extends BaseSkill {
 
           return { messages: [response] }; // Ensure response is treated as AIMessage
         } catch (error) {
-          this.engine.logger.error(`LLM node execution failed (attempt ${attempts + 1}):`, error);
+          this.engine.logger.error(`LLM execution failed (attempt ${attempts + 1}):`, error);
 
           if (attempts < maxRetries) {
-            attempts++;
-            this.engine.logger.log(
-              `Retrying LLM invocation (attempt ${attempts + 1}/${maxRetries + 1})`,
+            // Add intelligent failure recovery prompt
+            const recoveryPrompt = new SystemMessage(
+              `I encountered an error: ${error.message}. As an intelligent problem-solving assistant, I need to analyze what went wrong and try a different approach. Please help me understand the issue and provide an alternative solution. Remember: I must continue working until the user's request is fully satisfied.`,
             );
+
+            nodeState.messages.push(recoveryPrompt);
+            attempts++;
             continue;
           }
 
-          // Return a fallback response to prevent graph from hanging
+          // Final failure recovery strategy with intelligent response
           const fallbackResponse = new AIMessage(
-            'I apologize, but I encountered an error while processing your request. Please try again.',
+            `I apologize for the technical difficulty. As your persistent problem-solving assistant, I encountered an error but I'm committed to helping you. Let me try a different approach or suggest alternative ways to fulfill your request. Please let me know if you'd like me to try again or if you have any specific preferences for how to proceed.`,
           );
 
           return { messages: [fallbackResponse] };
@@ -337,7 +406,7 @@ export class Agent extends BaseSkill {
 
       // This should never be reached, but just in case
       const fallbackResponse = new AIMessage(
-        'I apologize, but I encountered an error while processing your request. Please try again.',
+        `I've encountered multiple technical difficulties, but as your dedicated assistant, I'm still here to help. Please try rephrasing your request or breaking it into smaller parts, and I'll do my best to assist you with a fresh approach.`,
       );
       return { messages: [fallbackResponse] };
     };
@@ -370,8 +439,10 @@ export class Agent extends BaseSkill {
           // Validate tool calls format before routing
           const isFormatValid = validateToolCalls(lastMessage);
           if (!isFormatValid) {
-            this.engine.logger.warn('Invalid tool calls format detected, routing to END');
-            return END;
+            this.engine.logger.warn(
+              'Invalid tool calls format detected, routing back to LLM for correction',
+            );
+            return 'llm'; // Route back to LLM for correction
           }
 
           // Validate tool call arguments
@@ -388,13 +459,17 @@ export class Agent extends BaseSkill {
             );
             return 'tools';
           } else {
-            this.engine.logger.warn('Invalid tool call arguments detected, routing to END');
-            return END;
+            this.engine.logger.warn(
+              'Invalid tool call arguments detected, routing back to LLM for correction',
+            );
+            return 'llm'; // Route back to LLM for correction
           }
         }
 
-        this.engine.logger.log('No tool calls detected, routing to END');
-        return END;
+        // No tool calls detected, check if this is a final response
+        // For intelligent problem-solving, we continue the conversation until the user is satisfied
+        this.engine.logger.log('No tool calls detected, continuing intelligent problem-solving');
+        return END; // End the current turn, but the conversation can continue
       });
     } else {
       this.engine.logger.log(
@@ -422,11 +497,25 @@ export class Agent extends BaseSkill {
     config: SkillRunnableConfig,
   ): Promise<Partial<GraphState>> => {
     const { currentSkill, user } = config.configurable;
+    const { locale = 'auto' } = config.configurable;
 
     const project = config.configurable?.project as
       | { projectId: string; customInstructions?: string }
       | undefined;
     const customInstructions = project?.projectId ? project?.customInstructions : undefined;
+
+    // Initialize enhanced state with intelligent problem-solving tracking
+    const enhancedState: EnhancedGraphState = {
+      ...state,
+      failureHistory: [],
+      retryCount: 0,
+      maxRetries: 5,
+      taskProgress: {
+        completed: [],
+        pending: TaskTracker.decomposeTask(state.query || ''),
+        failed: [],
+      },
+    };
 
     const {
       compiledLangGraphApp,
@@ -438,15 +527,18 @@ export class Agent extends BaseSkill {
       buildSystemPrompt: mcpAvailable
         ? () => {
             return buildSystemPrompt(
-              'You are an advanced AI assistant with specialized expertise in leveraging the Model Context Protocol (MCP) to solve complex problems efficiently. Your intelligence manifests through precise tool orchestration, context-aware execution, and proactive optimization of MCP server capabilities. ' +
+              "You are an advanced AI assistant with specialized expertise in leveraging the Model Context Protocol (MCP) to solve complex problems efficiently. You are a persistent problem-solver who never gives up until the user's request is fully satisfied. " +
+                'Your intelligence manifests through precise tool orchestration, context-aware execution, and proactive optimization of MCP server capabilities. ' +
                 'When a tool call is made, you will receive a ToolMessage with the result. ' +
                 'If an MCP server call fails or returns malformed data, the ToolMessage will contain the error details. ' +
-                'You MUST carefully analyze this error message. ' +
+                'You MUST carefully analyze this error message and adapt your approach accordingly. ' +
                 'If the error indicates incorrect arguments (e.g., missing parameters, invalid values, type mismatches), you MUST revise the arguments and attempt the tool call again. Do NOT repeat the previous mistake. ' +
                 'If the error seems to be a transient issue (e.g., network error, temporary unavailability), you should retry the call, perhaps after a brief conceptual pause. ' +
                 "You must continuously retry and adapt your approach to achieve the user's expected outcome. Never abandon the operation prematurely. " +
-                'After several (e.g., 3-5) persistent failures for the same tool call despite your best efforts to correct it, and if no alternative tools or approaches are viable, you may then inform the user about the specific difficulty encountered and suggest a different course of action or ask for clarification.',
+                'After several (e.g., 3-5) persistent failures for the same tool call despite your best efforts to correct it, and if no alternative tools or approaches are viable, you may then inform the user about the specific difficulty encountered and suggest a different course of action or ask for clarification. ' +
+                "Remember: You are a continuous problem-solving assistant, not just a tool caller. You must persist until the user's request is fully satisfied.",
               convertToMCPTools(mcpTools), // Use the conversion function, mcpServerList removed
+              locale,
             );
           }
         : commonQnA.buildCommonQnASystemPrompt,
@@ -455,23 +547,27 @@ export class Agent extends BaseSkill {
     };
 
     const { requestMessages } = await this.commonPreprocess(
-      state,
+      enhancedState,
       config,
       module,
       customInstructions,
     );
 
-    config.metadata.step = { name: 'answerQuestion' };
+    config.metadata.step = { name: 'intelligentProblemSolving' };
 
     try {
-      this.engine.logger.log('Starting agent execution with messages:', requestMessages.length);
+      this.engine.logger.log('Starting intelligent problem-solving agent execution:', {
+        messagesCount: requestMessages.length,
+        taskProgress: enhancedState.taskProgress,
+        mcpAvailable,
+      });
 
-      // Add timeout control for agent execution
+      // Add timeout control for agent execution with increased limit for complex problem-solving
       const executionPromise = compiledLangGraphApp.invoke(
         { messages: requestMessages },
         {
           ...config,
-          recursionLimit: 20,
+          recursionLimit: 25, // Increased for complex problem-solving
           metadata: {
             ...config.metadata,
             ...currentSkill,
@@ -479,9 +575,9 @@ export class Agent extends BaseSkill {
         },
       );
 
-      // Set timeout to 60 seconds to prevent hanging
+      // Set timeout to 90 seconds to allow for complex problem-solving
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Agent execution timeout after 60 seconds')), 60000);
+        setTimeout(() => reject(new Error('Agent execution timeout after 90 seconds')), 90000);
       });
 
       const result = (await Promise.race([executionPromise, timeoutPromise])) as {
@@ -489,26 +585,35 @@ export class Agent extends BaseSkill {
       };
 
       // Add debug logging for the final result
-      this.engine.logger.log('Agent execution completed:', {
+      this.engine.logger.log('Intelligent problem-solving agent execution completed:', {
         messagesCount: result.messages?.length || 0,
         hasToolCalls:
           result.messages?.some((msg) => (msg as AIMessage).tool_calls?.length > 0) || false,
         lastMessageType:
           result.messages?.[result.messages.length - 1]?.constructor?.name || 'unknown',
+        taskProgress: enhancedState.taskProgress,
       });
 
       return { messages: result.messages };
     } catch (error) {
-      this.engine.logger.error('Agent execution failed:', error);
+      this.engine.logger.error('Intelligent problem-solving agent execution failed:', error);
 
-      // Return error message to user instead of crashing
+      // Record failure in enhanced state
+      enhancedState.failureHistory.push({
+        step: enhancedState.taskProgress.completed.length,
+        error: error.message || 'Unknown error',
+        timestamp: new Date(),
+        recoveryAction: 'fallback_response',
+      });
+
+      // Return intelligent error message
       const errorMessage = new AIMessage(
-        'I apologize, but I encountered an error while processing your request. Please try again or rephrase your question.',
+        `I apologize for the technical difficulty. As your persistent problem-solving assistant, I encountered an error but I'm committed to helping you. Let me try a different approach or suggest alternative ways to fulfill your request. Please let me know if you'd like me to try again or if you have any specific preferences for how to proceed.`,
       );
 
       return { messages: [errorMessage] };
     } finally {
-      this.engine.logger.log('agentNode execution finished.');
+      this.engine.logger.log('Intelligent problem-solving agent execution finished.');
       // Intentionally do not dispose globally here to preserve MCP connections.
     }
   };
