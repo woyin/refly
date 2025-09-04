@@ -342,6 +342,9 @@ export class MediaGeneratorService {
       }
 
       const input = await this.buildInputObject(user, request, config.supportedLanguages);
+
+      this.logger.log(`input: ${JSON.stringify(input)}`);
+
       let url = '';
 
       // Generate media based on provider type
@@ -366,7 +369,12 @@ export class MediaGeneratorService {
         });
 
         const result = await fal.subscribe(request.model, {
-          input: input,
+          input: {
+            video_urls: [
+              'https://storage.googleapis.com/falserverless/example_inputs/ffmpeg-video.mp4',
+              'https://storage.googleapis.com/falserverless/example_inputs/ffmpeg-video.mp4',
+            ],
+          },
           logs: false,
           onQueueUpdate: (update) => {
             if (update.status === 'IN_PROGRESS') {
