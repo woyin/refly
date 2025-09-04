@@ -6,41 +6,36 @@ import { usePilotStoreShallow } from '@refly/stores';
 interface PilotProps {
   canvasId: string;
 }
-export const Pilot = memo(
-  ({ canvasId }: PilotProps) => {
-    const { setActiveSessionId } = usePilotStoreShallow((state) => ({
-      setActiveSessionId: state.setActiveSessionId,
-    }));
-    const { data } = useListPilotSessions(
-      {
-        query: {
-          targetId: canvasId,
-          targetType: 'canvas',
-          page: 1,
-          pageSize: 1,
-        },
+export const Pilot = memo(({ canvasId }: PilotProps) => {
+  const { setActiveSessionId } = usePilotStoreShallow((state) => ({
+    setActiveSessionId: state.setActiveSessionId,
+  }));
+  const { data } = useListPilotSessions(
+    {
+      query: {
+        targetId: canvasId,
+        targetType: 'canvas',
+        page: 1,
+        pageSize: 1,
       },
-      undefined,
-      {
-        enabled: !!canvasId,
-      },
-    );
-    const sessionsList = useMemo(() => data?.data, [data]);
+    },
+    undefined,
+    {
+      enabled: !!canvasId,
+    },
+  );
+  const sessionsList = useMemo(() => data?.data, [data]);
 
-    useEffect(() => {
-      if (
-        sessionsList?.length > 0 &&
-        ['init', 'executing', 'waiting'].includes(sessionsList[0].status)
-      ) {
-        setActiveSessionId(canvasId, sessionsList[0].sessionId);
-      }
-    }, [sessionsList, setActiveSessionId, canvasId]);
+  useEffect(() => {
+    if (
+      sessionsList?.length > 0 &&
+      ['init', 'executing', 'waiting'].includes(sessionsList[0].status)
+    ) {
+      setActiveSessionId(canvasId, sessionsList[0].sessionId);
+    }
+  }, [sessionsList, setActiveSessionId, canvasId]);
 
-    return <SessionContainer canvasId={canvasId} />;
-  },
-  (prevProps, nextProps) => {
-    return prevProps.canvasId === nextProps.canvasId;
-  },
-);
+  return <SessionContainer canvasId={canvasId} />;
+});
 
 Pilot.displayName = 'Pilot';
