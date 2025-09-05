@@ -9,24 +9,29 @@ export function buildSubtaskSkillInput(params: {
   outputRequirements?: string;
   locale?: string;
 }): SkillInput {
-  const { stage, query, context, scope, outputRequirements } = params;
+  const { query, context, scope, outputRequirements, locale = 'auto' } = params;
 
-  const _prompt = `ROLE:
-You are executing a focused subtask as part of a larger multi-epoch plan.
+  const isChinese = locale?.startsWith('zh') || locale === 'zh-CN';
 
-Stage CONTEXT:
-- Stage: "${stage.name}"
-- Stage Description: "${stage.description}"
-- Stage Objectives: "${stage.objectives.join(', ')}"
+  const _prompt = isChinese
+    ? // 中文版本（精简版）
+      `角色：你正在执行一个多阶段计划中的专注子任务。
 
-Subtask CONTEXT:
-- Context: "${context || 'No specific context provided'}"
-- Scope: "${scope || 'No specific scope defined'}"
-- Output Requirements: "${outputRequirements || 'No specific output requirements'}"
+上下文：
+${context ? `- 前置阶段信息：${context}` : ''}
+${scope ? `- 任务范围：${scope}` : ''}
+${outputRequirements ? `- 输出要求：${outputRequirements}` : ''}
 
-Finish the following subtask:
-- Query: "${query}"
-`;
+任务：${query}`
+    : // 英文版本（精简版）
+      `ROLE: You are executing a focused subtask as part of a multi-epoch plan.
+
+CONTEXT:
+${context ? `- Previous Stage: ${context}` : ''}
+${scope ? `- Task Scope: ${scope}` : ''}
+${outputRequirements ? `- Output Requirements: ${outputRequirements}` : ''}
+
+TASK: ${query}`;
 
   return { query: _prompt };
 }
