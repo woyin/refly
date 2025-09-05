@@ -1101,6 +1101,13 @@ const translations = {
       video: '视频',
       audio: '音频',
       start: '开始',
+      documentSelection: '文档选中内容',
+      resourceSelection: '资源选中内容',
+      skillResponseSelection: '技能响应选中内容',
+      extensionWeblinkSelection: '网页选中内容',
+      documentCursorSelection: '文档光标选中内容',
+      documentBeforeCursorSelection: '文档光标前内容',
+      documentAfterCursorSelection: '文档光标后内容',
     },
     presetScenarios: {
       title: '预设场景',

@@ -85,7 +85,6 @@ export const CanvasSelectionContext: React.FC<CanvasSelectionContextProps> = ({
           type: node.type as CanvasNodeType,
           metadata: node.data.metadata,
         });
-        message.success(t('knowledgeBase.context.addToContextSuccess'));
       } catch (error) {
         console.error('Error adding to context:', error);
         message.error(t('knowledgeBase.context.addToContextError'));

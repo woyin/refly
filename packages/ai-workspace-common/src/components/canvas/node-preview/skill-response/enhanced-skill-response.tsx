@@ -22,7 +22,7 @@ import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useContextUpdateByResultId } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
 import { useReactFlow } from '@xyflow/react';
-import { contextEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/context';
+
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { GenericToolset } from '@refly/openapi-schema';
 
@@ -176,33 +176,6 @@ export const EnhancedSkillResponse = memo(
         prevTplConfigRef.current = tplConfig;
       }
     }, [tplConfig]);
-
-    // Listen for context item events specific to this resultId
-    useEffect(() => {
-      // Handler for when a context item is added to this specific resultId
-      const handleAddToContext = (data: { contextItem: IContextItem; resultId: string }) => {
-        if (data.resultId === resultId) {
-          setContextItems((prevItems) => {
-            // Check if item already exists
-            const itemExists = prevItems.some(
-              (prevItem) => prevItem.entityId === data.contextItem.entityId,
-            );
-            if (itemExists) return prevItems;
-
-            // Add the new item
-            return [...prevItems, data.contextItem];
-          });
-        }
-      };
-
-      // Register event listeners
-      contextEmitter.on('addToContext', handleAddToContext);
-
-      // Cleanup
-      return () => {
-        contextEmitter.off('addToContext', handleAddToContext);
-      };
-    }, [resultId]);
 
     // Update context when lastMessageResultId changes
     useEffect(() => {

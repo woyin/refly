@@ -22,9 +22,8 @@ const SessionHeader = memo(
     onClick: () => void;
     onSessionClick: (sessionId: string) => void;
   }) => {
-    const { isPilotOpen, setIsNewTask } = usePilotStoreShallow((state) => ({
+    const { isPilotOpen } = usePilotStoreShallow((state) => ({
       isPilotOpen: state.isPilotOpen,
-      setIsNewTask: state.setIsNewTask,
     }));
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const handleSessionClick = useCallback(
@@ -74,7 +73,7 @@ const SessionHeader = memo(
         {/* Header Right */}
         <div className="flex items-center gap-2">
           {!isPilotOpen && session?.status === 'finish' && (
-            <NewTaskButton className="p-0 mr-1" setIsNewTask={setIsNewTask} canvasId={canvasId} />
+            <NewTaskButton className="p-0 mr-1" canvasId={canvasId} />
           )}
           <Popover
             open={isHistoryOpen}

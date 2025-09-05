@@ -229,7 +229,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       isPilotOpen: state.isPilotOpen,
       setIsPilotOpen: state.setIsPilotOpen,
       setActiveSessionId: state.setActiveSessionId,
-      activeSessionId: state.activeSessionId,
+      activeSessionId: state.activeSessionIdByCanvas?.[canvasId] ?? null,
     }),
   );
 
@@ -495,10 +495,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
     if (showSlideshow) {
       setShowSlideshow(false);
-    }
-
-    if (isPilotOpen) {
-      setActiveSessionId(null);
     }
 
     if (showWorkflowRun) {
@@ -955,6 +951,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       nodeOperationsEmitter.off('openNodeContextMenu', handleOpenContextMenu);
     };
   }, [onNodeContextMenu]);
+
   const { data: sessionData } = useGetPilotSessionDetail(
     {
       query: { sessionId: activeSessionId },
@@ -965,14 +962,16 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     },
   );
   const session = useMemo(() => sessionData?.data, [sessionData]);
+
   const handleClick = useCallback(() => {
     setIsPilotOpen(!isPilotOpen);
   }, [setIsPilotOpen, isPilotOpen]);
+
   const handleSessionClick = useCallback(
     (sessionId: string) => {
-      setActiveSessionId(sessionId);
+      setActiveSessionId(canvasId, sessionId);
     },
-    [setActiveSessionId],
+    [setActiveSessionId, canvasId],
   );
   return (
     <Spin

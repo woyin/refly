@@ -1115,6 +1115,13 @@ const translations = {
       video: 'Video',
       audio: 'Audio',
       start: 'Start',
+      documentSelection: 'Document Selection',
+      resourceSelection: 'Resource Selection',
+      skillResponseSelection: 'Skill Response Selection',
+      extensionWeblinkSelection: 'Extension Web Link Selection',
+      documentCursorSelection: 'Document Cursor Selection',
+      documentBeforeCursorSelection: 'Document Before Cursor Selection',
+      documentAfterCursorSelection: 'Document After Cursor Selection',
     },
     presetScenarios: {
       title: 'Preset Scenarios',

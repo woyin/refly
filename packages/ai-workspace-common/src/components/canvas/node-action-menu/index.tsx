@@ -289,18 +289,7 @@ export const NodeActionMenu: FC<NodeActionMenuProps> = ({
               },
             ]
           : []),
-        {
-          key: 'addToContext',
-          icon: AddContext,
-          label: t('canvas.nodeActions.addToContext'),
-          onClick: handleAddToContext,
-          type: 'button' as const,
-          hoverContent: {
-            title: t('canvas.nodeActions.addToContext'),
-            description: t('canvas.nodeActions.addToContextDescription'),
-            videoUrl: 'https://static.refly.ai/onboarding/nodeAction/nodeAction-addToContext.webm',
-          },
-        },
+
         ...(!['group', 'skill'].includes(nodeType)
           ? [
               {

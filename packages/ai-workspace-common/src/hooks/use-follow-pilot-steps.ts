@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { usePilotStore, usePilotStoreShallow } from '@refly/stores';
 import { ResponseNodeMeta } from '@refly/canvas-common';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 /**
  * Hook that follows pilot steps by automatically fitting view to nodes associated
@@ -14,18 +15,21 @@ import { ResponseNodeMeta } from '@refly/canvas-common';
 export const useFollowPilotSteps = () => {
   // Keep track of interval ID for cleanup
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { canvasId } = useCanvasContext();
 
   // Get React Flow instance to control the canvas view
   const reactFlowInstance = useReactFlow();
 
-  const activeSessionId = usePilotStoreShallow((state) => state.activeSessionId);
+  const activeSessionId = usePilotStoreShallow(
+    (state) => state.activeSessionIdByCanvas?.[canvasId] ?? null,
+  );
 
   // Function to check for relevant nodes and fit view
   const checkAndFitView = useCallback(() => {
     console.log('[useFollowPilotSteps] checking for nodes to fit view');
 
     // Get active session ID from pilot store
-    const { activeSessionId } = usePilotStore.getState();
+    const { activeSessionId } = usePilotStore.getState()[canvasId];
     if (!activeSessionId) return;
 
     console.log('[useFollowPilotSteps] activeSessionId', activeSessionId);

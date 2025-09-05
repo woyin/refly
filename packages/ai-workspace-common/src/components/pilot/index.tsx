@@ -1,15 +1,16 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { SessionContainer } from './session-container';
-import { usePilotStoreShallow } from '@refly/stores';
 import { useListPilotSessions } from '@refly-packages/ai-workspace-common/queries/queries';
+import { usePilotStoreShallow } from '@refly/stores';
 
-export const Pilot = memo(({ canvasId }: { canvasId: string }) => {
-  const { activeSessionId, setActiveSessionId } = usePilotStoreShallow((state) => ({
-    activeSessionId: state.activeSessionId,
+interface PilotProps {
+  canvasId: string;
+}
+export const Pilot = memo(({ canvasId }: PilotProps) => {
+  const { setActiveSessionId } = usePilotStoreShallow((state) => ({
     setActiveSessionId: state.setActiveSessionId,
   }));
-
-  const { data: sessionsData } = useListPilotSessions(
+  const { data } = useListPilotSessions(
     {
       query: {
         targetId: canvasId,
@@ -20,17 +21,21 @@ export const Pilot = memo(({ canvasId }: { canvasId: string }) => {
     },
     undefined,
     {
-      enabled: !!canvasId && !activeSessionId,
+      enabled: !!canvasId,
     },
   );
+  const sessionsList = useMemo(() => data?.data, [data]);
 
   useEffect(() => {
-    if (sessionsData?.data?.length > 0) {
-      setActiveSessionId(sessionsData.data[0].sessionId);
+    if (
+      sessionsList?.length > 0 &&
+      ['init', 'executing', 'waiting'].includes(sessionsList[0].status)
+    ) {
+      setActiveSessionId(canvasId, sessionsList[0].sessionId);
     }
-  }, [sessionsData, setActiveSessionId]);
+  }, [sessionsList, setActiveSessionId, canvasId]);
 
-  return <SessionContainer sessionId={activeSessionId} canvasId={canvasId} />;
+  return <SessionContainer canvasId={canvasId} />;
 });
 
 Pilot.displayName = 'Pilot';
