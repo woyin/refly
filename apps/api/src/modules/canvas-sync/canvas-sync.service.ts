@@ -590,7 +590,6 @@ export class CanvasSyncService {
     param: { canvasId: string; variables: WorkflowVariable[] },
   ): Promise<WorkflowVariable[]> {
     const { canvasId, variables } = param;
-    // 先查出原有 workflow
     const canvas = await this.prisma.canvas.findUnique({
       select: { workflow: true },
       where: { canvasId, uid: user.uid, deletedAt: null },

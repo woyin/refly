@@ -15,7 +15,7 @@ export class SkillProcessor extends WorkerHost {
   }
 
   async process(job: Job<InvokeSkillJobData>) {
-    this.logger.log(`[handleInvokeSkill] job: ${JSON.stringify(job)}`);
+    this.logger.log(`[handleInvokeSkill] job: ${JSON.stringify(job.data.resultId)}`);
 
     try {
       await this.skillService.invokeSkillFromQueue(job.data);
