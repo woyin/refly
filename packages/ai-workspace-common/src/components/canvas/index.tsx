@@ -996,90 +996,92 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         />
       </Modal>
       <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
-        <AnimatePresence mode="wait">
-          {isPilotOpen ? (
-            <motion.div
-              key="pilot-panel"
-              className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20  w-[568px] rounded-[20px] shadow-refly-m border-[1px] border-solid border-refly-Card-Border bg-white dark:bg-refly-bg-content-z2"
-              initial={{ opacity: 0, y: 40, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 40, scale: 0.95 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-            >
-              <Pilot canvasId={canvasId} />
-            </motion.div>
-          ) : nodes?.length > 0 ? (
-            <motion.div
-              key="session-header"
-              className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20 shadow-sm rounded-[20px] w-[568px] border border-solid border-refly-Card-Border dark:border-gray-700 bg-white dark:bg-neutral-900/95"
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-            >
+        {!readonly && (
+          <AnimatePresence mode="wait">
+            {isPilotOpen ? (
               <motion.div
-                className="pb-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2, delay: 0.1 }}
+                key="pilot-panel"
+                className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20  w-[568px] rounded-[20px] shadow-refly-m border-[1px] border-solid border-refly-Card-Border bg-white dark:bg-refly-bg-content-z2"
+                initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
               >
-                <SessionHeader
-                  canvasId={canvasId}
-                  session={session}
-                  steps={session?.steps ?? []}
-                  onClick={handleClick}
-                  onSessionClick={handleSessionClick}
-                />
+                <Pilot canvasId={canvasId} />
               </motion.div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="start-button"
-              className="absolute bottom-4 left-[calc(50%-140px)] z-20"
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 20, scale: 0.9 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
-            >
+            ) : nodes?.length > 0 ? (
               <motion.div
-                whileHover={{
-                  scale: 1.02,
-                  transition: { duration: 0.2 },
-                }}
-                whileTap={{
-                  scale: 0.98,
-                  transition: { duration: 0.1 },
-                }}
+                key="session-header"
+                className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20 shadow-sm rounded-[20px] w-[568px] border border-solid border-refly-Card-Border dark:border-gray-700 bg-white dark:bg-neutral-900/95"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
               >
-                <Button
-                  type="default"
-                  className="bg-white dark:bg-neutral-900/95 border border-neutral-200 dark:border-neutral-800 rounded-full h-14 px-4 shadow-sm hover:shadow transition-colors flex items-center gap-3 w-[280px] max-w-[92vw]"
-                  onClick={() => setIsPilotOpen(true)}
+                <motion.div
+                  className="pb-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2, delay: 0.1 }}
                 >
-                  <motion.div
-                    className="flex items-center shrink-0"
-                    initial={{ x: -5 }}
-                    animate={{ x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.1 }}
-                  >
-                    <Logo logoProps={{ show: false }} />
-                    <span className="text-neutral-900 dark:text-neutral-50 text-[14px] font-semibold ml-0.5">
-                      Agent
-                    </span>
-                  </motion.div>
-                  <motion.span
-                    className="text-neutral-400 text-[16px] font-[400]"
-                    initial={{ opacity: 0, x: 5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.2, delay: 0.2 }}
-                  >
-                    {t('canvas.launchpad.placeholder', 'Describe needs...')}
-                  </motion.span>
-                </Button>
+                  <SessionHeader
+                    canvasId={canvasId}
+                    session={session}
+                    steps={session?.steps ?? []}
+                    onClick={handleClick}
+                    onSessionClick={handleSessionClick}
+                  />
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            ) : (
+              <motion.div
+                key="start-button"
+                className="absolute bottom-4 left-[calc(50%-140px)] z-20"
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+              >
+                <motion.div
+                  whileHover={{
+                    scale: 1.02,
+                    transition: { duration: 0.2 },
+                  }}
+                  whileTap={{
+                    scale: 0.98,
+                    transition: { duration: 0.1 },
+                  }}
+                >
+                  <Button
+                    type="default"
+                    className="bg-white dark:bg-neutral-900/95 border border-neutral-200 dark:border-neutral-800 rounded-full h-14 px-4 shadow-sm hover:shadow transition-colors flex items-center gap-3 w-[280px] max-w-[92vw]"
+                    onClick={() => setIsPilotOpen(true)}
+                  >
+                    <motion.div
+                      className="flex items-center shrink-0"
+                      initial={{ x: -5 }}
+                      animate={{ x: 0 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                    >
+                      <Logo logoProps={{ show: false }} />
+                      <span className="text-neutral-900 dark:text-neutral-50 text-[14px] font-semibold ml-0.5">
+                        Agent
+                      </span>
+                    </motion.div>
+                    <motion.span
+                      className="text-neutral-400 text-[16px] font-[400]"
+                      initial={{ opacity: 0, x: 5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2, delay: 0.2 }}
+                    >
+                      {t('canvas.launchpad.placeholder', 'Describe needs...')}
+                    </motion.span>
+                  </Button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
 
         <TopToolbar canvasId={canvasId} mode={interactionMode} changeMode={toggleInteractionMode} />
         <div className="flex-grow relative">
