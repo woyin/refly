@@ -677,6 +677,7 @@ export class PilotService {
                 context: rawStep?.context,
                 scope: rawStep?.scope,
                 outputRequirements: rawStep?.outputRequirements,
+                locale,
               }),
             ),
             status: 'waiting',
@@ -742,6 +743,7 @@ export class PilotService {
             context: rawStep?.context,
             scope: rawStep?.scope,
             outputRequirements: rawStep?.outputRequirements,
+            locale,
           }),
           target: {
             entityId: targetId,
