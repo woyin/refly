@@ -458,7 +458,11 @@ export class ToolService {
       this.instantiateMcpServers(user, mcpServers),
     ]);
 
-    return [...builtinTools, ...regularTools, ...mcpTools];
+    return [
+      ...builtinTools,
+      ...(Array.isArray(regularTools) ? regularTools : []),
+      ...(Array.isArray(mcpTools) ? mcpTools : []),
+    ];
   }
 
   /**
@@ -606,6 +610,7 @@ export class ToolService {
             this.logger.error('Error closing MCP client after operation failure:', closeError),
           );
       }
+      return [];
     }
   }
 }
