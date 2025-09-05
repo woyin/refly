@@ -1090,10 +1090,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             <style>{`
               .react-flow__node {
                 cursor: not-allowed !important;
-                opacity: 0.9;
-              }
-              .react-flow__node:hover {
-                box-shadow: none !important;
               }
             `}</style>
           )}
