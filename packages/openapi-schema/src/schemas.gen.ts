@@ -3349,6 +3349,13 @@ export const UpsertCanvasRequestSchema = {
       type: 'string',
       description: 'Minimap storage key',
     },
+    variables: {
+      type: 'array',
+      description: 'Workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
   },
 } as const;
 
@@ -8180,6 +8187,13 @@ export const InitializeWorkflowRequestSchema = {
       description: 'New canvas ID',
       example: 'canvas-456',
     },
+    variables: {
+      type: 'array',
+      description: 'Workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
     startNodes: {
       type: 'array',
       description: 'Start node IDs',
@@ -8477,7 +8491,7 @@ export const ExecuteWorkflowAppResponseSchema = {
   ],
 } as const;
 
-export const VariableTypeSchema = {
+export const ValueTypeSchema = {
   type: 'string',
   enum: ['text', 'resource'],
 } as const;
@@ -8507,7 +8521,7 @@ export const VariableValueSchema = {
   properties: {
     type: {
       description: 'Variable type',
-      $ref: '#/components/schemas/VariableType',
+      $ref: '#/components/schemas/ValueType',
     },
     text: {
       type: 'string',

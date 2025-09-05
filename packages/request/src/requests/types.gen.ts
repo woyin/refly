@@ -2533,6 +2533,10 @@ export type UpsertCanvasRequest = {
    * Minimap storage key
    */
   minimapStorageKey?: string;
+  /**
+   * Workflow variables
+   */
+  variables?: Array<WorkflowVariable>;
 };
 
 export type UpsertCanvasResponse = BaseResponse & {
@@ -5765,6 +5769,10 @@ export type InitializeWorkflowRequest = {
    */
   newCanvasId?: string;
   /**
+   * Workflow variables
+   */
+  variables?: Array<WorkflowVariable>;
+  /**
    * Start node IDs
    */
   startNodes?: Array<string>;
@@ -5947,7 +5955,7 @@ export type ExecuteWorkflowAppResponse = BaseResponse & {
   data?: ExecuteWorkflowAppResult;
 };
 
-export type VariableType = 'text' | 'resource';
+export type ValueType = 'text' | 'resource';
 
 export type ResourceValue = {
   /**
@@ -5968,7 +5976,7 @@ export type VariableValue = {
   /**
    * Variable type
    */
-  type: VariableType;
+  type: ValueType;
   /**
    * Variable text value (for text type)
    */

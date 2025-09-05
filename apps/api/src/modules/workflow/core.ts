@@ -110,7 +110,8 @@ export const prepareNodeExecutions = (params: {
     }
   }
 
-  const startNodes = params.startNodes || [];
+  // If new canvas mode, ignore provided start nodes
+  const startNodes = isNewCanvas ? [] : (params.startNodes ?? []);
   if (startNodes.length === 0) {
     for (const [nodeId, parents] of parentMap) {
       if (parents.length === 0) {
@@ -140,11 +141,12 @@ export const prepareNodeExecutions = (params: {
 
   const entityMap = new Map<string, string>(); // old entity id -> new entity id
   for (const node of nodes) {
-    const sourceEntityId = node.data?.entityId ?? '';
-    const targetEntityId = isNewCanvas
-      ? genNodeEntityId(node.type)
-      : (nodeIdMap.get(node.id) ?? node.id);
-    entityMap.set(sourceEntityId, targetEntityId);
+    const entityId = node.data?.entityId;
+
+    if (entityId) {
+      const targetEntityId = isNewCanvas ? genNodeEntityId(node.type) : entityId;
+      entityMap.set(entityId, targetEntityId);
+    }
   }
 
   // Create node execution records

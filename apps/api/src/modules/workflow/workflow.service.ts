@@ -21,7 +21,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '../../generated/client';
 import { QUEUE_RUN_WORKFLOW } from '../../utils/const';
-import { WorkflowExecutionNotFoundError } from '@refly/errors';
+import { CanvasNotFoundError, WorkflowExecutionNotFoundError } from '@refly/errors';
 import { prepareNodeExecutions, pickReadyChildNodes } from './core';
 
 @Injectable()
@@ -50,86 +50,96 @@ export class WorkflowService {
     options?: {
       appId?: string;
       startNodes?: string[];
+      checkCanvasOwnership?: boolean;
     },
   ): Promise<string> {
-    try {
-      // Add a new execution mode: if a new canvas ID is provided, create a new canvas and add nodes to it one by one as they are executed.
-      // Only the node being executed will be added to the new canvas at that time.
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId: sourceCanvasId },
+    });
 
-      // Get canvas state
-      const canvasData = await this.canvasSyncService.getCanvasData(user, {
-        canvasId: sourceCanvasId,
-      });
-
-      // Create workflow execution record
-      const executionId = genWorkflowExecutionID();
-      const canvas = await this.prisma.canvas.findUnique({
-        where: { canvasId: sourceCanvasId },
-        select: { title: true },
-      });
-      const isNewCanvas = targetCanvasId !== sourceCanvasId;
-
-      // Note: Canvas creation is now handled on the frontend to avoid version conflicts
-      if (isNewCanvas) {
-        await this.canvasService.createCanvas(user, {
-          canvasId: targetCanvasId,
-          title: canvas?.title,
-        });
-        await this.canvasSyncService.updateWorkflowVariables(user, {
-          canvasId: targetCanvasId,
-          variables,
-        });
-      }
-
-      const { nodeExecutions, startNodes } = prepareNodeExecutions({
-        executionId,
-        canvasId: targetCanvasId,
-        canvasData,
-        variables,
-        startNodes: options?.startNodes ?? [],
-        isNewCanvas,
-      });
-
-      await this.prisma.$transaction([
-        this.prisma.workflowExecution.create({
-          data: {
-            executionId,
-            uid: user.uid,
-            canvasId: targetCanvasId,
-            sourceCanvasId: sourceCanvasId,
-            title: canvas?.title || 'Workflow Execution',
-            status: nodeExecutions.length > 0 ? 'executing' : 'finish',
-            totalNodes: nodeExecutions.length,
-            appId: options?.appId,
-          },
-        }),
-        this.prisma.workflowNodeExecution.createMany({
-          data: nodeExecutions,
-        }),
-      ]);
-
-      // Add start nodes to runWorkflowQueue
-      if (this.runWorkflowQueue) {
-        for (const startNodeId of startNodes) {
-          // Find the node execution record to get the new node ID
-          const nodeExecution = nodeExecutions.find((ne) => ne.nodeId === startNodeId);
-          await this.runWorkflowQueue.add('runWorkflow', {
-            user: { uid: user.uid },
-            executionId,
-            nodeId: nodeExecution.nodeId,
-            isNewCanvas,
-          });
-        }
-      }
-
-      this.logger.log(
-        `Workflow execution ${executionId} initialized with ${nodeExecutions.length} nodes`,
-      );
-      return executionId;
-    } catch (error) {
-      this.logger.error(`Failed to initialize workflow execution: ${error.message}`);
-      throw error;
+    if (!canvas) {
+      throw new CanvasNotFoundError(`Canvas ${sourceCanvasId} not found`);
     }
+
+    if (options?.checkCanvasOwnership && canvas.uid !== user.uid) {
+      throw new CanvasNotFoundError(`Canvas ${sourceCanvasId} not found for user ${user.uid}`);
+    }
+
+    // Get canvas state
+    const canvasData = await this.canvasSyncService.getCanvasData(
+      user,
+      {
+        canvasId: sourceCanvasId,
+      },
+      canvas,
+    );
+
+    // Create workflow execution record
+    const executionId = genWorkflowExecutionID();
+
+    const isNewCanvas = targetCanvasId !== sourceCanvasId;
+
+    // Use variables from request if provided, otherwise use variables from canvas
+    const finalVariables = variables ?? safeParseJSON(canvas.workflow).variables ?? [];
+
+    // Note: Canvas creation is now handled on the frontend to avoid version conflicts
+    if (isNewCanvas) {
+      await this.canvasService.createCanvas(user, {
+        canvasId: targetCanvasId,
+        title: canvas?.title,
+        variables: finalVariables,
+      });
+    } else {
+      await this.canvasSyncService.updateWorkflowVariables(user, {
+        canvasId: targetCanvasId,
+        variables: finalVariables,
+      });
+    }
+
+    const { nodeExecutions, startNodes } = prepareNodeExecutions({
+      executionId,
+      canvasId: targetCanvasId,
+      canvasData,
+      variables: finalVariables,
+      startNodes: options?.startNodes ?? [],
+      isNewCanvas,
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.workflowExecution.create({
+        data: {
+          executionId,
+          uid: user.uid,
+          canvasId: targetCanvasId,
+          sourceCanvasId: sourceCanvasId,
+          variables: JSON.stringify(finalVariables),
+          title: canvas.title || 'Workflow Execution',
+          status: nodeExecutions.length > 0 ? 'executing' : 'finish',
+          totalNodes: nodeExecutions.length,
+          appId: options?.appId,
+        },
+      }),
+      this.prisma.workflowNodeExecution.createMany({
+        data: nodeExecutions,
+      }),
+    ]);
+
+    // Add start nodes to runWorkflowQueue
+    if (this.runWorkflowQueue) {
+      for (const startNodeId of startNodes) {
+        await this.runWorkflowQueue.add('runWorkflow', {
+          user: { uid: user.uid },
+          executionId,
+          nodeId: startNodeId,
+          isNewCanvas,
+        });
+      }
+    }
+
+    this.logger.log(
+      `Workflow execution ${executionId} initialized with ${nodeExecutions.length} nodes`,
+    );
+    return executionId;
   }
 
   /**
@@ -373,6 +383,9 @@ export class WorkflowService {
     isNewCanvas?: boolean,
   ): Promise<void> {
     try {
+      this.logger.log(
+        `[runWorkflow] executionId: ${executionId}, nodeId: ${nodeId}, isNewCanvas: ${isNewCanvas}`,
+      );
       // Get node execution record
       const nodeExecution = await this.prisma.workflowNodeExecution.findFirst({
         where: {

@@ -6020,6 +6020,11 @@ components:
         minimapStorageKey:
           type: string
           description: Minimap storage key
+        variables:
+          type: array
+          description: Workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
     UpsertCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -9339,6 +9344,11 @@ components:
           type: string
           description: New canvas ID
           example: "canvas-456"
+        variables:
+          type: array
+          description: Workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
         startNodes:
           type: array
           description: Start node IDs
@@ -9545,7 +9555,7 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/ExecuteWorkflowAppResult'
-    VariableType:
+    ValueType:
       type: string
       enum:
         - text
@@ -9573,7 +9583,7 @@ components:
       properties:
         type:
           description: Variable type
-          $ref: '#/components/schemas/VariableType'
+          $ref: '#/components/schemas/ValueType'
         text:
           type: string
           description: Variable text value (for text type)

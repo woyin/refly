@@ -321,7 +321,7 @@ export class CanvasService {
 
   async createCanvas(user: User, param: UpsertCanvasRequest) {
     // Use the canvasId from param if provided, otherwise generate a new one
-    const canvasId = param?.canvasId ?? genCanvasID();
+    const canvasId = param.canvasId ?? genCanvasID();
 
     const state = initEmptyCanvasState();
     const stateStorageKey = await this.canvasSyncService.saveState(canvasId, state);
@@ -334,6 +334,7 @@ export class CanvasService {
           title: param.title,
           projectId: param.projectId,
           version: state.version,
+          workflow: JSON.stringify({ variables: param.variables }),
         },
       }),
       this.prisma.canvasVersion.create({

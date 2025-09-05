@@ -1,5 +1,6 @@
-import { CanvasData, CanvasNodeType } from '@refly/openapi-schema';
+import { CanvasData, CanvasNodeType, WorkflowVariable } from '@refly/openapi-schema';
 import { processQueryWithTypes, prepareNodeExecutions } from './core';
+import { ResponseNodeMeta } from '@refly/canvas-common';
 
 // Mock id generators for deterministic outputs
 jest.mock('@refly/utils', () => {
@@ -43,7 +44,7 @@ describe('processQueryWithTypes', () => {
 
   it('ignores resource type variables', () => {
     const query = 'find @doc ';
-    const variables = [
+    const variables: WorkflowVariable[] = [
       {
         variableId: 'v1',
         name: 'doc',
@@ -55,26 +56,26 @@ describe('processQueryWithTypes', () => {
         ],
         variableType: 'resource',
       },
-    ] as any;
+    ];
     expect(processQueryWithTypes(query, variables)).toBe(query);
   });
 
   it('replaces string variables with text values', () => {
     const query = 'hello @name world';
-    const variables = [
+    const variables: WorkflowVariable[] = [
       {
         variableId: 'v1',
         name: 'name',
         value: [{ type: 'text', text: 'Alice' }],
         variableType: 'string',
       },
-    ] as any;
+    ];
     expect(processQueryWithTypes(query, variables)).toBe('hello Alice world');
   });
 
   it('replaces multiple occurrences and joins option values with comma', () => {
     const query = '@topic is cool. I love @topic so much';
-    const variables = [
+    const variables: WorkflowVariable[] = [
       {
         variableId: 'v1',
         name: 'topic',
@@ -83,22 +84,23 @@ describe('processQueryWithTypes', () => {
           { type: 'text', text: 'React' },
         ],
         variableType: 'option',
+        options: ['TypeScript', 'React'],
       },
-    ] as any;
+    ];
     const expected = 'TypeScript, React is cool. I love TypeScript, React so much';
     expect(processQueryWithTypes(query, variables)).toBe(expected);
   });
 
   it('handles missing text values by removing the placeholder token', () => {
     const query = 'hello @name world';
-    const variables = [
+    const variables: WorkflowVariable[] = [
       {
         variableId: 'v1',
         name: 'name',
         value: [{ type: 'text' }],
         variableType: 'string',
       },
-    ] as any;
+    ];
     // Note: replacement keeps a single space in place of the placeholder
     expect(processQueryWithTypes(query, variables)).toBe('hello  world');
   });
@@ -116,10 +118,7 @@ describe('prepareNodeExecutions', () => {
           entityId: 'entityA',
           metadata: {
             structuredData: { query: 'Hello @topic world' },
-            contextItems: [
-              { entityId: 'entityA', kind: 'node' },
-              { entityId: 'entityX', kind: 'node' },
-            ],
+            contextItems: [],
           },
         },
       },
@@ -128,7 +127,7 @@ describe('prepareNodeExecutions', () => {
         type: 'document' as CanvasNodeType,
         position: { x: 0, y: 0 },
         data: {
-          title: 'Learn @topic',
+          title: 'Test Document',
           entityId: 'entityB',
         },
       },
@@ -142,7 +141,8 @@ describe('prepareNodeExecutions', () => {
           metadata: {
             structuredData: { query: 'No var here' },
           },
-        },
+          contextItems: [{ entityId: 'entityB', type: 'document', title: 'Test Document' }],
+        } as ResponseNodeMeta,
       },
     ];
     const edges = [
@@ -152,14 +152,14 @@ describe('prepareNodeExecutions', () => {
     return { nodes, edges } as CanvasData;
   };
 
-  const variables = [
+  const variables: WorkflowVariable[] = [
     {
       variableId: 'v-topic',
       name: 'topic',
       value: [{ type: 'text', text: 'TypeScript' }],
       variableType: 'string',
     },
-  ] as any;
+  ];
 
   beforeEach(() => {
     const utilsMock = jest.requireMock('@refly/utils');
@@ -214,19 +214,69 @@ describe('prepareNodeExecutions', () => {
     expect(a.sourceEntityId).toBe('entityA');
   });
 
-  it('respects provided startNodes and maps ids when isNewCanvas=true', () => {
+  it('uses provided startNodes when isNewCanvas=false', () => {
+    const canvas = buildCanvas();
+    const { nodeExecutions, startNodes } = prepareNodeExecutions({
+      executionId: 'exec3',
+      canvasId: 'canvas3',
+      canvasData: canvas,
+      variables,
+      startNodes: ['C'], // This should be used when isNewCanvas=false
+      isNewCanvas: false,
+    });
+
+    // startNodes should use the provided value
+    expect(startNodes).toEqual(['C']);
+
+    expect(nodeExecutions).toHaveLength(3);
+
+    // Build index by node id
+    const byNodeId: Record<string, any> = {};
+    for (const n of nodeExecutions) {
+      byNodeId[n.nodeId] = n;
+    }
+
+    // Only nodes in subtree of C should be waiting
+    expect(byNodeId.A.status).toBe('finish');
+    expect(byNodeId.B.status).toBe('finish');
+    expect(byNodeId.C.status).toBe('waiting');
+
+    // Node B should connect to parent A using parent's node id (when not new canvas)
+    const b = byNodeId.B;
+    const connectTo = JSON.parse(b.connectTo as string);
+    expect(connectTo).toEqual([{ type: 'skillResponse', entityId: 'A', handleType: 'source' }]);
+
+    // processedQuery takes from metadata.structuredData.query or title
+    const a = byNodeId.A;
+    expect(a.originalQuery).toBe('Hello @topic world');
+    expect(a.processedQuery).toBe('Hello TypeScript world');
+
+    const c = byNodeId.C;
+    expect(c.originalQuery).toBe('No var here');
+    expect(c.processedQuery).toBe('No var here');
+
+    // Relationship ids are unchanged when not new canvas
+    expect(JSON.parse(b.parentNodeIds as string)).toEqual(['A']);
+    expect(JSON.parse(b.childNodeIds as string)).toEqual(['C']);
+
+    // Source ids preserved
+    expect(a.sourceNodeId).toBe('A');
+    expect(a.sourceEntityId).toBe('entityA');
+  });
+
+  it('ignores provided startNodes and auto-detects root nodes when isNewCanvas=true', () => {
     const canvas = buildCanvas();
     const { nodeExecutions, startNodes } = prepareNodeExecutions({
       executionId: 'exec2',
       canvasId: 'canvas2',
       canvasData: canvas,
       variables,
-      startNodes: ['B'],
+      startNodes: ['B'], // This should be ignored when isNewCanvas=true
       isNewCanvas: true,
     });
 
-    // Provided start node B is mapped to new id N2
-    expect(startNodes).toEqual(['N2']);
+    // startNodes should be auto-detected (node A has no parents), mapped to new id N1
+    expect(startNodes).toEqual(['N1']);
 
     // Build index by target (new) node id
     const byNewNodeId: Record<string, any> = {};
@@ -234,12 +284,14 @@ describe('prepareNodeExecutions', () => {
       byNewNodeId[n.nodeId] = n;
     }
 
-    // Status: Only B and C are in subtree of B, so A is finish
-    expect(byNewNodeId.N1.status).toBe('finish');
+    // Status: All nodes are in subtree of A, so all are waiting
+    expect(byNewNodeId.N1.status).toBe('waiting');
     expect(byNewNodeId.N2.status).toBe('waiting');
     expect(byNewNodeId.N3.status).toBe('waiting');
 
     // Parent/child id mapping
+    expect(JSON.parse(byNewNodeId.N1.parentNodeIds as string)).toEqual([]);
+    expect(JSON.parse(byNewNodeId.N1.childNodeIds as string)).toEqual(['N2']);
     expect(JSON.parse(byNewNodeId.N2.parentNodeIds as string)).toEqual(['N1']);
     expect(JSON.parse(byNewNodeId.N2.childNodeIds as string)).toEqual(['N3']);
 
@@ -259,12 +311,13 @@ describe('prepareNodeExecutions', () => {
 
     const contextItems = aData?.data?.metadata?.contextItems ?? [];
     const entityIds = Array.isArray(contextItems) ? contextItems.map((i: any) => i?.entityId) : [];
-    // entityA -> E1, entityX stays unchanged
-    expect(entityIds).toEqual(['E1', 'entityX']);
+    // Node A has no contextItems, so entityIds should be empty
+    expect(entityIds).toEqual([]);
 
     // Queries processed
     expect(byNewNodeId.N1.processedQuery).toBe('Hello TypeScript world');
-    expect(byNewNodeId.N2.processedQuery).toBe('Learn @topic');
+    expect(byNewNodeId.N2.processedQuery).toBe('Test Document'); // Node B is a document, uses title
+    expect(byNewNodeId.N3.processedQuery).toBe('No var here');
 
     // Source ids preserved even in new canvas mode
     expect(byNewNodeId.N1.sourceNodeId).toBe('A');

@@ -291,6 +291,8 @@ model WorkflowExecution {
   status         String   @default("init") @map("status")
   /// Workflow app id
   appId          String?  @map("app_id")
+  /// Workflow variables (JSON)
+  variables      String?  @map("variables")
   /// Total nodes count
   totalNodes     Int      @default(0) @map("total_nodes")
   /// Executed nodes count
