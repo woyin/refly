@@ -674,6 +674,9 @@ export class PilotService {
               buildSubtaskSkillInput({
                 stage: currentStage,
                 query: rawStep?.query,
+                context: rawStep?.context,
+                scope: rawStep?.scope,
+                outputRequirements: rawStep?.outputRequirements,
               }),
             ),
             status: 'waiting',
@@ -736,6 +739,9 @@ export class PilotService {
           input: buildSubtaskSkillInput({
             stage: currentStage,
             query: rawStep?.query,
+            context: rawStep?.context,
+            scope: rawStep?.scope,
+            outputRequirements: rawStep?.outputRequirements,
           }),
           target: {
             entityId: targetId,
