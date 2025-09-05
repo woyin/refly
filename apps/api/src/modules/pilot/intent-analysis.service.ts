@@ -117,7 +117,8 @@ export class IntentAnalysisService {
                 objective: { type: 'string' },
                 expectedOutcome: { type: 'string' },
                 context: { type: 'string' },
-                dependencies: { type: 'string' },
+                scope: { type: 'string' },
+                outputRequirements: { type: 'string' },
                 status: { type: 'string', enum: ['pending', 'executing', 'completed', 'failed'] },
               },
               required: [
@@ -125,7 +126,8 @@ export class IntentAnalysisService {
                 'objective',
                 'expectedOutcome',
                 'context',
-                'dependencies',
+                'scope',
+                'outputRequirements',
                 'status',
               ],
             },
@@ -167,9 +169,13 @@ export class IntentAnalysisService {
         (subtaskInfo: any, index: number) => ({
           id: `subtask_${Date.now()}_${index}`,
           name: subtaskInfo.name,
-          query: `${subtaskInfo.objective}\n\nContext: ${subtaskInfo.context || 'No context provided'}\nDependencies: ${subtaskInfo.dependencies || 'No dependencies specified'}`, // Enhanced query with context
+          query: subtaskInfo.objective, // Use objective as query for backward compatibility
           status: subtaskInfo.status,
           createdAt: new Date().toISOString(),
+          // Store additional context information for better execution
+          context: subtaskInfo.context || '',
+          scope: subtaskInfo.scope || '',
+          outputRequirements: subtaskInfo.outputRequirements || '',
         }),
       );
 
@@ -235,9 +241,13 @@ export class IntentAnalysisService {
         (subtaskInfo: any, index: number) => ({
           id: `subtask_${Date.now()}_${index}`,
           name: subtaskInfo.name || 'Unnamed Subtask',
-          query: `${subtaskInfo.objective || subtaskInfo.query || userQuestion}\n\nContext: ${subtaskInfo.context || 'No context provided'}\nDependencies: ${subtaskInfo.dependencies || 'No dependencies specified'}`, // Enhanced query with context
+          query: subtaskInfo.objective || subtaskInfo.query || userQuestion, // Support both new and old format
           status: subtaskInfo.status || 'pending',
           createdAt: new Date().toISOString(),
+          // Store additional context information for better execution
+          context: subtaskInfo.context || '',
+          scope: subtaskInfo.scope || '',
+          outputRequirements: subtaskInfo.outputRequirements || '',
         }),
       );
 
@@ -507,8 +517,8 @@ When analyzing execution results, pay special attention to:
 - **Goal-Oriented**: Each subtask should directly contribute to stage objectives
 - **Essential Only**: Generate only necessary subtasks - avoid redundant or overlapping ones
 - **Current Stage Focus**: Generate subtasks for the current active stage
-- **Context Continuity**: Ensure each subtask includes sufficient context from previous stages
-- **Information Flow**: Maintain critical information flow across stage boundaries
+- **Context Preservation**: Include specific data, findings, and insights from previous stages in subtask context
+- **Output Specification**: Clearly define expected output format, quality criteria, and specific requirements
 
 ## SUBTASK DESIGN GUIDELINES
 
@@ -517,21 +527,26 @@ When analyzing execution results, pay special attention to:
 - **Clear Outcome**: Specify the expected deliverable or result
 - **Flexible Tool Selection**: Let the executing agent determine the best tool combination
 - **Goal-Oriented**: Focus on achieving specific objectives rather than using specific tools
-- **Context-Rich**: Include sufficient context information to maintain continuity across stages
-- **Information Preservation**: Ensure critical information from previous stages is preserved
+- **Context-Rich**: Include sufficient context from previous stages to avoid information loss
+- **Specific Output Requirements**: Clearly specify the format, scope, and quality of expected outputs
 
-### Context Information Requirements:
-- **Previous Stage Results**: Include key findings, data, or outputs from completed stages
-- **User Intent Context**: Maintain connection to the original user request and intent
-- **Domain Knowledge**: Preserve relevant domain-specific information and constraints
-- **Execution Context**: Include relevant execution environment and constraints
-- **Dependency Context**: Maintain awareness of how this subtask relates to overall task flow
+### Context Preservation Requirements:
+- **MUST** include relevant data, findings, or insights from previous stages
+- **MUST** specify the scope and boundaries of the current subtask
+- **MUST** reference specific information that needs to be built upon
+- **MUST** include quality criteria and output format requirements
+- **MUST** provide enough context for independent execution without information gaps
 
 ### Examples of Good vs Bad Subtask Objectives:
-- **Good**: "Find current statistics and trends about renewable energy adoption in 2024, building on the market research data collected in Stage 1"
+
+#### Good Examples (Context-Rich):
+- **Good**: "Analyze the renewable energy statistics collected in Stage 1, focusing on 2024 adoption trends in Europe and North America, and create a comparative analysis report with specific metrics including growth rates, market share, and policy impacts"
+- **Good**: "Based on the market analysis data from Stage 2, generate a comprehensive presentation deck with 15-20 slides covering key findings, market opportunities, and strategic recommendations for renewable energy investment"
+
+#### Bad Examples (Context-Poor):
+- **Bad**: "Find current statistics and trends about renewable energy adoption in 2024"
+- **Bad**: "Create a comprehensive market analysis report about the renewable energy sector"
 - **Bad**: "Use web_search to find the latest statistics about renewable energy adoption in 2024"
-- **Good**: "Create a comprehensive market analysis report about the renewable energy sector, incorporating the 2023 baseline data and 2024 growth projections from previous research"
-- **Bad**: "Use generate_doc to create a comprehensive market analysis report about the renewable energy sector"
 
 
 ## DEPENDENCY ANALYSIS
@@ -586,8 +601,9 @@ Provide a JSON response with the following structure:
       "name": "Clear, specific task name",
       "objective": "What needs to be accomplished (focus on goals, not tools)",
       "expectedOutcome": "Expected deliverable or result",
-      "context": "Key context information from previous stages and overall task",
-      "dependencies": "What this subtask depends on from previous stages",
+      "context": "Relevant context from previous stages, including specific data, findings, or insights to build upon",
+      "scope": "Specific scope and boundaries of this subtask",
+      "outputRequirements": "Detailed output format, quality criteria, and specific requirements",
       "status": "pending"
     }
   ],
@@ -608,9 +624,9 @@ Provide a JSON response with the following structure:
 - **MUST** avoid generating overlapping or redundant subtasks
 - **MUST** ensure each subtask is absolutely necessary for stage completion
 - **MUST** follow objective logic for stage dependencies and progression
-- **MUST** include sufficient context information in each subtask to maintain continuity
-- **MUST** preserve critical information from previous stages in subtask objectives
-- **MUST** ensure context information is specific and actionable for execution
+- **MUST** include rich context from previous stages in subtask descriptions
+- **MUST** specify detailed output requirements and quality criteria for each subtask
+- **MUST** ensure subtasks contain sufficient information for independent execution
 
 ## VALIDATION CHECKLIST
 Before submitting, verify:
@@ -623,9 +639,9 @@ Before submitting, verify:
 □ No redundant or overlapping subtasks exist
 □ Stage sequence follows objective logic of progressive completion
 □ Subtask objectives focus on goals rather than specific tools
-□ Each subtask includes sufficient context information from previous stages
-□ Context information is specific and actionable for execution
-□ Critical information from previous stages is preserved in subtask objectives
+□ Each subtask includes rich context from previous stages
+□ Each subtask specifies detailed output requirements and quality criteria
+□ Each subtask contains sufficient information for independent execution
 
 
 ${locale ? `\n## LANGUAGE REQUIREMENT\nAll output should be in ${locale} language.` : ''}`;
