@@ -4,6 +4,7 @@ import { BuiltinToolset, BuiltinToolsetDefinition } from './builtin';
 import { FirecrawlToolset, FirecrawlToolsetDefinition } from './firecrawl';
 import { CalculatorToolset, CalculatorToolsetDefinition } from './calculator';
 import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive';
+import { JinaToolset, JinaToolsetDefinition } from './jina';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -29,5 +30,9 @@ export const toolsetInventory: Record<
   [GoogleDriveToolsetDefinition.key]: {
     class: GoogleDriveToolset,
     definition: GoogleDriveToolsetDefinition,
+  },
+  [JinaToolsetDefinition.key]: {
+    class: JinaToolset,
+    definition: JinaToolsetDefinition,
   },
 };
