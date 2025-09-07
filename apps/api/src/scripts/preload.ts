@@ -4,9 +4,9 @@
  * packages/foo/src/index.ts to packages/foo/dist/index.js
  */
 
-import * as Module from 'node:module';
-import * as path from 'node:path';
-import * as fs from 'node:fs';
+import Module from 'node:module';
+import path from 'node:path';
+import fs from 'node:fs';
 import { findTargetFile } from '../utils/runtime';
 
 // Store the original require function
