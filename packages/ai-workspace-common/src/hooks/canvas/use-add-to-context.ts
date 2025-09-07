@@ -1,38 +1,36 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { message } from 'antd';
-import { IContextItem, ContextTarget } from '@refly/common-types';
-import { useContextPanelStore } from '@refly/stores';
+import { IContextItem } from '@refly/common-types';
 import {
   emitAddToContext,
   emitAddToContextCompleted,
 } from '@refly-packages/ai-workspace-common/utils/event-emitter/context';
 import AddToContextMessageContent from '../../components/message/add-to-context-message';
-import { useCanvasStoreShallow } from '@refly/stores';
+import { usePilotStoreShallow } from '@refly/stores';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const useAddToContext = () => {
   const { t } = useTranslation();
-  const { showLinearThread, setShowLinearThread } = useCanvasStoreShallow((state) => ({
-    showLinearThread: state.showLinearThread,
-    setShowLinearThread: state.setShowLinearThread,
-    showSlideshow: state.showSlideshow,
-    setShowSlideshow: state.setShowSlideshow,
-  }));
+  const { canvasId } = useCanvasContext();
+  const { isPilotOpen, setIsPilotOpen, contextItems, setContextItems } = usePilotStoreShallow(
+    (state) => ({
+      isPilotOpen: state.isPilotOpen,
+      setIsPilotOpen: state.setIsPilotOpen,
+      contextItems: state.contextItemsByCanvas?.[canvasId] ?? [],
+      setContextItems: state.setContextItems,
+    }),
+  );
 
   const addSingleNodeToContext = useCallback(
     (item: IContextItem) => {
-      const { activeResultId } = useContextPanelStore.getState();
-      const resultId = activeResultId || ContextTarget.Global;
-      const contextStore = useContextPanelStore.getState();
-      const selectedContextItems = contextStore.contextItems;
       const nodeType = item?.type;
-
-      if (activeResultId === 'global' && !showLinearThread) {
-        setShowLinearThread(true);
+      const delay = isPilotOpen ? 0 : 400;
+      if (!isPilotOpen) {
+        setIsPilotOpen(true);
       }
-
       // Check if item is already in context
-      const isAlreadyAdded = selectedContextItems.some(
+      const isAlreadyAdded = contextItems.some(
         (selectedItem) => selectedItem.entityId === item.entityId && !selectedItem.isPreview,
       );
 
@@ -57,18 +55,12 @@ export const useAddToContext = () => {
             key: 'already-added-warning',
           });
 
-          // Emit event that adding to context is completed (but failed)
-          emitAddToContext(item, resultId);
-          emitAddToContextCompleted(item, resultId, false);
+          emitAddToContext({ contextItem: item, duplicated: true });
           return false;
         }
 
-        // Emit event that we're adding to context
-        emitAddToContext(item, resultId);
-
-        // Add to context
-        // contextStore.addContextItem(item);
-
+        emitAddToContext({ contextItem: item, duplicated: false });
+        setContextItems(canvasId, [...contextItems, item]);
         message.success({
           content: React.createElement(AddToContextMessageContent, {
             title: nodeTitle || t('common.untitled'),
@@ -78,12 +70,12 @@ export const useAddToContext = () => {
           key: 'add-success',
         });
 
-        // Emit event that adding to context is completed
-        emitAddToContextCompleted(item, resultId, true);
+        emitAddToContextCompleted({ contextItem: item, success: true });
+
         return true;
-      }, 100);
+      }, delay);
     },
-    [t],
+    [t, isPilotOpen, setIsPilotOpen, canvasId, contextItems, setContextItems],
   );
 
   const addContextItems = useCallback(
@@ -91,12 +83,91 @@ export const useAddToContext = () => {
       // Filter out memo, skill, and group nodes
       const validNodes = items.filter((item) => !['skill', 'group'].includes(item.type));
 
-      // Add each valid node to context
-      const results = validNodes.map((node) => addSingleNodeToContext(node));
+      if (validNodes.length === 0) {
+        return 0;
+      }
 
-      return results.filter(Boolean).length; // Return number of successfully added nodes
+      const delay = isPilotOpen ? 0 : 400;
+      if (!isPilotOpen) {
+        setIsPilotOpen(true);
+      }
+
+      // Check for duplicates and prepare new items
+      const newItems: IContextItem[] = [];
+      const duplicateItems: IContextItem[] = [];
+
+      for (const item of validNodes) {
+        const isAlreadyAdded = contextItems.some(
+          (selectedItem) => selectedItem.entityId === item.entityId && !selectedItem.isPreview,
+        );
+
+        if (isAlreadyAdded) {
+          duplicateItems.push(item);
+        } else {
+          newItems.push(item);
+        }
+      }
+
+      // Show warning messages for duplicates
+      for (const item of duplicateItems) {
+        const nodeType = item?.type;
+        let nodeTitle = '';
+        if (item?.metadata?.sourceType === 'documentSelection') {
+          nodeTitle = item?.title ?? t('knowledgeBase.context.untitled');
+        } else if (nodeType === 'skillResponse') {
+          nodeTitle = item?.title ?? t('knowledgeBase.context.untitled');
+        } else {
+          nodeTitle = item?.title ?? t('knowledgeBase.context.untitled');
+        }
+
+        message.warning({
+          content: React.createElement(AddToContextMessageContent, {
+            title: nodeTitle,
+            nodeType: t(`canvas.nodeTypes.${nodeType}`),
+            action: t('knowledgeBase.context.alreadyAddedWithTitle'),
+          }),
+          key: `already-added-warning-${item.entityId}`,
+        });
+
+        emitAddToContext({ contextItem: item, duplicated: true });
+      }
+
+      // Add new items to context
+      if (newItems.length > 0) {
+        setTimeout(() => {
+          // Use functional update to avoid race conditions
+          setContextItems(canvasId, (prevItems) => [...prevItems, ...newItems]);
+
+          // Show success messages for new items
+          for (const item of newItems) {
+            const nodeType = item?.type;
+            let nodeTitle = '';
+            if (item?.metadata?.sourceType === 'documentSelection') {
+              nodeTitle = item?.title ?? t('knowledgeBase.context.untitled');
+            } else if (nodeType === 'skillResponse') {
+              nodeTitle = item?.title ?? t('knowledgeBase.context.untitled');
+            } else {
+              nodeTitle = item?.title ?? t('knowledgeBase.context.untitled');
+            }
+
+            message.success({
+              content: React.createElement(AddToContextMessageContent, {
+                title: nodeTitle || t('common.untitled'),
+                nodeType: t(`canvas.nodeTypes.${nodeType}`),
+                action: t('knowledgeBase.context.addSuccessWithTitle'),
+              }),
+              key: `add-success-${item.entityId}`,
+            });
+
+            emitAddToContext({ contextItem: item, duplicated: false });
+            emitAddToContextCompleted({ contextItem: item, success: true });
+          }
+        }, delay);
+      }
+
+      return newItems.length; // Return number of successfully added nodes
     },
-    [addSingleNodeToContext],
+    [t, isPilotOpen, setIsPilotOpen, canvasId, contextItems, setContextItems],
   );
 
   return {

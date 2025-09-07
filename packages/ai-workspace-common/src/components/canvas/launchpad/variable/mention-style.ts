@@ -21,7 +21,7 @@ export const mentionStyles = `
     padding: 0;
     line-height: 26px;
     font-size: 16px;
-    color: var(--text-icon-refly-text-0, #1C1F23);
+    color: var(--refly-text-0, #1C1F23);
     font-family: "PingFang SC";
     font-style: normal;
     font-weight: 400;
@@ -47,7 +47,7 @@ export const mentionStyles = `
     border-radius: 4px;
     padding: 2px 4px 2px;
     border: 1px solid var(--refly-Card-Border);
-    color: var(--text-icon-refly-text-0, #1C1F23);
+    color: var(--refly-text-0, #1C1F23);
     font-weight: 600;
     text-decoration: none;
     display: inline-flex;

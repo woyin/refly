@@ -1101,6 +1101,13 @@ const translations = {
       video: '视频',
       audio: '音频',
       start: '开始',
+      documentSelection: '文档选中内容',
+      resourceSelection: '资源选中内容',
+      skillResponseSelection: '技能响应选中内容',
+      extensionWeblinkSelection: '网页选中内容',
+      documentCursorSelection: '文档光标选中内容',
+      documentBeforeCursorSelection: '文档光标前内容',
+      documentAfterCursorSelection: '文档光标后内容',
     },
     presetScenarios: {
       title: '预设场景',
@@ -1341,6 +1348,7 @@ const translations = {
       duplicateSuccess: '复制画布成功',
       nodeLimitReached: '画布已达到最大节点数限制 ({{max}})，请删除一些节点后再添加新节点。',
       approachingNodeLimit: '画布节点数量接近上限 ({{current}}/{{max}})，建议移除不必要的节点。',
+      initializationFailed: '画布初始化失败，请稍后重试。',
     },
     skill: {
       askAI: 'AI 普通问答',

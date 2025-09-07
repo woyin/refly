@@ -9,7 +9,17 @@ import {
   IconDeleteFile,
   IconVariable,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { AiChat, Reload, Copy, Clone, More, Delete, Download, PlayOutline } from 'refly-icons';
+import {
+  AiChat,
+  Reload,
+  Copy,
+  Clone,
+  More,
+  Delete,
+  Download,
+  PlayOutline,
+  AddContext,
+} from 'refly-icons';
 import cn from 'classnames';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
@@ -103,6 +113,10 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       nodeActionEmitter.emit(createNodeEventName(nodeId, 'cloneAskAI'));
     }, [nodeId, t, nodeActionEmitter]);
 
+    const handleAddToContext = useCallback(() => {
+      nodeActionEmitter.emit(createNodeEventName(nodeId, 'addToContext'));
+    }, [nodeId, nodeActionEmitter]);
+
     const handleCopy = useCallback(async () => {
       setCopyRunning(true);
       try {
@@ -187,6 +201,27 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
           color: 'var(--refly-primary-default)',
           tooltip: t('canvas.nodeActions.askAI'),
           onClick: () => nodeActionEmitter.emit(createNodeEventName(nodeId, 'askAI')),
+        });
+      }
+
+      if (
+        [
+          'skillResponse',
+          'document',
+          'resource',
+          'codeArtifact',
+          'website',
+          'image',
+          'video',
+          'audio',
+          'memo',
+        ].includes(nodeType)
+      ) {
+        buttons.push({
+          key: 'addToContext',
+          icon: AddContext,
+          tooltip: t('canvas.nodeActions.addToContext'),
+          onClick: handleAddToContext,
         });
       }
 
@@ -413,15 +448,13 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
               {nodeType === 'memo' && (
                 <CommonColorPicker color={bgColor} onChange={onChangeBackground} />
               )}
-              <Tooltip title={t('canvas.nodeActions.more')} placement="top">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<More size={18} />}
-                  onClick={handleOpenContextMenu}
-                  className="h-6 p-0 flex items-center justify-center hover:!bg-refly-tertiary-hover"
-                />
-              </Tooltip>
+              <Button
+                type="text"
+                size="small"
+                icon={<More size={18} />}
+                onClick={handleOpenContextMenu}
+                className="h-6 p-0 flex items-center justify-center hover:!bg-refly-tertiary-hover"
+              />
             </div>
           )}
         </div>

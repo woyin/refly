@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { IContextItem, ContextTarget } from '@refly/common-types';
-import {
-  useContextPanelStoreShallow,
-  useContextPanelStore,
-  useCanvasStoreShallow,
-} from '@refly/stores';
+import { IContextItem } from '@refly/common-types';
+import { usePilotStoreShallow } from '@refly/stores';
 import { getSelectionNodesMarkdown } from '@refly/utils/html2md';
 import { Editor } from '@tiptap/react';
 import { message } from 'antd';
 import React from 'react';
 import { emitAddToContext, emitAddToContextCompleted } from '../../utils/event-emitter/context';
 import AddToContextMessageContent from '../../components/message/add-to-context-message';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useTranslation } from 'react-i18next';
 
 interface UseSelectionContextProps {
   containerClass?: string;
@@ -25,16 +23,18 @@ export const useSelectionContext = ({
   enabled = true,
   editor,
 }: UseSelectionContextProps) => {
+  const { canvasId } = useCanvasContext();
+  const { t } = useTranslation();
   const [selectedText, setSelectedText] = useState<string>('');
   const [isSelecting, setIsSelecting] = useState(false);
-  const { addContextItem } = useContextPanelStoreShallow((state) => ({
-    addContextItem: state.addContextItem,
-  }));
-
-  const { showLinearThread, setShowLinearThread } = useCanvasStoreShallow((state) => ({
-    showLinearThread: state.showLinearThread,
-    setShowLinearThread: state.setShowLinearThread,
-  }));
+  const { isPilotOpen, setIsPilotOpen, contextItems, setContextItems } = usePilotStoreShallow(
+    (state) => ({
+      isPilotOpen: state.isPilotOpen,
+      setIsPilotOpen: state.setIsPilotOpen,
+      contextItems: state.contextItemsByCanvas?.[canvasId] ?? [],
+      setContextItems: state.setContextItems,
+    }),
+  );
 
   const handleSelection = useCallback(() => {
     if (!enabled) return;
@@ -141,61 +141,54 @@ export const useSelectionContext = ({
   const addToContext = useCallback(
     async (item: IContextItem) => {
       if (!selectedText) return;
-
-      const { activeResultId } = useContextPanelStore.getState();
-      const resultId = activeResultId || ContextTarget.Global;
-      const contextStore = useContextPanelStore.getState();
-      const selectedContextItems = contextStore.contextItems;
-      const nodeType = item?.type;
-
-      if (resultId === ContextTarget.Global && !showLinearThread) {
-        setShowLinearThread(true);
-        await new Promise((resolve) => setTimeout(resolve, 10));
+      const delay = isPilotOpen ? 0 : 400;
+      if (!isPilotOpen) {
+        setIsPilotOpen(true);
       }
 
-      // Check if item is already in context
-      const isAlreadyAdded = selectedContextItems.some(
+      const nodeType = item?.type;
+      const nodeTitle = item?.title ?? t('common.untitled');
+      const isAlreadyAdded = contextItems.some(
         (selectedItem) => selectedItem.entityId === item.entityId && !selectedItem.isPreview,
       );
 
-      // Get node title based on type
-      const nodeTitle = item?.title ?? 'Untitled';
+      setTimeout(() => {
+        if (isAlreadyAdded) {
+          message.warning({
+            content: React.createElement(AddToContextMessageContent, {
+              title: nodeTitle,
+              nodeType: t(`canvas.nodeTypes.${nodeType}`),
+              action: t('knowledgeBase.context.alreadyAddedWithTitle'),
+            }),
+            key: 'already-added-warning',
+          });
 
-      if (isAlreadyAdded) {
-        message.warning({
+          // Emit event that adding to context is completed (but failed)
+          emitAddToContext({ contextItem: item, duplicated: true });
+          emitAddToContextCompleted({ contextItem: item, success: false });
+          return;
+        }
+
+        // Emit event that we're adding to context
+        emitAddToContext({ contextItem: item, duplicated: false });
+
+        // Add to context
+        setContextItems(canvasId, [...contextItems, item]);
+
+        message.success({
           content: React.createElement(AddToContextMessageContent, {
             title: nodeTitle,
-            nodeType: nodeType,
-            action: 'already added to context',
+            nodeType: t(`canvas.nodeTypes.${nodeType}`),
+            action: t('knowledgeBase.context.addSuccessWithTitle'),
           }),
-          key: 'already-added-warning',
+          key: 'add-success',
         });
 
-        // Emit event that adding to context is completed (but failed)
-        emitAddToContext(item, resultId);
-        emitAddToContextCompleted(item, resultId, false);
-        return;
-      }
-
-      // Emit event that we're adding to context
-      emitAddToContext(item, resultId);
-
-      // Add to context
-      addContextItem(item);
-
-      message.success({
-        content: React.createElement(AddToContextMessageContent, {
-          title: nodeTitle || 'Untitled',
-          nodeType: nodeType,
-          action: 'added to context successfully',
-        }),
-        key: 'add-success',
-      });
-
-      // Emit event that adding to context is completed
-      emitAddToContextCompleted(item, resultId, true);
+        // Emit event that adding to context is completed
+        emitAddToContextCompleted({ contextItem: item, success: true });
+      }, delay);
     },
-    [selectedText, addContextItem, editor],
+    [selectedText, contextItems, setContextItems, canvasId],
   );
 
   const removeSelection = useCallback(() => {

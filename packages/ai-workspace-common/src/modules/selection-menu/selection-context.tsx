@@ -67,9 +67,8 @@ export const SelectionContext = React.memo<SelectionContextProps>(
       (text: string) => {
         const item = getContextItem(text);
         addToContext(item);
-        message.success(t('knowledgeBase.context.addToContextSuccess'));
       },
-      [getContextItem, addToContext, t],
+      [getContextItem, addToContext],
     );
 
     const handleCreateAskAI = useCallback(
