@@ -41,8 +41,9 @@ export const ContextItem = ({
   }, [nodes, entityId]);
 
   const finalTitle = useMemo(() => {
+    if (!node?.id) return '';
     return String(getNode(node.id)?.data?.title) || title || t(`canvas.nodeTypes.${type}`);
-  }, [node.id, getNode, title, type, t]);
+  }, [node?.id, getNode, title, type, t]);
 
   const handleItemClick = useCallback(async () => {
     if (!node) {
