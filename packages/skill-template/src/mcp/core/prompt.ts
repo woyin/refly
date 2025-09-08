@@ -17,8 +17,6 @@ export interface MCPTool {
 
 export const SYSTEM_PROMPT = `You are an AI assistant with access to tools to help answer user questions.
 
-{{ LOCALE }} language is used to respond.
-
 ## CRITICAL RULES - READ FIRST
 🚫 **NEVER** simulate, pretend, or generate fake tool calls
 🚫 **NEVER** generate text like "[Uses tool...]" or "[Executes tool...]"
@@ -454,11 +452,13 @@ Input Schema: ${JSON.stringify(tool.inputSchema, null, 2)}
   return `You have access to the following tools:\n${availableTools}`;
 };
 
-export const buildSystemPrompt = (tools: MCPTool[], locale: string): string => {
+export const buildSystemPrompt = (tools: MCPTool[], _locale: string): string => {
   if (tools && tools.length > 0) {
-    const systemPrompt = SYSTEM_PROMPT.replace('{{ TOOL_USE_EXAMPLES }}', ToolUseExamples)
-      .replace('{{ AVAILABLE_TOOLS }}', AvailableTools(tools))
-      .replace('{{ LOCALE }}', locale);
+    const systemPrompt = SYSTEM_PROMPT.replace('{{ TOOL_USE_EXAMPLES }}', ToolUseExamples).replace(
+      '{{ AVAILABLE_TOOLS }}',
+      AvailableTools(tools),
+    );
+    // .replace('{{ LOCALE }}', locale);
     return systemPrompt;
   }
 };
