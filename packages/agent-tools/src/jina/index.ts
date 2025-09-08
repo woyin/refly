@@ -23,6 +23,13 @@ export const JinaToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '读取 URL 的内容',
       },
     },
+    {
+      name: 'serp',
+      descriptionDict: {
+        en: 'Search the web for a query',
+        'zh-CN': '搜索网络以获取查询结果',
+      },
+    },
   ],
   requiresAuth: true,
   authPatterns: [
@@ -96,7 +103,54 @@ export class JinaRead extends AgentBaseTool<JinaToolParams> {
   }
 }
 
+export class JinaSerp extends AgentBaseTool<JinaToolParams> {
+  name = 'serp';
+  toolsetKey = JinaToolsetDefinition.key;
+
+  schema = z.object({
+    query: z.string().describe('The query to search for'),
+    readFullContent: z
+      .boolean()
+      .describe('Whether to read the full content of the search results')
+      .default(false),
+    site: z.string().describe('The site to search for').optional(),
+    offset: z.number().describe('The offset to search for').default(1),
+  });
+
+  description = 'Search the web for a query';
+
+  protected params: JinaToolParams;
+
+  constructor(params: JinaToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new JinaClient({ apiKey: this.params.apiKey });
+      const response = await client.serp(
+        input.query,
+        input.readFullContent,
+        input.site,
+        input.offset,
+      );
+      return {
+        status: 'success',
+        data: response.data,
+        summary: `Successfully searched the web for ${input.query}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error searching the web',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while searching the web',
+      };
+    }
+  }
+}
 export class JinaToolset extends AgentBaseToolset<JinaToolParams> {
   toolsetKey = JinaToolsetDefinition.key;
-  tools = [JinaRead] satisfies readonly AgentToolConstructor<JinaToolParams>[];
+  tools = [JinaRead, JinaSerp] satisfies readonly AgentToolConstructor<JinaToolParams>[];
 }

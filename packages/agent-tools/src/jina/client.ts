@@ -52,6 +52,60 @@ export class JinaClient {
 
     return response.json();
   }
+
+  /**
+   * Perform a search using Jina's SERP API.
+   * If readFullContent is false, add 'X-Respond-With': 'no-content'.
+   * If readFullContent is true, add 'X-Engine': 'direct'.
+   */
+  async serp(
+    query: string,
+    readFullContent: boolean,
+    site?: string,
+    offset?: number,
+  ): Promise<any> {
+    const url = 'https://s.jina.ai/';
+
+    // Build headers based on readFullContent flag
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.config?.apiKey ?? ''}`,
+    };
+
+    if (readFullContent === false) {
+      headers['X-Respond-With'] = 'no-content';
+    } else {
+      headers['X-Engine'] = 'direct';
+    }
+
+    if (site) {
+      headers['X-Site'] = site;
+    }
+
+    const requestInit: RequestInit = {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ q: query, page: offset }),
+    };
+
+    const response = await fetch(url, requestInit);
+
+    if (!response.ok) {
+      let errorData: any = {};
+      try {
+        errorData = await response.json();
+      } catch {
+        // Ignore JSON parsing errors
+      }
+      throw new JinaError(
+        errorData?.error ?? `HTTP ${response.status}: ${response.statusText}`,
+        response.status,
+      );
+    }
+
+    return response.json();
+  }
 }
 
 export const createJinaClient = (config: JinaConfig): JinaClient => {
