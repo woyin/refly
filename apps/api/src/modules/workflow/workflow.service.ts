@@ -3,26 +3,27 @@ import { PrismaService } from '../common/prisma.service';
 import {
   User,
   InvokeSkillRequest,
-  EntityType,
   CanvasNode,
   WorkflowVariable,
   NodeDiff,
+  ActionStatus,
 } from '@refly/openapi-schema';
-import {
-  ResponseNodeMeta,
-  CanvasNodeFilter,
-  convertContextItemsToInvokeParams,
-} from '@refly/canvas-common';
+import { CanvasNodeFilter, prepareNodeExecutions, pickReadyChildNodes } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
-import { genWorkflowExecutionID, genTransactionId, safeParseJSON } from '@refly/utils';
+import {
+  genWorkflowExecutionID,
+  genTransactionId,
+  safeParseJSON,
+  genWorkflowNodeExecutionID,
+  pick,
+} from '@refly/utils';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { WorkflowNodeExecution as WorkflowNodeExecutionPO } from '../../generated/client';
 import { QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { CanvasNotFoundError, WorkflowExecutionNotFoundError } from '@refly/errors';
-import { prepareNodeExecutions, pickReadyChildNodes } from './core';
 
 @Injectable()
 export class WorkflowService {
@@ -120,7 +121,31 @@ export class WorkflowService {
         },
       }),
       this.prisma.workflowNodeExecution.createMany({
-        data: nodeExecutions,
+        data: nodeExecutions.map((nodeExecution) => ({
+          ...pick(nodeExecution, [
+            'canvasId',
+            'nodeId',
+            'nodeType',
+            'entityId',
+            'title',
+            'status',
+            'processedQuery',
+            'originalQuery',
+            'sourceNodeId',
+            'sourceEntityId',
+            'connectTo',
+            'invokeReq',
+            'parentNodeIds',
+            'childNodeIds',
+          ]),
+          nodeExecutionId: genWorkflowNodeExecutionID(),
+          executionId,
+          nodeData: JSON.stringify(nodeExecution.node),
+          connectTo: JSON.stringify(nodeExecution.connectTo),
+          invokeReq: JSON.stringify(nodeExecution.invokeReq),
+          parentNodeIds: JSON.stringify(nodeExecution.parentNodeIds),
+          childNodeIds: JSON.stringify(nodeExecution.childNodeIds),
+        })),
       }),
     ]);
 
@@ -171,45 +196,11 @@ export class WorkflowService {
    * @returns Promise<void>
    */
   private async invokeSkillTask(user: User, nodeExecution: WorkflowNodeExecutionPO): Promise<void> {
-    const { nodeData, canvasId, processedQuery, originalQuery } = nodeExecution;
-    const node = safeParseJSON(nodeData) as CanvasNode;
-    const data = node?.data;
-    const metadata = data?.metadata as ResponseNodeMeta;
+    const { invokeReq } = nodeExecution;
 
-    if (!data || !metadata) {
-      this.logger.warn(
-        `Node metadata is missing for node execution ${nodeExecution.nodeExecutionId}, skipping processing`,
-      );
-      return;
-    }
-
-    // Extract required parameters from ResponseNodeMeta
-    const { modelInfo, selectedToolsets, contextItems = [] } = metadata;
-
-    const { context, resultHistory, images } = convertContextItemsToInvokeParams(
-      contextItems,
-      () => [],
-    );
-
-    // Get resultId from entityId
-    const resultId = nodeExecution.entityId;
     // Prepare the invoke skill request
     const invokeRequest: InvokeSkillRequest = {
-      resultId,
-      input: {
-        query: processedQuery, // Use processed query for skill execution
-        originalQuery, // Pass original query separately
-        images,
-      },
-      target: {
-        entityType: 'canvas' as EntityType,
-        entityId: canvasId,
-      },
-      modelName: modelInfo?.name,
-      modelItemId: modelInfo?.providerItemId,
-      context,
-      resultHistory,
-      toolsets: selectedToolsets,
+      ...safeParseJSON(invokeReq),
       workflowExecutionId: nodeExecution.executionId,
       workflowNodeExecutionId: nodeExecution.nodeExecutionId,
     };
@@ -217,7 +208,7 @@ export class WorkflowService {
     // Send the invoke skill task
     await this.skillService.sendInvokeSkillTask(user, invokeRequest);
 
-    this.logger.log(`Successfully sent invoke skill task for resultId: ${resultId}`);
+    this.logger.log(`Successfully sent invoke skill task for resultId: ${nodeExecution.entityId}`);
   }
 
   /**
@@ -243,7 +234,7 @@ export class WorkflowService {
 
     if (isNewCanvas) {
       // If it's new canvas mode, add the new node to the new canvas
-      const connectToFilters: CanvasNodeFilter[] = JSON.parse(nodeExecution.connectTo || '[]');
+      const connectToFilters: CanvasNodeFilter[] = safeParseJSON(nodeExecution.connectTo) ?? [];
 
       await this.canvasSyncService.addNodeToCanvas(user, canvasId, node, connectToFilters);
     } else {
@@ -339,7 +330,14 @@ export class WorkflowService {
         where: { executionId },
       });
 
-      const readyChildNodeIds = pickReadyChildNodes(childNodeIds, allNodes);
+      const readyChildNodeIds = pickReadyChildNodes(
+        childNodeIds,
+        allNodes.map((n) => ({
+          nodeId: n.nodeId,
+          parentNodeIds: (safeParseJSON(n.parentNodeIds) ?? []) as string[],
+          status: n.status as ActionStatus,
+        })),
+      );
       const existingJobs = await this.runWorkflowQueue?.getJobs(['waiting', 'active']);
 
       for (const childNodeId of readyChildNodeIds) {
@@ -408,7 +406,7 @@ export class WorkflowService {
       }
 
       // Get all parent nodes for this child
-      const parentNodeIds = JSON.parse(nodeExecution.parentNodeIds || '[]') as string[];
+      const parentNodeIds = safeParseJSON(nodeExecution.parentNodeIds) ?? [];
 
       // Check if all parents are finished
       const allParentsFinished =

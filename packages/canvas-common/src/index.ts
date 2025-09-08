@@ -7,3 +7,5 @@ export * from './context';
 export * from './utils';
 export * from './diff';
 export * from './sync';
+export * from './history';
+export * from './workflow';
