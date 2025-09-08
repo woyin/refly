@@ -14,7 +14,7 @@ import {
 } from '@refly/canvas-common';
 import { PilotSession } from '../../generated/client';
 import { SkillService } from '../skill/skill.service';
-import { genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/utils';
+import { detectLanguage, genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/utils';
 import { CanvasContentItem } from '../canvas/canvas.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CanvasService } from '../canvas/canvas.service';
@@ -560,10 +560,12 @@ export class PilotService {
 
       // Get user's output locale preference
       const userPo = await this.prisma.user.findUnique({
-        select: { outputLocale: true },
+        select: { outputLocale: true, uiLocale: true },
         where: { uid: user.uid },
       });
-      const locale = userPo?.outputLocale;
+
+      const locale =
+        userPo?.outputLocale !== 'auto' ? userPo?.outputLocale : await detectLanguage(userQuestion);
 
       const agentPi = await this.providerService.findProviderItemById(
         user,

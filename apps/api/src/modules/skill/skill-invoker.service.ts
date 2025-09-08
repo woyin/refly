@@ -17,7 +17,7 @@ import {
 import { InvokeSkillJobData } from './skill.dto';
 import { PrismaService } from '../common/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { safeParseJSON } from '@refly/utils';
+import { detectLanguage, safeParseJSON } from '@refly/utils';
 import {
   SkillRunnableConfig,
   SkillEventMap,
@@ -154,8 +154,13 @@ export class SkillInvokerService {
       select: { uiLocale: true, outputLocale: true },
       where: { uid: user.uid },
     });
-    const outputLocale = data?.locale || userPo?.outputLocale;
 
+    const outputLocale =
+      data.locale !== 'auto'
+        ? data.locale
+        : userPo?.outputLocale !== 'auto'
+          ? userPo?.outputLocale
+          : await detectLanguage(data.input?.query || '');
     // Merge the current context with contexts from result history
     // Current context items have priority, and duplicates are removed
 

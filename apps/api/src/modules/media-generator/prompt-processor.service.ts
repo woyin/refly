@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { batchTranslateText } from '@refly/utils';
+import { batchTranslateText, detectLanguageFromCharacter } from '@refly/utils';
 
 interface LanguageDetectionResult {
   language: string;
@@ -24,72 +24,7 @@ export class PromptProcessorService {
    * @returns Language detection result
    */
   async detectLanguage(prompt: string): Promise<LanguageDetectionResult> {
-    if (!prompt?.trim()) {
-      return {
-        language: 'en',
-        isEnglish: true,
-        confidence: 1.0,
-      };
-    }
-
-    // Simple Chinese character detection
-    const chineseRegex = /[\u4e00-\u9fff]/g;
-    const chineseMatches = prompt.match(chineseRegex);
-    const chineseCharCount = chineseMatches?.length || 0;
-    const totalCharCount = prompt.length;
-    const chineseRatio = chineseCharCount / totalCharCount;
-
-    // Japanese character detection (Hiragana, Katakana, Kanji)
-    const japaneseRegex = /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]/g;
-    const japaneseMatches = prompt.match(japaneseRegex);
-    const japaneseCharCount = japaneseMatches?.length || 0;
-    const japaneseRatio = japaneseCharCount / totalCharCount;
-
-    // Korean character detection
-    const koreanRegex = /[\uac00-\ud7af]/g;
-    const koreanMatches = prompt.match(koreanRegex);
-    const koreanCharCount = koreanMatches?.length || 0;
-    const koreanRatio = koreanCharCount / totalCharCount;
-
-    // English detection (basic Latin characters)
-    const englishRegex = /[a-zA-Z]/g;
-    const englishMatches = prompt.match(englishRegex);
-    const englishCharCount = englishMatches?.length || 0;
-    const englishRatio = englishCharCount / totalCharCount;
-
-    // Determine language based on character ratios
-    const threshold = 0.1; // 10% threshold for language detection
-
-    if (chineseRatio > threshold) {
-      return {
-        language: 'zh-CN',
-        isEnglish: false,
-        confidence: Math.min(chineseRatio * 2, 1.0),
-      };
-    }
-
-    if (japaneseRatio > threshold) {
-      return {
-        language: 'ja',
-        isEnglish: false,
-        confidence: Math.min(japaneseRatio * 2, 1.0),
-      };
-    }
-
-    if (koreanRatio > threshold) {
-      return {
-        language: 'ko',
-        isEnglish: false,
-        confidence: Math.min(koreanRatio * 2, 1.0),
-      };
-    }
-
-    // Default to English if no other language is detected with sufficient confidence
-    return {
-      language: 'en',
-      isEnglish: true,
-      confidence: Math.min(englishRatio * 2, 1.0),
-    };
+    return await detectLanguageFromCharacter(prompt);
   }
 
   /**
