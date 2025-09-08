@@ -714,8 +714,32 @@ export class CanvasService {
           where: { resultId, version },
         });
         const answer = steps.map((s) => s.content.slice(0, 500)).join('\n');
-        const context: SkillContext = JSON.parse(result.context ?? '[]');
-        const history: ActionResult[] = JSON.parse(result.history ?? '[]');
+        let context: SkillContext = { resources: [], documents: [], codeArtifacts: [] };
+
+        try {
+          const contextData = result.context;
+          if (contextData && typeof contextData === 'string') {
+            context = JSON.parse(contextData);
+          } else if (typeof contextData === 'object' && contextData !== null) {
+            context = contextData;
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to parse context for result ${resultId}:`, error);
+          context = { resources: [], documents: [], codeArtifacts: [] };
+        }
+        let history: ActionResult[] = [];
+
+        try {
+          const historyData = result.history;
+          if (historyData && typeof historyData === 'string') {
+            history = JSON.parse(historyData);
+          } else if (Array.isArray(historyData)) {
+            history = historyData;
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to parse history for result ${resultId}:`, error);
+          history = [];
+        }
 
         return {
           id: resultId,
@@ -727,7 +751,7 @@ export class CanvasService {
             ...(context.resources ?? []).map((r) => r.resourceId),
             ...(context.documents ?? []).map((d) => d.docId),
             ...(context.codeArtifacts ?? []).map((d) => d.artifactId),
-            ...history.map((h) => h.resultId),
+            ...(Array.isArray(history) ? history.map((h) => h.resultId) : []),
           ],
         } as CanvasContentItem;
       }),
