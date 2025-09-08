@@ -32,13 +32,17 @@ export const ContextItem = ({
   const { readonly } = useCanvasContext();
   const { title, entityId, selection, type } = item ?? {};
   const { setSelectedNode } = useNodeSelection();
-  const { getNodes } = useReactFlow();
+  const { getNodes, getNode } = useReactFlow();
   const { setNodeCenter } = useNodePosition();
   const nodes = getNodes();
 
   const node = useMemo(() => {
     return nodes.find((node) => node.data?.entityId === entityId) as CanvasNode<any>;
   }, [nodes, entityId]);
+
+  const finalTitle = useMemo(() => {
+    return String(getNode(node.id)?.data?.title) || title || t(`canvas.nodeTypes.${type}`);
+  }, [node.id, getNode, title, type, t]);
 
   const handleItemClick = useCallback(async () => {
     if (!node) {
@@ -111,7 +115,7 @@ export const ContextItem = ({
             'text-refly-func-danger-default': isLimit,
           })}
         >
-          {title || t(`canvas.nodeTypes.${type}`)}
+          {finalTitle}
         </div>
         {!canNotRemove && !readonly && (
           <Close
