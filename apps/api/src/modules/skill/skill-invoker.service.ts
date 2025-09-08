@@ -154,8 +154,8 @@ export class SkillInvokerService {
       select: { uiLocale: true, outputLocale: true },
       where: { uid: user.uid },
     });
-    const outputLocale = data?.locale || userPo?.outputLocale;
 
+    const outputLocale = data?.locale || userPo?.outputLocale;
     // Merge the current context with contexts from result history
     // Current context items have priority, and duplicates are removed
 
