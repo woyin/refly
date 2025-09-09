@@ -9,11 +9,13 @@ let sequences = {
   entityIds: [] as string[],
 };
 
-vi.mock('@refly/utils', () => {
+vi.mock('@refly/utils', async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
   let nodeIdIdx = 0;
   let entityIdIdx = 0;
 
   return {
+    ...actual,
     genNodeID: vi.fn(() => sequences.nodeIds[nodeIdIdx++] ?? `N${nodeIdIdx}`),
     genNodeEntityId: vi.fn(() => sequences.entityIds[entityIdIdx++] ?? `E${entityIdIdx}`),
   };
@@ -123,7 +125,7 @@ describe('prepareNodeExecutions', () => {
         type: 'skillResponse' as CanvasNodeType,
         position: { x: 0, y: 0 },
         data: {
-          title: 'Node A',
+          title: 'Hello JavaScript world',
           entityId: 'entityA',
           metadata: {
             structuredData: { query: 'Hello @topic world' },
@@ -153,7 +155,7 @@ describe('prepareNodeExecutions', () => {
         type: 'skillResponse' as CanvasNodeType,
         position: { x: 0, y: 0 },
         data: {
-          title: 'Node C',
+          title: 'No var here',
           entityId: 'entityC',
           metadata: {
             structuredData: { query: 'No var here' },
@@ -161,7 +163,7 @@ describe('prepareNodeExecutions', () => {
               {
                 entityId: 'entityA',
                 type: 'skillResponse',
-                title: 'Node A',
+                title: 'Hello JavaScript world',
                 metadata: { withHistory: true },
               },
               { entityId: 'entityB', type: 'document', title: 'Test Document' },
@@ -221,8 +223,6 @@ describe('prepareNodeExecutions', () => {
         childNodeIds: ['A'],
         parentNodeIds: [],
         connectTo: [],
-        sourceNodeId: 'S',
-        sourceEntityId: 'entityStart',
         status: 'waiting',
         title: 'Start',
         node: {
@@ -248,10 +248,8 @@ describe('prepareNodeExecutions', () => {
         parentNodeIds: ['S'],
         originalQuery: 'Hello @topic world',
         processedQuery: 'Hello TypeScript world',
-        sourceEntityId: 'entityA',
-        sourceNodeId: 'A',
         status: 'waiting',
-        title: 'Node A',
+        title: 'Hello TypeScript world',
         connectTo: [
           {
             type: 'start',
@@ -278,7 +276,7 @@ describe('prepareNodeExecutions', () => {
                 maxOutput: 1000,
               },
             },
-            title: 'Node A',
+            title: 'Hello TypeScript world',
           },
           id: 'A',
           position: {
@@ -294,8 +292,6 @@ describe('prepareNodeExecutions', () => {
         childNodeIds: ['C'],
         parentNodeIds: ['A'],
         entityId: 'entityB',
-        sourceEntityId: 'entityB',
-        sourceNodeId: 'B',
         status: 'waiting',
         title: 'Test Document',
         connectTo: [
@@ -325,10 +321,8 @@ describe('prepareNodeExecutions', () => {
         originalQuery: 'No var here',
         parentNodeIds: ['B', 'A'],
         processedQuery: 'No var here',
-        sourceEntityId: 'entityC',
-        sourceNodeId: 'C',
         status: 'waiting',
-        title: 'Node C',
+        title: 'No var here',
         childNodeIds: [],
         entityId: 'entityC',
         connectTo: [
@@ -345,7 +339,7 @@ describe('prepareNodeExecutions', () => {
         ],
         resultHistory: [
           {
-            title: 'Node A',
+            title: 'Hello TypeScript world',
             resultId: 'entityA',
           },
         ],
@@ -359,7 +353,7 @@ describe('prepareNodeExecutions', () => {
               contextItems: [
                 {
                   entityId: 'entityA',
-                  title: 'Node A',
+                  title: 'Hello TypeScript world',
                   type: 'skillResponse',
                   metadata: {
                     withHistory: true,
@@ -380,7 +374,7 @@ describe('prepareNodeExecutions', () => {
                 providerItemId: 'pi-2',
               },
             },
-            title: 'Node C',
+            title: 'No var here',
           },
           id: 'C',
           position: {
@@ -424,14 +418,13 @@ describe('prepareNodeExecutions', () => {
         nodeType: 'start',
         title: 'Start',
         parentNodeIds: [],
-        sourceEntityId: 'entityStart',
-        sourceNodeId: 'S',
         status: 'waiting',
         childNodeIds: ['N2'],
         connectTo: [],
         entityId: 'E1',
         node: {
           data: {
+            contentPreview: '',
             entityId: 'E1',
             metadata: {
               contextItems: [],
@@ -449,13 +442,11 @@ describe('prepareNodeExecutions', () => {
       {
         nodeId: 'N2',
         nodeType: 'skillResponse',
-        title: 'Node A',
+        title: 'Hello TypeScript world',
         originalQuery: 'Hello @topic world',
         parentNodeIds: ['N1'],
         processedQuery: 'Hello TypeScript world',
         resultHistory: [],
-        sourceEntityId: 'entityA',
-        sourceNodeId: 'A',
         status: 'waiting',
         childNodeIds: ['N3', 'N4'],
         entityId: 'E2',
@@ -468,6 +459,7 @@ describe('prepareNodeExecutions', () => {
         ],
         node: {
           data: {
+            contentPreview: '',
             entityId: 'E2',
             metadata: {
               contextItems: [],
@@ -483,7 +475,7 @@ describe('prepareNodeExecutions', () => {
                 query: 'Hello @topic world',
               },
             },
-            title: 'Node A',
+            title: 'Hello TypeScript world',
           },
           id: 'N2',
           position: {
@@ -497,8 +489,6 @@ describe('prepareNodeExecutions', () => {
         nodeId: 'N3',
         nodeType: 'document',
         parentNodeIds: ['N2'],
-        sourceEntityId: 'entityB',
-        sourceNodeId: 'B',
         status: 'waiting',
         title: 'Test Document',
         childNodeIds: ['N4'],
@@ -514,6 +504,7 @@ describe('prepareNodeExecutions', () => {
           data: {
             entityId: 'E3',
             title: 'Test Document',
+            contentPreview: '',
           },
           id: 'N3',
           position: {
@@ -531,14 +522,12 @@ describe('prepareNodeExecutions', () => {
         processedQuery: 'No var here',
         resultHistory: [
           {
-            title: 'Node A',
+            title: 'Hello TypeScript world',
             resultId: 'E2',
           },
         ],
-        sourceEntityId: 'entityC',
-        sourceNodeId: 'C',
         status: 'waiting',
-        title: 'Node C',
+        title: 'No var here',
         childNodeIds: [],
         connectTo: [
           {
@@ -555,28 +544,16 @@ describe('prepareNodeExecutions', () => {
         entityId: 'E4',
         node: {
           data: {
+            contentPreview: '',
             entityId: 'E4',
             metadata: {
               contextItems: [
-                {
-                  entityId: 'entityA',
-                  metadata: {
-                    withHistory: true,
-                  },
-                  title: 'Node A',
-                  type: 'skillResponse',
-                },
-                {
-                  entityId: 'entityB',
-                  title: 'Test Document',
-                  type: 'document',
-                },
                 {
                   entityId: 'E2',
                   metadata: {
                     withHistory: true,
                   },
-                  title: 'Node A',
+                  title: 'Hello TypeScript world',
                   type: 'skillResponse',
                 },
                 {
@@ -597,7 +574,7 @@ describe('prepareNodeExecutions', () => {
                 query: 'No var here',
               },
             },
-            title: 'Node C',
+            title: 'No var here',
           },
           id: 'N4',
           position: {

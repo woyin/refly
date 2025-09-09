@@ -135,8 +135,6 @@ export class WorkflowService {
             'status',
             'processedQuery',
             'originalQuery',
-            'sourceNodeId',
-            'sourceEntityId',
             'connectTo',
             'parentNodeIds',
             'childNodeIds',

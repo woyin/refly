@@ -319,16 +319,12 @@ model WorkflowNodeExecution {
   canvasId        String    @default("") @map("canvas_id")
   /// Canvas node id
   nodeId          String    @map("node_id")
-  /// Source node id (the corresponding node id in the source canvas)
-  sourceNodeId    String    @default("") @map("source_node_id")
   /// Node type
   nodeType        String    @map("node_type")
   /// Node data (JSON of `CanvasNode`)
   nodeData        String    @default("{}") @map("node_data")
   /// Node entity id
   entityId        String    @map("entity_id")
-  /// Source entity id (the corresponding entity id in the source canvas)
-  sourceEntityId  String    @default("") @map("source_entity_id")
   /// Node title
   title           String    @map("title")
   /// Original query
