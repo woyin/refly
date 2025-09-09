@@ -5,8 +5,7 @@ import {
   CanvasTransaction,
   CanvasData,
 } from '@refly/openapi-schema';
-import { genCanvasVersionId, genStartID, genNodeID } from '@refly/utils';
-import deepmerge from 'deepmerge';
+import { genCanvasVersionId, genStartID, genNodeID, deepmerge } from '@refly/utils';
 import { deduplicateNodes, deduplicateEdges } from './utils';
 import { MAX_STATE_TX_COUNT, MAX_VERSION_AGE } from './constants';
 
@@ -107,9 +106,7 @@ export const applyCanvasTransaction = (
       case 'update':
         newNodes = newNodes.map((node) => {
           if (node.id === nodeDiff.id && nodeDiff.to) {
-            const updatedNode = deepmerge(node, nodeDiff.to, {
-              arrayMerge: (_target, source) => source,
-            });
+            const updatedNode = deepmerge(node, nodeDiff.to);
             return updatedNode as CanvasNode;
           }
           return node;
@@ -132,9 +129,7 @@ export const applyCanvasTransaction = (
       case 'update':
         newEdges = newEdges.map((edge) => {
           if (edge.id === edgeDiff.id && edgeDiff.to) {
-            const updatedEdge = deepmerge(edge, edgeDiff.to, {
-              arrayMerge: (_target, source) => source,
-            });
+            const updatedEdge = deepmerge(edge, edgeDiff.to);
             return updatedEdge;
           }
           return edge;
