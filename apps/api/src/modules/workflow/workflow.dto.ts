@@ -22,7 +22,6 @@ export interface RunWorkflowJobData {
   user: JobUser;
   executionId: string;
   nodeId: string;
-  isNewCanvas?: boolean;
 }
 
 export interface InitializeWorkflowResponse {

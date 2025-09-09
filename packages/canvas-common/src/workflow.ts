@@ -1,35 +1,34 @@
 import {
+  ActionResult,
   ActionStatus,
   CanvasData,
   CanvasNode,
   CanvasNodeType,
-  EntityType,
-  InvokeSkillRequest,
   WorkflowVariable,
 } from '@refly/openapi-schema';
 import deepmerge from 'deepmerge';
 import { genNodeEntityId, genNodeID } from '@refly/utils';
 import { IContextItem } from '@refly/common-types';
-import { convertContextItemsToInvokeParams } from './context';
-import { findThreadHistory } from './history';
 import { CanvasNodeFilter, ResponseNodeMeta } from './types';
+import { ThreadHistoryQuery } from './history';
 
 export interface WorkflowNode {
-  canvasId: string;
   nodeId: string;
   nodeType: CanvasNodeType;
   node: CanvasNode;
   entityId: string;
   title: string;
   status: ActionStatus;
-  processedQuery: string;
-  originalQuery: string;
   connectTo: CanvasNodeFilter[];
   parentNodeIds: string[];
   childNodeIds: string[];
   sourceNodeId: string;
   sourceEntityId: string;
-  invokeReq?: InvokeSkillRequest;
+
+  // only for skillResponse nodes
+  processedQuery?: string;
+  originalQuery?: string;
+  resultHistory?: ActionResult[];
 }
 
 /**
@@ -93,13 +92,12 @@ const findSubtreeNodes = (startNodeIds: string[], childMap: Map<string, string[]
  */
 export const prepareNodeExecutions = (params: {
   executionId: string;
-  canvasId: string;
   canvasData: CanvasData;
   variables: WorkflowVariable[];
   startNodes?: string[];
   isNewCanvas?: boolean;
 }): { nodeExecutions: WorkflowNode[]; startNodes: string[] } => {
-  const { canvasId, canvasData, variables, isNewCanvas = false } = params;
+  const { canvasData, variables, isNewCanvas = false } = params;
   const { nodes, edges } = canvasData;
 
   // Build node relationships
@@ -171,6 +169,24 @@ export const prepareNodeExecutions = (params: {
     }
   }
 
+  const historyQuery = new ThreadHistoryQuery(
+    nodes.map(
+      (node) =>
+        deepmerge(
+          { ...node },
+          {
+            id: nodeIdMap.get(node.id) ?? node.id,
+            data: { entityId: entityMap.get(node.data?.entityId) },
+          },
+        ) as CanvasNode,
+    ),
+    edges.map((edge) => ({
+      ...edge,
+      source: nodeIdMap.get(edge.source) ?? edge.source,
+      target: nodeIdMap.get(edge.target) ?? edge.target,
+    })),
+  );
+
   // Create node execution records
   const nodeExecutions: WorkflowNode[] = [];
   for (const node of nodes) {
@@ -195,7 +211,6 @@ export const prepareNodeExecutions = (params: {
 
     const metadata = (node.data?.metadata as ResponseNodeMeta) ?? {};
     let { contextItems = [] } = metadata;
-    const { modelInfo, selectedToolsets } = metadata;
 
     if (isNewCanvas && node.type === 'skillResponse') {
       const originalContextItems: IContextItem[] = contextItems;
@@ -218,9 +233,6 @@ export const prepareNodeExecutions = (params: {
     const mappedParentIds = (parents || []).map((pid) => nodeIdMap.get(pid) ?? pid);
     const mappedChildIds = (children || []).map((cid) => nodeIdMap.get(cid) ?? cid);
 
-    const originalQuery = String(metadata?.structuredData?.query ?? node.data?.title ?? '');
-    const processedQuery = processQueryWithTypes(originalQuery, variables);
-
     // Build connection filters based on parent entity IDs
     const connectTo: CanvasNodeFilter[] = parents
       .map((pid) => {
@@ -233,57 +245,37 @@ export const prepareNodeExecutions = (params: {
       })
       .filter((f) => f.type && f.entityId);
 
-    const { context, resultHistory, images } = convertContextItemsToInvokeParams(contextItems, () =>
-      findThreadHistory({
-        resultId: targetEntityId,
-        nodes: nodes.map((node) => ({ ...node, id: nodeIdMap.get(node.id) ?? node.id })),
-        edges: edges.map((edge) => ({
-          ...edge,
-          source: nodeIdMap.get(edge.source) ?? edge.source,
-          target: nodeIdMap.get(edge.target) ?? edge.target,
-        })),
-      }).map((node) => ({
-        title: String(node.data?.title),
-        resultId: String(node.data?.entityId),
-      })),
-    );
-
-    // Prepare the invoke skill request
-    const invokeRequest: InvokeSkillRequest = {
-      resultId: targetEntityId,
-      input: {
-        query: processedQuery, // Use processed query for skill execution
-        originalQuery, // Pass original query separately
-        images,
-      },
-      target: {
-        entityType: 'canvas' as EntityType,
-        entityId: canvasId,
-      },
-      modelName: modelInfo?.name,
-      modelItemId: modelInfo?.providerItemId,
-      context,
-      resultHistory,
-      toolsets: selectedToolsets,
-    };
-
     const nodeExecution: WorkflowNode = {
-      canvasId,
       nodeId: targetNodeId,
       nodeType: node.type,
       node: nodeForData,
       entityId: targetEntityId,
       title: node.data?.title ?? '',
       status,
-      processedQuery,
-      originalQuery,
-      invokeReq: invokeRequest,
       connectTo: connectTo,
       parentNodeIds: mappedParentIds,
       childNodeIds: mappedChildIds,
-      sourceNodeId: node.id, // Store the source node ID for new canvas mode
+      sourceNodeId: node.id,
       sourceEntityId,
     };
+
+    if (node.type === 'skillResponse') {
+      const originalQuery = String(metadata?.structuredData?.query ?? node.data?.title ?? '');
+      const processedQuery = processQueryWithTypes(originalQuery, variables);
+
+      const resultHistory = contextItems
+        .filter((item) => item.type === 'skillResponse' && item.metadata?.withHistory)
+        .flatMap((item) =>
+          historyQuery.findThreadHistory({ resultId: item.entityId }).map((node) => ({
+            title: String(node.data?.title),
+            resultId: String(node.data?.entityId),
+          })),
+        );
+
+      nodeExecution.originalQuery = originalQuery;
+      nodeExecution.processedQuery = processedQuery;
+      nodeExecution.resultHistory = resultHistory;
+    }
 
     nodeExecutions.push(nodeExecution);
   }

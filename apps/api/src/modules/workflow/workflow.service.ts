@@ -8,7 +8,13 @@ import {
   NodeDiff,
   ActionStatus,
 } from '@refly/openapi-schema';
-import { CanvasNodeFilter, prepareNodeExecutions, pickReadyChildNodes } from '@refly/canvas-common';
+import {
+  CanvasNodeFilter,
+  prepareNodeExecutions,
+  pickReadyChildNodes,
+  convertContextItemsToInvokeParams,
+  ResponseNodeMeta,
+} from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
@@ -99,7 +105,6 @@ export class WorkflowService {
 
     const { nodeExecutions, startNodes } = prepareNodeExecutions({
       executionId,
-      canvasId: targetCanvasId,
       canvasData,
       variables: finalVariables,
       startNodes: options?.startNodes ?? [],
@@ -123,7 +128,6 @@ export class WorkflowService {
       this.prisma.workflowNodeExecution.createMany({
         data: nodeExecutions.map((nodeExecution) => ({
           ...pick(nodeExecution, [
-            'canvasId',
             'nodeId',
             'nodeType',
             'entityId',
@@ -134,17 +138,17 @@ export class WorkflowService {
             'sourceNodeId',
             'sourceEntityId',
             'connectTo',
-            'invokeReq',
             'parentNodeIds',
             'childNodeIds',
           ]),
           nodeExecutionId: genWorkflowNodeExecutionID(),
           executionId,
+          canvasId: targetCanvasId,
           nodeData: JSON.stringify(nodeExecution.node),
           connectTo: JSON.stringify(nodeExecution.connectTo),
-          invokeReq: JSON.stringify(nodeExecution.invokeReq),
           parentNodeIds: JSON.stringify(nodeExecution.parentNodeIds),
           childNodeIds: JSON.stringify(nodeExecution.childNodeIds),
+          resultHistory: JSON.stringify(nodeExecution.resultHistory),
         })),
       }),
     ]);
@@ -196,11 +200,45 @@ export class WorkflowService {
    * @returns Promise<void>
    */
   private async invokeSkillTask(user: User, nodeExecution: WorkflowNodeExecutionPO): Promise<void> {
-    const { invokeReq } = nodeExecution;
+    const {
+      nodeExecutionId,
+      canvasId,
+      entityId,
+      nodeData,
+      processedQuery,
+      originalQuery,
+      resultHistory,
+    } = nodeExecution;
+    const node = safeParseJSON(nodeData) as CanvasNode;
+    const metadata = node.data?.metadata as ResponseNodeMeta;
+    const { modelInfo, selectedToolsets, contextItems = [] } = metadata;
+
+    if (!metadata) {
+      this.logger.warn(
+        `[invokeSkillTask] Metadata not found for nodeExecution: ${nodeExecutionId}`,
+      );
+      return;
+    }
+
+    const { context, images } = convertContextItemsToInvokeParams(contextItems, () => []);
 
     // Prepare the invoke skill request
     const invokeRequest: InvokeSkillRequest = {
-      ...safeParseJSON(invokeReq),
+      resultId: entityId,
+      input: {
+        query: processedQuery, // Use processed query for skill execution
+        originalQuery, // Pass original query separately
+        images,
+      },
+      target: {
+        entityType: 'canvas' as const,
+        entityId: canvasId,
+      },
+      modelName: modelInfo?.name,
+      modelItemId: modelInfo?.providerItemId,
+      context,
+      resultHistory: safeParseJSON(resultHistory) ?? [],
+      toolsets: selectedToolsets,
       workflowExecutionId: nodeExecution.executionId,
       workflowNodeExecutionId: nodeExecution.nodeExecutionId,
     };
@@ -267,13 +305,8 @@ export class WorkflowService {
    * @param user - The user with minimal PII (only uid)
    * @param nodeExecutionId - The node execution ID
    */
-  async syncWorkflow(
-    user: Pick<User, 'uid'>,
-    nodeExecutionId: string,
-    isNewCanvas?: boolean,
-  ): Promise<void> {
+  async syncWorkflow(user: Pick<User, 'uid'>, nodeExecutionId: string): Promise<void> {
     try {
-      // Find the workflow node execution by nodeExecutionId
       const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
         where: {
           nodeExecutionId: nodeExecutionId,
@@ -350,7 +383,6 @@ export class WorkflowService {
             user: { uid: user.uid },
             executionId,
             nodeId: childNodeId,
-            isNewCanvas,
           });
         }
       }
@@ -374,23 +406,31 @@ export class WorkflowService {
    * @param nodeId - The node ID to execute
    * @param newNodeId - The new node ID for new canvas mode (optional)
    */
-  async runWorkflow(
-    user: User,
-    executionId: string,
-    nodeId: string,
-    isNewCanvas?: boolean,
-  ): Promise<void> {
+  async runWorkflow(user: User, executionId: string, nodeId: string): Promise<void> {
     try {
-      this.logger.log(
-        `[runWorkflow] executionId: ${executionId}, nodeId: ${nodeId}, isNewCanvas: ${isNewCanvas}`,
-      );
-      // Get node execution record
-      const nodeExecution = await this.prisma.workflowNodeExecution.findFirst({
-        where: {
-          executionId,
-          nodeId,
-        },
-      });
+      this.logger.log(`[runWorkflow] executionId: ${executionId}, nodeId: ${nodeId}`);
+
+      // Find the workflow node execution by nodeExecutionId
+      const [workflowExecution, nodeExecution] = await Promise.all([
+        this.prisma.workflowExecution.findUnique({
+          select: {
+            canvasId: true,
+            sourceCanvasId: true,
+          },
+          where: { executionId },
+        }),
+        this.prisma.workflowNodeExecution.findFirst({
+          where: {
+            executionId,
+            nodeId,
+          },
+        }),
+      ]);
+
+      if (!workflowExecution) {
+        this.logger.warn(`No workflow execution found for executionId: ${executionId}`);
+        return;
+      }
 
       if (!nodeExecution) {
         this.logger.warn(
@@ -435,6 +475,7 @@ export class WorkflowService {
 
       // Execute node based on type
       if (nodeExecution.nodeType === 'skillResponse') {
+        const isNewCanvas = workflowExecution.canvasId !== workflowExecution.sourceCanvasId;
         await this.executeSkillResponseNode(user, nodeExecution, isNewCanvas);
       } else {
         // For other node types, just mark as finish for now
