@@ -8075,6 +8075,10 @@ export const CanvasNodeDataSchema = {
       type: 'string',
       description: 'Node title',
     },
+    editedTitle: {
+      type: 'string',
+      description: 'Node edited title',
+    },
     entityId: {
       type: 'string',
       description: 'Node entity ID',

@@ -5673,6 +5673,10 @@ export type CanvasNodeData = {
    */
   title: string;
   /**
+   * Node edited title
+   */
+  editedTitle?: string;
+  /**
    * Node entity ID
    */
   entityId: string;
