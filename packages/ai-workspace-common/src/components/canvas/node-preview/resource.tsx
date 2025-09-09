@@ -1,6 +1,9 @@
-import { useState, memo } from 'react';
+import { useState, memo, useMemo } from 'react';
 import { ResourceView } from '@refly-packages/ai-workspace-common/components/resource-view';
 import { CanvasNode, ResourceNodeMeta } from '@refly/canvas-common';
+import { FollowingActions } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/sharedComponents/following-actions';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { IContextItem } from '@refly/common-types';
 
 interface ResourceNodePreviewProps {
   node: CanvasNode<ResourceNodeMeta>;
@@ -9,6 +12,17 @@ interface ResourceNodePreviewProps {
 
 const ResourceNodePreviewComponent = ({ node, resourceId }: ResourceNodePreviewProps) => {
   const [deckSize, setDeckSize] = useState<number>(0);
+  const { readonly } = useCanvasContext();
+  const initContextItems: IContextItem[] = useMemo(() => {
+    return [
+      {
+        type: 'resource' as const,
+        entityId: node.data?.entityId,
+        title: node.data?.title,
+        metadata: node.data?.metadata,
+      },
+    ];
+  }, [node.data]);
 
   if (!resourceId) {
     return (
@@ -19,14 +33,21 @@ const ResourceNodePreviewComponent = ({ node, resourceId }: ResourceNodePreviewP
   }
 
   return (
-    <div className="h-full pb-4 rounded overflow-hidden">
-      <ResourceView
-        resourceId={resourceId}
-        deckSize={deckSize}
-        setDeckSize={setDeckSize}
-        nodeId={node.id}
-        shareId={node.data?.metadata?.shareId}
-      />
+    <div className="h-full flex flex-col overflow-y-auto">
+      <div className="flex-1 pb-4 rounded overflow-y-auto">
+        <ResourceView
+          resourceId={resourceId}
+          deckSize={deckSize}
+          setDeckSize={setDeckSize}
+          nodeId={node.id}
+          shareId={node.data?.metadata?.shareId}
+        />
+      </div>
+      {!readonly && (
+        <div className="py-3 border-[1px] border-solid border-refly-Card-Border border-x-0 border-b-0">
+          <FollowingActions initContextItems={initContextItems} initModelInfo={null} />
+        </div>
+      )}
     </div>
   );
 };

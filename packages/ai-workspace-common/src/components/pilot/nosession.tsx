@@ -297,7 +297,6 @@ export const NoSession = memo(
                         readonly={canvasReadonly}
                         query={query}
                         setQuery={setCanvasQuery}
-                        selectedSkillName={undefined}
                         handleSendMessage={handleSendMessage}
                         onUploadImage={handleImageUpload}
                         onUploadMultipleImages={handleMultipleImagesUpload}

@@ -1,7 +1,6 @@
 import { Edge, NodeProps, Position, useReactFlow } from '@xyflow/react';
 import { CanvasNode, CanvasNodeData, SkillNodeMeta } from '@refly/canvas-common';
 import { Node } from '@xyflow/react';
-import { Form } from 'antd';
 import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
@@ -9,9 +8,7 @@ import { getNodeCommonStyles } from './shared/styles';
 import {
   ModelCapabilities,
   ModelInfo,
-  Skill,
   SkillRuntimeConfig,
-  SkillTemplateConfig,
   WorkflowVariable,
 } from '@refly/openapi-schema';
 
@@ -33,8 +30,6 @@ import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useContextUpdateByEdges } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
 import { ChatPanel } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
-import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useDebouncedCallback } from 'use-debounce';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
@@ -64,24 +59,20 @@ export const SkillNode = memo(
     const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
     const { addNode } = useAddNode();
     const { deleteNode } = useDeleteNode();
-    const [form] = Form.useForm();
     useSelectedNodeZIndex(id, selected);
 
     const { canvasId, readonly } = useCanvasContext();
 
     const { projectId, handleProjectChange, getFinalProjectId } = useAskProject();
 
-    const { entityId, metadata = {} } = data;
+    const { metadata = {} } = data;
     const {
       query,
-      selectedSkill,
       modelInfo,
       contextItems = [],
-      tplConfig,
       runtimeConfig,
       selectedToolsets: metadataSelectedToolsets,
     } = metadata;
-    const skill = useFindSkill(selectedSkill?.name);
 
     const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
       selectedToolsets: state.selectedToolsets,
@@ -218,14 +209,6 @@ export const SkillNode = memo(
       [updateNodeData],
     );
 
-    const setNodeDataByEntity = useSetNodeDataByEntity();
-    const setTplConfig = useCallback(
-      (config: SkillTemplateConfig) => {
-        setNodeDataByEntity({ entityId, type: 'skill' }, { metadata: { tplConfig: config } });
-      },
-      [id],
-    );
-
     useEffect(() => {
       if (!metadataSelectedToolsets) {
         setSelectedToolsets(selectedToolsetsFromStore ?? []);
@@ -241,32 +224,6 @@ export const SkillNode = memo(
         setModelInfo(skillSelectedModel);
       }
     }, [skillSelectedModel, modelInfo, setModelInfo]);
-
-    const setSelectedSkill = useCallback(
-      (newSelectedSkill: Skill | null) => {
-        const selectedSkill = newSelectedSkill;
-
-        // Reset form when skill changes
-        if (selectedSkill?.configSchema?.items?.length) {
-          const defaultConfig = {};
-          for (const item of selectedSkill.configSchema.items) {
-            if (item.defaultValue !== undefined) {
-              defaultConfig[item.key] = {
-                value: item.defaultValue,
-                label: item.labelDict?.en ?? item.key,
-                displayValue: String(item.defaultValue),
-              };
-            }
-          }
-          form.setFieldValue('tplConfig', defaultConfig);
-        } else {
-          form.setFieldValue('tplConfig', undefined);
-        }
-
-        setNodeData(id, { metadata: { selectedSkill } });
-      },
-      [id, form, setNodeData],
-    );
 
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
 
@@ -286,10 +243,8 @@ export const SkillNode = memo(
       const {
         query = '',
         contextItems = [],
-        selectedSkill,
         modelInfo,
         runtimeConfig = {},
-        tplConfig,
         projectId,
       } = data?.metadata ?? {};
       const { runtimeConfig: contextRuntimeConfig } = useContextPanelStore.getState();
@@ -350,9 +305,7 @@ export const SkillNode = memo(
           query: processedQuery, // Use processed query for skill execution
           modelInfo,
           contextItems,
-          selectedSkill,
           version: data?.metadata.version,
-          tplConfig,
           runtimeConfig: {
             ...contextRuntimeConfig,
             ...runtimeConfig,
@@ -378,9 +331,7 @@ export const SkillNode = memo(
               ...data?.metadata,
               status: 'executing',
               contextItems,
-              tplConfig,
               selectedToolsets,
-              selectedSkill,
               modelInfo,
               runtimeConfig: {
                 ...contextRuntimeConfig,
@@ -407,8 +358,6 @@ export const SkillNode = memo(
       localQuery,
       selectedToolsets,
       contextItems,
-      tplConfig,
-      selectedSkill,
       modelInfo,
       runtimeConfig,
       getFinalProjectId,
@@ -579,16 +528,12 @@ export const SkillNode = memo(
             readonly={readonly}
             query={localQuery}
             setQuery={setQuery}
-            selectedSkill={skill}
-            setSelectedSkill={setSelectedSkill}
             contextItems={contextItems}
             setContextItems={setContextItems}
             modelInfo={modelInfo}
             setModelInfo={setModelInfo}
             runtimeConfig={runtimeConfig || {}}
             setRuntimeConfig={setRuntimeConfig}
-            tplConfig={tplConfig}
-            setTplConfig={setTplConfig}
             handleSendMessage={handleSendMessage}
             handleAbortAction={abortAction}
             projectId={projectId}

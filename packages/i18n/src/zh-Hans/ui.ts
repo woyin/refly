@@ -1132,6 +1132,7 @@ const translations = {
     launchpad: {
       placeholder: '描述你的需求...',
       chatInputPlaceholder: '给 Refly 一个任务，它会智能分析和规划，并帮你完成任务...',
+      commonChatInputPlaceholder: '问 Refly 任何问题...',
     },
     contextMenu: {
       createGroup: '创建分组',

@@ -1,27 +1,20 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Tooltip, Dropdown, Form } from 'antd';
-import type { MenuProps } from 'antd';
-import { SwapOutlined } from '@ant-design/icons';
+import { memo, useCallback, useEffect, useRef } from 'react';
+import { Button } from 'antd';
 
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { RichChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/rich-chat-input';
 import {
   ModelInfo,
-  Skill,
   SkillRuntimeConfig,
-  SkillTemplateConfig,
   WorkflowVariable,
   GenericToolset,
 } from '@refly/openapi-schema';
 import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
-// import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
-// import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { IContextItem, ContextTarget } from '@refly/common-types';
 import { useContextPanelStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { IoClose } from 'react-icons/io5';
-import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { useUserStoreShallow } from '@refly/stores';
 import { useSubscriptionStoreShallow } from '@refly/stores';
 import { useLaunchpadStoreShallow } from '@refly/stores';
@@ -31,8 +24,6 @@ import classNames from 'classnames';
 import { ProjectKnowledgeToggle } from '@refly-packages/ai-workspace-common/components/project/project-knowledge-toggle';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
-import { NodeIcon } from '../nodes/shared/node-icon';
 
 import './index.scss';
 import { logEvent } from '@refly/telemetry-web';
@@ -91,133 +82,16 @@ export const PremiumBanner = memo(() => {
 
 PremiumBanner.displayName = 'PremiumBanner';
 
-// Memoized Header Component
-const NodeHeader = memo(
-  ({
-    selectedSkillName,
-    setSelectedSkill,
-    readonly,
-  }: {
-    selectedSkillName?: string;
-    setSelectedSkill: (skill: Skill | null) => void;
-    readonly: boolean;
-  }) => {
-    const { t } = useTranslation();
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    const skills = useListSkills();
-
-    const menuItems: MenuProps['items'] = useMemo(() => {
-      const defaultItem = {
-        key: 'default',
-        label: (
-          <div className="flex flex-col">
-            <span className="text-xs font-medium">{t('canvas.skill.askAI')}</span>
-            <span className="text-[10px] text-refly-text-2">
-              {t('canvas.skill.askAIDescription')}
-            </span>
-          </div>
-        ),
-      };
-
-      const skillItems = skills.map((skill) => ({
-        key: skill.name,
-        label: (
-          <div className="flex flex-col">
-            <span className="text-xs font-medium">{t(`${skill.name}.name`, { ns: 'skill' })}</span>
-            <span className="text-[10px] text-refly-text-2">
-              {t(`${skill.name}.description`, { ns: 'skill' })}
-            </span>
-          </div>
-        ),
-      }));
-
-      return [defaultItem, ...skillItems];
-    }, [t, skills]);
-
-    const handleMenuClick: MenuProps['onClick'] = useCallback(
-      ({ key }: { key: string }) => {
-        const selectedSkill =
-          key === 'default' ? null : skills.find((skill) => skill.name === key) || null;
-        setSelectedSkill(selectedSkill);
-      },
-      [skills, setSelectedSkill],
-    );
-
-    return (
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <NodeIcon type="skill" />
-
-          <Tooltip
-            title={
-              isMac
-                ? t('canvas.skill.switchSkillTooltipMac', {
-                    shortcut: '⌘ + /',
-                  })
-                : t('canvas.skill.switchSkillTooltip', {
-                    shortcut: 'Ctrl + /',
-                  })
-            }
-          >
-            <Dropdown
-              menu={{
-                items: menuItems,
-                onClick: handleMenuClick,
-              }}
-              trigger={['click']}
-              disabled={readonly}
-              placement="bottomLeft"
-            >
-              <Button
-                type="text"
-                className="py-0 px-1 border-none shadow-none hover:bg-transparent focus:bg-transparent"
-                disabled={readonly}
-              >
-                <div className="flex items-center gap-1">
-                  <span className="text-sm font-medium">
-                    {selectedSkillName
-                      ? t(`${selectedSkillName}.name`, { ns: 'skill' })
-                      : t('canvas.skill.askAI')}
-                  </span>
-                  <SwapOutlined className="text-gray-400" />
-                </div>
-              </Button>
-            </Dropdown>
-          </Tooltip>
-        </div>
-        {selectedSkillName && !readonly && (
-          <Button
-            type="text"
-            size="small"
-            className="p-0 px-1"
-            onClick={() => {
-              setSelectedSkill?.(null);
-            }}
-          >
-            {t('common.cancel')}
-          </Button>
-        )}
-      </div>
-    );
-  },
-);
-
-NodeHeader.displayName = 'NodeHeader';
-
 export interface ChatPanelProps {
   readonly?: boolean;
   query: string;
   setQuery: (query: string) => void;
-  selectedSkill?: Skill | null;
-  setSelectedSkill: (skill: Skill | null) => void;
   contextItems: IContextItem[];
   setContextItems: (items: IContextItem[]) => void;
   modelInfo: ModelInfo | null;
   setModelInfo: (modelInfo: ModelInfo | null) => void;
   runtimeConfig: SkillRuntimeConfig;
   setRuntimeConfig: (config: SkillRuntimeConfig) => void;
-  tplConfig?: SkillTemplateConfig;
-  setTplConfig?: (config: SkillTemplateConfig) => void;
   handleSendMessage: () => void;
   handleAbortAction: () => void;
   onInputHeightChange?: () => void;
@@ -239,16 +113,12 @@ export const ChatPanel = memo(
     readonly = false,
     query,
     setQuery,
-    selectedSkill,
-    setSelectedSkill,
     contextItems = [],
     setContextItems,
     modelInfo,
     setModelInfo,
     runtimeConfig = {},
     setRuntimeConfig,
-    tplConfig: _tplConfig,
-    setTplConfig: _setTplConfig,
     handleSendMessage,
     handleAbortAction,
     onInputHeightChange,
@@ -264,27 +134,19 @@ export const ChatPanel = memo(
     selectedToolsets,
     onSelectedToolsetsChange,
   }: ChatPanelProps) => {
-    const [form] = Form.useForm();
-    const [_formErrors, setFormErrors] = useState<Record<string, string>>({});
     const chatInputRef = useRef<HTMLDivElement>(null);
     const userProfile = useUserStoreShallow((state) => state.userProfile);
     const isList = mode === 'list';
     const { handleUploadImage, handleUploadMultipleImages } = useUploadImage();
     const { canvasId, readonly: canvasReadonly } = useCanvasContext();
     const contextItemsRef = useRef(contextItems);
+    const { t } = useTranslation();
 
     // Get setActiveResultId from context panel store
     const { setActiveResultId } = useContextPanelStoreShallow((state) => ({
       setActiveResultId: state.setActiveResultId,
     }));
 
-    // Reset form when skill changes
-    useEffect(() => {
-      if (selectedSkill) {
-        form.resetFields();
-        setFormErrors({});
-      }
-    }, [selectedSkill, form, setFormErrors]);
     useEffect(() => {
       contextItemsRef.current = contextItems;
     }, [contextItems]);
@@ -417,7 +279,6 @@ export const ChatPanel = memo(
               }
             }}
             variables={[...workflowVariables, ...extendedWorkflowVariables] as WorkflowVariable[]}
-            selectedSkillName={selectedSkill?.name ?? null}
             inputClassName="px-1 py-0"
             maxRows={6}
             handleSendMessage={handleMessageSend}
@@ -438,17 +299,13 @@ export const ChatPanel = memo(
                 setTimeout(onInputHeightChange, 0);
               }
             }}
-            selectedSkillName={selectedSkill?.name ?? null}
             inputClassName="px-1 py-0"
             maxRows={6}
             handleSendMessage={handleMessageSend}
-            handleSelectSkill={(skill) => {
-              setQuery(query?.slice(0, -1));
-              setSelectedSkill(skill);
-            }}
             onUploadImage={handleImageUpload}
             onUploadMultipleImages={handleMultipleImagesUpload}
             onFocus={handleInputFocus}
+            placeholder={t('canvas.launchpad.commonChatInputPlaceholder')}
           />
         )}
 
@@ -481,11 +338,6 @@ export const ChatPanel = memo(
               'border border-gray-100 border-solid dark:border-gray-700',
             )}
           >
-            <SelectedSkillHeader
-              skill={selectedSkill ?? undefined}
-              setSelectedSkill={setSelectedSkill}
-              onClose={() => setSelectedSkill(null)}
-            />
             {subscriptionEnabled && !userProfile?.subscription && <PremiumBanner />}
             <div className={cn('px-3')}>{renderContent()}</div>
           </div>
@@ -500,17 +352,7 @@ export const ChatPanel = memo(
 
     return (
       <div className={`flex flex-col gap-3 h-full box-border ${className} max-w-[1024px]`}>
-        {/* <NodeHeader
-          readonly={readonly}
-          selectedSkillName={selectedSkill?.name ?? undefined}
-          setSelectedSkill={setSelectedSkill}
-        /> */}
         {renderContent()}
-        {/* <ProjectKnowledgeToggle
-          className="!pb-0 !pt-0"
-          currentProjectId={projectId}
-          onProjectChange={handleProjectChange}
-        /> */}
       </div>
     );
   },

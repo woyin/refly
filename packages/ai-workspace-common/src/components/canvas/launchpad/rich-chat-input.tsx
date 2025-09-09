@@ -51,7 +51,6 @@ interface RichChatInputProps {
   query: string;
   setQuery: (text: string) => void;
   variables?: MentionVariable[];
-  selectedSkillName?: string | null;
   placeholder?: string;
   inputClassName?: string;
   maxRows?: number;
@@ -1344,7 +1343,6 @@ RichChatInputComponent.displayName = 'RichChatInputComponent';
 export const RichChatInput = memo(RichChatInputComponent, (prevProps, nextProps) => {
   return (
     prevProps.query === nextProps.query &&
-    prevProps.selectedSkillName === nextProps.selectedSkillName &&
     prevProps.variables === nextProps.variables &&
     prevProps.onUploadImage === nextProps.onUploadImage &&
     prevProps.onUploadMultipleImages === nextProps.onUploadMultipleImages &&

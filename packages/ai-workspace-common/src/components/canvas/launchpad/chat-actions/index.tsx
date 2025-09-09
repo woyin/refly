@@ -24,8 +24,8 @@ interface ChatActionsProps {
   query: string;
   model: ModelInfo | null;
   setModel: (model: ModelInfo | null) => void;
-  runtimeConfig: SkillRuntimeConfig;
-  setRuntimeConfig: (runtimeConfig: SkillRuntimeConfig) => void;
+  runtimeConfig?: SkillRuntimeConfig;
+  setRuntimeConfig?: (runtimeConfig: SkillRuntimeConfig) => void;
   className?: string;
   form?: FormInstance;
   handleSendMessage: () => void;

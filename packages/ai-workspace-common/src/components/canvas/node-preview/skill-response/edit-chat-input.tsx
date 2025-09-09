@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { IContextItem } from '@refly/common-types';
 import { useMemo, memo, useState, useCallback, useEffect, useRef } from 'react';
-import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { RichChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/rich-chat-input';
 import {
@@ -11,16 +10,13 @@ import {
 import {
   ModelInfo,
   SkillRuntimeConfig,
-  SkillTemplateConfig,
 } from '@refly-packages/ai-workspace-common/requests/types.gen';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { convertContextItemsToEdges } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useReactFlow } from '@xyflow/react';
-import { useFindSkill } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
-import { notification, Form } from 'antd';
-import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
+
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { useUpdateNodeQuery } from '@refly-packages/ai-workspace-common/hooks/use-update-node-query';
 import { useActionResultStoreShallow } from '@refly/stores';
@@ -47,7 +43,6 @@ interface EditChatInputProps {
   };
   setEditMode: (mode: boolean) => void;
   readonly?: boolean;
-  tplConfig?: SkillTemplateConfig;
   runtimeConfig?: SkillRuntimeConfig;
   onQueryChange?: (newQuery: string) => void;
   selectedToolsets?: GenericToolset[];
@@ -62,10 +57,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     contextItems,
     query,
     modelInfo,
-    actionMeta,
     setEditMode,
-    readonly,
-    tplConfig: initialTplConfig,
     runtimeConfig,
     onQueryChange,
     selectedToolsets,
@@ -92,14 +84,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   const contextItemsRef = useRef(editContextItems);
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const { t } = useTranslation();
-  const [localActionMeta, setLocalActionMeta] = useState<{
-    name?: string;
-    icon?: any;
-  } | null>(actionMeta);
 
-  const [form] = Form.useForm();
   const { getFinalProjectId } = useAskProject();
   const updateNodeQuery = useUpdateNodeQuery();
 
@@ -108,11 +94,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     resultMap: state.resultMap,
   }));
   const { addNode } = useAddNode();
-
-  const hideSelectedSkillHeader = useMemo(
-    () => !localActionMeta || localActionMeta?.name === 'commonQnA' || !localActionMeta?.name,
-    [localActionMeta],
-  );
 
   // Function to get original query from action result
   const getOriginalQuery = useCallback(async (): Promise<string> => {
@@ -141,7 +122,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
   const { canvasId, readonly: canvasReadonly } = useCanvasContext();
   const { invokeAction } = useInvokeAction({ source: 'edit-chat-input' });
-  const skill = useFindSkill(localActionMeta?.name);
   const {
     handleUploadImage: uploadImageHook,
     handleUploadMultipleImages: uploadMultipleImagesHook,
@@ -159,37 +139,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
       }
     }
   }, [enabled]);
-
-  // Initialize form with tplConfig when skill changes
-  useEffect(() => {
-    if (!skill?.configSchema?.items?.length) {
-      form.setFieldValue('tplConfig', undefined);
-    } else {
-      // Create a new config object
-      const newConfig = {};
-
-      // Process each item in the schema
-      for (const item of skill?.configSchema?.items || []) {
-        const key = item.key;
-
-        // Priority 1: Check if the key exists in initialTplConfig
-        if (initialTplConfig && initialTplConfig[key] !== undefined) {
-          newConfig[key] = initialTplConfig[key];
-        }
-        // Priority 2: Fall back to schema default value
-        else if (item.defaultValue !== undefined) {
-          newConfig[key] = {
-            value: item.defaultValue,
-            label: item.labelDict?.en ?? item.key,
-            displayValue: String(item.defaultValue),
-          };
-        }
-      }
-
-      // Set the form value with the properly prioritized config
-      form.setFieldValue('tplConfig', newConfig);
-    }
-  }, [skill, form, initialTplConfig]);
 
   useEffect(() => {
     contextItemsRef.current = editContextItems;
@@ -217,22 +166,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     setEditRuntimeConfig(runtimeConfig);
   }, [runtimeConfig]);
 
-  useEffect(() => {
-    setLocalActionMeta(actionMeta);
-  }, [actionMeta]);
-
   const handleSendMessage = useCallback(() => {
-    // Check for form errors
-    if (formErrors && Object.keys(formErrors).length > 0) {
-      notification.error({
-        message: t('copilot.configManager.errorTipTitle'),
-        description: t('copilot.configManager.errorTip'),
-      });
-      return;
-    }
-
-    // Get tplConfig from form
-    const tplConfig = form?.getFieldValue('tplConfig');
     const finalProjectId = getFinalProjectId();
 
     // Synchronize edges with latest context items
@@ -300,8 +234,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         query: processedQuery, // Use processed query for skill execution
         contextItems: editContextItems,
         modelInfo: editModelInfo,
-        selectedSkill: skill,
-        tplConfig,
         projectId: finalProjectId,
         selectedToolsets,
       },
@@ -330,7 +262,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     editQuery,
     editModelInfo,
     editContextItems,
-    skill,
     version,
     canvasId,
     getNodes,
@@ -339,9 +270,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     deleteElements,
     invokeAction,
     setEditMode,
-    formErrors,
-    t,
-    form,
     getFinalProjectId,
     selectedToolsets,
     setNodeDataByEntity,
@@ -388,24 +316,10 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
           setEditContextItems(contextItems);
           setEditModelInfo(modelInfo);
           setEditRuntimeConfig(runtimeConfig);
-
-          // Reset form values
-          if (initialTplConfig) {
-            form.setFieldValue('tplConfig', initialTplConfig);
-          }
         },
       },
     ],
-    [
-      t,
-      setEditMode,
-      contextItems,
-      modelInfo,
-      runtimeConfig,
-      form,
-      initialTplConfig,
-      getOriginalQuery,
-    ],
+    [t, setEditMode, contextItems, modelInfo, runtimeConfig, getOriginalQuery],
   );
 
   // Fetch workflow variables for mentions (startNode/resourceLibrary)
@@ -430,26 +344,12 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         e.stopPropagation();
       }}
     >
-      {!hideSelectedSkillHeader && (
-        <SelectedSkillHeader
-          readonly={readonly}
-          skill={{
-            icon: localActionMeta?.icon,
-            name: localActionMeta?.name,
-          }}
-          className="rounded-t-[7px]"
-          onClose={() => {
-            setLocalActionMeta(null);
-          }}
-        />
-      )}
       <ContextManager contextItems={editContextItems} setContextItems={setEditContextItems} />
       <RichChatInput
         ref={textareaRef}
         readonly={canvasReadonly}
         query={editQuery}
         setQuery={setEditQuery}
-        selectedSkillName={localActionMeta?.name}
         handleSendMessage={handleSendMessage}
         onUploadImage={handleImageUpload}
         onUploadMultipleImages={handleMultipleImagesUpload}
@@ -457,38 +357,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         setContextItems={setEditContextItems}
         variables={variables}
       />
-
-      {skill?.configSchema?.items?.length > 0 && (
-        <ConfigManager
-          readonly={canvasReadonly}
-          key={skill?.name}
-          form={form}
-          formErrors={formErrors}
-          setFormErrors={setFormErrors}
-          schema={skill?.configSchema}
-          tplConfig={initialTplConfig}
-          fieldPrefix="tplConfig"
-          configScope="runtime"
-          resetConfig={() => {
-            // Reset to skill's tplConfig if available, otherwise create a new default config
-            if (skill?.tplConfig) {
-              form.setFieldValue('tplConfig', skill.tplConfig);
-            } else {
-              const defaultConfig = {};
-              for (const item of skill?.configSchema?.items || []) {
-                if (item.defaultValue !== undefined) {
-                  defaultConfig[item.key] = {
-                    value: item.defaultValue,
-                    label: item.labelDict?.en ?? item.key,
-                    displayValue: String(item.defaultValue),
-                  };
-                }
-              }
-              form.setFieldValue('tplConfig', defaultConfig);
-            }
-          }}
-        />
-      )}
 
       <ChatActions
         query={editQuery}
@@ -500,7 +368,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         handleAbort={() => {}}
         onUploadImage={handleImageUpload}
         contextItems={editContextItems}
-        form={form}
         customActions={customActions}
         selectedToolsets={selectedToolsets}
         setSelectedToolsets={setSelectedToolsets}
@@ -518,7 +385,6 @@ const arePropsEqual = (prevProps: EditChatInputProps, nextProps: EditChatInputPr
     prevProps.readonly === nextProps.readonly &&
     prevProps.contextItems === nextProps.contextItems &&
     prevProps.actionMeta?.name === nextProps.actionMeta?.name &&
-    prevProps.tplConfig === nextProps.tplConfig &&
     prevProps.onQueryChange === nextProps.onQueryChange &&
     prevProps.selectedToolsets === nextProps.selectedToolsets &&
     prevProps.setSelectedToolsets === nextProps.setSelectedToolsets

@@ -1148,6 +1148,7 @@ const translations = {
       placeholder: 'Describe needs...',
       chatInputPlaceholder:
         'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
+      commonChatInputPlaceholder: 'Ask Refly any question...',
     },
     contextMenu: {
       createGroup: 'Create Group',

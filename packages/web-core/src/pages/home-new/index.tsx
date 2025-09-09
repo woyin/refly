@@ -1,11 +1,7 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { useFrontPageStoreShallow } from '@refly/stores';
-import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { Button, Form } from 'antd';
-import { ConfigManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/config-manager';
 import { Actions } from '@refly-packages/ai-workspace-common/components/canvas/front-page/action';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { useAuthStoreShallow } from '@refly/stores';
@@ -17,44 +13,22 @@ import { Title } from '@refly-packages/ai-workspace-common/components/canvas/fro
 
 const UnsignedFrontPage = memo(() => {
   const { t, i18n } = useTranslation();
-  const [form] = Form.useForm();
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const templateLanguage = i18n.language;
   const templateCategoryId = '';
 
-  const {
-    query,
-    selectedSkill,
-    setQuery,
-    setSelectedSkill,
-    tplConfig,
-    setTplConfig,
-    runtimeConfig,
-    setRuntimeConfig,
-    reset,
-  } = useFrontPageStoreShallow((state) => ({
-    query: state.query,
-    selectedSkill: state.selectedSkill,
-    setQuery: state.setQuery,
-    setSelectedSkill: state.setSelectedSkill,
-    tplConfig: state.tplConfig,
-    setTplConfig: state.setTplConfig,
-    runtimeConfig: state.runtimeConfig,
-    setRuntimeConfig: state.setRuntimeConfig,
-    reset: state.reset,
-  }));
+  const { query, setQuery, runtimeConfig, setRuntimeConfig, reset } = useFrontPageStoreShallow(
+    (state) => ({
+      query: state.query,
+      setQuery: state.setQuery,
+      runtimeConfig: state.runtimeConfig,
+      setRuntimeConfig: state.setRuntimeConfig,
+      reset: state.reset,
+    }),
+  );
 
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
-
-  const handleSelectSkill = useCallback(
-    (skill: Skill | null) => {
-      setSelectedSkill(skill);
-      setTplConfig(skill?.tplConfig ?? null);
-    },
-    [setSelectedSkill, setTplConfig],
-  );
 
   const handleLogin = useCallback(() => {
     setLoginModalOpen(true);
@@ -81,77 +55,25 @@ const UnsignedFrontPage = memo(() => {
           <div className={cn('p-6 max-w-4xl mx-auto z-10')}>
             <Title />
 
-            <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border-[1px] border border-solid border-refly-primary-default bg-refly-bg-content-z2">
-              <div className="p-4">
-                {selectedSkill && (
-                  <div className="flex w-full justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-[#6172F3] shadow-lg flex items-center justify-center flex-shrink-0">
-                        {getSkillIcon(selectedSkill.name, 'w-4 h-4 text-white')}
-                      </div>
-                      <span className="text-sm font-medium leading-normal text-[rgba(0,0,0,0.8)] truncate dark:text-[rgba(225,225,225,0.8)]">
-                        {t(`${selectedSkill.name}.name`, { ns: 'skill' })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="text"
-                        size="small"
-                        onClick={() => {
-                          handleSelectSkill(null);
-                        }}
-                      >
-                        {t('common.cancel')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+            <div className="w-full p-4 flex flex-col rounded-[12px] shadow-refly-m overflow-hidden border-[1px] border border-solid border-refly-primary-default bg-refly-bg-content-z2">
+              <ChatInput
+                readonly={false}
+                query={query}
+                setQuery={setQuery}
+                handleSendMessage={handleLogin}
+                maxRows={6}
+                inputClassName="px-3 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
 
-                <div className="flex flex-col">
-                  <ChatInput
-                    readonly={false}
-                    query={query}
-                    setQuery={setQuery}
-                    selectedSkillName={selectedSkill?.name ?? null}
-                    handleSendMessage={handleLogin}
-                    handleSelectSkill={handleSelectSkill}
-                    maxRows={6}
-                    inputClassName="px-3 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-
-                  {selectedSkill?.configSchema?.items?.length > 0 && (
-                    <ConfigManager
-                      readonly={false}
-                      key={selectedSkill?.name}
-                      form={form}
-                      formErrors={formErrors}
-                      setFormErrors={setFormErrors}
-                      schema={selectedSkill?.configSchema}
-                      tplConfig={tplConfig}
-                      fieldPrefix="tplConfig"
-                      configScope="runtime"
-                      resetConfig={() => {
-                        const defaultConfig = selectedSkill?.tplConfig ?? {};
-                        setTplConfig(defaultConfig);
-                        form.setFieldValue('tplConfig', defaultConfig);
-                      }}
-                      onFormValuesChange={(_changedValues, allValues) => {
-                        setTplConfig(allValues.tplConfig);
-                      }}
-                    />
-                  )}
-
-                  <Actions
-                    query={query}
-                    model={null}
-                    setModel={() => {}}
-                    runtimeConfig={runtimeConfig}
-                    setRuntimeConfig={setRuntimeConfig}
-                    handleSendMessage={handleLogin}
-                    handleAbort={() => {}}
-                  />
-                </div>
-              </div>
+              <Actions
+                query={query}
+                model={null}
+                setModel={() => {}}
+                runtimeConfig={runtimeConfig}
+                setRuntimeConfig={setRuntimeConfig}
+                handleSendMessage={handleLogin}
+                handleAbort={() => {}}
+              />
             </div>
 
             {canvasTemplateEnabled && (

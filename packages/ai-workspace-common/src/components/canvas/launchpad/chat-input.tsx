@@ -1,12 +1,9 @@
 import { Input } from 'antd';
-import { memo, useRef, useMemo, useState, useCallback, forwardRef, useEffect } from 'react';
+import { memo, useRef, useState, useCallback, forwardRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import { useSearchStoreShallow } from '@refly/stores';
-import type { Skill } from '@refly/openapi-schema';
+import { useChatStoreShallow, useSearchStoreShallow } from '@refly/stores';
 import { cn } from '@refly/utils/cn';
-import { useListSkills } from '@refly-packages/ai-workspace-common/hooks/use-find-skill';
-import { getSkillIcon } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useUserStoreShallow } from '@refly/stores';
 
 const TextArea = Input.TextArea;
@@ -15,13 +12,11 @@ interface ChatInputProps {
   readonly: boolean;
   query: string;
   setQuery: (text: string) => void;
-  selectedSkillName?: string | null;
   placeholder?: string;
   inputClassName?: string;
   maxRows?: number;
   minRows?: number;
   handleSendMessage: () => void;
-  handleSelectSkill?: (skill: Skill) => void;
   onUploadImage?: (file: File) => Promise<void>;
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
   onFocus?: () => void;
@@ -34,7 +29,6 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
       readonly,
       query,
       setQuery,
-      selectedSkillName,
       inputClassName,
       maxRows,
       minRows,
@@ -47,22 +41,28 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
   ) => {
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
-    const [isMac, setIsMac] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
+    const { chatMode } = useChatStoreShallow((state) => ({
+      chatMode: state.chatMode,
+    }));
 
-    useEffect(() => {
-      // Detect if user is on macOS
-      setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
-    }, []);
+    const defaultPlaceholder = useMemo(() => {
+      if (placeholder) {
+        return placeholder;
+      }
+      if (chatMode === 'agent') {
+        return t('canvas.launchpad.chatInputPlaceholder');
+      } else {
+        return t('canvas.launchpad.commonChatInputPlaceholder');
+      }
+    }, [chatMode, placeholder]);
 
     const inputRef = useRef<TextAreaRef>(null);
-    const hasMatchedOptions = useRef(false);
     const [isFocused, setIsFocused] = useState(false);
 
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
-    const [showSkillSelector, setShowSkillSelector] = useState(false);
 
     const handlePaste = useCallback(
       async (e: React.ClipboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
@@ -99,26 +99,6 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
       [onUploadImage, onUploadMultipleImages, readonly],
     );
 
-    const skills = useListSkills();
-
-    const skillOptions = useMemo(() => {
-      return skills.map((skill) => ({
-        value: skill.name,
-        label: (
-          <div className="flex items-center gap-2 h-6">
-            {getSkillIcon(skill.name)}
-            <span className="text-sm font-medium">{t(`${skill.name}.name`, { ns: 'skill' })}</span>
-            <span className="text-sm text-gray-500">
-              {t(`${skill.name}.description`, { ns: 'skill' })}
-            </span>
-          </div>
-        ),
-        textLabel: t(`${skill.name}.name`, { ns: 'skill' }),
-      }));
-    }, [t, skills]);
-
-    const [options, setOptions] = useState<any[]>([]);
-
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (readonly) {
@@ -126,31 +106,10 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
           return;
         }
 
-        // When the user presses Ctrl+/ or Cmd+/ key, open the skill selector
-        if (e.key === '/' && (e.ctrlKey || e.metaKey)) {
-          e.preventDefault();
-          setQuery(`${query}/`);
-          setShowSkillSelector(true);
-          setOptions(skillOptions);
-          hasMatchedOptions.current = true;
-          return;
-        }
-
         // Handle Ctrl+K or Cmd+K to open search
         if (e.keyCode === 75 && (e.metaKey || e.ctrlKey)) {
           e.preventDefault();
           searchStore.setIsSearchOpen(true);
-        }
-
-        // Only intercept ArrowUp and ArrowDown when skill selector is active and has options
-        if (
-          (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
-          showSkillSelector &&
-          hasMatchedOptions.current &&
-          options?.length > 0
-        ) {
-          // Allow the default behavior for AutoComplete navigation
-          return;
         }
 
         // Handle the Enter key
@@ -169,12 +128,6 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
 
           // For regular Enter key
           if (!e.shiftKey) {
-            // enter should not be used to select when the skill selector is active and has options
-            if (showSkillSelector && hasMatchedOptions.current && options?.length > 0) {
-              e.preventDefault();
-              return;
-            }
-
             // enter should send message when the query contains '//'
             if (query?.includes('//')) {
               e.preventDefault();
@@ -191,18 +144,8 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
             }
           }
         }
-
-        // Update the skill selector state - exclude navigation keys to allow proper navigation
-        const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
-        if (
-          !navigationKeys.includes(e.key) &&
-          !(e.key === '/' && (e.ctrlKey || e.metaKey)) &&
-          showSkillSelector
-        ) {
-          setShowSkillSelector(false);
-        }
       },
-      [query, readonly, showSkillSelector, options, handleSendMessage, searchStore, skillOptions],
+      [query, readonly, handleSendMessage, searchStore],
     );
 
     const handleInputChange = useCallback(
@@ -230,29 +173,6 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
         }
       }, 0);
     }, [onFocus, readonly, setIsFocused]);
-
-    // Get placeholder dynamically based on OS
-    const getPlaceholder = useCallback(
-      (skillName: string | null) => {
-        const defaultValue = isMac
-          ? t('commonQnA.placeholderMac', {
-              ns: 'skill',
-              defaultValue: t('commonQnA.placeholder', { ns: 'skill' }),
-            })
-          : t('commonQnA.placeholder', { ns: 'skill' });
-
-        return skillName
-          ? t(`${skillName}.placeholder${isMac ? 'Mac' : ''}`, {
-              ns: 'skill',
-              defaultValue: t(`${skillName}.placeholder`, {
-                ns: 'skill',
-                defaultValue,
-              }),
-            })
-          : defaultValue;
-      },
-      [t, isMac],
-    );
 
     return (
       <div
@@ -310,9 +230,6 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
           onFocus={handleFocus}
           onBlur={() => {
             setIsFocused(false);
-            setTimeout(() => {
-              setShowSkillSelector(false);
-            }, 100);
           }}
           value={query ?? ''}
           onChange={handleInputChange}
@@ -324,11 +241,11 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
             readonly && 'cursor-not-allowed',
             isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
           )}
-          placeholder={placeholder ?? getPlaceholder(selectedSkillName)}
           autoSize={{
             minRows: minRows ?? 2,
             maxRows: maxRows ?? 6,
           }}
+          placeholder={defaultPlaceholder}
           data-cy="chat-input"
         />
       </div>
@@ -341,8 +258,6 @@ ChatInputComponent.displayName = 'ChatInputComponent';
 export const ChatInput = memo(ChatInputComponent, (prevProps, nextProps) => {
   return (
     prevProps.query === nextProps.query &&
-    prevProps.selectedSkillName === nextProps.selectedSkillName &&
-    prevProps.handleSelectSkill === nextProps.handleSelectSkill &&
     prevProps.onUploadImage === nextProps.onUploadImage &&
     prevProps.onUploadMultipleImages === nextProps.onUploadMultipleImages &&
     prevProps.onFocus === nextProps.onFocus

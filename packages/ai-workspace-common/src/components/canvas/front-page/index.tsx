@@ -1,13 +1,9 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Skill } from '@refly/openapi-schema';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { useFrontPageStoreShallow } from '@refly/stores';
-import {
-  getSkillIcon,
-  IconRight,
-} from '@refly-packages/ai-workspace-common/components/common/icon';
+import { IconRight } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { Button } from 'antd';
 import { Actions } from './action';
 import { useChatStoreShallow } from '@refly/stores';
@@ -17,7 +13,6 @@ import { useCanvasTemplateModalShallow } from '@refly/stores';
 import { Title } from './title';
 import { useAbortAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-abort-action';
 import cn from 'classnames';
-import { MediaChatInput } from '@refly-packages/ai-workspace-common/components/canvas/nodes/media/media-input';
 import { logEvent } from '@refly/telemetry-web';
 
 export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
@@ -35,10 +30,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
 
   const {
     query,
-    selectedSkill,
     setQuery,
-    setSelectedSkill,
-    setTplConfig,
     runtimeConfig,
     setRuntimeConfig,
     reset,
@@ -46,13 +38,10 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
     setSelectedToolsets,
   } = useFrontPageStoreShallow((state) => ({
     query: state.query,
-    selectedSkill: state.selectedSkill,
     setQuery: state.setQuery,
-    setSelectedSkill: state.setSelectedSkill,
     selectedToolsets: state.selectedToolsets,
     setSelectedToolsets: state.setSelectedToolsets,
     tplConfig: state.tplConfig,
-    setTplConfig: state.setTplConfig,
     runtimeConfig: state.runtimeConfig,
     setRuntimeConfig: state.setRuntimeConfig,
     reset: state.reset,
@@ -70,14 +59,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   }));
 
   const { abortAction } = useAbortAction({ source: 'front-page' });
-
-  const handleSelectSkill = useCallback(
-    (skill: Skill | null) => {
-      setSelectedSkill(skill);
-      setTplConfig(skill?.tplConfig ?? null);
-    },
-    [setSelectedSkill, setTplConfig],
-  );
 
   const handleSendMessage = useCallback(() => {
     if (!query?.trim()) return;
@@ -130,70 +111,28 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       >
         <Title />
 
-        <div className="w-full rounded-[12px] shadow-refly-m overflow-hidden border border-solid border-refly-primary-default">
-          <div className="p-4">
-            {selectedSkill && (
-              <div className="flex w-full justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-[#6172F3] shadow-lg flex items-center justify-center flex-shrink-0">
-                    {getSkillIcon(selectedSkill.name, 'w-4 h-4 text-white')}
-                  </div>
-                  <span className="text-sm font-medium leading-normal text-[rgba(0,0,0,0.8)] truncate dark:text-[rgba(225,225,225,0.8)]">
-                    {t(`${selectedSkill.name}.name`, { ns: 'skill' })}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={() => {
-                      handleSelectSkill(null);
-                    }}
-                  >
-                    {t('common.cancel')}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {chatMode === 'media' ? (
-              <MediaChatInput
-                readonly={false}
-                query={query}
-                setQuery={setQuery}
-                size="medium"
-                showChatModeSelector
-              />
-            ) : (
-              <>
-                <div className="flex flex-col">
-                  <ChatInput
-                    readonly={false}
-                    query={query}
-                    setQuery={setQuery}
-                    selectedSkillName={selectedSkill?.name ?? null}
-                    handleSendMessage={handleSendMessage}
-                    handleSelectSkill={handleSelectSkill}
-                    maxRows={6}
-                    inputClassName="px-3 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <Actions
-                    query={query}
-                    model={skillSelectedModel}
-                    setModel={setSkillSelectedModel}
-                    runtimeConfig={runtimeConfig}
-                    setRuntimeConfig={setRuntimeConfig}
-                    handleSendMessage={handleSendMessage}
-                    handleAbort={handleAbort}
-                    loading={isCreating}
-                    isExecuting={isExecuting}
-                    selectedToolsets={selectedToolsets}
-                    onSelectedToolsetsChange={setSelectedToolsets}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+        <div className="w-full p-4 flex flex-col rounded-[12px] shadow-refly-m overflow-hidden border border-solid border-refly-primary-default">
+          <ChatInput
+            readonly={false}
+            query={query}
+            setQuery={setQuery}
+            handleSendMessage={handleSendMessage}
+            maxRows={6}
+            inputClassName="px-3 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <Actions
+            query={query}
+            model={skillSelectedModel}
+            setModel={setSkillSelectedModel}
+            runtimeConfig={runtimeConfig}
+            setRuntimeConfig={setRuntimeConfig}
+            handleSendMessage={handleSendMessage}
+            handleAbort={handleAbort}
+            loading={isCreating}
+            isExecuting={isExecuting}
+            selectedToolsets={selectedToolsets}
+            onSelectedToolsetsChange={setSelectedToolsets}
+          />
         </div>
 
         {canvasTemplateEnabled && (
