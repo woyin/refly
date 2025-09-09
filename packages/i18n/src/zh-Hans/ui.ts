@@ -3127,6 +3127,11 @@ const translations = {
       taskFailed: '任务失败',
       understandingIntent: '正在理解意图分析需求...',
     },
+    recovery: {
+      title: '恢复会话',
+      success: '会话恢复已成功启动',
+      error: '恢复会话失败',
+    },
   },
   deck: {
     references: '引用',

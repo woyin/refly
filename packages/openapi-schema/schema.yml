@@ -2645,6 +2645,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetPilotSessionDetailResponse'
+  /pilot/session/{sessionId}/recover:
+    post:
+      tags:
+        - pilot
+      summary: Recover pilot session
+      description: Recover a failed pilot session by retrying failed steps
+      operationId: recoverPilotSession
+      parameters:
+        - name: sessionId
+          in: path
+          description: Pilot session ID to recover
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /workflow/initialize:
     post:
       tags:

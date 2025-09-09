@@ -7409,6 +7409,19 @@ export type GetPilotSessionDetailResponse2 = GetPilotSessionDetailResponse;
 
 export type GetPilotSessionDetailError = unknown;
 
+export type RecoverPilotSessionData = {
+  path: {
+    /**
+     * Pilot session ID to recover
+     */
+    sessionId: string;
+  };
+};
+
+export type RecoverPilotSessionResponse = BaseResponse;
+
+export type RecoverPilotSessionError = unknown;
+
 export type InitializeWorkflowData = {
   body: InitializeWorkflowRequest;
 };

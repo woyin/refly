@@ -14,7 +14,13 @@ import {
 } from '@refly/canvas-common';
 import { PilotSession } from '../../generated/client';
 import { SkillService } from '../skill/skill.service';
-import { detectLanguage, genActionResultID, genPilotSessionID, genPilotStepID } from '@refly/utils';
+import {
+  detectLanguage,
+  genActionResultID,
+  genPilotSessionID,
+  genPilotStepID,
+  genTransactionId,
+} from '@refly/utils';
 import { CanvasContentItem } from '../canvas/canvas.dto';
 import { ProviderService } from '../provider/provider.service';
 import { CanvasService } from '../canvas/canvas.service';
@@ -786,6 +792,271 @@ export class PilotService {
   }
 
   /**
+   * Recover a failed pilot session by retrying failed steps
+   * @param user - The user to recover the session for
+   * @param sessionId - The ID of the session to recover
+   */
+  async recoverPilotSession(user: User, sessionId: string) {
+    try {
+      const session = await this.prisma.pilotSession.findUnique({
+        where: {
+          sessionId,
+          uid: user.uid,
+        },
+      });
+
+      if (!session) {
+        throw new Error('Pilot session not found');
+      }
+
+      if (session.status !== 'failed') {
+        throw new Error('Only failed sessions can be recovered');
+      }
+
+      // Find failed steps in the current epoch
+      const failedSteps = await this.prisma.pilotStep.findMany({
+        where: {
+          sessionId,
+          status: 'failed',
+          epoch: session.currentEpoch,
+        },
+      });
+
+      if (failedSteps.length === 0) {
+        throw new Error('No failed steps found to recover');
+      }
+
+      this.logger.log(`Recovering ${failedSteps.length} failed steps for session ${sessionId}`);
+
+      // Get necessary context for step execution
+      const { targetId, targetType } = session;
+      const sessionInputObj = JSON.parse(session.input ?? '{}');
+      const canvasContentItems: CanvasContentItem[] =
+        await this.canvasService.getCanvasContentItems(user, targetId, true);
+      const toolsets = await this.toolService.listTools(user, { enabled: true });
+
+      // Get user's output locale preference
+      const userPo = await this.prisma.user.findUnique({
+        select: { outputLocale: true, uiLocale: true },
+        where: { uid: user.uid },
+      });
+
+      const locale =
+        userPo?.outputLocale !== 'auto'
+          ? userPo?.outputLocale
+          : await detectLanguage(sessionInputObj?.query ?? '');
+
+      const chatPi = await this.providerService.findDefaultProviderItem(user, 'chat');
+      if (!chatPi || chatPi.category !== 'llm' || !chatPi.enabled) {
+        throw new ProviderItemNotFoundError('provider item not valid for chat');
+      }
+      const chatModelId = JSON.parse(chatPi.config).modelId;
+
+      // Get session details for context building
+      const { steps } = await this.getPilotSessionDetail(user, sessionId);
+      const latestSummarySteps =
+        steps?.filter(({ step }) => step.epoch === session.currentEpoch - 1) || [];
+
+      // Get canvas state data and find downstream nodes
+      let downstreamContentItems: CanvasContentItem[] = [];
+      let downstreamEntityIds: string[] = [];
+      if (targetType === 'canvas' && latestSummarySteps.length > 0) {
+        const downstreamData = await this.findDownstreamNodes(user, targetId, latestSummarySteps);
+        downstreamEntityIds = downstreamData.downstreamEntityIds;
+
+        // Build content items for downstream entities
+        downstreamContentItems = await this.buildDownstreamContentItems(
+          user,
+          targetId,
+          downstreamEntityIds,
+        );
+      }
+
+      const { context, history } = await this.buildContextAndHistory(
+        canvasContentItems.concat(downstreamContentItems),
+        downstreamEntityIds,
+      );
+
+      // Update session status to executing
+      await this.prisma.pilotSession.update({
+        where: { sessionId },
+        data: { status: 'executing' },
+      });
+
+      // Process each failed step
+      for (const failedStep of failedSteps) {
+        const originalRawStep = JSON.parse(failedStep.rawOutput);
+
+        // Use existing ActionResult ID but create new version for retry
+        const existingResultId = failedStep.entityId;
+
+        // Find the latest version of the existing ActionResult
+        const latestResult = await this.prisma.actionResult.findFirst({
+          where: {
+            resultId: existingResultId,
+            uid: user.uid,
+          },
+          orderBy: { version: 'desc' },
+        });
+
+        if (!latestResult) {
+          this.logger.error(`No existing ActionResult found for failed step: ${failedStep.stepId}`);
+          continue;
+        }
+
+        const newVersion = (latestResult.version ?? 0) + 1;
+
+        // Create new version of ActionResult for retry with 'waiting' status
+        // This preserves the resultId but creates a new version for the retry attempt
+        await this.prisma.actionResult.create({
+          data: {
+            uid: user.uid,
+            resultId: existingResultId, // Keep the same resultId
+            version: newVersion, // Increment version for retry
+            title: failedStep.name,
+            input: JSON.stringify(
+              buildSubtaskSkillInput({
+                stage: originalRawStep.stage,
+                query: originalRawStep?.query,
+                context: originalRawStep?.context,
+                scope: originalRawStep?.scope,
+                outputRequirements: originalRawStep?.outputRequirements,
+                locale,
+              }),
+            ),
+            status: 'waiting',
+            targetId,
+            targetType,
+            context: JSON.stringify(context),
+            history: JSON.stringify(history),
+            modelName: chatModelId,
+            tier: chatPi.tier,
+            errors: '[]',
+            pilotStepId: failedStep.stepId, // Keep original stepId for sync
+            pilotSessionId: sessionId,
+            runtimeConfig: '{}',
+            providerItemId: chatPi.itemId,
+          },
+        });
+
+        // Update PilotStep status to executing (entityId remains the same)
+        await this.prisma.pilotStep.update({
+          where: { stepId: failedStep.stepId },
+          data: {
+            status: 'executing',
+            // entityId stays the same, only version changes for ActionResult
+          },
+        });
+
+        // Reset canvas node state for recovery (only for canvas targets)
+        if (targetType === 'canvas') {
+          try {
+            // Get current canvas state to find the existing node
+            const canvasState = await this.canvasSyncService.getCanvasData(user, {
+              canvasId: targetId,
+            });
+
+            // Find the node that corresponds to this failed step
+            const existingNode = canvasState.nodes?.find(
+              (node) => node.data?.entityId === existingResultId,
+            );
+
+            if (existingNode) {
+              // Reset the node status from 'failed' to 'waiting' to show retry attempt
+              await this.canvasSyncService.syncState(user, {
+                canvasId: targetId,
+                transactions: [
+                  {
+                    txId: genTransactionId(),
+                    createdAt: Date.now(),
+                    syncedAt: Date.now(),
+                    nodeDiffs: [
+                      {
+                        type: 'update',
+                        id: existingNode.id,
+                        from: existingNode,
+                        to: {
+                          ...existingNode,
+                          data: {
+                            ...existingNode.data,
+                            metadata: {
+                              ...existingNode.data?.metadata,
+                              status: 'waiting', // Reset from failed to waiting state
+                            },
+                          },
+                        },
+                      },
+                    ],
+                    edgeDiffs: [],
+                  },
+                ],
+              });
+
+              this.logger.log(
+                `Reset canvas node ${existingNode.id} status to 'waiting' for recovery of ${existingResultId}`,
+              );
+            } else {
+              this.logger.warn(
+                `Canvas node with entityId ${existingResultId} not found for status reset`,
+              );
+            }
+          } catch (canvasError) {
+            this.logger.warn(
+              `Failed to reset canvas node status during recovery: ${canvasError?.message}`,
+            );
+            // Don't throw - continue with skill execution even if canvas update fails
+          }
+        }
+
+        // The useUpdateActionResult hook will then handle automatic status updates as the new version progresses
+        this.logger.log(`Created new version ${newVersion} for ActionResult: ${existingResultId}`);
+
+        // Re-trigger skill execution with existing resultId but new version
+        await this.skillService.sendInvokeSkillTask(user, {
+          resultId: existingResultId, // Use existing resultId, skill service will use new version
+          input: buildSubtaskSkillInput({
+            stage: originalRawStep.stage,
+            query: originalRawStep?.query,
+            context: originalRawStep?.context,
+            scope: originalRawStep?.scope,
+            outputRequirements: originalRawStep?.outputRequirements,
+            locale,
+          }),
+          target: {
+            entityId: targetId,
+            entityType: targetType as EntityType,
+          },
+          modelName: chatModelId,
+          modelItemId: chatPi.itemId,
+          context: context,
+          resultHistory: history,
+          toolsets,
+        });
+
+        this.logger.log(
+          `Retrying failed step: ${failedStep.name} with resultId: ${existingResultId}, version: ${newVersion}`,
+        );
+      }
+
+      this.logger.log(`Successfully triggered recovery for session ${sessionId}`);
+    } catch (error) {
+      this.logger.error(`Error recovering pilot session ${sessionId}:`, error);
+
+      // Update session status back to failed if recovery attempt fails
+      try {
+        await this.prisma.pilotSession.update({
+          where: { sessionId },
+          data: { status: 'failed' },
+        });
+      } catch (updateError) {
+        this.logger.error('Failed to update session status after recovery error:', updateError);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Whenever a step is updated, check if all steps in the same epoch are completed.
    * If so, we need to update the session status to completed.
    * If not, we need to continue waiting.
@@ -824,9 +1095,19 @@ export class PilotService {
 
       const epochSubtaskSteps = epochSteps.filter((step) => step.mode === 'subtask');
 
+      const isSubtaskStepsFailed =
+        epochSubtaskSteps.length > 0 && epochSubtaskSteps.some((step) => step.status === 'failed');
+
+      if (isSubtaskStepsFailed) {
+        await this.prisma.pilotSession.update({
+          where: { sessionId: step.sessionId },
+          data: { status: 'failed' },
+        });
+        return;
+      }
+
       const isAllSubtaskStepsFinished =
-        epochSubtaskSteps.length > 0 &&
-        epochSubtaskSteps.every((step) => step.status === 'finish' || step.status === 'failed');
+        epochSubtaskSteps.length > 0 && epochSubtaskSteps.every((step) => step.status === 'finish');
 
       const reachedMaxEpoch = step.epoch > session.maxEpoch - 1;
       this.logger.log(

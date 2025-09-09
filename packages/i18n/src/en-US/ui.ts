@@ -3151,6 +3151,11 @@ const translations = {
       taskFailed: 'Task failed',
       understandingIntent: 'Understanding intent and analyzing requirements...',
     },
+    recovery: {
+      title: 'Recover Session',
+      success: 'Session recovery started successfully',
+      error: 'Failed to recover session',
+    },
   },
   deck: {
     references: 'References',
