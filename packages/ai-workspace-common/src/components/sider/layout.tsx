@@ -39,7 +39,6 @@ import { SiderLoggedOut } from './sider-logged-out';
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
-import { CreditWelcomeModal } from '@refly-packages/ai-workspace-common/components/credit-welcome-modal';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { logEvent } from '@refly/telemetry-web';
 
@@ -487,7 +486,6 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
       <TourModal />
       <StorageExceededModal />
       <CanvasTemplateModal />
-      <CreditWelcomeModal />
 
       {isLogin ? (
         isProject ? (
