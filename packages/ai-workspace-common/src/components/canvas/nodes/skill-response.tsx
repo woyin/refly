@@ -2,7 +2,7 @@ import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { Divider, Input, message } from 'antd';
 import type { InputRef } from 'antd';
-import { CanvasNode } from '@refly/canvas-common';
+import { CanvasNode, purgeToolsets } from '@refly/canvas-common';
 import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './shared/styles';
@@ -362,7 +362,7 @@ export const SkillResponseNode = memo(
           query: title,
           selectedSkill: skill,
           contextItems: data?.metadata?.contextItems,
-          selectedToolsets: data?.metadata?.selectedToolsets,
+          selectedToolsets: purgeToolsets(data?.metadata?.selectedToolsets),
         },
         {
           entityType: 'canvas',
