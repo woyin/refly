@@ -341,7 +341,8 @@ export class MediaGeneratorService {
         }
       }
 
-      const input = await this.buildInputObject(user, request, config.supportedLanguages);
+      const input =
+        request.input ?? (await this.buildInputObject(user, request, config.supportedLanguages));
 
       this.logger.log(`input: ${JSON.stringify(input)}`);
 

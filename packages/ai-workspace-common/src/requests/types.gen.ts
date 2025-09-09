@@ -4004,6 +4004,12 @@ export type MediaGenerateRequest = {
    * Input parameter configurations
    */
   inputParameters?: Array<MediaModelParameter>;
+  /**
+   * Flexible key-value pairs for additional input parameters
+   */
+  input?: {
+    [key: string]: unknown;
+  };
 };
 
 export type MediaGenerateResponse = BaseResponse & {

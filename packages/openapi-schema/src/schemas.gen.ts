@@ -5658,6 +5658,11 @@ export const MediaGenerateRequestSchema = {
         $ref: '#/components/schemas/MediaModelParameter',
       },
     },
+    input: {
+      type: 'object',
+      description: 'Flexible key-value pairs for additional input parameters',
+      additionalProperties: true,
+    },
   },
 } as const;
 
