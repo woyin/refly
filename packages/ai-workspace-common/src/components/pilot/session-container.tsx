@@ -110,10 +110,7 @@ export const NewTaskButton = memo(
 
     return (
       <motion.div
-        className={cn(
-          'px-4 pt-3 pb-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800',
-          className,
-        )}
+        className={cn('px-4 pt-3 pb-4', className)}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
@@ -172,7 +169,7 @@ export const SessionContainer = memo(
     const { handleNodePreview } = useNodePreviewControl({ canvasId });
 
     const containerClassName = useMemo(
-      () => cn('flex-shrink-0', 'flex', 'flex-col', 'w-full', 'rounded-lg', className),
+      () => cn('flex-shrink-0', 'flex', 'flex-col', 'w-full', 'rounded-[20px]', className),
       [className],
     );
 
@@ -271,8 +268,6 @@ export const SessionContainer = memo(
 
     return (
       <div className={containerClassName}>
-        {/* Header */}
-        {/* {session && ( */}
         <div className="pb-4">
           <SessionHeader
             canvasId={canvasId}
@@ -282,7 +277,6 @@ export const SessionContainer = memo(
             onSessionClick={handleSessionClick}
           />
         </div>
-        {/* )} */}
 
         <AnimatePresence mode="wait">
           {!activeSessionId ? (

@@ -57,7 +57,7 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
 
   return (
     <motion.div
-      className="flex items-center p-1 mt-2 cursor-pointer rounded-md transition-colors w-full max-w-full text-gray-600 hover:text-gray-800 dark:text-gray-400 hover:dark:text-gray-200 dark:hover:bg-gray-800 bg-[#F4F4F4] border border-gray-100 dark:border-gray-700 dark:bg-refly-bg-content-z2"
+      className="flex items-center gap-2 h-10 w-full px-3 py-2 mt-2 cursor-pointer rounded-xl transition-colors text-refly-text-2 hover:bg-refly-tertiary-hover bg-refly-tertiary-default"
       onClick={handleClick}
       whileHover={{
         scale: 1.02,
@@ -68,13 +68,11 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
       }}
       layout
     >
-      <div className="mr-2 flex-shrink-0">
+      <div className="flex-shrink-0">
         <StepStatusIcon status={step.status} />
       </div>
 
-      <div className="flex items-center py-1 flex-grow min-w-0">
-        <span className="truncate text-sm block max-w-[380px]">{step?.name ?? ''}</span>
-      </div>
+      <div className="flex-grow min-w-0 truncate text-sm">{step?.name ?? ''}</div>
     </motion.div>
   );
 });
