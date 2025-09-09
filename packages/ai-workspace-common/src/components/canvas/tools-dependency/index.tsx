@@ -20,7 +20,7 @@ const isToolsetInstalled = (
 ): boolean => {
   return installedToolsets.some((t) => {
     if (toolset.type === 'regular') {
-      return t.toolset?.definition?.key === toolset.toolset?.definition?.key;
+      return t.toolset?.definition?.key === toolset.toolset?.definition?.key || t.id === 'builtin';
     } else if (toolset.type === 'mcp') {
       return t.name === toolset.name;
     }

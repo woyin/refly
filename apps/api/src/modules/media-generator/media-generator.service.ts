@@ -342,6 +342,9 @@ export class MediaGeneratorService {
       }
 
       const input = await this.buildInputObject(user, request, config.supportedLanguages);
+
+      this.logger.log(`input: ${JSON.stringify(input)}`);
+
       let url = '';
 
       // Generate media based on provider type

@@ -39,7 +39,6 @@ import { SiderLoggedOut } from './sider-logged-out';
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
-import { CreditWelcomeModal } from '@refly-packages/ai-workspace-common/components/credit-welcome-modal';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { logEvent } from '@refly/telemetry-web';
 
@@ -59,7 +58,7 @@ const SiderSectionHeader = ({
 }) => {
   return (
     <div
-      className="h-12 flex items-center justify-between w-full text-refly-text-0 group select-none px-2 py-2 hover:bg-refly-tertiary-hover rounded-md cursor-pointer"
+      className="h-12 flex items-center justify-between w-full text-refly-text-0 group select-none px-2 py-2 hover:bg-refly-tertiary-hover rounded-lg cursor-pointer"
       onClick={!actionIcon && onActionClick ? onActionClick : undefined}
     >
       <div className="flex items-center gap-2">
@@ -251,7 +250,7 @@ export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
     <div
       key={canvas.id}
       className={cn(
-        'group relative my-1 px-3 rounded text-sm leading-8 text-refly-text-0 hover:bg-refly-tertiary-hover',
+        'group relative my-1 px-3 rounded-lg text-sm leading-8 text-refly-text-0 hover:bg-refly-tertiary-hover',
         {
           'font-semibold bg-refly-tertiary-hover': selectedKey === canvas.id,
         },
@@ -487,7 +486,6 @@ export const SiderLayout = (props: { source: 'sider' | 'popover' }) => {
       <TourModal />
       <StorageExceededModal />
       <CanvasTemplateModal />
-      <CreditWelcomeModal />
 
       {isLogin ? (
         isProject ? (
