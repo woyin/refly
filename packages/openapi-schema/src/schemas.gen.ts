@@ -7709,6 +7709,17 @@ export const AuthPatternSchema = {
         $ref: '#/components/schemas/DynamicConfigItem',
       },
     },
+    provider: {
+      type: 'string',
+      description: 'Auth provider, only for `oauth` type',
+    },
+    scope: {
+      type: 'array',
+      description: 'Auth scope, only for `oauth` type',
+      items: {
+        type: 'string',
+      },
+    },
   },
 } as const;
 

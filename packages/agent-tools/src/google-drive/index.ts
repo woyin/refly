@@ -90,6 +90,8 @@ export const GoogleDriveToolsetDefinition: ToolsetDefinition = {
   authPatterns: [
     {
       type: 'oauth',
+      provider: 'google',
+      scope: ['https://www.googleapis.com/auth/drive.readonly'],
     },
   ],
   configItems: [

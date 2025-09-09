@@ -5415,6 +5415,14 @@ export type AuthPattern = {
    * Credential items, only for `credentials` type
    */
   credentialItems?: Array<DynamicConfigItem>;
+  /**
+   * Auth provider, only for `oauth` type
+   */
+  provider?: string;
+  /**
+   * Auth scope, only for `oauth` type
+   */
+  scope?: Array<string>;
 };
 
 export type ToolsetDefinition = {
