@@ -97,6 +97,10 @@ const selectionStyles = `
   }
 `;
 
+const SessionContainerClassName = `
+  absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20 w-[568px] overflow-hidden rounded-[20px] shadow-refly-xl border-[1px] border-solid border-refly-Card-Border bg-refly-bg-glass-content backdrop-blur-[20px]
+`;
+
 interface ContextMenuState {
   open: boolean;
   position: { x: number; y: number };
@@ -1001,7 +1005,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             {isPilotOpen ? (
               <motion.div
                 key="pilot-panel"
-                className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20  w-[568px] rounded-[20px] shadow-refly-m border-[1px] border-solid border-refly-Card-Border bg-white dark:bg-refly-bg-content-z2"
+                className={SessionContainerClassName}
                 initial={{ opacity: 0, y: 40, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 40, scale: 0.95 }}
@@ -1012,26 +1016,19 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             ) : nodes?.length > 0 ? (
               <motion.div
                 key="session-header"
-                className="absolute bottom-2 left-[calc(50%-284px)] transform -translate-x-1/2 z-20 shadow-sm rounded-[20px] w-[568px] border border-solid border-refly-Card-Border dark:border-gray-700 bg-white dark:bg-neutral-900/95"
+                className={SessionContainerClassName}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 20, scale: 0.95 }}
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
               >
-                <motion.div
-                  className="pb-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2, delay: 0.1 }}
-                >
-                  <SessionHeader
-                    canvasId={canvasId}
-                    session={session}
-                    steps={session?.steps ?? []}
-                    onClick={handleClick}
-                    onSessionClick={handleSessionClick}
-                  />
-                </motion.div>
+                <SessionHeader
+                  canvasId={canvasId}
+                  session={session}
+                  steps={session?.steps ?? []}
+                  onClick={handleClick}
+                  onSessionClick={handleSessionClick}
+                />
               </motion.div>
             ) : (
               <motion.div
@@ -1054,7 +1051,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
                 >
                   <Button
                     type="default"
-                    className="bg-white dark:bg-neutral-900/95 border border-neutral-200 dark:border-neutral-800 rounded-full h-14 px-4 shadow-sm hover:shadow transition-colors flex items-center gap-3 w-[280px] max-w-[92vw]"
+                    className="rounded-[20px] h-14 py-3 px-4 shadow-refly-xl hover:shadow transition-colors flex items-center gap-3 w-[280px] max-w-[92vw] border-[1px] border-solid border-refly-Card-Border bg-refly-bg-glass-content backdrop-blur-[20px]"
                     onClick={() => setIsPilotOpen(true)}
                   >
                     <motion.div
@@ -1064,12 +1061,10 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
                       transition={{ duration: 0.2, delay: 0.1 }}
                     >
                       <Logo logoProps={{ show: false }} />
-                      <span className="text-neutral-900 dark:text-neutral-50 text-[14px] font-semibold ml-0.5">
-                        Agent
-                      </span>
+                      <span className="text-refly-text-0 text-[14px] ml-0.5">Agent</span>
                     </motion.div>
                     <motion.span
-                      className="text-neutral-400 text-[16px] font-[400]"
+                      className="text-refly-text-2 text-[16px] font-normal"
                       initial={{ opacity: 0, x: 5 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.2, delay: 0.2 }}
