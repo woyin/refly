@@ -268,15 +268,13 @@ export const SessionContainer = memo(
 
     return (
       <div className={containerClassName}>
-        <div className="pb-4">
-          <SessionHeader
-            canvasId={canvasId}
-            session={session}
-            steps={sortedSteps}
-            onClick={handleClick}
-            onSessionClick={handleSessionClick}
-          />
-        </div>
+        <SessionHeader
+          canvasId={canvasId}
+          session={session}
+          steps={sortedSteps}
+          onClick={handleClick}
+          onSessionClick={handleSessionClick}
+        />
 
         <AnimatePresence mode="wait">
           {!activeSessionId ? (

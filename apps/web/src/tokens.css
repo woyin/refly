@@ -5,7 +5,7 @@
   --refly-bg-body-z0: #ffffff;
   --refly-bg-main-z1: #f0f0f0;
   --refly-bg-float-z3: #ffffff;
-  --refly-bg-glass-content: #ffffffcc;
+  --refly-bg-glass-content: rgba(255, 255, 255, 0.9);
   /* Gradient tokens */
   --refly-gradient-modal-top: #d8fffc;
   --refly-gradient-modal-bottom: #ffffff;
@@ -60,7 +60,7 @@
   --refly-bg-body-z0: #0e0e0e;
   --refly-bg-main-z1: #2b2b2c;
   --refly-bg-float-z3: #292929;
-  --refly-bg-glass-content: #000000cc;
+  --refly-bg-glass-content: rgba(30, 30, 30, 0.9);
   /* Gradient tokens */
   /* Use a subtle primary tint on top and blend into content background for dark theme */
   --refly-gradient-modal-top: rgb(36, 53, 50);

@@ -57,7 +57,7 @@ export const PilotStepItem = memo(({ step, onClick }: PilotStepItemProps) => {
 
   return (
     <motion.div
-      className="flex items-center gap-2 h-10 w-full px-3 py-2 mt-2 cursor-pointer rounded-xl transition-colors text-refly-text-2 hover:bg-refly-tertiary-hover bg-refly-tertiary-default"
+      className="flex items-center gap-2 h-10 w-full px-3 py-2 mt-2 cursor-pointer rounded-xl transition-colors text-refly-text-2 hover:text-refly-text-1 hover:bg-refly-tertiary-hover bg-refly-tertiary-default"
       onClick={handleClick}
       whileHover={{
         scale: 1.02,
