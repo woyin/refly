@@ -5858,6 +5858,25 @@ export const UpdatePilotSessionRequestSchema = {
   },
 } as const;
 
+export const RecoverPilotSessionRequestSchema = {
+  type: 'object',
+  required: ['sessionId'],
+  properties: {
+    sessionId: {
+      type: 'string',
+      description: 'Pilot session ID to recover',
+    },
+    stepIds: {
+      type: 'array',
+      description:
+        'Optional array of specific step IDs to recover. If not provided, recovers all failed steps in the current epoch.',
+      items: {
+        type: 'string',
+      },
+    },
+  },
+} as const;
+
 export const UpsertPilotSessionResponseSchema = {
   allOf: [
     {

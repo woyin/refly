@@ -795,8 +795,9 @@ export class PilotService {
    * Recover a failed pilot session by retrying failed steps
    * @param user - The user to recover the session for
    * @param sessionId - The ID of the session to recover
+   * @param stepIds - Optional array of specific step IDs to recover. If not provided, recovers all failed steps
    */
-  async recoverPilotSession(user: User, sessionId: string) {
+  async recoverPilotSession(user: User, sessionId: string, stepIds?: string[]) {
     try {
       const session = await this.prisma.pilotSession.findUnique({
         where: {
@@ -813,20 +814,31 @@ export class PilotService {
         throw new Error('Only failed sessions can be recovered');
       }
 
-      // Find failed steps in the current epoch
+      // Find failed steps to recover
+      const whereCondition: any = {
+        sessionId,
+        status: 'failed',
+        epoch: session.currentEpoch,
+      };
+
+      // If specific stepIds are provided, filter by them
+      if (stepIds && stepIds.length > 0) {
+        whereCondition.stepId = {
+          in: stepIds,
+        };
+      }
+
       const failedSteps = await this.prisma.pilotStep.findMany({
-        where: {
-          sessionId,
-          status: 'failed',
-          epoch: session.currentEpoch,
-        },
+        where: whereCondition,
       });
 
       if (failedSteps.length === 0) {
-        throw new Error('No failed steps found to recover');
+        if (stepIds && stepIds.length > 0) {
+          throw new Error(`No failed steps found with the specified IDs: ${stepIds.join(', ')}`);
+        } else {
+          throw new Error('No failed steps found to recover');
+        }
       }
-
-      this.logger.log(`Recovering ${failedSteps.length} failed steps for session ${sessionId}`);
 
       // Get necessary context for step execution
       const { targetId, targetType } = session;
@@ -877,11 +889,19 @@ export class PilotService {
         downstreamEntityIds,
       );
 
-      // Update session status to executing
-      await this.prisma.pilotSession.update({
-        where: { sessionId },
-        data: { status: 'executing' },
-      });
+      // Update session status to executing only if recovering all failed steps
+      // If only recovering specific steps, keep session status as failed until all steps are recovered
+      if (!stepIds || stepIds.length === 0) {
+        // Recovering all failed steps - change session status to executing
+        await this.prisma.pilotSession.update({
+          where: { sessionId },
+          data: { status: 'executing' },
+        });
+      } else {
+        // Recovering specific steps - keep session status as failed for now
+        // Session status will be updated via syncPilotStep when all steps are completed
+        this.logger.log('Recovering specific steps, keeping session status as failed for now');
+      }
 
       // Process each failed step
       for (const failedStep of failedSteps) {

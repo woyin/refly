@@ -3,7 +3,6 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
-  Param,
   ParseIntPipe,
   Post,
   Query,
@@ -83,12 +82,12 @@ export class PilotController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('session/:sessionId/recover')
+  @Post('session/recover')
   async recoverPilotSession(
     @LoginedUser() user: User,
-    @Param('sessionId') sessionId: string,
+    @Body() body: { sessionId: string; stepIds?: string[] },
   ): Promise<BaseResponse> {
-    await this.pilotService.recoverPilotSession(user, sessionId);
+    await this.pilotService.recoverPilotSession(user, body.sessionId, body.stepIds);
     return buildSuccessResponse({ message: 'Pilot session recovery started successfully' });
   }
 }
