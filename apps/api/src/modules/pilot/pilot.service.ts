@@ -979,11 +979,28 @@ export class PilotService {
                           ...existingNode,
                           data: {
                             ...existingNode.data,
+                            // Reset content preview to empty state
+                            contentPreview: '',
+                            // Reset createdAt to current time to show fresh start
+                            createdAt: new Date().toISOString(),
                             metadata: {
                               ...existingNode.data?.metadata,
                               status: 'waiting', // Reset from failed to waiting state
+                              version: newVersion, // Update to new version for correct polling
+                              // Clear all execution-related metadata to reset to initial state
+                              errors: undefined,
+                              tokenUsage: [],
+                              artifacts: undefined,
+                              structuredData: undefined,
+                              reasoningContent: undefined,
+                              currentLog: undefined,
+                              // Keep essential metadata like selectedSkill, contextItems, etc.
+                              // actionMeta: preserved
+                              // modelInfo: preserved
+                              // selectedSkill: preserved
+                              // contextItems: preserved
                             },
-                          },
+                          } as any, // Type assertion to handle createdAt field
                         },
                       },
                     ],

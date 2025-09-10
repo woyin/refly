@@ -171,10 +171,15 @@ const NodeFooter = memo(
             </div>
           )}
           {model && tokenUsage ? <Divider type="vertical" className="mx-1" /> : null}
-          {tokenUsage?.reduce && (
+          {tokenUsage?.reduce ? (
             <div className="flex items-center gap-1 flex-shrink-0">
               <IconToken className="w-3 h-3" />
               {tokenUsage.reduce((acc, t) => acc + t.inputTokens + t.outputTokens, 0)}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <IconToken className="w-3 h-3" />
+              {0}
             </div>
           )}
         </div>
