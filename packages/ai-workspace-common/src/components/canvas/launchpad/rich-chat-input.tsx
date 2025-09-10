@@ -694,6 +694,12 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       return [...workflowVariableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
     }, [workflowVariables, nodes, realtimeNodes]);
 
+    // Keep latest items in a ref so Mention suggestion always sees fresh data
+    const allItemsRef = useRef<MentionItem[]>(allItems);
+    useEffect(() => {
+      allItemsRef.current = allItems;
+    }, [allItems]);
+
     // Use ref to store latest contextItems to avoid performance issues
     const contextItemsRef = useRef(contextItems);
 
@@ -843,14 +849,16 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             }
           },
           items: ({ query }: { query: string }) => {
+            const sourceItems = allItemsRef.current ?? [];
             if (!query) {
-              return allItems;
+              return sourceItems;
             }
-            return allItems.filter(
-              (item) =>
-                item.name.toLowerCase().includes(query.toLowerCase()) ||
-                (item.description?.toLowerCase().includes(query.toLowerCase()) ?? false),
-            );
+            return sourceItems.filter((item) => {
+              const name = item?.name ?? '';
+              const desc = item?.description ?? '';
+              const q = query?.toLowerCase() ?? '';
+              return name.toLowerCase().includes(q) || desc.toLowerCase().includes(q);
+            });
           },
           render: () => {
             let component: any;
@@ -891,7 +899,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           },
         },
       });
-    }, [allItems, setContextItems]);
+    }, [setContextItems]);
 
     // Create Tiptap editor
     const internalUpdateRef = useRef(false);
