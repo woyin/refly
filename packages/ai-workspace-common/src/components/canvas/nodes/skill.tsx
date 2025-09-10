@@ -1,5 +1,5 @@
 import { Edge, NodeProps, Position, useReactFlow } from '@xyflow/react';
-import { CanvasNode, CanvasNodeData, SkillNodeMeta } from '@refly/canvas-common';
+import { CanvasNode, CanvasNodeData, purgeToolsets, SkillNodeMeta } from '@refly/canvas-common';
 import { Node } from '@xyflow/react';
 import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
@@ -166,8 +166,9 @@ export const SkillNode = memo(
 
     const setSelectedToolsets = useCallback(
       (toolsets: GenericToolset[]) => {
-        setLocalSelectedToolsets(toolsets);
-        updateNodeData({ metadata: { selectedToolsets: toolsets } });
+        const purgedToolsets = purgeToolsets(toolsets);
+        setLocalSelectedToolsets(purgedToolsets);
+        updateNodeData({ metadata: { selectedToolsets: purgedToolsets } });
       },
       [updateNodeData],
     );

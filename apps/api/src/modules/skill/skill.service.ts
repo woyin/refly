@@ -35,6 +35,7 @@ import {
   CreditBilling,
 } from '@refly/openapi-schema';
 import { BaseSkill } from '@refly/skill-template';
+import { purgeToolsets } from '@refly/canvas-common';
 import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from '@refly/utils';
 import { PrismaService } from '../common/prisma.service';
 import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
@@ -683,7 +684,7 @@ export class SkillService implements OnModuleInit {
               tplConfig: JSON.stringify(param.tplConfig),
               runtimeConfig: JSON.stringify(param.runtimeConfig),
               history: JSON.stringify(purgeResultHistory(param.resultHistory)),
-              toolsets: JSON.stringify(param.toolsets),
+              toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
               providerItemId: providerItem.itemId,
               workflowExecutionId: param.workflowExecutionId,
               workflowNodeExecutionId: param.workflowNodeExecutionId,
@@ -716,7 +717,7 @@ export class SkillService implements OnModuleInit {
           tplConfig: JSON.stringify(param.tplConfig),
           runtimeConfig: JSON.stringify(param.runtimeConfig),
           history: JSON.stringify(purgeResultHistory(param.resultHistory)),
-          toolsets: JSON.stringify(param.toolsets),
+          toolsets: JSON.stringify(purgeToolsets(param.toolsets)),
           providerItemId: providerItem.itemId,
           workflowExecutionId: param.workflowExecutionId,
           workflowNodeExecutionId: param.workflowNodeExecutionId,

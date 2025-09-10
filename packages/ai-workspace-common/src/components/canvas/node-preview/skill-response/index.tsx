@@ -110,12 +110,16 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   };
 
   useEffect(() => {
+    // Do not fetch action result if streaming
+    if (isStreaming) {
+      return;
+    }
     if (!result && !shareId) {
       fetchActionResult(resultId);
     } else if (result) {
       setLoading(false);
     }
-  }, [resultId, result, shareId]);
+  }, [resultId, result, shareId, isStreaming]);
 
   const scrollToBottom = useCallback(
     (event: { resultId: string; payload: ActionResult }) => {
@@ -321,7 +325,9 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
               { 'opacity-30': editMode },
             )}
           >
-            {loading && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
+            {loading && !isStreaming && (
+              <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />
+            )}
             {(result?.status === 'executing' || result?.status === 'waiting') &&
               !outputStep &&
               statusText && (
