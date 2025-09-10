@@ -3531,6 +3531,7 @@ export const EdgeDiffSchema = {
 export const CanvasTransactionSourceSchema = {
   type: 'object',
   description: 'Canvas transaction source',
+  required: ['type'],
   properties: {
     type: {
       type: 'string',

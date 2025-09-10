@@ -2644,7 +2644,7 @@ export type CanvasTransactionSource = {
   /**
    * Source type
    */
-  type?: 'user' | 'system';
+  type: 'user' | 'system';
   /**
    * Source user ID
    */

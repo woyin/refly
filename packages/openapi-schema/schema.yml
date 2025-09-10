@@ -6142,6 +6142,8 @@ components:
     CanvasTransactionSource:
       type: object
       description: Canvas transaction source
+      required:
+        - type
       properties:
         type:
           type: string
