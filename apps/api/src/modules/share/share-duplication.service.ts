@@ -37,6 +37,7 @@ import { SHARE_CODE_PREFIX } from './const';
 interface DuplicateOptions {
   skipCanvasCheck?: boolean;
   skipProjectCheck?: boolean;
+  targetId?: string;
 }
 
 @Injectable()
@@ -91,8 +92,8 @@ export class ShareDuplicationService {
       }
     }
 
-    // Generate a new document ID
-    const newDocId = genDocumentID();
+    // Generate or use pre-generated document ID
+    const newDocId = options?.targetId ?? genDocumentID();
 
     const newStorageKey = `doc/${newDocId}.txt`;
     const newStateStorageKey = `state/${newDocId}`;
@@ -194,8 +195,8 @@ export class ShareDuplicationService {
       throw new ShareNotFoundError();
     }
 
-    // Generate a new document ID
-    const newResourceId = genResourceID();
+    // Generate or use pre-generated resource ID
+    const newResourceId = options?.targetId ?? genResourceID();
 
     const newStorageKey = `resource/${newResourceId}.txt`;
 
@@ -297,8 +298,8 @@ export class ShareDuplicationService {
       throw new ShareNotFoundError();
     }
 
-    // Generate a new code artifact ID
-    const newCodeArtifactId = genCodeArtifactID();
+    // Generate or use pre-generated code artifact ID
+    const newCodeArtifactId = options?.targetId ?? genCodeArtifactID();
 
     // Download the shared code artifact data
     const codeArtifactDetail = safeParseJSON(
@@ -440,35 +441,65 @@ export class ShareDuplicationService {
   async duplicateSharedCanvas(user: User, param: DuplicateShareRequest): Promise<Entity> {
     const { shareId, projectId } = param;
 
-    const record = await this.prisma.shareRecord.findFirst({
-      where: { shareId, deletedAt: null },
-    });
+    // Phase 1: Parallel data preloading
+    const [record, , storageQuota] = await Promise.all([
+      this.prisma.shareRecord.findFirst({
+        where: { shareId, deletedAt: null },
+      }),
+      // Pre-load canvas data will be downloaded below
+      null,
+      this.subscriptionService.checkStorageUsage(user),
+    ]);
+
     if (!record) {
       throw new ShareNotFoundError();
     }
 
-    const canvasData: RawCanvasData = JSON.parse(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
+    // Download canvas data in parallel with other operations
+    const canvasDataPromise = this.miscService.downloadFile({
+      storageKey: record.storageKey,
+      visibility: 'public',
+    });
 
+    // Pre-generate all new IDs upfront
     const newCanvasId = genCanvasID();
     const stateStorageKey = `state/${newCanvasId}`;
 
-    const { nodes, edges } = canvasData;
+    // Wait for canvas data to be available
+    const canvasDataBuffer = await canvasDataPromise;
+    const canvasData: RawCanvasData = JSON.parse(canvasDataBuffer.toString());
 
+    const { nodes, edges } = canvasData;
     const libEntityNodes = nodes.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
     );
 
-    // Check storage quota before creating a new canvas
-    const { available } = await this.subscriptionService.checkStorageUsage(user);
-    if (available < libEntityNodes.length) {
+    // Check storage quota
+    if (storageQuota.available < libEntityNodes.length) {
       throw new StorageQuotaExceeded();
+    }
+
+    // Pre-generate all new entity IDs upfront for better performance
+    const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
+    const preGeneratedActionResultIds: Record<string, string> = {};
+    const preGeneratedLibIds: Record<string, string> = {};
+
+    // Pre-generate IDs for all skill responses
+    for (const node of skillResponseNodes) {
+      preGeneratedActionResultIds[node.data.entityId] = genActionResultID();
+    }
+
+    // Pre-generate IDs for library entities (document/resource/codeArtifact)
+    for (const node of libEntityNodes) {
+      const oldId = node?.data?.entityId;
+      if (!oldId) continue;
+      if (node.type === 'document') {
+        preGeneratedLibIds[oldId] = genDocumentID();
+      } else if (node.type === 'resource') {
+        preGeneratedLibIds[oldId] = genResourceID();
+      } else if (node.type === 'codeArtifact') {
+        preGeneratedLibIds[oldId] = genCodeArtifactID();
+      }
     }
 
     await this.prisma.canvas.create({
@@ -482,132 +513,104 @@ export class ShareDuplicationService {
       },
     });
 
-    // Duplicate library entities
-    const limit = pLimit(5); // Limit concurrent operations
+    // Phase 2: Duplicate entities with higher concurrency
+    const limit = pLimit(10); // Increased concurrency limit for better performance
     const replaceEntityMap: Record<string, string> = {
       [record.entityId]: newCanvasId,
+      ...preGeneratedActionResultIds,
+      ...preGeneratedLibIds,
     };
 
-    await Promise.all(
-      libEntityNodes.map((node) =>
-        limit(async () => {
-          const entityType = node.type;
-          const { entityId, metadata } = node.data;
-          const shareId = metadata?.shareId as string;
+    // Prepare duplication tasks in parallel
+    const libDupPromises = libEntityNodes.map((node) =>
+      limit(async () => {
+        const entityType = node.type;
+        const { entityId, metadata } = node.data;
+        const shareId = metadata?.shareId as string;
 
-          if (!shareId) return;
+        if (!shareId) return;
 
-          const nodeDupParam: DuplicateShareRequest = {
-            shareId,
-            projectId,
-            canvasId: newCanvasId,
-          };
-          const nodeDupOptions: DuplicateOptions = {
-            skipCanvasCheck: true,
-            skipProjectCheck: true,
-          };
+        const nodeDupParam: DuplicateShareRequest = {
+          shareId,
+          projectId,
+          canvasId: newCanvasId,
+        };
+        const targetId = replaceEntityMap[entityId];
+        const nodeDupOptions: DuplicateOptions = {
+          skipCanvasCheck: true,
+          skipProjectCheck: true,
+          targetId,
+        };
 
-          switch (entityType) {
-            case 'document': {
-              const doc = await this.duplicateSharedDocument(user, nodeDupParam, nodeDupOptions);
-              if (doc) {
-                node.data.entityId = doc.entityId;
-                replaceEntityMap[entityId] = doc.entityId;
-              }
-              break;
-            }
-            case 'resource': {
-              const resource = await this.duplicateSharedResource(
-                user,
-                nodeDupParam,
-                nodeDupOptions,
-              );
-              if (resource) {
-                node.data.entityId = resource.entityId;
-                replaceEntityMap[entityId] = resource.entityId;
-              }
-              break;
-            }
-            case 'codeArtifact': {
-              const codeArtifact = await this.duplicateSharedCodeArtifact(
-                user,
-                nodeDupParam,
-                nodeDupOptions,
-              );
-              if (codeArtifact) {
-                node.data.entityId = codeArtifact.entityId;
-                replaceEntityMap[entityId] = codeArtifact.entityId;
-              }
-              break;
-            }
+        switch (entityType) {
+          case 'document': {
+            await this.duplicateSharedDocument(user, nodeDupParam, nodeDupOptions);
+            node.data.entityId = targetId ?? node.data.entityId;
+            break;
           }
+          case 'resource': {
+            await this.duplicateSharedResource(user, nodeDupParam, nodeDupOptions);
+            node.data.entityId = targetId ?? node.data.entityId;
+            break;
+          }
+          case 'codeArtifact': {
+            await this.duplicateSharedCodeArtifact(user, nodeDupParam, nodeDupOptions);
+            node.data.entityId = targetId ?? node.data.entityId;
+            break;
+          }
+        }
 
-          // Remove the shareId from the metadata
-          node.data.metadata.shareId = undefined;
+        // Remove the shareId from the metadata
+        node.data.metadata.shareId = undefined;
 
-          // Replace the projectId with the new project ID
-          node.data.metadata.projectId = projectId;
-        }),
-      ),
+        // Replace the projectId with the new project ID
+        node.data.metadata.projectId = projectId;
+      }),
     );
 
-    const resultIds = nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
+    const skillDupPromises = skillResponseNodes.map((node) =>
+      limit(async () => {
+        const shareId = node.data.metadata.shareId as string;
+        if (!shareId) return;
 
-    for (const resultId of resultIds) {
-      replaceEntityMap[resultId] = genActionResultID();
-    }
+        const result = await this.duplicateSharedSkillResponse(
+          user,
+          { shareId, projectId },
+          {
+            replaceEntityMap,
+            target: { entityId: newCanvasId, entityType: 'canvas' },
+          },
+        );
+        if (result) {
+          node.data.entityId = result.entityId;
+        }
 
-    await Promise.all(
-      nodes
-        .filter((node) => node.type === 'skillResponse')
-        .map((node) =>
-          limit(async () => {
-            const shareId = node.data.metadata.shareId as string;
-            if (!shareId) return;
+        // Remove the shareId from the metadata
+        node.data.metadata.shareId = undefined;
 
-            const result = await this.duplicateSharedSkillResponse(
-              user,
-              { shareId, projectId },
-              {
-                replaceEntityMap,
-                target: { entityId: newCanvasId, entityType: 'canvas' },
-              },
-            );
-            if (result) {
-              node.data.entityId = result.entityId;
-            }
+        // Replace the projectId with the new project ID
+        node.data.metadata.projectId = projectId;
 
-            // Remove the shareId from the metadata
-            node.data.metadata.shareId = undefined;
+        // Replace the context with the new entity ID
+        if (node.data.metadata.contextItems) {
+          node.data.metadata.contextItems = JSON.parse(
+            batchReplaceRegex(JSON.stringify(node.data.metadata.contextItems), replaceEntityMap),
+          );
+        }
 
-            // Replace the projectId with the new project ID
-            node.data.metadata.projectId = projectId;
-
-            // Replace the context with the new entity ID
-            if (node.data.metadata.contextItems) {
-              node.data.metadata.contextItems = JSON.parse(
-                batchReplaceRegex(
-                  JSON.stringify(node.data.metadata.contextItems),
-                  replaceEntityMap,
-                ),
-              );
-            }
-
-            // Replace the structuredData with the new entity ID
-            if (node.data.metadata.structuredData) {
-              node.data.metadata.structuredData = JSON.parse(
-                batchReplaceRegex(
-                  JSON.stringify(node.data.metadata.structuredData),
-                  replaceEntityMap,
-                ),
-              );
-            }
-          }),
-        ),
+        // Replace the structuredData with the new entity ID
+        if (node.data.metadata.structuredData) {
+          node.data.metadata.structuredData = JSON.parse(
+            batchReplaceRegex(JSON.stringify(node.data.metadata.structuredData), replaceEntityMap),
+          );
+        }
+      }),
     );
 
+    await Promise.all([...libDupPromises, ...skillDupPromises]);
+
+    // Phase 4: Parallelize Y.Doc state creation, upload, and final database operations
+    // TODO: Canvas does not use Y.Doc any more.
     const doc = new Y.Doc();
     doc.transact(() => {
       doc.getText('title').insert(0, canvasData.title);
@@ -615,31 +618,35 @@ export class ShareDuplicationService {
       doc.getArray('edges').insert(0, edges);
     });
 
-    await this.miscService.uploadBuffer(user, {
-      fpath: stateStorageKey,
-      buf: Buffer.from(Y.encodeStateAsUpdate(doc)),
-      entityId: newCanvasId,
-      entityType: 'canvas',
-      visibility: 'private',
-      storageKey: stateStorageKey,
-    });
+    const stateBuffer = Buffer.from(Y.encodeStateAsUpdate(doc));
 
-    // Update canvas status to completed
-    await this.prisma.canvas.update({
-      where: { canvasId: newCanvasId },
-      data: { status: 'ready' },
-    });
-
-    await this.prisma.duplicateRecord.create({
-      data: {
-        sourceId: record.entityId,
-        targetId: newCanvasId,
+    // Parallelize state upload, canvas status update, and duplicate record creation
+    await Promise.all([
+      this.miscService.uploadBuffer(user, {
+        fpath: stateStorageKey,
+        buf: stateBuffer,
+        entityId: newCanvasId,
         entityType: 'canvas',
-        uid: user.uid,
-        shareId,
-        status: 'finish',
-      },
-    });
+        visibility: 'private',
+        storageKey: stateStorageKey,
+      }),
+      this.prisma.canvas.update({
+        where: { canvasId: newCanvasId },
+        data: { status: 'ready' },
+      }),
+      this.prisma.duplicateRecord.create({
+        data: {
+          sourceId: record.entityId,
+          targetId: newCanvasId,
+          entityType: 'canvas',
+          uid: user.uid,
+          shareId,
+          status: 'finish',
+        },
+      }),
+      // Also sync storage usage in parallel
+      this.knowledgeService.syncStorageUsage(user),
+    ]);
 
     return { entityId: newCanvasId, entityType: 'canvas' };
   }
@@ -745,7 +752,6 @@ export class ShareDuplicationService {
       throw new ParamsError('Share ID is required');
     }
 
-    // 根据shareId前缀确定类型
     if (shareId.startsWith(SHARE_CODE_PREFIX.canvas)) {
       return this.duplicateSharedCanvas(user, body);
     }
