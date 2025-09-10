@@ -5960,15 +5960,6 @@ components:
             hash:
               type: string
               description: Canvas state hash (sha256), calculated from nodes and edges
-            workflow:
-              type: object
-              description: Workflow configuration
-              properties:
-                variables:
-                  type: array
-                  description: List of workflow variables
-                  items:
-                    $ref: '#/components/schemas/WorkflowVariable'
             transactions:
               type: array
               description: Canvas transaction list
@@ -6073,6 +6064,11 @@ components:
         minimapStorageKey:
           type: string
           description: Minimap storage key
+        variables:
+          type: array
+          description: Workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
     UpsertCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -6169,12 +6165,12 @@ components:
           $ref: '#/components/schemas/DiffType'
         from:
           type: object
-          description: Node diff from
-          $ref: '#/components/schemas/CanvasNode'
+          description: Node diff from (only the fields that are different will be included)
+          additionalProperties: true
         to:
           type: object
-          description: Node diff to
-          $ref: '#/components/schemas/CanvasNode'
+          description: Node diff to (only the fields that are different will be included)
+          additionalProperties: true
     EdgeDiff:
       type: object
       required:
@@ -6196,6 +6192,21 @@ components:
           type: object
           description: Edge diff to
           $ref: '#/components/schemas/CanvasEdge'
+    CanvasTransactionSource:
+      type: object
+      description: Canvas transaction source
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: Source type
+          enum:
+            - user
+            - system
+        uid:
+          type: string
+          description: Source user ID
     CanvasTransaction:
       type: object
       required:
@@ -6220,6 +6231,10 @@ components:
         revoked:
           type: boolean
           description: Whether the transaction is revoked
+        source:
+          type: object
+          description: Transaction source
+          $ref: '#/components/schemas/CanvasTransactionSource'
         deleted:
           type: boolean
           description: Whether the transaction is deleted
@@ -9284,6 +9299,7 @@ components:
         - start
     CanvasNodeData:
       type: object
+      description: Node data
       required:
         - title
         - entityId
@@ -9291,6 +9307,9 @@ components:
         title:
           type: string
           description: Node title
+        editedTitle:
+          type: string
+          description: Node edited title
         entityId:
           type: string
           description: Node entity ID
@@ -9335,6 +9354,7 @@ components:
           description: Node offset position
         data:
           type: object
+          description: Node data
           $ref: '#/components/schemas/CanvasNodeData'
         style:
           type: object
@@ -9381,6 +9401,11 @@ components:
           type: string
           description: New canvas ID
           example: "canvas-456"
+        variables:
+          type: array
+          description: Workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
         startNodes:
           type: array
           description: Start node IDs
@@ -9587,7 +9612,7 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/ExecuteWorkflowAppResult'
-    VariableType:
+    ValueType:
       type: string
       enum:
         - text
@@ -9615,7 +9640,7 @@ components:
       properties:
         type:
           description: Variable type
-          $ref: '#/components/schemas/VariableType'
+          $ref: '#/components/schemas/ValueType'
         text:
           type: string
           description: Variable text value (for text type)

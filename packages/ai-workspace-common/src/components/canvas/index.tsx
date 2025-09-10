@@ -1299,7 +1299,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
           readonly={readonly}
           canvasId={canvasId}
           workflowRun={{
-            initialize: (startNodes?: string[]) => initializeWorkflow(canvasId, startNodes),
+            initialize: (startNodes?: string[]) => initializeWorkflow({ canvasId, startNodes }),
             loading,
             executionId,
             workflowStatus,

@@ -25,7 +25,7 @@
 .ant-btn:hover,
 .ant-btn:focus,
 .ant-btn:active {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 /* Remove shadows from all Ant Design button variants */
@@ -34,7 +34,7 @@
 .ant-btn-dashed,
 .ant-btn-link,
 .ant-btn-text {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 /* Text button hover background color override */

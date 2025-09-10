@@ -2,7 +2,7 @@ import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { Divider, Input, message } from 'antd';
 import type { InputRef } from 'antd';
-import { CanvasNode } from '@refly/canvas-common';
+import { CanvasNode, purgeToolsets } from '@refly/canvas-common';
 import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './shared/styles';
@@ -237,7 +237,14 @@ export const SkillResponseNode = memo(
     const { t, i18n } = useTranslation();
     const language = i18n.languages?.[0];
 
-    const { title, contentPreview: content, metadata, createdAt, entityId } = data ?? {};
+    const {
+      title,
+      editedTitle,
+      contentPreview: content,
+      metadata,
+      createdAt,
+      entityId,
+    } = data ?? {};
     const { errMsg } = useSkillError(metadata?.errors?.[0]);
 
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
@@ -308,7 +315,7 @@ export const SkillResponseNode = memo(
     const model = modelInfo?.label;
 
     // Get query and response content from result
-    const query = title;
+    const query = editedTitle || title;
 
     // Check if node has any connections
     const edges = getEdges();
@@ -362,7 +369,7 @@ export const SkillResponseNode = memo(
           query: title,
           selectedSkill: skill,
           contextItems: data?.metadata?.contextItems,
-          selectedToolsets: data?.metadata?.selectedToolsets,
+          selectedToolsets: purgeToolsets(data?.metadata?.selectedToolsets),
         },
         {
           entityType: 'canvas',

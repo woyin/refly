@@ -400,7 +400,7 @@ export const NodePreviewHeader: FC<NodePreviewHeaderProps> = memo(
               <NodeHeader
                 className="!mb-0"
                 source="skillResponsePreview"
-                query={currentNode.data?.title || ''}
+                query={currentNode.data?.editedTitle || currentNode.data?.title || ''}
                 disabled={readonly}
                 showIcon
                 updateTitle={handleTitleUpdate}

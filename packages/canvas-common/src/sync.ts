@@ -5,8 +5,7 @@ import {
   CanvasTransaction,
   CanvasData,
 } from '@refly/openapi-schema';
-import { genCanvasVersionId, genStartID, genNodeID } from '@refly/utils';
-import deepmerge from 'deepmerge';
+import { genCanvasVersionId, genStartID, genNodeID, deepmerge } from '@refly/utils';
 import { deduplicateNodes, deduplicateEdges } from './utils';
 import { MAX_STATE_TX_COUNT, MAX_VERSION_AGE } from './constants';
 
@@ -28,9 +27,6 @@ export const initEmptyCanvasState = (): CanvasState => {
     version: genCanvasVersionId(),
     nodes: [startNode],
     edges: [],
-    workflow: {
-      variables: [],
-    },
     transactions: [],
     history: [],
     createdAt: Date.now(),
@@ -101,16 +97,14 @@ export const applyCanvasTransaction = (
     switch (nodeDiff.type) {
       case 'add':
         if (nodeDiff.to) {
-          newNodes.push(nodeDiff.to);
+          newNodes.push(nodeDiff.to as CanvasNode);
         }
         break;
       case 'update':
         newNodes = newNodes.map((node) => {
           if (node.id === nodeDiff.id && nodeDiff.to) {
-            const updatedNode = deepmerge(node, nodeDiff.to, {
-              arrayMerge: (_target, source) => source,
-            });
-            return updatedNode;
+            const updatedNode = deepmerge(node, nodeDiff.to);
+            return updatedNode as CanvasNode;
           }
           return node;
         });
@@ -132,9 +126,7 @@ export const applyCanvasTransaction = (
       case 'update':
         newEdges = newEdges.map((edge) => {
           if (edge.id === edgeDiff.id && edgeDiff.to) {
-            const updatedEdge = deepmerge(edge, edgeDiff.to, {
-              arrayMerge: (_target, source) => source,
-            });
+            const updatedEdge = deepmerge(edge, edgeDiff.to);
             return updatedEdge;
           }
           return edge;
@@ -355,7 +347,7 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
       if (tx) {
         const nodeDiff = tx.nodeDiffs.find((diff) => diff.id === conflictingId);
         if (nodeDiff) {
-          localItem = nodeDiff.to || nodeDiff.from;
+          localItem = (nodeDiff.to as CanvasNode) || (nodeDiff.from as CanvasNode);
           conflictType = 'node';
           break;
         }
@@ -374,7 +366,7 @@ export const mergeCanvasStates = (local: CanvasState, remote: CanvasState): Canv
       if (tx) {
         const nodeDiff = tx.nodeDiffs.find((diff) => diff.id === conflictingId);
         if (nodeDiff) {
-          remoteItem = nodeDiff.to || nodeDiff.from;
+          remoteItem = (nodeDiff.to as CanvasNode) || (nodeDiff.from as CanvasNode);
           break;
         }
         const edgeDiff = tx.edgeDiffs.find((diff) => diff.id === conflictingId);

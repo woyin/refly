@@ -221,10 +221,7 @@ export const convertContextItemsToInvokeParams = (
             title: item.title,
           },
           isCurrent: item.isCurrentContext,
-          metadata: {
-            ...item.metadata,
-            url: getClientOrigin(),
-          },
+          metadata: item.metadata,
         })),
       (item) => item.docId,
     ),

@@ -1,7 +1,8 @@
 import { Edge, NodeProps, Position, useReactFlow } from '@xyflow/react';
-import { CanvasNode, CanvasNodeData, SkillNodeMeta } from '@refly/canvas-common';
+import { CanvasNode, CanvasNodeData, purgeToolsets, SkillNodeMeta } from '@refly/canvas-common';
 import { Node } from '@xyflow/react';
 import { Form } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
@@ -67,6 +68,7 @@ export const SkillNode = memo(
     const [form] = Form.useForm();
     useSelectedNodeZIndex(id, selected);
 
+    const { t } = useTranslation();
     const { canvasId, readonly } = useCanvasContext();
 
     const { projectId, handleProjectChange, getFinalProjectId } = useAskProject();
@@ -111,8 +113,7 @@ export const SkillNode = memo(
         nodes
           ?.filter((node) => node.type === 'skillResponse')
           ?.map((node) => ({
-            name: node.data?.title ?? '未命名步骤',
-            description: '步骤记录',
+            name: node.data?.title ?? t('common.untitled'),
             source: 'stepRecord',
             variableType: 'step',
             entityId: node.data?.entityId,
@@ -124,8 +125,7 @@ export const SkillNode = memo(
         nodes
           ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
           ?.map((node) => ({
-            name: node.data?.title ?? '未命名结果',
-            description: '结果记录',
+            name: node.data?.title ?? t('common.untitled'),
             source: 'resultRecord',
             variableType: 'result',
             entityId: node.data?.entityId,
@@ -212,8 +212,9 @@ export const SkillNode = memo(
 
     const setSelectedToolsets = useCallback(
       (toolsets: GenericToolset[]) => {
-        setLocalSelectedToolsets(toolsets);
-        updateNodeData({ metadata: { selectedToolsets: toolsets } });
+        const purgedToolsets = purgeToolsets(toolsets);
+        setLocalSelectedToolsets(purgedToolsets);
+        updateNodeData({ metadata: { selectedToolsets: purgedToolsets } });
       },
       [updateNodeData],
     );
