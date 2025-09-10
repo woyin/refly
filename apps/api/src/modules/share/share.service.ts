@@ -1378,7 +1378,7 @@ export class ShareService {
     await this.prisma.$transaction([
       this.prisma.actionResult.create({
         data: {
-          ...pick(result, ['version', 'title', 'tier', 'status']),
+          ...pick(result, ['title', 'tier', 'status']),
           resultId: newResultId,
           uid: user.uid,
           type: result.type,
@@ -1394,6 +1394,7 @@ export class ShareService {
           modelName: result.modelInfo?.name,
           duplicateFrom: result.resultId,
           projectId,
+          version: 0, // Reset version to 0 for the new duplicate
         },
       }),
       ...(result.steps?.length > 0
@@ -1408,6 +1409,7 @@ export class ShareService {
                 structuredData: JSON.stringify(step.structuredData),
                 logs: JSON.stringify(step.logs),
                 tokenUsage: JSON.stringify(step.tokenUsage),
+                version: 0, // Reset version to 0 for the new duplicate
               })),
             }),
           ]
