@@ -159,6 +159,8 @@ export function genNodeEntityId(nodeType: CanvasNodeType): string {
       return IDPrefix.VIDEO + createId();
     case 'audio':
       return IDPrefix.AUDIO + createId();
+    case 'start':
+      return IDPrefix.START + createId();
     default:
       return createId();
   }

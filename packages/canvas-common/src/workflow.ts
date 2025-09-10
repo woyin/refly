@@ -30,12 +30,22 @@ export interface WorkflowNode {
 }
 
 /**
+ * Escape special regex characters in a string to be used in RegExp constructor
+ */
+const escapeRegExp = (string: string): string => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+/**
  * Enhanced process query with workflow variables
  * - string: as before
  * - resource: return special marker for resource injection
  * - option: use defaultValue array first if value missing
  */
-export const processQueryWithTypes = (query: string, variables: WorkflowVariable[] = []) => {
+export const processQueryWithTypes = (
+  query: string,
+  variables: WorkflowVariable[] = [],
+): string => {
   if (!query || !variables.length) {
     return query;
   }
@@ -57,9 +67,10 @@ export const processQueryWithTypes = (query: string, variables: WorkflowVariable
         .filter(Boolean) ?? [];
 
     const stringValue = textValues.length > 0 ? textValues.join(', ') : '';
+    const escapedName = escapeRegExp(variable.name);
     processedQuery = processedQuery.replace(
-      new RegExp(`@${variable.name}\\s`, 'g'),
-      `${stringValue} `,
+      new RegExp(`@${escapedName}(?:\\b|$)`, 'g'),
+      `${stringValue}`,
     );
   }
   return processedQuery;

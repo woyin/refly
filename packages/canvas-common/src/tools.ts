@@ -4,14 +4,16 @@ export const purgeToolsets = (toolsets: GenericToolset[]) => {
   if (!Array.isArray(toolsets)) {
     return [];
   }
-  return toolsets.map((toolset) => {
-    if (toolset.toolset?.definition) {
-      const { definition, ...toolsetWithoutDefinition } = toolset.toolset;
-      return {
-        ...toolset,
-        toolset: toolsetWithoutDefinition,
-      };
+  return toolsets.map((t) => {
+    let next = { ...t };
+    if (next.toolset) {
+      const { definition, authData, ...safeToolset } = next.toolset;
+      next = { ...next, toolset: safeToolset };
     }
-    return toolset;
+    if (next.mcpServer) {
+      const { headers, env, ...safeMcp } = next.mcpServer;
+      next = { ...next, mcpServer: safeMcp };
+    }
+    return next;
   });
 };
