@@ -119,6 +119,11 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
             handleSendMessage={handleSendMessage}
             maxRows={6}
             inputClassName="px-3 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder={
+              chatMode === 'agent'
+                ? t('canvas.launchpad.chatInputPlaceholder')
+                : t('canvas.launchpad.commonChatInputPlaceholder')
+            }
           />
           <Actions
             query={query}

@@ -1636,6 +1636,7 @@ const translations = {
       loadingEditor: '加载编辑器中...',
       loadingVariables: '加载变量中...',
       noStartNodeVariables: '暂无开始节点变量',
+      defaultPlaceholder: '描述你想要生成的内容...',
     },
     toolsDepencency: {
       title: '工具依赖',

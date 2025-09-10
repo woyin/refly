@@ -7,6 +7,7 @@ import { useUserStoreShallow } from '@refly/stores';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
+import Placeholder from '@tiptap/extension-placeholder';
 import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
 import SVGX from '../../../assets/x.svg';
@@ -608,6 +609,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       onFocus,
       contextItems = [],
       setContextItems,
+      placeholder,
     },
     ref,
   ) => {
@@ -932,27 +934,43 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       return () => window.removeEventListener('keydown', onKeyDown);
     }, [selectedSkillNodeId]);
 
-    const editor = useEditor({
-      extensions: [StarterKit, mentionExtension],
-      content: query,
-      editable: !readonly,
-      onUpdate: ({ editor }) => {
-        const content = editor.getText();
-        // Keep raw text in state for UX; convert to handlebars only on send
-        internalUpdateRef.current = true;
-        setQuery(content);
-      },
-      editorProps: {
-        attributes: {
-          class: cn(
-            'prose prose-sm max-w-none focus:outline-none',
-            inputClassName,
-            readonly && 'cursor-not-allowed',
-            isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
-          ),
+    // Create placeholder extension with dynamic placeholder
+    const placeholderExtension = useMemo(() => {
+      return Placeholder.configure({
+        placeholder: placeholder || t('canvas.richChatInput.defaultPlaceholder'),
+      });
+    }, [placeholder, t]);
+
+    // Create all extensions array
+    const extensions = useMemo(
+      () => [StarterKit, mentionExtension, placeholderExtension],
+      [mentionExtension, placeholderExtension],
+    );
+
+    const editor = useEditor(
+      {
+        extensions,
+        content: query,
+        editable: !readonly,
+        onUpdate: ({ editor }) => {
+          const content = editor.getText();
+          // Keep raw text in state for UX; convert to handlebars only on send
+          internalUpdateRef.current = true;
+          setQuery(content);
+        },
+        editorProps: {
+          attributes: {
+            class: cn(
+              'prose prose-sm max-w-none focus:outline-none',
+              inputClassName,
+              readonly && 'cursor-not-allowed',
+              isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
+            ),
+          },
         },
       },
-    });
+      [placeholder],
+    );
 
     // Function to convert mentions to Handlebars format
     const convertMentionsToHandlebars = useCallback(
@@ -1302,7 +1320,12 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             onPaste={handlePaste}
           >
             {editor ? (
-              <EditorContent editor={editor} className="h-full" data-cy="rich-chat-input" />
+              <EditorContent
+                editor={editor}
+                className="h-full"
+                data-cy="rich-chat-input"
+                data-placeholder={placeholder || t('canvas.richChatInput.defaultPlaceholder')}
+              />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-400">
                 {t('canvas.richChatInput.loadingEditor')}
@@ -1317,13 +1340,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
 RichChatInputComponent.displayName = 'RichChatInputComponent';
 
-export const RichChatInput = memo(RichChatInputComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.query === nextProps.query &&
-    prevProps.onUploadImage === nextProps.onUploadImage &&
-    prevProps.onUploadMultipleImages === nextProps.onUploadMultipleImages &&
-    prevProps.onFocus === nextProps.onFocus
-  );
-}) as typeof RichChatInputComponent;
+export const RichChatInput = memo(RichChatInputComponent) as typeof RichChatInputComponent;
 
 RichChatInput.displayName = 'RichChatInput';

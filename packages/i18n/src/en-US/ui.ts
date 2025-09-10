@@ -1674,6 +1674,7 @@ const translations = {
       loadingEditor: 'Loading editor...',
       loadingVariables: 'Loading variables...',
       noStartNodeVariables: 'No start node variables',
+      defaultPlaceholder: 'Describe what you want to generate...',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',

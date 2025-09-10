@@ -115,41 +115,46 @@ export const ChatActions = memo(
           {enableChatModeSelector && (
             <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
           )}
-          <ModelSelector
-            model={model}
-            setModel={setModel}
-            size="small"
-            briefMode={false}
-            trigger={['click']}
-            contextItems={contextItems}
-          />
 
-          <Upload
-            accept="image/*"
-            showUploadList={false}
-            customRequest={({ file }) => {
-              if (onUploadImage) {
-                onUploadImage(file as File);
-              } else {
-                handleUploadImage(file as File, canvasId);
-              }
-            }}
-            multiple
-          >
-            <Tooltip title={t('common.uploadImage')}>
-              <Button
-                type="text"
+          {(!enableChatModeSelector || chatMode === 'ask') && (
+            <>
+              <ModelSelector
+                model={model}
+                setModel={setModel}
                 size="small"
-                icon={<Attachment className="flex items-center w-5 h-5" />}
-                className="h-7 !w-7 flex items-center justify-center"
+                briefMode={false}
+                trigger={['click']}
+                contextItems={contextItems}
               />
-            </Tooltip>
-          </Upload>
 
-          <ToolSelectorPopover
-            selectedToolsets={selectedToolsets}
-            onSelectedToolsetsChange={setSelectedToolsets}
-          />
+              <Upload
+                accept="image/*"
+                showUploadList={false}
+                customRequest={({ file }) => {
+                  if (onUploadImage) {
+                    onUploadImage(file as File);
+                  } else {
+                    handleUploadImage(file as File, canvasId);
+                  }
+                }}
+                multiple
+              >
+                <Tooltip title={t('common.uploadImage')}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Attachment className="flex items-center w-5 h-5" />}
+                    className="h-7 !w-7 flex items-center justify-center"
+                  />
+                </Tooltip>
+              </Upload>
+
+              <ToolSelectorPopover
+                selectedToolsets={selectedToolsets}
+                onSelectedToolsetsChange={setSelectedToolsets}
+              />
+            </>
+          )}
         </div>
         <div className="flex flex-row items-center gap-2">
           {customActions?.map((action, index) => (

@@ -103,7 +103,7 @@ const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((pro
     } else {
       return t('canvas.launchpad.commonChatInputPlaceholder');
     }
-  }, [chatMode, placeholder]);
+  }, [chatMode, placeholder, t, enableChatModeSelector]);
 
   const shouldUseRichInput = useMemo(() => {
     return !!enableRichInput;

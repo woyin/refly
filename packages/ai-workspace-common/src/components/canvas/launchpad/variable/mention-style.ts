@@ -34,12 +34,14 @@ export const mentionStyles = `
     line-height: 1;
   }
   
-  [data-cy="rich-chat-input"] .ProseMirror p.is-editor-empty:first-child::before {
-    color: var(--refly-text-3);
+  /* Show placeholder text when paragraph is empty */
+  [data-cy="rich-chat-input"] .ProseMirror p.is-editor-empty:first-child::before,
+  [data-cy="rich-chat-input"] .ProseMirror p.is-empty:first-child::before {
     content: attr(data-placeholder);
     float: left;
-    height: 0;
+    color: var(--refly-text-3, #9ca3af);
     pointer-events: none;
+    height: 0;
   }
   
   [data-cy="rich-chat-input"] .mention {

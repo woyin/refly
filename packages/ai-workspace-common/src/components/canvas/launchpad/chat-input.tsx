@@ -1,5 +1,5 @@
 import { Input } from 'antd';
-import { memo, useRef, useState, useCallback, forwardRef } from 'react';
+import { memo, useRef, useState, useCallback, forwardRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { useSearchStoreShallow } from '@refly/stores';
@@ -49,6 +49,10 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
+
+    const defaultPlaceholder = useMemo(() => {
+      return placeholder || t('canvas.richChatInput.defaultPlaceholder');
+    }, [placeholder, t]);
 
     const handlePaste = useCallback(
       async (e: React.ClipboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
@@ -231,7 +235,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
             minRows: minRows ?? 2,
             maxRows: maxRows ?? 6,
           }}
-          placeholder={placeholder}
+          placeholder={defaultPlaceholder}
           data-cy="chat-input"
         />
       </div>
@@ -241,13 +245,6 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
 
 ChatInputComponent.displayName = 'ChatInputComponent';
 
-export const ChatInput = memo(ChatInputComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.query === nextProps.query &&
-    prevProps.onUploadImage === nextProps.onUploadImage &&
-    prevProps.onUploadMultipleImages === nextProps.onUploadMultipleImages &&
-    prevProps.onFocus === nextProps.onFocus
-  );
-}) as typeof ChatInputComponent;
+export const ChatInput = memo(ChatInputComponent) as typeof ChatInputComponent;
 
 ChatInput.displayName = 'ChatInput';

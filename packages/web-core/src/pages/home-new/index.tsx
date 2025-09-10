@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { useFrontPageStoreShallow } from '@refly/stores';
+import { useChatStoreShallow, useFrontPageStoreShallow } from '@refly/stores';
 import { Actions } from '@refly-packages/ai-workspace-common/components/canvas/front-page/action';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { useAuthStoreShallow } from '@refly/stores';
@@ -25,6 +25,10 @@ const UnsignedFrontPage = memo(() => {
       reset: state.reset,
     }),
   );
+
+  const { chatMode } = useChatStoreShallow((state) => ({
+    chatMode: state.chatMode,
+  }));
 
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
@@ -63,6 +67,11 @@ const UnsignedFrontPage = memo(() => {
                 handleSendMessage={handleLogin}
                 maxRows={6}
                 inputClassName="px-3 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={
+                  chatMode === 'agent'
+                    ? t('canvas.launchpad.chatInputPlaceholder')
+                    : t('canvas.launchpad.commonChatInputPlaceholder')
+                }
               />
 
               <Actions

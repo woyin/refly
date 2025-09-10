@@ -12,11 +12,17 @@ import { useTranslation } from 'react-i18next';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { genActionResultID } from '@refly/utils/id';
-import { CreatePilotSessionRequest, GenericToolset, CanvasNodeType } from '@refly/openapi-schema';
+import {
+  CreatePilotSessionRequest,
+  GenericToolset,
+  CanvasNodeType,
+  ModelCapabilities,
+} from '@refly/openapi-schema';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import type { IContextItem } from '@refly/common-types';
 import { CanvasNodeFilter } from '@refly/canvas-common';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 
 /**
  * NoSession
@@ -132,6 +138,37 @@ export const NoSession = memo(
             handleType: 'source',
           };
         });
+        const isMediaGeneration = skillSelectedModel?.category === 'mediaGeneration';
+        if (isMediaGeneration) {
+          // Handle media generation using existing media generation flow
+          // Parse capabilities from modelInfo
+          const capabilities = skillSelectedModel?.capabilities as ModelCapabilities;
+          const mediaType = capabilities?.image
+            ? 'image'
+            : capabilities?.video
+              ? 'video'
+              : capabilities?.audio
+                ? 'audio'
+                : 'image'; // Default fallback
+
+          // Emit media generation event
+          nodeOperationsEmitter.emit('generateMedia', {
+            providerItemId: skillSelectedModel?.providerItemId ?? '',
+            targetType: 'canvas',
+            targetId: canvasId ?? '',
+            mediaType,
+            query,
+            modelInfo: skillSelectedModel,
+            nodeId: '',
+            contextItems,
+          });
+          setTimeout(() => {
+            clearCanvasQuery?.(canvasId);
+            setIsExecuting(false);
+          }, 300);
+
+          return;
+        }
 
         const resultId = genActionResultID();
         invokeAction(
