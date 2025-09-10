@@ -105,10 +105,6 @@ const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((pro
     }
   }, [chatMode, placeholder, t, enableChatModeSelector]);
 
-  const shouldUseRichInput = useMemo(() => {
-    return !!enableRichInput;
-  }, [enableRichInput]);
-
   const handleImageUpload = useCallback(
     async (file: File) => {
       const nodeData = await handleUploadImage(file, canvasId);
@@ -170,7 +166,7 @@ const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((pro
         setContextItems={setContextItems}
       />
 
-      {shouldUseRichInput ? (
+      {enableRichInput ? (
         <RichChatInput
           readonly={readonly}
           ref={ref}
