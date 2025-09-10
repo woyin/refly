@@ -5,7 +5,7 @@ import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { WorkflowRunForm } from './workflow-run-form';
 import './index.scss';
-import { FC } from 'react';
+import { FC, useCallback } from 'react';
 import { InitializeWorkflowRequest, WorkflowVariable } from '@refly/openapi-schema';
 
 interface WorkflowRunProps {
@@ -36,18 +36,37 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
   const { workflow, canvasId } = useCanvasContext();
   const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setShowWorkflowRun(false);
     setSidePanelVisible(false);
-  };
+  }, [setShowWorkflowRun, setSidePanelVisible]);
 
-  const onSubmitVariables = async (variables: WorkflowVariable[]) => {
-    await initializeWorkflow({
-      canvasId,
-      variables,
-    });
-    refetchWorkflowVariables();
-  };
+  const onSubmitVariables = useCallback(
+    async (variables: WorkflowVariable[]) => {
+      // Guard against missing canvasId
+      if (!canvasId) {
+        console.warn('Canvas ID is missing, cannot initialize workflow');
+        return;
+      }
+
+      try {
+        const success = await initializeWorkflow({
+          canvasId,
+          variables,
+        });
+
+        // Only refetch if initialization was successful
+        if (success) {
+          refetchWorkflowVariables();
+        } else {
+          console.warn('Workflow initialization failed');
+        }
+      } catch (error) {
+        console.error('Error initializing workflow:', error);
+      }
+    },
+    [canvasId, initializeWorkflow, refetchWorkflowVariables],
+  );
 
   return (
     <div className="flex flex-col w-full h-[calc(100vh-16px)] bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m">
