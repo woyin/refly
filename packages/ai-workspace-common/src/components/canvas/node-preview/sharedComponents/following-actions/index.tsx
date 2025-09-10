@@ -7,14 +7,11 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { useTranslation } from 'react-i18next';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
-import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useLaunchpadStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { genActionResultID } from '@refly/utils/id';
-import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
-import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { ChatActions } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
+import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import { AiChat } from 'refly-icons';
 import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
 
@@ -23,7 +20,7 @@ interface FollowingActionsProps {
   initModelInfo: ModelInfo | null;
 }
 export const FollowingActions = ({ initContextItems, initModelInfo }: FollowingActionsProps) => {
-  const { readonly, canvasId } = useCanvasContext();
+  const { canvasId } = useCanvasContext();
   const { t } = useTranslation();
   const [showFollowUpInput, setShowFollowUpInput] = useState(false);
   const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
@@ -42,10 +39,6 @@ export const FollowingActions = ({ initContextItems, initModelInfo }: FollowingA
   const { invokeAction } = useInvokeAction();
   const { addNode } = useAddNode();
   const { getFinalProjectId } = useAskProject();
-  const {
-    handleUploadImage: uploadImageHook,
-    handleUploadMultipleImages: uploadMultipleImagesHook,
-  } = useUploadImage();
 
   const { userProfile } = useUserStoreShallow((state) => ({
     userProfile: state.userProfile,
@@ -180,37 +173,6 @@ export const FollowingActions = ({ initContextItems, initModelInfo }: FollowingA
     selectedToolsets,
   ]);
 
-  // Image upload handlers for follow-up
-  const handleFollowUpImageUpload = useCallback(
-    async (file: File) => {
-      const nodeData = await uploadImageHook(file, canvasId);
-      if (nodeData) {
-        setFollowUpContextItems((prev) => [
-          ...prev,
-          {
-            type: 'image',
-            ...nodeData,
-          },
-        ]);
-      }
-    },
-    [uploadImageHook, canvasId],
-  );
-
-  const handleFollowUpMultipleImagesUpload = useCallback(
-    async (files: File[]) => {
-      const nodesData = await uploadMultipleImagesHook(files, canvasId);
-      if (nodesData?.length) {
-        const newContextItems = nodesData.map((nodeData) => ({
-          type: 'image' as const,
-          ...nodeData,
-        }));
-        setFollowUpContextItems((prev) => [...prev, ...newContextItems]);
-      }
-    },
-    [uploadMultipleImagesHook, canvasId],
-  );
-
   const initializeFollowUpInput = useCallback(() => {
     setFollowUpContextItems(initContextItems);
     setFollowUpModelInfo(initModelInfo || defaultModelInfo);
@@ -272,50 +234,25 @@ export const FollowingActions = ({ initContextItems, initModelInfo }: FollowingA
             }}
             className="mx-1 mt-2 overflow-hidden"
           >
-            <div className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px] flex flex-col gap-2">
+            <div className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px]">
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.2 }}
               >
-                <ContextManager
-                  contextItems={followUpContextItems}
-                  setContextItems={setFollowUpContextItems}
-                />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.2 }}
-              >
-                <ChatInput
+                <ChatComposer
                   ref={textareaRef}
-                  readonly={readonly}
                   query={followUpQuery}
                   setQuery={setFollowUpQuery}
                   handleSendMessage={handleFollowUpSend}
-                  onUploadImage={handleFollowUpImageUpload}
-                  onUploadMultipleImages={handleFollowUpMultipleImagesUpload}
-                  placeholder={t('canvas.nodeActions.nextStepSuggestionsDescription')}
-                />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.2 }}
-              >
-                <ChatActions
-                  query={followUpQuery}
-                  model={followUpModelInfo}
-                  setModel={setFollowUpModelInfo}
-                  handleSendMessage={handleFollowUpSend}
-                  handleAbort={() => {}}
-                  onUploadImage={handleFollowUpImageUpload}
                   contextItems={followUpContextItems}
+                  setContextItems={setFollowUpContextItems}
+                  modelInfo={followUpModelInfo}
+                  setModelInfo={setFollowUpModelInfo}
                   selectedToolsets={selectedToolsets}
-                  setSelectedToolsets={setSelectedToolsets}
+                  onSelectedToolsetsChange={setSelectedToolsets}
+                  placeholder={t('canvas.nodeActions.nextStepSuggestionsDescription')}
+                  enableRichInput={true}
                 />
               </motion.div>
             </div>

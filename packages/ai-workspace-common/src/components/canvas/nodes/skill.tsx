@@ -5,12 +5,7 @@ import { CustomHandle } from './shared/custom-handle';
 import { useState, useCallback, useEffect, useMemo, memo } from 'react';
 
 import { getNodeCommonStyles } from './shared/styles';
-import {
-  ModelCapabilities,
-  ModelInfo,
-  SkillRuntimeConfig,
-  WorkflowVariable,
-} from '@refly/openapi-schema';
+import { ModelCapabilities, ModelInfo, SkillRuntimeConfig } from '@refly/openapi-schema';
 
 // Use union type from launchpad/types for mention-capable variables
 import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
@@ -53,7 +48,7 @@ export const SkillNode = memo(
   ({ data, selected, id }: NodeProps<SkillNode>) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isMediaGenerating, setIsMediaGenerating] = useState(false);
-    const { edges, nodes } = useCanvasData();
+    const { edges } = useCanvasData();
     const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
     const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
@@ -93,38 +88,6 @@ export const SkillNode = memo(
       },
     });
     const extractVariablesMutation = useExtractVariables();
-
-    // Generate variables including canvas nodes
-    const variables: MentionVariable[] = useMemo(() => {
-      const baseVariables: MentionVariable[] = (workflowVariables?.data ?? []) as MentionVariable[];
-      // Add step record variables from skillResponse nodes
-      const stepRecordVariables: MentionVariable[] =
-        nodes
-          ?.filter((node) => node.type === 'skillResponse')
-          ?.map((node) => ({
-            name: node.data?.title ?? '未命名步骤',
-            description: '步骤记录',
-            source: 'stepRecord',
-            variableType: 'step',
-            entityId: node.data?.entityId,
-            nodeId: node.id,
-          })) ?? [];
-
-      // Add result record variables from non-skill nodes
-      const resultRecordVariables: MentionVariable[] =
-        nodes
-          ?.filter((node) => node.type !== 'skill' && node.type !== 'skillResponse')
-          ?.map((node) => ({
-            name: node.data?.title ?? '未命名结果',
-            description: '结果记录',
-            source: 'resultRecord',
-            variableType: 'result',
-            entityId: node.data?.entityId,
-            nodeId: node.id,
-          })) ?? [];
-
-      return [...baseVariables, ...stepRecordVariables, ...resultRecordVariables];
-    }, [nodes, workflowVariables?.data]);
 
     // Check if node has any connections
     const isTargetConnected = useMemo(() => edges?.some((edge) => edge.target === id), [edges, id]);
@@ -541,23 +504,6 @@ export const SkillNode = memo(
               handleProjectChange(projectId);
               updateNodeData({ metadata: { projectId } });
             }}
-            workflowVariables={variables
-              .filter((v): v is WorkflowVariable => {
-                // Guard to narrow union to WorkflowVariable only
-                const src = (v as any)?.source;
-                return (src === 'startNode' || src === 'resourceLibrary') && 'value' in (v as any);
-              })
-              .map((v) => ({
-                variableId: v.variableId,
-                name: v.name,
-                value: v.value,
-                description: v.description,
-                source: v.source,
-                variableType: v.variableType,
-              }))}
-            extendedWorkflowVariables={variables.filter(
-              (v) => v.source === 'stepRecord' || v.source === 'resultRecord',
-            )}
             enableRichInput={true}
             selectedToolsets={selectedToolsets}
             onSelectedToolsetsChange={setSelectedToolsets}

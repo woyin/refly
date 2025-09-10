@@ -2,7 +2,7 @@ import { Button, Tooltip, Upload, FormInstance } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
 import { Attachment, Send, Stop } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
-import { useUserStoreShallow } from '@refly/stores';
+import { useChatStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from './model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
@@ -13,6 +13,7 @@ import { IContextItem } from '@refly/common-types';
 import { SkillRuntimeConfig, GenericToolset } from '@refly/openapi-schema';
 import { ToolSelectorPopover } from '../tool-selector-panel';
 import { logEvent } from '@refly/telemetry-web';
+import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
 
 export interface CustomAction {
   icon: React.ReactNode;
@@ -36,6 +37,7 @@ interface ChatActionsProps {
   isExecuting?: boolean;
   selectedToolsets?: GenericToolset[];
   setSelectedToolsets?: (toolsets: GenericToolset[]) => void;
+  enableChatModeSelector?: boolean;
 }
 
 export const ChatActions = memo(
@@ -53,10 +55,15 @@ export const ChatActions = memo(
       isExecuting = false,
       selectedToolsets,
       setSelectedToolsets,
+      enableChatModeSelector = false,
     } = props;
     const { t } = useTranslation();
     const { canvasId, readonly } = useCanvasContext();
     const { handleUploadImage } = useUploadImage();
+    const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
+      chatMode: state.chatMode,
+      setChatMode: state.setChatMode,
+    }));
 
     const handleSendClick = useCallback(() => {
       // Check if knowledge base is used (resource or document types)
@@ -105,6 +112,9 @@ export const ChatActions = memo(
     return (
       <div className={cn('flex justify-between items-center', className)} ref={containerRef}>
         <div className="flex items-center gap-1">
+          {enableChatModeSelector && (
+            <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
+          )}
           <ModelSelector
             model={model}
             setModel={setModel}
@@ -131,7 +141,7 @@ export const ChatActions = memo(
                 type="text"
                 size="small"
                 icon={<Attachment className="flex items-center w-5 h-5" />}
-                className="h-7 w-7 flex items-center justify-center"
+                className="h-7 !w-7 flex items-center justify-center"
               />
             </Tooltip>
           </Upload>

@@ -1,12 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { IContextItem } from '@refly/common-types';
 import { useMemo, memo, useState, useCallback, useEffect, useRef } from 'react';
-import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
-import { RichChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/rich-chat-input';
-import {
-  ChatActions,
-  CustomAction,
-} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
+import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
+import { CustomAction } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import {
   ModelInfo,
   SkillRuntimeConfig,
@@ -15,7 +11,6 @@ import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canva
 import { convertContextItemsToEdges } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useReactFlow } from '@xyflow/react';
-import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { useUpdateNodeQuery } from '@refly-packages/ai-workspace-common/hooks/use-update-node-query';
@@ -120,12 +115,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     return query;
   }, [resultMap, resultId, query]);
 
-  const { canvasId, readonly: canvasReadonly } = useCanvasContext();
+  const { canvasId } = useCanvasContext();
   const { invokeAction } = useInvokeAction({ source: 'edit-chat-input' });
-  const {
-    handleUploadImage: uploadImageHook,
-    handleUploadMultipleImages: uploadMultipleImagesHook,
-  } = useUploadImage();
 
   const textareaRef = useRef<HTMLDivElement>(null);
 
@@ -276,31 +267,6 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     addNode,
   ]);
 
-  const handleImageUpload = async (file: File) => {
-    const nodeData = await uploadImageHook(file, canvasId);
-    if (nodeData) {
-      setEditContextItems([
-        ...(contextItemsRef.current || []),
-        {
-          type: 'image',
-          ...nodeData,
-        },
-      ]);
-    }
-  };
-
-  const handleMultipleImagesUpload = async (files: File[]) => {
-    const nodesData = await uploadMultipleImagesHook(files, canvasId);
-    if (nodesData?.length) {
-      const newContextItems = nodesData.map((nodeData) => ({
-        type: 'image' as const,
-        ...nodeData,
-      }));
-
-      setEditContextItems([...editContextItems, ...newContextItems]);
-    }
-  };
-
   const customActions: CustomAction[] = useMemo(
     () => [
       {
@@ -329,48 +295,32 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     },
   });
 
-  const variables: MentionVariable[] = useMemo(() => {
-    return (workflowVariables?.data ?? []) as MentionVariable[];
-  }, [workflowVariables?.data]);
-
   if (!enabled) {
     return null;
   }
 
   return (
     <div
-      className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px] flex flex-col gap-2"
+      className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px]"
       onClick={(e) => {
         e.stopPropagation();
       }}
     >
-      <ContextManager contextItems={editContextItems} setContextItems={setEditContextItems} />
-      <RichChatInput
+      <ChatComposer
         ref={textareaRef}
-        readonly={canvasReadonly}
         query={editQuery}
         setQuery={setEditQuery}
         handleSendMessage={handleSendMessage}
-        onUploadImage={handleImageUpload}
-        onUploadMultipleImages={handleMultipleImagesUpload}
         contextItems={editContextItems}
         setContextItems={setEditContextItems}
-        variables={variables}
-      />
-
-      <ChatActions
-        query={editQuery}
-        model={editModelInfo}
-        setModel={setEditModelInfo}
+        modelInfo={editModelInfo}
+        setModelInfo={setEditModelInfo}
         runtimeConfig={editRuntimeConfig}
         setRuntimeConfig={setEditRuntimeConfig}
-        handleSendMessage={handleSendMessage}
-        handleAbort={() => {}}
-        onUploadImage={handleImageUpload}
-        contextItems={editContextItems}
-        customActions={customActions}
         selectedToolsets={selectedToolsets}
-        setSelectedToolsets={setSelectedToolsets}
+        onSelectedToolsetsChange={setSelectedToolsets}
+        enableRichInput={true}
+        customActions={customActions}
       />
     </div>
   );

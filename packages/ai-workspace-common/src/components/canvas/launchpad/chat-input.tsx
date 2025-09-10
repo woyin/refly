@@ -1,8 +1,8 @@
 import { Input } from 'antd';
-import { memo, useRef, useState, useCallback, forwardRef, useMemo } from 'react';
+import { memo, useRef, useState, useCallback, forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TextAreaRef } from 'antd/es/input/TextArea';
-import { useChatStoreShallow, useSearchStoreShallow } from '@refly/stores';
+import { useSearchStoreShallow } from '@refly/stores';
 import { cn } from '@refly/utils/cn';
 import { useUserStoreShallow } from '@refly/stores';
 
@@ -42,20 +42,6 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
-    const { chatMode } = useChatStoreShallow((state) => ({
-      chatMode: state.chatMode,
-    }));
-
-    const defaultPlaceholder = useMemo(() => {
-      if (placeholder) {
-        return placeholder;
-      }
-      if (chatMode === 'agent') {
-        return t('canvas.launchpad.chatInputPlaceholder');
-      } else {
-        return t('canvas.launchpad.commonChatInputPlaceholder');
-      }
-    }, [chatMode, placeholder]);
 
     const inputRef = useRef<TextAreaRef>(null);
     const [isFocused, setIsFocused] = useState(false);
@@ -245,7 +231,7 @@ const ChatInputComponent = forwardRef<HTMLDivElement, ChatInputProps>(
             minRows: minRows ?? 2,
             maxRows: maxRows ?? 6,
           }}
-          placeholder={defaultPlaceholder}
+          placeholder={placeholder}
           data-cy="chat-input"
         />
       </div>

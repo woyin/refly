@@ -1,34 +1,21 @@
-import { memo, useCallback, useMemo, useState, useRef } from 'react';
-// import { useTranslation } from 'react-i18next';
-import cn from 'classnames';
+import { memo, useCallback, useState } from 'react';
 import {
   useChatStoreShallow,
   useFrontPageStoreShallow,
-  useUserStoreShallow,
   usePilotStoreShallow,
   useLaunchpadStoreShallow,
 } from '@refly/stores';
-import { MediaChatInput } from '@refly-packages/ai-workspace-common/components/canvas/nodes/media/media-input';
-import { ChatModeSelector } from '@refly-packages/ai-workspace-common/components/canvas/front-page/chat-mode-selector';
-import { ToolSelectorPopover } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/tool-selector-panel';
-import { Button, message } from 'antd';
+import { message } from 'antd';
 import { logEvent } from '@refly/telemetry-web';
 
-import { ModelSelector } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions/model-selector';
-import { Send } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { genActionResultID } from '@refly/utils/id';
 import { CreatePilotSessionRequest, GenericToolset, CanvasNodeType } from '@refly/openapi-schema';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { RichChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/rich-chat-input';
-import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
-import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
-import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import type { IContextItem } from '@refly/common-types';
-import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { CanvasNodeFilter } from '@refly/canvas-common';
 
 /**
@@ -50,10 +37,6 @@ export const NoSession = memo(
 
     const [isExecuting, setIsExecuting] = useState<boolean>(false);
 
-    // Add state for rich chat input functionality
-
-    const textareaRef = useRef<HTMLDivElement>(null);
-
     const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
       selectedToolsets: state.selectedToolsets,
     }));
@@ -67,41 +50,19 @@ export const NoSession = memo(
       setQuery: state.setQuery,
       clearCanvasQuery: state.clearCanvasQuery,
     }));
-    const { chatMode, setChatMode, skillSelectedModel, setSkillSelectedModel } =
-      useChatStoreShallow((state) => ({
+    const { chatMode, skillSelectedModel, setSkillSelectedModel } = useChatStoreShallow(
+      (state) => ({
         chatMode: state.chatMode,
-        setChatMode: state.setChatMode,
         skillSelectedModel: state.skillSelectedModel,
         setSkillSelectedModel: state.setSkillSelectedModel,
-      }));
-    const userStore = useUserStoreShallow((state) => ({
-      isLogin: state.isLogin,
-    }));
+      }),
+    );
     const { setActiveSessionId, setIsPilotOpen } = usePilotStoreShallow((state) => ({
       setActiveSessionId: state.setActiveSessionId,
       setIsPilotOpen: state.setIsPilotOpen,
     }));
-    const isPilotActivated = useMemo(() => chatMode === 'agent', [chatMode]);
     const { addNode } = useAddNode();
     const { invokeAction } = useInvokeAction({ source: 'nosession-ask' });
-
-    // Add canvas context and upload image hooks
-    const { readonly: canvasReadonly } = useCanvasContext();
-    const {
-      handleUploadImage: uploadImageHook,
-      handleUploadMultipleImages: uploadMultipleImagesHook,
-    } = useUploadImage();
-
-    // Fetch workflow variables for mentions
-    const { data: workflowVariables } = useGetWorkflowVariables({
-      query: {
-        canvasId,
-      },
-    });
-
-    const variables: MentionVariable[] = useMemo(() => {
-      return (workflowVariables?.data ?? []) as MentionVariable[];
-    }, [workflowVariables?.data]);
 
     // Create wrapper function for setting query with canvasId
     const setCanvasQuery = useCallback(
@@ -110,32 +71,6 @@ export const NoSession = memo(
       },
       [setQuery, canvasId],
     );
-
-    // Add image upload handlers
-    const handleImageUpload = async (file: File) => {
-      const nodeData = await uploadImageHook(file, canvasId);
-      if (nodeData) {
-        setContextItems([
-          ...contextItems,
-          {
-            type: 'image',
-            ...nodeData,
-          },
-        ]);
-      }
-    };
-
-    const handleMultipleImagesUpload = async (files: File[]) => {
-      const nodesData = await uploadMultipleImagesHook(files, canvasId);
-      if (nodesData?.length) {
-        const newContextItems = nodesData.map((nodeData) => ({
-          type: 'image' as const,
-          ...nodeData,
-        }));
-
-        setContextItems([...contextItems, ...newContextItems]);
-      }
-    };
 
     const handleCreatePilotSession = useCallback(
       async (param: CreatePilotSessionRequest) => {
@@ -267,85 +202,23 @@ export const NoSession = memo(
     ]);
 
     return (
-      <div className={cn('overflow-y-auto rounded-2xl')}>
-        <div
-          className={cn('relative w-full max-w-4xl mx-auto z-10', 'flex flex-col justify-center')}
-        >
-          <div className="w-full h-full rounded-2xl shadow-refly-m overflow-hidden">
-            <div className="px-4 pb-4">
-              <div className="w-full rounded-xl shadow-refly-m overflow-hidden border-[1px] border-solid border-refly-primary-default ">
-                {chatMode === 'media' ? (
-                  <div className="w-full px-4 pt-4 pb-3">
-                    <MediaChatInput
-                      readonly={false}
-                      query={query}
-                      setQuery={setCanvasQuery}
-                      showChatModeSelector
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <div className="px-4 py-3">
-                      <ContextManager
-                        contextItems={contextItems}
-                        setContextItems={setContextItems}
-                      />
-
-                      {/* Rich chat input with context management */}
-                      <RichChatInput
-                        ref={textareaRef}
-                        readonly={canvasReadonly}
-                        query={query}
-                        setQuery={setCanvasQuery}
-                        handleSendMessage={handleSendMessage}
-                        onUploadImage={handleImageUpload}
-                        onUploadMultipleImages={handleMultipleImagesUpload}
-                        contextItems={contextItems}
-                        setContextItems={setContextItems}
-                        variables={variables}
-                        placeholder={t(
-                          'canvas.launchpad.chatInputPlaceholder',
-                          'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
-                        )}
-                      />
-                    </div>
-                    <div className="flex pl-4 pb-3">
-                      <div className="flex items-center w-full">
-                        <div className="mr-2">
-                          <ChatModeSelector chatMode={chatMode} setChatMode={setChatMode} />
-                        </div>
-                        {userStore.isLogin && !isPilotActivated && (
-                          <ModelSelector
-                            model={skillSelectedModel}
-                            setModel={setSkillSelectedModel}
-                            briefMode={false}
-                            trigger={['click']}
-                          />
-                        )}
-                        {userStore.isLogin && chatMode === 'ask' && (
-                          <ToolSelectorPopover
-                            selectedToolsets={selectedToolsets}
-                            onSelectedToolsetsChange={setSelectedToolsets}
-                          />
-                        )}
-                        <div className="flex items-center gap-2 ml-auto pr-4">
-                          <Button
-                            className="flex items-center !h-9 !w-9 rounded-full border-none"
-                            size="small"
-                            type="primary"
-                            icon={<Send size={20} color="white" />}
-                            onClick={handleSendMessage}
-                            disabled={isExecuting || !query?.trim()}
-                            loading={isExecuting}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+      <div className="relative w-full h-full px-4 pb-4 z-10 rounded-2xl">
+        <div className="w-full px-4 py-3 rounded-xl overflow-hidden border-[1px] border-solid border-refly-primary-default ">
+          <ChatComposer
+            query={query}
+            setQuery={setCanvasQuery}
+            handleSendMessage={handleSendMessage}
+            handleAbort={() => {}}
+            contextItems={contextItems}
+            setContextItems={setContextItems}
+            modelInfo={skillSelectedModel}
+            setModelInfo={setSkillSelectedModel}
+            enableRichInput={true}
+            selectedToolsets={selectedToolsets}
+            onSelectedToolsetsChange={setSelectedToolsets}
+            isExecuting={isExecuting}
+            enableChatModeSelector
+          />
         </div>
       </div>
     );
