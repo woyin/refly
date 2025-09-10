@@ -2416,15 +2416,6 @@ export type CanvasState = CanvasData & {
    */
   hash?: string;
   /**
-   * Workflow configuration
-   */
-  workflow?: {
-    /**
-     * List of workflow variables
-     */
-    variables?: Array<WorkflowVariable>;
-  };
-  /**
    * Canvas transaction list
    */
   transactions?: Array<CanvasTransaction>;

@@ -3181,19 +3181,6 @@ export const CanvasStateSchema = {
           type: 'string',
           description: 'Canvas state hash (sha256), calculated from nodes and edges',
         },
-        workflow: {
-          type: 'object',
-          description: 'Workflow configuration',
-          properties: {
-            variables: {
-              type: 'array',
-              description: 'List of workflow variables',
-              items: {
-                $ref: '#/components/schemas/WorkflowVariable',
-              },
-            },
-          },
-        },
         transactions: {
           type: 'array',
           description: 'Canvas transaction list',
