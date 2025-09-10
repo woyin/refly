@@ -81,7 +81,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
         setLoading(false);
       }
     },
-    [t],
+    [t, canvasId, setCanvasExecutionId],
   );
 
   const initializeWorkflowInNewCanvas = useCallback(
