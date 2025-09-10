@@ -1,52 +1,24 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { createId } from '@paralleldrive/cuid2';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
 import { ShareRecord } from '../../generated/client';
 import * as Y from 'yjs';
-import {
-  ActionResult,
-  CreateShareRequest,
-  DeleteShareRequest,
-  Document,
-  DuplicateShareRequest,
-  Entity,
-  EntityType,
-  ListSharesData,
-  RawCanvasData,
-  Resource,
-  User,
-} from '@refly/openapi-schema';
-import {
-  PageNotFoundError,
-  ParamsError,
-  ShareNotFoundError,
-  StorageQuotaExceeded,
-} from '@refly/errors';
-import { ConfigService } from '@nestjs/config';
+import { CreateShareRequest, EntityType, User } from '@refly/openapi-schema';
+import { PageNotFoundError, ParamsError, ShareNotFoundError } from '@refly/errors';
 import { CanvasService } from '../canvas/canvas.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { ActionService } from '../action/action.service';
 import { actionResultPO2DTO } from '../action/action.dto';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import pLimit from 'p-limit';
-import { RAGService } from '../rag/rag.service';
-import { SubscriptionService } from '../subscription/subscription.service';
-import {
-  genActionResultID,
-  genCanvasID,
-  genCodeArtifactID,
-  genDocumentID,
-  genResourceID,
-  markdown2StateUpdate,
-  pick,
-  safeParseJSON,
-  batchReplaceRegex,
-} from '@refly/utils';
-import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-search';
-import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_CREATE_SHARE } from '../../utils/const';
+import type { CreateShareJobData } from './share.dto';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
+import { ShareCommonService } from './share-common.service';
 
 const SHARE_CODE_PREFIX: Record<EntityType, string> = {
   document: 'doc-',
@@ -69,38 +41,22 @@ interface ShareExtraData {
   vectorStorageKey: string;
 }
 
-interface DuplicateOptions {
-  skipCanvasCheck?: boolean;
-  skipProjectCheck?: boolean;
-}
-
 @Injectable()
-export class ShareService {
-  private logger = new Logger(ShareService.name);
+export class ShareCreationService {
+  private logger = new Logger(ShareCreationService.name);
 
   constructor(
-    private readonly config: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly ragService: RAGService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
     private readonly knowledgeService: KnowledgeService,
     private readonly actionService: ActionService,
     private readonly codeArtifactService: CodeArtifactService,
-    private readonly subscriptionService: SubscriptionService,
-    @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
-    @Inject(FULLTEXT_SEARCH) private readonly fts: FulltextSearchService,
+    private readonly shareCommonService: ShareCommonService,
+    @Optional()
+    @InjectQueue(QUEUE_CREATE_SHARE)
+    private readonly createShareQueue?: Queue<CreateShareJobData>,
   ) {}
-
-  async listShares(user: User, param: ListSharesData['query']) {
-    const { shareId, entityId, entityType } = param;
-
-    const shares = await this.prisma.shareRecord.findMany({
-      where: { shareId, entityId, entityType, uid: user.uid, deletedAt: null },
-    });
-
-    return shares;
-  }
 
   async createShareForCanvas(user: User, param: CreateShareRequest) {
     const { entityId: canvasId, title, parentShareId, allowDuplication } = param;
@@ -283,59 +239,6 @@ export class ShareService {
     return { shareRecord, canvas };
   }
 
-  async storeVector(
-    user: User,
-    param: {
-      shareId: string;
-      entityId: string;
-      entityType: 'document' | 'resource';
-      vectorStorageKey: string;
-    },
-  ) {
-    const { shareId, entityId, entityType, vectorStorageKey } = param;
-    const vector = await this.ragService.serializeToAvro(user, {
-      nodeType: entityType as 'document' | 'resource',
-      ...(entityType === 'document' && {
-        docId: entityId,
-      }),
-      ...(entityType === 'resource' && {
-        resourceId: entityId,
-      }),
-    });
-    await this.miscService.uploadBuffer(user, {
-      fpath: 'vector.avro',
-      buf: vector.data,
-      entityId: shareId,
-      entityType: 'share',
-      visibility: 'public',
-      storageKey: vectorStorageKey,
-    });
-  }
-
-  async restoreVector(
-    user: User,
-    param: {
-      entityId: string;
-      entityType: 'document' | 'resource';
-      vectorStorageKey: string;
-    },
-  ) {
-    const { entityId, entityType, vectorStorageKey } = param;
-    const vector = await this.miscService.downloadFile({
-      storageKey: vectorStorageKey,
-      visibility: 'public',
-    });
-    await this.ragService.deserializeFromAvro(user, {
-      data: vector,
-      ...(entityType === 'document' && {
-        targetDocId: entityId,
-      }),
-      ...(entityType === 'resource' && {
-        targetResourceId: entityId,
-      }),
-    });
-  }
-
   async createShareForDocument(user: User, param: CreateShareRequest) {
     const { entityId: documentId, parentShareId, allowDuplication } = param;
 
@@ -375,7 +278,7 @@ export class ShareService {
       vectorStorageKey: `share/${shareId}-vector`,
     };
     await Promise.all([
-      this.storeVector(user, {
+      this.shareCommonService.storeVector(user, {
         shareId,
         entityId: documentId,
         entityType: 'document',
@@ -463,7 +366,7 @@ export class ShareService {
     const extraData: ShareExtraData = {
       vectorStorageKey: `share/${shareId}-vector`,
     };
-    await this.storeVector(user, {
+    await this.shareCommonService.storeVector(user, {
       shareId,
       entityId: resourceId,
       entityType: 'resource',
@@ -998,790 +901,75 @@ export class ShareService {
   async createShare(user: User, req: CreateShareRequest): Promise<ShareRecord> {
     const entityType = req.entityType as EntityType;
 
+    // Try find existing record for idempotency
+    const existing = await this.prisma.shareRecord.findFirst({
+      where: {
+        entityId: req.entityId,
+        entityType: entityType,
+        uid: user.uid,
+        deletedAt: null,
+      },
+    });
+    if (existing) {
+      // Ensure async processing continues for refresh use cases
+      if (this.createShareQueue) {
+        await this.createShareQueue.add('createShare', { user: { uid: user.uid }, req });
+      }
+      return existing;
+    }
+
+    const shareId = genShareId(entityType as keyof typeof SHARE_CODE_PREFIX);
+
+    // Create minimal record to return immediately
+    const minimal = await this.prisma.shareRecord.create({
+      data: {
+        shareId,
+        title: req.title ?? '',
+        uid: user.uid,
+        entityId: req.entityId,
+        entityType: entityType,
+        storageKey: `share/${shareId}.json`,
+        parentShareId: req.parentShareId,
+        allowDuplication: req.allowDuplication ?? false,
+      },
+    });
+
+    // Enqueue async job or fallback to direct processing
+    if (this.createShareQueue) {
+      await this.createShareQueue.add('createShare', { user: { uid: user.uid }, req });
+    } else {
+      // In desktop mode, process synchronously
+      await this.processCreateShareJob({ user: { uid: user.uid }, req });
+    }
+
+    return minimal;
+  }
+
+  // Expose internal method for processor and fallback path
+  async processCreateShareJob(jobData: CreateShareJobData) {
+    const { user, req } = jobData;
+    const entityType = req.entityType as EntityType;
     switch (entityType) {
       case 'canvas':
-        return (await this.createShareForCanvas(user, req)).shareRecord;
+        await this.createShareForCanvas(user as any, req);
+        return;
       case 'document':
-        return (await this.createShareForDocument(user, req)).shareRecord;
+        await this.createShareForDocument(user as any, req);
+        return;
       case 'resource':
-        return (await this.createShareForResource(user, req)).shareRecord;
+        await this.createShareForResource(user as any, req);
+        return;
       case 'skillResponse':
-        return (await this.createShareForSkillResponse(user, req)).shareRecord;
+        await this.createShareForSkillResponse(user as any, req);
+        return;
       case 'codeArtifact':
-        return (await this.createShareForCodeArtifact(user, req)).shareRecord;
+        await this.createShareForCodeArtifact(user as any, req);
+        return;
       case 'page':
-        return (await this.createShareForPage(user, req)).shareRecord;
+        await this.createShareForPage(user as any, req);
+        return;
       default:
         throw new ParamsError(`Unsupported entity type ${req.entityType} for sharing`);
-    }
-  }
-
-  async deleteShare(user: User, body: DeleteShareRequest) {
-    const { shareId } = body;
-
-    const mainRecord = await this.prisma.shareRecord.findFirst({
-      where: { shareId, uid: user.uid, deletedAt: null },
-    });
-
-    if (!mainRecord) {
-      throw new ShareNotFoundError();
-    }
-
-    const childRecords = await this.prisma.shareRecord.findMany({
-      where: { parentShareId: shareId, uid: user.uid, deletedAt: null },
-    });
-    const allRecords = [mainRecord, ...childRecords];
-
-    await this.prisma.shareRecord.updateMany({
-      data: { deletedAt: new Date() },
-      where: { pk: { in: allRecords.map((r) => r.pk) } },
-    });
-
-    await this.miscService.batchRemoveObjects(
-      user,
-      allRecords.map((r) => ({
-        storageKey: r.storageKey,
-        visibility: 'public',
-      })),
-    );
-  }
-
-  async duplicateSharedDocument(
-    user: User,
-    param: DuplicateShareRequest,
-    options?: DuplicateOptions,
-  ): Promise<Entity> {
-    const { shareId, projectId, canvasId } = param;
-
-    if (canvasId && !options?.skipCanvasCheck) {
-      await this.knowledgeService.checkCanvasExists(user, canvasId);
-    }
-
-    if (projectId && !options?.skipProjectCheck) {
-      await this.knowledgeService.checkProjectExists(user, projectId);
-    }
-
-    // Check storage quota
-    const usageResult = await this.subscriptionService.checkStorageUsage(user);
-    if (usageResult.available < 1) {
-      throw new StorageQuotaExceeded();
-    }
-
-    const record = await this.prisma.shareRecord.findFirst({
-      where: { shareId, deletedAt: null },
-    });
-    if (!record) {
-      throw new ShareNotFoundError();
-    }
-
-    // Check if the canvas exists
-    if (canvasId) {
-      const canvas = await this.prisma.canvas.findUnique({
-        where: { canvasId, uid: user.uid, deletedAt: null },
-      });
-      if (!canvas) {
-        throw new ParamsError('Canvas not found');
-      }
-    }
-
-    // Generate a new document ID
-    const newDocId = genDocumentID();
-
-    const newStorageKey = `doc/${newDocId}.txt`;
-    const newStateStorageKey = `state/${newDocId}`;
-
-    const documentDetail: Document = JSON.parse(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
-
-    const targetCanvasId = canvasId || documentDetail.canvasId;
-    const extraData: ShareExtraData = safeParseJSON(record.extraData);
-
-    const newDoc = await this.prisma.document.create({
-      data: {
-        title: documentDetail.title ?? 'Untitled Document',
-        contentPreview: documentDetail.contentPreview ?? '',
-        readOnly: documentDetail.readOnly ?? false,
-        docId: newDocId,
-        uid: user.uid,
-        storageKey: newStorageKey,
-        stateStorageKey: newStateStorageKey,
-        projectId,
-        canvasId: targetCanvasId,
-      },
-    });
-    const state = markdown2StateUpdate(documentDetail.content ?? '');
-
-    const jobs: Promise<any>[] = [
-      this.oss.putObject(newStorageKey, documentDetail.content),
-      this.oss.putObject(newStateStorageKey, Buffer.from(state)),
-      this.fts.upsertDocument(user, 'document', {
-        id: newDocId,
-        ...pick(newDoc, ['title', 'uid']),
-        content: documentDetail.content,
-        createdAt: newDoc.createdAt.toJSON(),
-        updatedAt: newDoc.updatedAt.toJSON(),
-      }),
-    ];
-
-    if (extraData?.vectorStorageKey) {
-      jobs.push(
-        this.restoreVector(user, {
-          entityId: newDocId,
-          entityType: 'document',
-          vectorStorageKey: extraData.vectorStorageKey,
-        }),
-      );
-    }
-
-    // Duplicate the files and index
-    await Promise.all(jobs);
-
-    await this.prisma.duplicateRecord.create({
-      data: {
-        sourceId: record.entityId,
-        targetId: newDocId,
-        entityType: 'document',
-        uid: user.uid,
-        shareId,
-        status: 'finish',
-      },
-    });
-
-    await this.knowledgeService.syncStorageUsage(user);
-
-    return { entityId: newDocId, entityType: 'document' };
-  }
-
-  async duplicateSharedResource(
-    user: User,
-    param: DuplicateShareRequest,
-    options?: DuplicateOptions,
-  ): Promise<Entity> {
-    const { shareId, projectId, canvasId } = param;
-
-    if (canvasId && !options?.skipCanvasCheck) {
-      await this.knowledgeService.checkCanvasExists(user, canvasId);
-    }
-
-    if (projectId && !options?.skipProjectCheck) {
-      await this.knowledgeService.checkProjectExists(user, projectId);
-    }
-
-    // Check storage quota
-    const usageResult = await this.subscriptionService.checkStorageUsage(user);
-    if (usageResult.available < 1) {
-      throw new StorageQuotaExceeded();
-    }
-
-    // Find the source document
-    const record = await this.prisma.shareRecord.findFirst({
-      where: { shareId, deletedAt: null },
-    });
-    if (!record) {
-      throw new ShareNotFoundError();
-    }
-
-    // Generate a new document ID
-    const newResourceId = genResourceID();
-
-    const newStorageKey = `resource/${newResourceId}.txt`;
-
-    const resourceDetail: Resource = safeParseJSON(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
-
-    const targetCanvasId = canvasId || resourceDetail.canvasId;
-    const extraData: ShareExtraData = safeParseJSON(record.extraData);
-
-    const newResource = await this.prisma.resource.create({
-      data: {
-        ...pick(resourceDetail, [
-          'title',
-          'resourceType',
-          'contentPreview',
-          'indexStatus',
-          'indexError',
-          'rawFileKey',
-        ]),
-        meta: JSON.stringify(resourceDetail.data),
-        indexError: JSON.stringify(resourceDetail.indexError),
-        resourceId: newResourceId,
-        uid: user.uid,
-        storageKey: newStorageKey,
-        projectId,
-        canvasId: targetCanvasId,
-      },
-    });
-
-    const jobs: Promise<any>[] = [
-      this.miscService.uploadBuffer(user, {
-        fpath: 'document.txt',
-        buf: Buffer.from(resourceDetail.content ?? ''),
-        entityId: newResourceId,
-        entityType: 'resource',
-        visibility: 'private',
-        storageKey: newStorageKey,
-      }),
-      this.fts.upsertDocument(user, 'resource', {
-        id: newResourceId,
-        ...pick(newResource, ['title', 'uid']),
-        content: resourceDetail.content,
-        createdAt: newResource.createdAt.toJSON(),
-        updatedAt: newResource.updatedAt.toJSON(),
-      }),
-    ];
-
-    if (extraData?.vectorStorageKey) {
-      jobs.push(
-        this.restoreVector(user, {
-          entityId: newResourceId,
-          entityType: 'resource',
-          vectorStorageKey: extraData.vectorStorageKey,
-        }),
-      );
-    }
-
-    // Duplicate the files and index
-    await Promise.all(jobs);
-
-    await this.prisma.duplicateRecord.create({
-      data: {
-        sourceId: record.entityId,
-        targetId: newResourceId,
-        entityType: 'resource',
-        uid: user.uid,
-        shareId,
-        status: 'finish',
-      },
-    });
-
-    await this.knowledgeService.syncStorageUsage(user);
-
-    return { entityId: newResourceId, entityType: 'resource' };
-  }
-
-  async duplicateSharedCodeArtifact(
-    user: User,
-    param: DuplicateShareRequest,
-    options?: DuplicateOptions,
-  ): Promise<Entity> {
-    const { shareId, canvasId } = param;
-
-    if (canvasId && !options?.skipCanvasCheck) {
-      await this.knowledgeService.checkCanvasExists(user, canvasId);
-    }
-
-    // Find the source record
-    const record = await this.prisma.shareRecord.findFirst({
-      where: { shareId, deletedAt: null },
-    });
-    if (!record) {
-      throw new ShareNotFoundError();
-    }
-
-    // Generate a new code artifact ID
-    const newCodeArtifactId = genCodeArtifactID();
-
-    // Download the shared code artifact data
-    const codeArtifactDetail = safeParseJSON(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
-
-    if (!codeArtifactDetail) {
-      throw new ShareNotFoundError();
-    }
-
-    const targetCanvasId = canvasId || codeArtifactDetail.canvasId;
-
-    const newStorageKey = `code-artifact/${newCodeArtifactId}`;
-    await this.oss.putObject(newStorageKey, codeArtifactDetail.content);
-
-    // Create a new code artifact record
-    await this.prisma.codeArtifact.create({
-      data: {
-        ...pick(codeArtifactDetail, ['title', 'codeType', 'description']),
-        artifactId: newCodeArtifactId,
-        uid: user.uid,
-        storageKey: newStorageKey,
-        language: codeArtifactDetail.language,
-        title: codeArtifactDetail.title,
-        type: codeArtifactDetail.type,
-        canvasId: targetCanvasId,
-      },
-    });
-
-    // Create duplication record
-    await this.prisma.duplicateRecord.create({
-      data: {
-        sourceId: record.entityId,
-        targetId: newCodeArtifactId,
-        entityType: 'codeArtifact',
-        uid: user.uid,
-        shareId,
-        status: 'finish',
-      },
-    });
-
-    return { entityId: newCodeArtifactId, entityType: 'codeArtifact' };
-  }
-
-  async duplicateSharedSkillResponse(
-    user: User,
-    param: DuplicateShareRequest,
-    extra?: {
-      target?: Entity;
-      replaceEntityMap?: Record<string, string>;
-    },
-  ): Promise<Entity> {
-    const { shareId, projectId } = param;
-    const { replaceEntityMap, target } = extra ?? {};
-
-    // Find the source record
-    const record = await this.prisma.shareRecord.findFirst({
-      where: { shareId, deletedAt: null },
-    });
-    if (!record) {
-      throw new ShareNotFoundError();
-    }
-    const originalResultId = record.entityId;
-
-    // Generate a new result ID for the skill response
-    const newResultId = replaceEntityMap?.[originalResultId] || genActionResultID();
-
-    // Download the shared skill response data
-    const result: ActionResult = JSON.parse(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
-
-    // Create a new action result record
-    await this.prisma.$transaction([
-      this.prisma.actionResult.create({
-        data: {
-          ...pick(result, ['title', 'tier', 'status']),
-          resultId: newResultId,
-          uid: user.uid,
-          type: result.type,
-          input: JSON.stringify(result.input),
-          targetId: target?.entityId,
-          targetType: target?.entityType,
-          actionMeta: JSON.stringify(result.actionMeta),
-          context: batchReplaceRegex(JSON.stringify(result.context), replaceEntityMap),
-          history: batchReplaceRegex(JSON.stringify(result.history), replaceEntityMap),
-          tplConfig: JSON.stringify(result.tplConfig),
-          runtimeConfig: JSON.stringify(result.runtimeConfig),
-          errors: JSON.stringify(result.errors),
-          modelName: result.modelInfo?.name,
-          duplicateFrom: result.resultId,
-          projectId,
-          version: 0, // Reset version to 0 for the new duplicate
-        },
-      }),
-      ...(result.steps?.length > 0
-        ? [
-            this.prisma.actionStep.createMany({
-              data: result.steps.map((step, index) => ({
-                ...pick(step, ['name', 'reasoningContent']),
-                order: index,
-                content: step.content ?? '',
-                resultId: newResultId,
-                artifacts: batchReplaceRegex(JSON.stringify(step.artifacts), replaceEntityMap),
-                structuredData: JSON.stringify(step.structuredData),
-                logs: JSON.stringify(step.logs),
-                tokenUsage: JSON.stringify(step.tokenUsage),
-                version: 0, // Reset version to 0 for the new duplicate
-              })),
-            }),
-          ]
-        : []),
-    ]);
-
-    await this.prisma.duplicateRecord.create({
-      data: {
-        sourceId: record.entityId,
-        targetId: newResultId,
-        entityType: 'skillResponse',
-        uid: user.uid,
-        shareId,
-        status: 'finish',
-      },
-    });
-
-    return { entityId: newResultId, entityType: 'skillResponse' };
-  }
-
-  async duplicateSharedCanvas(user: User, param: DuplicateShareRequest): Promise<Entity> {
-    const { shareId, projectId } = param;
-
-    const record = await this.prisma.shareRecord.findFirst({
-      where: { shareId, deletedAt: null },
-    });
-    if (!record) {
-      throw new ShareNotFoundError();
-    }
-
-    const canvasData: RawCanvasData = JSON.parse(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
-
-    const newCanvasId = genCanvasID();
-    const stateStorageKey = `state/${newCanvasId}`;
-
-    const { nodes, edges } = canvasData;
-
-    const libEntityNodes = nodes.filter((node) =>
-      ['document', 'resource', 'codeArtifact'].includes(node.type),
-    );
-
-    // Check storage quota before creating a new canvas
-    const { available } = await this.subscriptionService.checkStorageUsage(user);
-    if (available < libEntityNodes.length) {
-      throw new StorageQuotaExceeded();
-    }
-
-    await this.prisma.canvas.create({
-      data: {
-        uid: user.uid,
-        canvasId: newCanvasId,
-        title: canvasData.title,
-        status: 'duplicating',
-        stateStorageKey,
-        projectId,
-      },
-    });
-
-    // Duplicate library entities
-    const limit = pLimit(5); // Limit concurrent operations
-    const replaceEntityMap: Record<string, string> = {
-      [record.entityId]: newCanvasId,
-    };
-
-    await Promise.all(
-      libEntityNodes.map((node) =>
-        limit(async () => {
-          const entityType = node.type;
-          const { entityId, metadata } = node.data;
-          const shareId = metadata?.shareId as string;
-
-          if (!shareId) return;
-
-          const nodeDupParam: DuplicateShareRequest = {
-            shareId,
-            projectId,
-            canvasId: newCanvasId,
-          };
-          const nodeDupOptions: DuplicateOptions = {
-            skipCanvasCheck: true,
-            skipProjectCheck: true,
-          };
-
-          switch (entityType) {
-            case 'document': {
-              const doc = await this.duplicateSharedDocument(user, nodeDupParam, nodeDupOptions);
-              if (doc) {
-                node.data.entityId = doc.entityId;
-                replaceEntityMap[entityId] = doc.entityId;
-              }
-              break;
-            }
-            case 'resource': {
-              const resource = await this.duplicateSharedResource(
-                user,
-                nodeDupParam,
-                nodeDupOptions,
-              );
-              if (resource) {
-                node.data.entityId = resource.entityId;
-                replaceEntityMap[entityId] = resource.entityId;
-              }
-              break;
-            }
-            case 'codeArtifact': {
-              const codeArtifact = await this.duplicateSharedCodeArtifact(
-                user,
-                nodeDupParam,
-                nodeDupOptions,
-              );
-              if (codeArtifact) {
-                node.data.entityId = codeArtifact.entityId;
-                replaceEntityMap[entityId] = codeArtifact.entityId;
-              }
-              break;
-            }
-          }
-
-          // Remove the shareId from the metadata
-          node.data.metadata.shareId = undefined;
-
-          // Replace the projectId with the new project ID
-          node.data.metadata.projectId = projectId;
-        }),
-      ),
-    );
-
-    const resultIds = nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
-
-    for (const resultId of resultIds) {
-      replaceEntityMap[resultId] = genActionResultID();
-    }
-
-    await Promise.all(
-      nodes
-        .filter((node) => node.type === 'skillResponse')
-        .map((node) =>
-          limit(async () => {
-            const shareId = node.data.metadata.shareId as string;
-            if (!shareId) return;
-
-            const result = await this.duplicateSharedSkillResponse(
-              user,
-              { shareId, projectId },
-              {
-                replaceEntityMap,
-                target: { entityId: newCanvasId, entityType: 'canvas' },
-              },
-            );
-            if (result) {
-              node.data.entityId = result.entityId;
-            }
-
-            // Remove the shareId from the metadata
-            node.data.metadata.shareId = undefined;
-
-            // Replace the projectId with the new project ID
-            node.data.metadata.projectId = projectId;
-
-            // Replace the context with the new entity ID
-            if (node.data.metadata.contextItems) {
-              node.data.metadata.contextItems = JSON.parse(
-                batchReplaceRegex(
-                  JSON.stringify(node.data.metadata.contextItems),
-                  replaceEntityMap,
-                ),
-              );
-            }
-
-            // Replace the structuredData with the new entity ID
-            if (node.data.metadata.structuredData) {
-              node.data.metadata.structuredData = JSON.parse(
-                batchReplaceRegex(
-                  JSON.stringify(node.data.metadata.structuredData),
-                  replaceEntityMap,
-                ),
-              );
-            }
-          }),
-        ),
-    );
-
-    const doc = new Y.Doc();
-    doc.transact(() => {
-      doc.getText('title').insert(0, canvasData.title);
-      doc.getArray('nodes').insert(0, nodes);
-      doc.getArray('edges').insert(0, edges);
-    });
-
-    await this.miscService.uploadBuffer(user, {
-      fpath: stateStorageKey,
-      buf: Buffer.from(Y.encodeStateAsUpdate(doc)),
-      entityId: newCanvasId,
-      entityType: 'canvas',
-      visibility: 'private',
-      storageKey: stateStorageKey,
-    });
-
-    // Update canvas status to completed
-    await this.prisma.canvas.update({
-      where: { canvasId: newCanvasId },
-      data: { status: 'ready' },
-    });
-
-    await this.prisma.duplicateRecord.create({
-      data: {
-        sourceId: record.entityId,
-        targetId: newCanvasId,
-        entityType: 'canvas',
-        uid: user.uid,
-        shareId,
-        status: 'finish',
-      },
-    });
-
-    return { entityId: newCanvasId, entityType: 'canvas' };
-  }
-
-  async duplicateSharedPage(user: User, shareId: string): Promise<Entity> {
-    // 查找分享记录
-    const record = await this.prisma.shareRecord.findFirst({
-      where: { shareId, deletedAt: null },
-    });
-
-    if (!record) {
-      throw new ShareNotFoundError();
-    }
-
-    // 生成新的页面ID (使用PagesService的生成方式)
-    const newPageId = `page-${createId()}`;
-    const stateStorageKey = `pages/${user.uid}/${newPageId}/state.update`;
-
-    // 下载分享的页面数据
-    const pageData = JSON.parse(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
-
-    // 创建新的页面记录
-    await this.prisma.$queryRawUnsafe(
-      `
-      INSERT INTO "pages" ("page_id", "uid", "title", "description", "state_storage_key", "status", "created_at", "updated_at")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-    `,
-      newPageId,
-      user.uid,
-      pageData.page.title,
-      pageData.page.description,
-      stateStorageKey,
-      'draft',
-    );
-
-    // 创建Y.doc存储页面状态
-    const doc = new Y.Doc();
-    doc.transact(() => {
-      doc.getText('title').insert(0, pageData.page.title);
-      const nodeIds = Array.isArray(pageData.content.nodeIds) ? pageData.content.nodeIds : [];
-      doc.getArray('nodeIds').insert(0, nodeIds);
-      doc.getMap('pageConfig').set('layout', pageData.pageConfig.layout || 'slides');
-      doc.getMap('pageConfig').set('theme', pageData.pageConfig.theme || 'light');
-    });
-
-    // 上传状态
-    const state = Y.encodeStateAsUpdate(doc);
-    await this.miscService.uploadBuffer(user, {
-      fpath: 'page-state.update',
-      buf: Buffer.from(state),
-      entityId: newPageId,
-      entityType: 'page' as EntityType,
-      visibility: 'private',
-      storageKey: stateStorageKey,
-    });
-
-    // 复制页面节点关联
-    if (Array.isArray(pageData.nodeRelations) && pageData.nodeRelations.length > 0) {
-      for (const relation of pageData.nodeRelations) {
-        const relationId = `pnr-${createId()}`;
-        await this.prisma.$queryRawUnsafe(
-          `
-          INSERT INTO "page_node_relations" ("relation_id", "page_id", "node_id", "node_type", "entity_id", "order_index", "node_data", "created_at", "updated_at")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-        `,
-          relationId,
-          newPageId,
-          relation.nodeId,
-          relation.nodeType,
-          relation.entityId,
-          relation.orderIndex,
-          JSON.stringify(relation.nodeData || {}),
-        );
-      }
-    }
-
-    // 创建复制记录
-    await this.prisma.duplicateRecord.create({
-      data: {
-        sourceId: record.entityId,
-        targetId: newPageId,
-        entityType: 'page' as any,
-        uid: user.uid,
-        shareId,
-        status: 'finish',
-      },
-    });
-
-    return { entityId: newPageId, entityType: 'page' as EntityType };
-  }
-
-  async duplicateShare(user: User, body: DuplicateShareRequest): Promise<Entity> {
-    const { shareId } = body;
-
-    if (!shareId) {
-      throw new ParamsError('Share ID is required');
-    }
-
-    // 根据shareId前缀确定类型
-    if (shareId.startsWith(SHARE_CODE_PREFIX.canvas)) {
-      return this.duplicateSharedCanvas(user, body);
-    }
-
-    if (shareId.startsWith(SHARE_CODE_PREFIX.document)) {
-      return this.duplicateSharedDocument(user, body);
-    }
-
-    if (shareId.startsWith(SHARE_CODE_PREFIX.resource)) {
-      return this.duplicateSharedResource(user, body);
-    }
-
-    if (shareId.startsWith(SHARE_CODE_PREFIX.skillResponse)) {
-      return this.duplicateSharedSkillResponse(user, body);
-    }
-
-    if (shareId.startsWith(SHARE_CODE_PREFIX.codeArtifact)) {
-      return this.duplicateSharedCodeArtifact(user, body);
-    }
-
-    if (shareId.startsWith(SHARE_CODE_PREFIX.page)) {
-      return this.duplicateSharedPage(user, shareId);
-    }
-
-    throw new ParamsError(`Unsupported share type ${shareId}`);
-  }
-
-  /**
-   * Common method to get shared data
-   * @param storageKey object storage key
-   * @returns shared data object
-   */
-  async getSharedData(storageKey: string): Promise<any> {
-    try {
-      const contentBuffer = await this.miscService.downloadFile({
-        storageKey,
-        visibility: 'public',
-      });
-
-      return JSON.parse(contentBuffer.toString());
-    } catch (error) {
-      this.logger.error(`Error reading shared content from ${storageKey}:`, error);
-      throw new Error('Failed to read shared content');
     }
   }
 }

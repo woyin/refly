@@ -1,5 +1,5 @@
 import { ShareRecord as ShareRecordModel } from '../../generated/client';
-import { EntityType, ShareRecord } from '@refly/openapi-schema';
+import { CreateShareRequest, EntityType, ShareRecord, User } from '@refly/openapi-schema';
 import { pick } from '@refly/utils';
 
 export function shareRecordPO2DTO(shareRecord: ShareRecordModel): ShareRecord {
@@ -15,4 +15,13 @@ export function shareRecordPO2DTO(shareRecord: ShareRecordModel): ShareRecord {
     createdAt: shareRecord.createdAt.toJSON(),
     updatedAt: shareRecord.updatedAt.toJSON(),
   };
+}
+
+export interface CreateShareJobData {
+  user: Pick<User, 'uid'>;
+  req: CreateShareRequest;
+}
+
+export interface ShareExtraData {
+  vectorStorageKey: string;
 }
