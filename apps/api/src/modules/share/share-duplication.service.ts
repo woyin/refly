@@ -31,7 +31,7 @@ import {
 import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-search';
 import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ShareCommonService } from './share-common.service';
-import { ShareExtraData } from './share.dto';
+import { ShareExtraData, SharePageData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
 
 interface DuplicateOptions {
@@ -652,7 +652,7 @@ export class ShareDuplicationService {
   }
 
   async duplicateSharedPage(user: User, shareId: string): Promise<Entity> {
-    // 查找分享记录
+    // Find share record
     const record = await this.prisma.shareRecord.findFirst({
       where: { shareId, deletedAt: null },
     });
@@ -661,12 +661,12 @@ export class ShareDuplicationService {
       throw new ShareNotFoundError();
     }
 
-    // 生成新的页面ID (使用PagesService的生成方式)
+    // Generate new page ID
     const newPageId = `page-${createId()}`;
     const stateStorageKey = `pages/${user.uid}/${newPageId}/state.update`;
 
-    // 下载分享的页面数据
-    const pageData = JSON.parse(
+    // Download shared page data
+    const pageData: SharePageData = JSON.parse(
       (
         await this.miscService.downloadFile({
           storageKey: record.storageKey,
@@ -675,21 +675,20 @@ export class ShareDuplicationService {
       ).toString(),
     );
 
-    // 创建新的页面记录
-    await this.prisma.$queryRawUnsafe(
-      `
-      INSERT INTO "pages" ("page_id", "uid", "title", "description", "state_storage_key", "status", "created_at", "updated_at")
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-    `,
-      newPageId,
-      user.uid,
-      pageData.page.title,
-      pageData.page.description,
-      stateStorageKey,
-      'draft',
-    );
+    // Create new page record
+    await this.prisma.page.create({
+      data: {
+        pageId: newPageId,
+        uid: user.uid,
+        canvasId: pageData.canvasId || '',
+        title: pageData.page.title,
+        description: pageData.page.description,
+        stateStorageKey,
+        status: 'draft',
+      },
+    });
 
-    // 创建Y.doc存储页面状态
+    // Create Y.doc to store page state
     const doc = new Y.Doc();
     doc.transact(() => {
       doc.getText('title').insert(0, pageData.page.title);
@@ -699,7 +698,7 @@ export class ShareDuplicationService {
       doc.getMap('pageConfig').set('theme', pageData.pageConfig.theme || 'light');
     });
 
-    // 上传状态
+    // Upload state
     const state = Y.encodeStateAsUpdate(doc);
     await this.miscService.uploadBuffer(user, {
       fpath: 'page-state.update',
@@ -710,27 +709,24 @@ export class ShareDuplicationService {
       storageKey: stateStorageKey,
     });
 
-    // 复制页面节点关联
+    // Duplicate page node relations
     if (Array.isArray(pageData.nodeRelations) && pageData.nodeRelations.length > 0) {
-      for (const relation of pageData.nodeRelations) {
-        const relationId = `pnr-${createId()}`;
-        await this.prisma.$queryRawUnsafe(
-          `
-          INSERT INTO "page_node_relations" ("relation_id", "page_id", "node_id", "node_type", "entity_id", "order_index", "node_data", "created_at", "updated_at")
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-        `,
-          relationId,
-          newPageId,
-          relation.nodeId,
-          relation.nodeType,
-          relation.entityId,
-          relation.orderIndex,
-          JSON.stringify(relation.nodeData || {}),
-        );
-      }
+      const relationsData = pageData.nodeRelations.map((relation) => ({
+        relationId: `pnr-${createId()}`,
+        pageId: newPageId,
+        nodeId: relation.nodeId,
+        nodeType: relation.nodeType,
+        entityId: relation.entityId,
+        orderIndex: relation.orderIndex,
+        nodeData: JSON.stringify(relation.nodeData || {}),
+      }));
+
+      await this.prisma.pageNodeRelation.createMany({
+        data: relationsData,
+      });
     }
 
-    // 创建复制记录
+    // Create duplicate record
     await this.prisma.duplicateRecord.create({
       data: {
         sourceId: record.entityId,

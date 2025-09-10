@@ -25,3 +25,38 @@ export interface CreateShareJobData {
 export interface ShareExtraData {
   vectorStorageKey: string;
 }
+
+export interface SharePageData {
+  canvasId: string;
+  page: {
+    pageId: string;
+    title: string;
+    description: string | null;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  content: {
+    nodeIds: string[];
+  };
+  nodeRelations: Array<{
+    relationId: string;
+    pageId: string;
+    nodeId: string;
+    nodeType: string;
+    entityId: string;
+    orderIndex: number;
+    shareId?: string;
+    nodeData: {
+      metadata?: {
+        shareId?: string;
+      };
+      [key: string]: any;
+    };
+  }>;
+  pageConfig: {
+    layout: string;
+    theme: string;
+  };
+  snapshotTime: Date;
+}

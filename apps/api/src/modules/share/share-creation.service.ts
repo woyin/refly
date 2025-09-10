@@ -16,7 +16,7 @@ import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_CREATE_SHARE } from '../../utils/const';
-import type { CreateShareJobData } from './share.dto';
+import type { CreateShareJobData, SharePageData } from './share.dto';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { ShareCommonService } from './share-common.service';
 import { ShareExtraData } from './share.dto';
@@ -758,8 +758,8 @@ export class ShareCreationService {
     });
 
     // Read page current state
-    let pageContent = {};
-    let pageConfig = {
+    const pageContent = { title: '', nodeIds: [] };
+    const pageConfig = {
       layout: 'slides',
       theme: 'light',
     };
@@ -778,21 +778,14 @@ export class ShareCreationService {
           Y.applyUpdate(ydoc, update);
 
           // Extract page content
-          const title = ydoc.getText('title').toString();
-          const nodeIds = Array.from(ydoc.getArray('nodeIds').toArray());
-
-          pageContent = {
-            title,
-            nodeIds,
-          };
+          pageContent.title = ydoc.getText('title').toString();
+          pageContent.nodeIds = Array.from(ydoc.getArray('nodeIds').toArray());
 
           // Extract page config
           const pageConfigMap = ydoc.getMap('pageConfig');
           if (pageConfigMap.size > 0) {
-            pageConfig = {
-              layout: (pageConfigMap.get('layout') as string) || 'slides',
-              theme: (pageConfigMap.get('theme') as string) || 'light',
-            };
+            pageConfig.layout = (pageConfigMap.get('layout') as string) || 'slides';
+            pageConfig.theme = (pageConfigMap.get('theme') as string) || 'light';
           }
         }
       }
@@ -865,7 +858,8 @@ export class ShareCreationService {
     }
 
     // Create page data object
-    const pageData = {
+    const pageData: SharePageData = {
+      canvasId: page.canvasId,
       page: {
         pageId: page.pageId,
         title: title || page.title,
