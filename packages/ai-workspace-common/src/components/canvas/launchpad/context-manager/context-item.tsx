@@ -32,20 +32,29 @@ export const ContextItem = ({
   const { readonly } = useCanvasContext();
   const { title, entityId, selection, type } = item ?? {};
   const { setSelectedNode } = useNodeSelection();
-  const { getNodes } = useReactFlow();
+  const { getNodes, getNode } = useReactFlow();
   const { setNodeCenter } = useNodePosition();
-  const nodes = getNodes();
 
   const node = useMemo(() => {
+    const nodes = getNodes();
     return nodes.find((node) => node.data?.entityId === entityId) as CanvasNode<any>;
-  }, [nodes, entityId]);
+  }, [getNodes, entityId]);
 
-  const handleItemClick = useCallback(async () => {
-    if (!node) {
+  const finalTitle = useMemo(() => {
+    const nodeTitle = getNode(node?.id)?.data?.title;
+    const stringifiedNodeTitle = nodeTitle != null ? String(nodeTitle) : null;
+    return stringifiedNodeTitle ?? title ?? t(`canvas.nodeTypes.${type}`);
+  }, [node?.id, getNode, title, type, t]);
+
+  const handleItemClick = useCallback(() => {
+    const nodes = getNodes();
+    const currentNode = nodes.find((node) => node.data?.entityId === entityId) as CanvasNode<any>;
+
+    if (!currentNode) {
       return;
     }
 
-    setNodeCenter(node.id);
+    setNodeCenter(currentNode.id);
 
     if (selection) {
       const sourceEntityId = selection.sourceEntityId;
@@ -69,7 +78,7 @@ export const ContextItem = ({
 
       setSelectedNode(sourceNode);
     } else {
-      setSelectedNode(node as CanvasNode<any>);
+      setSelectedNode(currentNode as CanvasNode<any>);
     }
   }, [entityId, selection, setSelectedNode, setNodeCenter, getNodes, t]);
 
@@ -111,7 +120,7 @@ export const ContextItem = ({
             'text-refly-func-danger-default': isLimit,
           })}
         >
-          {title || t(`canvas.nodeTypes.${type}`)}
+          {finalTitle}
         </div>
         {!canNotRemove && !readonly && (
           <Close

@@ -3181,19 +3181,6 @@ export const CanvasStateSchema = {
           type: 'string',
           description: 'Canvas state hash (sha256), calculated from nodes and edges',
         },
-        workflow: {
-          type: 'object',
-          description: 'Workflow configuration',
-          properties: {
-            variables: {
-              type: 'array',
-              description: 'List of workflow variables',
-              items: {
-                $ref: '#/components/schemas/WorkflowVariable',
-              },
-            },
-          },
-        },
         transactions: {
           type: 'array',
           description: 'Canvas transaction list',
@@ -3349,6 +3336,13 @@ export const UpsertCanvasRequestSchema = {
       type: 'string',
       description: 'Minimap storage key',
     },
+    variables: {
+      type: 'array',
+      description: 'Workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
   },
 } as const;
 
@@ -3497,13 +3491,13 @@ export const NodeDiffSchema = {
     },
     from: {
       type: 'object',
-      description: 'Node diff from',
-      $ref: '#/components/schemas/CanvasNode',
+      description: 'Node diff from (only the fields that are different will be included)',
+      additionalProperties: true,
     },
     to: {
       type: 'object',
-      description: 'Node diff to',
-      $ref: '#/components/schemas/CanvasNode',
+      description: 'Node diff to (only the fields that are different will be included)',
+      additionalProperties: true,
     },
   },
 } as const;
@@ -3534,6 +3528,23 @@ export const EdgeDiffSchema = {
   },
 } as const;
 
+export const CanvasTransactionSourceSchema = {
+  type: 'object',
+  description: 'Canvas transaction source',
+  required: ['type'],
+  properties: {
+    type: {
+      type: 'string',
+      description: 'Source type',
+      enum: ['user', 'system'],
+    },
+    uid: {
+      type: 'string',
+      description: 'Source user ID',
+    },
+  },
+} as const;
+
 export const CanvasTransactionSchema = {
   type: 'object',
   required: ['txId', 'nodeDiffs', 'edgeDiffs', 'createdAt'],
@@ -3559,6 +3570,11 @@ export const CanvasTransactionSchema = {
     revoked: {
       type: 'boolean',
       description: 'Whether the transaction is revoked',
+    },
+    source: {
+      type: 'object',
+      description: 'Transaction source',
+      $ref: '#/components/schemas/CanvasTransactionSource',
     },
     deleted: {
       type: 'boolean',
@@ -8040,11 +8056,16 @@ export const CanvasNodeTypeSchema = {
 
 export const CanvasNodeDataSchema = {
   type: 'object',
+  description: 'Node data',
   required: ['title', 'entityId'],
   properties: {
     title: {
       type: 'string',
       description: 'Node title',
+    },
+    editedTitle: {
+      type: 'string',
+      description: 'Node edited title',
     },
     entityId: {
       type: 'string',
@@ -8099,6 +8120,7 @@ export const CanvasNodeSchema = {
     },
     data: {
       type: 'object',
+      description: 'Node data',
       $ref: '#/components/schemas/CanvasNodeData',
     },
     style: {
@@ -8156,6 +8178,13 @@ export const InitializeWorkflowRequestSchema = {
       type: 'string',
       description: 'New canvas ID',
       example: 'canvas-456',
+    },
+    variables: {
+      type: 'array',
+      description: 'Workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
     },
     startNodes: {
       type: 'array',
@@ -8454,7 +8483,7 @@ export const ExecuteWorkflowAppResponseSchema = {
   ],
 } as const;
 
-export const VariableTypeSchema = {
+export const ValueTypeSchema = {
   type: 'string',
   enum: ['text', 'resource'],
 } as const;
@@ -8484,7 +8513,7 @@ export const VariableValueSchema = {
   properties: {
     type: {
       description: 'Variable type',
-      $ref: '#/components/schemas/VariableType',
+      $ref: '#/components/schemas/ValueType',
     },
     text: {
       type: 'string',

@@ -1,6 +1,6 @@
 import { type ThemeConfig, theme } from 'antd';
 import { create } from 'zustand';
-import merge from 'deepmerge';
+import { deepmerge } from '@refly/utils';
 
 export interface ConfigProviderState {
   theme: ThemeConfig;
@@ -29,8 +29,6 @@ export const useConfigProviderStore = create<ConfigProviderState>((set) => ({
   },
   updateTheme: (config) =>
     set((state) => ({
-      theme: merge(state.theme, config, {
-        arrayMerge: (_target, source) => source,
-      }),
+      theme: deepmerge(state.theme, config),
     })),
 }));

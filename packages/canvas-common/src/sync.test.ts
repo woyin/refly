@@ -57,7 +57,16 @@ const createTx = (
 describe('initEmptyCanvasState', () => {
   it('should return a valid empty canvas state', () => {
     const state = initEmptyCanvasState();
-    expect(state.nodes).toEqual([]);
+    expect(state.nodes).toEqual([
+      {
+        type: 'start',
+        id: expect.any(String),
+        position: { x: 0, y: 0 },
+        data: { title: 'Start', entityId: expect.any(String) },
+        selected: false,
+        dragging: false,
+      },
+    ]);
     expect(state.edges).toEqual([]);
     expect(state.transactions).toEqual([]);
     expect(state.history).toEqual([]);

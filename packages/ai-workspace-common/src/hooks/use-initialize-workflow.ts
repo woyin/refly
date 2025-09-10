@@ -7,6 +7,7 @@ import { genCanvasID } from '@refly/utils';
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { useWorkflowExecutionPolling } from './use-workflow-execution-polling';
 import { useCanvasStoreShallow } from '@refly/stores';
+import { InitializeWorkflowRequest } from '@refly/openapi-schema';
 
 export const useInitializeWorkflow = (canvasId?: string) => {
   const { t } = useTranslation();
@@ -32,7 +33,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
     executionId,
     canvasId: canvasId || '',
     enabled: !!executionId || !!canvasId,
-    interval: 5000,
+    interval: 2000,
 
     onComplete: (status, _data) => {
       if (status === 'finish') {
@@ -54,11 +55,11 @@ export const useInitializeWorkflow = (canvasId?: string) => {
   });
 
   const initializeWorkflow = useCallback(
-    async (canvasId: string, startNodes?: string[]) => {
+    async (param: InitializeWorkflowRequest) => {
       try {
         setLoading(true);
         const { data, error } = await getClient().initializeWorkflow({
-          body: { canvasId, startNodes },
+          body: param,
         });
 
         if (error) {

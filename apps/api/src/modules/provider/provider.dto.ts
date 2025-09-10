@@ -52,6 +52,7 @@ export const providerItem2ModelInfo = (
   return {
     name: config.modelId,
     label: providerItem.name,
+    providerItemId: providerItem.itemId,
     provider: providerItem.provider?.name ?? '',
     tier: providerItem.tier as ModelTier,
     contextLimit: config.contextLimit ?? 0,
