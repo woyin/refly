@@ -326,6 +326,7 @@ export class AuthService {
         providerAccountId: id,
         accessToken: accessToken,
         refreshToken: refreshToken,
+        scope: JSON.stringify(['profile', 'email']), // Default scope for login
       },
     });
     this.logger.log(`new account created for ${newAccount.uid}`);
@@ -516,5 +517,171 @@ export class AuthService {
     }
 
     return this.login(user);
+  }
+
+  /**
+   * Tool OAuth validation - handles OAuth for tools with specific scopes
+   * @param accessToken
+   * @param refreshToken
+   * @param profile
+   */
+  async toolOAuthValidate(accessToken: string, refreshToken: string, profile: Profile) {
+    this.logger.log(
+      `tool oauth accessToken: ${accessToken}, refreshToken: ${refreshToken}, profile: ${JSON.stringify(
+        profile,
+      )}`,
+    );
+    const { provider, id, emails } = profile;
+
+    // Check if there is an authentication account record
+    const account = await this.prisma.account.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider,
+          providerAccountId: id,
+        },
+      },
+    });
+
+    // If there is an authentication account record and corresponding user, update tokens and scope
+    if (account) {
+      this.logger.log(`account found for provider ${provider}, account id: ${id}`);
+
+      // Update tokens and scope for tool OAuth
+      await this.prisma.account.update({
+        where: { pk: account.pk },
+        data: {
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+          scope: JSON.stringify(['profile', 'email', 'https://www.googleapis.com/auth/drive']), // Tool scope
+        },
+      });
+
+      const user = await this.prisma.user.findUnique({
+        where: {
+          uid: account.uid,
+        },
+      });
+      if (user) {
+        return user;
+      }
+
+      this.logger.log(`user ${account.uid} not found for provider ${provider} account id: ${id}`);
+    }
+
+    // For tool OAuth, we expect the user to already exist
+    // oauth profile returns no email, this is invalid
+    if (emails?.length === 0) {
+      this.logger.warn('emails is empty, invalid oauth');
+      throw new OAuthError();
+    }
+    const email = emails[0].value;
+
+    // Return user if this email has been registered
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (user) {
+      this.logger.log(`user ${user.uid} already registered for email ${email}`);
+
+      // Create or update account record for tool OAuth
+      const existingAccount = await this.prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider,
+            providerAccountId: id,
+          },
+        },
+      });
+
+      if (existingAccount) {
+        // Update existing account with new tokens and scope
+        await this.prisma.account.update({
+          where: { pk: existingAccount.pk },
+          data: {
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiresAt: Math.floor(Date.now() / 1000) + 3600,
+            scope: JSON.stringify(['profile', 'email', 'https://www.googleapis.com/auth/drive']),
+          },
+        });
+      } else {
+        // Create new account record
+        await this.prisma.account.create({
+          data: {
+            type: 'oauth',
+            uid: user.uid,
+            provider,
+            providerAccountId: id,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiresAt: Math.floor(Date.now() / 1000) + 3600,
+            scope: JSON.stringify(['profile', 'email', 'https://www.googleapis.com/auth/drive']),
+          },
+        });
+      }
+
+      return user;
+    }
+
+    // For tool OAuth, user must already exist
+    throw new OAuthError('User not found for tool OAuth');
+  }
+
+  /**
+   * Check if user has sufficient OAuth scope for tool
+   * @param uid User ID
+   * @param provider OAuth provider
+   * @param requiredScope Required scope array
+   */
+  async checkToolOAuthStatus(
+    uid: string,
+    provider: string,
+    requiredScope: string[],
+  ): Promise<boolean> {
+    try {
+      const account = await this.prisma.account.findFirst({
+        where: {
+          uid,
+          provider,
+        },
+      });
+
+      if (!account || !account.scope) {
+        return false;
+      }
+
+      const existingScope = JSON.parse(account.scope);
+      const hasRequiredScope = requiredScope.every((scope) => existingScope.includes(scope));
+
+      return hasRequiredScope;
+    } catch (error) {
+      this.logger.error(`Error checking tool OAuth status for user ${uid}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Generate OAuth URL for tool authorization
+   * @param provider OAuth provider
+   * @param scope Required scope array
+   * @param redirectUrl Redirect URL after authorization
+   */
+  generateToolOAuthUrl(provider: string, scope: string[], redirectUrl: string): string {
+    const clientId = this.configService.get(`auth.${provider}.clientId`);
+    const callbackUrl =
+      this.configService.get(`auth.${provider}.toolCallbackUrl`) ||
+      `${this.configService.get(`auth.${provider}.callbackUrl`)}/tool`;
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: callbackUrl,
+      scope: scope.join(' '),
+      response_type: 'code',
+      access_type: 'offline',
+      prompt: 'consent',
+      state: JSON.stringify({ redirect: redirectUrl }),
+    });
+
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
 }

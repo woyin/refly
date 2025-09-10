@@ -17,6 +17,7 @@ import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { AuthService } from './auth.service';
 import { GithubOauthGuard } from './guard/github-oauth.guard';
 import { GoogleOauthGuard } from './guard/google-oauth.guard';
+import { ToolOauthGuard } from './guard/tool-oauth.guard';
 import { OAuthError } from '@refly/errors';
 import {
   EmailSignupRequest,
@@ -123,6 +124,22 @@ export class AuthController {
     }
   }
 
+  @UseGuards(ToolOauthGuard)
+  @Get('callback/google/tool')
+  async toolOAuthCallback(@LoginedUser() user: User, @Res() res: Response) {
+    try {
+      this.logger.log(`tool google oauth callback success, req.user = ${user?.email}`);
+
+      // The tool OAuth validation is handled in the guard
+      // Just redirect back to the original page
+      const redirectUrl = this.configService.get('auth.redirectUrl');
+      res.redirect(redirectUrl);
+    } catch (error) {
+      this.logger.error('Tool Google OAuth callback failed:', error.stack);
+      throw new OAuthError();
+    }
+  }
+
   @UseGuards(GoogleOauthGuard)
   @Get('callback/google')
   async googleAuthCallback(@LoginedUser() user: User, @Res() res: Response) {
@@ -135,6 +152,63 @@ export class AuthController {
         .redirect(this.configService.get('auth.redirectUrl'));
     } catch (error) {
       this.logger.error('Google OAuth callback failed:', error.stack);
+      throw new OAuthError();
+    }
+  }
+
+  // Tool OAuth endpoints - specific routes first
+  @UseGuards(JwtAuthGuard)
+  @Get('tool-oauth/status')
+  async checkToolOAuthStatus(
+    @LoginedUser() user: User,
+    @Query('provider') provider: string,
+    @Query('scope') scope: string,
+  ) {
+    try {
+      const requiredScope = scope ? scope.split(',') : [];
+      const hasAuth = await this.authService.checkToolOAuthStatus(
+        user.uid,
+        provider,
+        requiredScope,
+      );
+
+      return buildSuccessResponse({ authorized: hasAuth });
+    } catch (error) {
+      this.logger.error('Check tool OAuth status failed:', error.stack);
+      throw new OAuthError();
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('tool-oauth/:provider')
+  async toolOAuth(
+    @LoginedUser() user: User,
+    @Query('scope') scope: string,
+    @Query('redirect') redirect: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const requiredScope = scope ? scope.split(',') : [];
+      const redirectUrl = redirect || this.configService.get('auth.redirectUrl');
+
+      // Check if user already has sufficient OAuth scope
+      const hasAuth = await this.authService.checkToolOAuthStatus(
+        user.uid,
+        'google', // For now, only support Google
+        requiredScope,
+      );
+
+      if (hasAuth) {
+        // User already has sufficient scope, redirect back
+        res.redirect(redirectUrl);
+        return;
+      }
+
+      // Generate OAuth URL with required scope
+      const authUrl = this.authService.generateToolOAuthUrl('google', requiredScope, redirectUrl);
+      res.redirect(authUrl);
+    } catch (error) {
+      this.logger.error('Tool OAuth initiation failed:', error.stack);
       throw new OAuthError();
     }
   }

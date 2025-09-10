@@ -12,6 +12,7 @@ import {
   batchUpdateDocument,
   batchUpdateProviderItems,
   checkSettingsField,
+  checkToolOauthStatus,
   checkVerification,
   convert,
   createCanvas,
@@ -171,6 +172,8 @@ import {
   BatchUpdateProviderItemsError,
   CheckSettingsFieldData,
   CheckSettingsFieldError,
+  CheckToolOauthStatusData,
+  CheckToolOauthStatusError,
   CheckVerificationData,
   CheckVerificationError,
   ConvertData,
@@ -524,6 +527,23 @@ export const useListAccounts = <
     queryKey: Common.UseListAccountsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listAccounts({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useCheckToolOauthStatus = <
+  TData = Common.CheckToolOauthStatusDefaultResponse,
+  TError = CheckToolOauthStatusError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<CheckToolOauthStatusData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseCheckToolOauthStatusKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      checkToolOauthStatus({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetCollabToken = <

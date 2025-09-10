@@ -502,7 +502,7 @@ export type Account = {
   /**
    * Auth scope
    */
-  scope?: string;
+  scope?: Array<string>;
   /**
    * Provider account ID
    */
@@ -517,6 +517,29 @@ export type ListAccountsResponse = BaseResponse & {
    * List of auth accounts
    */
   data?: Array<Account>;
+};
+
+/**
+ * Check tool OAuth status response
+ */
+export type CheckToolOAuthStatusResponse = BaseResponse & {
+  /**
+   * OAuth status information
+   */
+  data?: {
+    /**
+     * Whether user has sufficient OAuth authorization
+     */
+    authorized?: boolean;
+    /**
+     * OAuth provider
+     */
+    provider?: string;
+    /**
+     * Required OAuth scopes
+     */
+    scope?: Array<string>;
+  };
 };
 
 /**
@@ -6386,6 +6409,23 @@ export type ListAccountsError = unknown;
 export type LogoutResponse = unknown;
 
 export type LogoutError = unknown;
+
+export type CheckToolOauthStatusData = {
+  query: {
+    /**
+     * OAuth provider (e.g., google, github)
+     */
+    provider: string;
+    /**
+     * Comma-separated list of required OAuth scopes
+     */
+    scope: string;
+  };
+};
+
+export type CheckToolOauthStatusResponse = CheckToolOAuthStatusResponse;
+
+export type CheckToolOauthStatusError = unknown;
 
 export type GetCollabTokenResponse2 = GetCollabTokenResponse;
 

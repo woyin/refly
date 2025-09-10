@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { Close } from 'refly-icons';
 import { useListTools, useListToolsets } from '@refly-packages/ai-workspace-common/queries';
+import { OAuthStatusChecker } from './oauth-status-checker';
+import { serverOrigin } from '@refly/ui-kit';
 import './index.scss';
 
 const { TextArea } = Input;
@@ -360,6 +362,27 @@ export const ToolInstallModal = React.memo(
       );
     }, [credentialItems, currentLocale, form, handleCredentialValueChange, mode]);
 
+    // Render OAuth status check for OAuth auth patterns
+    const renderOAuthStatus = useCallback(() => {
+      if (selectedAuthPattern?.type !== 'oauth') return null;
+
+      return (
+        <Form.Item label={t('settings.toolStore.install.oauthStatus')} name="oauthStatus">
+          <OAuthStatusChecker
+            authPattern={selectedAuthPattern as any}
+            onAuthRequired={() => {
+              // Generate OAuth authorization URL
+              const authUrl =
+                `${serverOrigin}/v1/auth/tool-oauth/${selectedAuthPattern.provider}?` +
+                `scope=${selectedAuthPattern.scope.join(',')}&` +
+                `redirect=${encodeURIComponent(window.location.href)}`;
+              window.location.href = authUrl;
+            }}
+          />
+        </Form.Item>
+      );
+    }, [selectedAuthPattern, currentLocale, t]);
+
     // Render config form fields based on config items
     const renderConfigFields = useCallback(() => {
       if (!configItems.length) return null;
@@ -542,6 +565,9 @@ export const ToolInstallModal = React.memo(
                 </Radio.Group>
               </Form.Item>
             )}
+
+            {/* OAuth status check */}
+            {selectedAuthType && renderOAuthStatus()}
 
             {/* Credential fields */}
             {selectedAuthType && credentialItems.length > 0 && renderCredentialFields()}
