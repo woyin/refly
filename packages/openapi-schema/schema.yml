@@ -2645,26 +2645,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetPilotSessionDetailResponse'
-      /pilot/session/recover:
-        post:
-          tags:
-            - pilot
-          summary: Recover pilot session
-          description: Recover a failed pilot session by retrying failed steps. Can recover all failed steps or specific steps.
-          operationId: recoverPilotSession
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/RecoverPilotSessionRequest'
-          responses:
-            '200':
-              description: successful operation
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/BaseResponse'
+  /pilot/session/recover:
+    post:
+      tags:
+        - pilot
+      summary: Recover pilot session
+      description: Recover a failed pilot session by retrying failed steps. Can recover all failed steps or specific steps.
+      operationId: recoverPilotSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoverPilotSessionRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /workflow/initialize:
     post:
       tags:

@@ -2163,7 +2163,7 @@ export const getPilotSessionDetail = <ThrowOnError extends boolean = false>(
 
 /**
  * Recover pilot session
- * Recover a failed pilot session by retrying failed steps
+ * Recover a failed pilot session by retrying failed steps. Can recover all failed steps or specific steps.
  */
 export const recoverPilotSession = <ThrowOnError extends boolean = false>(
   options: Options<RecoverPilotSessionData, ThrowOnError>,
@@ -2174,7 +2174,7 @@ export const recoverPilotSession = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     ...options,
-    url: '/pilot/session/{sessionId}/recover',
+    url: '/pilot/session/recover',
   });
 };
 

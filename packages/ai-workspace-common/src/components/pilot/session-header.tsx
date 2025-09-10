@@ -1,17 +1,15 @@
-import { Button, Divider, Popover, Tooltip, message } from 'antd';
+import { Button, Divider, Popover, Tooltip } from 'antd';
 import { History, Refresh } from 'refly-icons';
 import { memo, useCallback, useState } from 'react';
 import { PilotSession, PilotStep } from '@refly/openapi-schema';
 import { PilotList } from '@refly-packages/ai-workspace-common/components/pilot/pilot-list';
 import { useTranslation } from 'react-i18next';
-import { usePilotStoreShallow, useActionResultStoreShallow } from '@refly/stores';
+import { usePilotStoreShallow } from '@refly/stores';
 import { ScreenDefault, ScreenFull } from 'refly-icons';
 import { SessionStatusTag } from '@refly-packages/ai-workspace-common/components/pilot/session-status-tag';
 import { NewTaskButton } from '@refly-packages/ai-workspace-common/components/pilot/session-container';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
-import { useRecoverPilotSession } from '@refly-packages/ai-workspace-common/queries';
-import { useQueryClient } from '@tanstack/react-query';
-import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
+import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilot/use-pilot-recovery';
 const SessionHeader = memo(
   ({
     canvasId,
@@ -26,20 +24,10 @@ const SessionHeader = memo(
     onClick: () => void;
     onSessionClick: (sessionId: string) => void;
   }) => {
-    const { isPilotOpen, setActiveSessionId } = usePilotStoreShallow((state) => ({
+    const { isPilotOpen } = usePilotStoreShallow((state) => ({
       isPilotOpen: state.isPilotOpen,
-      setActiveSessionId: state.setActiveSessionId,
     }));
 
-    const { removeActionResult, removeStreamResult, removeTraceId, removePollingState } =
-      useActionResultStoreShallow((state) => ({
-        removeActionResult: state.removeActionResult,
-        removeStreamResult: state.removeStreamResult,
-        removeTraceId: state.removeTraceId,
-        removePollingState: state.removePollingState,
-      }));
-
-    const { resetFailedState, stopPolling } = useActionPolling();
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const handleSessionClick = useCallback(
       (sessionId: string) => {
@@ -49,90 +37,19 @@ const SessionHeader = memo(
       [onSessionClick],
     );
     const { t } = useTranslation();
-    const queryClient = useQueryClient();
 
-    // Recovery mutation
-    const recoverMutation = useRecoverPilotSession();
+    // Use the new recovery hook
+    const { recoverAllFailedSteps, isRecovering } = usePilotRecovery({
+      canvasId,
+      sessionId: session?.sessionId || '',
+    });
 
     const handleRecoverSession = useCallback(async () => {
       if (!session?.sessionId) return;
 
-      try {
-        await recoverMutation.mutateAsync({
-          path: { sessionId: session.sessionId },
-        });
-
-        // Set the recovered session as active to enable polling and status sync
-        setActiveSessionId(canvasId, session.sessionId);
-
-        // Force refresh session details to get the latest status immediately
-        await queryClient.invalidateQueries({
-          queryKey: ['GetPilotSessionDetail', { query: { sessionId: session.sessionId } }],
-        });
-
-        // Completely clear all cache and state for failed steps to reset to initial state
-        const failedSteps = steps?.filter((step) => step.status === 'failed') || [];
-        for (const step of failedSteps) {
-          if (step.entityId) {
-            // 1. Invalidate React Query cache for ActionResult
-            await queryClient.invalidateQueries({
-              queryKey: ['GetActionResult', { query: { resultId: step.entityId } }],
-            });
-
-            // 2. Remove ActionResult from Zustand store (also clears localStorage via persist)
-            removeActionResult(step.entityId);
-
-            // 3. Reset failed state to allow polling restart
-            resetFailedState(step.entityId);
-
-            // 4. Clear polling state to reset to initial state
-            stopPolling(step.entityId);
-            removePollingState(step.entityId);
-
-            // 5. Remove from stream results if exists
-            removeStreamResult(step.entityId);
-
-            // 6. Clear trace ID mapping
-            removeTraceId(step.entityId);
-
-            console.log(
-              `[Recovery] Cleared all cache and state for step ${step.stepId} (${step.entityId})`,
-            );
-          }
-        }
-
-        console.log(
-          `[Recovery] Successfully processed ${failedSteps.length} failed steps for recovery`,
-        );
-
-        message.success(
-          t('pilot.recovery.success', {
-            defaultValue: 'Session recovery started successfully',
-          }),
-        );
-      } catch (error) {
-        message.error(
-          t('pilot.recovery.error', {
-            defaultValue: 'Failed to recover session',
-          }),
-        );
-        console.error('Failed to recover session:', error);
-      }
-    }, [
-      session?.sessionId,
-      recoverMutation,
-      setActiveSessionId,
-      canvasId,
-      queryClient,
-      removeActionResult,
-      removeStreamResult,
-      removeTraceId,
-      removePollingState,
-      resetFailedState,
-      stopPolling,
-      steps,
-      t,
-    ]);
+      const failedSteps = steps?.filter((step) => step.status === 'failed') || [];
+      await recoverAllFailedSteps(failedSteps);
+    }, [session?.sessionId, steps, recoverAllFailedSteps]);
     return (
       <div className="flex items-center justify-between w-full p-4">
         {/* Header Left */}
@@ -155,7 +72,7 @@ const SessionHeader = memo(
               <Button
                 type="text"
                 size="small"
-                loading={recoverMutation.isPending}
+                loading={isRecovering}
                 className="flex items-center justify-center text-refly-text-0 hover:text-refly-primary-default"
                 icon={<Refresh size={16} />}
                 onClick={handleRecoverSession}

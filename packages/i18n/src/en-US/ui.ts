@@ -3156,6 +3156,14 @@ const translations = {
       success: 'Session recovery started successfully',
       error: 'Failed to recover session',
     },
+    stepRecovery: {
+      button: 'Retry',
+      success: 'Step recovery started successfully',
+      error: {
+        noStepId: 'Step ID not found',
+        general: 'Failed to recover step',
+      },
+    },
   },
   deck: {
     references: 'References',

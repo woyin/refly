@@ -3132,6 +3132,14 @@ const translations = {
       success: '会话恢复已成功启动',
       error: '恢复会话失败',
     },
+    stepRecovery: {
+      button: '重试',
+      success: '步骤恢复已成功启动',
+      error: {
+        noStepId: '步骤ID不存在',
+        general: '步骤恢复失败',
+      },
+    },
   },
   deck: {
     references: '引用',

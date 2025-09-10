@@ -7420,6 +7420,14 @@ export type GetPilotSessionDetailResponse2 = GetPilotSessionDetailResponse;
 
 export type GetPilotSessionDetailError = unknown;
 
+export type RecoverPilotSessionData = {
+  body: RecoverPilotSessionRequest;
+};
+
+export type RecoverPilotSessionResponse = BaseResponse;
+
+export type RecoverPilotSessionError = unknown;
+
 export type InitializeWorkflowData = {
   body: InitializeWorkflowRequest;
 };

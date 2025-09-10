@@ -815,10 +815,13 @@ export class PilotService {
       }
 
       // Find failed steps to recover
-      const whereCondition: any = {
+      const whereCondition: {
+        sessionId: string;
+        status: string;
+        stepId?: { in: string[] };
+      } = {
         sessionId,
         status: 'failed',
-        epoch: session.currentEpoch,
       };
 
       // If specific stepIds are provided, filter by them
@@ -864,31 +867,6 @@ export class PilotService {
       }
       const chatModelId = JSON.parse(chatPi.config).modelId;
 
-      // Get session details for context building
-      const { steps } = await this.getPilotSessionDetail(user, sessionId);
-      const latestSummarySteps =
-        steps?.filter(({ step }) => step.epoch === session.currentEpoch - 1) || [];
-
-      // Get canvas state data and find downstream nodes
-      let downstreamContentItems: CanvasContentItem[] = [];
-      let downstreamEntityIds: string[] = [];
-      if (targetType === 'canvas' && latestSummarySteps.length > 0) {
-        const downstreamData = await this.findDownstreamNodes(user, targetId, latestSummarySteps);
-        downstreamEntityIds = downstreamData.downstreamEntityIds;
-
-        // Build content items for downstream entities
-        downstreamContentItems = await this.buildDownstreamContentItems(
-          user,
-          targetId,
-          downstreamEntityIds,
-        );
-      }
-
-      const { context, history } = await this.buildContextAndHistory(
-        canvasContentItems.concat(downstreamContentItems),
-        downstreamEntityIds,
-      );
-
       // Update session status to executing only if recovering all failed steps
       // If only recovering specific steps, keep session status as failed until all steps are recovered
       if (!stepIds || stepIds.length === 0) {
@@ -903,8 +881,34 @@ export class PilotService {
         this.logger.log('Recovering specific steps, keeping session status as failed for now');
       }
 
+      // Get session details for context building
+      const { steps } = await this.getPilotSessionDetail(user, sessionId);
+
       // Process each failed step
       for (const failedStep of failedSteps) {
+        const latestSummarySteps =
+          steps?.filter(({ step }) => step.epoch === failedStep.epoch - 1) || [];
+
+        // Get canvas state data and find downstream nodes
+        let downstreamContentItems: CanvasContentItem[] = [];
+        let downstreamEntityIds: string[] = [];
+        if (targetType === 'canvas' && latestSummarySteps.length > 0) {
+          const downstreamData = await this.findDownstreamNodes(user, targetId, latestSummarySteps);
+          downstreamEntityIds = downstreamData.downstreamEntityIds;
+
+          // Build content items for downstream entities
+          downstreamContentItems = await this.buildDownstreamContentItems(
+            user,
+            targetId,
+            downstreamEntityIds,
+          );
+        }
+
+        const { context, history } = await this.buildContextAndHistory(
+          canvasContentItems.concat(downstreamContentItems),
+          downstreamEntityIds,
+        );
+
         const originalRawStep = JSON.parse(failedStep.rawOutput);
 
         // Use existing ActionResult ID but create new version for retry

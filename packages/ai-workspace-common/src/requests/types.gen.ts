@@ -4157,6 +4157,17 @@ export type UpdatePilotSessionRequest = {
   maxEpoch?: number;
 };
 
+export type RecoverPilotSessionRequest = {
+  /**
+   * Pilot session ID to recover
+   */
+  sessionId: string;
+  /**
+   * Optional array of specific step IDs to recover. If not provided, recovers all failed steps in the current epoch.
+   */
+  stepIds?: Array<string>;
+};
+
 export type UpsertPilotSessionResponse = BaseResponse & {
   /**
    * Upserted pilot session
@@ -7410,12 +7421,7 @@ export type GetPilotSessionDetailResponse2 = GetPilotSessionDetailResponse;
 export type GetPilotSessionDetailError = unknown;
 
 export type RecoverPilotSessionData = {
-  path: {
-    /**
-     * Pilot session ID to recover
-     */
-    sessionId: string;
-  };
+  body: RecoverPilotSessionRequest;
 };
 
 export type RecoverPilotSessionResponse = BaseResponse;
