@@ -209,7 +209,6 @@ export class WorkflowService {
     } = nodeExecution;
     const node = safeParseJSON(nodeData) as CanvasNode;
     const metadata = node.data?.metadata as ResponseNodeMeta;
-    const { modelInfo, selectedToolsets, contextItems = [] } = metadata;
 
     if (!metadata) {
       this.logger.warn(
@@ -218,6 +217,7 @@ export class WorkflowService {
       return;
     }
 
+    const { modelInfo, selectedToolsets, contextItems = [] } = metadata;
     const { context, images } = convertContextItemsToInvokeParams(contextItems, () => []);
 
     // Prepare the invoke skill request
@@ -334,8 +334,8 @@ export class WorkflowService {
           {
             type: 'update',
             id: nodeId,
-            from: { status: 'executing' },
-            to: { status: 'finish' },
+            from: { data: { metadata: { status: 'executing' } } },
+            to: { data: { metadata: { status: 'finish' } } },
           },
         ]);
       }
