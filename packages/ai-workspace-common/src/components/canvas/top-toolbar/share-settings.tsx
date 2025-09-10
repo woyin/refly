@@ -9,7 +9,6 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { CreateWorkflowAppModal } from '@refly-packages/ai-workspace-common/components/workflow-app/create-modal';
 import { useListShares } from '@refly-packages/ai-workspace-common/queries';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
-import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hooks/use-export-canvas-as-image';
 import { logEvent } from '@refly/telemetry-web';
 
 type ShareAccess = 'off' | 'anyone';
@@ -98,8 +97,6 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     [shareRecord],
   );
 
-  const { uploadCanvasCover } = useExportCanvasAsImage();
-
   // Memoized function to re-share latest content before copying link
   const updateShare = useCallback(async () => {
     if (access === 'off') return;
@@ -108,13 +105,11 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     (async () => {
       try {
         setUpdateShareLoading(true);
-        const { storageKey } = await uploadCanvasCover();
         const { data, error } = await getClient().createShare({
           body: {
             entityId: canvasId,
             entityType: 'canvas',
             allowDuplication: true,
-            coverStorageKey: storageKey,
           },
         });
 
@@ -128,7 +123,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         setUpdateShareLoading(false);
       }
     })();
-  }, [access, canvasId, refetchShares, shareRecord?.shareId, t, uploadCanvasCover]);
+  }, [access, canvasId, refetchShares, shareRecord?.shareId, t]);
 
   const copyLink = useCallback(async () => {
     if (access === 'off') return;
@@ -173,13 +168,11 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
             success = true;
           }
         } else {
-          const { storageKey } = await uploadCanvasCover();
           const { data } = await getClient().createShare({
             body: {
               entityId: canvasId,
               entityType: 'canvas',
               allowDuplication: true,
-              coverStorageKey: storageKey,
             },
           });
           success = data?.success;
@@ -202,7 +195,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
 
       return success;
     },
-    [canvasId, t, refetchShares, uploadCanvasCover],
+    [canvasId, t, refetchShares],
   );
 
   const handleAccessChange = useCallback(
