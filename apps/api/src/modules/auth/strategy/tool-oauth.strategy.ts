@@ -14,14 +14,13 @@ export class ToolOauthStrategy extends PassportStrategy(Strategy, 'tool-google')
     super({
       clientID: configService.get('auth.google.clientId'),
       clientSecret: configService.get('auth.google.clientSecret'),
-      callbackURL:
-        configService.get('auth.google.toolCallbackUrl') ||
-        `${configService.get('auth.google.callbackUrl')}/tool`,
-      scope: ['profile', 'email'], // Default scope, will be overridden dynamically
+      callbackURL: `${configService.get('auth.google.callbackUrl')}/tool`,
+      scope: ['https://www.googleapis.com/auth/drive'],
     });
   }
 
   async validate(accessToken: string, refreshToken: string, profile: Profile) {
+    console.log('validate');
     return this.authService.toolOAuthValidate(accessToken, refreshToken, profile);
   }
 }
