@@ -1,8 +1,8 @@
 import { memo, useMemo } from 'react';
 import { PilotSessionStatus, PilotStep } from '@refly/openapi-schema';
-import { ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined } from '@ant-design/icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
-import { Finished, Running1 } from 'refly-icons';
+import { Cancelled, Finished, Running1 } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 
 export interface SessionStatusTagProps {
@@ -22,7 +22,7 @@ export const SessionStatusTag = memo(({ status, steps, className }: SessionStatu
       case 'finish':
         return <Finished className="w-4 h-4" color="var(--refly-primary-default)" />;
       case 'failed':
-        return <CloseCircleOutlined className="w-4 h-4" />;
+        return <Cancelled className="w-4 h-4 mr-[4px]" color="var(--refly-func-danger-default)" />;
       default:
         return null;
     }

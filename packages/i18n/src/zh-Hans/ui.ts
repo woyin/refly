@@ -3127,7 +3127,7 @@ const translations = {
       planning: '正在规划任务...',
       executingSteps: '任务执行 {{current}} / {{total}} ...',
       completedTasks: '已完成{{count}}个任务 ...',
-      taskFailed: '任务失败',
+      taskFailed: '任务已终止',
       understandingIntent: '正在理解意图分析需求...',
     },
     recovery: {

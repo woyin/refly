@@ -3151,7 +3151,7 @@ const translations = {
       planning: 'Planning tasks...',
       executingSteps: 'Task execution {{current}} / {{total}} ...',
       completedTasks: 'Completed {{count}} tasks ...',
-      taskFailed: 'Task failed',
+      taskFailed: 'Task terminated',
       understandingIntent: 'Understanding intent and analyzing requirements...',
     },
     recovery: {
