@@ -24,7 +24,7 @@ import {
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
-import { McpServerForm } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/McpServerForm';
+import { McpServerForm } from './McpServerForm';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
 import { useUserStoreShallow } from '@refly/stores';
 import { Edit, Delete, More, Mcp } from 'refly-icons';

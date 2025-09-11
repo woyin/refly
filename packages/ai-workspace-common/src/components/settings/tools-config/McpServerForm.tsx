@@ -34,7 +34,7 @@ import {
   useUpdateMcpServer,
   useValidateMcpServer,
 } from '@refly-packages/ai-workspace-common/queries';
-import { mapServerType } from '@refly-packages/ai-workspace-common/components/settings/mcp-server/utils';
+import { mapServerType } from './utils';
 
 const { TabPane } = Tabs;
 const { Option } = Select;

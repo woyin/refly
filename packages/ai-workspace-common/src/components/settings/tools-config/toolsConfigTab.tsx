@@ -14,9 +14,9 @@ import { ToolList } from './tools/tool-list';
 import { ToolStore } from './tools/tool-store';
 import { useListToolsets, useListTools } from '@refly-packages/ai-workspace-common/queries';
 
-export const McpServerTab = ({ visible }: { visible: boolean }) => {
+export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
   const { t } = useTranslation();
-  const [openMcpStoreModal, setOpenMcpStoreModal] = useState(false);
+  const [openToolStoreModal, setOpenToolStoreModal] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
   const [selectedTab, setSelectedTab] = useState<'tools' | 'mcp'>('tools');
@@ -69,14 +69,14 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
             type="text"
             className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
             icon={<HiMiniBuildingStorefront />}
-            onClick={() => setOpenMcpStoreModal(true)}
+            onClick={() => setOpenToolStoreModal(true)}
           >
             {t('settings.mcpServer.toolStore')}
           </Button>
         )}
       </div>
     );
-  }, [t, refetch, setIsFormVisible, setEditingServer, setOpenMcpStoreModal, selectedTab]);
+  }, [t, refetch, setIsFormVisible, setEditingServer, setOpenToolStoreModal, selectedTab]);
 
   if (!visible) return null;
 
@@ -115,8 +115,8 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
       </div>
 
       <Modal
-        open={openMcpStoreModal}
-        onCancel={() => setOpenMcpStoreModal(false)}
+        open={openToolStoreModal}
+        onCancel={() => setOpenToolStoreModal(false)}
         title={null}
         footer={null}
         className="provider-store-modal"
@@ -133,11 +133,11 @@ export const McpServerTab = ({ visible }: { visible: boolean }) => {
             <Button
               type="text"
               icon={<Close size={24} />}
-              onClick={() => setOpenMcpStoreModal(false)}
+              onClick={() => setOpenToolStoreModal(false)}
             />
           </div>
 
-          <ToolStore visible={openMcpStoreModal} setToolStoreVisible={setOpenMcpStoreModal} />
+          <ToolStore visible={openToolStoreModal} setToolStoreVisible={setOpenToolStoreModal} />
         </div>
       </Modal>
     </div>

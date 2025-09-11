@@ -25,7 +25,7 @@ import {
 
 import { subscriptionEnabled } from '@refly/ui-kit';
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { McpServerTab } from '@refly-packages/ai-workspace-common/components/settings/mcp-server';
+import { ToolsConfigTab } from '@refly-packages/ai-workspace-common/components/settings/tools-config';
 import React from 'react';
 
 interface SettingModalProps {
@@ -164,7 +164,7 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
         key: 'mcpServer',
         label: t('settings.tabs.tools'),
         icon: <Tools size={18} color="var(--refly-text-0)" />,
-        children: <McpServerTab visible={localActiveTab === SettingsModalActiveTab.McpServer} />,
+        children: <ToolsConfigTab visible={localActiveTab === SettingsModalActiveTab.McpServer} />,
         divider: true,
       },
       ...(subscriptionEnabled
