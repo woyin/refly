@@ -17,7 +17,6 @@ import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { AuthService } from './auth.service';
 import { GithubOauthGuard } from './guard/github-oauth.guard';
 import { GoogleOauthGuard } from './guard/google-oauth.guard';
-import { ToolOauthGuard } from './guard/tool-oauth.guard';
 import { OAuthError } from '@refly/errors';
 import {
   EmailSignupRequest,
@@ -129,22 +128,6 @@ export class AuthController {
         .redirect(this.configService.get('auth.redirectUrl'));
     } catch (error) {
       this.logger.error('GitHub OAuth callback failed:', error.stack);
-      throw new OAuthError();
-    }
-  }
-
-  @UseGuards(ToolOauthGuard)
-  @Get('callback/google/tool')
-  async toolOAuthCallback(@LoginedUser() user: User, @Res() res: Response) {
-    try {
-      this.logger.log(`tool google oauth callback success, req.user = ${user?.email}`);
-
-      // The tool OAuth validation is handled in the guard
-      // Just redirect back to the original page
-      const redirectUrl = this.configService.get('auth.redirectUrl');
-      res.redirect(redirectUrl);
-    } catch (error) {
-      this.logger.error('Tool Google OAuth callback failed:', error.stack);
       throw new OAuthError();
     }
   }

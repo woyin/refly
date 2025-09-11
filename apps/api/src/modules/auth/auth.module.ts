@@ -9,7 +9,6 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { GithubOauthStrategy } from './strategy/github-oauth.strategy';
 import { GoogleOauthStrategy } from './strategy/google-oauth.strategy';
-import { ToolOauthStrategy } from './strategy/tool-oauth.strategy';
 
 import { ProviderModule } from '../provider/provider.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -36,7 +35,7 @@ import { NotificationModule } from '../notification/notification.module';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, GithubOauthStrategy, GoogleOauthStrategy, ToolOauthStrategy],
+  providers: [AuthService, GithubOauthStrategy, GoogleOauthStrategy],
   exports: [AuthService],
   controllers: [AuthController],
 })
