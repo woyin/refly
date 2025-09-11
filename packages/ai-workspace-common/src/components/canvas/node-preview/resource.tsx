@@ -1,9 +1,10 @@
 import { useState, memo, useMemo } from 'react';
 import { ResourceView } from '@refly-packages/ai-workspace-common/components/resource-view';
-import { CanvasNode, ResourceNodeMeta } from '@refly/canvas-common';
 import { FollowingActions } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/sharedComponents/following-actions';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { IContextItem } from '@refly/common-types';
+import type { IContextItem } from '@refly/common-types';
+import type { CanvasNode, ResourceNodeMeta } from '@refly/canvas-common';
+import { useTranslation } from 'react-i18next';
 
 interface ResourceNodePreviewProps {
   node: CanvasNode<ResourceNodeMeta>;
@@ -11,6 +12,7 @@ interface ResourceNodePreviewProps {
 }
 
 const ResourceNodePreviewComponent = ({ node, resourceId }: ResourceNodePreviewProps) => {
+  const { t } = useTranslation();
   const [deckSize, setDeckSize] = useState<number>(0);
   const { readonly } = useCanvasContext();
   const initContextItems: IContextItem[] = useMemo(() => {
@@ -27,7 +29,7 @@ const ResourceNodePreviewComponent = ({ node, resourceId }: ResourceNodePreviewP
   if (!resourceId) {
     return (
       <div className="h-full flex items-center justify-center bg-white rounded p-3">
-        <span className="text-gray-500">No resource selected</span>
+        <span className="text-gray-500">{t('canvas.nodePreview.resource.noContentPreview')}</span>
       </div>
     );
   }
