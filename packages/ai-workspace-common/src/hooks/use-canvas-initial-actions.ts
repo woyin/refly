@@ -142,7 +142,7 @@ export const useCanvasInitialActions = (canvasId: string) => {
         selectedToolsets,
       } = pendingActionRef.current;
 
-      if (isMediaGeneration) {
+      if (isMediaGeneration && !isPilotActivated) {
         nodeOperationsEmitter.emit('generateMedia', {
           providerItemId: modelInfo.providerItemId,
           targetType: 'canvas',
@@ -211,5 +211,13 @@ export const useCanvasInitialActions = (canvasId: string) => {
       reset();
       pendingActionRef.current = null;
     }
-  }, [canvasId, canvasInitialized, invokeAction, addNode, reset, handleCreatePilotSession]);
+  }, [
+    canvasId,
+    canvasInitialized,
+    invokeAction,
+    addNode,
+    reset,
+    handleCreatePilotSession,
+    pendingActionRef,
+  ]);
 };
