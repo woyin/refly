@@ -10,6 +10,7 @@ import { CreateWorkflowAppModal } from '@refly-packages/ai-workspace-common/comp
 import { useListShares } from '@refly-packages/ai-workspace-common/queries';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { logEvent } from '@refly/telemetry-web';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 type ShareAccess = 'off' | 'anyone';
 
@@ -73,6 +74,7 @@ AccessOptionItem.displayName = 'AccessOptionItem';
 const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const { syncCanvasData } = useCanvasContext();
   const [createTemplateModalVisible, setCreateTemplateModalVisible] = useState(false);
   const [access, setAccess] = useState<ShareAccess>('off');
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -105,6 +107,10 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     (async () => {
       try {
         setUpdateShareLoading(true);
+
+        // Make sure the canvas data is synced to the remote
+        await syncCanvasData({ syncRemote: true });
+
         const { data, error } = await getClient().createShare({
           body: {
             entityId: canvasId,

@@ -83,7 +83,7 @@ interface CanvasContextType {
     pollingError?: any;
   };
 
-  syncCanvasData: () => Promise<void>;
+  syncCanvasData: (options?: { syncRemote?: boolean }) => Promise<void>;
   undo: () => Promise<void>;
   redo: () => Promise<void>;
 }
@@ -703,8 +703,13 @@ export const CanvasProvider = ({
         shareData: canvasData ?? undefined,
         lastUpdated,
         workflowRun,
-        syncCanvasData: async () => {
+        syncCanvasData: async (options?: { syncRemote?: boolean }) => {
           await syncCanvasData();
+          syncCanvasData.flush();
+
+          if (options?.syncRemote) {
+            await syncWithRemote(canvasId);
+          }
         },
         undo,
         redo,
