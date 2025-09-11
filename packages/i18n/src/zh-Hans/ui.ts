@@ -3131,7 +3131,7 @@ const translations = {
       understandingIntent: '正在理解意图分析需求...',
     },
     recovery: {
-      title: '恢复会话',
+      title: '重试所有失败任务',
       success: '会话恢复已成功启动',
       error: '恢复会话失败',
     },

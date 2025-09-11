@@ -3155,7 +3155,7 @@ const translations = {
       understandingIntent: 'Understanding intent and analyzing requirements...',
     },
     recovery: {
-      title: 'Recover Session',
+      title: 'Retry All Failed Tasks',
       success: 'Session recovery started successfully',
       error: 'Failed to recover session',
     },
