@@ -15,6 +15,7 @@ interface MediaActionContainerProps {
   mediaType: MediaType;
   entityId?: string;
   storageKey?: string;
+  nodeId: string;
 }
 
 const MediaActionContainerComponent = ({
@@ -23,6 +24,7 @@ const MediaActionContainerComponent = ({
   modelInfo,
   mediaType,
   entityId,
+  nodeId,
   storageKey,
 }: MediaActionContainerProps) => {
   const { userProfile } = useUserStoreShallow((state) => ({ userProfile: state.userProfile }));
@@ -90,7 +92,11 @@ const MediaActionContainerComponent = ({
         e.stopPropagation();
       }}
     >
-      <FollowingActions initContextItems={initContextItems} initModelInfo={initModelInfo} />
+      <FollowingActions
+        initContextItems={initContextItems}
+        initModelInfo={initModelInfo}
+        nodeId={nodeId}
+      />
 
       <div className="w-full flex items-center justify-between px-3 pt-3 rounded-b-xl">
         {modelInfo ? (
@@ -111,7 +117,8 @@ export const MediaActionContainer = memo(MediaActionContainerComponent, (prevPro
     prevProps.contextItems === nextProps.contextItems &&
     prevProps.mediaType === nextProps.mediaType &&
     prevProps.entityId === nextProps.entityId &&
-    prevProps.storageKey === nextProps.storageKey
+    prevProps.storageKey === nextProps.storageKey &&
+    prevProps.nodeId === nextProps.nodeId
   );
 });
 
