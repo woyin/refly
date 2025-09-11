@@ -34,6 +34,7 @@ export const MentionList = ({
   command: any;
   placement?: 'top' | 'bottom';
 }) => {
+  console.log('items', items);
   const { t } = useTranslation();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>('startNode');
   // Keyboard navigation states
@@ -478,6 +479,7 @@ export const MentionList = ({
       if (handled) {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
       }
     };
 
