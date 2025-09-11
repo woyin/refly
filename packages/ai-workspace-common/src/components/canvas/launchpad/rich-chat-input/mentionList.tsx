@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useEffect } from 'react';
 import { useCallback } from 'react';
 import { CanvasNodeType, ResourceMeta, ResourceType } from '@refly/openapi-schema';
 import { ArrowRight, X } from 'refly-icons';
-import { Segmented } from 'antd';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
 import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
@@ -35,22 +34,82 @@ export const MentionList = ({
   command: any;
   placement?: 'top' | 'bottom';
 }) => {
+  console.log('items', items);
   const { t } = useTranslation();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>('startNode');
-  const [resourceLibraryType, setResourceLibraryType] = useState<
-    'uploads' | 'stepRecord' | 'resultRecord'
-  >('resultRecord');
   // Keyboard navigation states
   const [focusLevel, setFocusLevel] = useState<'first' | 'second'>('first');
   const [firstLevelIndex, setFirstLevelIndex] = useState<number>(0);
   const [secondLevelIndex, setSecondLevelIndex] = useState<number>(0);
+  // Height tracking states
+  const [firstLevelHeight, setFirstLevelHeight] = useState<number>(0);
+  const [secondLevelHeight, setSecondLevelHeight] = useState<number>(0);
   const { nodes } = useCanvasData();
   const { canvasId } = useCanvasContext();
-  // console.log('placement', placement);
+
+  // Refs for measuring panel heights
+  const firstLevelRef = useRef<HTMLDivElement>(null);
+  const secondLevelRef = useRef<HTMLDivElement>(null);
 
   // Dynamic alignment based on placement
   const mentionVirtalAlign = placement === 'top' ? 'items-end' : 'items-start';
-  const secondLevelBorderRadius = placement === 'top' ? 'rounded-t-xl' : 'rounded-b-xl';
+
+  // Height comparison logic
+  const isFirstLevelTaller = firstLevelHeight > secondLevelHeight;
+  const isSecondLevelTaller = secondLevelHeight > firstLevelHeight;
+
+  // Dynamic styling based on height comparison and placement
+  const firstLevelClasses = useMemo(() => {
+    const baseClasses =
+      'flex flex-col gap-1 w-40 p-2 bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border';
+
+    if (placement === 'top') {
+      if (isFirstLevelTaller) {
+        // First level is taller: has right border, right bottom no corner radius, other corners have radius
+        return cn(baseClasses, 'rounded-tl-xl', 'rounded-tr-xl', 'rounded-bl-xl', 'border-r');
+      } else if (isSecondLevelTaller) {
+        // First level is shorter or equal: no right border, left has corner radius, right no corner radius
+        return cn(baseClasses, 'rounded-tl-xl', 'rounded-bl-xl', 'border-r-0');
+      } else {
+        return cn(baseClasses, 'rounded-l-xl');
+      }
+    } else {
+      // placement === 'bottom'
+      if (isFirstLevelTaller) {
+        // First level is taller: has right border, right top no corner radius, other corners have radius
+        return cn(baseClasses, 'rounded-tl-xl', 'rounded-bl-xl', 'rounded-br-xl', 'border-r');
+      } else if (isSecondLevelTaller) {
+        // First level is shorter or equal: no right border, left has corner radius, right no corner radius
+        return cn(baseClasses, 'rounded-tl-xl', 'rounded-bl-xl', 'border-r-0');
+      } else {
+        return cn(baseClasses, 'rounded-l-xl');
+      }
+    }
+  }, [isFirstLevelTaller, placement]);
+
+  const secondLevelClasses = useMemo(() => {
+    const baseClasses =
+      'w-60 p-2 max-h-60 flex box-border overflow-y-auto bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border';
+
+    if (placement === 'top') {
+      if (isSecondLevelTaller) {
+        // Second level is taller: has left border, left bottom no corner radius, other corners have radius
+        return cn(baseClasses, 'rounded-tr-xl', 'rounded-tl-xl', 'rounded-br-xl', 'border-l');
+      } else {
+        // Second level is shorter or equal: no left border, left no corner radius, right has corner radius
+        return cn(baseClasses, 'rounded-tr-xl', 'rounded-br-xl', 'border-l-0');
+      }
+    } else {
+      // placement === 'bottom'
+      if (isSecondLevelTaller) {
+        // Second level is taller: has left border, left top no corner radius, other corners have radius
+        return cn(baseClasses, 'rounded-r-xl', 'rounded-bl-xl', 'border-l');
+      } else {
+        // Second level is shorter or equal: no left border, left no corner radius, right has corner radius
+        return cn(baseClasses, 'rounded-tr-xl', 'rounded-br-xl', 'border-l-0');
+      }
+    }
+  }, [isSecondLevelTaller, placement]);
 
   const firstLevels = useMemo(
     () => [
@@ -66,8 +125,14 @@ export const MentionList = ({
         source: 'resourceLibrary' as const,
         onMouseEnter: () => {
           setHoveredCategory('resourceLibrary');
-          // Reset to uploads when hovering resource library
-          setResourceLibraryType('uploads');
+        },
+      },
+      {
+        key: 'runningRecord',
+        name: t('canvas.richChatInput.runningRecord'),
+        source: 'runningRecord' as const,
+        onMouseEnter: () => {
+          setHoveredCategory('runningRecord');
         },
       },
     ],
@@ -83,13 +148,6 @@ export const MentionList = ({
     enabled: !!canvasId, // Always enable when canvasId is available
   });
 
-  // Trigger variable fetch when hovering startNode
-  useEffect(() => {
-    if (hoveredCategory === 'startNode' && canvasId) {
-      refetchWorkflowVariables();
-    }
-  }, [hoveredCategory, canvasId, refetchWorkflowVariables]);
-
   // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
     // Use fetched workflow variables for startNode items instead of prop items
@@ -103,7 +161,7 @@ export const MentionList = ({
       nodeId: variable.variableId || '',
     }));
 
-    const resourceLibraryItems = items.filter((item) => item.source === 'resourceLibrary');
+    // Resource library only contains my upload items
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
 
     // Get skillResponse nodes for step records
@@ -141,39 +199,84 @@ export const MentionList = ({
           },
         })) ?? [];
 
+    // Running record combines step records and result records
+    const runningRecordItems = [...stepRecordItems, ...resultRecordItems];
+
     return {
       startNode: startNodeItems,
-      resourceLibrary: resourceLibraryItems,
-      stepRecord: stepRecordItems,
-      resultRecord: resultRecordItems,
-      uploads: myUploadItems,
+      resourceLibrary: myUploadItems,
+      runningRecord: runningRecordItems,
     };
   }, [workflowVariablesData, items, nodes, t]);
 
-  // Derive current second level items based on hovered category and selected resource type
+  // Trigger variable fetch when hovering startNode
+  useEffect(() => {
+    if (hoveredCategory === 'startNode' && canvasId) {
+      refetchWorkflowVariables();
+    }
+  }, [hoveredCategory, canvasId, refetchWorkflowVariables]);
+
+  // Measure panel heights when content changes
+  useEffect(() => {
+    const measureHeights = () => {
+      if (firstLevelRef.current) {
+        const height = firstLevelRef.current.offsetHeight;
+        setFirstLevelHeight(height);
+      }
+      if (secondLevelRef.current) {
+        const height = secondLevelRef.current.offsetHeight;
+        setSecondLevelHeight(height);
+      }
+    };
+
+    // Measure heights after a short delay to ensure content is rendered
+    const timeoutId = setTimeout(measureHeights, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [hoveredCategory, groupedItems, isLoadingVariables]);
+
+  // Also measure heights when window resizes
+  useEffect(() => {
+    const handleResize = () => {
+      if (firstLevelRef.current) {
+        setFirstLevelHeight(firstLevelRef.current.offsetHeight);
+      }
+      if (secondLevelRef.current) {
+        setSecondLevelHeight(secondLevelRef.current.offsetHeight);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Derive current second level items based on hovered category
   const currentSecondLevelItems = useMemo<MentionItem[]>(() => {
     if (hoveredCategory === 'startNode') {
       return groupedItems.startNode ?? [];
     }
     if (hoveredCategory === 'resourceLibrary') {
-      const list = groupedItems?.[resourceLibraryType as keyof typeof groupedItems] as
-        | MentionItem[]
-        | undefined;
-      return list ?? [];
+      return groupedItems.resourceLibrary ?? [];
+    }
+    if (hoveredCategory === 'runningRecord') {
+      return groupedItems.runningRecord ?? [];
     }
     return [];
-  }, [hoveredCategory, groupedItems, resourceLibraryType]);
+  }, [hoveredCategory, groupedItems]);
 
   // Sync first level index with hoveredCategory
   useEffect(() => {
-    const idx = hoveredCategory === 'resourceLibrary' ? 1 : 0;
+    let idx = 0;
+    if (hoveredCategory === 'startNode') {
+      idx = 0;
+    } else if (hoveredCategory === 'resourceLibrary') {
+      idx = 1;
+    } else if (hoveredCategory === 'runningRecord') {
+      idx = 2;
+    }
     setFirstLevelIndex(idx);
     // Reset second-level index when category changes
     setSecondLevelIndex(0);
-    // Ensure resourceLibrary starts at uploads when switching by keyboard
-    if (hoveredCategory === 'resourceLibrary') {
-      setResourceLibraryType('uploads');
-    }
   }, [hoveredCategory]);
 
   // Clamp second level index to available items
@@ -188,10 +291,13 @@ export const MentionList = ({
     }
   }, [currentSecondLevelItems, secondLevelIndex]);
 
-  // Configuration for different resource library types
-  const resourceTypeConfigs = useMemo(
+  // Configuration for different categories
+  const categoryConfigs = useMemo(
     () => ({
-      uploads: {
+      startNode: {
+        emptyStateKey: 'noStartNodeVariables',
+      },
+      resourceLibrary: {
         nodeIconProps: (item: MentionItem) => ({
           type: item.variableType as CanvasNodeType,
           small: true,
@@ -201,22 +307,24 @@ export const MentionList = ({
         }),
         emptyStateKey: 'noUploadFiles',
       },
-      stepRecord: {
-        nodeIconProps: () => ({
-          type: 'skillResponse' as CanvasNodeType,
-          small: true,
-        }),
-        emptyStateKey: 'noStepRecords',
-      },
-      resultRecord: {
-        nodeIconProps: (item: MentionItem) => ({
-          type: item.variableType as CanvasNodeType,
-          small: true,
-          url: item.variableType === 'image' ? item.metadata?.imageUrl : undefined,
-          resourceType: item.metadata?.resourceType,
-          resourceMeta: item.metadata?.resourceMeta,
-        }),
-        emptyStateKey: 'noResultRecords',
+      runningRecord: {
+        nodeIconProps: (item: MentionItem) => {
+          if (item.source === 'stepRecord') {
+            return {
+              type: 'skillResponse' as CanvasNodeType,
+              small: true,
+            };
+          } else {
+            return {
+              type: item.variableType as CanvasNodeType,
+              small: true,
+              url: item.variableType === 'image' ? item.metadata?.imageUrl : undefined,
+              resourceType: item.metadata?.resourceType,
+              resourceMeta: item.metadata?.resourceMeta,
+            };
+          }
+        },
+        emptyStateKey: 'noRunningRecords',
       },
     }),
     [],
@@ -228,7 +336,7 @@ export const MentionList = ({
       <div
         key={`${item.name}-${index}`}
         className={cn(
-          'p-1.5 flex items-center gap-2 cursor-pointer transition-colors rounded-md',
+          'h-8 p-1.5 flex items-center gap-2 cursor-pointer transition-colors rounded-md',
           isActive ? 'bg-refly-fill-hover' : 'hover:bg-refly-fill-hover',
         )}
         onMouseEnter={() => {
@@ -321,6 +429,8 @@ export const MentionList = ({
     const onKeyDown = (event: KeyboardEvent) => {
       const key = event.key;
       let handled = false;
+
+      // Only handle specific keys when mention list is visible
       if (key === 'ArrowUp') {
         handleArrowUp();
         handled = true;
@@ -341,12 +451,14 @@ export const MentionList = ({
       if (handled) {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
       }
     };
 
-    document.addEventListener('keydown', onKeyDown);
+    // Use capture phase to ensure we handle events before other components
+    document.addEventListener('keydown', onKeyDown, true);
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keydown', onKeyDown, true);
     };
   }, [handleArrowUp, handleArrowDown, handleArrowLeft, handleArrowRight, handleEnter]);
 
@@ -356,12 +468,12 @@ export const MentionList = ({
   return (
     <div className={cn('relative flex w-106 items-end', mentionVirtalAlign)}>
       {/* First level menu - Categories */}
-      <div className="flex flex-col gap-1 w-40 p-2 rounded-l-xl bg-refly-bg-body-z0 border-r-0 border-[1px] border-solid border-refly-Card-Border">
+      <div ref={firstLevelRef} className={firstLevelClasses}>
         {firstLevels.map((item, idx) => (
           <div
             key={item.name}
             className={cn(
-              'p-1.5 cursor-pointer transition-colors hover:bg-refly-fill-hover rounded-md flex items-center gap-2',
+              'h-8 p-1.5 cursor-pointer transition-colors hover:bg-refly-fill-hover rounded-md flex items-center gap-2',
               hoveredCategory === item.key && focusLevel === 'first' && 'bg-refly-fill-hover',
             )}
             onMouseEnter={item.onMouseEnter}
@@ -378,12 +490,7 @@ export const MentionList = ({
       </div>
 
       {/* Second level menu - Variables */}
-      <div
-        className={cn(
-          'w-60 p-2 max-h-60 min-h-28 flex box-border overflow-y-auto bg-refly-bg-body-z0 rounded-r-xl border-[1px] border-solid border-refly-Card-Border',
-          secondLevelBorderRadius,
-        )}
-      >
+      <div ref={secondLevelRef} className={secondLevelClasses}>
         {hoveredCategory === 'startNode' && (
           <div className="flex-1 w-full">
             {isLoadingVariables ? (
@@ -396,7 +503,7 @@ export const MentionList = ({
                   <div
                     key={`${item.name}-${idx}`}
                     className={cn(
-                      'p-1.5 cursor-pointer transition-colors rounded-md flex items-center gap-2 justify-between',
+                      'h-8 p-1.5 cursor-pointer transition-colors rounded-md flex items-center gap-2 justify-between',
                       focusLevel === 'second' && secondLevelIndex === idx
                         ? 'bg-refly-fill-hover'
                         : 'hover:bg-refly-fill-hover',
@@ -424,51 +531,40 @@ export const MentionList = ({
         )}
 
         {hoveredCategory === 'resourceLibrary' && (
-          <div className="flex-1 w-full flex flex-col gap-3">
-            <Segmented
-              shape="round"
-              size="small"
-              value={resourceLibraryType}
-              className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"
-              onChange={(value) => {
-                setResourceLibraryType(value as 'uploads' | 'stepRecord' | 'resultRecord');
-                setSecondLevelIndex(0);
-                setFocusLevel('second');
-              }}
-              options={[
-                {
-                  label: t('canvas.richChatInput.stepRecord'),
-                  value: 'stepRecord',
-                },
-                {
-                  label: t('canvas.richChatInput.resultRecord'),
-                  value: 'resultRecord',
-                },
-                {
-                  label: t('canvas.richChatInput.myUploads'),
-                  value: 'uploads',
-                },
-              ]}
-            />
-            <div className="flex-grow space-y-1 overflow-y-auto">
-              {(() => {
-                const config = resourceTypeConfigs[resourceLibraryType];
-                const list = groupedItems[resourceLibraryType];
+          <div className="flex-1 w-full">
+            {groupedItems.resourceLibrary?.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {groupedItems.resourceLibrary.map((item, idx) =>
+                  renderResourceItem(
+                    item,
+                    categoryConfigs.resourceLibrary,
+                    idx,
+                    focusLevel === 'second' && secondLevelIndex === idx,
+                  ),
+                )}
+              </div>
+            ) : (
+              renderEmptyState(categoryConfigs.resourceLibrary.emptyStateKey)
+            )}
+          </div>
+        )}
 
-                if (list?.length > 0) {
-                  return list.map((item, idx) =>
-                    renderResourceItem(
-                      item,
-                      config,
-                      idx,
-                      focusLevel === 'second' && secondLevelIndex === idx,
-                    ),
-                  );
-                } else {
-                  return renderEmptyState(config.emptyStateKey);
-                }
-              })()}
-            </div>
+        {hoveredCategory === 'runningRecord' && (
+          <div className="flex-1 w-full">
+            {groupedItems.runningRecord?.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                {groupedItems.runningRecord.map((item, idx) =>
+                  renderResourceItem(
+                    item,
+                    categoryConfigs.runningRecord,
+                    idx,
+                    focusLevel === 'second' && secondLevelIndex === idx,
+                  ),
+                )}
+              </div>
+            ) : (
+              renderEmptyState(categoryConfigs.runningRecord.emptyStateKey)
+            )}
           </div>
         )}
 

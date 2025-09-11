@@ -1675,6 +1675,8 @@ const translations = {
       loadingVariables: 'Loading variables...',
       noStartNodeVariables: 'No start node variables',
       defaultPlaceholder: 'Describe what you want to generate...',
+      runningRecord: 'Running Record',
+      noRunningRecords: 'No running records',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
