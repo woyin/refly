@@ -94,21 +94,7 @@ export const GoogleDriveToolsetDefinition: ToolsetDefinition = {
       scope: ['https://www.googleapis.com/auth/drive'],
     },
   ],
-  configItems: [
-    {
-      key: 'redirectUri',
-      inputMode: 'text',
-      labelDict: {
-        en: 'Redirect URI',
-        'zh-CN': '重定向 URI',
-      },
-      descriptionDict: {
-        en: 'The OAuth 2.0 redirect URI configured in Google Cloud Console',
-        'zh-CN': '在 Google Cloud Console 中配置的 OAuth 2.0 重定向 URI',
-      },
-      defaultValue: 'http://localhost:3000/oauth2callback',
-    },
-  ],
+  configItems: [],
 };
 
 export interface GoogleDriveParams {

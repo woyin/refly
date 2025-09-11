@@ -217,6 +217,9 @@ export const ToolInstallModal = React.memo(
     const { i18n, t } = useTranslation();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
+    const [oauthStatus, setOAuthStatus] = useState<
+      'checking' | 'authorized' | 'unauthorized' | 'error' | null
+    >(null);
     const { data, refetch: refetchToolsets } = useListToolsets({}, [], {
       enabled: true,
     });
@@ -274,6 +277,7 @@ export const ToolInstallModal = React.memo(
     useEffect(() => {
       if (visible && sourceData) {
         form?.resetFields();
+        setOAuthStatus(null); // Reset OAuth status when modal opens
         const initialValues: Record<string, unknown> = {
           name: defaultName,
           enabled: mode === 'update' ? (toolInstance?.enabled ?? true) : true,
@@ -303,6 +307,7 @@ export const ToolInstallModal = React.memo(
         form.setFieldsValue(initialValues);
       } else {
         form?.resetFields();
+        setOAuthStatus(null); // Reset OAuth status when modal closes
       }
     }, [visible, sourceData, mode, toolInstance, defaultName, form, authPatterns]);
 
@@ -326,6 +331,13 @@ export const ToolInstallModal = React.memo(
         form.setFieldValue(['config', field], val);
       },
       [form],
+    );
+
+    const handleOAuthStatusChange = useCallback(
+      (status: 'checking' | 'authorized' | 'unauthorized' | 'error') => {
+        setOAuthStatus(status);
+      },
+      [],
     );
 
     // Render credential form fields based on credential items
@@ -373,15 +385,16 @@ export const ToolInstallModal = React.memo(
             onAuthRequired={() => {
               // Generate OAuth authorization URL
               const authUrl =
-                `${serverOrigin}/v1/auth/tool-oauth/${selectedAuthPattern.provider}?` +
+                `${serverOrigin}/v1/auth/${selectedAuthPattern.provider}?` +
                 `scope=${selectedAuthPattern.scope.join(',')}&` +
                 `redirect=${encodeURIComponent(window.location.href)}`;
               window.location.href = authUrl;
             }}
+            onStatusChange={handleOAuthStatusChange}
           />
         </Form.Item>
       );
-    }, [selectedAuthPattern, currentLocale, t]);
+    }, [selectedAuthPattern, currentLocale, t, handleOAuthStatusChange]);
 
     // Render config form fields based on config items
     const renderConfigFields = useCallback(() => {
@@ -421,6 +434,19 @@ export const ToolInstallModal = React.memo(
       refetchToolsets();
       refetchEnabledTools();
     }, [refetchToolsets, refetchEnabledTools]);
+
+    // Determine if the submit button should be disabled
+    const isSubmitDisabled = useMemo(() => {
+      // If it's an OAuth auth pattern and OAuth is not authorized, disable the button
+      if (selectedAuthPattern?.type === 'oauth' && oauthStatus === 'unauthorized') {
+        return true;
+      }
+      // If OAuth is still checking, disable the button
+      if (selectedAuthPattern?.type === 'oauth' && oauthStatus === 'checking') {
+        return true;
+      }
+      return false;
+    }, [selectedAuthPattern?.type, oauthStatus]);
 
     // Handle form submission
     const handleSubmit = useCallback(async () => {
@@ -505,7 +531,13 @@ export const ToolInstallModal = React.memo(
           <Button key="cancel" onClick={onCancel}>
             {t('common.cancel')}
           </Button>,
-          <Button key="submit" type="primary" loading={loading} onClick={handleSubmit}>
+          <Button
+            key="submit"
+            type="primary"
+            loading={loading}
+            disabled={isSubmitDisabled}
+            onClick={handleSubmit}
+          >
             {t(`settings.toolStore.install.${mode}`)}
           </Button>,
         ]}

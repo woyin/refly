@@ -14,17 +14,23 @@ interface AuthPattern {
 interface OAuthStatusCheckerProps {
   authPattern: AuthPattern;
   onAuthRequired: () => void;
+  onStatusChange?: (status: AuthStatus) => void;
 }
 
 type AuthStatus = 'checking' | 'authorized' | 'unauthorized' | 'error';
 
-const OAuthStatusChecker: React.FC<OAuthStatusCheckerProps> = ({ authPattern, onAuthRequired }) => {
+const OAuthStatusChecker: React.FC<OAuthStatusCheckerProps> = ({
+  authPattern,
+  onAuthRequired,
+  onStatusChange,
+}) => {
   const { t } = useTranslation();
   const [authStatus, setAuthStatus] = useState<AuthStatus>('checking');
 
   const checkOAuthStatus = useCallback(async () => {
     try {
       setAuthStatus('checking');
+      onStatusChange?.('checking');
 
       const { data } = await getClient().checkToolOauthStatus({
         query: {
@@ -33,12 +39,15 @@ const OAuthStatusChecker: React.FC<OAuthStatusCheckerProps> = ({ authPattern, on
         },
       });
 
-      setAuthStatus(data.data.authorized ? 'authorized' : 'unauthorized');
+      const newStatus = data.data.authorized ? 'authorized' : 'unauthorized';
+      setAuthStatus(newStatus);
+      onStatusChange?.(newStatus);
     } catch (error) {
       console.error('Failed to check OAuth status:', error);
       setAuthStatus('error');
+      onStatusChange?.('error');
     }
-  }, [authPattern.provider, authPattern.scope]);
+  }, [authPattern.provider, authPattern.scope, onStatusChange]);
 
   useEffect(() => {
     checkOAuthStatus();

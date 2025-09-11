@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy } from 'passport-google-oauth20';
+import { Request } from 'express';
 
 import { AuthService } from '../auth.service';
 
@@ -16,10 +17,15 @@ export class ToolOauthStrategy extends PassportStrategy(Strategy, 'tool-google')
       clientSecret: configService.get('auth.google.clientSecret'),
       callbackURL: `${configService.get('auth.google.callbackUrl')}/tool`,
       scope: ['profile', 'email', 'https://www.googleapis.com/auth/drive'],
+      passReqToCallback: true,
     });
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: Profile) {
-    return this.authService.toolOAuthValidate(accessToken, refreshToken, profile);
+  async validate(req: Request, accessToken: string, refreshToken: string, profile: Profile) {
+    // Extract scope from query parameters
+    const scope = req?.query?.scope as string;
+    const scopes = scope ? scope.split(' ') : [];
+
+    return this.authService.toolOAuthValidate(accessToken, refreshToken, profile, scopes);
   }
 }

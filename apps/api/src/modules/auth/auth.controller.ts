@@ -102,10 +102,19 @@ export class AuthController {
     // auth guard will automatically handle this
   }
 
-  @UseGuards(GoogleOauthGuard)
   @Get('google')
-  async google() {
-    // auth guard will automatically handle this
+  async google(
+    @Query('scope') scope: string,
+    @Query('redirect') redirect: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const authUrl = this.authService.generateGoogleOAuthUrl(scope, redirect);
+      res.redirect(authUrl);
+    } catch (error) {
+      this.logger.error('Google OAuth initiation failed:', error.stack);
+      throw new OAuthError();
+    }
   }
 
   @UseGuards(GithubOauthGuard)
@@ -142,14 +151,18 @@ export class AuthController {
 
   @UseGuards(GoogleOauthGuard)
   @Get('callback/google')
-  async googleAuthCallback(@LoginedUser() user: User, @Res() res: Response) {
+  async googleAuthCallback(
+    @LoginedUser() user: User,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ) {
     try {
       this.logger.log(`google oauth callback success, req.user = ${user?.email}`);
 
       const tokens = await this.authService.login(user);
       this.authService
         .setAuthCookie(res, tokens)
-        .redirect(this.configService.get('auth.redirectUrl'));
+        .redirect(state ? JSON.parse(state).redirect : this.configService.get('auth.redirectUrl'));
     } catch (error) {
       this.logger.error('Google OAuth callback failed:', error.stack);
       throw new OAuthError();
@@ -175,43 +188,6 @@ export class AuthController {
       return buildSuccessResponse({ authorized: hasAuth });
     } catch (error) {
       this.logger.error('Check tool OAuth status failed:', error.stack);
-      throw new OAuthError();
-    }
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('tool-oauth/:provider')
-  async toolOAuth(
-    @LoginedUser() user: User,
-    @Query('scope') scope: string,
-    @Query('redirect') redirect: string,
-    @Res() res: Response,
-  ) {
-    try {
-      const requiredScope = scope ? scope.split(',') : [];
-      const redirectUrl = redirect || this.configService.get('auth.redirectUrl');
-
-      // Check if user already has sufficient OAuth scope
-      const hasAuth = await this.authService.checkToolOAuthStatus(
-        user.uid,
-        'google', // For now, only support Google
-        requiredScope,
-      );
-
-      if (hasAuth) {
-        // User already has sufficient scope, redirect back
-        res.redirect(redirectUrl);
-        return;
-      }
-
-      const baseScope = ['profile', 'email'];
-      const finalScope = [...baseScope, ...requiredScope];
-
-      // Generate OAuth URL with required scope
-      const authUrl = this.authService.generateToolOAuthUrl('google', finalScope, redirectUrl);
-      res.redirect(authUrl);
-    } catch (error) {
-      this.logger.error('Tool OAuth initiation failed:', error.stack);
       throw new OAuthError();
     }
   }

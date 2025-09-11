@@ -233,11 +233,16 @@ export class AuthService {
    * @param refreshToken
    * @param profile
    */
-  async oauthValidate(accessToken: string, refreshToken: string, profile: Profile) {
+  async oauthValidate(
+    accessToken: string,
+    refreshToken: string,
+    profile: Profile,
+    scopes: string[],
+  ) {
     this.logger.log(
       `oauth accessToken: ${accessToken}, refreshToken: ${refreshToken}, profile: ${JSON.stringify(
         profile,
-      )}`,
+      )} scopes: ${JSON.stringify(scopes)}`,
     );
     const { provider, id, emails, displayName, photos } = profile;
 
@@ -254,6 +259,26 @@ export class AuthService {
     // If there is an authentication account record and corresponding user, return directly
     if (account) {
       this.logger.log(`account found for provider ${provider}, account id: ${id}`);
+      try {
+        // Merge existing scopes with new scopes to avoid overwriting
+        const existingScopes = account.scope ? JSON.parse(account.scope) : [];
+        const mergedScopes = [...new Set([...existingScopes, ...scopes])];
+
+        await this.prisma.account.update({
+          where: { pk: account.pk },
+          data: {
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            scope: JSON.stringify(mergedScopes),
+          },
+        });
+        this.logger.log(
+          `Successfully updated account ${account.pk} with merged scopes: ${JSON.stringify(mergedScopes)}`,
+        );
+      } catch (error) {
+        this.logger.error(`Failed to update account ${account.pk}:`, error);
+        throw error;
+      }
       const user = await this.prisma.user.findUnique({
         where: {
           uid: account.uid,
@@ -326,7 +351,7 @@ export class AuthService {
         providerAccountId: id,
         accessToken: accessToken,
         refreshToken: refreshToken,
-        scope: JSON.stringify(['profile', 'email']), // Default scope for login
+        scope: JSON.stringify(scopes), // Default scope for login
       },
     });
     this.logger.log(`new account created for ${newAccount.uid}`);
@@ -525,7 +550,12 @@ export class AuthService {
    * @param refreshToken
    * @param profile
    */
-  async toolOAuthValidate(accessToken: string, refreshToken: string, profile: Profile) {
+  async toolOAuthValidate(
+    accessToken: string,
+    refreshToken: string,
+    profile: Profile,
+    scopes: string[],
+  ) {
     this.logger.log(
       `tool oauth accessToken: ${accessToken}, refreshToken: ${refreshToken}, profile: ${JSON.stringify(
         profile,
@@ -552,9 +582,8 @@ export class AuthService {
         where: { pk: account.pk },
         data: {
           accessToken: accessToken,
-          refreshToken: refreshToken,
-          expiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-          scope: JSON.stringify(['profile', 'email', 'https://www.googleapis.com/auth/drive']), // Tool scope
+          refreshToken: refreshToken, // 1 hour
+          scope: JSON.stringify(scopes), // Tool scope
         },
       });
 
@@ -600,8 +629,7 @@ export class AuthService {
           data: {
             accessToken: accessToken,
             refreshToken: refreshToken,
-            expiresAt: Math.floor(Date.now() / 1000) + 3600,
-            scope: JSON.stringify(['profile', 'email', 'https://www.googleapis.com/auth/drive']),
+            scope: JSON.stringify(scopes),
           },
         });
       } else {
@@ -614,8 +642,7 @@ export class AuthService {
             providerAccountId: id,
             accessToken: accessToken,
             refreshToken: refreshToken,
-            expiresAt: Math.floor(Date.now() / 1000) + 3600,
-            scope: JSON.stringify(['profile', 'email', 'https://www.googleapis.com/auth/drive']),
+            scope: JSON.stringify(scopes),
           },
         });
       }
@@ -666,20 +693,21 @@ export class AuthService {
    * @param scope Required scope array
    * @param redirectUrl Redirect URL after authorization
    */
-  generateToolOAuthUrl(provider: string, scope: string[], redirectUrl: string): string {
-    const clientId = this.configService.get(`auth.${provider}.clientId`);
-    const callbackUrl =
-      this.configService.get(`auth.${provider}.toolCallbackUrl`) ||
-      `${this.configService.get(`auth.${provider}.callbackUrl`)}/tool`;
+  generateGoogleOAuthUrl(scope: string, redirect: string): string {
+    const baseScope = ['profile', 'email'];
+    const scopeArray = scope?.split(',') ?? [];
+    const finalScope = [...baseScope, ...scopeArray];
+    const clientId = this.configService.get('auth.google.clientId');
+    const callbackUrl = this.configService.get('auth.google.callbackUrl');
 
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: callbackUrl,
-      scope: scope.join(' '),
+      scope: finalScope.join(' '),
       response_type: 'code',
       access_type: 'offline',
-      prompt: 'consent',
-      state: JSON.stringify({ redirect: redirectUrl }),
+      prompt: 'none',
+      state: JSON.stringify({ redirect: redirect ?? this.configService.get('auth.redirectUrl') }),
     });
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
