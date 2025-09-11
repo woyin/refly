@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { DeleteShareRequest, ListSharesData, User } from '@refly/openapi-schema';
+import { DeleteShareRequest, ListSharesData, User, EntityType } from '@refly/openapi-schema';
 import { ShareNotFoundError } from '@refly/errors';
 import { RAGService } from '../rag/rag.service';
+import { ShareRateLimitService } from './share-rate-limit.service';
 
 @Injectable()
 export class ShareCommonService {
@@ -13,6 +14,7 @@ export class ShareCommonService {
     private readonly prisma: PrismaService,
     private readonly ragService: RAGService,
     private readonly miscService: MiscService,
+    private readonly shareRateLimitService: ShareRateLimitService,
   ) {}
 
   async storeVector(
@@ -88,6 +90,13 @@ export class ShareCommonService {
     if (!mainRecord) {
       throw new ShareNotFoundError();
     }
+
+    // Check rate limit before processing share deletion
+    await this.shareRateLimitService.enforceRateLimit(
+      user.uid,
+      mainRecord.entityType as EntityType,
+      mainRecord.entityId,
+    );
 
     const childRecords = await this.prisma.shareRecord.findMany({
       where: { parentShareId: shareId, uid: user.uid, deletedAt: null },

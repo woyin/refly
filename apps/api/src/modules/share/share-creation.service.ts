@@ -19,6 +19,7 @@ import { QUEUE_CREATE_SHARE } from '../../utils/const';
 import type { CreateShareJobData, SharePageData } from './share.dto';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { ShareCommonService } from './share-common.service';
+import { ShareRateLimitService } from './share-rate-limit.service';
 import { ShareExtraData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
 
@@ -38,6 +39,7 @@ export class ShareCreationService {
     private readonly actionService: ActionService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly shareCommonService: ShareCommonService,
+    private readonly shareRateLimitService: ShareRateLimitService,
     @Optional()
     @InjectQueue(QUEUE_CREATE_SHARE)
     private readonly createShareQueue?: Queue<CreateShareJobData>,
@@ -954,6 +956,9 @@ export class ShareCreationService {
 
   async createShare(user: User, req: CreateShareRequest): Promise<ShareRecord> {
     const entityType = req.entityType as EntityType;
+
+    // Check rate limit before processing share creation
+    await this.shareRateLimitService.enforceRateLimit(user.uid, entityType, req.entityId);
 
     // Try find existing record for idempotency
     const existing = await this.prisma.shareRecord.findFirst({

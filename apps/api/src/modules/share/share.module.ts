@@ -15,6 +15,7 @@ import { QUEUE_CREATE_SHARE } from '../../utils/const';
 import { CreateShareProcessor } from './share.processor';
 import { ShareCreationService } from './share-creation.service';
 import { ShareDuplicationService } from './share-duplication.service';
+import { ShareRateLimitService } from './share-rate-limit.service';
 import { ToolModule } from '../tool/tool.module';
 
 @Module({
@@ -34,9 +35,15 @@ import { ToolModule } from '../tool/tool.module';
     ShareCommonService,
     ShareCreationService,
     ShareDuplicationService,
+    ShareRateLimitService,
     ...(isDesktop() ? [] : [CreateShareProcessor]),
   ],
   controllers: [ShareController],
-  exports: [ShareCommonService, ShareCreationService, ShareDuplicationService],
+  exports: [
+    ShareCommonService,
+    ShareCreationService,
+    ShareDuplicationService,
+    ShareRateLimitService,
+  ],
 })
 export class ShareModule {}
