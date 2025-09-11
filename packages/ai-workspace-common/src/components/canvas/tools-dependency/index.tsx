@@ -9,11 +9,12 @@ import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.sv
 import React from 'react';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
 import cn from 'classnames';
-import { useSiderStoreShallow, SettingsModalActiveTab, useUserStoreShallow } from '@refly/stores';
+import { useUserStoreShallow } from '@refly/stores';
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useReactFlow } from '@xyflow/react';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
+import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
 
 const isToolsetInstalled = (
   toolset: GenericToolset,
@@ -261,16 +262,16 @@ const ToolsDependencyContent = React.memo(
   }) => {
     const { t, i18n } = useTranslation();
     const currentLanguage = i18n.language;
-    const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
-      setShowSettingModal: state.setShowSettingModal,
-      setSettingsModalActiveTab: state.setSettingsModalActiveTab,
-    }));
 
-    const handleOpenToolStore = useCallback(() => {
-      setSettingsModalActiveTab(SettingsModalActiveTab.McpServer);
-      setShowSettingModal(true);
-      setOpen(false);
-    }, [setSettingsModalActiveTab, setShowSettingModal, setOpen]);
+    const { openInstallToolByKey } = useOpenInstallTool();
+
+    const handleInstallTool = useCallback(
+      (toolset: GenericToolset) => {
+        openInstallToolByKey(toolset.toolset?.key);
+        setOpen(false);
+      },
+      [openInstallToolByKey, setOpen],
+    );
 
     return (
       <div className="flex flex-col gap-4 w-[480px] p-6">
@@ -367,7 +368,7 @@ const ToolsDependencyContent = React.memo(
                         {!isInstalled && isLogin && (
                           <Button
                             className="text-refly-primary-default hover:!text-refly-primary-hover"
-                            onClick={handleOpenToolStore}
+                            onClick={() => handleInstallTool(toolset)}
                           >
                             {t('canvas.toolsDepencency.goToInstall')}
                           </Button>

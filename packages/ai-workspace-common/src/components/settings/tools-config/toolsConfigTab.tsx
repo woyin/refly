@@ -1,5 +1,5 @@
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
-import { useUserStoreShallow } from '@refly/stores';
+import { useUserStoreShallow, useToolStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { McpServerList } from './McpServerList';
@@ -16,8 +16,13 @@ import { useListToolsets, useListTools } from '@refly-packages/ai-workspace-comm
 
 export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
   const { t } = useTranslation();
-  const [openToolStoreModal, setOpenToolStoreModal] = useState(false);
-  const [isFormVisible, setIsFormVisible] = useState(false);
+  const { toolStoreModalOpen, setToolStoreModalOpen, setMcpFormModalOpen } = useToolStoreShallow(
+    (state) => ({
+      toolStoreModalOpen: state.toolStoreModalOpen,
+      setToolStoreModalOpen: state.setToolStoreModalOpen,
+      setMcpFormModalOpen: state.setMcpFormModalOpen,
+    }),
+  );
   const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
   const [selectedTab, setSelectedTab] = useState<'tools' | 'mcp'>('tools');
   const isLogin = useUserStoreShallow((state) => state.isLogin);
@@ -57,7 +62,7 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
               type="primary"
               className="font-semibold"
               onClick={() => {
-                setIsFormVisible(true);
+                setMcpFormModalOpen(true);
                 setEditingServer(null);
               }}
             >
@@ -69,14 +74,14 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
             type="text"
             className="font-semibold border-solid border-[1px] border-refly-Card-Border rounded-lg"
             icon={<HiMiniBuildingStorefront />}
-            onClick={() => setOpenToolStoreModal(true)}
+            onClick={() => setToolStoreModalOpen(true)}
           >
             {t('settings.mcpServer.toolStore')}
           </Button>
         )}
       </div>
     );
-  }, [t, refetch, setIsFormVisible, setEditingServer, setOpenToolStoreModal, selectedTab]);
+  }, [t, refetch, setMcpFormModalOpen, setEditingServer, setToolStoreModalOpen, selectedTab]);
 
   if (!visible) return null;
 
@@ -106,8 +111,6 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
         ) : (
           <McpServerList
             visible={visible}
-            isFormVisible={isFormVisible}
-            setIsFormVisible={setIsFormVisible}
             editingServer={editingServer}
             setEditingServer={setEditingServer}
           />
@@ -115,8 +118,8 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
       </div>
 
       <Modal
-        open={openToolStoreModal}
-        onCancel={() => setOpenToolStoreModal(false)}
+        open={toolStoreModalOpen}
+        onCancel={() => setToolStoreModalOpen(false)}
         title={null}
         footer={null}
         className="provider-store-modal"
@@ -133,11 +136,11 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
             <Button
               type="text"
               icon={<Close size={24} />}
-              onClick={() => setOpenToolStoreModal(false)}
+              onClick={() => setToolStoreModalOpen(false)}
             />
           </div>
 
-          <ToolStore visible={openToolStoreModal} setToolStoreVisible={setOpenToolStoreModal} />
+          <ToolStore />
         </div>
       </Modal>
     </div>

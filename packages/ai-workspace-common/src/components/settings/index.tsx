@@ -161,10 +161,12 @@ const Settings: React.FC<SettingModalProps> = ({ visible, setVisible }) => {
         children: <ParserConfig visible={localActiveTab === SettingsModalActiveTab.ParserConfig} />,
       },
       {
-        key: 'mcpServer',
+        key: 'toolsConfig',
         label: t('settings.tabs.tools'),
         icon: <Tools size={18} color="var(--refly-text-0)" />,
-        children: <ToolsConfigTab visible={localActiveTab === SettingsModalActiveTab.McpServer} />,
+        children: (
+          <ToolsConfigTab visible={localActiveTab === SettingsModalActiveTab.ToolsConfig} />
+        ),
         divider: true,
       },
       ...(subscriptionEnabled

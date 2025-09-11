@@ -26,14 +26,12 @@ import {
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { McpServerForm } from './McpServerForm';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
-import { useUserStoreShallow } from '@refly/stores';
+import { useToolStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { Edit, Delete, More, Mcp } from 'refly-icons';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 
 interface McpServerListProps {
   visible: boolean;
-  isFormVisible: boolean;
-  setIsFormVisible: (visible: boolean) => void;
   editingServer: McpServerDTO | null;
   setEditingServer: (server: McpServerDTO | null) => void;
 }
@@ -230,12 +228,14 @@ ServerItem.displayName = 'ServerItem';
 
 export const McpServerList: React.FC<McpServerListProps> = ({
   visible,
-  isFormVisible,
-  setIsFormVisible,
   editingServer,
   setEditingServer,
 }) => {
   const isLogin = useUserStoreShallow((state) => state.isLogin);
+  const { mcpFormModalOpen, setMcpFormModalOpen } = useToolStoreShallow((state) => ({
+    mcpFormModalOpen: state.mcpFormModalOpen,
+    setMcpFormModalOpen: state.setMcpFormModalOpen,
+  }));
   const { t } = useTranslation();
 
   const [serverTools, setServerTools] = useState<Record<string, any[]>>({});
@@ -338,7 +338,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
   // Handle form submission
   const handleFormSubmit = () => {
     // Form submission is handled in the form component
-    setIsFormVisible(false);
+    setMcpFormModalOpen(false);
     setEditingServer(null);
     // Refresh list data
     refetchToolsOnUpdate();
@@ -348,9 +348,9 @@ export const McpServerList: React.FC<McpServerListProps> = ({
   const handleEdit = useCallback(
     (server: McpServerDTO) => {
       setEditingServer(server);
-      setIsFormVisible(true);
+      setMcpFormModalOpen(true);
     },
-    [setEditingServer, setIsFormVisible],
+    [setEditingServer, setMcpFormModalOpen],
   );
 
   // Handle delete button click
@@ -423,7 +423,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
           <Skeleton active title={false} paragraph={{ rows: 10 }} />
         ) : mcpServers.length === 0 ? (
           <Empty description={<p>{t('settings.mcpServer.noServers')}</p>}>
-            <Button type="primary" onClick={() => setIsFormVisible(true)}>
+            <Button type="primary" onClick={() => setMcpFormModalOpen(true)}>
               {t('settings.mcpServer.addServer')}
             </Button>
           </Empty>
@@ -458,8 +458,8 @@ export const McpServerList: React.FC<McpServerListProps> = ({
         title={
           editingServer ? t('settings.mcpServer.editServer') : t('settings.mcpServer.addServer')
         }
-        open={isFormVisible}
-        onCancel={() => setIsFormVisible(false)}
+        open={mcpFormModalOpen}
+        onCancel={() => setMcpFormModalOpen(false)}
         footer={null}
         width={800}
         destroyOnHidden
@@ -467,7 +467,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
         <McpServerForm
           initialData={editingServer || undefined}
           onSubmit={handleFormSubmit}
-          onCancel={() => setIsFormVisible(false)}
+          onCancel={() => setMcpFormModalOpen(false)}
         />
       </Modal>
     </div>
