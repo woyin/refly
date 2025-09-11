@@ -22,7 +22,7 @@ const ResourceNodePreviewComponent = ({ node, resourceId }: ResourceNodePreviewP
         metadata: node.data?.metadata,
       },
     ];
-  }, [node.data]);
+  }, [node.data?.entityId, node.data?.title, node.data?.metadata]);
 
   if (!resourceId) {
     return (

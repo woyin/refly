@@ -132,8 +132,6 @@ export const FollowingActions = ({ initContextItems, initModelInfo }: FollowingA
       handleType: 'source' as const,
     }));
 
-    console.log('connectTo', connectTo);
-
     addNode(
       {
         type: 'skillResponse',
@@ -171,13 +169,14 @@ export const FollowingActions = ({ initContextItems, initModelInfo }: FollowingA
     addNode,
     getFinalProjectId,
     selectedToolsets,
+    initModelInfo,
   ]);
 
   const initializeFollowUpInput = useCallback(() => {
     setFollowUpContextItems(initContextItems);
     setFollowUpModelInfo(initModelInfo || defaultModelInfo);
     setShowFollowUpInput(!showFollowUpInput);
-  }, [initContextItems, initModelInfo, showFollowUpInput]);
+  }, [initContextItems, initModelInfo, showFollowUpInput, defaultModelInfo]);
 
   useEffect(() => {
     setFollowUpContextItems(initContextItems);

@@ -624,11 +624,11 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       setIsSearchOpen: state.setIsSearchOpen,
     }));
 
-    const { workflowVariables } = workflow;
+    const { workflowVariables = [] } = workflow || {};
 
     // Get all available items including canvas nodes with fallback data
     const allItems: MentionItem[] = useMemo(() => {
-      const workflowVariableItems: MentionItem[] = workflowVariables.map((variable) => ({
+      const workflowVariableItems: MentionItem[] = (workflowVariables || []).map((variable) => ({
         name: variable.name,
         description: variable.description || '',
         source: variable.source || 'startNode',
