@@ -33,6 +33,8 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ShareCommonService } from './share-common.service';
 import { ShareExtraData, SharePageData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
+import { initEmptyCanvasState } from '@refly/canvas-common';
+import { CanvasService } from '../canvas/canvas.service';
 
 interface DuplicateOptions {
   skipCanvasCheck?: boolean;
@@ -47,6 +49,7 @@ export class ShareDuplicationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
+    private readonly canvasService: CanvasService,
     private readonly knowledgeService: KnowledgeService,
     private readonly subscriptionService: SubscriptionService,
     private readonly shareCommonService: ShareCommonService,
@@ -463,11 +466,15 @@ export class ShareDuplicationService {
 
     // Pre-generate all new IDs upfront
     const newCanvasId = genCanvasID();
-    const stateStorageKey = `state/${newCanvasId}`;
 
     // Wait for canvas data to be available
     const canvasDataBuffer = await canvasDataPromise;
-    const canvasData: RawCanvasData = JSON.parse(canvasDataBuffer.toString());
+    const canvasData: RawCanvasData = safeParseJSON(canvasDataBuffer.toString());
+
+    if (!canvasData) {
+      this.logger.error(`Failed to parse canvas data for share ${shareId}`);
+      throw new ShareNotFoundError();
+    }
 
     const { nodes, edges } = canvasData;
     const libEntityNodes = nodes.filter((node) =>
@@ -501,17 +508,6 @@ export class ShareDuplicationService {
         preGeneratedLibIds[oldId] = genCodeArtifactID();
       }
     }
-
-    await this.prisma.canvas.create({
-      data: {
-        uid: user.uid,
-        canvasId: newCanvasId,
-        title: canvasData.title,
-        status: 'duplicating',
-        stateStorageKey,
-        projectId,
-      },
-    });
 
     // Phase 2: Duplicate entities with higher concurrency
     const limit = pLimit(10); // Increased concurrency limit for better performance
@@ -609,31 +605,18 @@ export class ShareDuplicationService {
 
     await Promise.all([...libDupPromises, ...skillDupPromises]);
 
-    // Phase 4: Parallelize Y.Doc state creation, upload, and final database operations
-    // TODO: Canvas does not use Y.Doc any more.
-    const doc = new Y.Doc();
-    doc.transact(() => {
-      doc.getText('title').insert(0, canvasData.title);
-      doc.getArray('nodes').insert(0, nodes);
-      doc.getArray('edges').insert(0, edges);
-    });
+    // Phase 4: Parallelize state creation, upload, and final database operations
+    const state = initEmptyCanvasState();
+    state.nodes = nodes;
+    state.edges = edges;
 
-    const stateBuffer = Buffer.from(Y.encodeStateAsUpdate(doc));
-
-    // Parallelize state upload, canvas status update, and duplicate record creation
+    // Parallelize canvas creation, and duplicate record creation
     await Promise.all([
-      this.miscService.uploadBuffer(user, {
-        fpath: stateStorageKey,
-        buf: stateBuffer,
-        entityId: newCanvasId,
-        entityType: 'canvas',
-        visibility: 'private',
-        storageKey: stateStorageKey,
-      }),
-      this.prisma.canvas.update({
-        where: { canvasId: newCanvasId },
-        data: { status: 'ready' },
-      }),
+      this.canvasService.createCanvasWithState(
+        user,
+        { canvasId: newCanvasId, title: canvasData.title, projectId },
+        state,
+      ),
       this.prisma.duplicateRecord.create({
         data: {
           sourceId: record.entityId,
