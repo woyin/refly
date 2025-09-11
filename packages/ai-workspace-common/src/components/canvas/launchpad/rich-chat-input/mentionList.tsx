@@ -275,12 +275,12 @@ export const MentionList = ({
       {/* Second level menu - Variables */}
       <div
         className={cn(
-          'w-60 p-2 max-h-60 min-h-28 box-border overflow-y-auto bg-refly-bg-body-z0 rounded-r-xl border-[1px] border-solid border-refly-Card-Border',
+          'w-60 p-2 max-h-60 min-h-28 flex box-border overflow-y-auto bg-refly-bg-body-z0 rounded-r-xl border-[1px] border-solid border-refly-Card-Border',
           secondLevelBorderRadius,
         )}
       >
         {hoveredCategory === 'startNode' && (
-          <div className="w-full h-full">
+          <div className="flex-1 w-full">
             {isLoadingVariables ? (
               <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
                 {t('canvas.richChatInput.loadingVariables')}
@@ -310,7 +310,7 @@ export const MentionList = ({
         )}
 
         {hoveredCategory === 'resourceLibrary' && (
-          <div className="h-full w-full flex flex-col gap-3">
+          <div className="flex-1 w-full flex flex-col gap-3">
             <Segmented
               shape="round"
               size="small"
@@ -334,7 +334,7 @@ export const MentionList = ({
                 },
               ]}
             />
-            <div className="flex-1 space-y-1 overflow-y-auto">
+            <div className="flex-grow space-y-1 overflow-y-auto">
               {(() => {
                 const config = resourceTypeConfigs[resourceLibraryType];
                 const items = groupedItems[resourceLibraryType];
