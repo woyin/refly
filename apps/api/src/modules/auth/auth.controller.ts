@@ -204,8 +204,11 @@ export class AuthController {
         return;
       }
 
+      const baseScope = ['profile', 'email'];
+      const finalScope = [...baseScope, ...requiredScope];
+
       // Generate OAuth URL with required scope
-      const authUrl = this.authService.generateToolOAuthUrl('google', requiredScope, redirectUrl);
+      const authUrl = this.authService.generateToolOAuthUrl('google', finalScope, redirectUrl);
       res.redirect(authUrl);
     } catch (error) {
       this.logger.error('Tool OAuth initiation failed:', error.stack);
