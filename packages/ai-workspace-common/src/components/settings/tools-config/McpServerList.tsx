@@ -32,8 +32,6 @@ import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
 
 interface McpServerListProps {
   visible: boolean;
-  editingServer: McpServerDTO | null;
-  setEditingServer: (server: McpServerDTO | null) => void;
 }
 
 // Action dropdown component
@@ -59,7 +57,10 @@ const ActionDropdown = React.memo(
           </div>
         ),
         key: 'edit',
-        onClick: () => handleEdit(server),
+        onClick: () => {
+          handleEdit(server);
+          setVisible(false);
+        },
       },
       {
         label: (
@@ -226,15 +227,22 @@ const ServerItem = React.memo(
 
 ServerItem.displayName = 'ServerItem';
 
-export const McpServerList: React.FC<McpServerListProps> = ({
-  visible,
-  editingServer,
-  setEditingServer,
-}) => {
+export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
   const isLogin = useUserStoreShallow((state) => state.isLogin);
-  const { mcpFormModalOpen, setMcpFormModalOpen } = useToolStoreShallow((state) => ({
+  const {
+    currentMcpServer,
+    mcpFormModalOpen,
+    mcpFormMode,
+    setMcpFormModalOpen,
+    setCurrentMcpServer,
+    setMcpFormMode,
+  } = useToolStoreShallow((state) => ({
+    currentMcpServer: state.currentMcpServer,
     mcpFormModalOpen: state.mcpFormModalOpen,
+    mcpFormMode: state.mcpFormMode,
     setMcpFormModalOpen: state.setMcpFormModalOpen,
+    setCurrentMcpServer: state.setCurrentMcpServer,
+    setMcpFormMode: state.setMcpFormMode,
   }));
   const { t } = useTranslation();
 
@@ -339,7 +347,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({
   const handleFormSubmit = () => {
     // Form submission is handled in the form component
     setMcpFormModalOpen(false);
-    setEditingServer(null);
+    setCurrentMcpServer(null);
     // Refresh list data
     refetchToolsOnUpdate();
   };
@@ -347,10 +355,11 @@ export const McpServerList: React.FC<McpServerListProps> = ({
   // Handle edit button click
   const handleEdit = useCallback(
     (server: McpServerDTO) => {
-      setEditingServer(server);
+      setCurrentMcpServer(server);
+      setMcpFormMode('edit');
       setMcpFormModalOpen(true);
     },
-    [setEditingServer, setMcpFormModalOpen],
+    [setCurrentMcpServer, setMcpFormModalOpen],
   );
 
   // Handle delete button click
@@ -456,7 +465,9 @@ export const McpServerList: React.FC<McpServerListProps> = ({
       <Modal
         centered
         title={
-          editingServer ? t('settings.mcpServer.editServer') : t('settings.mcpServer.addServer')
+          mcpFormMode === 'edit'
+            ? t('settings.mcpServer.editServer')
+            : t('settings.mcpServer.addServer')
         }
         open={mcpFormModalOpen}
         onCancel={() => setMcpFormModalOpen(false)}
@@ -465,7 +476,8 @@ export const McpServerList: React.FC<McpServerListProps> = ({
         destroyOnHidden
       >
         <McpServerForm
-          initialData={editingServer || undefined}
+          formMode={mcpFormMode}
+          initialData={currentMcpServer || undefined}
           onSubmit={handleFormSubmit}
           onCancel={() => setMcpFormModalOpen(false)}
         />

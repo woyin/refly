@@ -15,6 +15,7 @@ import { useReactFlow } from '@xyflow/react';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
 import { useOpenInstallTool } from '@refly-packages/ai-workspace-common/hooks/use-open-install-tool';
+import { useOpenInstallMcp } from '@refly-packages/ai-workspace-common/hooks/use-open-install-mcp';
 
 const isToolsetInstalled = (
   toolset: GenericToolset,
@@ -264,13 +265,18 @@ const ToolsDependencyContent = React.memo(
     const currentLanguage = i18n.language;
 
     const { openInstallToolByKey } = useOpenInstallTool();
+    const { openInstallMcp } = useOpenInstallMcp();
 
     const handleInstallTool = useCallback(
       (toolset: GenericToolset) => {
-        openInstallToolByKey(toolset.toolset?.key);
+        if (toolset.type === 'mcp') {
+          openInstallMcp(toolset.mcpServer);
+        } else {
+          openInstallToolByKey(toolset.toolset?.key);
+        }
         setOpen(false);
       },
-      [openInstallToolByKey, setOpen],
+      [openInstallToolByKey, openInstallMcp, setOpen],
     );
 
     return (

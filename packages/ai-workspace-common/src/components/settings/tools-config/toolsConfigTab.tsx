@@ -1,7 +1,7 @@
 import { useListMcpServers } from '@refly-packages/ai-workspace-common/queries';
 import { useUserStoreShallow, useToolStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { McpServerList } from './McpServerList';
 import { ContentHeader } from '../contentHeader';
 import { Button, Modal, Segmented } from 'antd';
@@ -9,22 +9,29 @@ import { HiMiniBuildingStorefront } from 'react-icons/hi2';
 import { Close } from 'refly-icons';
 import { McpServerBatchImport } from './McpServerBatchImport';
 import '../model-providers/index.scss';
-import { McpServerDTO } from '@refly-packages/ai-workspace-common/requests';
 import { ToolList } from './tools/tool-list';
 import { ToolStore } from './tools/tool-store';
 import { useListToolsets, useListTools } from '@refly-packages/ai-workspace-common/queries';
 
 export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
   const { t } = useTranslation();
-  const { toolStoreModalOpen, setToolStoreModalOpen, setMcpFormModalOpen } = useToolStoreShallow(
-    (state) => ({
-      toolStoreModalOpen: state.toolStoreModalOpen,
-      setToolStoreModalOpen: state.setToolStoreModalOpen,
-      setMcpFormModalOpen: state.setMcpFormModalOpen,
-    }),
-  );
-  const [editingServer, setEditingServer] = useState<McpServerDTO | null>(null);
-  const [selectedTab, setSelectedTab] = useState<'tools' | 'mcp'>('tools');
+  const {
+    selectedTab,
+    setSelectedTab,
+    toolStoreModalOpen,
+    setToolStoreModalOpen,
+    setMcpFormModalOpen,
+    setCurrentMcpServer,
+    setMcpFormMode,
+  } = useToolStoreShallow((state) => ({
+    selectedTab: state.selectedTab,
+    setSelectedTab: state.setSelectedTab,
+    toolStoreModalOpen: state.toolStoreModalOpen,
+    setToolStoreModalOpen: state.setToolStoreModalOpen,
+    setMcpFormModalOpen: state.setMcpFormModalOpen,
+    setMcpFormMode: state.setMcpFormMode,
+    setCurrentMcpServer: state.setCurrentMcpServer,
+  }));
   const isLogin = useUserStoreShallow((state) => state.isLogin);
 
   // Fetch MCP servers for the community tab to check installed status
@@ -62,8 +69,9 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
               type="primary"
               className="font-semibold"
               onClick={() => {
+                setMcpFormMode('create');
                 setMcpFormModalOpen(true);
-                setEditingServer(null);
+                setCurrentMcpServer(null);
               }}
             >
               {t('settings.mcpServer.addServer')}
@@ -81,7 +89,7 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
         )}
       </div>
     );
-  }, [t, refetch, setMcpFormModalOpen, setEditingServer, setToolStoreModalOpen, selectedTab]);
+  }, [t, refetch, setMcpFormModalOpen, setCurrentMcpServer, setToolStoreModalOpen, selectedTab]);
 
   if (!visible) return null;
 
@@ -109,11 +117,7 @@ export const ToolsConfigTab = ({ visible }: { visible: boolean }) => {
             isLoadingToolsets={isLoadingToolsets}
           />
         ) : (
-          <McpServerList
-            visible={visible}
-            editingServer={editingServer}
-            setEditingServer={setEditingServer}
-          />
+          <McpServerList visible={visible} />
         )}
       </div>
 

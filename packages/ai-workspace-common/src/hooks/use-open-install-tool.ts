@@ -6,13 +6,12 @@ export const useOpenInstallTool = () => {
   const { data: toolsetInventory } = useListToolsetInventory({}, null, {
     enabled: true,
   });
-  const { setToolStoreModalOpen, setToolInstallModalOpen, setCurrentToolDefinition } =
-    useToolStoreShallow((state) => ({
-      setToolStoreModalOpen: state.setToolStoreModalOpen,
-      setToolInstallModalOpen: state.setToolInstallModalOpen,
-      setCurrentToolDefinition: state.setCurrentToolDefinition,
-    }));
-  const { setShowSettingModal, setSettingsModalActiveTab } = useSiderStoreShallow((state) => ({
+  const toolStore = useToolStoreShallow((state) => ({
+    setToolStoreModalOpen: state.setToolStoreModalOpen,
+    setToolInstallModalOpen: state.setToolInstallModalOpen,
+    setCurrentToolDefinition: state.setCurrentToolDefinition,
+  }));
+  const siderStore = useSiderStoreShallow((state) => ({
     setShowSettingModal: state.setShowSettingModal,
     setSettingsModalActiveTab: state.setSettingsModalActiveTab,
   }));
@@ -22,14 +21,14 @@ export const useOpenInstallTool = () => {
       const definition = toolsetInventory?.data?.find((t) => t.key === toolsetKey);
 
       if (definition) {
-        setCurrentToolDefinition(definition);
-        setSettingsModalActiveTab(SettingsModalActiveTab.ToolsConfig);
-        setShowSettingModal(true);
-        setToolStoreModalOpen(true);
-        setToolInstallModalOpen(true);
+        toolStore.setCurrentToolDefinition(definition);
+        siderStore.setSettingsModalActiveTab(SettingsModalActiveTab.ToolsConfig);
+        siderStore.setShowSettingModal(true);
+        toolStore.setToolStoreModalOpen(true);
+        toolStore.setToolInstallModalOpen(true);
       }
     },
-    [toolsetInventory, setToolStoreModalOpen, setToolInstallModalOpen, setCurrentToolDefinition],
+    [toolsetInventory, toolStore, siderStore],
   );
 
   return { openInstallToolByKey };
