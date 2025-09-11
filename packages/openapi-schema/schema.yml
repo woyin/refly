@@ -2645,6 +2645,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetPilotSessionDetailResponse'
+  /pilot/session/recover:
+    post:
+      tags:
+        - pilot
+      summary: Recover pilot session
+      description: Recover a failed pilot session by retrying failed steps. Can recover all failed steps or specific steps.
+      operationId: recoverPilotSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoverPilotSessionRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /workflow/initialize:
     post:
       tags:
@@ -7729,6 +7749,19 @@ components:
           type: number
           description: Pilot session max epoch
           default: 2
+    RecoverPilotSessionRequest:
+      type: object
+      required:
+        - sessionId
+      properties:
+        sessionId:
+          type: string
+          description: Pilot session ID to recover
+        stepIds:
+          type: array
+          description: Optional array of specific step IDs to recover. If not provided, recovers all failed steps in the current epoch.
+          items:
+            type: string
     UpsertPilotSessionResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

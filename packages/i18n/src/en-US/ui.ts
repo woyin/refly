@@ -1394,6 +1394,9 @@ const translations = {
       executing: 'Skill is executing, please wait...',
       startRunning: 'Skill is running...',
       startRerun: 'Skill is rerunning...',
+      startPilotRecovery: 'Starting pilot recovery...',
+      pilotRecoveryStarted: 'Pilot recovery started successfully',
+      pilotRecoveryFailed: 'Pilot recovery failed',
       resultNotFound: 'Sorry, the execution result seems to be lost.',
       reasoningContent: 'AI Thinking Process',
       shareLoading: 'Loading shared skill response...',
@@ -3150,8 +3153,21 @@ const translations = {
       planning: 'Planning tasks...',
       executingSteps: 'Task execution {{current}} / {{total}} ...',
       completedTasks: 'Completed {{count}} tasks ...',
-      taskFailed: 'Task failed',
+      taskFailed: 'Task terminated',
       understandingIntent: 'Understanding intent and analyzing requirements...',
+    },
+    recovery: {
+      title: 'Retry All Failed Tasks',
+      success: 'Session recovery started successfully',
+      error: 'Failed to recover session',
+    },
+    stepRecovery: {
+      button: 'Retry',
+      success: 'Step recovery started successfully',
+      error: {
+        noStepId: 'Step ID not found',
+        general: 'Failed to recover step',
+      },
     },
   },
   deck: {

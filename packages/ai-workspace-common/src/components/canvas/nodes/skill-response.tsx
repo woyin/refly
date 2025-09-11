@@ -50,6 +50,9 @@ import {
 } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { NodeExecutionStatus } from './shared/node-execution-status';
 import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
+import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilot/use-pilot-recovery';
+import { usePilotStoreShallow } from '@refly/stores';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
@@ -171,10 +174,15 @@ const NodeFooter = memo(
             </div>
           )}
           {model && tokenUsage ? <Divider type="vertical" className="mx-1" /> : null}
-          {tokenUsage?.reduce && (
+          {tokenUsage?.reduce ? (
             <div className="flex items-center gap-1 flex-shrink-0">
               <IconToken className="w-3 h-3" />
               {tokenUsage.reduce((acc, t) => acc + t.inputTokens + t.outputTokens, 0)}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <IconToken className="w-3 h-3" />
+              {0}
             </div>
           )}
         </div>
@@ -217,6 +225,22 @@ export const SkillResponseNode = memo(
     const { handleMouseEnter: onHoverStart, handleMouseLeave: onHoverEnd } = useNodeHoverEffect(id);
     const { readonly, canvasId } = useCanvasContext();
 
+    // Get current pilot session info
+    const activeSessionId = usePilotStoreShallow(
+      (state) => state.activeSessionIdByCanvas[canvasId || ''],
+    );
+
+    // Get pilot session data to check if this node corresponds to a pilot step
+    const { data: sessionData } = useGetPilotSessionDetail(
+      {
+        query: { sessionId: activeSessionId },
+      },
+      undefined,
+      {
+        enabled: !!activeSessionId,
+      },
+    );
+
     // Get node execution status
     const { status: executionStatus, isExecuting } = useNodeExecutionStatus({
       canvasId: canvasId || '',
@@ -247,6 +271,13 @@ export const SkillResponseNode = memo(
     } = data ?? {};
     const { errMsg } = useSkillError(metadata?.errors?.[0]);
 
+    // Find current node's corresponding pilot step
+    const currentPilotStep = useMemo(() => {
+      if (!sessionData?.data?.steps || !entityId) return null;
+
+      return sessionData.data.steps.find((step) => step.entityId === entityId);
+    }, [sessionData, entityId]);
+
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
     const {
@@ -266,6 +297,12 @@ export const SkillResponseNode = memo(
       isStreaming: !!state.streamResults[entityId],
       removeStreamResult: state.removeStreamResult,
     }));
+
+    // Use pilot recovery hook for pilot steps
+    const { recoverSteps } = usePilotRecovery({
+      canvasId: canvasId || '',
+      sessionId: activeSessionId || '',
+    });
 
     useEffect(() => {
       if (!isStreaming) {
@@ -289,6 +326,23 @@ export const SkillResponseNode = memo(
         }
       }
     }, [isStreaming, status, startPolling, entityId, version, removeStreamResult]);
+
+    // Listen to pilot step status changes and sync with node status
+    useEffect(() => {
+      if (currentPilotStep?.status && currentPilotStep.status !== data?.metadata?.status) {
+        console.log(
+          `[Pilot Step Sync] Updating node ${id} status from ${data?.metadata?.status} to ${currentPilotStep.status}`,
+        );
+
+        setNodeData(id, {
+          ...data,
+          metadata: {
+            ...data?.metadata,
+            status: currentPilotStep.status,
+          },
+        });
+      }
+    }, [currentPilotStep?.status, data, id, setNodeData]);
 
     const sources = Array.isArray(structuredData?.sources) ? structuredData?.sources : [];
 
@@ -335,16 +389,48 @@ export const SkillResponseNode = memo(
 
     const { invokeAction } = useInvokeAction({ source: 'skill-response-node' });
 
-    const handleRerun = useCallback(() => {
-      if (readonly) {
-        return;
-      }
+    // Pilot recovery mode
+    const handlePilotRecovery = useCallback(async () => {
+      if (!currentPilotStep?.stepId || !activeSessionId) return;
 
-      if (['executing', 'waiting'].includes(data?.metadata?.status)) {
-        message.info(t('canvas.skillResponse.executing'));
-        return;
-      }
+      message.info(
+        t('canvas.skillResponse.startPilotRecovery', {
+          defaultValue: 'Starting pilot recovery...',
+        }),
+      );
 
+      try {
+        // 使用 usePilotRecovery hook
+        await recoverSteps([currentPilotStep]);
+
+        // 前端状态更新
+        setNodeData(id, {
+          ...data,
+          contentPreview: '',
+          metadata: {
+            ...data?.metadata,
+            status: 'waiting',
+            version: (data?.metadata?.version || 0) + 1,
+          },
+        });
+
+        message.success(
+          t('canvas.skillResponse.pilotRecoveryStarted', {
+            defaultValue: 'Pilot recovery started successfully',
+          }),
+        );
+      } catch (error) {
+        console.error('Pilot recovery failed:', error);
+        message.error(
+          t('canvas.skillResponse.pilotRecoveryFailed', {
+            defaultValue: 'Pilot recovery failed',
+          }),
+        );
+      }
+    }, [currentPilotStep, activeSessionId, recoverSteps, data, id, setNodeData, t]);
+
+    // Direct rerun mode (original logic)
+    const handleDirectRerun = useCallback(() => {
       message.info(t('canvas.skillResponse.startRerun'));
 
       setNodeStyle(id, NODE_SIDE_CONFIG);
@@ -382,11 +468,40 @@ export const SkillResponseNode = memo(
       canvasId,
       id,
       title,
-      t,
       invokeAction,
       setNodeData,
-      readonly,
       resetFailedState,
+      setNodeStyle,
+      skill,
+      t,
+    ]);
+
+    const handleRerun = useCallback(() => {
+      if (readonly) {
+        return;
+      }
+
+      if (['executing', 'waiting'].includes(data?.metadata?.status)) {
+        message.info(t('canvas.skillResponse.executing'));
+        return;
+      }
+
+      // 判断是否为 pilot step
+      if (currentPilotStep?.stepId && activeSessionId) {
+        // 使用 pilot recovery 模式
+        handlePilotRecovery();
+      } else {
+        // 使用原有的直接重试模式
+        handleDirectRerun();
+      }
+    }, [
+      readonly,
+      data?.metadata?.status,
+      t,
+      currentPilotStep,
+      activeSessionId,
+      handlePilotRecovery,
+      handleDirectRerun,
     ]);
 
     const insertToDoc = useInsertToDocument(entityId);
