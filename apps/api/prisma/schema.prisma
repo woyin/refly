@@ -1523,6 +1523,8 @@ model Toolset {
   config        String?   @map("config")
   /// Whether the toolset is enabled
   enabled       Boolean   @default(true) @map("enabled")
+  /// Whether the toolset is uninstalled
+  uninstalled   Boolean   @default(false) @map("uninstalled")
   /// Toolset credit billing
   creditBilling String?   @map("credit_billing")
   /// Create timestamp

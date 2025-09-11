@@ -13,6 +13,7 @@ import { useSiderStoreShallow, SettingsModalActiveTab, useUserStoreShallow } fro
 import { useNodePosition } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-position';
 import { useReactFlow } from '@xyflow/react';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
+import { extractToolsetsWithNodes } from '@refly/canvas-common';
 
 const isToolsetInstalled = (
   toolset: GenericToolset,
@@ -409,41 +410,7 @@ export const ToolsDependency = () => {
 
   // Process canvas data to find tool dependencies
   const toolsetsWithNodes = useMemo(() => {
-    const toolMap = new Map<string, ToolWithNodes>();
-
-    for (const node of nodes) {
-      if (node.type === 'skillResponse' && node.data?.metadata?.selectedToolsets) {
-        const selectedToolsets = node.data.metadata.selectedToolsets as GenericToolset[];
-
-        for (const toolset of selectedToolsets) {
-          const toolId = toolset.id;
-          const existingTool = toolMap.get(toolId);
-
-          const nodeInfo = {
-            id: node.id,
-            entityId: node.data?.entityId,
-            title: node.data?.title || 'Untitled',
-            type: node.type,
-          };
-
-          if (existingTool) {
-            // Add node to existing tool if not already present
-            const nodeExists = existingTool.referencedNodes.some((n) => n.id === nodeInfo.id);
-            if (!nodeExists) {
-              existingTool.referencedNodes.push(nodeInfo);
-            }
-          } else {
-            // Create new tool entry
-            toolMap.set(toolId, {
-              toolset,
-              referencedNodes: [nodeInfo],
-            });
-          }
-        }
-      }
-    }
-
-    return Array.from(toolMap.values());
+    return extractToolsetsWithNodes(nodes);
   }, [nodes]);
 
   const filteredToolsets = useMemo(() => {

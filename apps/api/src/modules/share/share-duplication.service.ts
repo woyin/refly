@@ -9,6 +9,7 @@ import {
   DuplicateShareRequest,
   Entity,
   EntityType,
+  GenericToolset,
   RawCanvasData,
   Resource,
   User,
@@ -33,8 +34,9 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ShareCommonService } from './share-common.service';
 import { ShareExtraData, SharePageData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
-import { initEmptyCanvasState } from '@refly/canvas-common';
+import { extractToolsetsWithNodes, initEmptyCanvasState } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
+import { ToolService } from '../tool/tool.service';
 
 interface DuplicateOptions {
   skipCanvasCheck?: boolean;
@@ -50,6 +52,7 @@ export class ShareDuplicationService {
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
+    private readonly toolService: ToolService,
     private readonly knowledgeService: KnowledgeService,
     private readonly subscriptionService: SubscriptionService,
     private readonly shareCommonService: ShareCommonService,
@@ -358,10 +361,11 @@ export class ShareDuplicationService {
     extra?: {
       target?: Entity;
       replaceEntityMap?: Record<string, string>;
+      replaceToolsetMap?: Record<string, GenericToolset>;
     },
   ): Promise<Entity> {
     const { shareId, projectId } = param;
-    const { replaceEntityMap, target } = extra ?? {};
+    const { replaceEntityMap, target, replaceToolsetMap } = extra ?? {};
 
     // Find the source record
     const record = await this.prisma.shareRecord.findFirst({
@@ -385,6 +389,11 @@ export class ShareDuplicationService {
       ).toString(),
     );
 
+    // Replace toolsets with imported toolsets
+    const replacedToolsets = result.toolsets?.map(
+      (toolset) => replaceToolsetMap?.[toolset.id] || toolset,
+    );
+
     // Create a new action result record
     await this.prisma.$transaction([
       this.prisma.actionResult.create({
@@ -406,6 +415,7 @@ export class ShareDuplicationService {
           duplicateFrom: result.resultId,
           projectId,
           version: 0, // Reset version to 0 for the new duplicate
+          toolsets: JSON.stringify(replacedToolsets),
         },
       }),
       ...(result.steps?.length > 0
@@ -517,6 +527,10 @@ export class ShareDuplicationService {
       ...preGeneratedLibIds,
     };
 
+    // Convert toolsets
+    const toolsetsWithNodes = extractToolsetsWithNodes(nodes).map((t) => t.toolset);
+    const { replaceToolsetMap } = await this.toolService.importToolsets(user, toolsetsWithNodes);
+
     // Prepare duplication tasks in parallel
     const libDupPromises = libEntityNodes.map((node) =>
       limit(async () => {
@@ -574,6 +588,7 @@ export class ShareDuplicationService {
           { shareId, projectId },
           {
             replaceEntityMap,
+            replaceToolsetMap,
             target: { entityId: newCanvasId, entityType: 'canvas' },
           },
         );

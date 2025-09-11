@@ -56,6 +56,7 @@ export function actionResultPO2DTO(result: ActionDetail): ActionResult {
     createdAt: result.createdAt.toJSON(),
     updatedAt: result.updatedAt.toJSON(),
     steps: result.steps?.map(actionStepPO2DTO),
+    toolsets: JSON.parse(result.toolsets || '[]'),
     modelInfo: result.modelInfo,
   };
 }

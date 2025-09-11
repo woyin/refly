@@ -15,6 +15,7 @@ import { QUEUE_CREATE_SHARE } from '../../utils/const';
 import { CreateShareProcessor } from './share.processor';
 import { ShareCreationService } from './share-creation.service';
 import { ShareDuplicationService } from './share-duplication.service';
+import { ToolModule } from '../tool/tool.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ShareDuplicationService } from './share-duplication.service';
     KnowledgeModule,
     RAGModule,
     MiscModule,
+    ToolModule,
     ActionModule,
     CodeArtifactModule,
     SubscriptionModule,
