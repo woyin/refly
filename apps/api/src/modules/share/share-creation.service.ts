@@ -96,7 +96,9 @@ export class ShareCreationService {
               node.data.metadata.imageUrl = imageUrl;
             }
           } catch (error) {
-            this.logger.error(`Failed to publish image for storageKey: ${storageKey}`, error);
+            this.logger.error(
+              `Failed to publish image for storageKey: ${storageKey}, error: ${error.stack}`,
+            );
           }
         }
         return node;
@@ -143,7 +145,9 @@ export class ShareCreationService {
               };
             }
           } catch (error) {
-            this.logger.error(`Failed to process document node ${node.data?.entityId}:`, error);
+            this.logger.error(
+              `Failed to process document node ${node.data?.entityId}, error: ${error.stack}`,
+            );
           }
         }),
       );
@@ -169,7 +173,9 @@ export class ShareCreationService {
               };
             }
           } catch (error) {
-            this.logger.error(`Failed to process resource node ${node.data?.entityId}:`, error);
+            this.logger.error(
+              `Failed to process resource node ${node.data?.entityId}, error: ${error.stack}`,
+            );
           }
         }),
       );
@@ -195,8 +201,7 @@ export class ShareCreationService {
             }
           } catch (error) {
             this.logger.error(
-              `Failed to process skill response node ${node.data?.entityId}:`,
-              error,
+              `Failed to process skill response node ${node.data?.entityId}, error: ${error.stack}`,
             );
           }
         }),
@@ -223,8 +228,7 @@ export class ShareCreationService {
             }
           } catch (error) {
             this.logger.error(
-              `Failed to process code artifact node ${node.data?.entityId}:`,
-              error,
+              `Failed to process code artifact node ${node.data?.entityId}, error: ${error.stack}`,
             );
           }
         }),
@@ -790,7 +794,7 @@ export class ShareCreationService {
         }
       }
     } catch (error) {
-      this.logger.error('Error reading page state:', error);
+      this.logger.error(`Error reading page state, error: ${error.stack}`);
     }
 
     // Set up concurrency limit for image processing
@@ -1001,22 +1005,22 @@ export class ShareCreationService {
     const entityType = req.entityType as EntityType;
     switch (entityType) {
       case 'canvas':
-        await this.createShareForCanvas(user as any, req);
+        await this.createShareForCanvas(user, req);
         return;
       case 'document':
-        await this.createShareForDocument(user as any, req);
+        await this.createShareForDocument(user, req);
         return;
       case 'resource':
-        await this.createShareForResource(user as any, req);
+        await this.createShareForResource(user, req);
         return;
       case 'skillResponse':
-        await this.createShareForSkillResponse(user as any, req);
+        await this.createShareForSkillResponse(user, req);
         return;
       case 'codeArtifact':
-        await this.createShareForCodeArtifact(user as any, req);
+        await this.createShareForCodeArtifact(user, req);
         return;
       case 'page':
-        await this.createShareForPage(user as any, req);
+        await this.createShareForPage(user, req);
         return;
       default:
         throw new ParamsError(`Unsupported entity type ${req.entityType} for sharing`);
