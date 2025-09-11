@@ -1148,6 +1148,7 @@ const translations = {
       placeholder: 'Describe needs...',
       chatInputPlaceholder:
         'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
+      commonChatInputPlaceholder: 'Ask Refly any question...',
     },
     contextMenu: {
       createGroup: 'Create Group',
@@ -1676,6 +1677,7 @@ const translations = {
       loadingEditor: 'Loading editor...',
       loadingVariables: 'Loading variables...',
       noStartNodeVariables: 'No start node variables',
+      defaultPlaceholder: 'Describe what you want to generate...',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',

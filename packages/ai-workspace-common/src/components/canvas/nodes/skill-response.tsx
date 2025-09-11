@@ -2,7 +2,7 @@ import { Position, useReactFlow } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { Divider, Input, message } from 'antd';
 import type { InputRef } from 'antd';
-import { CanvasNode } from '@refly/canvas-common';
+import { CanvasNode, purgeToolsets } from '@refly/canvas-common';
 import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './shared/styles';
@@ -230,9 +230,6 @@ export const SkillResponseNode = memo(
       (state) => state.activeSessionIdByCanvas[canvasId || ''],
     );
 
-    // Extract entityId early for use in pilot step lookup
-    const { title, contentPreview: content, metadata, createdAt, entityId } = data ?? {};
-
     // Get pilot session data to check if this node corresponds to a pilot step
     const { data: sessionData } = useGetPilotSessionDetail(
       {
@@ -243,13 +240,6 @@ export const SkillResponseNode = memo(
         enabled: !!activeSessionId,
       },
     );
-
-    // Find current node's corresponding pilot step
-    const currentPilotStep = useMemo(() => {
-      if (!sessionData?.data?.steps || !entityId) return null;
-
-      return sessionData.data.steps.find((step) => step.entityId === entityId);
-    }, [sessionData, entityId]);
 
     // Get node execution status
     const { status: executionStatus, isExecuting } = useNodeExecutionStatus({
@@ -271,7 +261,22 @@ export const SkillResponseNode = memo(
     const { t, i18n } = useTranslation();
     const language = i18n.languages?.[0];
 
+    const {
+      title,
+      editedTitle,
+      contentPreview: content,
+      metadata,
+      createdAt,
+      entityId,
+    } = data ?? {};
     const { errMsg } = useSkillError(metadata?.errors?.[0]);
+
+    // Find current node's corresponding pilot step
+    const currentPilotStep = useMemo(() => {
+      if (!sessionData?.data?.steps || !entityId) return null;
+
+      return sessionData.data.steps.find((step) => step.entityId === entityId);
+    }, [sessionData, entityId]);
 
     const { getConnectionInfo } = useGetNodeConnectFromDragCreateInfo();
 
@@ -364,7 +369,7 @@ export const SkillResponseNode = memo(
     const model = modelInfo?.label;
 
     // Get query and response content from result
-    const query = title;
+    const query = editedTitle || title;
 
     // Check if node has any connections
     const edges = getEdges();
@@ -450,7 +455,7 @@ export const SkillResponseNode = memo(
           query: title,
           selectedSkill: skill,
           contextItems: data?.metadata?.contextItems,
-          selectedToolsets: data?.metadata?.selectedToolsets,
+          selectedToolsets: purgeToolsets(data?.metadata?.selectedToolsets),
         },
         {
           entityType: 'canvas',

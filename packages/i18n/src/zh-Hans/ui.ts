@@ -1132,6 +1132,7 @@ const translations = {
     launchpad: {
       placeholder: '描述你的需求...',
       chatInputPlaceholder: '给 Refly 一个任务，它会智能分析和规划，并帮你完成任务...',
+      commonChatInputPlaceholder: '问 Refly 任何问题...',
     },
     contextMenu: {
       createGroup: '创建分组',
@@ -1638,6 +1639,7 @@ const translations = {
       loadingEditor: '加载编辑器中...',
       loadingVariables: '加载变量中...',
       noStartNodeVariables: '暂无开始节点变量',
+      defaultPlaceholder: '描述你想要生成的内容...',
     },
     toolsDepencency: {
       title: '工具依赖',

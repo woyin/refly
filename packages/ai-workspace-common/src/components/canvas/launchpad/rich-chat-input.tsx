@@ -2,12 +2,12 @@ import { memo, useCallback, forwardRef, useEffect, useState, useMemo, useRef } f
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchStoreShallow } from '@refly/stores';
-import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { cn } from '@refly/utils/cn';
 import { useUserStoreShallow } from '@refly/stores';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
+import Placeholder from '@tiptap/extension-placeholder';
 import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
 import SVGX from '../../../assets/x.svg';
@@ -50,8 +50,6 @@ interface RichChatInputProps {
   readonly: boolean;
   query: string;
   setQuery: (text: string) => void;
-  variables?: MentionVariable[];
-  selectedSkillName?: string | null;
   placeholder?: string;
   inputClassName?: string;
   maxRows?: number;
@@ -95,16 +93,14 @@ const MentionList = ({ items, command }: { items: MentionItem[]; command: any })
   const groupedItems = useMemo(() => {
     // Use fetched workflow variables for startNode items instead of prop items
     const workflowVariables = workflowVariablesData?.data || [];
-    const startNodeItems = workflowVariables
-      .filter((variable) => variable.source === 'startNode')
-      .map((variable) => ({
-        name: variable.name,
-        description: variable.description || '',
-        source: 'startNode' as const,
-        variableType: variable.variableType || 'string',
-        entityId: variable.variableId || '',
-        nodeId: variable.variableId || '',
-      }));
+    const startNodeItems = workflowVariables.map((variable) => ({
+      name: variable.name,
+      description: variable.description || '',
+      source: 'startNode' as const,
+      variableType: variable.variableType || 'string',
+      entityId: variable.variableId || '',
+      nodeId: variable.variableId || '',
+    }));
 
     const resourceLibraryItems = items.filter((item) => item.source === 'resourceLibrary');
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
@@ -606,7 +602,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       readonly,
       query,
       setQuery,
-      variables = [],
       inputClassName,
       handleSendMessage,
       onUploadImage,
@@ -614,6 +609,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       onFocus,
       contextItems = [],
       setContextItems,
+      placeholder,
     },
     ref,
   ) => {
@@ -623,46 +619,23 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
     const { nodes: realtimeNodes } = useRealtimeCanvasData();
-    const { canvasId } = useCanvasContext();
+    const { canvasId, workflow } = useCanvasContext();
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
 
+    const { workflowVariables = [] } = workflow || {};
+
     // Get all available items including canvas nodes with fallback data
     const allItems: MentionItem[] = useMemo(() => {
-      // Default variables if none provided
-      const variableItems: MentionItem[] =
-        variables?.length > 0
-          ? variables
-              .filter(
-                (variable) =>
-                  variable.source === 'startNode' || variable.source === 'resourceLibrary',
-              )
-              .map((variable) => {
-                // Handle both WorkflowVariable and CanvasRecordVariable types
-                if ('variableId' in variable) {
-                  // WorkflowVariable
-                  return {
-                    name: variable.name,
-                    description: variable.description || '',
-                    source: variable.source || 'startNode',
-                    variableType: variable.variableType || 'string',
-                    entityId: variable.variableId || '',
-                    nodeId: variable.variableId || '',
-                  };
-                } else {
-                  // CanvasRecordVariable
-                  return {
-                    name: variable.name,
-                    description: variable.description || '',
-                    source: variable.source,
-                    variableType: variable.variableType || 'string',
-                    entityId: variable.entityId || '',
-                    nodeId: variable.nodeId || '',
-                  };
-                }
-              })
-          : [];
+      const workflowVariableItems: MentionItem[] = (workflowVariables || []).map((variable) => ({
+        name: variable.name,
+        description: variable.description || '',
+        source: variable.source || 'startNode',
+        variableType: variable.variableType || 'string',
+        entityId: variable.variableId || '',
+        nodeId: variable.variableId || '',
+      }));
 
       // Get skillResponse nodes for step records
       const stepRecordItems: MentionItem[] =
@@ -720,8 +693,14 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             },
           })) ?? [];
 
-      return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
-    }, [variables, nodes, realtimeNodes]);
+      return [...workflowVariableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
+    }, [workflowVariables, nodes, realtimeNodes]);
+
+    // Keep latest items in a ref so Mention suggestion always sees fresh data
+    const allItemsRef = useRef<MentionItem[]>(allItems);
+    useEffect(() => {
+      allItemsRef.current = allItems;
+    }, [allItems]);
 
     // Use ref to store latest contextItems to avoid performance issues
     const contextItemsRef = useRef(contextItems);
@@ -732,7 +711,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     }, [contextItems]);
 
     // Use ref to track previous canvas data to avoid infinite loops
-    const prevCanvasDataRef = useRef({ canvasId: '', allItemsLength: 0, variablesLength: 0 });
+    const prevCanvasDataRef = useRef({ canvasId: '', allItemsLength: 0 });
 
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
@@ -872,14 +851,16 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             }
           },
           items: ({ query }: { query: string }) => {
+            const sourceItems = allItemsRef.current ?? [];
             if (!query) {
-              return allItems;
+              return sourceItems;
             }
-            return allItems.filter(
-              (item) =>
-                item.name.toLowerCase().includes(query.toLowerCase()) ||
-                (item.description?.toLowerCase().includes(query.toLowerCase()) ?? false),
-            );
+            return sourceItems.filter((item) => {
+              const name = item?.name ?? '';
+              const desc = item?.description ?? '';
+              const q = query?.toLowerCase() ?? '';
+              return name.toLowerCase().includes(q) || desc.toLowerCase().includes(q);
+            });
           },
           render: () => {
             let component: any;
@@ -920,7 +901,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           },
         },
       });
-    }, [allItems, setContextItems]);
+    }, [setContextItems]);
 
     // Create Tiptap editor
     const internalUpdateRef = useRef(false);
@@ -953,27 +934,43 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       return () => window.removeEventListener('keydown', onKeyDown);
     }, [selectedSkillNodeId]);
 
-    const editor = useEditor({
-      extensions: [StarterKit, mentionExtension],
-      content: query,
-      editable: !readonly,
-      onUpdate: ({ editor }) => {
-        const content = editor.getText();
-        // Keep raw text in state for UX; convert to handlebars only on send
-        internalUpdateRef.current = true;
-        setQuery(content);
-      },
-      editorProps: {
-        attributes: {
-          class: cn(
-            'prose prose-sm max-w-none focus:outline-none',
-            inputClassName,
-            readonly && 'cursor-not-allowed',
-            isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
-          ),
+    // Create placeholder extension with dynamic placeholder
+    const placeholderExtension = useMemo(() => {
+      return Placeholder.configure({
+        placeholder: placeholder || t('canvas.richChatInput.defaultPlaceholder'),
+      });
+    }, [placeholder, t]);
+
+    // Create all extensions array
+    const extensions = useMemo(
+      () => [StarterKit, mentionExtension, placeholderExtension],
+      [mentionExtension, placeholderExtension],
+    );
+
+    const editor = useEditor(
+      {
+        extensions,
+        content: query,
+        editable: !readonly,
+        onUpdate: ({ editor }) => {
+          const content = editor.getText();
+          // Keep raw text in state for UX; convert to handlebars only on send
+          internalUpdateRef.current = true;
+          setQuery(content);
+        },
+        editorProps: {
+          attributes: {
+            class: cn(
+              'prose prose-sm max-w-none focus:outline-none',
+              inputClassName,
+              readonly && 'cursor-not-allowed',
+              isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
+            ),
+          },
         },
       },
-    });
+      [placeholder],
+    );
 
     // Function to convert mentions to Handlebars format
     const convertMentionsToHandlebars = useCallback(
@@ -1023,7 +1020,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           }
 
           // Priority 2: Look in variables prop (most reliable for startNode)
-          const foundInVariables = (variables || []).find((v: any) => v?.name === name);
+          const foundInVariables = (workflowVariables || []).find((v: any) => v?.name === name);
           if (foundInVariables) {
             return {
               source: foundInVariables?.source ?? 'startNode',
@@ -1093,7 +1090,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
         return nodes;
       },
-      [variables, allItems],
+      [workflowVariables, allItems],
     );
 
     // Enhanced handleSendMessage that converts mentions to Handlebars
@@ -1150,14 +1147,12 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       const currentCanvasData = {
         canvasId: canvasId || '',
         allItemsLength: allItems?.length || 0,
-        variablesLength: variables?.length || 0,
       };
 
       const prevCanvasData = prevCanvasDataRef.current;
       const hasCanvasDataChanged =
         currentCanvasData.canvasId !== prevCanvasData.canvasId ||
-        currentCanvasData.allItemsLength !== prevCanvasData.allItemsLength ||
-        currentCanvasData.variablesLength !== prevCanvasData.variablesLength;
+        currentCanvasData.allItemsLength !== prevCanvasData.allItemsLength;
 
       if (!hasCanvasDataChanged) return;
 
@@ -1166,9 +1161,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
       // Check if we have the necessary data to render mentions
       const hasCanvasData = allItems && allItems.length > 0;
-      const hasVariables = variables && variables.length > 0;
 
-      if (hasCanvasData || hasVariables) {
+      if (hasCanvasData) {
         // Try to re-render with current data
         const nodes = buildContentFromHandlebars(query);
         if (nodes.length > 0) {
@@ -1185,7 +1179,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           editor.commands.setContent(jsonDoc);
         }
       }
-    }, [canvasId, editor, query, buildContentFromHandlebars, allItems, variables]);
+    }, [canvasId, editor, query, buildContentFromHandlebars, allItems]);
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
@@ -1326,7 +1320,12 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             onPaste={handlePaste}
           >
             {editor ? (
-              <EditorContent editor={editor} className="h-full" data-cy="rich-chat-input" />
+              <EditorContent
+                editor={editor}
+                className="h-full"
+                data-cy="rich-chat-input"
+                data-placeholder={placeholder || t('canvas.richChatInput.defaultPlaceholder')}
+              />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-400">
                 {t('canvas.richChatInput.loadingEditor')}
@@ -1341,15 +1340,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
 RichChatInputComponent.displayName = 'RichChatInputComponent';
 
-export const RichChatInput = memo(RichChatInputComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.query === nextProps.query &&
-    prevProps.selectedSkillName === nextProps.selectedSkillName &&
-    prevProps.variables === nextProps.variables &&
-    prevProps.onUploadImage === nextProps.onUploadImage &&
-    prevProps.onUploadMultipleImages === nextProps.onUploadMultipleImages &&
-    prevProps.onFocus === nextProps.onFocus
-  );
-}) as typeof RichChatInputComponent;
+export const RichChatInput = memo(RichChatInputComponent) as typeof RichChatInputComponent;
 
 RichChatInput.displayName = 'RichChatInput';
