@@ -530,6 +530,7 @@ export class ShareDuplicationService {
     // Convert toolsets
     const toolsetsWithNodes = extractToolsetsWithNodes(nodes).map((t) => t.toolset);
     const { replaceToolsetMap } = await this.toolService.importToolsets(user, toolsetsWithNodes);
+    this.logger.log(`Replace toolsets map: ${JSON.stringify(replaceToolsetMap)}`);
 
     // Prepare duplication tasks in parallel
     const libDupPromises = libEntityNodes.map((node) =>
@@ -614,6 +615,13 @@ export class ShareDuplicationService {
           node.data.metadata.structuredData = JSON.parse(
             batchReplaceRegex(JSON.stringify(node.data.metadata.structuredData), replaceEntityMap),
           );
+        }
+
+        // Replace the selected toolsets with the new toolsets
+        if (node.data.metadata.selectedToolsets) {
+          node.data.metadata.selectedToolsets = (
+            node.data.metadata.selectedToolsets as GenericToolset[]
+          ).map((toolset) => replaceToolsetMap[toolset.id] || toolset);
         }
       }),
     );
