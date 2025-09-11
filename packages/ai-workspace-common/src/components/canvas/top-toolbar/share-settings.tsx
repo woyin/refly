@@ -131,7 +131,6 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     const newShareLink = getShareLink('canvas', shareRecord?.shareId ?? '');
     await navigator.clipboard.writeText(newShareLink);
     setLinkCopied(true);
-    message.success(t('shareContent.copyLinkSuccess'));
     // Reset copied state after 3 seconds
     setTimeout(() => setLinkCopied(false), 3000);
   }, [access, shareRecord?.shareId, t]);
