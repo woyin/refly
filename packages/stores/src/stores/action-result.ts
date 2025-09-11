@@ -35,6 +35,7 @@ interface ActionResultState {
   removeActionResult: (resultId: string) => void;
   startPolling: (resultId: string, version: number) => void;
   stopPolling: (resultId: string) => void;
+  removePollingState: (resultId: string) => void;
   incrementErrorCount: (resultId: string) => void;
   resetErrorCount: (resultId: string) => void;
   updateLastPollTime: (resultId: string) => void;
@@ -125,6 +126,15 @@ export const useActionResultStore = create<ActionResultState>()(
         // Shallow update to avoid deep copying the entire store
         const now = Date.now();
         set((state) => {
+          const oldResult = state.resultMap[resultId];
+          const oldVersion = oldResult?.version ?? 0;
+          const newVersion = result.version ?? 0;
+
+          // Skip update if we're trying to update with an older version
+          if (oldResult && newVersion < oldVersion) {
+            return state;
+          }
+
           return {
             ...state,
             resultMap: {
@@ -222,12 +232,23 @@ export const useActionResultStore = create<ActionResultState>()(
 
           // Apply all updates at once, but prevent overriding finished/failed states with pending states
           for (const [resultId, result] of latestUpdates.entries()) {
-            const oldStatus = updatedResultMap[resultId]?.status;
+            const oldResult = updatedResultMap[resultId];
+            const oldStatus = oldResult?.status;
             const newStatus = result.status;
+            const oldVersion = oldResult?.version ?? 0;
+            const newVersion = result.version ?? 0;
+
+            // Skip update if we're trying to update with an older version
+            if (oldResult && newVersion < oldVersion) {
+              continue;
+            }
 
             // Only keep old status if it's final state (finish/failed) and new status is executing
+            // But always allow version updates regardless of status
             const shouldKeepOldStatus =
-              (oldStatus === 'finish' || oldStatus === 'failed') && newStatus === 'executing';
+              newVersion === oldVersion &&
+              (oldStatus === 'finish' || oldStatus === 'failed') &&
+              newStatus === 'executing';
 
             const updateStatus = shouldKeepOldStatus ? oldStatus : newStatus;
 
@@ -293,6 +314,17 @@ export const useActionResultStore = create<ActionResultState>()(
                 lastUsedAt: now,
               },
             },
+          };
+        });
+      },
+
+      removePollingState: (resultId: string) => {
+        set((state) => {
+          const newPollingStateMap = { ...state.pollingStateMap };
+          delete newPollingStateMap[resultId];
+          return {
+            ...state,
+            pollingStateMap: newPollingStateMap,
           };
         });
       },

@@ -119,6 +119,7 @@ import {
   multiLingualWebSearch,
   pinSkillInstance,
   queryReferences,
+  recoverPilotSession,
   refreshToken,
   reindexResource,
   resendVerification,
@@ -1153,6 +1154,12 @@ export type UpdatePilotSessionMutationResult = Awaited<ReturnType<typeof updateP
 export const useUpdatePilotSessionKey = 'UpdatePilotSession';
 export const UseUpdatePilotSessionKeyFn = (mutationKey?: Array<unknown>) => [
   useUpdatePilotSessionKey,
+  ...(mutationKey ?? []),
+];
+export type RecoverPilotSessionMutationResult = Awaited<ReturnType<typeof recoverPilotSession>>;
+export const useRecoverPilotSessionKey = 'RecoverPilotSession';
+export const UseRecoverPilotSessionKeyFn = (mutationKey?: Array<unknown>) => [
+  useRecoverPilotSessionKey,
   ...(mutationKey ?? []),
 ];
 export type InitializeWorkflowMutationResult = Awaited<ReturnType<typeof initializeWorkflow>>;

@@ -1132,6 +1132,7 @@ const translations = {
     launchpad: {
       placeholder: '描述你的需求...',
       chatInputPlaceholder: '给 Refly 一个任务，它会智能分析和规划，并帮你完成任务...',
+      commonChatInputPlaceholder: '问 Refly 任何问题...',
     },
     contextMenu: {
       createGroup: '创建分组',
@@ -1368,6 +1369,9 @@ const translations = {
       executing: '技能正在执行，请稍候...',
       startRunning: '技能正在运行...',
       startRerun: '技能正在重新运行...',
+      startPilotRecovery: '正在启动pilot恢复...',
+      pilotRecoveryStarted: 'Pilot恢复已成功启动',
+      pilotRecoveryFailed: 'Pilot恢复失败',
       resultNotFound: '抱歉，执行结果似乎已丢失。',
       reasoningContent: 'AI 思考过程',
       shareLoading: '正在加载共享技能响应...',
@@ -1635,6 +1639,7 @@ const translations = {
       loadingEditor: '加载编辑器中...',
       loadingVariables: '加载变量中...',
       noStartNodeVariables: '暂无开始节点变量',
+      defaultPlaceholder: '描述你想要生成的内容...',
     },
     toolsDepencency: {
       title: '工具依赖',
@@ -3132,8 +3137,21 @@ const translations = {
       planning: '正在规划任务...',
       executingSteps: '任务执行 {{current}} / {{total}} ...',
       completedTasks: '已完成{{count}}个任务 ...',
-      taskFailed: '任务失败',
+      taskFailed: '任务已终止',
       understandingIntent: '正在理解意图分析需求...',
+    },
+    recovery: {
+      title: '重试所有失败任务',
+      success: '会话恢复已成功启动',
+      error: '恢复会话失败',
+    },
+    stepRecovery: {
+      button: '重试',
+      success: '步骤恢复已成功启动',
+      error: {
+        noStepId: '步骤ID不存在',
+        general: '步骤恢复失败',
+      },
     },
   },
   deck: {

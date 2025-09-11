@@ -119,6 +119,7 @@ import {
   multiLingualWebSearch,
   pinSkillInstance,
   queryReferences,
+  recoverPilotSession,
   refreshToken,
   reindexResource,
   resendVerification,
@@ -373,6 +374,8 @@ import {
   PinSkillInstanceError,
   QueryReferencesData,
   QueryReferencesError,
+  RecoverPilotSessionData,
+  RecoverPilotSessionError,
   RefreshTokenError,
   ReindexResourceData,
   ReindexResourceError,
@@ -2446,6 +2449,23 @@ export const useUpdatePilotSession = <
   useMutation<TData, TError, Options<UpdatePilotSessionData, true>, TContext>({
     mutationKey: Common.UseUpdatePilotSessionKeyFn(mutationKey),
     mutationFn: (clientOptions) => updatePilotSession(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useRecoverPilotSession = <
+  TData = Common.RecoverPilotSessionMutationResult,
+  TError = RecoverPilotSessionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<RecoverPilotSessionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<RecoverPilotSessionData, true>, TContext>({
+    mutationKey: Common.UseRecoverPilotSessionKeyFn(mutationKey),
+    mutationFn: (clientOptions) => recoverPilotSession(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useInitializeWorkflow = <

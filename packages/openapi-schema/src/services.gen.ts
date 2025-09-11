@@ -327,6 +327,9 @@ import type {
   GetPilotSessionDetailData,
   GetPilotSessionDetailError,
   GetPilotSessionDetailResponse2,
+  RecoverPilotSessionData,
+  RecoverPilotSessionError,
+  RecoverPilotSessionResponse,
   InitializeWorkflowData,
   InitializeWorkflowError,
   InitializeWorkflowResponse2,
@@ -2175,6 +2178,23 @@ export const getPilotSessionDetail = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/pilot/session/detail',
+  });
+};
+
+/**
+ * Recover pilot session
+ * Recover a failed pilot session by retrying failed steps. Can recover all failed steps or specific steps.
+ */
+export const recoverPilotSession = <ThrowOnError extends boolean = false>(
+  options: Options<RecoverPilotSessionData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    RecoverPilotSessionResponse,
+    RecoverPilotSessionError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/pilot/session/recover',
   });
 };
 
