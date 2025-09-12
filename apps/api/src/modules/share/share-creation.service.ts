@@ -81,21 +81,21 @@ export class ShareCreationService {
     const limit = pLimit(5); // Limit to 5 concurrent operations
 
     // Find all image video audio nodes
-    const imageNodes =
+    const mediaNodes =
       canvasData.nodes?.filter(
         (node) => node.type === 'image' || node.type === 'video' || node.type === 'audio',
       ) ?? [];
 
     // Process all images in parallel with concurrency control
-    const imageProcessingPromises = imageNodes.map((node) => {
+    const mediaProcessingPromises = mediaNodes.map((node) => {
       return limit(async () => {
         const storageKey = node.data?.metadata?.storageKey as string;
         if (storageKey) {
           try {
-            const imageUrl = await this.miscService.publishFile(storageKey);
+            const mediaUrl = await this.miscService.publishFile(storageKey);
             // Update the node with the published image URL
             if (node.data?.metadata) {
-              node.data.metadata.imageUrl = imageUrl;
+              node.data.metadata[`${node.type}Url`] = mediaUrl;
             }
           } catch (error) {
             this.logger.error(
@@ -108,7 +108,7 @@ export class ShareCreationService {
     });
 
     // Wait for all image processing to complete
-    await Promise.all(imageProcessingPromises);
+    await Promise.all(mediaProcessingPromises);
 
     // Group nodes by type for parallel processing
     const nodesByType = {
