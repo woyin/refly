@@ -167,18 +167,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     // In-memory implementation (not truly atomic but close enough for desktop mode)
     const item = this.inMemoryStore.get(key);
-    let newValue: number;
-
-    if (!item || this.isExpired(item)) {
-      newValue = 1;
-      this.inMemoryStore.set(key, {
-        value: '1',
-        expiresAt: Date.now() + expireSeconds * 1000,
-      });
-    } else {
-      newValue = Number.parseInt(item.value, 10) + 1;
-      item.value = newValue.toString();
+    const isValid = !!item && !this.isExpired(item);
+    const currentValue = isValid ? Number.parseInt(item!.value, 10) || 0 : 0;
+    const newValue = currentValue + 1;
+    const expiresAt = isValid ? item!.expiresAt : Date.now() + 24 * 60 * 60 * 1000; // reset TTL when missing/expired
+    if (item && !isValid) {
+      // drop stale entry to avoid lingering expired records
+      this.inMemoryStore.delete(key);
     }
+    this.inMemoryStore.set(key, { value: String(newValue), expiresAt });
 
     return newValue;
   }
