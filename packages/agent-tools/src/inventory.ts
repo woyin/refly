@@ -5,6 +5,7 @@ import { FirecrawlToolset, FirecrawlToolsetDefinition } from './firecrawl';
 import { CalculatorToolset, CalculatorToolsetDefinition } from './calculator';
 import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive';
 import { JinaToolset, JinaToolsetDefinition } from './jina';
+import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -34,5 +35,9 @@ export const toolsetInventory: Record<
   [JinaToolsetDefinition.key]: {
     class: JinaToolset,
     definition: JinaToolsetDefinition,
+  },
+  [CodeInterpreterToolsetDefinition.key]: {
+    class: CodeInterpreterToolset,
+    definition: CodeInterpreterToolsetDefinition,
   },
 };
