@@ -6,6 +6,7 @@ import { CalculatorToolset, CalculatorToolsetDefinition } from './calculator';
 import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive';
 import { JinaToolset, JinaToolsetDefinition } from './jina';
 import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
+import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -39,5 +40,9 @@ export const toolsetInventory: Record<
   [CodeInterpreterToolsetDefinition.key]: {
     class: CodeInterpreterToolset,
     definition: CodeInterpreterToolsetDefinition,
+  },
+  [WhaleWisdomToolsetDefinition.key]: {
+    class: WhaleWisdomToolset,
+    definition: WhaleWisdomToolsetDefinition,
   },
 };
