@@ -330,7 +330,12 @@ export const SessionContainer = memo(
                               ease: 'easeOut',
                             }}
                           >
-                            <PilotStepItem step={step} onClick={handleStepClick} />
+                            <PilotStepItem
+                              step={step}
+                              sessionId={activeSessionId}
+                              canvasId={canvasId}
+                              onClick={handleStepClick}
+                            />
                           </motion.div>
                         ))}
                       </div>

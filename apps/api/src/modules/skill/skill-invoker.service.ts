@@ -685,6 +685,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
             break;
         }
       }
+      // throw new Error('test-failure');
     } catch (err) {
       const errorInfo = this.categorizeError(err);
       const errorMessage = err.message || 'Unknown error';

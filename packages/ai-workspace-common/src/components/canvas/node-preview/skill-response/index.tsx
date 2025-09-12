@@ -152,7 +152,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const actionMeta = result?.actionMeta ?? data?.metadata?.actionMeta;
   const version = result?.version ?? data?.metadata?.version ?? 0;
   const modelInfo = result?.modelInfo ?? data?.metadata?.modelInfo;
-  const tplConfig = result?.tplConfig ?? data?.metadata?.tplConfig;
   const runtimeConfig = result?.runtimeConfig ?? data?.metadata?.runtimeConfig;
   const structuredData = data?.metadata?.structuredData;
 
@@ -296,7 +295,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
               }
             }
             setEditMode={setEditMode}
-            tplConfig={tplConfig}
             runtimeConfig={runtimeConfig}
             onQueryChange={setCurrentQuery}
             selectedToolsets={selectedToolsets}

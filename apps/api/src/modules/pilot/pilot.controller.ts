@@ -16,6 +16,7 @@ import {
   EntityType,
   ListPilotSessionsResponse,
   GetPilotSessionDetailResponse,
+  BaseResponse,
 } from '@refly/openapi-schema';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { buildSuccessResponse } from '../../utils';
@@ -78,5 +79,15 @@ export class PilotController {
       ...pilotSessionPO2DTO(session),
       steps: steps.map(({ step, actionResult }) => pilotStepPO2DTO(step, actionResult)),
     });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('session/recover')
+  async recoverPilotSession(
+    @LoginedUser() user: User,
+    @Body() body: { sessionId: string; stepIds?: string[] },
+  ): Promise<BaseResponse> {
+    await this.pilotService.recoverPilotSession(user, body.sessionId, body.stepIds);
+    return buildSuccessResponse({ message: 'Pilot session recovery started successfully' });
   }
 }
