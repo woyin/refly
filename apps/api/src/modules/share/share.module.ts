@@ -17,11 +17,13 @@ import { ShareCreationService } from './share-creation.service';
 import { ShareDuplicationService } from './share-duplication.service';
 import { ShareRateLimitService } from './share-rate-limit.service';
 import { ToolModule } from '../tool/tool.module';
+import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 
 @Module({
   imports: [
     CommonModule,
     CanvasModule,
+    CanvasSyncModule,
     KnowledgeModule,
     RAGModule,
     MiscModule,

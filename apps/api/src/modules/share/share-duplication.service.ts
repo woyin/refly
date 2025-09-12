@@ -43,6 +43,7 @@ import { SHARE_CODE_PREFIX } from './const';
 import { extractToolsetsWithNodes, initEmptyCanvasState } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
 import { ToolService } from '../tool/tool.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 
 interface DuplicateOptions {
   skipCanvasCheck?: boolean;
@@ -58,6 +59,7 @@ export class ShareDuplicationService {
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
+    private readonly canvasSyncService: CanvasSyncService,
     private readonly toolService: ToolService,
     private readonly knowledgeService: KnowledgeService,
     private readonly subscriptionService: SubscriptionService,
@@ -92,16 +94,6 @@ export class ShareDuplicationService {
     });
     if (!record) {
       throw new ShareNotFoundError();
-    }
-
-    // Check if the canvas exists
-    if (canvasId) {
-      const canvas = await this.prisma.canvas.findUnique({
-        where: { canvasId, uid: user.uid, deletedAt: null },
-      });
-      if (!canvas) {
-        throw new ParamsError('Canvas not found');
-      }
     }
 
     // Generate or use pre-generated document ID
@@ -517,6 +509,18 @@ export class ShareDuplicationService {
       throw new StorageQuotaExceeded();
     }
 
+    // Create a new canvas
+    const state = initEmptyCanvasState();
+    await this.canvasService.createCanvasWithState(
+      user,
+      {
+        canvasId: newCanvasId,
+        title: canvasData.title,
+        projectId,
+      },
+      state,
+    );
+
     // Pre-generate all new entity IDs upfront for better performance
     const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
     const preGeneratedActionResultIds: Record<string, string> = {};
@@ -644,17 +648,12 @@ export class ShareDuplicationService {
     await Promise.all([...libDupPromises, ...skillDupPromises]);
 
     // Phase 4: Parallelize state creation, upload, and final database operations
-    const state = initEmptyCanvasState();
     state.nodes = nodes;
     state.edges = edges;
 
-    // Parallelize canvas creation, and duplicate record creation
+    // Parallelize canvas state update, and duplicate record creation
     await Promise.all([
-      this.canvasService.createCanvasWithState(
-        user,
-        { canvasId: newCanvasId, title: canvasData.title, projectId },
-        state,
-      ),
+      this.canvasSyncService.saveState(newCanvasId, state),
       this.prisma.duplicateRecord.create({
         data: {
           sourceId: record.entityId,
