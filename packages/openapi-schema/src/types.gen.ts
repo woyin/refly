@@ -5612,6 +5612,14 @@ export type UpsertToolsetRequest = {
   config?: {
     [key: string]: unknown;
   };
+  /**
+   * OAuth toolset provider
+   */
+  provider?: string;
+  /**
+   * OAuth toolset scope
+   */
+  scope?: Array<string>;
 };
 
 export type UpsertToolsetResponse = BaseResponse & {

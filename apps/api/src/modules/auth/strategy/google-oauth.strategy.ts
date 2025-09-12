@@ -16,14 +16,29 @@ export class GoogleOauthStrategy extends PassportStrategy(Strategy, 'google') {
       clientSecret: configService.get('auth.google.clientSecret'),
       callbackURL: configService.get('auth.google.callbackUrl'),
       scope: ['profile', 'email'],
+      accessType: 'offline',
       passReqToCallback: true,
     });
   }
 
   async validate(req: Request, accessToken: string, refreshToken: string, profile: Profile) {
+    console.log('validate', accessToken, refreshToken, profile);
     // Extract scope from query parameters
     const scope = req?.query?.scope as string;
     const scopes = scope ? scope.split(' ') : [];
-    return this.authService.oauthValidate(accessToken, refreshToken, profile, scopes);
+
+    // Extract uid from state
+    let uid: string | undefined;
+    const state = req?.query?.state as string;
+    if (state) {
+      try {
+        const stateObj = JSON.parse(state);
+        uid = stateObj.uid;
+      } catch {
+        // Ignore parsing errors
+      }
+    }
+
+    return this.authService.oauthValidate(accessToken, refreshToken, profile, scopes, uid);
   }
 }

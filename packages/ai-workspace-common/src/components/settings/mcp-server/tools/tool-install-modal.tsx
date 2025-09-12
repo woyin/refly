@@ -15,7 +15,7 @@ import { useListTools, useListToolsets } from '@refly-packages/ai-workspace-comm
 import { OAuthStatusChecker } from './oauth-status-checker';
 import { serverOrigin } from '@refly/ui-kit';
 import './index.scss';
-
+import { useUserStore } from '@refly/stores';
 const { TextArea } = Input;
 
 interface ToolInstallModalProps {
@@ -220,6 +220,7 @@ export const ToolInstallModal = React.memo(
     const [oauthStatus, setOAuthStatus] = useState<
       'checking' | 'authorized' | 'unauthorized' | 'error' | null
     >(null);
+    const userStore = useUserStore();
     const { data, refetch: refetchToolsets } = useListToolsets({}, [], {
       enabled: true,
     });
@@ -387,7 +388,8 @@ export const ToolInstallModal = React.memo(
               const authUrl =
                 `${serverOrigin}/v1/auth/${selectedAuthPattern.provider}?` +
                 `scope=${selectedAuthPattern.scope.join(',')}&` +
-                `redirect=${encodeURIComponent(window.location.href)}`;
+                `redirect=${encodeURIComponent(window.location.href)}&` +
+                `uid=${userStore?.userProfile?.uid}`;
               window.location.href = authUrl;
             }}
             onStatusChange={handleOAuthStatusChange}
@@ -462,6 +464,8 @@ export const ToolInstallModal = React.memo(
 
         if (selectedAuthType) {
           requestData.authType = selectedAuthType;
+          requestData.provider = selectedAuthPattern?.provider;
+          requestData.scope = selectedAuthPattern?.scope;
 
           // In update mode, only include authData fields that have values
           if (mode === 'update' && values.authData) {

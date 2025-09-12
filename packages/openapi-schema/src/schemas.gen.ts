@@ -7974,6 +7974,17 @@ export const UpsertToolsetRequestSchema = {
       additionalProperties: true,
       description: 'Toolset config',
     },
+    provider: {
+      type: 'string',
+      description: 'OAuth toolset provider',
+    },
+    scope: {
+      type: 'array',
+      description: 'OAuth toolset scope',
+      items: {
+        type: 'string',
+      },
+    },
   },
 } as const;
 

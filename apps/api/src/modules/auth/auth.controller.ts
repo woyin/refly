@@ -105,10 +105,11 @@ export class AuthController {
   async google(
     @Query('scope') scope: string,
     @Query('redirect') redirect: string,
+    @Query('uid') uid: string,
     @Res() res: Response,
   ) {
     try {
-      const authUrl = this.authService.generateGoogleOAuthUrl(scope, redirect);
+      const authUrl = await this.authService.generateGoogleOAuthUrl(scope, redirect, uid);
       res.redirect(authUrl);
     } catch (error) {
       this.logger.error('Google OAuth initiation failed:', error.stack);
@@ -141,6 +142,16 @@ export class AuthController {
   ) {
     try {
       this.logger.log(`google oauth callback success, req.user = ${user?.email}`);
+      this.logger.log(`state: ${state}`);
+      // Check if the requested scope exceeds basic login permissions
+
+      if (JSON.parse(state).uid) {
+        // Skip login methods and redirect to tool OAuth path
+        const redirectUrl = state
+          ? JSON.parse(state).redirect
+          : this.configService.get('auth.redirectUrl');
+        return res.redirect(redirectUrl);
+      }
 
       const tokens = await this.authService.login(user);
       this.authService
