@@ -110,17 +110,7 @@ const MediaActionContainerComponent = ({
   );
 };
 
-export const MediaActionContainer = memo(MediaActionContainerComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.title === nextProps.title &&
-    prevProps.modelInfo === nextProps.modelInfo &&
-    prevProps.contextItems === nextProps.contextItems &&
-    prevProps.mediaType === nextProps.mediaType &&
-    prevProps.entityId === nextProps.entityId &&
-    prevProps.storageKey === nextProps.storageKey &&
-    prevProps.nodeId === nextProps.nodeId
-  );
-});
+export const MediaActionContainer = memo(MediaActionContainerComponent);
 
 MediaActionContainer.displayName = 'MediaActionContainer';
 
