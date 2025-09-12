@@ -11,15 +11,17 @@ export const CodeInterpreterToolsetDefinition: ToolsetDefinition = {
     'zh-CN': '代码解释器',
   },
   descriptionDict: {
-    en: 'Execute Python code using Pyodide in the browser.',
-    'zh-CN': '使用 Pyodide 在浏览器中执行 Python 代码。',
+    en: 'Execute Python code using Pyodide in the browser. Perfect for calculations, data analysis, and code testing. The result will be the value of the last expression in your code.',
+    'zh-CN':
+      '使用 Pyodide 在浏览器中执行 Python 代码。适用于计算、数据分析和代码测试。结果将是代码中最后一个表达式的值。',
   },
   tools: [
     {
       name: 'runPythonCode',
       descriptionDict: {
-        en: 'Execute Python code and return the result.',
-        'zh-CN': '执行 Python 代码并返回结果。',
+        en: 'Execute Python code and return the result. The last expression in your code will be returned as the result value. Use print() statements to display intermediate results. For example: "x = 1 + 1; print(f\'1 + 1 = {x}\'); x" will both print and return the result.',
+        'zh-CN':
+          '执行 Python 代码并返回结果。代码中最后一个表达式的值将被作为结果返回。使用 print() 语句来显示中间结果。例如："x = 1 + 1; print(f\'1 + 1 = {x}\'); x" 将同时打印和返回结果。',
       },
     },
   ],
@@ -33,7 +35,11 @@ export class RunPythonCode extends AgentBaseTool<unknown> {
   toolsetKey = CodeInterpreterToolsetDefinition.key;
 
   schema = z.object({
-    code: z.string().describe('Python code to execute'),
+    code: z
+      .string()
+      .describe(
+        'Python code to execute. The last expression will be returned as the result. Use print() for intermediate output. Example: "result = 1 + 1; print(f\'Calculation: {result}\'); result"',
+      ),
   });
   description = 'Execute Python code and return the result.';
 
