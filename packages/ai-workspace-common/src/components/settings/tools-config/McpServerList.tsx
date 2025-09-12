@@ -359,7 +359,7 @@ export const McpServerList: React.FC<McpServerListProps> = ({ visible }) => {
       setMcpFormMode('edit');
       setMcpFormModalOpen(true);
     },
-    [setCurrentMcpServer, setMcpFormModalOpen],
+    [setCurrentMcpServer, setMcpFormMode, setMcpFormModalOpen],
   );
 
   // Handle delete button click

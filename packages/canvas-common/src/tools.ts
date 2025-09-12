@@ -34,20 +34,32 @@ export interface ToolWithNodes {
 /**
  * Extract toolsets with skill response nodes
  */
-export const extractToolsetsWithNodes = (nodes: CanvasNode[]) => {
+export const extractToolsetsWithNodes = (nodes: CanvasNode[]): ToolWithNodes[] => {
   const toolMap = new Map<string, ToolWithNodes>();
 
+  if (!Array.isArray(nodes)) {
+    return [];
+  }
+
   for (const node of nodes) {
-    if (node.type === 'skillResponse' && node.data?.metadata?.selectedToolsets) {
+    if (node?.type === 'skillResponse' && node?.data?.metadata?.selectedToolsets) {
       const selectedToolsets = node.data.metadata.selectedToolsets as GenericToolset[];
 
+      if (!Array.isArray(selectedToolsets)) {
+        continue;
+      }
+
       for (const toolset of selectedToolsets) {
+        if (!toolset?.id) {
+          continue;
+        }
+
         const toolId = toolset.id;
         const existingTool = toolMap.get(toolId);
 
         const nodeInfo = {
           id: node.id,
-          entityId: node.data?.entityId,
+          entityId: node.data?.entityId ?? '',
           title: node.data?.title || 'Untitled',
           type: node.type,
         };
