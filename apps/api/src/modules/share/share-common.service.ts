@@ -5,6 +5,7 @@ import { DeleteShareRequest, ListSharesData, User, EntityType } from '@refly/ope
 import { ShareNotFoundError } from '@refly/errors';
 import { RAGService } from '../rag/rag.service';
 import { ShareRateLimitService } from './share-rate-limit.service';
+import { safeParseJSON } from '@refly/utils';
 
 @Injectable()
 export class ShareCommonService {
@@ -28,7 +29,7 @@ export class ShareCommonService {
   ) {
     const { shareId, entityId, entityType, vectorStorageKey } = param;
     const vector = await this.ragService.serializeToAvro(user, {
-      nodeType: entityType as 'document' | 'resource',
+      nodeType: entityType,
       ...(entityType === 'document' && {
         docId: entityId,
       }),
@@ -129,10 +130,10 @@ export class ShareCommonService {
         visibility: 'public',
       });
 
-      return JSON.parse(contentBuffer.toString());
+      return safeParseJSON(contentBuffer.toString());
     } catch (error) {
-      this.logger.error(`Error reading shared content from ${storageKey}:`, error);
-      throw new Error('Failed to read shared content');
+      this.logger.error(`Error reading shared content from ${storageKey}, ${error.stack}`);
+      throw new ShareNotFoundError();
     }
   }
 }

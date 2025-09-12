@@ -5,6 +5,7 @@ import { MiscService } from '../misc/misc.service';
 import * as Y from 'yjs';
 import {
   ActionResult,
+  CodeArtifact,
   Document,
   DuplicateShareRequest,
   Entity,
@@ -14,7 +15,12 @@ import {
   Resource,
   User,
 } from '@refly/openapi-schema';
-import { ParamsError, ShareNotFoundError, StorageQuotaExceeded } from '@refly/errors';
+import {
+  ParamsError,
+  ShareNotFoundError,
+  StorageQuotaExceeded,
+  DuplicationNotAllowedError,
+} from '@refly/errors';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import pLimit from 'p-limit';
 import { SubscriptionService } from '../subscription/subscription.service';
@@ -104,7 +110,7 @@ export class ShareDuplicationService {
     const newStorageKey = `doc/${newDocId}.txt`;
     const newStateStorageKey = `state/${newDocId}`;
 
-    const documentDetail: Document = JSON.parse(
+    const documentDetail: Document | undefined = safeParseJSON(
       (
         await this.miscService.downloadFile({
           storageKey: record.storageKey,
@@ -112,6 +118,11 @@ export class ShareDuplicationService {
         })
       ).toString(),
     );
+
+    if (!documentDetail) {
+      this.logger.error(`Failed to parse document detail for share ${shareId}`);
+      throw new ShareNotFoundError();
+    }
 
     const targetCanvasId = canvasId || documentDetail.canvasId;
     const extraData: ShareExtraData = safeParseJSON(record.extraData);
@@ -206,7 +217,7 @@ export class ShareDuplicationService {
 
     const newStorageKey = `resource/${newResourceId}.txt`;
 
-    const resourceDetail: Resource = safeParseJSON(
+    const resourceDetail: Resource | undefined = safeParseJSON(
       (
         await this.miscService.downloadFile({
           storageKey: record.storageKey,
@@ -214,6 +225,11 @@ export class ShareDuplicationService {
         })
       ).toString(),
     );
+
+    if (!resourceDetail) {
+      this.logger.error(`Failed to parse resource detail for share ${shareId}`);
+      throw new ShareNotFoundError();
+    }
 
     const targetCanvasId = canvasId || resourceDetail.canvasId;
     const extraData: ShareExtraData = safeParseJSON(record.extraData);
@@ -308,7 +324,7 @@ export class ShareDuplicationService {
     const newCodeArtifactId = options?.targetId ?? genCodeArtifactID();
 
     // Download the shared code artifact data
-    const codeArtifactDetail = safeParseJSON(
+    const codeArtifactDetail: CodeArtifact | undefined = safeParseJSON(
       (
         await this.miscService.downloadFile({
           storageKey: record.storageKey,
@@ -329,7 +345,7 @@ export class ShareDuplicationService {
     // Create a new code artifact record
     await this.prisma.codeArtifact.create({
       data: {
-        ...pick(codeArtifactDetail, ['title', 'codeType', 'description']),
+        ...pick(codeArtifactDetail, ['title']),
         artifactId: newCodeArtifactId,
         uid: user.uid,
         storageKey: newStorageKey,
@@ -380,7 +396,7 @@ export class ShareDuplicationService {
     const newResultId = replaceEntityMap?.[originalResultId] || genActionResultID();
 
     // Download the shared skill response data
-    const result: ActionResult = JSON.parse(
+    const result: ActionResult | undefined = safeParseJSON(
       (
         await this.miscService.downloadFile({
           storageKey: record.storageKey,
@@ -388,6 +404,11 @@ export class ShareDuplicationService {
         })
       ).toString(),
     );
+
+    if (!result) {
+      this.logger.error(`Failed to parse result detail for share ${shareId}`);
+      throw new ShareNotFoundError();
+    }
 
     // Replace toolsets with imported toolsets
     const replacedToolsets = result.toolsets?.map(
@@ -571,17 +592,14 @@ export class ShareDuplicationService {
           }
         }
 
-        // Remove the shareId from the metadata
-        node.data.metadata.shareId = undefined;
-
-        // Replace the projectId with the new project ID
-        node.data.metadata.projectId = projectId;
+        // Normalize metadata and update values
+        node.data.metadata = { ...(node.data.metadata ?? {}), shareId: undefined, projectId };
       }),
     );
 
     const skillDupPromises = skillResponseNodes.map((node) =>
       limit(async () => {
-        const shareId = node.data.metadata.shareId as string;
+        const shareId = node.data?.metadata?.shareId as string;
         if (!shareId) return;
 
         const result = await this.duplicateSharedSkillResponse(
@@ -597,11 +615,8 @@ export class ShareDuplicationService {
           node.data.entityId = result.entityId;
         }
 
-        // Remove the shareId from the metadata
-        node.data.metadata.shareId = undefined;
-
-        // Replace the projectId with the new project ID
-        node.data.metadata.projectId = projectId;
+        // Normalize metadata and update values
+        node.data.metadata = { ...(node.data.metadata ?? {}), shareId: undefined, projectId };
 
         // Replace the context with the new entity ID
         if (node.data.metadata.contextItems) {
@@ -752,6 +767,19 @@ export class ShareDuplicationService {
 
     if (!shareId) {
       throw new ParamsError('Share ID is required');
+    }
+
+    // Load share record to check duplication permission
+    const record = await this.prisma.shareRecord.findUnique({
+      where: { shareId, deletedAt: null },
+    });
+    if (!record) {
+      throw new ShareNotFoundError();
+    }
+
+    // Check if duplication is allowed
+    if (record.allowDuplication === false) {
+      throw new DuplicationNotAllowedError();
     }
 
     if (shareId.startsWith(SHARE_CODE_PREFIX.canvas)) {

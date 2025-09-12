@@ -6,7 +6,7 @@ import { EntityType } from '@refly/openapi-schema';
 @Injectable()
 export class ShareRateLimitService {
   private readonly logger = new Logger(ShareRateLimitService.name);
-  private readonly MAX_OPERATIONS_PER_HOUR = 5;
+  private readonly MAX_OPERATIONS_PER_WINDOW = 5;
   private readonly WINDOW_SECONDS = 600; // 10 minute in seconds
   private readonly KEY_PREFIX = 'share_rate_limit:';
 
@@ -30,26 +30,21 @@ export class ShareRateLimitService {
     const key = this.generateKey(userId, entityType, entityId);
 
     try {
-      // Get current count
-      const currentCountStr = await this.redisService.get(key);
-      const currentCount = currentCountStr ? Number.parseInt(currentCountStr, 10) : 0;
+      // Atomically increment counter and set expiry only if key is new
+      const currentCount = await this.redisService.incrementWithExpire(key, this.WINDOW_SECONDS);
 
       // Check if limit exceeded
-      if (currentCount >= this.MAX_OPERATIONS_PER_HOUR) {
+      if (currentCount > this.MAX_OPERATIONS_PER_WINDOW) {
         this.logger.warn(
           `Rate limit exceeded for user ${userId}, entity ${entityType}:${entityId}. ` +
-            `Current count: ${currentCount}/${this.MAX_OPERATIONS_PER_HOUR}`,
+            `Current count: ${currentCount}/${this.MAX_OPERATIONS_PER_WINDOW}`,
         );
         return false;
       }
 
-      // Increment counter and set expiry if it's a new key
-      const newCount = currentCount + 1;
-      await this.redisService.setex(key, this.WINDOW_SECONDS, newCount.toString());
-
       this.logger.log(
         `Rate limit check passed for user ${userId}, entity ${entityType}:${entityId}. ` +
-          `New count: ${newCount}/${this.MAX_OPERATIONS_PER_HOUR}`,
+          `New count: ${currentCount}/${this.MAX_OPERATIONS_PER_WINDOW}`,
       );
 
       return true;
@@ -72,7 +67,7 @@ export class ShareRateLimitService {
 
     if (!isAllowed) {
       throw new OperationTooFrequent(
-        `Rate limit exceeded. You can only perform share operations on this entity ${this.MAX_OPERATIONS_PER_HOUR} times per hour.`,
+        `Rate limit exceeded. You can only perform share operations on this entity ${this.MAX_OPERATIONS_PER_WINDOW} times per ${this.WINDOW_SECONDS / 60} minutes.`,
       );
     }
   }
@@ -94,20 +89,20 @@ export class ShareRateLimitService {
     try {
       const currentCountStr = await this.redisService.get(key);
       const currentCount = currentCountStr ? Number.parseInt(currentCountStr, 10) : 0;
-      const remaining = Math.max(0, this.MAX_OPERATIONS_PER_HOUR - currentCount);
+      const remaining = Math.max(0, this.MAX_OPERATIONS_PER_WINDOW - currentCount);
 
       return {
         currentCount,
         remaining,
-        maxOperations: this.MAX_OPERATIONS_PER_HOUR,
+        maxOperations: this.MAX_OPERATIONS_PER_WINDOW,
       };
     } catch (error) {
       this.logger.error(`Failed to get rate limit status for user ${userId}: ${error.message}`);
       // Return default values in case of error
       return {
         currentCount: 0,
-        remaining: this.MAX_OPERATIONS_PER_HOUR,
-        maxOperations: this.MAX_OPERATIONS_PER_HOUR,
+        remaining: this.MAX_OPERATIONS_PER_WINDOW,
+        maxOperations: this.MAX_OPERATIONS_PER_WINDOW,
       };
     }
   }
