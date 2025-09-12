@@ -43,6 +43,7 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 import { MediaType } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { IContextItem } from '@refly/common-types';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import { MediaModelParameter } from '@refly/openapi-schema';
 
 interface MediaSkillResponseNodeMeta extends ResponseNodeMeta {
@@ -86,6 +87,7 @@ const MediaSkillResponseNode = memo(
     const { addNode } = useAddNode();
     const { deleteNode } = useDeleteNode();
     const { canvasId, readonly } = useCanvasContext();
+    const { previewNode } = useNodePreviewControl({ canvasId });
 
     const node = useMemo(() => getNode(id), [id, getNode]);
 
@@ -200,12 +202,24 @@ const MediaSkillResponseNode = memo(
           }
 
           // Add the new media node at the same position
-          addNode(
+          const newPosition = addNode(
             newNode,
             convertContextItemsToNodeFilters(data.metadata?.contextItems as IContextItem[]),
-            true,
+            false,
             true,
           );
+
+          // Preview the new media node after creation
+          if (newPosition) {
+            // Use setTimeout to ensure the new node is fully created before previewing
+            setTimeout(() => {
+              const newNodeForPreview = {
+                ...newNode,
+                position: newPosition,
+              } as CanvasNode;
+              previewNode(newNodeForPreview);
+            }, 100);
+          }
 
           // Delete this MediaSkillResponse node
           deleteNode(
@@ -230,7 +244,19 @@ const MediaSkillResponseNode = memo(
           );
         }
       },
-      [mediaType, prompt, id, data, getNode, getEdges, getNodes, addNode, deleteNode, t],
+      [
+        mediaType,
+        prompt,
+        id,
+        data,
+        getNode,
+        getEdges,
+        getNodes,
+        addNode,
+        deleteNode,
+        previewNode,
+        t,
+      ],
     );
 
     const handleRetry = useCallback(async () => {

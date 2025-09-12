@@ -34,7 +34,6 @@ export const MentionList = ({
   command: any;
   placement?: 'top' | 'bottom';
 }) => {
-  console.log('items', items);
   const { t } = useTranslation();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>('startNode');
   // Keyboard navigation states
@@ -85,7 +84,7 @@ export const MentionList = ({
         return cn(baseClasses, 'rounded-l-xl');
       }
     }
-  }, [isFirstLevelTaller, placement]);
+  }, [isFirstLevelTaller, isSecondLevelTaller, placement]);
 
   const secondLevelClasses = useMemo(() => {
     const baseClasses =
@@ -489,9 +488,6 @@ export const MentionList = ({
     };
   }, [handleArrowUp, handleArrowDown, handleArrowLeft, handleArrowRight, handleEnter]);
 
-  if ((items?.length ?? 0) === 0) {
-    return null;
-  }
   return (
     <div className={cn('relative flex w-106 items-end', mentionVirtalAlign)}>
       {/* First level menu - Categories */}

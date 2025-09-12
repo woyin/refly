@@ -293,7 +293,7 @@ const StatusBar = memo(
     );
   },
   (prevProps, nextProps) => {
-    return prevProps.docId === nextProps.docId;
+    return prevProps.docId === nextProps.docId && prevProps.nodeId === nextProps.nodeId;
   },
 );
 
