@@ -479,7 +479,6 @@ export const MentionList = ({
       if (handled) {
         event.preventDefault();
         event.stopPropagation();
-        event.stopImmediatePropagation();
       }
     };
 
