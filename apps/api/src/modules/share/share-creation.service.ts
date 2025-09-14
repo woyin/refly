@@ -22,6 +22,7 @@ import { ShareCommonService } from './share-common.service';
 import { ShareRateLimitService } from './share-rate-limit.service';
 import { ShareExtraData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
+import { safeParseJSON } from '@refly/utils';
 
 function genShareId(entityType: keyof typeof SHARE_CODE_PREFIX): string {
   return SHARE_CODE_PREFIX[entityType] + createId();
@@ -842,8 +843,8 @@ export class ShareCreationService {
         }
         if (nodeType === 'image') {
           // Publish image to public bucket
-          const nodeData = JSON.parse(relation.nodeData);
-          if (nodeData.metadata?.storageKey) {
+          const nodeData = safeParseJSON(relation.nodeData);
+          if (nodeData?.metadata?.storageKey) {
             nodeData.metadata.imageUrl = await this.miscService.publishFile(
               nodeData.metadata.storageKey,
             );

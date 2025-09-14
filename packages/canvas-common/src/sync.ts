@@ -204,7 +204,7 @@ export const getCanvasDataFromState = (state: CanvasState): CanvasData => {
   const sortedNodes = sortNodesByParent(currentData.nodes ?? []);
 
   // Ensure hover and selected for edges are reset
-  const normalizedEdges = currentData.edges.map((edge) =>
+  const normalizedEdges = (currentData.edges ?? []).map((edge) =>
     deepmerge(edge, { data: { hover: false, selected: false } }),
   );
 

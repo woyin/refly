@@ -135,7 +135,7 @@ export class ShareDuplicationService {
     const state = markdown2StateUpdate(documentDetail.content ?? '');
 
     const jobs: Promise<any>[] = [
-      this.oss.putObject(newStorageKey, documentDetail.content),
+      this.oss.putObject(newStorageKey, documentDetail.content ?? ''),
       this.oss.putObject(newStateStorageKey, Buffer.from(state)),
       this.fts.upsertDocument(user, 'document', {
         id: newDocId,
@@ -686,14 +686,9 @@ export class ShareDuplicationService {
     const stateStorageKey = `pages/${user.uid}/${newPageId}/state.update`;
 
     // Download shared page data
-    const pageData: SharePageData = JSON.parse(
-      (
-        await this.miscService.downloadFile({
-          storageKey: record.storageKey,
-          visibility: 'public',
-        })
-      ).toString(),
-    );
+    const pageData: SharePageData = (await this.shareCommonService.getSharedData(
+      record.storageKey,
+    )) as SharePageData;
 
     // Create new page record
     await this.prisma.page.create({
