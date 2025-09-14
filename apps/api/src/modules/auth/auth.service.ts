@@ -240,12 +240,11 @@ export class AuthService {
     scopes: string[],
     uid?: string,
   ) {
-    this.logger.log(
-      `oauth accessToken: ${accessToken}, refreshToken: ${refreshToken}, profile: ${JSON.stringify(
-        profile,
-      )} scopes: ${JSON.stringify(scopes)}`,
-    );
     const { provider, id, emails, displayName, photos } = profile;
+
+    this.logger.log(
+      `oauth provider=${provider}, accountId=${id}, scopes=${JSON.stringify(scopes)}`,
+    );
 
     // Check if there is an authentication account record
     const account = await this.prisma.account.findUnique({
@@ -587,12 +586,9 @@ export class AuthService {
     profile: Profile,
     scopes: string[],
   ) {
-    this.logger.log(
-      `tool oauth accessToken: ${accessToken}, refreshToken: ${refreshToken}, profile: ${JSON.stringify(
-        profile,
-      )}`,
-    );
     const { provider, id, emails } = profile;
+
+    this.logger.log(`tool oauth provider=${provider}, accountId=${id}`);
 
     // Check if there is an authentication account record
     const account = await this.prisma.account.findUnique({

@@ -22,7 +22,6 @@ export class GoogleOauthStrategy extends PassportStrategy(Strategy, 'google') {
   }
 
   async validate(req: Request, accessToken: string, refreshToken: string, profile: Profile) {
-    console.log('validate', accessToken, refreshToken, profile);
     // Extract scope from query parameters
     const scope = req?.query?.scope as string;
     const scopes = scope ? scope.split(' ') : [];

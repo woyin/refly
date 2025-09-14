@@ -143,20 +143,36 @@ export class AuthController {
     try {
       this.logger.log(`google oauth callback success, req.user = ${user?.email}`);
       this.logger.log(`state: ${state}`);
-      // Check if the requested scope exceeds basic login permissions
-
-      if (JSON.parse(state).uid) {
-        // Skip login methods and redirect to tool OAuth path
-        const redirectUrl = state
-          ? JSON.parse(state).redirect
-          : this.configService.get('auth.redirectUrl');
-        return res.redirect(redirectUrl);
+      // Parse state safely once
+      const defaultRedirect = this.configService.get('auth.redirectUrl');
+      let parsedState: { uid?: string; redirect?: string } | null = null;
+      try {
+        parsedState = state ? JSON.parse(state) : null;
+      } catch {
+        this.logger.warn('Invalid state JSON received in Google OAuth callback');
       }
-
+      // Build a safe redirect URL (allowlist by origin; fall back to default)
+      const requested = parsedState?.redirect;
+      let finalRedirect = defaultRedirect;
+      try {
+        if (typeof requested === 'string') {
+          const allowed = this.configService.get<string[]>('auth.allowedRedirectOrigins') ?? [
+            new URL(defaultRedirect).origin,
+          ];
+          const u = new URL(requested, defaultRedirect);
+          if (allowed.includes(u.origin)) {
+            finalRedirect = u.toString();
+          }
+        }
+      } catch {
+        // ignore and use default
+      }
+      if (parsedState?.uid) {
+        // Tool OAuth path: skip login cookie and just redirect back
+        return res.redirect(finalRedirect);
+      }
       const tokens = await this.authService.login(user);
-      this.authService
-        .setAuthCookie(res, tokens)
-        .redirect(state ? JSON.parse(state).redirect : this.configService.get('auth.redirectUrl'));
+      this.authService.setAuthCookie(res, tokens).redirect(finalRedirect);
     } catch (error) {
       this.logger.error('Google OAuth callback failed:', error.stack);
       throw new OAuthError();
