@@ -322,6 +322,25 @@ export class AuthService {
       // Return user if this email has been registered
       const user = await this.prisma.user.findUnique({ where: { email } });
       if (user) {
+        await this.prisma.account.upsert({
+          where: {
+            provider_providerAccountId: { provider, providerAccountId: id },
+          },
+          update: {
+            accessToken,
+            ...(refreshToken !== undefined ? { refreshToken } : {}),
+            scope: JSON.stringify(scopes),
+          },
+          create: {
+            type: 'oauth',
+            uid: user.uid,
+            provider,
+            providerAccountId: id,
+            accessToken,
+            refreshToken,
+            scope: JSON.stringify(scopes),
+          },
+        });
         this.logger.log(`user ${user.uid} already registered for email ${email}`);
         logEvent(user, 'login_success', provider);
         return user;
