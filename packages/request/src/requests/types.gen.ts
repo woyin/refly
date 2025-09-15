@@ -2478,6 +2478,10 @@ export type RawCanvasData = CanvasData & {
    * Minimap URL
    */
   minimapUrl?: string;
+  /**
+   * Workflow variables
+   */
+  variables?: Array<WorkflowVariable>;
 };
 
 export type GetCanvasDataResponse = BaseResponse & {

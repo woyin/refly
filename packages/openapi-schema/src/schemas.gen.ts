@@ -3279,6 +3279,13 @@ export const RawCanvasDataSchema = {
           type: 'string',
           description: 'Minimap URL',
         },
+        variables: {
+          type: 'array',
+          description: 'Workflow variables',
+          items: {
+            $ref: '#/components/schemas/WorkflowVariable',
+          },
+        },
       },
     },
   ],

@@ -6020,6 +6020,11 @@ components:
             minimapUrl:
               type: string
               description: Minimap URL
+            variables:
+              type: array
+              description: Workflow variables
+              items:
+                $ref: '#/components/schemas/WorkflowVariable'
     GetCanvasDataResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'

@@ -22,7 +22,7 @@ import {
   ActionResult,
 } from '@refly/openapi-schema';
 import { Prisma } from '../../generated/client';
-import { genCanvasID, genTransactionId } from '@refly/utils';
+import { genCanvasID, genTransactionId, safeParseJSON } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
 import { AutoNameCanvasJobData, DeleteCanvasJobData } from './canvas.dto';
@@ -138,6 +138,7 @@ export class CanvasService {
       minimapUrl: canvas.minimapStorageKey
         ? this.miscService.generateFileURL({ storageKey: canvas.minimapStorageKey })
         : undefined,
+      variables: canvas.workflow ? safeParseJSON(canvas.workflow)?.variables : undefined,
     };
   }
 
@@ -861,7 +862,7 @@ export class CanvasService {
     }
 
     // Extract data from RawCanvasData
-    const { nodes, edges, title = 'Imported Canvas' } = rawData;
+    const { nodes, edges, title = 'Imported Canvas', variables } = rawData;
 
     // Create canvas state
     const state: CanvasState = {
@@ -879,6 +880,7 @@ export class CanvasService {
       {
         canvasId: finalCanvasId,
         title,
+        variables,
       },
       state,
     );
