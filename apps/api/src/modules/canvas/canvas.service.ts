@@ -36,7 +36,8 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
-import { initEmptyCanvasState } from '@refly/canvas-common';
+import { initEmptyCanvasState, mirrorCanvasData } from '@refly/canvas-common';
+import { ToolService } from '../tool/tool.service';
 
 @Injectable()
 export class CanvasService {
@@ -47,6 +48,7 @@ export class CanvasService {
     private redis: RedisService,
     private miscService: MiscService,
     private actionService: ActionService,
+    private toolService: ToolService,
     private canvasSyncService: CanvasSyncService,
     private knowledgeService: KnowledgeService,
     private providerService: ProviderService,
@@ -862,13 +864,16 @@ export class CanvasService {
     }
 
     // Extract data from RawCanvasData
-    const { nodes, edges, title = 'Imported Canvas', variables } = rawData;
+    const { nodes, title = 'Imported Canvas', variables } = rawData;
+
+    // Import toolsets and replace them in nodes
+    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
+    const newCanvasData = mirrorCanvasData(rawData, { replaceToolsetMap });
 
     // Create canvas state
     const state: CanvasState = {
       ...initEmptyCanvasState(),
-      nodes,
-      edges,
+      ...newCanvasData,
     };
 
     // Generate canvas ID if not provided

@@ -7,10 +7,9 @@ import {
   CanvasNodeType,
   WorkflowVariable,
 } from '@refly/openapi-schema';
-import { genNodeEntityId, genNodeID, deepmerge } from '@refly/utils';
-import { IContextItem } from '@refly/common-types';
 import { CanvasNodeFilter, ResponseNodeMeta } from './types';
 import { ThreadHistoryQuery } from './history';
+import { mirrorCanvasData } from './data';
 
 export interface WorkflowNode {
   nodeId: string;
@@ -142,76 +141,51 @@ export const prepareNodeExecutions = (params: {
   const { canvasData, variables, isNewCanvas = false } = params;
   const { nodes, edges } = canvasData;
 
-  // When running in new canvas mode, create a consistent id map from old -> new
-  const nodeIdMap = new Map<string, string>();
+  let newNodes: CanvasNode[] = nodes;
+  let newEdges: CanvasEdge[] = edges;
+
   if (isNewCanvas) {
-    for (const node of nodes) {
-      nodeIdMap.set(node.id, genNodeID());
-    }
-  } else {
-    for (const node of nodes) {
-      nodeIdMap.set(node.id, node.id);
-    }
-  }
+    const mirroredCanvas = mirrorCanvasData(canvasData, {
+      nodeProcessor: (node) => {
+        // Always clear content preview
+        node.data.contentPreview = '';
 
-  // Build map from old entity id to new entity id
-  const entityIdMap = new Map<string, string>(); // old entity id -> new entity id
-  for (const node of nodes) {
-    const entityId = node.data?.entityId;
+        if (node.type === 'skillResponse') {
+          const originalQuery = String(
+            (node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ??
+              node.data?.title ??
+              '',
+          );
+          node.data.title = processQueryWithTypes(originalQuery, variables);
+        }
 
-    if (entityId) {
-      const targetEntityId = isNewCanvas ? genNodeEntityId(node.type) : entityId;
-      entityIdMap.set(entityId, targetEntityId);
-    }
-  }
-
-  // Build new nodes
-  const newNodes: CanvasNode[] = [];
-  const entityMap = new Map<string, IContextItem>();
-
-  for (const node of nodes) {
-    const targetNodeId = isNewCanvas ? nodeIdMap.get(node.id) : node.id;
-    const sourceEntityId = node.data?.entityId ?? '';
-    const targetEntityId = entityIdMap.get(sourceEntityId) ?? sourceEntityId;
-
-    const newNode: CanvasNode = isNewCanvas
-      ? deepmerge(
-          { ...node },
-          {
-            id: targetNodeId,
-            data: { entityId: targetEntityId, contentPreview: '' },
-          },
-        )
-      : { ...node };
-
-    if (node.type === 'skillResponse') {
-      const originalQuery = String(
-        (node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ?? node.data?.title ?? '',
-      );
-      newNode.data.title = processQueryWithTypes(originalQuery, variables);
-    }
-
-    entityMap.set(sourceEntityId, {
-      title: newNode.data?.title ?? '',
-      entityId: targetEntityId,
-      type: newNode.type,
+        return node;
+      },
     });
 
-    newNodes.push(newNode);
+    newNodes = mirroredCanvas.nodes;
+    newEdges = mirroredCanvas.edges;
+  } else {
+    // Process skillResponse nodes with variables
+    newNodes = nodes.map((node) => {
+      if (node.type === 'skillResponse') {
+        const originalQuery = String(
+          (node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ??
+            node.data?.title ??
+            '',
+        );
+        node.data.title = processQueryWithTypes(originalQuery, variables);
+      }
+      return node;
+    });
   }
-
-  const newEdges = edges.map((edge) => ({
-    ...edge,
-    source: nodeIdMap.get(edge.source) ?? edge.source,
-    target: nodeIdMap.get(edge.target) ?? edge.target,
-  }));
 
   const { nodeMap, parentMap, childMap } = buildNodeRelationships(newNodes, newEdges);
 
   // If new canvas mode, ignore provided start nodes
   const startNodes = isNewCanvas
     ? []
-    : (params.startNodes?.map((sid) => nodeIdMap.get(sid) ?? sid) ?? []);
+    : (params.startNodes?.map((sid) => nodeMap.get(sid)?.id ?? sid) ?? []);
   if (startNodes.length === 0) {
     for (const [nodeId, parents] of parentMap) {
       if (parents.length === 0) {
@@ -234,21 +208,6 @@ export const prepareNodeExecutions = (params: {
   for (const node of newNodes) {
     const parents = parentMap.get(node.id) || [];
     const children = childMap.get(node.id) || [];
-
-    const metadata = node.data?.metadata ?? {};
-    let { contextItems = [] } = metadata as ResponseNodeMeta;
-
-    if (node.type === 'skillResponse') {
-      contextItems = contextItems.map((item) => {
-        return {
-          ...item,
-          ...entityMap.get(item.entityId),
-        };
-      });
-      node.data = deepmerge(node.data, {
-        metadata: { contextItems },
-      });
-    }
 
     // Set status based on whether the node is in the subtree (computed with original ids)
     const status = subtreeNodes.has(node.id) ? 'waiting' : 'finish';
@@ -278,6 +237,9 @@ export const prepareNodeExecutions = (params: {
     };
 
     if (node.type === 'skillResponse') {
+      const metadata = node.data?.metadata ?? {};
+      const { contextItems = [] } = metadata as ResponseNodeMeta;
+
       const resultHistory = contextItems
         .filter((item) => item.type === 'skillResponse' && item.metadata?.withHistory)
         .flatMap((item) =>

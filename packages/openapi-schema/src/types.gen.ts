@@ -5559,7 +5559,7 @@ export type ToolsetInstance = {
   /**
    * Toolset key
    */
-  key?: string;
+  key: string;
   /**
    * Whether the toolset is global
    */

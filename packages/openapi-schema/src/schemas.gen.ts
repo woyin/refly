@@ -7902,7 +7902,7 @@ export const ToolsetDefinitionSchema = {
 
 export const ToolsetInstanceSchema = {
   type: 'object',
-  required: ['toolsetId', 'name'],
+  required: ['toolsetId', 'name', 'key'],
   properties: {
     toolsetId: {
       type: 'string',

@@ -163,10 +163,9 @@ describe('prepareNodeExecutions', () => {
               {
                 entityId: 'entityA',
                 type: 'skillResponse',
-                title: 'Hello JavaScript world',
                 metadata: { withHistory: true },
               },
-              { entityId: 'entityB', type: 'document', title: 'Test Document' },
+              { entityId: 'entityB', type: 'document' },
             ],
             modelInfo: {
               name: 'openai/gpt-5-mini',
@@ -353,7 +352,6 @@ describe('prepareNodeExecutions', () => {
               contextItems: [
                 {
                   entityId: 'entityA',
-                  title: 'Hello TypeScript world',
                   type: 'skillResponse',
                   metadata: {
                     withHistory: true,
@@ -361,7 +359,6 @@ describe('prepareNodeExecutions', () => {
                 },
                 {
                   entityId: 'entityB',
-                  title: 'Test Document',
                   type: 'document',
                 },
               ],
@@ -553,12 +550,10 @@ describe('prepareNodeExecutions', () => {
                   metadata: {
                     withHistory: true,
                   },
-                  title: 'Hello TypeScript world',
                   type: 'skillResponse',
                 },
                 {
                   entityId: 'E3',
-                  title: 'Test Document',
                   type: 'document',
                 },
               ],

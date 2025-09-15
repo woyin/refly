@@ -9184,6 +9184,7 @@ components:
       required:
         - toolsetId
         - name
+        - key
       properties:
         toolsetId:
           type: string
