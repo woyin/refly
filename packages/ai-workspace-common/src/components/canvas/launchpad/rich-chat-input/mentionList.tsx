@@ -16,8 +16,9 @@ export interface MentionItem {
   description: string;
   source: 'startNode' | 'resourceLibrary' | 'stepRecord' | 'resultRecord' | 'myUpload';
   variableType: string;
-  entityId: string;
-  nodeId: string;
+  variableId?: string;
+  entityId?: string;
+  nodeId?: string;
   metadata?: {
     imageUrl?: string | undefined;
     resourceType?: ResourceType;
@@ -156,9 +157,9 @@ export const MentionList = ({
       description: variable.description || '',
       source: 'startNode' as const,
       variableType: variable.variableType || 'string',
-      entityId: variable.variableId || '',
-      nodeId: variable.variableId || '',
+      variableId: variable.variableId || '',
     }));
+    console.log('startNodeItems', startNodeItems);
 
     // Resource library only contains my upload items
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
@@ -489,12 +490,12 @@ export const MentionList = ({
   }, [handleArrowUp, handleArrowDown, handleArrowLeft, handleArrowRight, handleEnter]);
 
   return (
-    <div className={cn('relative flex w-106 items-end', mentionVirtalAlign)}>
+    <div className={cn('relative flex w-106', mentionVirtalAlign)}>
       {/* First level menu - Categories */}
       <div ref={firstLevelRef} className={firstLevelClasses}>
         {firstLevels.map((item, idx) => (
           <div
-            key={item.name}
+            key={item.key}
             className={cn(
               'h-8 p-1.5 cursor-pointer transition-colors hover:bg-refly-fill-hover rounded-md flex items-center gap-2',
               hoveredCategory === item.key && focusLevel === 'first' && 'bg-refly-fill-hover',
@@ -524,7 +525,7 @@ export const MentionList = ({
               <div className="flex flex-col gap-1">
                 {groupedItems.startNode.map((item, idx) => (
                   <div
-                    key={`${item.name}-${idx}`}
+                    key={`${item.variableId}-${idx}`}
                     data-active={focusLevel === 'second' && secondLevelIndex === idx}
                     className={cn(
                       'h-8 p-1.5 cursor-pointer transition-colors rounded-md flex items-center gap-2 justify-between',
