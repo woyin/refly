@@ -690,7 +690,7 @@ export class ToolService {
     const mcpServers = toolsets.filter((t) => t.type === 'mcp');
 
     const [regularTools, mcpTools] = await Promise.all([
-      this.instantiateRegularToolsets(user, regularToolsets),
+      this.instantiateRegularToolsets(user, regularToolsets, engine),
       this.instantiateMcpServers(user, mcpServers),
     ]);
 
@@ -735,6 +735,7 @@ export class ToolService {
   private async instantiateRegularToolsets(
     user: User,
     toolsets: GenericToolset[],
+    engine: SkillEngine,
   ): Promise<DynamicStructuredTool[]> {
     if (!toolsets?.length) {
       return [];
@@ -758,7 +759,11 @@ export class ToolService {
       const authData = t.authData ? safeParseJSON(this.encryptionService.decrypt(t.authData)) : {};
 
       // TODO: check for constructor parameters
-      const toolsetInstance = new toolset.class({ ...config, ...authData });
+      const toolsetInstance = new toolset.class({
+        ...config,
+        ...authData,
+        reflyService: engine.service,
+      });
 
       return toolset.definition.tools
         ?.map((tool) => toolsetInstance.getToolInstance(tool.name))
