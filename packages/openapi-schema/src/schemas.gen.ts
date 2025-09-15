@@ -3245,6 +3245,22 @@ export const RawCanvasDataSchema = {
   ],
 } as const;
 
+export const GetCanvasDataResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/RawCanvasData',
+        },
+      },
+    },
+  ],
+} as const;
+
 export const ExportCanvasResponseSchema = {
   allOf: [
     {
@@ -3255,12 +3271,32 @@ export const ExportCanvasResponseSchema = {
       properties: {
         data: {
           type: 'object',
-          description: 'Canvas data',
-          $ref: '#/components/schemas/RawCanvasData',
+          properties: {
+            downloadUrl: {
+              type: 'string',
+              description: 'Download URL for the canvas data',
+            },
+          },
         },
       },
     },
   ],
+} as const;
+
+export const ImportCanvasRequestSchema = {
+  type: 'object',
+  required: ['file'],
+  properties: {
+    file: {
+      type: 'string',
+      format: 'binary',
+      description: 'File to import',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to specify',
+    },
+  },
 } as const;
 
 export const DuplicateCanvasRequestSchema = {

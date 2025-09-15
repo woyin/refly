@@ -842,4 +842,84 @@ export class CanvasService {
     const result = await this.autoNameCanvas(user, { canvasId, directUpdate: true });
     this.logger.log(`Auto named canvas ${canvasId} with title: ${result.title}`);
   }
+
+  async importCanvas(user: User, param: { file: Buffer; canvasId?: string }) {
+    const { file, canvasId } = param;
+
+    let rawData: RawCanvasData;
+    try {
+      // Parse the uploaded file as RawCanvasData
+      rawData = JSON.parse(file.toString('utf-8'));
+    } catch (error) {
+      this.logger.warn(`Error importing canvas: ${error?.message}`);
+      throw new ParamsError('Failed to parse canvas data');
+    }
+
+    // Validate the raw data structure
+    if (!rawData.nodes || !rawData.edges) {
+      throw new ParamsError('Invalid canvas data: missing nodes or edges');
+    }
+
+    // Extract data from RawCanvasData
+    const { nodes, edges, title = 'Imported Canvas' } = rawData;
+
+    // Create canvas state
+    const state: CanvasState = {
+      ...initEmptyCanvasState(),
+      nodes,
+      edges,
+    };
+
+    // Generate canvas ID if not provided
+    const finalCanvasId = canvasId || genCanvasID();
+
+    // Create the canvas with the imported state
+    const canvas = await this.createCanvasWithState(
+      user,
+      {
+        canvasId: finalCanvasId,
+        title,
+      },
+      state,
+    );
+
+    this.logger.log(`Successfully imported canvas ${finalCanvasId} for user ${user.uid}`);
+
+    return canvas;
+  }
+
+  async exportCanvas(user: User, canvasId: string): Promise<string> {
+    // Get the canvas raw data
+    const canvasData = await this.getCanvasRawData(user, canvasId);
+
+    // Convert to JSON string
+    const jsonData = JSON.stringify(canvasData, null, 2);
+
+    // Create a temporary file path for the export
+    const timestamp = Date.now();
+    const filename = `canvas-${canvasId}-${timestamp}.json`;
+    const tempFilePath = `temp/${user.uid}/${filename}`;
+
+    try {
+      // Upload the JSON data as a buffer to object storage
+      const buffer = Buffer.from(jsonData, 'utf-8');
+      const uploadResult = await this.miscService.uploadBuffer(user, {
+        fpath: tempFilePath,
+        buf: buffer,
+      });
+
+      // Generate a presigned URL that expires in 1 hour (3600 seconds)
+      const downloadUrl = await this.miscService.generateTempPublicURL(
+        uploadResult.storageKey,
+        3600,
+      );
+
+      this.logger.log(`Successfully exported canvas ${canvasId} for user ${user.uid}`);
+
+      return downloadUrl;
+    } catch (error) {
+      this.logger.error(`Error exporting canvas ${canvasId}: ${error?.message}`);
+      throw new ParamsError('Failed to export canvas data');
+    }
+  }
 }

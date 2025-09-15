@@ -2457,11 +2457,28 @@ export type RawCanvasData = CanvasData & {
   minimapUrl?: string;
 };
 
-export type ExportCanvasResponse = BaseResponse & {
-  /**
-   * Canvas data
-   */
+export type GetCanvasDataResponse = BaseResponse & {
   data?: RawCanvasData;
+};
+
+export type ExportCanvasResponse = BaseResponse & {
+  data?: {
+    /**
+     * Download URL for the canvas data
+     */
+    downloadUrl?: string;
+  };
+};
+
+export type ImportCanvasRequest = {
+  /**
+   * File to import
+   */
+  file: Blob | File;
+  /**
+   * Canvas ID to specify
+   */
+  canvasId?: string;
 };
 
 export type DuplicateCanvasRequest = {
@@ -6491,7 +6508,7 @@ export type GetCanvasDataData = {
   };
 };
 
-export type GetCanvasDataResponse = ExportCanvasResponse;
+export type GetCanvasDataResponse2 = GetCanvasDataResponse;
 
 export type GetCanvasDataError = unknown;
 
@@ -6509,7 +6526,7 @@ export type ExportCanvasResponse2 = ExportCanvasResponse;
 export type ExportCanvasError = unknown;
 
 export type ImportCanvasData = {
-  body: RawCanvasData;
+  body: ImportCanvasRequest;
 };
 
 export type ImportCanvasResponse = UpsertCanvasResponse;
