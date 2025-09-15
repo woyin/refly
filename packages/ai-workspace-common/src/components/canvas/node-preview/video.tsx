@@ -25,6 +25,7 @@ const VideoNodePreviewComponent = ({ node }: VideoNodePreviewProps) => {
   const title = node?.data?.title ?? 'Video';
   const contextItems: IContextItem[] = node?.data?.metadata?.contextItems ?? [];
   const resultId = node?.data?.metadata?.resultId ?? '';
+  const entityId = node?.data?.entityId ?? '';
   const modelInfo: ModelInfo | undefined = node?.data?.metadata?.modelInfo;
   const [editMode, setEditMode] = useState(false);
 
@@ -96,7 +97,8 @@ const VideoNodePreviewComponent = ({ node }: VideoNodePreviewProps) => {
         contextItems={contextItems}
         modelInfo={modelInfo ?? null}
         mediaType={'video'}
-        resultId={resultId}
+        entityId={entityId}
+        nodeId={node.id}
         storageKey={node?.data?.metadata?.storageKey ?? ''}
       />
     </div>

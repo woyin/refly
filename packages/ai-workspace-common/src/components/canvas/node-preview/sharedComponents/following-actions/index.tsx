@@ -1,0 +1,296 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import { IContextItem } from '@refly/common-types';
+import { GenericToolset, ModelInfo } from '@refly/openapi-schema';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useTranslation } from 'react-i18next';
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
+import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
+import { useLaunchpadStoreShallow, useUserStoreShallow } from '@refly/stores';
+import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { genActionResultID } from '@refly/utils/id';
+import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
+import { AddContext, AiChat } from 'refly-icons';
+import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
+import {
+  createNodeEventName,
+  nodeActionEmitter,
+} from '@refly-packages/ai-workspace-common/events/nodeActions';
+
+interface FollowingActionButtonProps {
+  text: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}
+const FollowingActionButton = ({ text, icon, onClick }: FollowingActionButtonProps) => {
+  return (
+    <div
+      className="h-6 bg-refly-primary-light border-[1px] border-solid border-refly-Card-Border hover:bg-[#CDFFF1] hover:border-refly-Card-Border px-2 py-1 rounded-lg flex items-center justify-center gap-0.5 cursor-pointer text-refly-primary-default text-xs font-semibold hover:shadow-refly-s"
+      onClick={onClick}
+    >
+      {icon}
+      <span>{text}</span>
+    </div>
+  );
+};
+
+interface FollowingActionsProps {
+  initContextItems: IContextItem[];
+  initModelInfo: ModelInfo | null;
+  nodeId: string;
+}
+export const FollowingActions = ({
+  initContextItems,
+  initModelInfo,
+  nodeId,
+}: FollowingActionsProps) => {
+  const { canvasId } = useCanvasContext();
+  const { t } = useTranslation();
+  const [showFollowUpInput, setShowFollowUpInput] = useState(false);
+  const { selectedToolsets: selectedToolsetsFromStore } = useLaunchpadStoreShallow((state) => ({
+    selectedToolsets: state.selectedToolsets,
+  }));
+
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
+    selectedToolsetsFromStore ?? [],
+  );
+  const [followUpQuery, setFollowUpQuery] = useState('');
+  const [followUpContextItems, setFollowUpContextItems] =
+    useState<IContextItem[]>(initContextItems);
+  const [followUpModelInfo, setFollowUpModelInfo] = useState<ModelInfo | null>(initModelInfo);
+
+  const textareaRef = useRef<HTMLDivElement>(null);
+  const { invokeAction } = useInvokeAction();
+  const { addNode } = useAddNode();
+  const { getFinalProjectId } = useAskProject();
+
+  const { userProfile } = useUserStoreShallow((state) => ({
+    userProfile: state.userProfile,
+  }));
+
+  const { data: providerItemList } = useListProviderItems({
+    query: {
+      category: 'llm',
+      enabled: true,
+      isGlobal: userProfile?.preferences?.providerMode === 'global',
+    },
+  });
+
+  const defaultProviderItem = providerItemList?.data?.find((item) => item.category === 'llm');
+  const defaultModelInfo: ModelInfo | null = useMemo(() => {
+    if (defaultProviderItem) {
+      return {
+        name: defaultProviderItem.name,
+        label: defaultProviderItem.name,
+        provider: defaultProviderItem.provider?.name ?? '',
+        providerItemId: defaultProviderItem.itemId,
+        contextLimit: (defaultProviderItem.config as any)?.contextLimit ?? 0,
+        maxOutput: (defaultProviderItem.config as any)?.maxOutput ?? 0,
+        capabilities: (defaultProviderItem.config as any)?.capabilities ?? {},
+        category: 'llm',
+      };
+    }
+    return null;
+  }, [defaultProviderItem]);
+
+  // Add handler for follow-up question
+  const handleFollowUpSend = useCallback(() => {
+    if (!followUpQuery?.trim() || !canvasId) return;
+
+    const resultId = genActionResultID();
+    const finalProjectId = getFinalProjectId();
+
+    // Use selected model or fallback to default
+    const modelInfo = followUpModelInfo || initModelInfo;
+
+    // Check if this is a media generation model
+    const isMediaGeneration = modelInfo?.category === 'mediaGeneration';
+    if (isMediaGeneration) {
+      const capabilities = modelInfo?.capabilities as any;
+      const mediaType = capabilities?.image
+        ? 'image'
+        : capabilities?.video
+          ? 'video'
+          : capabilities?.audio
+            ? 'audio'
+            : 'image'; // Default fallback
+
+      // Emit media generation event
+      nodeOperationsEmitter.emit('generateMedia', {
+        providerItemId: modelInfo?.providerItemId ?? '',
+        targetType: 'canvas',
+        targetId: canvasId ?? '',
+        mediaType,
+        query: followUpQuery,
+        modelInfo: modelInfo,
+        nodeId: '',
+        contextItems: followUpContextItems,
+      });
+
+      setFollowUpQuery('');
+      setFollowUpContextItems([]);
+      setFollowUpModelInfo(null);
+      setShowFollowUpInput(false);
+      return;
+    }
+
+    // Invoke the action
+    invokeAction(
+      {
+        query: followUpQuery,
+        resultId,
+        selectedToolsets,
+        modelInfo,
+        contextItems: followUpContextItems,
+        projectId: finalProjectId,
+      },
+      {
+        entityId: canvasId,
+        entityType: 'canvas',
+      },
+    );
+
+    const connectTo = followUpContextItems.map((contextItem) => ({
+      type: contextItem.type as any,
+      entityId: contextItem.entityId,
+      handleType: 'source' as const,
+    }));
+
+    addNode(
+      {
+        type: 'skillResponse',
+        data: {
+          title: followUpQuery,
+          entityId: resultId,
+          metadata: {
+            status: 'executing',
+            selectedToolsets,
+            modelInfo,
+            contextItems: followUpContextItems,
+            structuredData: {
+              query: followUpQuery,
+            },
+            projectId: finalProjectId,
+          },
+        },
+      },
+      connectTo,
+      true,
+      true,
+    );
+
+    // Clear input and hide input box
+    setFollowUpQuery('');
+    setFollowUpContextItems([]);
+    setFollowUpModelInfo(null);
+    setShowFollowUpInput(false);
+  }, [
+    followUpQuery,
+    canvasId,
+    followUpModelInfo,
+    followUpContextItems,
+    invokeAction,
+    addNode,
+    getFinalProjectId,
+    selectedToolsets,
+    initModelInfo,
+  ]);
+
+  const initializeFollowUpInput = useCallback(() => {
+    setFollowUpContextItems(initContextItems);
+    setFollowUpModelInfo(initModelInfo || defaultModelInfo);
+    setShowFollowUpInput(!showFollowUpInput);
+  }, [initContextItems, initModelInfo, showFollowUpInput, defaultModelInfo]);
+
+  useEffect(() => {
+    setFollowUpContextItems(initContextItems);
+  }, [initContextItems]);
+
+  useEffect(() => {
+    setFollowUpModelInfo(initModelInfo || defaultModelInfo);
+  }, [initModelInfo]);
+
+  const handleAddToContext = useCallback(() => {
+    nodeActionEmitter.emit(createNodeEventName(nodeId, 'addToContext'));
+  }, [nodeActionEmitter, nodeId]);
+
+  return (
+    <div className="px-3">
+      <div className="flex flex-row items-center gap-4 bg-refly-tertiary-default px-4 py-2 rounded-xl">
+        <span className="font-semibold">{t('canvas.nodeActions.nextStepSuggestions')}</span>
+
+        <div className="flex flex-row items-center gap-2">
+          <FollowingActionButton
+            text={t('canvas.nodeActions.followUpQuestion')}
+            icon={<AiChat size={16} color="var(--refly-primary-default)" />}
+            onClick={initializeFollowUpInput}
+          />
+
+          <FollowingActionButton
+            text={t('canvas.nodeActions.addToContext')}
+            icon={<AddContext size={16} color="var(--refly-primary-default)" />}
+            onClick={handleAddToContext}
+          />
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showFollowUpInput && (
+          <motion.div
+            initial={{
+              opacity: 0,
+              height: 0,
+              scale: 0.95,
+              y: -10,
+            }}
+            animate={{
+              opacity: 1,
+              height: 'auto',
+              scale: 1,
+              y: 0,
+            }}
+            exit={{
+              opacity: 0,
+              height: 0,
+              scale: 0.95,
+              y: -10,
+            }}
+            transition={{
+              duration: 0.3,
+              ease: [0.4, 0, 0.2, 1], // easeOutCubic
+              height: {
+                duration: 0.3,
+              },
+            }}
+            className="mx-1 mt-2 overflow-hidden"
+          >
+            <div className="px-4 py-3 border-[1px] border-solid border-refly-primary-default rounded-[16px]">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              >
+                <ChatComposer
+                  ref={textareaRef}
+                  query={followUpQuery}
+                  setQuery={setFollowUpQuery}
+                  handleSendMessage={handleFollowUpSend}
+                  contextItems={followUpContextItems}
+                  setContextItems={setFollowUpContextItems}
+                  modelInfo={followUpModelInfo}
+                  setModelInfo={setFollowUpModelInfo}
+                  selectedToolsets={selectedToolsets}
+                  onSelectedToolsetsChange={setSelectedToolsets}
+                  placeholder={t('canvas.nodeActions.nextStepSuggestionsDescription')}
+                  enableRichInput={true}
+                />
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};

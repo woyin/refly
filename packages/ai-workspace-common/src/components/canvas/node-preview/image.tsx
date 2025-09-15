@@ -22,7 +22,7 @@ const ImageNodePreviewComponent = ({ node }: ImageNodePreviewProps) => {
   const modelInfo: ModelInfo | undefined = node?.data?.metadata?.modelInfo;
   const [editMode, setEditMode] = useState(false);
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
-
+  const entityId = node?.data?.entityId ?? '';
   if (!imageUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-500">
@@ -90,7 +90,8 @@ const ImageNodePreviewComponent = ({ node }: ImageNodePreviewProps) => {
         contextItems={contextItems}
         modelInfo={modelInfo ?? null}
         mediaType={'image'}
-        resultId={resultId}
+        entityId={entityId}
+        nodeId={node.id}
         storageKey={node?.data?.metadata?.storageKey ?? ''}
       />
       <SourceListModal classNames="w-full h-full" />

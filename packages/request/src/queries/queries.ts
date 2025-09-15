@@ -12,6 +12,7 @@ import {
   batchUpdateDocument,
   batchUpdateProviderItems,
   checkSettingsField,
+  checkToolOauthStatus,
   checkVerification,
   convert,
   createCanvas,
@@ -118,6 +119,7 @@ import {
   multiLingualWebSearch,
   pinSkillInstance,
   queryReferences,
+  recoverPilotSession,
   refreshToken,
   reindexResource,
   resendVerification,
@@ -171,6 +173,8 @@ import {
   BatchUpdateProviderItemsError,
   CheckSettingsFieldData,
   CheckSettingsFieldError,
+  CheckToolOauthStatusData,
+  CheckToolOauthStatusError,
   CheckVerificationData,
   CheckVerificationError,
   ConvertData,
@@ -370,6 +374,8 @@ import {
   PinSkillInstanceError,
   QueryReferencesData,
   QueryReferencesError,
+  RecoverPilotSessionData,
+  RecoverPilotSessionError,
   RefreshTokenError,
   ReindexResourceData,
   ReindexResourceError,
@@ -524,6 +530,23 @@ export const useListAccounts = <
     queryKey: Common.UseListAccountsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listAccounts({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useCheckToolOauthStatus = <
+  TData = Common.CheckToolOauthStatusDefaultResponse,
+  TError = CheckToolOauthStatusError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<CheckToolOauthStatusData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseCheckToolOauthStatusKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      checkToolOauthStatus({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetCollabToken = <
@@ -2426,6 +2449,23 @@ export const useUpdatePilotSession = <
   useMutation<TData, TError, Options<UpdatePilotSessionData, true>, TContext>({
     mutationKey: Common.UseUpdatePilotSessionKeyFn(mutationKey),
     mutationFn: (clientOptions) => updatePilotSession(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useRecoverPilotSession = <
+  TData = Common.RecoverPilotSessionMutationResult,
+  TError = RecoverPilotSessionError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<RecoverPilotSessionData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<RecoverPilotSessionData, true>, TContext>({
+    mutationKey: Common.UseRecoverPilotSessionKeyFn(mutationKey),
+    mutationFn: (clientOptions) => recoverPilotSession(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useInitializeWorkflow = <

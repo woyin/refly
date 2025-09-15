@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools';
 import { PrismaService } from '../common/prisma.service';
 import { EncryptionService } from '../common/encryption.service';
@@ -9,6 +10,7 @@ import {
   GenericToolset,
   ListToolsData,
   ToolsetDefinition,
+  ToolsetAuthType,
   UpsertToolsetRequest,
   User,
 } from '@refly/openapi-schema';
@@ -31,6 +33,7 @@ export class ToolService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryptionService: EncryptionService,
+    private readonly configService: ConfigService,
     private readonly mcpServerService: McpServerService,
   ) {}
 
@@ -45,6 +48,7 @@ export class ToolService {
       type: 'regular',
       id: 'builtin',
       name: 'Builtin',
+      builtin: true,
       toolset: {
         toolsetId: 'builtin',
         name: 'Builtin',
@@ -56,6 +60,7 @@ export class ToolService {
       where: {
         OR: [{ isGlobal }, { uid: user.uid }],
         enabled,
+        uninstalled: false,
         deletedAt: null,
       },
     });
@@ -79,6 +84,45 @@ export class ToolService {
     return [...regularTools, ...mcpTools];
   }
 
+  /**
+   * Assemble OAuth authData from config and account table
+   */
+  private async assembleOAuthAuthData(
+    user: User,
+    provider: string,
+  ): Promise<Record<string, unknown>> {
+    // Get clientId and clientSecret from config
+    const clientId = this.configService.get(`auth.${provider}.clientId`);
+    const clientSecret = this.configService.get(`auth.${provider}.clientSecret`);
+
+    if (!clientId || !clientSecret) {
+      throw new ParamsError(`OAuth config not found for provider: ${provider}`);
+    }
+
+    // Get refreshToken and accessToken from account table
+    const account = await this.prisma.account.findFirst({
+      where: {
+        uid: user.uid,
+        provider,
+        type: 'oauth',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!account) {
+      throw new ParamsError(`OAuth account not found for provider: ${provider}`);
+    }
+
+    return {
+      clientId,
+      clientSecret,
+      refreshToken: account.refreshToken,
+      accessToken: account.accessToken,
+    };
+  }
+
   async createToolset(user: User, param: UpsertToolsetRequest): Promise<ToolsetPO> {
     const { name, key, enabled, authType, authData, config } = param;
 
@@ -98,13 +142,31 @@ export class ToolService {
       throw new ParamsError(`Toolset definition not found for key: ${key}`);
     }
 
+    let finalAuthData = authData;
+
     if (toolsetDefinition.requiresAuth) {
-      if (!authType || !authData) {
-        throw new ParamsError(`authType and authData are required for toolset ${key}`);
+      if (!authType) {
+        throw new ParamsError(`authType is required for toolset ${key}`);
       }
 
-      // Validate authData against toolset schema
-      this.validateAuthData(authData, toolsetDefinition, authType);
+      // Handle OAuth type: assemble authData from config and account table
+      if (authType === ('oauth' as ToolsetAuthType)) {
+        if (!param.provider) {
+          throw new ParamsError(`provider is required for oauth type toolset ${key}`);
+        }
+        finalAuthData = await this.assembleOAuthAuthData(user, param.provider);
+      } else {
+        // For non-OAuth types, authData is required from request
+        if (!authData) {
+          throw new ParamsError(`authData is required for toolset ${key}`);
+        }
+        finalAuthData = authData;
+      }
+
+      // Validate authData against toolset schema (skip for OAuth type)
+      if (authType !== ('oauth' as ToolsetAuthType)) {
+        this.validateAuthData(finalAuthData, toolsetDefinition, authType);
+      }
     }
 
     // Validate config against toolset schema
@@ -114,11 +176,43 @@ export class ToolService {
 
     let encryptedAuthData: string | null = null;
     try {
-      if (authData) {
-        encryptedAuthData = this.encryptionService.encrypt(JSON.stringify(authData));
+      if (finalAuthData) {
+        encryptedAuthData = this.encryptionService.encrypt(JSON.stringify(finalAuthData));
       }
     } catch {
       throw new ParamsError('Invalid authData');
+    }
+
+    // Check if there is any uninstalled toolset with the same key
+    const uninstalledToolset = await this.prisma.toolset.findFirst({
+      select: {
+        pk: true,
+        toolsetId: true,
+      },
+      where: {
+        key,
+        OR: [{ uid: user.uid }, { isGlobal: true }],
+        uninstalled: true,
+        deletedAt: null,
+      },
+    });
+
+    // If there is any uninstalled toolset with the same key, update it to installed
+    if (uninstalledToolset) {
+      this.logger.log(
+        `Detected uninstalled toolset ${key}: ${uninstalledToolset.toolsetId}, updating to installed`,
+      );
+      return this.prisma.toolset.update({
+        where: { pk: uninstalledToolset.pk },
+        data: {
+          uninstalled: false,
+          enabled,
+          authType,
+          authData: encryptedAuthData,
+          config: config ? JSON.stringify(config) : null,
+          uid: user.uid,
+        },
+      });
     }
 
     const toolset = await this.prisma.toolset.create({
@@ -178,17 +272,24 @@ export class ToolService {
       updates.authType = param.authType;
     }
     if (param.authData !== undefined) {
-      // Validate authData against toolset schema
-      const toolsetDefinition = toolsetInventory[param.key ?? toolset.key]?.definition;
-      if (toolsetDefinition?.requiresAuth) {
-        this.validateAuthData(
-          param.authData,
-          toolsetDefinition,
-          param.authType ?? toolset.authType,
-        );
+      let finalAuthData = param.authData;
+
+      // Handle OAuth type: assemble authData from config and account table
+      const authType = param.authType ?? toolset.authType;
+      if (authType === ('oauth' as ToolsetAuthType)) {
+        if (!param.provider) {
+          throw new ParamsError('provider is required for oauth type toolset update');
+        }
+        finalAuthData = await this.assembleOAuthAuthData(user, param.provider);
       }
 
-      const encryptedAuthData = this.encryptionService.encrypt(JSON.stringify(param.authData));
+      // Validate authData against toolset schema (skip for OAuth type)
+      const toolsetDefinition = toolsetInventory[param.key ?? toolset.key]?.definition;
+      if (toolsetDefinition?.requiresAuth && authType !== ('oauth' as ToolsetAuthType)) {
+        this.validateAuthData(finalAuthData, toolsetDefinition, authType);
+      }
+
+      const encryptedAuthData = this.encryptionService.encrypt(JSON.stringify(finalAuthData));
       updates.authData = encryptedAuthData;
     }
     if (config !== undefined) {
@@ -428,6 +529,141 @@ export class ToolService {
   }
 
   /**
+   * Import toolsets from other users. Useful when duplicating canvases between users.
+   */
+  async importToolsets(
+    user: User,
+    toolsets: GenericToolset[],
+  ): Promise<{ toolsets: GenericToolset[]; replaceToolsetMap: Record<string, GenericToolset> }> {
+    if (!toolsets?.length) {
+      return { toolsets: [], replaceToolsetMap: {} };
+    }
+
+    const importedToolsets: GenericToolset[] = [];
+    const replaceToolsetMap: Record<string, GenericToolset> = {};
+
+    for (const toolset of toolsets) {
+      let importedToolset: GenericToolset | null = null;
+
+      if (toolset.type === 'regular') {
+        importedToolset = await this.importRegularToolset(user, toolset);
+      } else if (toolset.type === 'mcp') {
+        importedToolset = await this.importMcpToolset(user, toolset);
+      } else {
+        this.logger.warn(`Unknown toolset type: ${toolset.type}, skipping`);
+      }
+
+      if (importedToolset) {
+        importedToolsets.push(importedToolset);
+        replaceToolsetMap[toolset.id] = importedToolset;
+      }
+    }
+
+    return { toolsets: importedToolsets, replaceToolsetMap };
+  }
+
+  /**
+   * Import a regular toolset - search for existing or create uninstalled
+   */
+  private async importRegularToolset(
+    user: User,
+    toolset: GenericToolset,
+  ): Promise<GenericToolset | null> {
+    const { name, toolset: toolsetInstance } = toolset;
+
+    // For regular toolsets, we search by key (not ID since ID is user-specific)
+    const key = toolsetInstance?.key || toolset.id;
+
+    if (!key) {
+      this.logger.warn(`Regular toolset missing key, skipping: ${name}`);
+      return null;
+    }
+
+    // Builtin toolset does not need to be imported
+    if (key === 'builtin') {
+      return null;
+    }
+
+    // Check if toolset key exists in inventory
+    const toolsetDefinition = toolsetInventory[key];
+    if (!toolsetDefinition) {
+      this.logger.warn(`Toolset key not found in inventory: ${key}, skipping`);
+      return null;
+    }
+
+    // Search for existing toolset with same key for this user
+    const existingToolset = await this.prisma.toolset.findFirst({
+      where: {
+        key,
+        OR: [{ uid: user.uid }, { isGlobal: true }],
+        deletedAt: null,
+      },
+    });
+
+    if (existingToolset) {
+      this.logger.debug(
+        `Found existing regular toolset for key ${key}: ${existingToolset.toolsetId}`,
+      );
+      return toolsetPo2GenericToolset(existingToolset);
+    }
+
+    // Create uninstalled toolset with pre-generated ID
+    const toolsetId = genToolsetID();
+    const createdToolset = await this.prisma.toolset.create({
+      data: {
+        toolsetId,
+        name: name || (toolsetDefinition.definition.labelDict?.en as string) || key,
+        key,
+        uid: user.uid,
+        enabled: false, // Uninstalled toolsets are disabled
+        uninstalled: true,
+      },
+    });
+
+    this.logger.log(`Created uninstalled regular toolset: ${toolsetId} for key ${key}`);
+    return toolsetPo2GenericToolset(createdToolset);
+  }
+
+  /**
+   * Import an MCP toolset - search for existing or create uninstalled
+   */
+  private async importMcpToolset(user: User, toolset: GenericToolset): Promise<GenericToolset> {
+    const { name, mcpServer } = toolset;
+
+    if (!name || !mcpServer) {
+      this.logger.warn(`MCP toolset missing name or mcpServer, skipping: ${name}`);
+      return null;
+    }
+
+    // Search for existing MCP server with same name for this user
+    const existingServer = await this.prisma.mcpServer.findFirst({
+      where: {
+        name,
+        OR: [{ uid: user.uid }, { isGlobal: true }],
+        deletedAt: null,
+      },
+    });
+
+    if (existingServer) {
+      this.logger.debug(`Found existing MCP server: ${name}`);
+      return mcpServerPo2GenericToolset(existingServer);
+    }
+
+    const clearMcpFields = (obj: Record<string, string>): Record<string, string> => {
+      return Object.fromEntries(Object.entries(obj).map(([key, _]) => [key, '']));
+    };
+
+    return {
+      ...toolset,
+      mcpServer: {
+        ...mcpServer,
+        headers: mcpServer.headers ? clearMcpFields(mcpServer.headers) : undefined,
+        env: mcpServer.env ? clearMcpFields(mcpServer.env) : undefined,
+      },
+    };
+  }
+
+  /**
    * Validate config against the toolset's config schema
    */
   private validateConfig(config: Record<string, unknown>, configItems: DynamicConfigItem[]): void {
@@ -454,7 +690,7 @@ export class ToolService {
     const mcpServers = toolsets.filter((t) => t.type === 'mcp');
 
     const [regularTools, mcpTools] = await Promise.all([
-      this.instantiateRegularToolsets(user, regularToolsets),
+      this.instantiateRegularToolsets(user, regularToolsets, engine),
       this.instantiateMcpServers(user, mcpServers),
     ]);
 
@@ -499,6 +735,7 @@ export class ToolService {
   private async instantiateRegularToolsets(
     user: User,
     toolsets: GenericToolset[],
+    engine: SkillEngine,
   ): Promise<DynamicStructuredTool[]> {
     if (!toolsets?.length) {
       return [];
@@ -522,7 +759,11 @@ export class ToolService {
       const authData = t.authData ? safeParseJSON(this.encryptionService.decrypt(t.authData)) : {};
 
       // TODO: check for constructor parameters
-      const toolsetInstance = new toolset.class({ ...config, ...authData });
+      const toolsetInstance = new toolset.class({
+        ...config,
+        ...authData,
+        reflyService: engine.service,
+      });
 
       return toolset.definition.tools
         ?.map((tool) => toolsetInstance.getToolInstance(tool.name))

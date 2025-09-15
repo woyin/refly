@@ -27,7 +27,7 @@ export class WorkflowAppService {
       where: { canvasId, uid: user.uid, deletedAt: null },
     });
 
-    const workflowAppId = existingWorkflowApp?.workflowAppId ?? genWorkflowAppID();
+    const appId = existingWorkflowApp?.appId ?? genWorkflowAppID();
 
     const canvas = await this.prisma.canvas.findUnique({
       where: { canvasId, uid: user.uid, deletedAt: null },
@@ -60,7 +60,7 @@ export class WorkflowAppService {
 
     if (existingWorkflowApp) {
       await this.prisma.workflowApp.update({
-        where: { workflowAppId },
+        where: { appId },
         data: {
           title: canvasData.title,
           query,
@@ -73,7 +73,7 @@ export class WorkflowAppService {
     } else {
       await this.prisma.workflowApp.create({
         data: {
-          workflowAppId,
+          appId,
           title: canvasData.title,
           uid: user.uid,
           query,
@@ -86,22 +86,22 @@ export class WorkflowAppService {
     }
 
     const workflowApp = await this.prisma.workflowApp.findUnique({
-      where: { workflowAppId, uid: user.uid, deletedAt: null },
+      where: { appId, uid: user.uid, deletedAt: null },
     });
 
     return workflowAppPO2DTO(workflowApp);
   }
 
-  async getWorkflowAppDetail(user: User, workflowAppId: string) {
+  async getWorkflowAppDetail(user: User, appId: string) {
     const workflowApp = await this.prisma.workflowApp.findUnique({
-      where: { workflowAppId, uid: user.uid, deletedAt: null },
+      where: { appId, uid: user.uid, deletedAt: null },
     });
 
     return workflowAppPO2DTO(workflowApp);
   }
 
-  async executeWorkflowApp(user: User, workflowAppId: string, variables: WorkflowVariable[]) {
-    const workflowApp = await this.getWorkflowAppDetail(user, workflowAppId);
+  async executeWorkflowApp(user: User, appId: string, variables: WorkflowVariable[]) {
+    const workflowApp = await this.getWorkflowAppDetail(user, appId);
 
     const newCanvasId = genCanvasID();
 
@@ -110,6 +110,7 @@ export class WorkflowAppService {
       workflowApp.canvasId,
       newCanvasId,
       variables,
+      { appId },
     );
   }
 }

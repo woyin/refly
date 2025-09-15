@@ -260,57 +260,55 @@ export const ResourceView = memo(
     }
 
     return (
-      <div className="knowledge-base-resource-detail-container pt-[16px]">
-        <div className="h-full">
-          {isLoading || !resourceDetail ? (
-            <div className="knowledge-base-resource-skeleton">
-              <Skeleton active style={{ marginTop: 24 }} />
-              <Skeleton active style={{ marginTop: 24 }} />
-              <Skeleton active style={{ marginTop: 24 }} />
-              <Skeleton active style={{ marginTop: 24 }} />
-            </div>
-          ) : (
-            <>
-              <ResourceMeta
-                resourceDetail={resourceDetail}
-                isReindexing={isReindexing}
-                onReindex={handleReindexResource}
-              />
-              {resourceDetail?.indexStatus === 'parse_failed' ? (
-                <div className="w-full h-full flex justify-center items-center">
-                  <Result
-                    status="500"
-                    title={t('resource.parse_failed')}
-                    subTitle={genIndexErrorSubTitle(resourceDetail?.indexError ?? {}, t)}
-                    extra={
-                      !readonly && (
-                        <div className="flex justify-center items-center gap-2">
+      <div className="knowledge-base-resource-detail-container p-3">
+        {isLoading || !resourceDetail ? (
+          <div className="knowledge-base-resource-skeleton">
+            <Skeleton active style={{ marginTop: 24 }} />
+            <Skeleton active style={{ marginTop: 24 }} />
+            <Skeleton active style={{ marginTop: 24 }} />
+            <Skeleton active style={{ marginTop: 24 }} />
+          </div>
+        ) : (
+          <>
+            <ResourceMeta
+              resourceDetail={resourceDetail}
+              isReindexing={isReindexing}
+              onReindex={handleReindexResource}
+            />
+            {resourceDetail?.indexStatus === 'parse_failed' ? (
+              <div className="w-full h-full flex justify-center items-center">
+                <Result
+                  status="500"
+                  title={t('resource.parse_failed')}
+                  subTitle={genIndexErrorSubTitle(resourceDetail?.indexError ?? {}, t)}
+                  extra={
+                    !readonly && (
+                      <div className="flex justify-center items-center gap-2">
+                        <Button
+                          icon={<ReloadOutlined />}
+                          onClick={() => handleReindexResource(resourceId)}
+                        >
+                          {t('common.retry')}
+                        </Button>
+                        {resourceDetail?.indexError?.type === 'pageLimitExceeded' && (
                           <Button
-                            icon={<ReloadOutlined />}
-                            onClick={() => handleReindexResource(resourceId)}
+                            type="primary"
+                            icon={<IconSubscription />}
+                            onClick={handleClickUpgrade}
                           >
-                            {t('common.retry')}
+                            {t('common.upgradeSubscription')}
                           </Button>
-                          {resourceDetail?.indexError?.type === 'pageLimitExceeded' && (
-                            <Button
-                              type="primary"
-                              icon={<IconSubscription />}
-                              onClick={handleClickUpgrade}
-                            >
-                              {t('common.upgradeSubscription')}
-                            </Button>
-                          )}
-                        </div>
-                      )
-                    }
-                  />
-                </div>
-              ) : (
-                <ResourceContent resourceDetail={resourceDetail} resourceId={resourceId} />
-              )}
-            </>
-          )}
-        </div>
+                        )}
+                      </div>
+                    )
+                  }
+                />
+              </div>
+            ) : (
+              <ResourceContent resourceDetail={resourceDetail} resourceId={resourceId} />
+            )}
+          </>
+        )}
       </div>
     );
   },

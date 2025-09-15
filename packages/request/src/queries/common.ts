@@ -12,6 +12,7 @@ import {
   batchUpdateDocument,
   batchUpdateProviderItems,
   checkSettingsField,
+  checkToolOauthStatus,
   checkVerification,
   convert,
   createCanvas,
@@ -118,6 +119,7 @@ import {
   multiLingualWebSearch,
   pinSkillInstance,
   queryReferences,
+  recoverPilotSession,
   refreshToken,
   reindexResource,
   resendVerification,
@@ -214,6 +216,18 @@ export const UseListAccountsKeyFn = (
   clientOptions: Options<unknown, true> = {},
   queryKey?: Array<unknown>,
 ) => [useListAccountsKey, ...(queryKey ?? [clientOptions])];
+export type CheckToolOauthStatusDefaultResponse = Awaited<
+  ReturnType<typeof checkToolOauthStatus>
+>['data'];
+export type CheckToolOauthStatusQueryResult<
+  TData = CheckToolOauthStatusDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useCheckToolOauthStatusKey = 'CheckToolOauthStatus';
+export const UseCheckToolOauthStatusKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useCheckToolOauthStatusKey, ...(queryKey ?? [clientOptions])];
 export type GetCollabTokenDefaultResponse = Awaited<ReturnType<typeof getCollabToken>>['data'];
 export type GetCollabTokenQueryResult<
   TData = GetCollabTokenDefaultResponse,
@@ -1140,6 +1154,12 @@ export type UpdatePilotSessionMutationResult = Awaited<ReturnType<typeof updateP
 export const useUpdatePilotSessionKey = 'UpdatePilotSession';
 export const UseUpdatePilotSessionKeyFn = (mutationKey?: Array<unknown>) => [
   useUpdatePilotSessionKey,
+  ...(mutationKey ?? []),
+];
+export type RecoverPilotSessionMutationResult = Awaited<ReturnType<typeof recoverPilotSession>>;
+export const useRecoverPilotSessionKey = 'RecoverPilotSession';
+export const UseRecoverPilotSessionKeyFn = (mutationKey?: Array<unknown>) => [
+  useRecoverPilotSessionKey,
   ...(mutationKey ?? []),
 ];
 export type InitializeWorkflowMutationResult = Awaited<ReturnType<typeof initializeWorkflow>>;

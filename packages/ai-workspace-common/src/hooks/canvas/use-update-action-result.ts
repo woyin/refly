@@ -255,6 +255,7 @@ export const useUpdateActionResult = () => {
                 ),
                 metadata: {
                   status: payload?.status,
+                  version: event?.version ?? payload.version,
                   reasoningContent: processContentPreview(
                     payload.steps?.map((s) => s?.reasoningContent || '') || [],
                   ),
@@ -269,6 +270,19 @@ export const useUpdateActionResult = () => {
         const currentNode = nodes.find(
           (n) => n.type === 'skillResponse' && n.data?.entityId === resultId,
         );
+
+        // Check if node version matches ActionResult version to avoid canvas sync conflicts
+        const nodeVersion = (currentNode?.data?.metadata as ResponseNodeMeta)?.version;
+        const resultVersion = payload.version;
+
+        // Skip update if node version is newer than result version (canvas sync already updated)
+        if (
+          nodeVersion !== undefined &&
+          resultVersion !== undefined &&
+          nodeVersion > resultVersion
+        ) {
+          return;
+        }
 
         // Only update if the data has changed (avoids unnecessary rerenders)
         if (

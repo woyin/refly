@@ -8,7 +8,6 @@ import { AiOutlineUser } from 'react-icons/ai';
 
 interface LinearThreadContentProps {
   messages: LinearThreadMessage[];
-  contentHeight: string | number;
   className?: string;
   source?: 'skillResponse' | 'thread';
 }

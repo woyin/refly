@@ -11,6 +11,7 @@ import {
   AutoNameCanvasRequest,
   DeleteCanvasRequest,
   DuplicateCanvasRequest,
+  CanvasState,
   Entity,
   EntityType,
   ListCanvasesData,
@@ -157,8 +158,6 @@ export class CanvasService {
 
     const { nodes, edges } = await this.canvasSyncService.getCanvasData(user, { canvasId }, canvas);
 
-    const workflowVariables = await this.canvasSyncService.getWorkflowVariables(user, { canvasId });
-
     const libEntityNodes = nodes.filter((node) =>
       ['document', 'resource', 'codeArtifact'].includes(node.type),
     );
@@ -276,9 +275,6 @@ export class CanvasService {
       ...initEmptyCanvasState(),
       nodes,
       edges,
-      workflow: {
-        variables: workflowVariables,
-      },
     };
     const stateStorageKey = await this.canvasSyncService.saveState(newCanvasId, newState);
 
@@ -292,6 +288,7 @@ export class CanvasService {
           status: 'ready',
           projectId,
           version: newState.version,
+          workflow: canvas.workflow,
         },
       }),
       this.prisma.canvasVersion.create({
@@ -319,11 +316,9 @@ export class CanvasService {
     return newCanvas;
   }
 
-  async createCanvas(user: User, param: UpsertCanvasRequest) {
-    // Use the canvasId from param if provided, otherwise generate a new one
-    const canvasId = param?.canvasId ?? genCanvasID();
-
-    const state = initEmptyCanvasState();
+  async createCanvasWithState(user: User, param: UpsertCanvasRequest, state: CanvasState) {
+    param.canvasId ||= genCanvasID();
+    const { canvasId } = param;
     const stateStorageKey = await this.canvasSyncService.saveState(canvasId, state);
 
     const [canvas] = await this.prisma.$transaction([
@@ -334,6 +329,7 @@ export class CanvasService {
           title: param.title,
           projectId: param.projectId,
           version: state.version,
+          workflow: JSON.stringify({ variables: param.variables }),
         },
       }),
       this.prisma.canvasVersion.create({
@@ -356,6 +352,14 @@ export class CanvasService {
     });
 
     return canvas;
+  }
+
+  async createCanvas(user: User, param: UpsertCanvasRequest) {
+    // Use the canvasId from param if provided, otherwise generate a new one
+    param.canvasId ||= genCanvasID();
+
+    const state = initEmptyCanvasState();
+    return this.createCanvasWithState(user, param, state);
   }
 
   async updateCanvas(user: User, param: UpsertCanvasRequest) {

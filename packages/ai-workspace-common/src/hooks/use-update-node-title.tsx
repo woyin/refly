@@ -30,6 +30,7 @@ export const useUpdateNodeTitle = () => {
           data: {
             ...preview.data,
             title: newTitle,
+            editedTitle: newTitle,
           },
         });
       }
@@ -41,6 +42,7 @@ export const useUpdateNodeTitle = () => {
         },
         {
           title: newTitle,
+          editedTitle: newTitle,
         },
       );
 

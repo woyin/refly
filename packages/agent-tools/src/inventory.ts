@@ -9,6 +9,8 @@ import {
   GenerateImageWithNanoBananaToolset,
   GenerateImageWithNanoBananaToolsetDefinition,
 } from './builtin/media-generate/nano_banana';
+import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
+import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -42,5 +44,13 @@ export const toolsetInventory: Record<
   [GenerateImageWithNanoBananaToolsetDefinition.key]: {
     class: GenerateImageWithNanoBananaToolset,
     definition: GenerateImageWithNanoBananaToolsetDefinition,
+  },
+  [CodeInterpreterToolsetDefinition.key]: {
+    class: CodeInterpreterToolset,
+    definition: CodeInterpreterToolsetDefinition,
+  },
+  [WhaleWisdomToolsetDefinition.key]: {
+    class: WhaleWisdomToolset,
+    definition: WhaleWisdomToolsetDefinition,
   },
 };

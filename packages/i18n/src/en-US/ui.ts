@@ -1148,6 +1148,7 @@ const translations = {
       placeholder: 'Describe needs...',
       chatInputPlaceholder:
         'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
+      commonChatInputPlaceholder: 'Ask Refly any question...',
     },
     contextMenu: {
       createGroup: 'Create Group',
@@ -1393,6 +1394,9 @@ const translations = {
       executing: 'Skill is executing, please wait...',
       startRunning: 'Skill is running...',
       startRerun: 'Skill is rerunning...',
+      startPilotRecovery: 'Starting pilot recovery...',
+      pilotRecoveryStarted: 'Pilot recovery started successfully',
+      pilotRecoveryFailed: 'Pilot recovery failed',
       resultNotFound: 'Sorry, the execution result seems to be lost.',
       reasoningContent: 'AI Thinking Process',
       shareLoading: 'Loading shared skill response...',
@@ -1673,6 +1677,9 @@ const translations = {
       loadingEditor: 'Loading editor...',
       loadingVariables: 'Loading variables...',
       noStartNodeVariables: 'No start node variables',
+      defaultPlaceholder: 'Describe what you want to generate...',
+      runningRecord: 'Running Record',
+      noRunningRecords: 'No running records',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
@@ -2238,8 +2245,13 @@ const translations = {
       reflyFormat: 'Refly Format',
       autoValidateHint: 'Auto-validate server configuration on save',
       enabledTooltip: 'Enable or disable this MCP server',
+      validatingBeforeEnable: 'Validating server connection, will be enabled after validation',
       reconnectTooltip:
         'Configure automatic reconnection attempts if the server connection is lost',
+      envKeyRequired: 'Environment variable key cannot be empty',
+      envValueRequired: 'Environment variable value cannot be empty',
+      headerKeyRequired: 'Header key cannot be empty',
+      headerValueRequired: 'Header value cannot be empty',
       stdioWebDisabledTooltip: 'Stdio protocol is not supported in the web version.',
       jsonModeStdioWarning:
         "When configuring via JSON, please note: The 'stdio' type is not supported in the web version and may lead to unexpected behavior.",
@@ -2312,6 +2324,14 @@ const translations = {
         required: '{{name}} is required',
         toolEnabled: '{{name}} enabled',
         toolDisabled: '{{name}} disabled',
+        oauthStatus: 'OAuth Status',
+      },
+      oauth: {
+        checking: 'Checking OAuth status...',
+        authorized: 'OAuth authorized',
+        required: 'OAuth authorization required',
+        authorizeWith: 'Authorize with {{provider}}',
+        checkFailed: 'Failed to check OAuth status',
       },
     },
     appearance: {
@@ -3148,8 +3168,21 @@ const translations = {
       planning: 'Planning tasks...',
       executingSteps: 'Task execution {{current}} / {{total}} ...',
       completedTasks: 'Completed {{count}} tasks ...',
-      taskFailed: 'Task failed',
+      taskFailed: 'Task terminated',
       understandingIntent: 'Understanding intent and analyzing requirements...',
+    },
+    recovery: {
+      title: 'Retry All Failed Tasks',
+      success: 'Session recovery started successfully',
+      error: 'Failed to recover session',
+    },
+    stepRecovery: {
+      button: 'Retry',
+      success: 'Step recovery started successfully',
+      error: {
+        noStepId: 'Step ID not found',
+        general: 'Failed to recover step',
+      },
     },
   },
   deck: {

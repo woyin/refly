@@ -792,8 +792,11 @@ export const AccountSchema = {
       description: 'Provider',
     },
     scope: {
-      type: 'string',
+      type: 'array',
       description: 'Auth scope',
+      items: {
+        type: 'string',
+      },
     },
     providerAccountId: {
       type: 'string',
@@ -817,6 +820,42 @@ export const ListAccountsResponseSchema = {
           description: 'List of auth accounts',
           items: {
             $ref: '#/components/schemas/Account',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const CheckToolOAuthStatusResponseSchema = {
+  type: 'object',
+  description: 'Check tool OAuth status response',
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'object',
+          description: 'OAuth status information',
+          properties: {
+            authorized: {
+              type: 'boolean',
+              description: 'Whether user has sufficient OAuth authorization',
+            },
+            provider: {
+              type: 'string',
+              description: 'OAuth provider',
+            },
+            scope: {
+              type: 'array',
+              description: 'Required OAuth scopes',
+              items: {
+                type: 'string',
+              },
+            },
           },
         },
       },
@@ -2301,11 +2340,13 @@ export const ActionResultSchema = {
       type: 'object',
       description: 'Action template config',
       $ref: '#/components/schemas/SkillTemplateConfig',
+      deprecated: true,
     },
     runtimeConfig: {
       type: 'object',
       description: 'Action runtime config',
       $ref: '#/components/schemas/SkillRuntimeConfig',
+      deprecated: true,
     },
     history: {
       type: 'array',
@@ -2326,6 +2367,13 @@ export const ActionResultSchema = {
       description: 'Errors',
       items: {
         type: 'string',
+      },
+    },
+    toolsets: {
+      type: 'array',
+      description: 'Action toolsets',
+      items: {
+        $ref: '#/components/schemas/GenericToolset',
       },
     },
     outputUrl: {
@@ -3181,19 +3229,6 @@ export const CanvasStateSchema = {
           type: 'string',
           description: 'Canvas state hash (sha256), calculated from nodes and edges',
         },
-        workflow: {
-          type: 'object',
-          description: 'Workflow configuration',
-          properties: {
-            variables: {
-              type: 'array',
-              description: 'List of workflow variables',
-              items: {
-                $ref: '#/components/schemas/WorkflowVariable',
-              },
-            },
-          },
-        },
         transactions: {
           type: 'array',
           description: 'Canvas transaction list',
@@ -3349,6 +3384,13 @@ export const UpsertCanvasRequestSchema = {
       type: 'string',
       description: 'Minimap storage key',
     },
+    variables: {
+      type: 'array',
+      description: 'Workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
+    },
   },
 } as const;
 
@@ -3497,13 +3539,13 @@ export const NodeDiffSchema = {
     },
     from: {
       type: 'object',
-      description: 'Node diff from',
-      $ref: '#/components/schemas/CanvasNode',
+      description: 'Node diff from (only the fields that are different will be included)',
+      additionalProperties: true,
     },
     to: {
       type: 'object',
-      description: 'Node diff to',
-      $ref: '#/components/schemas/CanvasNode',
+      description: 'Node diff to (only the fields that are different will be included)',
+      additionalProperties: true,
     },
   },
 } as const;
@@ -3534,6 +3576,23 @@ export const EdgeDiffSchema = {
   },
 } as const;
 
+export const CanvasTransactionSourceSchema = {
+  type: 'object',
+  description: 'Canvas transaction source',
+  required: ['type'],
+  properties: {
+    type: {
+      type: 'string',
+      description: 'Source type',
+      enum: ['user', 'system'],
+    },
+    uid: {
+      type: 'string',
+      description: 'Source user ID',
+    },
+  },
+} as const;
+
 export const CanvasTransactionSchema = {
   type: 'object',
   required: ['txId', 'nodeDiffs', 'edgeDiffs', 'createdAt'],
@@ -3559,6 +3618,11 @@ export const CanvasTransactionSchema = {
     revoked: {
       type: 'boolean',
       description: 'Whether the transaction is revoked',
+    },
+    source: {
+      type: 'object',
+      description: 'Transaction source',
+      $ref: '#/components/schemas/CanvasTransactionSource',
     },
     deleted: {
       type: 'boolean',
@@ -5863,6 +5927,25 @@ export const UpdatePilotSessionRequestSchema = {
   },
 } as const;
 
+export const RecoverPilotSessionRequestSchema = {
+  type: 'object',
+  required: ['sessionId'],
+  properties: {
+    sessionId: {
+      type: 'string',
+      description: 'Pilot session ID to recover',
+    },
+    stepIds: {
+      type: 'array',
+      description:
+        'Optional array of specific step IDs to recover. If not provided, recovers all failed steps in the current epoch.',
+      items: {
+        type: 'string',
+      },
+    },
+  },
+} as const;
+
 export const UpsertPilotSessionResponseSchema = {
   allOf: [
     {
@@ -7714,6 +7797,17 @@ export const AuthPatternSchema = {
         $ref: '#/components/schemas/DynamicConfigItem',
       },
     },
+    provider: {
+      type: 'string',
+      description: 'Auth provider, only for `oauth` type',
+    },
+    scope: {
+      type: 'array',
+      description: 'Auth scope, only for `oauth` type',
+      items: {
+        type: 'string',
+      },
+    },
   },
 } as const;
 
@@ -7894,6 +7988,17 @@ export const UpsertToolsetRequestSchema = {
       additionalProperties: true,
       description: 'Toolset config',
     },
+    provider: {
+      type: 'string',
+      description: 'OAuth toolset provider',
+    },
+    scope: {
+      type: 'array',
+      description: 'OAuth toolset scope',
+      items: {
+        type: 'string',
+      },
+    },
   },
 } as const;
 
@@ -7933,6 +8038,14 @@ export const GenericToolsetSchema = {
     name: {
       type: 'string',
       description: 'Toolset name',
+    },
+    builtin: {
+      type: 'boolean',
+      description: 'Whether the toolset is builtin',
+    },
+    uninstalled: {
+      type: 'boolean',
+      description: 'Whether the toolset is uninstalled',
     },
     toolset: {
       $ref: '#/components/schemas/ToolsetInstance',
@@ -8045,11 +8158,16 @@ export const CanvasNodeTypeSchema = {
 
 export const CanvasNodeDataSchema = {
   type: 'object',
+  description: 'Node data',
   required: ['title', 'entityId'],
   properties: {
     title: {
       type: 'string',
       description: 'Node title',
+    },
+    editedTitle: {
+      type: 'string',
+      description: 'Node edited title',
     },
     entityId: {
       type: 'string',
@@ -8104,6 +8222,7 @@ export const CanvasNodeSchema = {
     },
     data: {
       type: 'object',
+      description: 'Node data',
       $ref: '#/components/schemas/CanvasNodeData',
     },
     style: {
@@ -8161,6 +8280,13 @@ export const InitializeWorkflowRequestSchema = {
       type: 'string',
       description: 'New canvas ID',
       example: 'canvas-456',
+    },
+    variables: {
+      type: 'array',
+      description: 'Workflow variables',
+      items: {
+        $ref: '#/components/schemas/WorkflowVariable',
+      },
     },
     startNodes: {
       type: 'array',
@@ -8459,7 +8585,7 @@ export const ExecuteWorkflowAppResponseSchema = {
   ],
 } as const;
 
-export const VariableTypeSchema = {
+export const ValueTypeSchema = {
   type: 'string',
   enum: ['text', 'resource'],
 } as const;
@@ -8489,7 +8615,7 @@ export const VariableValueSchema = {
   properties: {
     type: {
       description: 'Variable type',
-      $ref: '#/components/schemas/VariableType',
+      $ref: '#/components/schemas/ValueType',
     },
     text: {
       type: 'string',

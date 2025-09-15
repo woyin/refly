@@ -502,7 +502,7 @@ export type Account = {
   /**
    * Auth scope
    */
-  scope?: string;
+  scope?: Array<string>;
   /**
    * Provider account ID
    */
@@ -517,6 +517,29 @@ export type ListAccountsResponse = BaseResponse & {
    * List of auth accounts
    */
   data?: Array<Account>;
+};
+
+/**
+ * Check tool OAuth status response
+ */
+export type CheckToolOAuthStatusResponse = BaseResponse & {
+  /**
+   * OAuth status information
+   */
+  data?: {
+    /**
+     * Whether user has sufficient OAuth authorization
+     */
+    authorized?: boolean;
+    /**
+     * OAuth provider
+     */
+    provider?: string;
+    /**
+     * Required OAuth scopes
+     */
+    scope?: Array<string>;
+  };
 };
 
 /**
@@ -1771,10 +1794,12 @@ export type ActionResult = {
   context?: SkillContext;
   /**
    * Action template config
+   * @deprecated
    */
   tplConfig?: SkillTemplateConfig;
   /**
    * Action runtime config
+   * @deprecated
    */
   runtimeConfig?: SkillRuntimeConfig;
   /**
@@ -1789,6 +1814,10 @@ export type ActionResult = {
    * Errors
    */
   errors?: Array<string>;
+  /**
+   * Action toolsets
+   */
+  toolsets?: Array<GenericToolset>;
   /**
    * Media generation output URL (for media type actions)
    */
@@ -2416,15 +2445,6 @@ export type CanvasState = CanvasData & {
    */
   hash?: string;
   /**
-   * Workflow configuration
-   */
-  workflow?: {
-    /**
-     * List of workflow variables
-     */
-    variables?: Array<WorkflowVariable>;
-  };
-  /**
    * Canvas transaction list
    */
   transactions?: Array<CanvasTransaction>;
@@ -2533,6 +2553,10 @@ export type UpsertCanvasRequest = {
    * Minimap storage key
    */
   minimapStorageKey?: string;
+  /**
+   * Workflow variables
+   */
+  variables?: Array<WorkflowVariable>;
 };
 
 export type UpsertCanvasResponse = BaseResponse & {
@@ -2610,13 +2634,17 @@ export type NodeDiff = {
    */
   type: DiffType;
   /**
-   * Node diff from
+   * Node diff from (only the fields that are different will be included)
    */
-  from?: CanvasNode;
+  from?: {
+    [key: string]: unknown;
+  };
   /**
-   * Node diff to
+   * Node diff to (only the fields that are different will be included)
    */
-  to?: CanvasNode;
+  to?: {
+    [key: string]: unknown;
+  };
 };
 
 export type EdgeDiff = {
@@ -2638,6 +2666,25 @@ export type EdgeDiff = {
   to?: CanvasEdge;
 };
 
+/**
+ * Canvas transaction source
+ */
+export type CanvasTransactionSource = {
+  /**
+   * Source type
+   */
+  type: 'user' | 'system';
+  /**
+   * Source user ID
+   */
+  uid?: string;
+};
+
+/**
+ * Source type
+ */
+export type type3 = 'user' | 'system';
+
 export type CanvasTransaction = {
   /**
    * Transaction ID
@@ -2655,6 +2702,10 @@ export type CanvasTransaction = {
    * Whether the transaction is revoked
    */
   revoked?: boolean;
+  /**
+   * Transaction source
+   */
+  source?: CanvasTransactionSource;
   /**
    * Whether the transaction is deleted
    */
@@ -4163,6 +4214,17 @@ export type UpdatePilotSessionRequest = {
   maxEpoch?: number;
 };
 
+export type RecoverPilotSessionRequest = {
+  /**
+   * Pilot session ID to recover
+   */
+  sessionId: string;
+  /**
+   * Optional array of specific step IDs to recover. If not provided, recovers all failed steps in the current epoch.
+   */
+  stepIds?: Array<string>;
+};
+
 export type UpsertPilotSessionResponse = BaseResponse & {
   /**
    * Upserted pilot session
@@ -4931,7 +4993,7 @@ export type MediaModelParameter = {
 /**
  * Parameter type
  */
-export type type3 = 'url' | 'text' | 'option';
+export type type4 = 'url' | 'text' | 'option';
 
 /**
  * Provider config for media generation
@@ -5421,6 +5483,14 @@ export type AuthPattern = {
    * Credential items, only for `credentials` type
    */
   credentialItems?: Array<DynamicConfigItem>;
+  /**
+   * Auth provider, only for `oauth` type
+   */
+  provider?: string;
+  /**
+   * Auth scope, only for `oauth` type
+   */
+  scope?: Array<string>;
 };
 
 export type ToolsetDefinition = {
@@ -5554,6 +5624,14 @@ export type UpsertToolsetRequest = {
   config?: {
     [key: string]: unknown;
   };
+  /**
+   * OAuth toolset provider
+   */
+  provider?: string;
+  /**
+   * OAuth toolset scope
+   */
+  scope?: Array<string>;
 };
 
 export type UpsertToolsetResponse = BaseResponse & {
@@ -5575,6 +5653,14 @@ export type GenericToolset = {
    * Toolset name
    */
   name: string;
+  /**
+   * Whether the toolset is builtin
+   */
+  builtin?: boolean;
+  /**
+   * Whether the toolset is uninstalled
+   */
+  uninstalled?: boolean;
   /**
    * Toolset detail
    */
@@ -5639,11 +5725,18 @@ export type CanvasNodeType =
   | 'mediaSkillResponse'
   | 'start';
 
+/**
+ * Node data
+ */
 export type CanvasNodeData = {
   /**
    * Node title
    */
   title: string;
+  /**
+   * Node edited title
+   */
+  editedTitle?: string;
   /**
    * Node entity ID
    */
@@ -5688,6 +5781,9 @@ export type CanvasNode = {
    * Node offset position
    */
   offsetPosition?: XYPosition;
+  /**
+   * Node data
+   */
   data: CanvasNodeData;
   /**
    * Node style
@@ -5737,6 +5833,10 @@ export type InitializeWorkflowRequest = {
    * New canvas ID
    */
   newCanvasId?: string;
+  /**
+   * Workflow variables
+   */
+  variables?: Array<WorkflowVariable>;
   /**
    * Start node IDs
    */
@@ -5920,7 +6020,7 @@ export type ExecuteWorkflowAppResponse = BaseResponse & {
   data?: ExecuteWorkflowAppResult;
 };
 
-export type VariableType = 'text' | 'resource';
+export type ValueType = 'text' | 'resource';
 
 export type ResourceValue = {
   /**
@@ -5941,7 +6041,7 @@ export type VariableValue = {
   /**
    * Variable type
    */
-  type: VariableType;
+  type: ValueType;
   /**
    * Variable text value (for text type)
    */
@@ -6384,6 +6484,23 @@ export type ListAccountsError = unknown;
 export type LogoutResponse = unknown;
 
 export type LogoutError = unknown;
+
+export type CheckToolOauthStatusData = {
+  query: {
+    /**
+     * OAuth provider (e.g., google, github)
+     */
+    provider: string;
+    /**
+     * Comma-separated list of required OAuth scopes
+     */
+    scope: string;
+  };
+};
+
+export type CheckToolOauthStatusResponse = CheckToolOAuthStatusResponse;
+
+export type CheckToolOauthStatusError = unknown;
 
 export type GetCollabTokenResponse2 = GetCollabTokenResponse;
 
@@ -7414,6 +7531,14 @@ export type GetPilotSessionDetailData = {
 export type GetPilotSessionDetailResponse2 = GetPilotSessionDetailResponse;
 
 export type GetPilotSessionDetailError = unknown;
+
+export type RecoverPilotSessionData = {
+  body: RecoverPilotSessionRequest;
+};
+
+export type RecoverPilotSessionResponse = BaseResponse;
+
+export type RecoverPilotSessionError = unknown;
 
 export type InitializeWorkflowData = {
   body: InitializeWorkflowRequest;

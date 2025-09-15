@@ -1,33 +1,20 @@
-import { WorkflowApp, WorkflowVariable } from '@refly/openapi-schema';
+import { WorkflowApp } from '@refly/openapi-schema';
 import { WorkflowApp as WorkflowAppPO } from '../../generated/client';
+import { safeParseJSON } from '@refly/utils';
 
-export function workflowAppPO2DTO(dbWorkflowApp: WorkflowAppPO): WorkflowApp | null {
-  if (!dbWorkflowApp) {
+export function workflowAppPO2DTO(app: WorkflowAppPO): WorkflowApp | null {
+  if (!app) {
     return null;
   }
 
-  // Parse variables from JSON string to WorkflowVariable array
-  let variables: WorkflowVariable[] = [];
-  try {
-    if (dbWorkflowApp.variables) {
-      variables = JSON.parse(dbWorkflowApp.variables) as WorkflowVariable[];
-    }
-  } catch (error) {
-    this.logger.warn(
-      `Failed to parse variables for workflow app ${dbWorkflowApp.workflowAppId}:`,
-      error,
-    );
-    variables = [];
-  }
-
   return {
-    appId: dbWorkflowApp.workflowAppId,
-    title: dbWorkflowApp.title ?? undefined,
-    description: dbWorkflowApp.description ?? undefined,
-    canvasId: dbWorkflowApp.canvasId ?? '',
-    query: dbWorkflowApp.query ?? undefined,
-    variables,
-    createdAt: dbWorkflowApp.createdAt?.toISOString(),
-    updatedAt: dbWorkflowApp.updatedAt?.toISOString(),
+    appId: app.appId,
+    title: app.title ?? undefined,
+    description: app.description ?? undefined,
+    canvasId: app.canvasId ?? '',
+    query: app.query ?? undefined,
+    variables: safeParseJSON(app.variables),
+    createdAt: app.createdAt?.toISOString(),
+    updatedAt: app.updatedAt?.toISOString(),
   };
 }

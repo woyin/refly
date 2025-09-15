@@ -35,7 +35,7 @@ const AudioNodePreviewComponent = ({ node }: AudioNodePreviewProps) => {
   const [fallbackIndex, setFallbackIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
   const [editMode, setEditMode] = useState(false);
-
+  const entityId = node?.data?.entityId ?? '';
   useEffect(() => {
     setCurrentUrl(originalUrl);
     setFallbackIndex(0);
@@ -126,7 +126,8 @@ const AudioNodePreviewComponent = ({ node }: AudioNodePreviewProps) => {
         contextItems={contextItems}
         modelInfo={modelInfo ?? null}
         mediaType={'audio'}
-        resultId={resultId}
+        entityId={entityId}
+        nodeId={node.id}
         storageKey={node?.data?.metadata?.storageKey ?? ''}
       />
     </div>

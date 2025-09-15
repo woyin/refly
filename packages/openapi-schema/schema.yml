@@ -626,6 +626,35 @@ paths:
       responses:
         '200':
           description: Successful operation
+  /auth/tool-oauth/status:
+    get:
+      tags:
+        - auth
+      summary: Check tool OAuth status
+      description: Check if user has OAuth authorization for specific provider and scopes
+      operationId: checkToolOAuthStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          description: OAuth provider (e.g., google, github)
+          schema:
+            type: string
+        - name: scope
+          in: query
+          required: true
+          description: Comma-separated list of required OAuth scopes
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OAuth status checked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckToolOAuthStatusResponse'
   /collab/getToken:
     get:
       tags:
@@ -2645,6 +2674,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetPilotSessionDetailResponse'
+  /pilot/session/recover:
+    post:
+      tags:
+        - pilot
+      summary: Recover pilot session
+      description: Recover a failed pilot session by retrying failed steps. Can recover all failed steps or specific steps.
+      operationId: recoverPilotSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoverPilotSessionRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /workflow/initialize:
     post:
       tags:
@@ -4052,8 +4101,10 @@ components:
           type: string
           description: Provider
         scope:
-          type: string
+          type: array
           description: Auth scope
+          items:
+            type: string
         providerAccountId:
           type: string
           description: Provider account ID
@@ -4069,6 +4120,28 @@ components:
               description: List of auth accounts
               items:
                 $ref: '#/components/schemas/Account'
+    CheckToolOAuthStatusResponse:
+      type: object
+      description: Check tool OAuth status response
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              description: OAuth status information
+              properties:
+                authorized:
+                  type: boolean
+                  description: Whether user has sufficient OAuth authorization
+                provider:
+                  type: string
+                  description: OAuth provider
+                scope:
+                  type: array
+                  description: Required OAuth scopes
+                  items:
+                    type: string
     ShareUser:
       type: object
       description: Refly user in shared entity
@@ -5251,10 +5324,12 @@ components:
           type: object
           description: Action template config
           $ref: '#/components/schemas/SkillTemplateConfig'
+          deprecated: true
         runtimeConfig:
           type: object
           description: Action runtime config
           $ref: '#/components/schemas/SkillRuntimeConfig'
+          deprecated: true
         history:
           type: array
           description: Action result history
@@ -5270,6 +5345,11 @@ components:
           description: Errors
           items:
             type: string
+        toolsets:
+          type: array
+          description: Action toolsets
+          items:
+            $ref: '#/components/schemas/GenericToolset'
         outputUrl:
           type: string
           format: uri
@@ -5907,15 +5987,6 @@ components:
             hash:
               type: string
               description: Canvas state hash (sha256), calculated from nodes and edges
-            workflow:
-              type: object
-              description: Workflow configuration
-              properties:
-                variables:
-                  type: array
-                  description: List of workflow variables
-                  items:
-                    $ref: '#/components/schemas/WorkflowVariable'
             transactions:
               type: array
               description: Canvas transaction list
@@ -6020,6 +6091,11 @@ components:
         minimapStorageKey:
           type: string
           description: Minimap storage key
+        variables:
+          type: array
+          description: Workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
     UpsertCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -6116,12 +6192,12 @@ components:
           $ref: '#/components/schemas/DiffType'
         from:
           type: object
-          description: Node diff from
-          $ref: '#/components/schemas/CanvasNode'
+          description: Node diff from (only the fields that are different will be included)
+          additionalProperties: true
         to:
           type: object
-          description: Node diff to
-          $ref: '#/components/schemas/CanvasNode'
+          description: Node diff to (only the fields that are different will be included)
+          additionalProperties: true
     EdgeDiff:
       type: object
       required:
@@ -6143,6 +6219,21 @@ components:
           type: object
           description: Edge diff to
           $ref: '#/components/schemas/CanvasEdge'
+    CanvasTransactionSource:
+      type: object
+      description: Canvas transaction source
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: Source type
+          enum:
+            - user
+            - system
+        uid:
+          type: string
+          description: Source user ID
     CanvasTransaction:
       type: object
       required:
@@ -6167,6 +6258,10 @@ components:
         revoked:
           type: boolean
           description: Whether the transaction is revoked
+        source:
+          type: object
+          description: Transaction source
+          $ref: '#/components/schemas/CanvasTransactionSource'
         deleted:
           type: boolean
           description: Whether the transaction is deleted
@@ -7718,6 +7813,19 @@ components:
           type: number
           description: Pilot session max epoch
           default: 2
+    RecoverPilotSessionRequest:
+      type: object
+      required:
+        - sessionId
+      properties:
+        sessionId:
+          type: string
+          description: Pilot session ID to recover
+        stepIds:
+          type: array
+          description: Optional array of specific step IDs to recover. If not provided, recovers all failed steps in the current epoch.
+          items:
+            type: string
     UpsertPilotSessionResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -9001,6 +9109,14 @@ components:
           description: Credential items, only for `credentials` type
           items:
             $ref: '#/components/schemas/DynamicConfigItem'
+        provider:
+          type: string
+          description: Auth provider, only for `oauth` type
+        scope:
+          type: array
+          description: Auth scope, only for `oauth` type
+          items:
+            type: string
     ToolsetDefinition:
       type: object
       required:
@@ -9128,6 +9244,14 @@ components:
           type: object
           additionalProperties: true
           description: Toolset config
+        provider:
+          type: string
+          description: OAuth toolset provider
+        scope:
+          type: array
+          description: OAuth toolset scope
+          items:
+            type: string
     UpsertToolsetResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -9156,6 +9280,12 @@ components:
         name:
           type: string
           description: Toolset name
+        builtin:
+          type: boolean
+          description: Whether the toolset is builtin
+        uninstalled:
+          type: boolean
+          description: Whether the toolset is uninstalled
         toolset:
           $ref: '#/components/schemas/ToolsetInstance'
           description: Toolset detail
@@ -9227,6 +9357,7 @@ components:
         - start
     CanvasNodeData:
       type: object
+      description: Node data
       required:
         - title
         - entityId
@@ -9234,6 +9365,9 @@ components:
         title:
           type: string
           description: Node title
+        editedTitle:
+          type: string
+          description: Node edited title
         entityId:
           type: string
           description: Node entity ID
@@ -9278,6 +9412,7 @@ components:
           description: Node offset position
         data:
           type: object
+          description: Node data
           $ref: '#/components/schemas/CanvasNodeData'
         style:
           type: object
@@ -9324,6 +9459,11 @@ components:
           type: string
           description: New canvas ID
           example: "canvas-456"
+        variables:
+          type: array
+          description: Workflow variables
+          items:
+            $ref: '#/components/schemas/WorkflowVariable'
         startNodes:
           type: array
           description: Start node IDs
@@ -9530,7 +9670,7 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/ExecuteWorkflowAppResult'
-    VariableType:
+    ValueType:
       type: string
       enum:
         - text
@@ -9558,7 +9698,7 @@ components:
       properties:
         type:
           description: Variable type
-          $ref: '#/components/schemas/VariableType'
+          $ref: '#/components/schemas/ValueType'
         text:
           type: string
           description: Variable text value (for text type)

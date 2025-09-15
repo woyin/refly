@@ -110,12 +110,16 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   };
 
   useEffect(() => {
+    // Do not fetch action result if streaming
+    if (isStreaming) {
+      return;
+    }
     if (!result && !shareId) {
       fetchActionResult(resultId);
     } else if (result) {
       setLoading(false);
     }
-  }, [resultId, result, shareId]);
+  }, [resultId, result, shareId, isStreaming]);
 
   const scrollToBottom = useCallback(
     (event: { resultId: string; payload: ActionResult }) => {
@@ -148,7 +152,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   const actionMeta = result?.actionMeta ?? data?.metadata?.actionMeta;
   const version = result?.version ?? data?.metadata?.version ?? 0;
   const modelInfo = result?.modelInfo ?? data?.metadata?.modelInfo;
-  const tplConfig = result?.tplConfig ?? data?.metadata?.tplConfig;
   const runtimeConfig = result?.runtimeConfig ?? data?.metadata?.runtimeConfig;
   const structuredData = data?.metadata?.structuredData;
 
@@ -292,7 +295,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
               }
             }
             setEditMode={setEditMode}
-            tplConfig={tplConfig}
             runtimeConfig={runtimeConfig}
             onQueryChange={setCurrentQuery}
             selectedToolsets={selectedToolsets}
@@ -323,7 +325,9 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
               { 'opacity-30': editMode },
             )}
           >
-            {loading && <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />}
+            {loading && !isStreaming && (
+              <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />
+            )}
             {(result?.status === 'executing' || result?.status === 'waiting') &&
               !outputStep &&
               statusText && (

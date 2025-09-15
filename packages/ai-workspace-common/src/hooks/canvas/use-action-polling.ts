@@ -56,8 +56,10 @@ export const useActionPolling = () => {
       }
 
       try {
+        // Since backend always returns latest version, don't send version parameter
+        // This ensures we get the newest ActionResult data after recovery
         const { data: result } = await getClient().getActionResult({
-          query: { resultId, version },
+          query: { resultId },
         });
 
         if (!result?.success) {
