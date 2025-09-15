@@ -45,9 +45,22 @@ describe('CanvasController', () => {
       } as Express.Multer.File;
 
       const mockCanvas = {
+        pk: BigInt(1),
         canvasId: 'test-canvas-id',
-        title: 'Test Canvas',
         uid: 'test-uid',
+        title: 'Test Canvas',
+        storageSize: BigInt(0),
+        version: '1.0.0',
+        stateStorageKey: 'test-state-key',
+        minimapStorageKey: 'test-minimap-key',
+        readOnly: false,
+        isPublic: false,
+        status: 'ready',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        deletedAt: null,
+        projectId: null,
+        workflow: JSON.stringify({ variables: [] }),
       };
 
       const mockUser = { uid: 'test-uid' };
@@ -56,7 +69,7 @@ describe('CanvasController', () => {
 
       const result = await controller.importCanvas(mockUser, mockFile, {
         canvasId: 'test-canvas-id',
-      });
+      } as any);
 
       expect(canvasService.importCanvas).toHaveBeenCalledWith(mockUser, {
         file: mockFile.buffer,
