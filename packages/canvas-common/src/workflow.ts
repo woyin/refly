@@ -68,7 +68,7 @@ export const processQueryWithTypes = (
     const stringValue = textValues.length > 0 ? textValues.join(', ') : '';
     const escapedName = escapeRegExp(variable.name);
     processedQuery = processedQuery.replace(
-      new RegExp(`@${escapedName}(?:\\b|$)`, 'g'),
+      new RegExp(`@${escapedName}(?=\\s|$|[^\\w\\p{L}\\p{N}])`, 'gu'),
       `${stringValue}`,
     );
   }
