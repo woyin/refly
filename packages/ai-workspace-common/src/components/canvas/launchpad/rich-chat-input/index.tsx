@@ -208,6 +208,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
+    const isSettingContentRef = useRef(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
     const { nodes: realtimeNodes } = useRealtimeCanvasData();
@@ -216,14 +217,16 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       setIsSearchOpen: state.setIsSearchOpen,
     }));
 
+    const [isMentionListVisible, setIsMentionListVisible] = useState(false);
+
     const { workflowVariables = [] } = workflow || {};
 
     // Get all available items including canvas nodes with fallback data
     const allItems: MentionItem[] = useMemo(() => {
-      const workflowVariableItems: MentionItem[] = (workflowVariables || []).map((variable) => ({
+      const startNodeItems = workflowVariables.map((variable) => ({
         name: variable.name,
         description: variable.description || '',
-        source: variable.source || 'startNode',
+        source: 'startNode' as const,
         variableType: variable.variableType || 'string',
         variableId: variable.variableId || '',
       }));
@@ -284,7 +287,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             },
           })) ?? [];
 
-      return [...workflowVariableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
+      return [...startNodeItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
     }, [workflowVariables, nodes, realtimeNodes]);
 
     // Keep latest items in a ref so Mention suggestion always sees fresh data
@@ -442,6 +445,13 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       [setContextItems],
     );
 
+    const toggleIsSettingContentRef = useCallback(() => {
+      isSettingContentRef.current = true;
+      setTimeout(() => {
+        isSettingContentRef.current = false;
+      }, 300);
+    }, []);
+
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
       return CustomMention.configure({
@@ -451,17 +461,32 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         suggestion: {
           char: '@',
           command: handleCommand,
-          items: ({ query }: { query: string }) => {
-            const sourceItems = allItemsRef.current ?? [];
-            if (!query) {
-              return sourceItems;
+          items: () => {
+            // Don't show items when programmatically setting content
+            if (isSettingContentRef.current) {
+              return [];
             }
-            return sourceItems.filter((item) => {
-              const name = item?.name ?? '';
-              const desc = item?.description ?? '';
-              const q = query?.toLowerCase() ?? '';
-              return name.toLowerCase().includes(q) || desc.toLowerCase().includes(q);
-            });
+
+            // Always return all items, let MentionList handle the filtering
+            // This ensures the component has access to all data for proper grouping
+            return allItemsRef.current ?? [];
+          },
+
+          // Only show suggestion when user is actively typing @
+          allow: ({ state, range }) => {
+            // Don't show suggestion when programmatically setting content
+            if (isSettingContentRef.current) {
+              return false;
+            }
+
+            // Check if the @ character was just typed by the user
+            const $from = state.doc.resolve(range.from);
+            const textBefore = $from.nodeBefore?.text || '';
+
+            // Allow if @ is at the start of a word or after whitespace
+            const isAtWordStart = textBefore === '' || /\s/.test(textBefore.slice(-1));
+
+            return isAtWordStart;
           },
           render: () => {
             let component: any;
@@ -480,7 +505,11 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             return {
               onStart: (props: any) => {
                 component = new ReactRenderer(MentionList, {
-                  props: { ...props, placement: 'bottom' },
+                  props: {
+                    ...props,
+                    placement: 'bottom',
+                    query: props.query || '',
+                  },
                   editor: props.editor,
                 });
 
@@ -501,12 +530,23 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                   },
                   onShown(instance) {
                     const placement = parsePlacement(instance);
-                    component.updateProps({ ...props, placement });
+                    setIsMentionListVisible(true);
+                    component.updateProps({ ...props, placement, isMentionListVisible: true });
+                  },
+                  onHidden(instance) {
+                    const placement = parsePlacement(instance);
+                    setIsMentionListVisible(false);
+                    component.updateProps({ ...props, placement, isMentionListVisible: false });
+                  },
+                  onDestroy() {
+                    console.log('onDestroy');
+                    setIsMentionListVisible(false);
+                    component.updateProps({ ...props, isMentionListVisible: false });
                   },
                 });
               },
               onUpdate(props: any) {
-                component.updateProps({ ...props });
+                component.updateProps({ ...props, query: props.query || '' });
                 popup[0].setProps({
                   getReferenceClientRect: props.clientRect,
                 });
@@ -515,7 +555,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                   try {
                     const instance = popup?.[0];
                     const placement = parsePlacement(instance);
-                    component.updateProps({ ...props, placement });
+                    component.updateProps({ ...props, placement, query: props.query || '' });
                   } catch {
                     // noop
                   }
@@ -524,7 +564,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                   try {
                     const instance = popup?.[0];
                     const placement = parsePlacement(instance);
-                    component.updateProps({ ...props, placement });
+                    component.updateProps({ ...props, placement, query: props.query || '' });
                   } catch {
                     // noop
                   }
@@ -538,7 +578,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           },
         },
       });
-    }, [handleCommand]);
+    }, [handleCommand, isMentionListVisible]);
 
     // Create Tiptap editor
     const internalUpdateRef = useRef(false);
@@ -769,9 +809,11 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           } as any;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
+          toggleIsSettingContentRef();
         } else {
           internalUpdateRef.current = true;
           editor.commands.setContent(nextText);
+          toggleIsSettingContentRef();
         }
       }
     }, [query, editor, buildContentFromHandlebars]);
@@ -814,6 +856,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           } as any;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
+          toggleIsSettingContentRef();
         }
       }
     }, [canvasId, editor, query, buildContentFromHandlebars, allItems]);
@@ -825,12 +868,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           return;
         }
 
-        // Check if mention suggestion is currently open
-        const isMentionSuggestionOpen =
-          document.querySelector('.tippy-box[data-theme="custom"]') !== null;
-
         // If mention suggestion is open, don't handle navigation keys or Enter
-        if (isMentionSuggestionOpen) {
+        if (isMentionListVisible) {
           const key = e.key;
           if (
             key === 'ArrowUp' ||
@@ -871,7 +910,14 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           }
         }
       },
-      [query, readonly, handleSendMessageWithHandlebars, searchStore, isLogin],
+      [
+        query,
+        readonly,
+        handleSendMessageWithHandlebars,
+        searchStore,
+        isLogin,
+        isMentionListVisible,
+      ],
     );
 
     // Handle focus event and propagate it upward

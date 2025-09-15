@@ -1,12 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useMemo, useState, useRef } from 'react';
 import { useEffect } from 'react';
 import { useCallback } from 'react';
 import { CanvasNodeType, ResourceMeta, ResourceType } from '@refly/openapi-schema';
 import { ArrowRight, X } from 'refly-icons';
-import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
 import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { cn } from '@refly/utils/cn';
@@ -19,6 +17,7 @@ export interface MentionItem {
   variableId?: string;
   entityId?: string;
   nodeId?: string;
+  categoryLabel?: string;
   metadata?: {
     imageUrl?: string | undefined;
     resourceType?: ResourceType;
@@ -30,10 +29,14 @@ export const MentionList = ({
   items,
   command,
   placement = 'bottom',
+  isMentionListVisible,
+  query = '',
 }: {
   items: MentionItem[];
   command: any;
   placement?: 'top' | 'bottom';
+  isMentionListVisible?: boolean;
+  query?: string;
 }) => {
   const { t } = useTranslation();
   const [hoveredCategory, setHoveredCategory] = useState<string | null>('startNode');
@@ -44,8 +47,8 @@ export const MentionList = ({
   // Height tracking states
   const [firstLevelHeight, setFirstLevelHeight] = useState<number>(0);
   const [secondLevelHeight, setSecondLevelHeight] = useState<number>(0);
-  const { nodes } = useCanvasData();
-  const { canvasId } = useCanvasContext();
+  const { workflow } = useCanvasContext();
+  const { workflowVariablesLoading: isLoadingVariables } = workflow || {};
 
   // Refs for measuring panel heights
   const firstLevelRef = useRef<HTMLDivElement>(null);
@@ -53,6 +56,18 @@ export const MentionList = ({
 
   // Dynamic alignment based on placement
   const mentionVirtalAlign = placement === 'top' ? 'items-end' : 'items-start';
+
+  // Filter function for items based on query
+  const filterItems = useCallback((items: MentionItem[], searchQuery: string) => {
+    if (!searchQuery) return items;
+
+    const q = searchQuery.toLowerCase();
+    return items.filter((item) => {
+      const name = item?.name ?? '';
+      const desc = item?.description ?? '';
+      return name.toLowerCase().includes(q) || desc.toLowerCase().includes(q);
+    });
+  }, []);
 
   // Height comparison logic
   const isFirstLevelTaller = firstLevelHeight > secondLevelHeight;
@@ -139,82 +154,81 @@ export const MentionList = ({
     [t],
   );
 
-  // Fetch workflow variables on demand when hovering startNode
-  const {
-    data: workflowVariablesData,
-    refetch: refetchWorkflowVariables,
-    isLoading: isLoadingVariables,
-  } = useGetWorkflowVariables({ query: { canvasId } }, undefined, {
-    enabled: !!canvasId, // Always enable when canvasId is available
-  });
-
   // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
-    // Use fetched workflow variables for startNode items instead of prop items
-    const workflowVariables = workflowVariablesData?.data || [];
-    const startNodeItems = workflowVariables.map((variable) => ({
-      name: variable.name,
-      description: variable.description || '',
-      source: 'startNode' as const,
-      variableType: variable.variableType || 'string',
-      variableId: variable.variableId || '',
-    }));
-    console.log('startNodeItems', startNodeItems);
+    const startNodeItems = items.filter((item) => item.source === 'startNode');
 
-    // Resource library only contains my upload items
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
-
-    // Get skillResponse nodes for step records
-    const stepRecordItems =
-      nodes
-        ?.filter((node) => node.type === 'skillResponse')
-        ?.map((node) => ({
-          name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
-          description: t('canvas.richChatInput.stepRecord'),
-          source: 'stepRecord' as const,
-          variableType: node.type, // Use actual node type
-          entityId: node.data?.entityId,
-          nodeId: node.id,
-        })) ?? [];
-
-    // Get result record nodes - same logic as ResultList component
-    const resultRecordItems =
-      nodes
-        ?.filter(
-          (node) =>
-            ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
-            (node.type === 'image' && !!node.data?.metadata?.resultId),
-        )
-        ?.map((node) => ({
-          name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
-          description: t('canvas.richChatInput.resultRecord'),
-          source: 'resultRecord' as const,
-          variableType: node.type, // Use actual node type
-          entityId: node.data?.entityId,
-          nodeId: node.id,
-          metadata: {
-            imageUrl: node.data?.metadata?.imageUrl,
-            resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
-            resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
-          },
-        })) ?? [];
+    const stepRecordItems = items.filter((item) => item.source === 'stepRecord');
+    const resultRecordItems = items.filter((item) => item.source === 'resultRecord');
 
     // Running record combines step records and result records
     const runningRecordItems = [...stepRecordItems, ...resultRecordItems];
 
+    // Apply filtering based on query
     return {
-      startNode: startNodeItems,
-      resourceLibrary: myUploadItems,
-      runningRecord: runningRecordItems,
+      startNode: filterItems(startNodeItems, query),
+      resourceLibrary: filterItems(myUploadItems, query),
+      runningRecord: filterItems(runningRecordItems, query),
     };
-  }, [workflowVariablesData, items, nodes, t]);
+  }, [items, filterItems, query]);
 
-  // Trigger variable fetch when hovering startNode
-  useEffect(() => {
-    if (hoveredCategory === 'startNode' && canvasId) {
-      refetchWorkflowVariables();
+  // When there's a query, create grouped items with headers
+  const queryModeItems = useMemo(() => {
+    if (!query) return [];
+
+    const items = [];
+
+    // Add startNode group
+    if (groupedItems.startNode.length > 0) {
+      items.push({
+        type: 'header',
+        label: t('canvas.richChatInput.startNode'),
+        source: 'startNode' as const,
+      });
+      items.push(
+        ...groupedItems.startNode.map((item) => ({
+          ...item,
+          categoryLabel: t('canvas.richChatInput.startNode'),
+          type: 'item' as const,
+        })),
+      );
     }
-  }, [hoveredCategory, canvasId, refetchWorkflowVariables]);
+
+    // Add resourceLibrary group
+    if (groupedItems.resourceLibrary.length > 0) {
+      items.push({
+        type: 'header',
+        label: t('canvas.richChatInput.resourceLibrary'),
+        source: 'resourceLibrary' as const,
+      });
+      items.push(
+        ...groupedItems.resourceLibrary.map((item) => ({
+          ...item,
+          categoryLabel: t('canvas.richChatInput.resourceLibrary'),
+          type: 'item' as const,
+        })),
+      );
+    }
+
+    // Add runningRecord group
+    if (groupedItems.runningRecord.length > 0) {
+      items.push({
+        type: 'header',
+        label: t('canvas.richChatInput.runningRecord'),
+        source: 'runningRecord' as const,
+      });
+      items.push(
+        ...groupedItems.runningRecord.map((item) => ({
+          ...item,
+          categoryLabel: t('canvas.richChatInput.runningRecord'),
+          type: 'item' as const,
+        })),
+      );
+    }
+
+    return items;
+  }, [groupedItems, query, t]);
 
   // Measure panel heights when content changes
   useEffect(() => {
@@ -233,7 +247,7 @@ export const MentionList = ({
     const timeoutId = setTimeout(measureHeights, 0);
 
     return () => clearTimeout(timeoutId);
-  }, [hoveredCategory, groupedItems, isLoadingVariables]);
+  }, [hoveredCategory, groupedItems]);
 
   // Also measure heights when window resizes
   useEffect(() => {
@@ -264,9 +278,14 @@ export const MentionList = ({
     return [];
   }, [hoveredCategory, groupedItems]);
 
+  // In query mode, use queryModeItems for navigation, but filter out headers
+  const navigationItems = query
+    ? queryModeItems.filter((item) => item.type === 'item')
+    : currentSecondLevelItems;
+
   // Function to scroll active item into view
   const scrollActiveItemIntoView = useCallback(() => {
-    if (focusLevel === 'second' && secondLevelRef.current) {
+    if (secondLevelRef.current) {
       const container = secondLevelRef.current;
       const activeItem = container.querySelector('[data-active="true"]') as HTMLElement;
 
@@ -279,7 +298,7 @@ export const MentionList = ({
         });
       }
     }
-  }, [focusLevel]);
+  }, []);
 
   // Sync first level index with hoveredCategory
   useEffect(() => {
@@ -298,7 +317,7 @@ export const MentionList = ({
 
   // Clamp second level index to available items
   useEffect(() => {
-    const len = currentSecondLevelItems?.length ?? 0;
+    const len = navigationItems?.length ?? 0;
     if (len === 0) {
       setSecondLevelIndex(0);
       return;
@@ -306,17 +325,17 @@ export const MentionList = ({
     if (secondLevelIndex > len - 1) {
       setSecondLevelIndex(0);
     }
-  }, [currentSecondLevelItems, secondLevelIndex]);
+  }, [navigationItems, secondLevelIndex]);
 
   // Auto-scroll to active item when secondLevelIndex changes
   useEffect(() => {
-    if (focusLevel === 'second') {
+    if (query || focusLevel === 'second') {
       // Use requestAnimationFrame to ensure DOM has updated
       requestAnimationFrame(() => {
         scrollActiveItemIntoView();
       });
     }
-  }, [secondLevelIndex, focusLevel, scrollActiveItemIntoView]);
+  }, [secondLevelIndex, focusLevel, query, scrollActiveItemIntoView]);
 
   // Configuration for different categories
   const categoryConfigs = useMemo(
@@ -357,27 +376,52 @@ export const MentionList = ({
     [],
   );
 
-  // Generic function to render a single resource item
-  const renderResourceItem = useCallback(
-    (item: MentionItem, config: any, index: number, isActive: boolean) => (
-      <div
-        key={`${item.name}-${index}`}
-        data-active={isActive}
-        className={cn(
-          'h-8 p-1.5 flex items-center gap-2 cursor-pointer transition-colors rounded-md',
-          isActive ? 'bg-refly-fill-hover' : 'hover:bg-refly-fill-hover',
-        )}
-        onMouseEnter={() => {
-          setSecondLevelIndex(index);
-          setFocusLevel('second');
-        }}
-        onClick={() => selectItem(item)}
-      >
-        <NodeIcon {...config.nodeIconProps(item)} />
-        <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
-      </div>
-    ),
-    [],
+  // Common component for rendering list items
+  const renderListItem = useCallback(
+    (item: MentionItem, index: number, isActive: boolean) => {
+      // Map item source to category config key
+      const getCategoryKey = (source: string) => {
+        if (source === 'startNode') return 'startNode';
+        if (source === 'myUpload') return 'resourceLibrary';
+        if (source === 'stepRecord' || source === 'resultRecord') return 'runningRecord';
+        return source;
+      };
+
+      const categoryKey = getCategoryKey(item.source);
+      const config = categoryConfigs[categoryKey as keyof typeof categoryConfigs];
+
+      return (
+        <div
+          key={`${item.name}-${index}`}
+          data-active={isActive}
+          className={cn(
+            'h-8 p-1.5 flex items-center gap-2 cursor-pointer transition-colors rounded-md',
+            isActive ? 'bg-refly-fill-hover' : 'hover:bg-refly-fill-hover',
+          )}
+          onMouseEnter={() => {
+            setSecondLevelIndex(index);
+            if (!query) {
+              setFocusLevel('second');
+            }
+          }}
+          onClick={() => selectItem(item)}
+        >
+          {item.source === 'startNode' ? (
+            <>
+              <X size={12} className="flex-shrink-0" color="var(--refly-primary-default)" />
+              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
+              <div className="flex">{getStartNodeIcon(item.variableType)}</div>
+            </>
+          ) : (
+            <>
+              {config && 'nodeIconProps' in config && <NodeIcon {...config.nodeIconProps(item)} />}
+              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
+            </>
+          )}
+        </div>
+      );
+    },
+    [categoryConfigs, query],
   );
 
   // Generic function to render empty state
@@ -393,7 +437,13 @@ export const MentionList = ({
 
   // Keyboard navigation handlers
   const handleArrowUp = useCallback(() => {
-    if (focusLevel === 'first') {
+    if (query) {
+      // In query mode, navigate directly in the unified list
+      const len = navigationItems?.length ?? 0;
+      if (len > 0) {
+        setSecondLevelIndex((secondLevelIndex + len - 1) % len);
+      }
+    } else if (focusLevel === 'first') {
       const total = firstLevels?.length ?? 0;
       if (total > 0) {
         const next = (firstLevelIndex + total - 1) % total;
@@ -402,15 +452,21 @@ export const MentionList = ({
         setHoveredCategory(nextKey);
       }
     } else {
-      const len = currentSecondLevelItems?.length ?? 0;
+      const len = navigationItems?.length ?? 0;
       if (len > 0) {
         setSecondLevelIndex((secondLevelIndex + len - 1) % len);
       }
     }
-  }, [focusLevel, firstLevels, firstLevelIndex, currentSecondLevelItems, secondLevelIndex]);
+  }, [query, focusLevel, firstLevels, firstLevelIndex, navigationItems, secondLevelIndex]);
 
   const handleArrowDown = useCallback(() => {
-    if (focusLevel === 'first') {
+    if (query) {
+      // In query mode, navigate directly in the unified list
+      const len = navigationItems?.length ?? 0;
+      if (len > 0) {
+        setSecondLevelIndex((secondLevelIndex + 1) % len);
+      }
+    } else if (focusLevel === 'first') {
       const total = firstLevels?.length ?? 0;
       if (total > 0) {
         const next = (firstLevelIndex + 1) % total;
@@ -419,42 +475,62 @@ export const MentionList = ({
         setHoveredCategory(nextKey);
       }
     } else {
-      const len = currentSecondLevelItems?.length ?? 0;
+      const len = navigationItems?.length ?? 0;
       if (len > 0) {
         setSecondLevelIndex((secondLevelIndex + 1) % len);
       }
     }
-  }, [focusLevel, firstLevels, firstLevelIndex, currentSecondLevelItems, secondLevelIndex]);
+  }, [query, focusLevel, firstLevels, firstLevelIndex, navigationItems, secondLevelIndex]);
 
   const handleArrowLeft = useCallback(() => {
+    if (query) {
+      // In query mode, left arrow doesn't do anything
+      return;
+    }
     if (focusLevel === 'second') {
       setFocusLevel('first');
     }
-  }, [focusLevel]);
+  }, [query, focusLevel]);
 
   const handleArrowRight = useCallback(() => {
+    if (query) {
+      // In query mode, right arrow doesn't do anything
+      return;
+    }
     if (focusLevel === 'first') {
-      const len = currentSecondLevelItems?.length ?? 0;
+      const len = navigationItems?.length ?? 0;
       if (len > 0) {
         setFocusLevel('second');
       }
     }
-  }, [focusLevel, currentSecondLevelItems]);
+  }, [query, focusLevel, navigationItems]);
 
   const handleEnter = useCallback(() => {
-    if (focusLevel === 'second') {
-      const len = currentSecondLevelItems?.length ?? 0;
+    if (query) {
+      // In query mode, enter selects the current item
+      const len = navigationItems?.length ?? 0;
       if (len > 0) {
-        const item = currentSecondLevelItems?.[secondLevelIndex];
+        const item = navigationItems?.[secondLevelIndex];
+        if (item) {
+          selectItem(item);
+        }
+      }
+    } else if (focusLevel === 'second') {
+      const len = navigationItems?.length ?? 0;
+      if (len > 0) {
+        const item = navigationItems?.[secondLevelIndex];
         if (item) {
           selectItem(item);
         }
       }
     }
-  }, [focusLevel, currentSecondLevelItems, secondLevelIndex]);
+  }, [query, focusLevel, navigationItems, secondLevelIndex]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (!isMentionListVisible) {
+        return;
+      }
       const key = event.key;
       let handled = false;
 
@@ -487,119 +563,152 @@ export const MentionList = ({
     return () => {
       document.removeEventListener('keydown', onKeyDown, true);
     };
-  }, [handleArrowUp, handleArrowDown, handleArrowLeft, handleArrowRight, handleEnter]);
+  }, [
+    handleArrowUp,
+    handleArrowDown,
+    handleArrowLeft,
+    handleArrowRight,
+    handleEnter,
+    isMentionListVisible,
+  ]);
+
+  const renderUnifiedList = () => {
+    return (
+      <div
+        ref={secondLevelRef}
+        className="w-[200px] p-2 flex box-border max-h-60 overflow-y-auto bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border rounded-xl"
+      >
+        {queryModeItems?.length > 0 ? (
+          <div className="space-y-1 w-full">
+            {queryModeItems.map((item, idx) => {
+              // Handle group headers
+              if (item.type === 'header') {
+                return (
+                  <div
+                    key={`header-${item.source}-${idx}`}
+                    className="px-2 py-1 text-xs font-semibold text-refly-text-3"
+                  >
+                    {item.label}
+                  </div>
+                );
+              }
+
+              // Handle regular items
+              const isActive =
+                secondLevelIndex === navigationItems.findIndex((navItem) => navItem === item);
+              const navIndex = navigationItems.findIndex((navItem) => navItem === item);
+
+              return renderListItem(item, navIndex, isActive);
+            })}
+          </div>
+        ) : (
+          <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
+            {t('canvas.richChatInput.createVariable', { variableName: query })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={cn('relative flex w-106', mentionVirtalAlign)}>
-      {/* First level menu - Categories */}
-      <div ref={firstLevelRef} className={firstLevelClasses}>
-        {firstLevels.map((item, idx) => (
-          <div
-            key={item.key}
-            className={cn(
-              'h-8 p-1.5 cursor-pointer transition-colors hover:bg-refly-fill-hover rounded-md flex items-center gap-2',
-              hoveredCategory === item.key && focusLevel === 'first' && 'bg-refly-fill-hover',
-            )}
-            onMouseEnter={item.onMouseEnter}
-            onClick={() => {
-              setHoveredCategory(item.key);
-              setFirstLevelIndex(idx);
-              setFocusLevel('second');
-            }}
-          >
-            <div className="flex-1 text-sm text-refly-text-0 truncate">{item.name}</div>
-            <ArrowRight size={12} color="var(--refly-text-1)" />
-          </div>
-        ))}
-      </div>
-
-      {/* Second level menu - Variables */}
-      <div ref={secondLevelRef} className={secondLevelClasses}>
-        {hoveredCategory === 'startNode' && (
-          <div className="flex-1 w-full">
-            {isLoadingVariables ? (
-              <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
-                {t('canvas.richChatInput.loadingVariables')}
+      {query ? (
+        renderUnifiedList()
+      ) : (
+        <>
+          {/* First level menu - Categories */}
+          <div ref={firstLevelRef} className={firstLevelClasses}>
+            {firstLevels.map((item, idx) => (
+              <div
+                key={item.key}
+                className={cn(
+                  'h-8 p-1.5 cursor-pointer transition-colors hover:bg-refly-fill-hover rounded-md flex items-center gap-2',
+                  hoveredCategory === item.key && 'bg-refly-fill-hover',
+                )}
+                onMouseEnter={item.onMouseEnter}
+                onClick={() => {
+                  setHoveredCategory(item.key);
+                  setFirstLevelIndex(idx);
+                  setFocusLevel('second');
+                }}
+              >
+                <div className="flex-1 text-sm text-refly-text-0 truncate">{item.name}</div>
+                <ArrowRight size={12} color="var(--refly-text-1)" />
               </div>
-            ) : groupedItems.startNode?.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                {groupedItems.startNode.map((item, idx) => (
-                  <div
-                    key={`${item.variableId}-${idx}`}
-                    data-active={focusLevel === 'second' && secondLevelIndex === idx}
-                    className={cn(
-                      'h-8 p-1.5 cursor-pointer transition-colors rounded-md flex items-center gap-2 justify-between',
-                      focusLevel === 'second' && secondLevelIndex === idx
-                        ? 'bg-refly-fill-hover'
-                        : 'hover:bg-refly-fill-hover',
-                    )}
-                    onMouseEnter={() => {
-                      setSecondLevelIndex(idx);
-                      setFocusLevel('second');
-                    }}
-                    onClick={() => selectItem(item)}
-                  >
-                    <X size={12} className="flex-shrink-0" color="var(--refly-primary-default)" />
-                    <div className="flex-1 min-w-0 text-refly-text-0 truncate text-sm leading-5">
-                      {item.name}
-                    </div>
-                    <div className="flex">{getStartNodeIcon(item.variableType)}</div>
+            ))}
+          </div>
+
+          {/* Second level menu - Variables */}
+          <div ref={secondLevelRef} className={secondLevelClasses}>
+            {hoveredCategory === 'startNode' && (
+              <div className="flex-1 w-full">
+                {isLoadingVariables ? (
+                  <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
+                    {t('canvas.richChatInput.loadingVariables')}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
-                {t('canvas.richChatInput.noStartNodeVariables')}
-              </div>
-            )}
-          </div>
-        )}
-
-        {hoveredCategory === 'resourceLibrary' && (
-          <div className="flex-1 w-full">
-            {groupedItems.resourceLibrary?.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                {groupedItems.resourceLibrary.map((item, idx) =>
-                  renderResourceItem(
-                    item,
-                    categoryConfigs.resourceLibrary,
-                    idx,
-                    focusLevel === 'second' && secondLevelIndex === idx,
-                  ),
+                ) : groupedItems.startNode?.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {groupedItems.startNode.map((item, idx) =>
+                      renderListItem(
+                        item,
+                        idx,
+                        focusLevel === 'second' && secondLevelIndex === idx,
+                      ),
+                    )}
+                  </div>
+                ) : (
+                  <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
+                    {t('canvas.richChatInput.noStartNodeVariables')}
+                  </div>
                 )}
               </div>
-            ) : (
-              renderEmptyState(categoryConfigs.resourceLibrary.emptyStateKey)
             )}
-          </div>
-        )}
 
-        {hoveredCategory === 'runningRecord' && (
-          <div className="flex-1 w-full">
-            {groupedItems.runningRecord?.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                {groupedItems.runningRecord.map((item, idx) =>
-                  renderResourceItem(
-                    item,
-                    categoryConfigs.runningRecord,
-                    idx,
-                    focusLevel === 'second' && secondLevelIndex === idx,
-                  ),
+            {hoveredCategory === 'resourceLibrary' && (
+              <div className="flex-1 w-full">
+                {groupedItems.resourceLibrary?.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {groupedItems.resourceLibrary.map((item, idx) =>
+                      renderListItem(
+                        item,
+                        idx,
+                        focusLevel === 'second' && secondLevelIndex === idx,
+                      ),
+                    )}
+                  </div>
+                ) : (
+                  renderEmptyState(categoryConfigs.resourceLibrary.emptyStateKey)
                 )}
               </div>
-            ) : (
-              renderEmptyState(categoryConfigs.runningRecord.emptyStateKey)
+            )}
+
+            {hoveredCategory === 'runningRecord' && (
+              <div className="flex-1 w-full">
+                {groupedItems.runningRecord?.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {groupedItems.runningRecord.map((item, idx) =>
+                      renderListItem(
+                        item,
+                        idx,
+                        focusLevel === 'second' && secondLevelIndex === idx,
+                      ),
+                    )}
+                  </div>
+                ) : (
+                  renderEmptyState(categoryConfigs.runningRecord.emptyStateKey)
+                )}
+              </div>
+            )}
+
+            {/* Show default view when no category is hovered */}
+            {!hoveredCategory && (
+              <div className="p-8 text-center text-refly-text-2 text-sm">
+                {t('canvas.richChatInput.hoverToViewVariables')}
+              </div>
             )}
           </div>
-        )}
-
-        {/* Show default view when no category is hovered */}
-        {!hoveredCategory && (
-          <div className="p-8 text-center text-refly-text-2 text-sm">
-            {t('canvas.richChatInput.hoverToViewVariables')}
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };

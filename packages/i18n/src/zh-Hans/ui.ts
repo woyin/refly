@@ -1131,8 +1131,8 @@ const translations = {
     },
     launchpad: {
       placeholder: '描述你的需求...',
-      chatInputPlaceholder: '给 Refly 一个任务，它会智能分析和规划，并帮你完成任务...',
-      commonChatInputPlaceholder: '问 Refly 任何问题...',
+      chatInputPlaceholder: '输入任务描述，Agent 将生成可复用的工作流',
+      commonChatInputPlaceholder: '输入任务描述，@ 可以快速选择变量/资源',
     },
     contextMenu: {
       createGroup: '创建分组',
@@ -1643,6 +1643,7 @@ const translations = {
       defaultPlaceholder: '描述你想要生成的内容...',
       runningRecord: '运行记录',
       noRunningRecords: '暂无运行记录',
+      createVariable: '创建变量 {{variableName}}',
     },
     toolsDepencency: {
       title: '工具依赖',

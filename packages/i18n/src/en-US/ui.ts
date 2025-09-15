@@ -1146,9 +1146,9 @@ const translations = {
     },
     launchpad: {
       placeholder: 'Describe needs...',
-      chatInputPlaceholder:
-        'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
-      commonChatInputPlaceholder: 'Ask Refly any question...',
+      chatInputPlaceholder: 'Input task description, Agent will generate reusable workflows',
+      commonChatInputPlaceholder:
+        'Input task description, @ can quickly select variables/resources',
     },
     contextMenu: {
       createGroup: 'Create Group',
@@ -1681,6 +1681,7 @@ const translations = {
       defaultPlaceholder: 'Describe what you want to generate...',
       runningRecord: 'Running Record',
       noRunningRecords: 'No running records',
+      createVariable: 'Create variable {{variableName}}',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',

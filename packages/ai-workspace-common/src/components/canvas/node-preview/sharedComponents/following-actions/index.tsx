@@ -283,7 +283,7 @@ export const FollowingActions = ({
                   setModelInfo={setFollowUpModelInfo}
                   selectedToolsets={selectedToolsets}
                   onSelectedToolsetsChange={setSelectedToolsets}
-                  placeholder={t('canvas.nodeActions.nextStepSuggestionsDescription')}
+                  placeholder={t('canvas.launchpad.commonChatInputPlaceholder')}
                   enableRichInput={true}
                 />
               </motion.div>
