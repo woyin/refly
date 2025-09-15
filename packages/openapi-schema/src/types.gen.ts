@@ -1794,10 +1794,12 @@ export type ActionResult = {
   context?: SkillContext;
   /**
    * Action template config
+   * @deprecated
    */
   tplConfig?: SkillTemplateConfig;
   /**
    * Action runtime config
+   * @deprecated
    */
   runtimeConfig?: SkillRuntimeConfig;
   /**
@@ -1812,6 +1814,10 @@ export type ActionResult = {
    * Errors
    */
   errors?: Array<string>;
+  /**
+   * Action toolsets
+   */
+  toolsets?: Array<GenericToolset>;
   /**
    * Media generation output URL (for media type actions)
    */
@@ -5641,6 +5647,14 @@ export type GenericToolset = {
    * Toolset name
    */
   name: string;
+  /**
+   * Whether the toolset is builtin
+   */
+  builtin?: boolean;
+  /**
+   * Whether the toolset is uninstalled
+   */
+  uninstalled?: boolean;
   /**
    * Toolset detail
    */

@@ -9,7 +9,7 @@ import {
 import { genTransactionId } from '@refly/utils';
 
 const NODE_DIFF_IGNORE_KEYS = ['id', 'selected', 'dragging', 'style.zIndex'];
-const EDGE_DIFF_IGNORE_KEYS = ['id', 'data.hover'];
+const EDGE_DIFF_IGNORE_KEYS = ['id', 'style', 'selected', 'data.hover'];
 
 /**
  * Deep compare two objects excluding the 'id' and other fields that are not relevant
