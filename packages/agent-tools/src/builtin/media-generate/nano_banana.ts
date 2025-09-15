@@ -1,9 +1,15 @@
-import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../../base';
+import {
+  AgentBaseTool,
+  AgentBaseToolset,
+  AgentToolConstructor,
+  BaseToolParams,
+  ToolCallResult,
+} from '../../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
 import { User } from '@refly/openapi-schema';
-import { ReflyService } from '../interface';
 import { z } from 'zod/v3';
 import { RunnableConfig } from '@langchain/core/runnables';
+import { ToolParams } from '@langchain/core/tools';
 
 export const GenerateImageWithNanoBananaToolsetDefinition: ToolsetDefinition = {
   key: 'generate_image_with_nano_banana',
@@ -34,9 +40,8 @@ export const GenerateImageWithNanoBananaToolsetDefinition: ToolsetDefinition = {
   ],
 };
 
-interface BuiltinToolParams {
+interface BuiltinToolParams extends BaseToolParams, ToolParams {
   user: User;
-  reflyService: ReflyService;
 }
 
 export class GenerateImageWithNanoBananaT2I extends AgentBaseTool<BuiltinToolParams> {
@@ -62,6 +67,9 @@ export class GenerateImageWithNanoBananaT2I extends AgentBaseTool<BuiltinToolPar
   ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
+      if (!reflyService) {
+        throw new Error('Refly service not found');
+      }
       const result = await reflyService.generateMedia(user, {
         mediaType: 'image',
         prompt: input.prompt,
@@ -104,6 +112,9 @@ export class GenerateImageWithNanoBananaI2I extends AgentBaseTool<BuiltinToolPar
   ): Promise<ToolCallResult> {
     try {
       const { reflyService, user } = this.params;
+      if (!reflyService) {
+        throw new Error('Refly service not found');
+      }
       const result = await reflyService.generateMedia(user, {
         mediaType: 'image',
         prompt: input.prompt,
