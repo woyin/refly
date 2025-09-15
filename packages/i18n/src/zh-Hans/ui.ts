@@ -1641,6 +1641,8 @@ const translations = {
       loadingVariables: '加载变量中...',
       noStartNodeVariables: '暂无开始节点变量',
       defaultPlaceholder: '描述你想要生成的内容...',
+      runningRecord: '运行记录',
+      noRunningRecords: '暂无运行记录',
     },
     toolsDepencency: {
       title: '工具依赖',
@@ -2269,6 +2271,14 @@ const translations = {
         required: '{{name}} 必填',
         toolEnabled: '已启用{{name}}',
         toolDisabled: '已禁用{{name}}',
+        oauthStatus: 'OAuth 状态',
+      },
+      oauth: {
+        checking: '检查 OAuth 状态中...',
+        authorized: 'OAuth 已授权',
+        required: '需要 OAuth 授权',
+        authorizeWith: '使用 {{provider}} 授权',
+        checkFailed: '检查 OAuth 状态失败',
       },
     },
     appearance: {
