@@ -93,8 +93,10 @@ export const NewCanvasButton = React.memo(() => {
   const buttonsRender = useCallback((buttons: [ReactElement, ReactElement]) => {
     const [leftButton, rightButton] = buttons ?? [];
 
-    const leftClassName = `${leftButton?.props?.className ?? ''} h-9 bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover`;
-    const rightClassName = `${rightButton?.props?.className ?? ''} h-9 bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover`;
+    const commonClassName =
+      'h-9 border-[1px] border-solid border-refly-Card-Border bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover';
+    const leftClassName = `${leftButton?.props?.className ?? ''} ${commonClassName}`;
+    const rightClassName = `${rightButton?.props?.className ?? ''} ${commonClassName}`;
 
     return [
       React.cloneElement(leftButton, { className: leftClassName }),
