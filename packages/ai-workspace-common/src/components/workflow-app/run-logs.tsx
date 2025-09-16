@@ -241,7 +241,7 @@ export const WorkflowAppRunLogs = ({
                 <div
                   className={cn(
                     'overflow-hidden transition-all duration-300 ease-in-out',
-                    expanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0',
+                    expanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0',
                   )}
                 >
                   <div className="border-t border-refly-Card-Border bg-refly-bg-content-z1">
