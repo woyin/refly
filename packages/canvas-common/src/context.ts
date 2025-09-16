@@ -1,7 +1,7 @@
 import { ActionResult, CanvasNodeType, MediaType, SkillContext } from '@refly/openapi-schema';
 import { IContextItem } from '@refly/common-types';
 import { Node, Edge } from '@xyflow/react';
-import { getClientOrigin, omit } from '@refly/utils';
+import { genUniqueId, getClientOrigin, omit } from '@refly/utils';
 import { CanvasNodeFilter } from './types';
 
 export const convertResultContextToItems = (
@@ -202,14 +202,14 @@ export const convertContextItemsToInvokeParams = (
           resource: {
             resourceId: item.entityId,
             resourceType: item.metadata?.resourceType,
-            title: item.title,
+            title: item.title ?? '',
           },
           isCurrent: item.isCurrentContext,
           metadata: {
             ...item.metadata,
           },
         })),
-      (item) => item.resourceId,
+      (item) => item.resourceId ?? genUniqueId(),
     ),
     documents: deduplicate(
       purgedItems
@@ -218,7 +218,7 @@ export const convertContextItemsToInvokeParams = (
           docId: item.entityId,
           document: {
             docId: item.entityId,
-            title: item.title,
+            title: item.title ?? '',
           },
           isCurrent: item.isCurrentContext,
           metadata: item.metadata,
@@ -232,7 +232,7 @@ export const convertContextItemsToInvokeParams = (
           artifactId: item.entityId,
           codeArtifact: {
             artifactId: item.entityId,
-            title: item.title,
+            title: item.title ?? '',
             type: item.metadata?.artifactType ?? 'unknown',
           },
           isCurrent: item.isCurrentContext,
@@ -240,7 +240,7 @@ export const convertContextItemsToInvokeParams = (
             ...item.metadata,
           },
         })),
-      (item) => item.artifactId,
+      (item) => item.artifactId ?? genUniqueId(),
     ),
     urls: deduplicate(
       purgedItems
@@ -274,7 +274,7 @@ export const convertContextItemsToInvokeParams = (
         .map((item) => ({
           entityId: item.entityId,
           mediaType: item.type as MediaType,
-          title: item.title,
+          title: item.title ?? '',
           url: item.metadata?.[`${item?.type}Url`],
           storageKey: item.metadata?.storageKey,
         })),

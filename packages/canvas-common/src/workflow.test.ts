@@ -69,6 +69,23 @@ describe('processQueryWithTypes', () => {
     expect(processQueryWithTypes(query, variables)).toBe('hello Alice world');
   });
 
+  it('handles non-ascii variable names', () => {
+    const query = '查找 @变量\n';
+    const variables: WorkflowVariable[] = [
+      {
+        variableId: 'v1',
+        name: '变量',
+        value: [
+          {
+            type: 'text',
+            text: '测试',
+          },
+        ],
+      },
+    ];
+    expect(processQueryWithTypes(query, variables)).toBe('查找 测试\n');
+  });
+
   it('replaces multiple occurrences and joins option values with comma', () => {
     const query = '@topic is cool. I love @topic so much';
     const variables: WorkflowVariable[] = [
@@ -163,10 +180,9 @@ describe('prepareNodeExecutions', () => {
               {
                 entityId: 'entityA',
                 type: 'skillResponse',
-                title: 'Hello JavaScript world',
                 metadata: { withHistory: true },
               },
-              { entityId: 'entityB', type: 'document', title: 'Test Document' },
+              { entityId: 'entityB', type: 'document' },
             ],
             modelInfo: {
               name: 'openai/gpt-5-mini',
@@ -353,7 +369,6 @@ describe('prepareNodeExecutions', () => {
               contextItems: [
                 {
                   entityId: 'entityA',
-                  title: 'Hello TypeScript world',
                   type: 'skillResponse',
                   metadata: {
                     withHistory: true,
@@ -361,7 +376,6 @@ describe('prepareNodeExecutions', () => {
                 },
                 {
                   entityId: 'entityB',
-                  title: 'Test Document',
                   type: 'document',
                 },
               ],
@@ -553,12 +567,10 @@ describe('prepareNodeExecutions', () => {
                   metadata: {
                     withHistory: true,
                   },
-                  title: 'Hello TypeScript world',
                   type: 'skillResponse',
                 },
                 {
                   entityId: 'E3',
-                  title: 'Test Document',
                   type: 'document',
                 },
               ],

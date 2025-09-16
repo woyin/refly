@@ -13,6 +13,7 @@ import {
   ToolsetAuthType,
   UpsertToolsetRequest,
   User,
+  CanvasNode,
 } from '@refly/openapi-schema';
 import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
 import { BuiltinToolset, BuiltinToolsetDefinition, toolsetInventory } from '@refly/agent-tools';
@@ -25,6 +26,7 @@ import {
   MultiServerMCPClient,
   SkillEngine,
 } from '@refly/skill-template';
+import { extractToolsetsWithNodes } from '@refly/canvas-common';
 
 @Injectable()
 export class ToolService {
@@ -51,6 +53,7 @@ export class ToolService {
       builtin: true,
       toolset: {
         toolsetId: 'builtin',
+        key: 'builtin',
         name: 'Builtin',
         definition: BuiltinToolsetDefinition,
       },
@@ -559,7 +562,23 @@ export class ToolService {
       }
     }
 
+    this.logger.log(`Imported toolsets: ${JSON.stringify(replaceToolsetMap)}`);
+
     return { toolsets: importedToolsets, replaceToolsetMap };
+  }
+
+  async importToolsetsFromNodes(
+    user: User,
+    nodes: CanvasNode[],
+  ): Promise<{ replaceToolsetMap: Record<string, GenericToolset> }> {
+    if (!nodes?.length) {
+      return { replaceToolsetMap: {} };
+    }
+
+    const toolsetsWithNodes = extractToolsetsWithNodes(nodes).map((t) => t.toolset);
+    const { replaceToolsetMap } = await this.importToolsets(user, toolsetsWithNodes);
+
+    return { replaceToolsetMap };
   }
 
   /**

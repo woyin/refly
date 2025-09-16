@@ -22,7 +22,7 @@ import {
   ActionResult,
 } from '@refly/openapi-schema';
 import { Prisma } from '../../generated/client';
-import { genCanvasID, genTransactionId } from '@refly/utils';
+import { genCanvasID, genTransactionId, safeParseJSON } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
 import { AutoNameCanvasJobData, DeleteCanvasJobData } from './canvas.dto';
@@ -36,7 +36,8 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
-import { initEmptyCanvasState } from '@refly/canvas-common';
+import { initEmptyCanvasState, mirrorCanvasData } from '@refly/canvas-common';
+import { ToolService } from '../tool/tool.service';
 
 @Injectable()
 export class CanvasService {
@@ -47,6 +48,7 @@ export class CanvasService {
     private redis: RedisService,
     private miscService: MiscService,
     private actionService: ActionService,
+    private toolService: ToolService,
     private canvasSyncService: CanvasSyncService,
     private knowledgeService: KnowledgeService,
     private providerService: ProviderService,
@@ -138,6 +140,7 @@ export class CanvasService {
       minimapUrl: canvas.minimapStorageKey
         ? this.miscService.generateFileURL({ storageKey: canvas.minimapStorageKey })
         : undefined,
+      variables: canvas.workflow ? safeParseJSON(canvas.workflow)?.variables : undefined,
     };
   }
 
@@ -841,5 +844,101 @@ export class CanvasService {
 
     const result = await this.autoNameCanvas(user, { canvasId, directUpdate: true });
     this.logger.log(`Auto named canvas ${canvasId} with title: ${result.title}`);
+  }
+
+  async importCanvas(user: User, param: { file: Buffer; canvasId?: string }) {
+    const { file, canvasId } = param;
+
+    let rawData: RawCanvasData;
+    try {
+      // Parse the uploaded file as RawCanvasData
+      rawData = JSON.parse(file.toString('utf-8'));
+    } catch (error) {
+      this.logger.warn(`Error importing canvas: ${error?.message}`);
+      throw new ParamsError('Failed to parse canvas data');
+    }
+
+    // Validate the raw data structure
+    if (!Array.isArray(rawData.nodes) || !Array.isArray(rawData.edges)) {
+      throw new ParamsError('Invalid canvas data: missing nodes or edges');
+    }
+
+    // Extract data from RawCanvasData
+    const { nodes, title = 'Imported Canvas', variables } = rawData;
+
+    // Import toolsets and replace them in nodes
+    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
+    const newCanvasData = mirrorCanvasData(rawData, { replaceToolsetMap });
+
+    // Create canvas state
+    const state: CanvasState = {
+      ...initEmptyCanvasState(),
+      ...newCanvasData,
+    };
+
+    // Generate canvas ID if not provided; avoid collisions for user-provided IDs
+    let finalCanvasId = canvasId || genCanvasID();
+    if (canvasId) {
+      const exists = await this.prisma.canvas.findFirst({
+        where: { canvasId, deletedAt: null },
+      });
+      if (exists) {
+        if (exists.uid !== user.uid) {
+          throw new ParamsError(`Canvas ID already exists: ${canvasId}`);
+        }
+        // Avoid collision with an existing canvas owned by the user
+        finalCanvasId = genCanvasID();
+      }
+    }
+
+    // Create the canvas with the imported state
+    const canvas = await this.createCanvasWithState(
+      user,
+      {
+        canvasId: finalCanvasId,
+        title,
+        variables,
+      },
+      state,
+    );
+
+    this.logger.log(`Successfully imported canvas ${finalCanvasId} for user ${user.uid}`);
+
+    return canvas;
+  }
+
+  async exportCanvas(user: User, canvasId: string): Promise<string> {
+    // Get the canvas raw data
+    const canvasData = await this.getCanvasRawData(user, canvasId);
+
+    // Convert to JSON string
+    const jsonData = JSON.stringify(canvasData, null, 2);
+
+    // Create a temporary file path for the export
+    const timestamp = Date.now();
+    const filename = `canvas-${canvasId}-${timestamp}.json`;
+    const tempFilePath = `temp/${user.uid}/${filename}`;
+
+    try {
+      // Upload the JSON data as a buffer to object storage
+      const buffer = Buffer.from(jsonData, 'utf-8');
+      const uploadResult = await this.miscService.uploadBuffer(user, {
+        fpath: tempFilePath,
+        buf: buffer,
+      });
+
+      // Generate a presigned URL that expires in 1 hour (3600 seconds)
+      const downloadUrl = await this.miscService.generateTempPublicURL(
+        uploadResult.storageKey,
+        3600,
+      );
+
+      this.logger.log(`Successfully exported canvas ${canvasId} for user ${user.uid}`);
+
+      return downloadUrl;
+    } catch (error) {
+      this.logger.error(`Error exporting canvas ${canvasId}: ${error?.message}`);
+      throw new ParamsError('Failed to export canvas data');
+    }
   }
 }

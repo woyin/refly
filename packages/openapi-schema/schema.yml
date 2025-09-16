@@ -747,7 +747,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExportCanvasResponse'
+                $ref: '#/components/schemas/GetCanvasDataResponse'
   /canvas/export:
     get:
       tags:
@@ -779,9 +779,9 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RawCanvasData'
+              $ref: '#/components/schemas/ImportCanvasRequest'
       responses:
         '200':
           description: Successful operation
@@ -6020,6 +6020,18 @@ components:
             minimapUrl:
               type: string
               description: Minimap URL
+            variables:
+              type: array
+              description: Workflow variables
+              items:
+                $ref: '#/components/schemas/WorkflowVariable'
+    GetCanvasDataResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RawCanvasData'
     ExportCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -6027,8 +6039,22 @@ components:
           properties:
             data:
               type: object
-              description: Canvas data
-              $ref: '#/components/schemas/RawCanvasData'
+              properties:
+                downloadUrl:
+                  type: string
+                  description: Download URL for the canvas data
+    ImportCanvasRequest:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+          description: File to import
+        canvasId:
+          type: string
+          description: Canvas ID to specify
     DuplicateCanvasRequest:
       type: object
       required:
@@ -9158,6 +9184,7 @@ components:
       required:
         - toolsetId
         - name
+        - key
       properties:
         toolsetId:
           type: string
