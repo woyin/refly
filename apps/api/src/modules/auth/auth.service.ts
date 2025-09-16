@@ -1,5 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
+import { webcrypto } from 'node:crypto';
 import argon2 from 'argon2';
 import ms from 'ms';
 import { Profile } from 'passport';
@@ -743,6 +744,7 @@ export class AuthService {
     const baseScope = ['profile', 'email'];
     const scopeArray = scope?.split(',') ?? [];
     const finalScope = [...baseScope, ...scopeArray];
+    this.logger.log(`finalScope: ${finalScope}`);
     const clientId = this.configService.get('auth.google.clientId');
     const callbackUrl = this.configService.get('auth.google.callbackUrl');
 
@@ -759,7 +761,11 @@ export class AuthService {
         });
 
         // If account exists and has a valid refresh token, don't force consent
-        if (existingAccount?.refreshToken && existingAccount.refreshToken !== undefined) {
+        if (
+          existingAccount?.refreshToken &&
+          existingAccount.refreshToken !== undefined &&
+          scopeArray.length === 0
+        ) {
           prompt = 'none';
         }
       } catch (error) {
@@ -782,5 +788,65 @@ export class AuthService {
     });
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  /**
+   * Generate Twitter OAuth URL for tool authorization
+   * @param scope Required scope array
+   * @param redirectUrl Redirect URL after authorization
+   * @param uid User ID for tool OAuth
+   */
+  async generateTwitterOAuthUrl(scope: string, redirect: string, uid: string): Promise<string> {
+    const scopeArray = scope?.split(',') ?? [];
+
+    this.logger.log(`Twitter finalScope: ${scopeArray}`);
+
+    const clientId = this.configService.get('auth.twitter.clientId');
+    const callbackUrl = this.configService.get('auth.twitter.callbackUrl');
+
+    // For Twitter OAuth 2.0 with PKCE, we need to generate code_challenge
+    const codeVerifier = this.generateCodeVerifier();
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: callbackUrl,
+      scope: scopeArray.join(' '),
+      state: JSON.stringify({
+        redirect: redirect ?? this.configService.get('auth.redirectUrl'),
+        uid: uid,
+        code_verifier: codeVerifier,
+      }),
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+    });
+
+    return `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Generate a random code verifier for PKCE
+   */
+  private generateCodeVerifier(): string {
+    const array = new Uint8Array(32);
+    webcrypto.getRandomValues(array);
+    return btoa(String.fromCharCode(...array))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  }
+
+  /**
+   * Generate code challenge from code verifier using SHA-256
+   */
+  private async generateCodeChallenge(codeVerifier: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(codeVerifier);
+    const digest = await webcrypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
   }
 }

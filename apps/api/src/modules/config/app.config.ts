@@ -106,6 +106,11 @@ export default () => ({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'test',
       callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'test',
     },
+    twitter: {
+      clientId: process.env.TWITTER_CLIENT_ID || 'test',
+      clientSecret: process.env.TWITTER_CLIENT_SECRET || 'test',
+      callbackUrl: process.env.TWITTER_CALLBACK_URL || 'test',
+    },
   },
   encryption: {
     key: process.env.ENCRYPTION_KEY,

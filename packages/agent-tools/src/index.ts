@@ -5,5 +5,10 @@ export * from './calculator';
 export * from './inventory';
 export * from './jina';
 export * from './code-interpreter';
+export * from './google-docs';
+export * from './google-drive';
+export * from './google-sheets';
+export * from './gmail';
+export * from './twitter';
 
 export type { ReflyService } from './builtin/interface';

@@ -1,5 +1,5 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { ReflyService } from 'src/builtin/interface';
+import { ReflyService } from './builtin/interface';
 
 export interface ToolCallResult {
   /**

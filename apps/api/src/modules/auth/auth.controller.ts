@@ -17,6 +17,7 @@ import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { AuthService } from './auth.service';
 import { GithubOauthGuard } from './guard/github-oauth.guard';
 import { GoogleOauthGuard } from './guard/google-oauth.guard';
+import { TwitterOauthGuard } from './guard/twitter-oauth.guard';
 import { OAuthError } from '@refly/errors';
 import {
   EmailSignupRequest,
@@ -117,6 +118,22 @@ export class AuthController {
     }
   }
 
+  @Get('twitter')
+  async twitter(
+    @Query('scope') scope: string,
+    @Query('redirect') redirect: string,
+    @Query('uid') uid: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const authUrl = await this.authService.generateTwitterOAuthUrl(scope, redirect, uid);
+      res.redirect(authUrl);
+    } catch (error) {
+      this.logger.error('Twitter OAuth initiation failed:', error.stack);
+      throw new OAuthError();
+    }
+  }
+
   @UseGuards(GithubOauthGuard)
   @Get('callback/github')
   async githubAuthCallback(@LoginedUser() user: User, @Res() res: Response) {
@@ -175,6 +192,52 @@ export class AuthController {
       this.authService.setAuthCookie(res, tokens).redirect(finalRedirect);
     } catch (error) {
       this.logger.error('Google OAuth callback failed:', error.stack);
+      throw new OAuthError();
+    }
+  }
+
+  @UseGuards(TwitterOauthGuard)
+  @Get('callback/twitter')
+  async twitterAuthCallback(
+    @LoginedUser() user: User,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ) {
+    try {
+      this.logger.log(`twitter oauth callback success, req.user = ${user?.email}`);
+      this.logger.log(`state: ${state}`);
+      // Parse state safely once
+      const defaultRedirect = this.configService.get('auth.redirectUrl');
+      let parsedState: { uid?: string; redirect?: string } | null = null;
+      try {
+        parsedState = state ? JSON.parse(state) : null;
+      } catch {
+        this.logger.warn('Invalid state JSON received in Twitter OAuth callback');
+      }
+      // Build a safe redirect URL (allowlist by origin; fall back to default)
+      const requested = parsedState?.redirect;
+      let finalRedirect = defaultRedirect;
+      try {
+        if (typeof requested === 'string') {
+          const allowed = this.configService.get<string[]>('auth.allowedRedirectOrigins') ?? [
+            new URL(defaultRedirect).origin,
+          ];
+          const u = new URL(requested, defaultRedirect);
+          if (allowed.includes(u.origin)) {
+            finalRedirect = u.toString();
+          }
+        }
+      } catch {
+        // ignore and use default
+      }
+      if (parsedState?.uid) {
+        // Tool OAuth path: skip login cookie and just redirect back
+        return res.redirect(finalRedirect);
+      }
+      const tokens = await this.authService.login(user);
+      this.authService.setAuthCookie(res, tokens).redirect(finalRedirect);
+    } catch (error) {
+      this.logger.error('Twitter OAuth callback failed:', error.stack);
       throw new OAuthError();
     }
   }
