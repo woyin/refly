@@ -3210,9 +3210,9 @@ const translations = {
     emptyList: '暂无模版，快来发挥你的创造力，为社区贡献模版吧～',
   },
   workflowApp: {
-    title: '标题',
+    title: '名称',
     description: '描述',
-    titlePlaceholder: '请输入标题',
+    titlePlaceholder: '请输入名称',
     descriptionPlaceholder: '请输入描述',
     publish: '发布',
     publishSuccess: '发布成功',

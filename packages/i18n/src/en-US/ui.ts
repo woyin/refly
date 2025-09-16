@@ -3469,9 +3469,9 @@ const translations = {
     emptyList: 'Zero templates? No problem! Create yours now and inspire the community!',
   },
   workflowApp: {
-    title: 'Title',
+    title: 'Name',
     description: 'Description',
-    titlePlaceholder: 'Please enter title',
+    titlePlaceholder: 'Please enter name',
     descriptionPlaceholder: 'Please enter description',
     publish: 'Publish',
     publishSuccess: 'Published successfully',

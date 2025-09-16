@@ -141,21 +141,50 @@ export const CreateWorkflowAppModal = ({
     >
       {contextHolder}
       <div className="w-full h-full pt-4 overflow-y-auto">
-        <Form form={form} labelCol={{ span: 5 }}>
-          <Form.Item
-            required
-            label={t('workflowApp.title')}
-            name="title"
-            rules={[{ required: true, message: t('common.required') }]}
-          >
-            <Input placeholder={t('workflowApp.titlePlaceholder')} />
-          </Form.Item>
-          <Form.Item label={t('workflowApp.description')} name="description">
-            <Input.TextArea
-              autoSize={{ minRows: 3, maxRows: 6 }}
-              placeholder={t('workflowApp.descriptionPlaceholder')}
-            />
-          </Form.Item>
+        <Form form={form}>
+          <div className="flex flex-col gap-2">
+            {/* Title Field */}
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="title-input"
+                className="text-xs font-semibold text-[#1C1F23] leading-[1.33]"
+              >
+                {t('workflowApp.title')}
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <Form.Item
+                name="title"
+                rules={[{ required: true, message: t('common.required') }]}
+                className="mb-0"
+              >
+                <Input
+                  id="title-input"
+                  placeholder={t('workflowApp.titlePlaceholder')}
+                  className="h-8 rounded-lg border-0 bg-[#F6F6F6] px-3 text-sm font-normal text-[#1C1F23] placeholder:text-gray-400 focus:bg-[#F6F6F6] focus:shadow-sm"
+                />
+              </Form.Item>
+            </div>
+
+            {/* Description Field */}
+            <div className="flex flex-col gap-2 mt-5">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="description-input"
+                  className="text-xs font-semibold text-[#1C1F23] leading-[1.33]"
+                >
+                  {t('workflowApp.description')}
+                </label>
+              </div>
+              <Form.Item name="description" className="mb-0">
+                <Input.TextArea
+                  id="description-input"
+                  placeholder={t('workflowApp.descriptionPlaceholder')}
+                  className="min-h-[80px] rounded-lg border-0 bg-[#F6F6F6] px-3 py-2 text-sm font-normal text-[#1C1F23] placeholder:text-gray-400 focus:bg-[#F6F6F6] focus:shadow-sm"
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                />
+              </Form.Item>
+            </div>
+          </div>
         </Form>
       </div>
     </Modal>
