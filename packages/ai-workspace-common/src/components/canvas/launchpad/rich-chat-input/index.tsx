@@ -208,7 +208,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
-    const isSettingContentRef = useRef(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
     const { nodes: realtimeNodes } = useRealtimeCanvasData();
@@ -220,6 +219,11 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
     const [isMentionListVisible, setIsMentionListVisible] = useState(false);
 
     const { workflowVariables = [] } = workflow || {};
+
+    // Gate mention suggestions until explicit user interaction
+    // Prevent auto-popup on initial load when content already contains '@xx'
+    const hasUserInteractedRef = useRef(false);
+    const popupInstanceRef = useRef<any>(null);
 
     // Get all available items including canvas nodes with fallback data
     const allItems: MentionItem[] = useMemo(() => {
@@ -445,13 +449,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       [setContextItems],
     );
 
-    const toggleIsSettingContentRef = useCallback(() => {
-      isSettingContentRef.current = true;
-      setTimeout(() => {
-        isSettingContentRef.current = false;
-      }, 300);
-    }, []);
-
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
       return CustomMention.configure({
@@ -462,31 +459,22 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           char: '@',
           command: handleCommand,
           items: () => {
-            // Don't show items when programmatically setting content
-            if (isSettingContentRef.current) {
+            // Require explicit user interaction before providing items
+            if (!hasUserInteractedRef.current) {
               return [];
             }
 
-            // Always return all items, let MentionList handle the filtering
-            // This ensures the component has access to all data for proper grouping
             return allItemsRef.current ?? [];
           },
 
           // Only show suggestion when user is actively typing @
-          allow: ({ state, range }) => {
-            // Don't show suggestion when programmatically setting content
-            if (isSettingContentRef.current) {
+          allow: () => {
+            // Require explicit user interaction to enable suggestions
+            if (!hasUserInteractedRef.current) {
               return false;
             }
 
-            // Check if the @ character was just typed by the user
-            const $from = state.doc.resolve(range.from);
-            const textBefore = $from.nodeBefore?.text || '';
-
-            // Allow if @ is at the start of a word or after whitespace
-            const isAtWordStart = textBefore === '' || /\s/.test(textBefore.slice(-1));
-
-            return isAtWordStart;
+            return true;
           },
           render: () => {
             let component: any;
@@ -495,6 +483,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
             // Some IMEs (e.g., Chinese) may temporarily return null on space confirmation
             // which would cause Popper to position at (0,0). We cache the last rect instead.
             let lastClientRect: DOMRect | null = null;
+            // Store latest props to avoid closure issues
+            let latestProps: any = null;
             const parsePlacement = (inst: any): 'top' | 'bottom' => {
               const resolved =
                 inst?.popperInstance?.state?.placement ??
@@ -508,6 +498,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
 
             return {
               onStart: (props: any) => {
+                latestProps = props; // Store latest props
                 component = new ReactRenderer(MentionList, {
                   props: {
                     ...props,
@@ -535,26 +526,47 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                   offset: [0, 8],
                   onMount(instance) {
                     const placement = parsePlacement(instance);
-                    component.updateProps({ ...props, placement });
+                    component.updateProps({
+                      ...latestProps,
+                      placement,
+                      query: latestProps?.query || '',
+                    });
                   },
                   onShown(instance) {
                     const placement = parsePlacement(instance);
                     setIsMentionListVisible(true);
-                    component.updateProps({ ...props, placement, isMentionListVisible: true });
+                    component.updateProps({
+                      ...latestProps,
+                      placement,
+                      isMentionListVisible: true,
+                      query: latestProps?.query || '',
+                    });
                   },
                   onHidden(instance) {
                     const placement = parsePlacement(instance);
                     setIsMentionListVisible(false);
-                    component.updateProps({ ...props, placement, isMentionListVisible: false });
+                    component.updateProps({
+                      ...latestProps,
+                      placement,
+                      isMentionListVisible: false,
+                      query: latestProps?.query || '',
+                    });
                   },
                   onDestroy() {
-                    console.log('onDestroy');
                     setIsMentionListVisible(false);
-                    component.updateProps({ ...props, isMentionListVisible: false });
+                    component.updateProps({
+                      ...latestProps,
+                      isMentionListVisible: false,
+                      query: latestProps?.query || '',
+                    });
                   },
                 });
+
+                // Store popup instance for manual control
+                popupInstanceRef.current = popup[0];
               },
               onUpdate(props: any) {
+                latestProps = props; // Update latest props
                 component.updateProps({ ...props, query: props.query || '' });
                 // Update the reference rect while guarding against null during IME composition
                 popup[0].setProps({
@@ -574,15 +586,6 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                     // noop
                   }
                 });
-                setTimeout(() => {
-                  try {
-                    const instance = popup?.[0];
-                    const placement = parsePlacement(instance);
-                    component.updateProps({ ...props, placement, query: props.query || '' });
-                  } catch {
-                    // noop
-                  }
-                }, 0);
               },
               onExit() {
                 popup[0].destroy();
@@ -823,11 +826,9 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           } as any;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
-          toggleIsSettingContentRef();
         } else {
           internalUpdateRef.current = true;
           editor.commands.setContent(nextText);
-          toggleIsSettingContentRef();
         }
       }
     }, [query, editor, buildContentFromHandlebars]);
@@ -870,10 +871,51 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           } as any;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
-          toggleIsSettingContentRef();
         }
       }
     }, [canvasId, editor, query, buildContentFromHandlebars, allItems]);
+
+    const isCursorAfterAtToken = useCallback((state: any): boolean => {
+      try {
+        const cursorPos = state?.selection?.from ?? 0;
+        const lookback = 128;
+        const fromPos = Math.max(0, cursorPos - lookback);
+        const textBefore = state.doc.textBetween(fromPos, cursorPos) || '';
+        const atIndex = textBefore.lastIndexOf('@');
+
+        if (atIndex < 0) return false;
+
+        const token = textBefore.slice(atIndex);
+        const charBeforeAt = textBefore[atIndex - 1] ?? '';
+        const isBoundaryValid = atIndex === 0 || /\s/.test(charBeforeAt);
+
+        if (!isBoundaryValid) return false;
+
+        // Check if token is contiguous (no spaces) and starts with @
+        return /^@[^\s@]*$/.test(token);
+      } catch {
+        return false;
+      }
+    }, []);
+
+    // Try to show mention popup if cursor is after @ token
+    const tryShowMentionPopup = useCallback(() => {
+      try {
+        if (!editor || !popupInstanceRef.current || isMentionListVisible) return;
+
+        const state = editor.state;
+        if (isCursorAfterAtToken(state)) {
+          popupInstanceRef.current.show();
+        }
+      } catch {
+        // noop
+      }
+    }, [editor, isMentionListVisible, isCursorAfterAtToken]);
+
+    const handlePopupShow = useCallback(() => {
+      hasUserInteractedRef.current = true;
+      tryShowMentionPopup();
+    }, [tryShowMentionPopup, hasUserInteractedRef]);
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
@@ -881,6 +923,8 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           e.preventDefault();
           return;
         }
+
+        handlePopupShow();
 
         // If mention suggestion is open, don't handle navigation keys or Enter
         if (isMentionListVisible) {
@@ -931,16 +975,19 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
         searchStore,
         isLogin,
         isMentionListVisible,
+        handlePopupShow,
       ],
     );
 
     // Handle focus event and propagate it upward
     const handleFocus = useCallback(() => {
       setIsFocused(true);
+      handlePopupShow();
+
       if (onFocus && !readonly) {
         onFocus();
       }
-    }, [onFocus, readonly, setIsFocused]);
+    }, [onFocus, readonly, setIsFocused, handlePopupShow]);
 
     const handlePaste = useCallback(
       async (e: React.ClipboardEvent) => {

@@ -231,7 +231,6 @@ export const MentionList = ({
     // Check if there's a matching item in startNode with the same name as query
     const hasMatchingStartNodeItem =
       groupedItems.startNode?.some((item) => item.name === query) ?? false;
-    console.log('hasMatchingStartNodeItem', hasMatchingStartNodeItem);
 
     // If there's a query and no matching startNode item, add create variable button at the top
     if (query && !hasMatchingStartNodeItem) {
