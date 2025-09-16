@@ -130,25 +130,33 @@ const WorkflowAppPage: React.FC = () => {
   }, [t]);
 
   return (
-    <div className="w-full flex flex-col h-full">
-      <div className="flex items-center gap-2 p-4">
-        <Logo onClick={() => navigate?.('/')} />
-        <GithubStar />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <Logo onClick={() => navigate?.('/')} />
+              <GithubStar />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Hero Section */}
-      <div className="flex-1 px-4 pt-10 overflow-y-auto">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
+      {/* Main Content */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
             {workflowApp?.title ?? ''}
           </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600 md:text-base">
+          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
             {workflowApp?.description ?? ''}
           </p>
         </div>
 
-        {/* Prompt Bar */}
-        <div className="mx-auto mt-6 max-w-xl">
+        {/* Workflow Form */}
+        <div className="mb-6 sm:mb-8">
           <WorkflowRunForm
             workflowVariables={workflowVariables}
             onSubmitVariables={onSubmit}
@@ -157,9 +165,9 @@ const WorkflowAppPage: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="mx-auto mt-6 flex max-w-4xl items-center justify-center gap-2">
+        <div className="mb-4 sm:mb-6">
           <Segmented
-            className="w-[60%] [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center"
+            className="w-full max-w-sm sm:max-w-md mx-auto"
             shape="round"
             options={segmentedOptions}
             value={activeTab}
@@ -167,8 +175,8 @@ const WorkflowAppPage: React.FC = () => {
           />
         </div>
 
-        {/* Content area */}
-        <div className="mx-auto mt-3 max-w-4xl">
+        {/* Content Area */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-h-[200px]">
           {activeTab === 'products' ? (
             <WorkflowAppProducts products={products || []} />
           ) : activeTab === 'runLogs' ? (

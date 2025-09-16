@@ -397,11 +397,16 @@ export const WorkflowRunForm = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col gap-2">
-      <div className="p-4 flex-1 overflow-y-auto">
+    <div className="w-full max-h-[500px] sm:max-h-[600px] flex flex-col bg-white rounded-lg border border-refly-Card-Border shadow-sm">
+      <div className="p-3 sm:p-4 flex-1 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
         {/* Workflow variables form */}
         {workflowVariables.length > 0 ? (
-          <Form form={form} layout="vertical" className="space-y-4" initialValues={variableValues}>
+          <Form
+            form={form}
+            layout="vertical"
+            className="space-y-3 sm:space-y-4"
+            initialValues={variableValues}
+          >
             {workflowVariables.map((variable) => renderFormField(variable))}
           </Form>
         ) : (
@@ -409,16 +414,20 @@ export const WorkflowRunForm = ({
         )}
       </div>
 
-      <div className="p-3 border-solid border-[1px] border-x-0 border-b-0 border-refly-Card-Border rounded-b-lg">
+      <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-gray-50 rounded-b-lg">
         <Button
           className={cn(
-            'w-full',
+            'w-full h-9 sm:h-10 text-sm sm:text-base',
             (!isFormValid || isPolling) &&
               'bg-refly-bg-control-z0 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
           )}
           type="primary"
           icon={
-            <Play size={16} color={!isFormValid || isPolling ? 'var(--refly-text-3)' : 'white'} />
+            <Play
+              size={14}
+              className="sm:w-4 sm:h-4"
+              color={!isFormValid || isPolling ? 'var(--refly-text-3)' : 'white'}
+            />
           }
           onClick={handleRun}
           loading={loading || isRunning || isPolling}
