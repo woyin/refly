@@ -859,7 +859,7 @@ export class CanvasService {
     }
 
     // Validate the raw data structure
-    if (!rawData.nodes || !rawData.edges) {
+    if (!Array.isArray(rawData.nodes) || !Array.isArray(rawData.edges)) {
       throw new ParamsError('Invalid canvas data: missing nodes or edges');
     }
 
@@ -876,8 +876,20 @@ export class CanvasService {
       ...newCanvasData,
     };
 
-    // Generate canvas ID if not provided
-    const finalCanvasId = canvasId || genCanvasID();
+    // Generate canvas ID if not provided; avoid collisions for user-provided IDs
+    let finalCanvasId = canvasId || genCanvasID();
+    if (canvasId) {
+      const exists = await this.prisma.canvas.findFirst({
+        where: { canvasId, deletedAt: null },
+      });
+      if (exists) {
+        if (exists.uid !== user.uid) {
+          throw new ParamsError(`Canvas ID already exists: ${canvasId}`);
+        }
+        // Avoid collision with an existing canvas owned by the user
+        finalCanvasId = genCanvasID();
+      }
+    }
 
     // Create the canvas with the imported state
     const canvas = await this.createCanvasWithState(

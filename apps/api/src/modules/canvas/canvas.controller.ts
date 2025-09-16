@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
@@ -102,7 +103,17 @@ export class CanvasController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+      fileFilter: (_req, file, cb) => {
+        if (file.mimetype !== 'application/json') {
+          return cb(new BadRequestException('Only JSON files are allowed'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
   @Post('import')
   async importCanvas(
     @LoginedUser() user: User,
