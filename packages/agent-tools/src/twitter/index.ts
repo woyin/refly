@@ -2,6 +2,8 @@ import { z } from 'zod/v3';
 import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
 import { ToolParams } from '@langchain/core/tools';
+import OAuth from 'oauth-1.0a';
+import { createHmac } from 'node:crypto';
 
 export const TwitterToolsetDefinition: ToolsetDefinition = {
   key: 'twitter',
@@ -147,66 +149,104 @@ export const TwitterToolsetDefinition: ToolsetDefinition = {
     {
       type: 'oauth',
       provider: 'twitter',
-      scope: [
-        'tweet.read',
-        'tweet.write',
-        'users.read',
-        'follows.read',
-        'follows.write',
-        'like.read',
-        'like.write',
-        'list.read',
-        'list.write',
-        'dm.read',
-        'dm.write',
-        'media.write',
-        'offline.access', // Required for refresh tokens to maintain long-term access
-      ],
+      scope: [],
     },
   ],
   configItems: [],
 };
 
-// OAuth2 data will be automatically injected
+// OAuth1a data will be automatically injected
 export interface TwitterParams extends ToolParams {
-  clientId: string;
-  clientSecret: string;
-  refreshToken: string;
+  // OAuth1a 必需参数
+  consumerKey: string;
+  consumerSecret: string;
   accessToken: string;
+  refreshToken: string; // This is actually the oauth_token_secret
 }
 
 // Helper function to create authenticated Twitter API client
 function createTwitterClient(params: TwitterParams) {
-  // Twitter API v2 client would be initialized here
-  // Since OAuth2 data is injected, we can use accessToken for Bearer authentication
+  // Twitter API v2 client with OAuth1a authentication
+  const consumer = {
+    key: params.consumerKey,
+    secret: params.consumerSecret,
+  };
+
+  const oauth = new OAuth({
+    consumer,
+    signature_method: 'HMAC-SHA1',
+    hash_function(base_string, key) {
+      return createHmac('sha1', key).update(base_string).digest('base64');
+    },
+  });
+
+  const token = {
+    key: params.accessToken,
+    secret: params.refreshToken, // This is actually oauth_token_secret
+  };
+
   return {
     baseURL: 'https://api.twitter.com/2',
-    headers: {
-      Authorization: `Bearer ${params.accessToken}`,
-      'Content-Type': 'application/json',
-    },
+    consumer,
+    oauth,
+    token,
   };
 }
 
-// Helper function to make Twitter API requests
+// Helper function to get authenticated user ID
+async function getAuthenticatedUserId(params: TwitterParams): Promise<string> {
+  const response = await makeTwitterRequest('GET', '/users/me', params, undefined, {
+    'user.fields': 'id',
+  });
+  return response.data.id;
+}
+
+// Helper function to make Twitter API requests with OAuth1a
 async function makeTwitterRequest(
   method: string,
   url: string,
   params: TwitterParams,
   data?: any,
+  queryParams?: Record<string, string>,
 ): Promise<any> {
   const client = createTwitterClient(params);
 
-  const requestOptions: any = {
-    method,
-    headers: client.headers,
+  // Build full URL with query parameters
+  let fullUrl = `${client.baseURL}${url}`;
+  if (queryParams && Object.keys(queryParams).length > 0) {
+    const urlObj = new URL(fullUrl);
+    for (const [key, value] of Object.entries(queryParams)) {
+      urlObj.searchParams.set(key, value);
+    }
+    fullUrl = urlObj.toString();
+  }
+
+  // Prepare request data for OAuth signing
+  const requestData = {
+    url: fullUrl,
+    method: method.toUpperCase(),
   };
 
+  // Generate OAuth1a signature
+  const authHeader = client.oauth.toHeader(client.oauth.authorize(requestData, client.token));
+
+  // Prepare headers
+  const headers: Record<string, string> = {
+    Authorization: authHeader.Authorization,
+    'Content-Type': 'application/json',
+  };
+
+  // Prepare request options
+  const requestOptions: any = {
+    method: requestData.method,
+    headers,
+  };
+
+  // Add body for POST/PUT requests
   if (data && (method === 'POST' || method === 'PUT')) {
     requestOptions.body = JSON.stringify(data);
   }
 
-  const fullUrl = `${client.baseURL}${url}`;
   const response = await fetch(fullUrl, requestOptions);
 
   if (!response.ok) {
@@ -217,12 +257,6 @@ async function makeTwitterRequest(
   }
 
   return response.json();
-}
-
-// Helper function to get the authenticated user's ID
-async function getAuthenticatedUserId(params: TwitterParams): Promise<string> {
-  const response = await makeTwitterRequest('GET', '/users/me', params, undefined);
-  return response.data.id;
 }
 
 export class TwitterCreateTweet extends AgentBaseTool<TwitterParams> {
@@ -320,14 +354,19 @@ export class TwitterGetTweet extends AgentBaseTool<TwitterParams> {
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
-      const fields = input.includeFields?.length
-        ? `?tweet.fields=${input.includeFields.join(',')}`
-        : '?tweet.fields=created_at,public_metrics,author_id,context_annotations';
+      const queryParams: Record<string, string> = {};
+      if (input.includeFields?.length) {
+        queryParams['tweet.fields'] = input.includeFields.join(',');
+      } else {
+        queryParams['tweet.fields'] = 'created_at,public_metrics,author_id,context_annotations';
+      }
 
       const response = await makeTwitterRequest(
         'GET',
-        `/tweets/${input.tweetId}${fields}`,
+        `/tweets/${input.tweetId}`,
         this.params,
+        undefined,
+        queryParams,
       );
 
       const tweet = response.data;
@@ -432,19 +471,21 @@ export class TwitterSearchTweets extends AgentBaseTool<TwitterParams> {
       const maxResults = Math.min(input.maxResults ?? 10, 100);
       const sortOrder = input.sortOrder ?? 'recency';
 
-      const queryParams = new URLSearchParams({
+      const queryParams: Record<string, string> = {
         query: input.query,
         'tweet.fields': 'created_at,public_metrics,author_id,text',
         'user.fields': 'username,name,verified',
         expansions: 'author_id',
         max_results: maxResults.toString(),
         sort_order: sortOrder,
-      });
+      };
 
       const response = await makeTwitterRequest(
         'GET',
-        `/tweets/search/recent?${queryParams}`,
+        '/tweets/search/recent',
         this.params,
+        undefined,
+        queryParams,
       );
 
       const tweets = response.data ?? [];
@@ -508,11 +549,17 @@ export class TwitterGetUser extends AgentBaseTool<TwitterParams> {
         ? `/users/by/username/${input.username}`
         : `/users/${input.userId}`;
 
-      const queryParams = new URLSearchParams({
+      const queryParams: Record<string, string> = {
         'user.fields': 'created_at,description,public_metrics,verified,location,profile_image_url',
-      });
+      };
 
-      const response = await makeTwitterRequest('GET', `${endpoint}?${queryParams}`, this.params);
+      const response = await makeTwitterRequest(
+        'GET',
+        endpoint,
+        this.params,
+        undefined,
+        queryParams,
+      );
 
       const user = response.data;
       const result = {
@@ -577,13 +624,13 @@ export class TwitterListUserTweets extends AgentBaseTool<TwitterParams> {
 
       const maxResults = Math.min(input.maxResults ?? 10, 100);
 
-      const queryParams = new URLSearchParams({
+      const queryParams: Record<string, string> = {
         'tweet.fields': 'created_at,public_metrics,text',
         max_results: maxResults.toString(),
-      });
+      };
 
       if (input.sinceId) {
-        queryParams.set('since_id', input.sinceId);
+        queryParams.since_id = input.sinceId;
       }
 
       let endpoint: string;
@@ -599,7 +646,13 @@ export class TwitterListUserTweets extends AgentBaseTool<TwitterParams> {
         endpoint = `/users/${input.userId}/tweets`;
       }
 
-      const response = await makeTwitterRequest('GET', `${endpoint}?${queryParams}`, this.params);
+      const response = await makeTwitterRequest(
+        'GET',
+        endpoint,
+        this.params,
+        undefined,
+        queryParams,
+      );
 
       const tweets = response.data ?? [];
       const result = {
@@ -815,8 +868,6 @@ export class TwitterFollowUser extends AgentBaseTool<TwitterParams> {
         throw new Error('Either userId or username must be provided');
       }
 
-      const currentUserId = await getAuthenticatedUserId(this.params);
-
       let targetUserId: string;
       if (input.username) {
         // First get user ID from username
@@ -832,11 +883,9 @@ export class TwitterFollowUser extends AgentBaseTool<TwitterParams> {
 
       const response = await makeTwitterRequest(
         'POST',
-        `/users/${currentUserId}/following`,
+        `/users/${targetUserId}/following`,
         this.params,
-        {
-          target_user_id: targetUserId,
-        },
+        {},
       );
 
       const result = {
@@ -887,8 +936,6 @@ export class TwitterUnfollowUser extends AgentBaseTool<TwitterParams> {
         throw new Error('Either userId or username must be provided');
       }
 
-      const currentUserId = await getAuthenticatedUserId(this.params);
-
       let targetUserId: string;
       if (input.username) {
         // First get user ID from username
@@ -904,7 +951,7 @@ export class TwitterUnfollowUser extends AgentBaseTool<TwitterParams> {
 
       const response = await makeTwitterRequest(
         'DELETE',
-        `/users/${currentUserId}/following/${targetUserId}`,
+        `/users/${targetUserId}/following`,
         this.params,
       );
 
@@ -952,7 +999,6 @@ export class TwitterLikeTweet extends AgentBaseTool<TwitterParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const userId = await getAuthenticatedUserId(this.params);
-
       const response = await makeTwitterRequest('POST', `/users/${userId}/likes`, this.params, {
         tweet_id: input.tweetId,
       });
@@ -1001,7 +1047,6 @@ export class TwitterUnlikeTweet extends AgentBaseTool<TwitterParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const userId = await getAuthenticatedUserId(this.params);
-
       const response = await makeTwitterRequest(
         'DELETE',
         `/users/${userId}/likes/${input.tweetId}`,
@@ -1052,7 +1097,6 @@ export class TwitterRetweet extends AgentBaseTool<TwitterParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const userId = await getAuthenticatedUserId(this.params);
-
       const response = await makeTwitterRequest('POST', `/users/${userId}/retweets`, this.params, {
         tweet_id: input.tweetId,
       });
@@ -1184,46 +1228,32 @@ export class TwitterUploadMedia extends AgentBaseTool<TwitterParams> {
       // Decode base64 data
       const mediaBuffer = Buffer.from(input.mediaData, 'base64');
 
-      // For Twitter API v2, we need to use the upload.twitter.com endpoint
       // Create form data for upload
       const formData = new FormData();
       formData.append('media_data', mediaBuffer.toString('base64'));
       formData.append('media_category', input.mediaCategory ?? 'tweet_image');
 
-      // Use the upload endpoint directly
-      const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.params.accessToken}`,
-          // Don't set Content-Type for FormData, let the browser set it with boundary
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Twitter upload API error: ${response.status} ${response.statusText} - ${errorData?.error || 'Unknown error'}`,
-        );
-      }
-
-      const uploadResult = await response.json();
+      const response = await makeTwitterRequest(
+        'POST',
+        '/media/upload.json',
+        this.params,
+        formData,
+      );
 
       const result = {
         message: 'Media uploaded successfully',
         media: {
-          media_id: uploadResult.media_id,
-          media_id_string: uploadResult.media_id_string,
-          size: uploadResult.size,
-          expires_after_secs: uploadResult.expires_after_secs,
+          media_id: response.media_id,
+          media_id_string: response.media_id_string,
+          size: response.size,
+          expires_after_secs: response.expires_after_secs,
         },
       };
 
       return {
         status: 'success',
         data: result,
-        summary: `Successfully uploaded media with ID: ${uploadResult.media_id_string}`,
+        summary: `Successfully uploaded media with ID: ${response.media_id_string}`,
       };
     } catch (error) {
       return {

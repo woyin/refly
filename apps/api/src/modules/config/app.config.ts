@@ -107,9 +107,13 @@ export default () => ({
       callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'test',
     },
     twitter: {
+      enabled: process.env.TWITTER_AUTH_ENABLED === 'true' || false,
       clientId: process.env.TWITTER_CLIENT_ID || 'test',
       clientSecret: process.env.TWITTER_CLIENT_SECRET || 'test',
       callbackUrl: process.env.TWITTER_CALLBACK_URL || 'test',
+      consumerKey: process.env.TWITTER_CONSUMER_KEY || 'test',
+      consumerSecret: process.env.TWITTER_CONSUMER_SECRET || 'test',
+      bearerToken: process.env.TWITTER_BEARER_TOKEN || 'test',
     },
   },
   encryption: {

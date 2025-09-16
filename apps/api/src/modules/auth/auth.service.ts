@@ -243,7 +243,7 @@ export class AuthService {
     const { provider, id, emails, displayName, photos } = profile;
 
     this.logger.log(
-      `oauth provider=${provider}, accountId=${id}, scopes=${JSON.stringify(scopes)}`,
+      `oauth provider=${provider}, accountId=${id},uid=${uid},email=${emails}, scopes=${JSON.stringify(scopes)}`,
     );
 
     // Check if there is an authentication account record
@@ -307,12 +307,14 @@ export class AuthService {
       this.logger.log(`user ${account.uid} not found for provider ${provider} account id: ${id}`);
     }
 
+    let email = '';
     // oauth profile returns no email, this is invalid
     if (emails?.length === 0) {
       this.logger.warn('emails is empty, invalid oauth');
-      throw new OAuthError();
+      //throw new OAuthError();
+    } else if (emails?.length > 0) {
+      email = emails[0].value;
     }
-    const email = emails[0].value;
 
     // Determine the uid to use
     let targetUid = uid;
@@ -384,18 +386,22 @@ export class AuthService {
       this.logger.log(`user created: ${newUser.uid}`);
     }
 
-    const newAccount = await this.prisma.account.create({
-      data: {
-        type: 'oauth',
-        uid: targetUid,
-        provider,
-        providerAccountId: id,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        scope: JSON.stringify(scopes), // Default scope for login
-      },
-    });
-    this.logger.log(`new account created for ${newAccount.uid}`);
+    try {
+      await this.prisma.account.create({
+        data: {
+          type: 'oauth',
+          uid: targetUid,
+          provider,
+          providerAccountId: id,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          scope: JSON.stringify(scopes), // Default scope for login
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to create account for ${targetUid}:`, error);
+      throw error;
+    }
 
     // Get the user for logging and return
     const finalUser = await this.prisma.user.findUnique({

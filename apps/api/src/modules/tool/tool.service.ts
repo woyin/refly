@@ -94,6 +94,8 @@ export class ToolService {
     // Get clientId and clientSecret from config
     const clientId = this.configService.get(`auth.${provider}.clientId`);
     const clientSecret = this.configService.get(`auth.${provider}.clientSecret`);
+    const consumerKey = this.configService.get(`auth.${provider}.consumerKey`);
+    const consumerSecret = this.configService.get(`auth.${provider}.consumerSecret`);
 
     if (!clientId || !clientSecret) {
       throw new ParamsError(`OAuth config not found for provider: ${provider}`);
@@ -118,6 +120,8 @@ export class ToolService {
     return {
       clientId,
       clientSecret,
+      consumerKey,
+      consumerSecret,
       refreshToken: account.refreshToken,
       accessToken: account.accessToken,
     };

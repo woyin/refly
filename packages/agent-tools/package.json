@@ -20,11 +20,13 @@
     "zod": "^3.25.76",
     "zod-to-json-schema": "3.24.6",
     "nodemailer": "^6.7.8",
-    "html-to-text": "^9.0.5"
+    "html-to-text": "^9.0.5",
+    "oauth-1.0a": "^2.2.6"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
     "@types/nodemailer": "^6.4.17",
-    "@types/html-to-text": "^9.0.4"
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "^20.0.0"
   }
 }
