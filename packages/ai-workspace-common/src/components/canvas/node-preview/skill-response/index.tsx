@@ -264,40 +264,38 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
         }
       }}
     >
-      {currentQuery && (
-        <div className="px-4 pt-4">
-          <EditChatInput
-            enabled={editMode}
-            resultId={resultId}
-            version={version}
-            contextItems={contextItems}
-            query={currentQuery}
-            actionMeta={actionMeta}
-            modelInfo={
-              modelInfo ?? {
-                name: '',
-                label: '',
-                provider: '',
-                contextLimit: 0,
-                maxOutput: 0,
-              }
+      <div className="px-4 pt-4">
+        <EditChatInput
+          enabled={editMode}
+          resultId={resultId}
+          version={version}
+          contextItems={contextItems}
+          query={currentQuery}
+          actionMeta={actionMeta}
+          modelInfo={
+            modelInfo ?? {
+              name: '',
+              label: '',
+              provider: '',
+              contextLimit: 0,
+              maxOutput: 0,
             }
-            setEditMode={setEditMode}
-            runtimeConfig={runtimeConfig}
-            onQueryChange={setCurrentQuery}
-            selectedToolsets={selectedToolsets}
-            setSelectedToolsets={setSelectedToolsets}
-          />
-          <PreviewChatInput
-            enabled={!editMode}
-            readonly={readonly}
-            contextItems={contextItems}
-            query={currentQuery}
-            actionMeta={actionMeta}
-            setEditMode={setEditMode}
-          />
-        </div>
-      )}
+          }
+          setEditMode={setEditMode}
+          runtimeConfig={runtimeConfig}
+          onQueryChange={setCurrentQuery}
+          selectedToolsets={selectedToolsets}
+          setSelectedToolsets={setSelectedToolsets}
+        />
+        <PreviewChatInput
+          enabled={!editMode}
+          readonly={readonly}
+          contextItems={contextItems}
+          query={currentQuery}
+          actionMeta={actionMeta}
+          setEditMode={setEditMode}
+        />
+      </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4">
         {!result && !loading ? (
