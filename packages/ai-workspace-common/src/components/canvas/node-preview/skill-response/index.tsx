@@ -343,7 +343,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
                     result={result}
                     step={outputStep}
                     status={result?.status}
-                    query={title}
+                    query={currentQuery ?? title ?? ''}
                   />
                 </>
               )}
