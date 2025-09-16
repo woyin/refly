@@ -157,7 +157,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
             </TooltipButton>
           )}
 
-          <ToolsDependency />
+          <ToolsDependency canvasId={canvasId} />
 
           {isPreviewCanvas ? (
             <Button

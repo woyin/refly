@@ -11,6 +11,10 @@ import { WorkflowAppRunLogs } from '@refly-packages/ai-workspace-common/componen
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { WorkflowRunForm } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/workflow-run-form';
 import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
+import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
+import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
+import { useSiderStoreShallow } from '@refly/stores';
+import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -21,6 +25,12 @@ const WorkflowAppPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [workflowVariables, setWorkflowVariables] = useState<WorkflowVariable[]>([]);
   const [finalNodeExecutions, setFinalNodeExecutions] = useState<any[]>([]);
+
+  // Settings modal state
+  const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
+    showSettingModal: state.showSettingModal,
+    setShowSettingModal: state.setShowSettingModal,
+  }));
 
   const { data, isLoading } = useGetWorkflowAppDetail({ query: { appId } });
   const workflowApp = data?.data;
@@ -130,61 +140,73 @@ const WorkflowAppPage: React.FC = () => {
   }, [t]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <Logo onClick={() => navigate?.('/')} />
-              <GithubStar />
+    <ReactFlowProvider>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-3">
+                <Logo onClick={() => navigate?.('/')} />
+                <GithubStar />
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {/* Hero Section */}
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+              {workflowApp?.title ?? ''}
+            </h1>
+            <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              {workflowApp?.description ?? ''}
+            </p>
+          </div>
+
+          {/* Workflow Form */}
+          <div className="mb-6 sm:mb-8">
+            <WorkflowRunForm
+              workflowVariables={workflowVariables}
+              onSubmitVariables={onSubmit}
+              loading={isLoading}
+            />
+          </div>
+
+          {/* Tools Dependency Form */}
+          {workflowApp?.canvasId && (
+            <div className="mb-6 sm:mb-8">
+              <ToolsDependencyChecker canvasId={workflowApp.canvasId} />
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="mb-4 sm:mb-6">
+            <Segmented
+              className="w-full max-w-sm sm:max-w-md mx-auto"
+              shape="round"
+              options={segmentedOptions}
+              value={activeTab}
+              onChange={(value) => setActiveTab(value)}
+            />
+          </div>
+
+          {/* Content Area */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-h-[200px]">
+            {activeTab === 'products' ? (
+              <WorkflowAppProducts products={products || []} />
+            ) : activeTab === 'runLogs' ? (
+              <WorkflowAppRunLogs nodeExecutions={logs || []} />
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Hero Section */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
-            {workflowApp?.title ?? ''}
-          </h1>
-          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            {workflowApp?.description ?? ''}
-          </p>
-        </div>
-
-        {/* Workflow Form */}
-        <div className="mb-6 sm:mb-8">
-          <WorkflowRunForm
-            workflowVariables={workflowVariables}
-            onSubmitVariables={onSubmit}
-            loading={isLoading}
-          />
-        </div>
-
-        {/* Tabs */}
-        <div className="mb-4 sm:mb-6">
-          <Segmented
-            className="w-full max-w-sm sm:max-w-md mx-auto"
-            shape="round"
-            options={segmentedOptions}
-            value={activeTab}
-            onChange={(value) => setActiveTab(value)}
-          />
-        </div>
-
-        {/* Content Area */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-h-[200px]">
-          {activeTab === 'products' ? (
-            <WorkflowAppProducts products={products || []} />
-          ) : activeTab === 'runLogs' ? (
-            <WorkflowAppRunLogs nodeExecutions={logs || []} />
-          ) : null}
-        </div>
-      </div>
-    </div>
+      {/* Settings Modal */}
+      <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
+    </ReactFlowProvider>
   );
 };
 
