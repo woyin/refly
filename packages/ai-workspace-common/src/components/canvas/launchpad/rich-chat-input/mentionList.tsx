@@ -82,19 +82,23 @@ export const MentionList = ({
     };
 
     const newWorkflowVariables: WorkflowVariable[] = [...workflowVariables, newItem];
-    const { data } = await getClient().updateWorkflowVariables({
-      body: {
-        canvasId: canvasId,
-        variables: newWorkflowVariables,
-      },
-    });
+    try {
+      const { data } = await getClient().updateWorkflowVariables({
+        body: {
+          canvasId: canvasId,
+          variables: newWorkflowVariables,
+        },
+      });
 
-    if (data?.success) {
-      message.success(t('canvas.workflow.variables.saveSuccess'));
-      refetchWorkflowVariables();
-      const newMentionItem: MentionItem = newItem as MentionItem;
-      command(newMentionItem);
-    } else {
+      if (data?.success) {
+        message.success(t('canvas.workflow.variables.saveSuccess'));
+        refetchWorkflowVariables();
+        const newMentionItem: MentionItem = newItem as MentionItem;
+        command(newMentionItem);
+      } else {
+        message.error(t('canvas.workflow.variables.saveError'));
+      }
+    } catch {
       message.error(t('canvas.workflow.variables.saveError'));
     }
   }, [refetchWorkflowVariables, query, canvasId, workflowVariables, command]);
