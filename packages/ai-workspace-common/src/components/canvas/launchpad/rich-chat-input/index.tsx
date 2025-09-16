@@ -491,6 +491,10 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
           render: () => {
             let component: any;
             let popup: any;
+            // Keep last non-null client rect to stabilize position during IME composition
+            // Some IMEs (e.g., Chinese) may temporarily return null on space confirmation
+            // which would cause Popper to position at (0,0). We cache the last rect instead.
+            let lastClientRect: DOMRect | null = null;
             const parsePlacement = (inst: any): 'top' | 'bottom' => {
               const resolved =
                 inst?.popperInstance?.state?.placement ??
@@ -514,7 +518,12 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
                 });
 
                 popup = tippy('body', {
-                  getReferenceClientRect: props.clientRect,
+                  getReferenceClientRect: () => {
+                    const rect = props?.clientRect?.();
+                    // Cache valid rect; fallback to the last valid one during composition
+                    if (rect) lastClientRect = rect as DOMRect;
+                    return (rect as DOMRect) ?? (lastClientRect as DOMRect);
+                  },
                   appendTo: () => document.body,
                   content: component.element,
                   showOnCreate: true,
@@ -547,8 +556,13 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
               },
               onUpdate(props: any) {
                 component.updateProps({ ...props, query: props.query || '' });
+                // Update the reference rect while guarding against null during IME composition
                 popup[0].setProps({
-                  getReferenceClientRect: props.clientRect,
+                  getReferenceClientRect: () => {
+                    const rect = props?.clientRect?.();
+                    if (rect) lastClientRect = rect as DOMRect;
+                    return (rect as DOMRect) ?? (lastClientRect as DOMRect);
+                  },
                 });
                 // Read actual placement after Popper updates layout
                 requestAnimationFrame(() => {
