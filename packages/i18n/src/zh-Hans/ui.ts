@@ -1643,7 +1643,7 @@ const translations = {
       defaultPlaceholder: '描述你想要生成的内容...',
       runningRecord: '运行记录',
       noRunningRecords: '暂无运行记录',
-      createVariable: '创建变量 {{variableName}}',
+      createVariable: '创建变量 “{{variableName}}”',
     },
     toolsDepencency: {
       title: '工具依赖',

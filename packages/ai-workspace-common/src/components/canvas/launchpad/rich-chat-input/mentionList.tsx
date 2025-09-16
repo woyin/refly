@@ -3,11 +3,19 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { useMemo, useState, useRef } from 'react';
 import { useEffect } from 'react';
 import { useCallback } from 'react';
-import { CanvasNodeType, ResourceMeta, ResourceType } from '@refly/openapi-schema';
+import {
+  CanvasNodeType,
+  ResourceMeta,
+  ResourceType,
+  ValueType,
+  WorkflowVariable,
+} from '@refly/openapi-schema';
 import { ArrowRight, X } from 'refly-icons';
 import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
-import { cn } from '@refly/utils/cn';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { message } from 'antd';
+import { cn, genVariableID } from '@refly/utils';
 
 export interface MentionItem {
   name: string;
@@ -47,8 +55,49 @@ export const MentionList = ({
   // Height tracking states
   const [firstLevelHeight, setFirstLevelHeight] = useState<number>(0);
   const [secondLevelHeight, setSecondLevelHeight] = useState<number>(0);
-  const { workflow } = useCanvasContext();
-  const { workflowVariablesLoading: isLoadingVariables } = workflow || {};
+  const { workflow, canvasId } = useCanvasContext();
+  const {
+    workflowVariablesLoading: isLoadingVariables,
+    refetchWorkflowVariables,
+    workflowVariables,
+  } = workflow || {};
+
+  const handleAddVariable = useCallback(async () => {
+    const isDuplicate = workflowVariables.some((variable) => variable.name === query);
+    if (isDuplicate) {
+      message.error(t('canvas.workflow.variables.duplicateName'));
+      return;
+    }
+
+    const newItem: WorkflowVariable = {
+      name: query,
+      variableId: genVariableID(),
+      variableType: 'string',
+      value: [{ type: 'text' as ValueType, text: '' }],
+      source: 'startNode',
+      required: false,
+      isSingle: true,
+      options: [],
+      resourceTypes: [],
+    };
+
+    const newWorkflowVariables: WorkflowVariable[] = [...workflowVariables, newItem];
+    const { data } = await getClient().updateWorkflowVariables({
+      body: {
+        canvasId: canvasId,
+        variables: newWorkflowVariables,
+      },
+    });
+
+    if (data?.success) {
+      message.success(t('canvas.workflow.variables.saveSuccess'));
+      refetchWorkflowVariables();
+      const newMentionItem: MentionItem = newItem as MentionItem;
+      command(newMentionItem);
+    } else {
+      message.error(t('canvas.workflow.variables.saveError'));
+    }
+  }, [refetchWorkflowVariables, query, canvasId, workflowVariables, command]);
 
   // Refs for measuring panel heights
   const firstLevelRef = useRef<HTMLDivElement>(null);
@@ -178,6 +227,23 @@ export const MentionList = ({
     if (!query) return [];
 
     const items = [];
+
+    // Check if there's a matching item in startNode with the same name as query
+    const hasMatchingStartNodeItem =
+      groupedItems.startNode?.some((item) => item.name === query) ?? false;
+    console.log('hasMatchingStartNodeItem', hasMatchingStartNodeItem);
+
+    // If there's a query and no matching startNode item, add create variable button at the top
+    if (query && !hasMatchingStartNodeItem) {
+      items.push({
+        type: 'item' as const,
+        name: query,
+        source: 'startNode' as const,
+        variableType: 'string',
+        variableId: 'create-variable',
+        categoryLabel: t('canvas.richChatInput.createVariable', { variableName: query }),
+      });
+    }
 
     // Add startNode group
     if (groupedItems.startNode.length > 0) {
@@ -406,7 +472,11 @@ export const MentionList = ({
           }}
           onClick={() => selectItem(item)}
         >
-          {item.source === 'startNode' ? (
+          {item.variableId === 'create-variable' ? (
+            <div className="ddd flex-1 text-sm text-refly-text-0 leading-5 truncate">
+              {item.categoryLabel}
+            </div>
+          ) : item.source === 'startNode' ? (
             <>
               <X size={12} className="flex-shrink-0" color="var(--refly-primary-default)" />
               <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
@@ -432,6 +502,11 @@ export const MentionList = ({
   );
 
   const selectItem = (item: MentionItem) => {
+    // Handle create variable case
+    if (item.variableId === 'create-variable') {
+      handleAddVariable();
+      return;
+    }
     command(item);
   };
 
@@ -578,34 +653,28 @@ export const MentionList = ({
         ref={secondLevelRef}
         className="w-[200px] p-2 flex box-border max-h-60 overflow-y-auto bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border rounded-xl"
       >
-        {queryModeItems?.length > 0 ? (
-          <div className="space-y-1 w-full">
-            {queryModeItems.map((item, idx) => {
-              // Handle group headers
-              if (item.type === 'header') {
-                return (
-                  <div
-                    key={`header-${item.source}-${idx}`}
-                    className="px-2 py-1 text-xs font-semibold text-refly-text-3"
-                  >
-                    {item.label}
-                  </div>
-                );
-              }
+        <div className="space-y-1 w-full">
+          {queryModeItems?.map((item, idx) => {
+            // Handle group headers
+            if (item.type === 'header') {
+              return (
+                <div
+                  key={`header-${item.source}-${idx}`}
+                  className="px-2 py-1 text-xs font-semibold text-refly-text-3"
+                >
+                  {item.label}
+                </div>
+              );
+            }
 
-              // Handle regular items
-              const isActive =
-                secondLevelIndex === navigationItems.findIndex((navItem) => navItem === item);
-              const navIndex = navigationItems.findIndex((navItem) => navItem === item);
+            // Handle regular items
+            const isActive =
+              secondLevelIndex === navigationItems.findIndex((navItem) => navItem === item);
+            const navIndex = navigationItems.findIndex((navItem) => navItem === item);
 
-              return renderListItem(item, navIndex, isActive);
-            })}
-          </div>
-        ) : (
-          <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
-            {t('canvas.richChatInput.createVariable', { variableName: query })}
-          </div>
-        )}
+            return renderListItem(item, navIndex, isActive);
+          })}
+        </div>
       </div>
     );
   };

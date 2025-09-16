@@ -1681,7 +1681,7 @@ const translations = {
       defaultPlaceholder: 'Describe what you want to generate...',
       runningRecord: 'Running Record',
       noRunningRecords: 'No running records',
-      createVariable: 'Create variable {{variableName}}',
+      createVariable: 'Create variable "{{variableName}}"',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
