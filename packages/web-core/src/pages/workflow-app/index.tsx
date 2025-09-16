@@ -13,7 +13,7 @@ import { WorkflowRunForm } from '@refly-packages/ai-workspace-common/components/
 import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
 import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
-import { useSiderStoreShallow } from '@refly/stores';
+import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 
 const WorkflowAppPage: React.FC = () => {
@@ -32,6 +32,11 @@ const WorkflowAppPage: React.FC = () => {
     setShowSettingModal: state.setShowSettingModal,
   }));
 
+  // Canvas operation state for duplicate functionality
+  const { openDuplicateModal } = useCanvasOperationStoreShallow((state) => ({
+    openDuplicateModal: state.openDuplicateModal,
+  }));
+
   const { data, isLoading } = useGetWorkflowAppDetail({ query: { appId } });
   const workflowApp = data?.data;
   console.log('appDetail', workflowApp);
@@ -43,11 +48,7 @@ const WorkflowAppPage: React.FC = () => {
     }
   }, [workflowApp]);
 
-  const {
-    data: workflowDetail,
-    isPolling: isCurrentlyPolling,
-    stopPolling,
-  } = useWorkflowExecutionPolling({
+  const { data: workflowDetail } = useWorkflowExecutionPolling({
     executionId,
     enabled: !!executionId,
     interval: 5000,
@@ -123,8 +124,19 @@ const WorkflowAppPage: React.FC = () => {
         message.error('Failed to get execution ID');
       }
     },
-    [appId, isCurrentlyPolling, stopPolling],
+    [appId],
   );
+
+  const handleCopyWorkflow = useCallback(() => {
+    console.log('copy workflow');
+
+    if (!workflowApp?.canvasId || !workflowApp?.title) {
+      message.error(t('common.error'));
+      return;
+    }
+
+    openDuplicateModal(workflowApp.canvasId, workflowApp.title);
+  }, [workflowApp?.canvasId, workflowApp?.title, openDuplicateModal, t]);
 
   const segmentedOptions = useMemo(() => {
     return [
@@ -172,6 +184,7 @@ const WorkflowAppPage: React.FC = () => {
               workflowVariables={workflowVariables}
               onSubmitVariables={onSubmit}
               loading={isLoading}
+              onCopyWorkflow={handleCopyWorkflow}
             />
           </div>
 

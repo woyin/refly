@@ -1348,6 +1348,7 @@ const translations = {
         title: 'Run Workflow',
         run: 'Run',
         executing: 'Running...',
+        copyWorkflow: 'Copy Workflow',
         emptyTitle: 'No variables defined',
         emptyDescription: 'Click run, the workflow will be executed once if continued.',
         completed: 'Workflow execution completed successfully',
