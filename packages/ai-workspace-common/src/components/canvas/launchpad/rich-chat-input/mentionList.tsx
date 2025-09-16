@@ -113,8 +113,7 @@ export const MentionList = ({
     const q = searchQuery.toLowerCase();
     return items.filter((item) => {
       const name = item?.name ?? '';
-      const desc = item?.description ?? '';
-      return name.toLowerCase().includes(q) || desc.toLowerCase().includes(q);
+      return name.toLowerCase().includes(q);
     });
   }, []);
 
@@ -216,9 +215,9 @@ export const MentionList = ({
 
     // Apply filtering based on query
     return {
-      startNode: filterItems(startNodeItems, query),
-      resourceLibrary: filterItems(myUploadItems, query),
-      runningRecord: filterItems(runningRecordItems, query),
+      startNode: filterItems(startNodeItems, query) || [],
+      resourceLibrary: filterItems(myUploadItems, query) || [],
+      runningRecord: filterItems(runningRecordItems, query) || [],
     };
   }, [items, filterItems, query]);
 
