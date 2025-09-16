@@ -122,14 +122,9 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
   useEffect(() => {
     if (enabled && textareaRef.current) {
-      const textarea = textareaRef.current.querySelector('textarea');
-      if (textarea) {
-        const length = textarea.value.length;
-        textarea.focus();
-        textarea.setSelectionRange(length, length);
-      }
+      textareaRef.current.focus();
     }
-  }, [enabled]);
+  }, [enabled, textareaRef.current]);
 
   useEffect(() => {
     contextItemsRef.current = editContextItems;
