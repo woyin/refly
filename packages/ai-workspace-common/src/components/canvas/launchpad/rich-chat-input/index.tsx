@@ -46,6 +46,9 @@ interface RichChatInputProps {
   minRows?: number;
   handleSendMessage: () => void;
   contextItems?: IContextItem[];
+
+  mentionPosition?: 'top-start' | 'bottom-start';
+
   setContextItems?: (items: IContextItem[]) => void;
 
   onUploadImage?: (file: File) => Promise<void>;
@@ -215,6 +218,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       contextItems = [],
       setContextItems,
       placeholder,
+      mentionPosition = 'bottom-start',
     },
     ref,
   ) => {
@@ -515,7 +519,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                 component = new ReactRenderer(MentionList, {
                   props: {
                     ...props,
-                    placement: 'bottom',
+                    placement: mentionPosition,
                     query: props.query || '',
                   },
                   editor: props.editor,
@@ -533,7 +537,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                   showOnCreate: true,
                   interactive: true,
                   trigger: 'manual',
-                  placement: 'bottom-start',
+                  placement: mentionPosition,
                   theme: 'custom',
                   arrow: false,
                   offset: [0, 8],
@@ -608,7 +612,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           },
         },
       });
-    }, [handleCommand, isMentionListVisible]);
+    }, [handleCommand, isMentionListVisible, mentionPosition]);
 
     // Create Tiptap editor
     const internalUpdateRef = useRef(false);

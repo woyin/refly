@@ -285,6 +285,7 @@ export const FollowingActions = ({
                   onSelectedToolsetsChange={setSelectedToolsets}
                   placeholder={t('canvas.launchpad.commonChatInputPlaceholder')}
                   enableRichInput={true}
+                  mentionPosition="top-start"
                 />
               </motion.div>
             </div>

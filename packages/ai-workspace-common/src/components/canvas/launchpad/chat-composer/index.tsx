@@ -41,6 +41,8 @@ export interface ChatComposerProps {
   contextClassName?: string;
   actionsClassName?: string;
 
+  mentionPosition?: 'top-start' | 'bottom-start';
+
   // Rich input
   enableRichInput?: boolean;
 
@@ -85,7 +87,7 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
     contextClassName = '',
     actionsClassName = '',
     enableRichInput = false,
-
+    mentionPosition = 'bottom-start',
     selectedToolsets,
     onSelectedToolsetsChange,
     isExecuting = false,
@@ -204,6 +206,7 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
           contextItems={contextItems}
           setContextItems={setContextItems}
           placeholder={defaultPlaceholder}
+          mentionPosition={mentionPosition}
         />
       ) : (
         <ChatInput
