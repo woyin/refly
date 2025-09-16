@@ -12,6 +12,8 @@ import { ActionStepCard } from '@refly-packages/ai-workspace-common/components/c
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useActionResultStoreShallow } from '@refly/stores';
 import { useUserStore } from '@refly/stores';
+import { ReactFlowProvider } from '@xyflow/react';
+import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 
 // Using a simple SVG icon instead of heroicons
 const ChevronUpIcon = ({ className }: { className?: string }) => (
@@ -122,14 +124,19 @@ const NodeExecutionResult = ({ nodeExecution }: { nodeExecution: WorkflowNodeExe
 
   return (
     <div className="p-3">
-      {' '}
-      11111
-      <ActionStepCard
-        result={result}
-        step={outputStep}
-        status={result.status}
-        query={nodeExecution.title || ''}
-      />
+      {/* Provide necessary context providers for ActionStepCard */}
+      {/* ReactFlowProvider: Required for useReactFlow hooks in SelectionContext */}
+      {/* CanvasProvider: Required for useCanvasContext in ActionStepCard and SelectionContext */}
+      <ReactFlowProvider>
+        <CanvasProvider canvasId={nodeExecution.nodeId} readonly={true}>
+          <ActionStepCard
+            result={result}
+            step={outputStep}
+            status={result.status}
+            query={nodeExecution.title || ''}
+          />
+        </CanvasProvider>
+      </ReactFlowProvider>
     </div>
   );
 };
