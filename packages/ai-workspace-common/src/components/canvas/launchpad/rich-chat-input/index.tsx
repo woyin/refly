@@ -1,4 +1,13 @@
-import { memo, useCallback, forwardRef, useEffect, useState, useMemo, useRef } from 'react';
+import {
+  memo,
+  useCallback,
+  forwardRef,
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useImperativeHandle,
+} from 'react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchStoreShallow } from '@refly/stores';
@@ -42,6 +51,10 @@ interface RichChatInputProps {
   onUploadImage?: (file: File) => Promise<void>;
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
   onFocus?: () => void;
+}
+
+export interface RichChatInputRef {
+  focus: () => void;
 }
 
 // Helper function to render NodeIcon consistently
@@ -188,7 +201,7 @@ const CustomMention = Mention.extend({
   },
 });
 
-const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
+const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
   (
     {
       readonly,
@@ -666,6 +679,19 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       [placeholder],
     );
 
+    // Expose focus method through ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          if (editor && !readonly) {
+            editor.commands.focus();
+          }
+        },
+      }),
+      [editor, readonly],
+    );
+
     // Function to convert mentions to Handlebars format
     const convertMentionsToHandlebars = useCallback(
       (content: string) => {
@@ -1028,7 +1054,7 @@ const RichChatInputComponent = forwardRef<HTMLDivElement, RichChatInputProps>(
       <>
         <style>{mentionStyles}</style>
         <div
-          ref={ref}
+          ref={ref as any}
           className={cn(
             'w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden relative ',
             isDragging && 'ring-2 ring-green-500 ring-opacity-50 rounded-lg',
