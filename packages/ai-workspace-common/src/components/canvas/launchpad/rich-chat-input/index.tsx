@@ -210,7 +210,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       readonly,
       query,
       setQuery,
-      inputClassName,
       handleSendMessage,
       onUploadImage,
       onUploadMultipleImages,
@@ -669,14 +668,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           internalUpdateRef.current = true;
           setQuery(content);
         },
+        onFocus: () => {
+          handleFocus();
+        },
+        onBlur: () => {
+          setIsFocused(false);
+        },
         editorProps: {
           attributes: {
-            class: cn(
-              'prose prose-sm max-w-none focus:outline-none',
-              inputClassName,
-              readonly && 'cursor-not-allowed',
-              isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
-            ),
+            class: cn('prose prose-sm max-w-none focus:outline-none'),
           },
         },
       },
@@ -1060,9 +1060,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         <div
           ref={ref as any}
           className={cn(
-            'w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden relative ',
+            'w-full h-full flex flex-col flex-grow overflow-y-auto overflow-x-hidden relative',
             isDragging && 'ring-2 ring-green-500 ring-opacity-50 rounded-lg',
             readonly && 'opacity-70 cursor-not-allowed',
+            isFocused ? 'nodrag nopan nowheel cursor-text' : '!cursor-pointer',
           )}
           onDragOver={(e) => {
             e.preventDefault();
@@ -1105,17 +1106,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             </div>
           )}
 
-          <div
-            className={cn('flex-1 min-h-0', readonly && 'cursor-not-allowed')}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={() => setIsFocused(false)}
-            onPaste={handlePaste}
-          >
+          <div className="flex-1 min-h-0" onKeyDown={handleKeyDown} onPaste={handlePaste}>
             {editor ? (
               <EditorContent
                 editor={editor}
-                className="h-full"
                 data-cy="rich-chat-input"
                 data-placeholder={placeholder || t('canvas.richChatInput.defaultPlaceholder')}
               />
