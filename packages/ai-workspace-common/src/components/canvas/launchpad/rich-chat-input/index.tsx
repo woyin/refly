@@ -1011,10 +1011,11 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Handle focus event and propagate it upward
     const handleFocus = useCallback(() => {
+      if (readonly) return;
       setIsFocused(true);
       handlePopupShow();
 
-      if (onFocus && !readonly) {
+      if (onFocus) {
         onFocus();
       }
     }, [onFocus, readonly, setIsFocused, handlePopupShow]);
