@@ -5,10 +5,6 @@ import { FirecrawlToolset, FirecrawlToolsetDefinition } from './firecrawl';
 import { CalculatorToolset, CalculatorToolsetDefinition } from './calculator';
 import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive';
 import { JinaToolset, JinaToolsetDefinition } from './jina';
-import {
-  GenerateImageWithNanoBananaToolset,
-  GenerateImageWithNanoBananaToolsetDefinition,
-} from './builtin/media-generate/nano_banana';
 import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
 import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
 
@@ -40,10 +36,6 @@ export const toolsetInventory: Record<
   [JinaToolsetDefinition.key]: {
     class: JinaToolset,
     definition: JinaToolsetDefinition,
-  },
-  [GenerateImageWithNanoBananaToolsetDefinition.key]: {
-    class: GenerateImageWithNanoBananaToolset,
-    definition: GenerateImageWithNanoBananaToolsetDefinition,
   },
   [CodeInterpreterToolsetDefinition.key]: {
     class: CodeInterpreterToolset,
