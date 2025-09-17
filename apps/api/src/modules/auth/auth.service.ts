@@ -236,7 +236,7 @@ export class AuthService {
   }
 
   async parseOAuthState(state: string) {
-    this.logger.log(`tool auth state: ${state}`);
+    this.logger.log(`parseOAuthState: ${state}`);
 
     // Parse state safely once
     const defaultRedirect = this.configService.get('auth.redirectUrl');
@@ -779,6 +779,8 @@ export class AuthService {
    * @param redirectUrl Redirect URL after authorization
    */
   async generateGoogleOAuthUrl(scope: string, redirect: string, uid: string): Promise<string> {
+    this.logger.log(`generateGoogleOAuthUrl, scope: ${scope}, redirect: ${redirect}, uid: ${uid}`);
+
     const baseScope = ['profile', 'email'];
     const scopeArray = scope?.split(',') ?? [];
     const finalScope = [...baseScope, ...scopeArray];
@@ -825,7 +827,7 @@ export class AuthService {
       scope: finalScope.join(' '),
       response_type: 'code',
       access_type: 'offline',
-      prompt: prompt,
+      prompt,
       state: JSON.stringify({
         redirect: redirect ?? this.configService.get('auth.redirectUrl'),
         uid: uid,
