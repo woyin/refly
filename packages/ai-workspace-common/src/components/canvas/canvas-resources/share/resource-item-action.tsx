@@ -21,6 +21,7 @@ export const ResourceItemAction = ({
   const { readonly, canvasId, workflow } = useCanvasContext();
   const { deleteNode } = useDeleteNode();
   const { activeNode, setActiveNode } = useActiveNode(canvasId);
+  const showCreateVariable = false;
 
   // Safely extract workflowVariables with fallback to prevent runtime crashes
   const workflowVariables = workflow?.workflowVariables ?? [];
@@ -165,17 +166,19 @@ export const ResourceItemAction = ({
           className,
         )}
       >
-        <Tooltip title={getTooltipText()} arrow={false}>
-          <Button
-            type="text"
-            size="small"
-            icon={<XBorder size={16} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCreateVariable(node);
-            }}
-          />
-        </Tooltip>
+        {showCreateVariable && (
+          <Tooltip title={getTooltipText()} arrow={false}>
+            <Button
+              type="text"
+              size="small"
+              icon={<XBorder size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCreateVariable(node);
+              }}
+            />
+          </Tooltip>
+        )}
         {!readonly && (
           <Tooltip title={t('common.delete')} arrow={false}>
             <Button
