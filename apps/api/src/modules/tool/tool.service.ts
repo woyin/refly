@@ -286,7 +286,7 @@ export class ToolService {
     if (param.name !== undefined) {
       updates.name = param.name;
     }
-    if (param.key !== toolset.key) {
+    if (param.key !== undefined && param.key !== toolset.key) {
       throw new ParamsError(`Toolset key ${param.key} cannot be updated`);
     }
     if (param.enabled !== undefined) {
