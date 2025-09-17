@@ -52,6 +52,7 @@ const createToolsetWithSensitiveData = (
     toolset.toolset = {
       toolsetId: 'internal-toolset-id',
       name: 'Internal Toolset',
+      key: 'test-toolset',
       authData: { apiKey: 'secret-key', token: 'auth-token' },
       config: { safe: 'config data' },
       definition: {
