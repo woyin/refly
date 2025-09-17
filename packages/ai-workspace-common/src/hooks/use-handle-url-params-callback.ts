@@ -28,9 +28,19 @@ export const useHandleUrlParamsCallback = () => {
           autoFocusButton: null,
           onOk: () => {
             setShowModal(false);
+            // Remove loginFailed parameter from URL
+            searchParams.delete('loginFailed');
+            navigate(`${window.location.pathname}?${searchParams.toString()}`, {
+              replace: true,
+            });
           },
           onCancel: () => {
             setShowModal(false);
+            // Remove loginFailed parameter from URL
+            searchParams.delete('loginFailed');
+            navigate(`${window.location.pathname}?${searchParams.toString()}`, {
+              replace: true,
+            });
           },
         });
       }
