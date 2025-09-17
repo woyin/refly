@@ -1,31 +1,47 @@
-import { time } from '@refly-packages/ai-workspace-common/utils/time';
-import { LOCALE } from '@refly/common-types';
 import { useTranslation } from 'react-i18next';
+import { useMemo } from 'react';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 
-import { CanvasNodeType, WorkflowNodeExecution } from '@refly/openapi-schema';
-import { cn } from '@refly/utils/cn';
+import { WorkflowNodeExecution } from '@refly/openapi-schema';
 import { Empty } from 'antd';
-import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
+import { NodeRenderer } from '@refly-packages/ai-workspace-common/components/slideshow/components/NodeRenderer';
+import { type NodeRelation } from '@refly-packages/ai-workspace-common/components/slideshow/components/ArtifactRenderer';
 
 export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecution[] }) => {
-  const { t, i18n } = useTranslation();
-  const language = i18n.languages?.[0];
+  const { t } = useTranslation();
 
-  const getStatusConfig = (nodeExecution: WorkflowNodeExecution) => {
-    switch (nodeExecution.status) {
-      case 'finish':
-        return 'bg-refly-primary-light text-refly-primary-default';
-      case 'failed':
-        return 'bg-refly-Colorful-red-light text-refly-func-danger-default';
-      case 'executing':
-        return 'bg-refly-primary-light text-refly-primary-default';
-      case 'waiting':
-        return 'bg-refly-bg-control-z0 text-refly-text-2';
-      default:
-        return 'bg-refly-bg-control-z0 text-refly-text-2';
-    }
+  // Transform WorkflowNodeExecution to NodeRelation for NodeRenderer
+  const transformWorkflowNodeToNodeRelation = (
+    product: WorkflowNodeExecution,
+    index: number,
+  ): NodeRelation => {
+    return {
+      relationId: product.nodeExecutionId || `workflow-${product.nodeId}-${index}`,
+      pageId: undefined, // Optional field
+      nodeId: product.nodeId,
+      nodeType: product.nodeType || 'unknown',
+      entityId: product.entityId || '',
+      orderIndex: index,
+      nodeData: {
+        title: product.title,
+        content: undefined, // Will be fetched by renderer if needed
+        metadata: {
+          status: product.status,
+          progress: product.progress,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        },
+        entityId: product.entityId, // Ensure entityId is also in nodeData
+      },
+    };
   };
+
+  // Transform products to NodeRelation array with memoization
+  const transformedNodes = useMemo(() => {
+    return (
+      products?.map((product, index) => transformWorkflowNodeToNodeRelation(product, index)) || []
+    );
+  }, [products]);
 
   return (
     <div className="w-full h-full flex flex-col gap-2">
@@ -35,34 +51,17 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
         </div>
       ) : (
         <>
-          {products?.map((product) => (
+          {transformedNodes?.map((node, index) => (
             <div
-              key={product.nodeExecutionId ?? product.entityId}
-              className="w-full px-3 py-2 border-solid border-refly-Card-Border border-[1px] rounded-lg flex items-center gap-3 justify-between bg-refly-bg-content-z2 hover:bg-refly-tertiary-hover"
+              key={node.relationId || `content-${index}`}
+              id={`content-block-${index}`}
+              className={`transition-all duration-300 h-[400px] rounded-lg bg-white dark:bg-gray-900 ${'shadow-refly-m hover:shadow-lg dark:hover:shadow-gray-600'}`}
             >
-              <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
-                <NodeIcon small type={product.nodeType as CanvasNodeType} />
-                <div className="min-w-0 flex-1 truncate">{product.title}</div>
-              </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div
-                  className={cn(
-                    'px-1 text-[10px] leading-[16px] font-semibold rounded-[4px]',
-                    getStatusConfig(product),
-                  )}
-                >
-                  {t(`canvas.workflow.run.nodeStatus.${product.status}`, {
-                    defaultValue: product.status,
-                  })}
-                </div>
-
-                <div className="text-[10px] leading-[16px] text-refly-text-2">
-                  {time(product.updatedAt, language as LOCALE)
-                    ?.utc()
-                    ?.fromNow()}
-                </div>
-              </div>
+              <NodeRenderer
+                node={node}
+                key={node.relationId}
+                isFocused={true} // Allow interaction with the content
+              />
             </div>
           ))}
 

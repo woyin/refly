@@ -15,6 +15,8 @@ import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/component
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
 import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
+import { ResultList } from '@refly-packages/ai-workspace-common/components/canvas/canvas-resources/result-list';
+import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -50,7 +52,7 @@ const WorkflowAppPage: React.FC = () => {
 
   const { data: workflowDetail } = useWorkflowExecutionPolling({
     executionId,
-    enabled: !!executionId,
+    enabled: true,
     interval: 5000,
 
     onComplete: (status, data) => {
@@ -90,9 +92,13 @@ const WorkflowAppPage: React.FC = () => {
     return workflowDetail?.nodeExecutions || finalNodeExecutions || [];
   }, [workflowDetail, finalNodeExecutions]);
 
+  console.log('nodeExecutions', nodeExecutions);
+
   const products = useMemo(() => {
     return nodeExecutions.filter((nodeExecution: WorkflowNodeExecution) =>
-      ['document', 'codeArtifact'].includes(nodeExecution.nodeType as CanvasNodeType),
+      ['document', 'codeArtifact', 'image', 'video', 'audio'].includes(
+        nodeExecution.nodeType as CanvasNodeType,
+      ),
     );
   }, [nodeExecutions]);
 
@@ -151,74 +157,80 @@ const WorkflowAppPage: React.FC = () => {
     ];
   }, [t]);
 
+  console.log('products', products);
+
   return (
     <ReactFlowProvider>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-3">
-                <Logo onClick={() => navigate?.('/')} />
-                <GithubStar />
+      <CanvasProvider readonly={true} canvasId={workflowApp?.canvasId ?? ''}>
+        <div className="min-h-screen bg-gray-50">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200">
+            <div className="mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center gap-3">
+                  <Logo onClick={() => navigate?.('/')} />
+                  <GithubStar />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Main Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          {/* Hero Section */}
-          <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
-              {workflowApp?.title ?? ''}
-            </h1>
-            <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-              {workflowApp?.description ?? ''}
-            </p>
-          </div>
-
-          {/* Workflow Form */}
-          <div className="mb-6 sm:mb-8">
-            <WorkflowRunForm
-              workflowVariables={workflowVariables}
-              onSubmitVariables={onSubmit}
-              loading={isLoading}
-              onCopyWorkflow={handleCopyWorkflow}
-            />
-          </div>
-
-          {/* Tools Dependency Form */}
-          {workflowApp?.canvasId && (
-            <div className="mb-6 sm:mb-8">
-              <ToolsDependencyChecker canvasId={workflowApp.canvasId} />
+          {/* Main Content */}
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            {/* Hero Section */}
+            <div className="text-center mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
+                {workflowApp?.title ?? ''}
+              </h1>
+              <p className="mt-3 sm:mt-4 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+                {workflowApp?.description ?? ''}
+              </p>
             </div>
-          )}
 
-          {/* Tabs */}
-          <div className="mb-4 sm:mb-6 flex justify-center">
-            <Segmented
-              className="max-w-sm sm:max-w-md mx-auto"
-              shape="round"
-              options={segmentedOptions}
-              value={activeTab}
-              onChange={(value) => setActiveTab(value)}
-            />
-          </div>
+            {/* Workflow Form */}
+            <div className="mb-6 sm:mb-8">
+              <WorkflowRunForm
+                workflowVariables={workflowVariables}
+                onSubmitVariables={onSubmit}
+                loading={isLoading}
+                onCopyWorkflow={handleCopyWorkflow}
+              />
+            </div>
 
-          {/* Content Area */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-h-[200px]">
-            {activeTab === 'products' ? (
-              <WorkflowAppProducts products={products || []} />
-            ) : activeTab === 'runLogs' ? (
-              <WorkflowAppRunLogs nodeExecutions={logs || []} />
-            ) : null}
+            {/* Tools Dependency Form */}
+            {workflowApp?.canvasId && (
+              <div className="mb-6 sm:mb-8">
+                <ToolsDependencyChecker canvasId={workflowApp.canvasId} />
+              </div>
+            )}
+
+            {/* Tabs */}
+            <div className="mb-4 sm:mb-6 flex justify-center">
+              <Segmented
+                className="max-w-sm sm:max-w-md mx-auto"
+                shape="round"
+                options={segmentedOptions}
+                value={activeTab}
+                onChange={(value) => setActiveTab(value)}
+              />
+            </div>
+
+            {/* Content Area */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-h-[200px]">
+              {activeTab === 'products' ? (
+                <WorkflowAppProducts products={products || []} />
+              ) : activeTab === 'runLogs' ? (
+                <WorkflowAppRunLogs nodeExecutions={logs || []} />
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Settings Modal */}
-      <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
+        <ResultList />
+
+        {/* Settings Modal */}
+        <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />
+      </CanvasProvider>
     </ReactFlowProvider>
   );
 };

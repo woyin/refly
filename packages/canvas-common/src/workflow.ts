@@ -293,6 +293,8 @@ export const prepareNodeExecutions = (params: {
         '';
       nodeExecution.processedQuery = node?.data.title;
       nodeExecution.resultHistory = resultHistory;
+    } else if (['document', 'codeArtifact', 'image', 'video', 'audio'].includes(node.type)) {
+      nodeExecution.status = 'waiting';
     }
 
     nodeExecutions.push(nodeExecution);
