@@ -266,43 +266,46 @@ export const WorkflowAppRunLogs = ({
                         )}
 
                         {/* Execution Status */}
-                        <div className="space-y-2">
-                          <div className="text-xs font-semibold text-refly-text-1 uppercase tracking-wide">
-                            {t('workflowApp.executionStatus', 'Execution Status')}
-                          </div>
-                          <div className="bg-refly-bg-control-z0 rounded-lg p-3 space-y-2">
-                            <div className="flex items-start gap-2">
-                              <div className="text-xs font-medium text-refly-text-2 min-w-0 flex-shrink-0">
-                                {t('workflowApp.status', 'Status')}:
+                        {nodeExecution.status === 'waiting' ||
+                          (nodeExecution.status === 'executing' && (
+                            <div className="space-y-2">
+                              <div className="text-xs font-semibold text-refly-text-1 uppercase tracking-wide">
+                                {t('workflowApp.executionStatus', 'Execution Status')}
                               </div>
-                              <div className="text-xs text-refly-text-1 break-words">
-                                {t(`canvas.workflow.run.nodeStatus.${nodeExecution.status}`, {
-                                  defaultValue: nodeExecution.status,
-                                })}
+                              <div className="bg-refly-bg-control-z0 rounded-lg p-3 space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <div className="text-xs font-medium text-refly-text-2 min-w-0 flex-shrink-0">
+                                    {t('workflowApp.status', 'Status')}:
+                                  </div>
+                                  <div className="text-xs text-refly-text-1 break-words">
+                                    {t(`canvas.workflow.run.nodeStatus.${nodeExecution.status}`, {
+                                      defaultValue: nodeExecution.status,
+                                    })}
+                                  </div>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <div className="text-xs font-medium text-refly-text-2 min-w-0 flex-shrink-0">
+                                    {t('workflowApp.createdAt', 'Created')}:
+                                  </div>
+                                  <div className="text-xs text-refly-text-1 break-words">
+                                    {time(nodeExecution.createdAt, language as LOCALE)?.format(
+                                      'YYYY-MM-DD HH:mm:ss',
+                                    ) ?? '-'}
+                                  </div>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <div className="text-xs font-medium text-refly-text-2 min-w-0 flex-shrink-0">
+                                    {t('workflowApp.updatedAt', 'Updated')}:
+                                  </div>
+                                  <div className="text-xs text-refly-text-1 break-words">
+                                    {time(nodeExecution.updatedAt, language as LOCALE)?.format(
+                                      'YYYY-MM-DD HH:mm:ss',
+                                    ) ?? '-'}
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex items-start gap-2">
-                              <div className="text-xs font-medium text-refly-text-2 min-w-0 flex-shrink-0">
-                                {t('workflowApp.createdAt', 'Created')}:
-                              </div>
-                              <div className="text-xs text-refly-text-1 break-words">
-                                {time(nodeExecution.createdAt, language as LOCALE)?.format(
-                                  'YYYY-MM-DD HH:mm:ss',
-                                ) ?? '-'}
-                              </div>
-                            </div>
-                            <div className="flex items-start gap-2">
-                              <div className="text-xs font-medium text-refly-text-2 min-w-0 flex-shrink-0">
-                                {t('workflowApp.updatedAt', 'Updated')}:
-                              </div>
-                              <div className="text-xs text-refly-text-1 break-words">
-                                {time(nodeExecution.updatedAt, language as LOCALE)?.format(
-                                  'YYYY-MM-DD HH:mm:ss',
-                                ) ?? '-'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                          ))}
                       </div>
                     </div>
                   </div>
