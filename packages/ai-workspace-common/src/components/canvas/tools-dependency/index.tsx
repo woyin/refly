@@ -283,6 +283,7 @@ const ToolsDependencyContent = React.memo(
     setOpen,
     isLogin,
     totalCount,
+    showReferencedNodesDisplay = true,
   }: {
     uninstalledCount: number;
     handleClose: () => void;
@@ -296,6 +297,7 @@ const ToolsDependencyContent = React.memo(
     setOpen: (value: boolean) => void;
     isLogin: boolean;
     totalCount: number;
+    showReferencedNodesDisplay?: boolean;
   }) => {
     const { t, i18n } = useTranslation();
     const currentLanguage = i18n.language;
@@ -403,7 +405,7 @@ const ToolsDependencyContent = React.memo(
                             )}
                           </div>
                           <div className="text-refly-text-2 text-xs leading-4 truncate">
-                            {description}
+                            {description ? description : <>&nbsp;</>}
                           </div>
                         </div>
 
@@ -418,7 +420,9 @@ const ToolsDependencyContent = React.memo(
                       </div>
 
                       {/* Referenced Nodes */}
-                      <ReferencedNodesDisplay nodes={referencedNodes} />
+                      {showReferencedNodesDisplay && (
+                        <ReferencedNodesDisplay nodes={referencedNodes} />
+                      )}
                     </div>
                   );
                 })
@@ -491,15 +495,47 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
     for (const toolWithNodes of filteredToolsets) {
       const isInstalled = isToolsetInstalled(toolWithNodes.toolset, installedToolsets);
 
+      // Find the complete toolset data from installedToolsets
+      let completeToolset = toolWithNodes.toolset;
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      // If we found a matching installed toolset with more complete data, use it
+      if (matchingInstalled?.toolset?.definition) {
+        completeToolset = matchingInstalled;
+      }
+
+      const enhancedToolWithNodes = {
+        ...toolWithNodes,
+        toolset: completeToolset,
+      };
+
       if (isInstalled) {
-        installed.push(toolWithNodes);
+        installed.push(enhancedToolWithNodes);
       } else {
-        uninstalled.push(toolWithNodes);
+        uninstalled.push(enhancedToolWithNodes);
       }
     }
 
+    // Also enhance the 'all' array
+    const enhancedAll = filteredToolsets.map((toolWithNodes) => {
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      if (matchingInstalled?.toolset?.definition) {
+        return {
+          ...toolWithNodes,
+          toolset: matchingInstalled,
+        };
+      }
+
+      return toolWithNodes;
+    });
+
     return {
-      all: filteredToolsets,
+      all: enhancedAll,
       installed,
       uninstalled,
     };
@@ -615,6 +651,7 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
           installedToolsets={installedToolsets}
           totalCount={toolsetsWithNodes.length}
           setOpen={setOpen}
+          showReferencedNodesDisplay={false}
         />
       }
       arrow={false}
@@ -679,15 +716,47 @@ export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
     for (const toolWithNodes of filteredToolsets) {
       const isInstalled = isToolsetInstalled(toolWithNodes.toolset, installedToolsets);
 
+      // Find the complete toolset data from installedToolsets
+      let completeToolset = toolWithNodes.toolset;
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      // If we found a matching installed toolset with more complete data, use it
+      if (matchingInstalled?.toolset?.definition) {
+        completeToolset = matchingInstalled;
+      }
+
+      const enhancedToolWithNodes = {
+        ...toolWithNodes,
+        toolset: completeToolset,
+      };
+
       if (isInstalled) {
-        installed.push(toolWithNodes);
+        installed.push(enhancedToolWithNodes);
       } else {
-        uninstalled.push(toolWithNodes);
+        uninstalled.push(enhancedToolWithNodes);
       }
     }
 
+    // Also enhance the 'all' array
+    const enhancedAll = filteredToolsets.map((toolWithNodes) => {
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      if (matchingInstalled?.toolset?.definition) {
+        return {
+          ...toolWithNodes,
+          toolset: matchingInstalled,
+        };
+      }
+
+      return toolWithNodes;
+    });
+
     return {
-      all: filteredToolsets,
+      all: enhancedAll,
       installed,
       uninstalled,
     };
