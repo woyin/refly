@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
 import cookieParser from 'cookie-parser';
-import session from 'express-session';
 import helmet from 'helmet';
 
 import * as Sentry from '@sentry/node';
@@ -70,20 +69,6 @@ async function bootstrap() {
     credentials: true,
   });
   app.use(cookieParser());
-
-  // Session middleware for OAuth state management
-  app.use(
-    session({
-      secret: configService.get('auth.sessionSecret', 'your-super-secret-key'),
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: configService.get('NODE_ENV') === 'production',
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      },
-    }),
-  );
 
   app.useWebSocketAdapter(new CustomWsAdapter(app, configService.get<number>('wsPort')));
   app.useGlobalFilters(new GlobalExceptionFilter(configService));
