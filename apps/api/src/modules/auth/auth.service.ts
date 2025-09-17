@@ -14,6 +14,7 @@ import {
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
+  EMAIL_COOKIE,
   genUID,
   genVerificationSessionID,
   omit,
@@ -82,6 +83,7 @@ export class AuthService {
 
     return {
       uid: user.uid,
+      email: user.email,
       accessToken,
       refreshToken,
     };
@@ -183,6 +185,11 @@ export class AuthService {
           ...baseOptions,
           expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
         };
+      case EMAIL_COOKIE:
+        return {
+          ...baseOptions,
+          expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
+        };
       case ACCESS_TOKEN_COOKIE:
         return {
           ...baseOptions,
@@ -200,9 +207,10 @@ export class AuthService {
     }
   }
 
-  setAuthCookie(res: Response, { uid, accessToken, refreshToken }: TokenData) {
+  setAuthCookie(res: Response, { uid, email, accessToken, refreshToken }: TokenData) {
     return res
       .cookie(UID_COOKIE, uid, this.cookieOptions(UID_COOKIE))
+      .cookie(EMAIL_COOKIE, email, this.cookieOptions(EMAIL_COOKIE))
       .cookie(ACCESS_TOKEN_COOKIE, accessToken, this.cookieOptions(ACCESS_TOKEN_COOKIE))
       .cookie(REFRESH_TOKEN_COOKIE, refreshToken, this.cookieOptions(REFRESH_TOKEN_COOKIE));
   }
