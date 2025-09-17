@@ -11,6 +11,7 @@ import { GoogleDocsToolset, GoogleDocsToolsetDefinition } from './google-docs';
 import { GoogleSheetsToolset, GoogleSheetsToolsetDefinition } from './google-sheets';
 import { GmailToolset, GmailToolsetDefinition } from './gmail';
 import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
+import { NotionToolset, NotionToolsetDefinition } from './notion';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -64,5 +65,9 @@ export const toolsetInventory: Record<
   [TwitterToolsetDefinition.key]: {
     class: TwitterToolset,
     definition: TwitterToolsetDefinition,
+  },
+  [NotionToolsetDefinition.key]: {
+    class: NotionToolset,
+    definition: NotionToolsetDefinition,
   },
 };

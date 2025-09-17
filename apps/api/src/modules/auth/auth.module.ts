@@ -10,7 +10,7 @@ import { AuthController } from './auth.controller';
 import { GithubOauthStrategy } from './strategy/github-oauth.strategy';
 import { GoogleOauthStrategy } from './strategy/google-oauth.strategy';
 import { TwitterOauthStrategy } from './strategy/twitter-oauth.strategy';
-
+import { NotionOauthStrategy } from './strategy/notion-oauth.strategy';
 import { ProviderModule } from '../provider/provider.module';
 import { NotificationModule } from '../notification/notification.module';
 
@@ -36,7 +36,13 @@ import { NotificationModule } from '../notification/notification.module';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, GithubOauthStrategy, GoogleOauthStrategy, TwitterOauthStrategy],
+  providers: [
+    AuthService,
+    GithubOauthStrategy,
+    GoogleOauthStrategy,
+    TwitterOauthStrategy,
+    NotionOauthStrategy,
+  ],
   exports: [AuthService],
   controllers: [AuthController],
 })

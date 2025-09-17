@@ -37,7 +37,7 @@ import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { REFRESH_TOKEN_COOKIE } from '@refly/utils';
 import { accountPO2DTO } from './auth.dto';
 import { TwitterOauthGuard } from './guard/twitter-oauth.guard';
-
+import { NotionOauthGuard } from './guard/notion-oauth.guard';
 // Extend session type to include uid
 declare module 'express-session' {
   interface SessionData {
@@ -152,6 +152,18 @@ export class AuthController {
   async twitter() {
     // TwitterOauthGuard handles OAuth flow automatically
     // UID is stored in session by the guard's canActivate method
+  }
+
+  @UseGuards(NotionOauthGuard)
+  @Get('notion')
+  async notion() {
+    // NotionOauthGuard handles OAuth flow automatically
+    // UID is stored in session by the guard's canActivate method
+  }
+  @UseGuards(NotionOauthGuard)
+  @Get('callback/notion')
+  async notionAuthCallback(@Res() res: Response) {
+    return res.redirect(this.configService.get('auth.redirectUrl'));
   }
 
   @UseGuards(GoogleOauthGuard)

@@ -115,6 +115,13 @@ export default () => ({
       consumerSecret: process.env.TWITTER_CONSUMER_SECRET || 'test',
       bearerToken: process.env.TWITTER_BEARER_TOKEN || 'test',
     },
+    notion: {
+      enabled: process.env.NOTION_AUTH_ENABLED === 'true' || false,
+      clientId: process.env.NOTION_CLIENT_ID || 'test',
+      clientSecret: process.env.NOTION_CLIENT_SECRET || 'test',
+      callbackUrl: process.env.NOTION_CALLBACK_URL || 'test',
+      authorizationURL: process.env.NOTION_AUTHORIZATION_URL || 'test',
+    },
   },
   encryption: {
     key: process.env.ENCRYPTION_KEY,
