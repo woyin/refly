@@ -69,6 +69,7 @@ async function bootstrap() {
     credentials: true,
   });
   app.use(cookieParser());
+
   app.useWebSocketAdapter(new CustomWsAdapter(app, configService.get<number>('wsPort')));
   app.useGlobalFilters(new GlobalExceptionFilter(configService));
 

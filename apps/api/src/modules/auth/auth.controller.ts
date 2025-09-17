@@ -36,6 +36,8 @@ import { hours, minutes, seconds, Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { REFRESH_TOKEN_COOKIE } from '@refly/utils';
 import { accountPO2DTO } from './auth.dto';
+import { TwitterOauthGuard } from './guard/twitter-oauth.guard';
+import { NotionOauthGuard } from './guard/notion-oauth.guard';
 
 @Controller('v1/auth')
 export class AuthController {
@@ -131,6 +133,31 @@ export class AuthController {
       this.logger.error('GitHub OAuth callback failed:', error.stack);
       throw new OAuthError();
     }
+  }
+
+  @UseGuards(TwitterOauthGuard)
+  @Get('callback/twitter')
+  async twitterAuthCallback(@Res() res: Response) {
+    return res.redirect(this.configService.get('auth.redirectUrl'));
+  }
+
+  @UseGuards(TwitterOauthGuard)
+  @Get('twitter')
+  async twitter() {
+    // TwitterOauthGuard handles OAuth flow automatically
+    // UID is stored in session by the guard's canActivate method
+  }
+
+  @UseGuards(NotionOauthGuard)
+  @Get('notion')
+  async notion() {
+    // NotionOauthGuard handles OAuth flow automatically
+    // UID is stored in session by the guard's canActivate method
+  }
+  @UseGuards(NotionOauthGuard)
+  @Get('callback/notion')
+  async notionAuthCallback(@Res() res: Response) {
+    return res.redirect(this.configService.get('auth.redirectUrl'));
   }
 
   @UseGuards(GoogleOauthGuard)
