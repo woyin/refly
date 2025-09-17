@@ -23,6 +23,7 @@ import { ProviderModule } from '../provider/provider.module';
 import { CodeArtifactModule } from '../code-artifact/code-artifact.module';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
+import { ToolModule } from '../tool/tool.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
     MiscModule,
     KnowledgeModule,
     ActionModule,
+    ToolModule,
     ProviderModule,
     CanvasSyncModule,
     CodeArtifactModule,

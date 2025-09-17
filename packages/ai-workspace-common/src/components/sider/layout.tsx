@@ -38,6 +38,7 @@ import { SiderLoggedOut } from './sider-logged-out';
 
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
+import { NewCanvasButton } from './new-canvas-button';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { logEvent } from '@refly/telemetry-web';
@@ -210,26 +211,6 @@ const SettingItem = () => {
           )}
         </div>
       </SiderMenuSettingList>
-    </div>
-  );
-};
-
-export const NewCanvasButton = () => {
-  const { t } = useTranslation();
-  const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas();
-
-  return (
-    <div className="w-full" onClick={() => debouncedCreateCanvas()}>
-      <Button
-        className="w-full h-9 border-solid border-[1px] !border-refly-Card-Border bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover"
-        key="newCanvas"
-        loading={createCanvasLoading}
-        type="default"
-      >
-        <span className="text-refly-text-0 font-semibold">
-          {t('loggedHomePage.siderMenu.newCanvas')}
-        </span>
-      </Button>
     </div>
   );
 };

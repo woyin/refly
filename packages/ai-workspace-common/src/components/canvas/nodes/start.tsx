@@ -47,7 +47,8 @@ const InputParameterRow = memo(
   }) => {
     const { t } = useTranslation();
     const Icon = useMemo(() => {
-      return VARIABLE_TYPE_ICON_MAP[variableType];
+      // Fallback to BiText if the mapped icon is missing
+      return VARIABLE_TYPE_ICON_MAP[variableType] ?? BiText;
     }, [variableType]);
 
     return (

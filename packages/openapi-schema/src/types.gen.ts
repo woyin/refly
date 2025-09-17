@@ -2478,13 +2478,34 @@ export type RawCanvasData = CanvasData & {
    * Minimap URL
    */
   minimapUrl?: string;
+  /**
+   * Workflow variables
+   */
+  variables?: Array<WorkflowVariable>;
+};
+
+export type GetCanvasDataResponse = BaseResponse & {
+  data?: RawCanvasData;
 };
 
 export type ExportCanvasResponse = BaseResponse & {
+  data?: {
+    /**
+     * Download URL for the canvas data
+     */
+    downloadUrl?: string;
+  };
+};
+
+export type ImportCanvasRequest = {
   /**
-   * Canvas data
+   * File to import
    */
-  data?: RawCanvasData;
+  file: Blob | File;
+  /**
+   * Canvas ID to specify
+   */
+  canvasId?: string;
 };
 
 export type DuplicateCanvasRequest = {
@@ -5538,7 +5559,7 @@ export type ToolsetInstance = {
   /**
    * Toolset key
    */
-  key?: string;
+  key: string;
   /**
    * Whether the toolset is global
    */
@@ -6547,7 +6568,7 @@ export type GetCanvasDataData = {
   };
 };
 
-export type GetCanvasDataResponse = ExportCanvasResponse;
+export type GetCanvasDataResponse2 = GetCanvasDataResponse;
 
 export type GetCanvasDataError = unknown;
 
@@ -6565,7 +6586,7 @@ export type ExportCanvasResponse2 = ExportCanvasResponse;
 export type ExportCanvasError = unknown;
 
 export type ImportCanvasData = {
-  body: RawCanvasData;
+  body: ImportCanvasRequest;
 };
 
 export type ImportCanvasResponse = UpsertCanvasResponse;

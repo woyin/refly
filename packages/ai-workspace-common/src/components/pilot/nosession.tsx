@@ -255,6 +255,7 @@ export const NoSession = memo(
             onSelectedToolsetsChange={setSelectedToolsets}
             isExecuting={isExecuting}
             enableChatModeSelector
+            mentionPosition="top-start"
           />
         </div>
       </div>

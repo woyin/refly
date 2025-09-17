@@ -1146,9 +1146,9 @@ const translations = {
     },
     launchpad: {
       placeholder: 'Describe needs...',
-      chatInputPlaceholder:
-        'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
-      commonChatInputPlaceholder: 'Ask Refly any question...',
+      chatInputPlaceholder: 'Input task description, Agent will generate reusable workflows',
+      commonChatInputPlaceholder:
+        'Input task description, @ can quickly select variables/resources',
     },
     contextMenu: {
       createGroup: 'Create Group',
@@ -1257,6 +1257,7 @@ const translations = {
       hideTemplates: 'Hide Templates',
       showTemplates: 'Show Templates',
       exportImage: 'Export Image',
+      exportCanvas: 'Export Canvas',
       slideshow: 'Slideshow',
       copyLink: 'Copy Link',
       createWebsite: 'Create Website Node',
@@ -1680,6 +1681,7 @@ const translations = {
       defaultPlaceholder: 'Describe what you want to generate...',
       runningRecord: 'Running Record',
       noRunningRecords: 'No running records',
+      createVariable: 'Create variable "{{variableName}}"',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
@@ -1956,6 +1958,7 @@ const translations = {
       subscription: 'Subscription',
       canvas: 'Canvas',
       newCanvas: 'New Canvas',
+      importCanvas: 'Import Canvas',
       news: "What's new?",
       threadLibrary: 'Threads',
       explore: 'Explore',

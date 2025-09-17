@@ -7,6 +7,9 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { CanvasService } from './canvas.service';
@@ -27,9 +30,13 @@ import {
   CreateCanvasVersionRequest,
   CreateCanvasVersionResponse,
   SetCanvasStateRequest,
+  ImportCanvasRequest,
+  ExportCanvasResponse,
   WorkflowVariable,
+  GetCanvasDataResponse,
 } from '@refly/openapi-schema';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('v1/canvas')
 export class CanvasController {
@@ -59,7 +66,10 @@ export class CanvasController {
 
   @UseGuards(JwtAuthGuard)
   @Get('data')
-  async getCanvasData(@LoginedUser() user: User, @Query('canvasId') canvasId: string) {
+  async getCanvasData(
+    @LoginedUser() user: User,
+    @Query('canvasId') canvasId: string,
+  ): Promise<GetCanvasDataResponse> {
     const data = await this.canvasService.getCanvasRawData(user, canvasId);
     return buildSuccessResponse(data);
   }
@@ -90,6 +100,41 @@ export class CanvasController {
   async deleteCanvas(@LoginedUser() user: User, @Body() body: DeleteCanvasRequest) {
     await this.canvasService.deleteCanvas(user, body);
     return buildSuccessResponse({});
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+      fileFilter: (_req, file, cb) => {
+        if (file.mimetype !== 'application/json') {
+          return cb(new BadRequestException('Only JSON files are allowed'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  @Post('import')
+  async importCanvas(
+    @LoginedUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: ImportCanvasRequest,
+  ) {
+    const canvas = await this.canvasService.importCanvas(user, {
+      file: file.buffer,
+      canvasId: body.canvasId,
+    });
+    return buildSuccessResponse(canvasPO2DTO(canvas));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('export')
+  async exportCanvas(
+    @LoginedUser() user: User,
+    @Query('canvasId') canvasId: string,
+  ): Promise<ExportCanvasResponse> {
+    const downloadUrl = await this.canvasService.exportCanvas(user, canvasId);
+    return buildSuccessResponse({ downloadUrl });
   }
 
   @UseGuards(JwtAuthGuard)

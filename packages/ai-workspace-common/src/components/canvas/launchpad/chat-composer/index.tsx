@@ -1,9 +1,12 @@
-import { forwardRef, memo, useMemo, useCallback } from 'react';
+import { forwardRef, memo, useMemo, useCallback, useRef, useImperativeHandle } from 'react';
 import type { IContextItem } from '@refly/common-types';
 import type { GenericToolset, ModelInfo, SkillRuntimeConfig } from '@refly/openapi-schema';
 import { ContextManager } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager';
 import { ChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-input';
-import { RichChatInput } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/rich-chat-input';
+import {
+  RichChatInput,
+  type RichChatInputRef,
+} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/rich-chat-input';
 import {
   ChatActions,
   CustomAction,
@@ -38,6 +41,8 @@ export interface ChatComposerProps {
   contextClassName?: string;
   actionsClassName?: string;
 
+  mentionPosition?: 'top-start' | 'bottom-start';
+
   // Rich input
   enableRichInput?: boolean;
 
@@ -54,11 +59,15 @@ export interface ChatComposerProps {
   customActions?: CustomAction[];
 }
 
+export interface ChatComposerRef {
+  focus: () => void;
+}
+
 /**
  * ChatComposer composes ContextManager, ChatInput/RichChatInput and ChatActions.
  * Parent should provide upload handlers and business callbacks.
  */
-const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((props, ref) => {
+const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((props, ref) => {
   const {
     query,
     setQuery,
@@ -78,7 +87,7 @@ const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((pro
     contextClassName = '',
     actionsClassName = '',
     enableRichInput = false,
-
+    mentionPosition = 'bottom-start',
     selectedToolsets,
     onSelectedToolsetsChange,
     isExecuting = false,
@@ -89,6 +98,20 @@ const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((pro
   const { handleUploadImage, handleUploadMultipleImages } = useUploadImage();
   const { canvasId, readonly } = useCanvasContext();
   const { t } = useTranslation();
+
+  // Ref for the input component
+  const inputRef = useRef<RichChatInputRef>(null);
+
+  // Expose focus method through ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        inputRef.current?.focus();
+      },
+    }),
+    [],
+  );
 
   const { chatMode } = useChatStoreShallow((state) => ({
     chatMode: state.chatMode,
@@ -169,7 +192,7 @@ const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((pro
       {enableRichInput ? (
         <RichChatInput
           readonly={readonly}
-          ref={ref}
+          ref={inputRef}
           query={query}
           setQuery={(value) => {
             setQuery(value);
@@ -183,11 +206,12 @@ const ChatComposerComponent = forwardRef<HTMLDivElement, ChatComposerProps>((pro
           contextItems={contextItems}
           setContextItems={setContextItems}
           placeholder={defaultPlaceholder}
+          mentionPosition={mentionPosition}
         />
       ) : (
         <ChatInput
           readonly={readonly}
-          ref={ref}
+          ref={ref as any}
           query={query}
           setQuery={(value) => {
             setQuery(value);
