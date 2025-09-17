@@ -196,9 +196,9 @@ const WorkflowAppPage: React.FC = () => {
           )}
 
           {/* Tabs */}
-          <div className="mb-4 sm:mb-6">
+          <div className="mb-4 sm:mb-6 flex justify-center">
             <Segmented
-              className="w-full max-w-sm sm:max-w-md mx-auto"
+              className="max-w-sm sm:max-w-md mx-auto"
               shape="round"
               options={segmentedOptions}
               value={activeTab}
