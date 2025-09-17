@@ -2,6 +2,7 @@ import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/ca
 import { memo, useMemo, useState, useCallback } from 'react';
 import { Divider, Button, Popconfirm, message } from 'antd';
 import { Add, Edit, Delete, Image, Doc2, Video, Audio } from 'refly-icons';
+import { BiText } from 'react-icons/bi';
 import type { WorkflowVariable } from '@refly/openapi-schema';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { VARIABLE_TYPE_ICON_MAP } from '../nodes/start';
@@ -94,6 +95,9 @@ const VariableItem = memo(
           <div className="flex items-center gap-1">
             {variable.resourceTypes?.map((type) => {
               const Icon = RESOURCE_TYPE_ICON_MAP[type];
+              if (!Icon) {
+                return null;
+              }
               return <Icon size={16} key={type} color="var(--refly-text-3)" />;
             })}
           </div>
@@ -150,7 +154,7 @@ const VariableTypeSection = ({
   readonly: boolean;
 }) => {
   const { t } = useTranslation();
-  const Icon = VARIABLE_TYPE_ICON_MAP[type];
+  const Icon = VARIABLE_TYPE_ICON_MAP[type] ?? BiText;
   const [showCreateVariablesModal, setShowCreateVariablesModal] = useState(false);
   const [currentVariable, setCurrentVariable] = useState<WorkflowVariable | null>(null);
 
