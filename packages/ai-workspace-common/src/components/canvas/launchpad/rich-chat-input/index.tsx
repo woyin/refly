@@ -701,24 +701,45 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       (content: string) => {
         if (!editor) return content;
 
-        // Instead of string replacement, we'll build the content from scratch
-        // by traversing the document and handling mention nodes properly
+        // Build the content by traversing the doc and handling nodes properly
         let processedContent = '';
+        let paragraphIndex = 0;
 
         editor.state.doc.descendants((node) => {
-          if (node.type.name === 'mention') {
-            const mentionName = node.attrs.label || node.attrs.id;
-            const source = node.attrs.source;
+          const nodeName = node?.type?.name ?? '';
+
+          // Insert a newline between paragraphs to preserve line breaks created by Enter
+          if (nodeName === 'paragraph') {
+            if (paragraphIndex > 0) {
+              processedContent += '\n';
+            }
+            paragraphIndex += 1;
+            return; // Children will be handled in subsequent calls
+          }
+
+          // Map hardBreak nodes to '\n' to preserve single line breaks
+          if (nodeName === 'hardBreak') {
+            processedContent += '\n';
+            return;
+          }
+
+          if (nodeName === 'mention') {
+            const mentionName = node?.attrs?.label ?? node?.attrs?.id;
+            const source = node?.attrs?.source;
 
             // Only convert startNode and resourceLibrary variables to @variableName format
             if (mentionName && (source === 'startNode' || source === 'resourceLibrary')) {
               processedContent += `@${mentionName} `;
-            } else {
+            } else if (mentionName) {
               // For other types (stepRecord, resultRecord), just add the name without @
               processedContent += mentionName;
             }
-          } else if (node.type.name === 'text') {
-            processedContent += node.text;
+            return;
+          }
+
+          if (nodeName === 'text') {
+            processedContent += node.text ?? '';
+            return;
           }
         });
 
@@ -769,6 +790,18 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         let textBuffer = '';
         while (i < content.length) {
           const ch = content[i];
+
+          // Preserve newlines by mapping to hardBreak nodes
+          if (ch === '\n') {
+            if (textBuffer) {
+              nodes.push({ type: 'text', text: textBuffer });
+              textBuffer = '';
+            }
+            nodes.push({ type: 'hardBreak' });
+            i += 1;
+            continue;
+          }
+
           if (ch === '@') {
             // Try to match any known name right after '@'
             let matchedName: string | null = null;
