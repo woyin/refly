@@ -38,12 +38,6 @@ import { REFRESH_TOKEN_COOKIE } from '@refly/utils';
 import { accountPO2DTO } from './auth.dto';
 import { TwitterOauthGuard } from './guard/twitter-oauth.guard';
 import { NotionOauthGuard } from './guard/notion-oauth.guard';
-// Extend session type to include uid
-declare module 'express-session' {
-  interface SessionData {
-    uid?: string;
-  }
-}
 
 @Controller('v1/auth')
 export class AuthController {

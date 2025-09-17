@@ -5,13 +5,6 @@ import { Strategy, InternalOAuthError } from 'passport-oauth2';
 import { Request } from 'express';
 import { AuthService } from '../auth.service';
 
-// Extend session type to include uid
-declare module 'express-session' {
-  interface SessionData {
-    uid?: string;
-  }
-}
-
 @Injectable()
 export class NotionOauthStrategy extends PassportStrategy(Strategy, 'notion') {
   constructor(
@@ -88,12 +81,16 @@ export class NotionOauthStrategy extends PassportStrategy(Strategy, 'notion') {
   async validate(req: Request, accessToken: string, refreshToken: string, params: any) {
     const scopes = ['read_content', 'update_content', 'insert_content']; // Scopes for account storage
 
-    // Extract uid from session (stored during initial OAuth request)
+    // Extract uid from state parameter (passed during initial OAuth request)
     let uid: string | undefined;
-    if (req.session?.uid) {
-      uid = req.session.uid;
-      // Clean up session after use
-      req.session.uid = undefined;
+    const state = req?.query?.state as string;
+    if (state) {
+      try {
+        const stateObj = JSON.parse(state);
+        uid = stateObj.uid;
+      } catch {
+        // Ignore parsing errors
+      }
     }
 
     // For Notion OAuth, we need to create a profile object from the token response
