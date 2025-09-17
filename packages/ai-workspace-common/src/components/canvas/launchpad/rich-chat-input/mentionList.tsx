@@ -580,8 +580,8 @@ export const MentionList = ({
   }, [query, focusLevel, firstLevels, firstLevelIndex, navigationItems, secondLevelIndex]);
 
   const handleArrowLeft = useCallback(() => {
-    if (query) {
-      // In query mode, left arrow doesn't do anything
+    if (query || focusLevel === 'first') {
+      // When at first level, left arrow should act on the input box - let the editor handle it
       return;
     }
     if (focusLevel === 'second') {
@@ -590,8 +590,8 @@ export const MentionList = ({
   }, [query, focusLevel]);
 
   const handleArrowRight = useCallback(() => {
-    if (query) {
-      // In query mode, right arrow doesn't do anything
+    if (query || focusLevel === 'second') {
+      // In query mode, right arrow doesn't do anything - let the editor handle it
       return;
     }
     if (focusLevel === 'first') {
@@ -640,10 +640,12 @@ export const MentionList = ({
         handled = true;
       } else if (key === 'ArrowLeft') {
         handleArrowLeft();
-        handled = true;
+        // Don't prevent default when at first level to allow editor to handle it
+        handled = focusLevel !== 'first' && !query;
       } else if (key === 'ArrowRight') {
         handleArrowRight();
-        handled = true;
+        // Don't prevent default when at second level to allow editor to handle it
+        handled = focusLevel !== 'second' && !query;
       } else if (key === 'Enter') {
         handleEnter();
         handled = true;

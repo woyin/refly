@@ -956,21 +956,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
         handlePopupShow();
 
-        // If mention suggestion is open, don't handle navigation keys or Enter
-        if (isMentionListVisible) {
-          const key = e.key;
-          if (
-            key === 'ArrowUp' ||
-            key === 'ArrowDown' ||
-            key === 'ArrowLeft' ||
-            key === 'ArrowRight' ||
-            key === 'Enter'
-          ) {
-            // Let the mention list handle these keys
-            return;
-          }
-        }
-
         // Handle Ctrl+K or Cmd+K to open search
         if (e.keyCode === 75 && (e.metaKey || e.ctrlKey)) {
           e.preventDefault();
