@@ -813,6 +813,8 @@ const translations = {
       part2: '人机协作 Agent',
       part3: '平台',
     },
+    agentInputPlaceholder: '输入任务描述，Agent 将生成可复用的工作流',
+    chatInputPlaceholder: '输入一个任务，支持选择模型和工具',
     githubStar: '在 GitHub 为我们点 Star!',
     fromCommunity: '来自社区',
     fromCommunityDesc: '探索将 Refly 用于工作或更广泛领域的途径。',
