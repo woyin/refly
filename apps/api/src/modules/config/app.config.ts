@@ -108,6 +108,7 @@ export default () => ({
     },
   },
   tools: {
+    supportedToolsets: process.env.SUPPORTED_TOOLSETS || '', // comma separated list of toolset keys
     google: {
       clientId: process.env.GOOGLE_TOOLS_CLIENT_ID,
       clientSecret: process.env.GOOGLE_TOOLS_CLIENT_SECRET,
