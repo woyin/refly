@@ -106,6 +106,22 @@ export default () => ({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'test',
       callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'test',
     },
+    twitter: {
+      enabled: process.env.TWITTER_AUTH_ENABLED === 'true' || false,
+      clientId: process.env.TWITTER_CLIENT_ID || 'test',
+      clientSecret: process.env.TWITTER_CLIENT_SECRET || 'test',
+      callbackUrl: process.env.TWITTER_CALLBACK_URL || 'test',
+      consumerKey: process.env.TWITTER_CONSUMER_KEY || 'test',
+      consumerSecret: process.env.TWITTER_CONSUMER_SECRET || 'test',
+      bearerToken: process.env.TWITTER_BEARER_TOKEN || 'test',
+    },
+    notion: {
+      enabled: process.env.NOTION_AUTH_ENABLED === 'true' || false,
+      clientId: process.env.NOTION_CLIENT_ID || 'test',
+      clientSecret: process.env.NOTION_CLIENT_SECRET || 'test',
+      callbackUrl: process.env.NOTION_CALLBACK_URL || 'test',
+      authorizationURL: process.env.NOTION_AUTHORIZATION_URL || 'test',
+    },
   },
   tools: {
     supportedToolsets: process.env.SUPPORTED_TOOLSETS || '', // comma separated list of toolset keys

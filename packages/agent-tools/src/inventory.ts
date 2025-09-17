@@ -7,6 +7,11 @@ import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive
 import { JinaToolset, JinaToolsetDefinition } from './jina';
 import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
 import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
+import { GoogleDocsToolset, GoogleDocsToolsetDefinition } from './google-docs';
+import { GoogleSheetsToolset, GoogleSheetsToolsetDefinition } from './google-sheets';
+import { GmailToolset, GmailToolsetDefinition } from './gmail';
+import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
+import { NotionToolset, NotionToolsetDefinition } from './notion';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -44,5 +49,25 @@ export const toolsetInventory: Record<
   [WhaleWisdomToolsetDefinition.key]: {
     class: WhaleWisdomToolset,
     definition: WhaleWisdomToolsetDefinition,
+  },
+  [GoogleDocsToolsetDefinition.key]: {
+    class: GoogleDocsToolset,
+    definition: GoogleDocsToolsetDefinition,
+  },
+  [GoogleSheetsToolsetDefinition.key]: {
+    class: GoogleSheetsToolset,
+    definition: GoogleSheetsToolsetDefinition,
+  },
+  [GmailToolsetDefinition.key]: {
+    class: GmailToolset,
+    definition: GmailToolsetDefinition,
+  },
+  [TwitterToolsetDefinition.key]: {
+    class: TwitterToolset,
+    definition: TwitterToolsetDefinition,
+  },
+  [NotionToolsetDefinition.key]: {
+    class: NotionToolset,
+    definition: NotionToolsetDefinition,
   },
 };
