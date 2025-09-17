@@ -179,7 +179,6 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   useEffect(() => {
     const skillName = actionMeta?.name || 'commonQnA';
     if (result?.status !== 'executing' && result?.status !== 'waiting') return;
-    setEditMode(false);
 
     const sortedSteps = sortSteps(steps);
 

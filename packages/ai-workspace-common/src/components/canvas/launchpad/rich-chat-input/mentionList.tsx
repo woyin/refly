@@ -16,6 +16,7 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { message } from 'antd';
 import { cn, genVariableID } from '@refly/utils';
+import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
 export interface MentionItem {
   name: string;
@@ -62,6 +63,8 @@ export const MentionList = ({
     workflowVariables,
   } = workflow || {};
 
+  const [isAddingVariable, setIsAddingVariable] = useState(false);
+
   const handleAddVariable = useCallback(async () => {
     const isDuplicate = workflowVariables.some((variable) => variable.name === query);
     if (isDuplicate) {
@@ -82,7 +85,9 @@ export const MentionList = ({
     };
 
     const newWorkflowVariables: WorkflowVariable[] = [...workflowVariables, newItem];
+
     try {
+      setIsAddingVariable(true);
       const { data } = await getClient().updateWorkflowVariables({
         body: {
           canvasId: canvasId,
@@ -100,8 +105,18 @@ export const MentionList = ({
       }
     } catch {
       message.error(t('canvas.workflow.variables.saveError'));
+    } finally {
+      setIsAddingVariable(false);
     }
-  }, [refetchWorkflowVariables, query, canvasId, workflowVariables, command]);
+  }, [
+    refetchWorkflowVariables,
+    query,
+    canvasId,
+    workflowVariables,
+    command,
+    t,
+    setIsAddingVariable,
+  ]);
 
   // Refs for measuring panel heights
   const firstLevelRef = useRef<HTMLDivElement>(null);
@@ -475,8 +490,13 @@ export const MentionList = ({
           onClick={() => selectItem(item)}
         >
           {item.variableId === 'create-variable' ? (
-            <div className="ddd flex-1 text-sm text-refly-text-0 leading-5 truncate">
-              {item.categoryLabel}
+            <div className="w-full flex items-center gap-2 overflow-hidden">
+              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">
+                {item.categoryLabel}
+              </div>
+              {isAddingVariable && (
+                <Spin size="small" className="text-refly-text-3" spinning={isAddingVariable} />
+              )}
             </div>
           ) : item.source === 'startNode' ? (
             <>
@@ -493,7 +513,7 @@ export const MentionList = ({
         </div>
       );
     },
-    [categoryConfigs, query],
+    [categoryConfigs, query, isAddingVariable],
   );
 
   // Generic function to render empty state
