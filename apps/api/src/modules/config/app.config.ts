@@ -107,6 +107,13 @@ export default () => ({
       callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'test',
     },
   },
+  tools: {
+    google: {
+      clientId: process.env.GOOGLE_TOOLS_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_TOOLS_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_TOOLS_CALLBACK_URL,
+    },
+  },
   encryption: {
     key: process.env.ENCRYPTION_KEY,
   },

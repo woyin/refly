@@ -227,6 +227,37 @@ export class AuthService {
     return name;
   }
 
+  async parseOAuthState(state: string) {
+    this.logger.log(`tool auth state: ${state}`);
+
+    // Parse state safely once
+    const defaultRedirect = this.configService.get('auth.redirectUrl');
+    let parsedState: { uid?: string; redirect?: string } | null = null;
+    try {
+      parsedState = state ? JSON.parse(state) : null;
+    } catch {
+      this.logger.warn('Invalid state JSON received in Google OAuth callback');
+    }
+    // Build a safe redirect URL (allowlist by origin; fall back to default)
+    const requested = parsedState?.redirect;
+    let finalRedirect = defaultRedirect;
+    try {
+      if (typeof requested === 'string') {
+        const allowed = this.configService.get<string[]>('auth.allowedRedirectOrigins') ?? [
+          new URL(defaultRedirect).origin,
+        ];
+        const u = new URL(requested, defaultRedirect);
+        if (allowed.includes(u.origin)) {
+          finalRedirect = u.toString();
+        }
+      }
+    } catch {
+      // ignore and use default
+    }
+
+    return { parsedState, finalRedirect };
+  }
+
   /**
    * General OAuth logic
    * @param accessToken
@@ -743,8 +774,20 @@ export class AuthService {
     const baseScope = ['profile', 'email'];
     const scopeArray = scope?.split(',') ?? [];
     const finalScope = [...baseScope, ...scopeArray];
-    const clientId = this.configService.get('auth.google.clientId');
-    const callbackUrl = this.configService.get('auth.google.callbackUrl');
+
+    // Check if user-specified scope contains elements not found in baseScope
+    const hasAdditionalScopes = scopeArray.some((s) => !baseScope.includes(s.trim()));
+
+    // Use tool oauth client id if additional scopes are requested
+    const clientId = hasAdditionalScopes
+      ? (this.configService.get('tools.google.clientId') ??
+        this.configService.get('auth.google.clientId'))
+      : this.configService.get('auth.google.clientId');
+
+    const callbackUrl = hasAdditionalScopes
+      ? (this.configService.get('tools.google.callbackUrl') ??
+        this.configService.get('auth.google.callbackUrl'))
+      : this.configService.get('auth.google.callbackUrl');
 
     // Check if user already has Google OAuth with refresh token
     let prompt = 'consent';
