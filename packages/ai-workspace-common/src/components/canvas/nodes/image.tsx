@@ -273,7 +273,7 @@ export const ImageNode = memo(
         onClick={onNodeClick}
         className="relative"
       >
-        <div className="absolute -top-8 left-3 z-10 flex items-center h-8 gap-2 w-[52%]">
+        <div className="absolute -top-8 left-3 z-10 flex items-center h-8 gap-2 w-[40%]">
           <div
             className={cn(
               'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',
