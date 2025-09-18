@@ -568,9 +568,10 @@ export class SkillInvokerService {
               // Update result content and forward stream events to client
 
               const { name, type, toolsetKey, toolsetName } = event.metadata ?? {};
+              const codeBlockWrapper = (content: string) => `\`\`\`tool_use\n${content}\`\`\``;
 
               const content = event.data?.output
-                ? `
+                ? codeBlockWrapper(`
 
 <tool_use>
 <name>${name}</name>
@@ -585,8 +586,8 @@ ${event.data?.output ? JSON.stringify(event.data.output) : ''}
 </result>
 </tool_use>
 
-`
-                : `
+`)
+                : codeBlockWrapper(`
 
 <tool_use>
 <name>${name}</name>
@@ -598,7 +599,7 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 </arguments>
 </tool_use>
 
-`;
+`);
               resultAggregator.handleStreamContent(runMeta, content, '');
 
               if (res) {
