@@ -16,6 +16,7 @@ import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { message } from 'antd';
 import { cn, genVariableID } from '@refly/utils';
+import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 
 export interface MentionItem {
   name: string;
@@ -62,6 +63,8 @@ export const MentionList = ({
     workflowVariables,
   } = workflow || {};
 
+  const [isAddingVariable, setIsAddingVariable] = useState(false);
+
   const handleAddVariable = useCallback(async () => {
     const isDuplicate = workflowVariables.some((variable) => variable.name === query);
     if (isDuplicate) {
@@ -82,7 +85,9 @@ export const MentionList = ({
     };
 
     const newWorkflowVariables: WorkflowVariable[] = [...workflowVariables, newItem];
+
     try {
+      setIsAddingVariable(true);
       const { data } = await getClient().updateWorkflowVariables({
         body: {
           canvasId: canvasId,
@@ -100,8 +105,18 @@ export const MentionList = ({
       }
     } catch {
       message.error(t('canvas.workflow.variables.saveError'));
+    } finally {
+      setIsAddingVariable(false);
     }
-  }, [refetchWorkflowVariables, query, canvasId, workflowVariables, command]);
+  }, [
+    refetchWorkflowVariables,
+    query,
+    canvasId,
+    workflowVariables,
+    command,
+    t,
+    setIsAddingVariable,
+  ]);
 
   // Refs for measuring panel heights
   const firstLevelRef = useRef<HTMLDivElement>(null);
@@ -475,8 +490,13 @@ export const MentionList = ({
           onClick={() => selectItem(item)}
         >
           {item.variableId === 'create-variable' ? (
-            <div className="ddd flex-1 text-sm text-refly-text-0 leading-5 truncate">
-              {item.categoryLabel}
+            <div className="w-full flex items-center gap-2 overflow-hidden">
+              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">
+                {item.categoryLabel}
+              </div>
+              {isAddingVariable && (
+                <Spin size="small" className="text-refly-text-3" spinning={isAddingVariable} />
+              )}
             </div>
           ) : item.source === 'startNode' ? (
             <>
@@ -493,7 +513,7 @@ export const MentionList = ({
         </div>
       );
     },
-    [categoryConfigs, query],
+    [categoryConfigs, query, isAddingVariable],
   );
 
   // Generic function to render empty state
@@ -560,8 +580,8 @@ export const MentionList = ({
   }, [query, focusLevel, firstLevels, firstLevelIndex, navigationItems, secondLevelIndex]);
 
   const handleArrowLeft = useCallback(() => {
-    if (query) {
-      // In query mode, left arrow doesn't do anything
+    if (query || focusLevel === 'first') {
+      // When at first level, left arrow should act on the input box - let the editor handle it
       return;
     }
     if (focusLevel === 'second') {
@@ -570,8 +590,8 @@ export const MentionList = ({
   }, [query, focusLevel]);
 
   const handleArrowRight = useCallback(() => {
-    if (query) {
-      // In query mode, right arrow doesn't do anything
+    if (query || focusLevel === 'second') {
+      // In query mode, right arrow doesn't do anything - let the editor handle it
       return;
     }
     if (focusLevel === 'first') {
@@ -620,10 +640,12 @@ export const MentionList = ({
         handled = true;
       } else if (key === 'ArrowLeft') {
         handleArrowLeft();
-        handled = true;
+        // Don't prevent default when at first level to allow editor to handle it
+        handled = focusLevel !== 'first' && !query;
       } else if (key === 'ArrowRight') {
         handleArrowRight();
-        handled = true;
+        // Don't prevent default when at second level to allow editor to handle it
+        handled = focusLevel !== 'second' && !query;
       } else if (key === 'Enter') {
         handleEnter();
         handled = true;

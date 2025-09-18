@@ -16,7 +16,12 @@ import {
   CanvasNode,
 } from '@refly/openapi-schema';
 import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
-import { BuiltinToolset, BuiltinToolsetDefinition, toolsetInventory } from '@refly/agent-tools';
+import {
+  BuiltinToolset,
+  BuiltinToolsetDefinition,
+  toolsetInventory,
+  AnyToolsetClass,
+} from '@refly/agent-tools';
 import { ParamsError, ToolsetNotFoundError } from '@refly/errors';
 import { mcpServerPo2GenericToolset, toolsetPo2GenericToolset } from './tool.dto';
 import { McpServerService } from '../mcp-server/mcp-server.service';
@@ -39,8 +44,27 @@ export class ToolService {
     private readonly mcpServerService: McpServerService,
   ) {}
 
+  get toolsetInventory(): Record<
+    string,
+    {
+      class: AnyToolsetClass;
+      definition: ToolsetDefinition;
+    }
+  > {
+    const supportedToolsets = this.configService.get<string>('tools.supportedToolsets');
+
+    if (!supportedToolsets) {
+      return toolsetInventory;
+    }
+
+    const supportedToolsetsArray = supportedToolsets.split(',');
+    return Object.fromEntries(
+      Object.entries(toolsetInventory).filter(([key]) => supportedToolsetsArray.includes(key)),
+    );
+  }
+
   listToolsetInventory(): ToolsetDefinition[] {
-    return Object.values(toolsetInventory)
+    return Object.values(this.toolsetInventory)
       .map((toolset) => toolset.definition)
       .sort((a, b) => a.key.localeCompare(b.key));
   }
@@ -139,12 +163,12 @@ export class ToolService {
 
     if (!key) {
       throw new ParamsError('key is required');
-    } else if (!toolsetInventory[key]) {
+    } else if (!this.toolsetInventory[key]) {
       throw new ParamsError(`Toolset ${key} not valid`);
     }
 
     // Get toolset definition for validation
-    const toolsetDefinition = toolsetInventory[key]?.definition;
+    const toolsetDefinition = this.toolsetInventory[key]?.definition;
     if (!toolsetDefinition) {
       throw new ParamsError(`Toolset definition not found for key: ${key}`);
     }
@@ -266,11 +290,8 @@ export class ToolService {
     if (param.name !== undefined) {
       updates.name = param.name;
     }
-    if (param.key !== undefined) {
-      if (!toolsetInventory[param.key]) {
-        throw new ParamsError(`Toolset ${param.key} not valid`);
-      }
-      updates.key = param.key;
+    if (param.key !== undefined && param.key !== toolset.key) {
+      throw new ParamsError(`Toolset key ${param.key} cannot be updated`);
     }
     if (param.enabled !== undefined) {
       updates.enabled = param.enabled;
@@ -608,7 +629,7 @@ export class ToolService {
     }
 
     // Check if toolset key exists in inventory
-    const toolsetDefinition = toolsetInventory[key];
+    const toolsetDefinition = this.toolsetInventory[key];
     if (!toolsetDefinition) {
       this.logger.warn(`Toolset key not found in inventory: ${key}, skipping`);
       return null;
