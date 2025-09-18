@@ -517,6 +517,7 @@ export class ShareDuplicationService {
         canvasId: newCanvasId,
         title: canvasData.title,
         projectId,
+        variables: canvasData.variables,
       },
       state,
     );
