@@ -1,13 +1,10 @@
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { genImageID } from '@refly/utils/id';
-import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useMemo } from 'react';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { CanvasNodeData, ImageNodeMeta } from '@refly/canvas-common';
 
 export const useUploadImage = () => {
-  const { addNode } = useAddNode();
-
   const uploadImage = async (image: File, canvasId: string) => {
     const response = await getClient().upload({
       body: {
@@ -31,16 +28,24 @@ export const useUploadImage = () => {
           storageKey: data.storageKey,
         } as ImageNodeMeta,
       };
-      addNode({
-        type: 'image',
-        data: { ...nodeData },
+
+      nodeOperationsEmitter.emit('addNode', {
+        node: {
+          type: 'image',
+          data: nodeData,
+        },
+        shouldPreview: false,
+        needSetCenter: true,
       });
       return nodeData;
     }
     return null;
   };
 
-  const handleUploadMultipleImages = async (imageFiles: File[], canvasId: string) => {
+  const handleUploadMultipleImages = async (
+    imageFiles: File[],
+    canvasId: string,
+  ): Promise<CanvasNodeData<ImageNodeMeta>[]> => {
     // Store the reference position for node placement
     let referencePosition: { x: number; y: number } | null = null;
     const nodesData = [];
@@ -73,7 +78,7 @@ export const useUploadImage = () => {
                   }
                 : undefined,
             },
-            shouldPreview: i === imageFiles.length - 1,
+            shouldPreview: false,
             needSetCenter: i === imageFiles.length - 1,
             positionCallback: (newPosition) => {
               referencePosition = newPosition;
