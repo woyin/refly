@@ -224,7 +224,7 @@ export const CanvasProvider = ({
     refetch: refetchWorkflowVariables,
     isLoading: workflowVariablesLoading,
   } = useGetWorkflowVariables({ query: { canvasId } }, undefined, {
-    enabled: !!canvasId,
+    enabled: !readonly && !!canvasId,
   });
 
   // Use the hook to fetch canvas data when in readonly mode
@@ -233,6 +233,13 @@ export const CanvasProvider = ({
     error: canvasError,
     loading: shareLoading,
   } = useFetchShareData<RawCanvasData>(readonly ? canvasId : undefined);
+
+  const finalVariables = useMemo(() => {
+    if (readonly) {
+      return canvasData?.variables ?? [];
+    }
+    return workflowVariables?.data ?? [];
+  }, [readonly, workflowVariables, canvasData]);
 
   // Check if it's a 404 error
   const shareNotFound = useMemo(() => {
@@ -714,7 +721,7 @@ export const CanvasProvider = ({
         undo,
         redo,
         workflow: {
-          workflowVariables: workflowVariables?.data ?? [],
+          workflowVariables: finalVariables,
           workflowVariablesLoading,
           refetchWorkflowVariables,
         },
