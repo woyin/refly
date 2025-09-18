@@ -2,6 +2,7 @@ import { message } from 'antd';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { TFunction } from 'i18next';
 import { getFileExtensionFromType } from '@refly/utils/artifact';
+import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 
 // Interface for node data structure
 interface NodeData {
@@ -292,6 +293,191 @@ export const downloadNodeData = async (nodeData: NodeData, t: TFunction): Promis
   } catch (error) {
     console.error('Download failed:', error);
     message.error(t('canvas.download.error.general', 'Download failed. Please try again.'));
+  }
+};
+
+// Check if node has copyable data
+export const hasCopyableData = (nodeData: NodeData): boolean => {
+  const { nodeType, entityId, metadata = {} } = nodeData;
+
+  switch (nodeType) {
+    case 'image':
+      return Boolean(metadata.imageUrl);
+
+    case 'video':
+      return Boolean(metadata.videoUrl);
+
+    case 'audio':
+      return Boolean(metadata.audioUrl);
+
+    case 'document':
+      return Boolean(metadata.content || entityId);
+
+    case 'codeArtifact':
+      return Boolean(metadata.content || entityId);
+
+    case 'skillResponse':
+      return Boolean(entityId);
+
+    case 'memo':
+      return Boolean(metadata.content);
+
+    case 'resource':
+      return Boolean(metadata.content || entityId);
+
+    case 'website':
+      return Boolean(metadata.url);
+
+    default:
+      return false;
+  }
+};
+
+// Main copy function for different node types
+export const copyNodeData = async (nodeData: NodeData, t: TFunction): Promise<void> => {
+  const { nodeType, entityId, metadata = {} } = nodeData;
+
+  try {
+    switch (nodeType) {
+      case 'image': {
+        const imageUrl = metadata.imageUrl;
+        if (!imageUrl) {
+          message.error(t('canvas.copy.error.noImageUrl', 'No image URL found'));
+          return;
+        }
+        copyToClipboard(imageUrl);
+        message.success(t('canvas.copy.success.image', 'Image URL copied to clipboard'));
+        break;
+      }
+
+      case 'video': {
+        const videoUrl = metadata.videoUrl;
+        if (!videoUrl) {
+          message.error(t('canvas.copy.error.noVideoUrl', 'No video URL found'));
+          return;
+        }
+        copyToClipboard(videoUrl);
+        message.success(t('canvas.copy.success.video', 'Video URL copied to clipboard'));
+        break;
+      }
+
+      case 'audio': {
+        const audioUrl = metadata.audioUrl;
+        if (!audioUrl) {
+          message.error(t('canvas.copy.error.noAudioUrl', 'No audio URL found'));
+          return;
+        }
+        copyToClipboard(audioUrl);
+        message.success(t('canvas.copy.success.audio', 'Audio URL copied to clipboard'));
+        break;
+      }
+
+      case 'document': {
+        let content = metadata.content;
+        if (!content && entityId) {
+          const { data } = await getClient().getDocumentDetail({
+            query: { docId: entityId },
+          });
+          content = data?.data?.content;
+        }
+        if (!content) {
+          message.error(t('canvas.copy.error.noDocumentContent', 'No document content found'));
+          return;
+        }
+        copyToClipboard(content);
+        message.success(t('canvas.copy.success.document', 'Document content copied to clipboard'));
+        break;
+      }
+
+      case 'codeArtifact': {
+        let content = metadata.content;
+        if (!content && entityId) {
+          const { data } = await getClient().getCodeArtifactDetail({
+            query: { artifactId: entityId },
+          });
+          content = data?.data?.content;
+        }
+        if (!content) {
+          message.error(t('canvas.copy.error.noCodeContent', 'No code content found'));
+          return;
+        }
+        copyToClipboard(content);
+        message.success(t('canvas.copy.success.code', 'Code content copied to clipboard'));
+        break;
+      }
+
+      case 'skillResponse': {
+        let content = '';
+        if (entityId) {
+          const { data } = await getClient().getActionResult({
+            query: { resultId: entityId },
+          });
+          content =
+            data?.data?.steps
+              ?.map((step) => step?.content || '')
+              .filter(Boolean)
+              .join('\n\n') || '';
+        }
+        if (!content) {
+          message.error(t('canvas.copy.error.noSkillContent', 'No skill response content found'));
+          return;
+        }
+        copyToClipboard(content);
+        message.success(
+          t('canvas.copy.success.skillResponse', 'Skill response copied to clipboard'),
+        );
+        break;
+      }
+
+      case 'memo': {
+        const content = metadata.content || '';
+        if (!content) {
+          message.error(t('canvas.copy.error.noMemoContent', 'No memo content found'));
+          return;
+        }
+        copyToClipboard(content);
+        message.success(t('canvas.copy.success.memo', 'Memo content copied to clipboard'));
+        break;
+      }
+
+      case 'resource': {
+        let content = metadata.content;
+        if (!content && entityId) {
+          const { data } = await getClient().getResourceDetail({
+            query: { resourceId: entityId },
+          });
+          content = data?.data?.content;
+        }
+        if (!content) {
+          message.error(t('canvas.copy.error.noResourceContent', 'No resource content found'));
+          return;
+        }
+        copyToClipboard(content);
+        message.success(t('canvas.copy.success.resource', 'Resource content copied to clipboard'));
+        break;
+      }
+
+      case 'website': {
+        const url = metadata.url;
+        if (!url) {
+          message.error(t('canvas.copy.error.noWebsiteUrl', 'No website URL found'));
+          return;
+        }
+        copyToClipboard(url);
+        message.success(t('canvas.copy.success.website', 'Website URL copied to clipboard'));
+        break;
+      }
+
+      default: {
+        message.warning(
+          t('canvas.copy.error.unsupportedType', `Unsupported node type: ${nodeType}`),
+        );
+        break;
+      }
+    }
+  } catch (error) {
+    console.error('Copy failed:', error);
+    message.error(t('canvas.copy.error.general', 'Copy failed. Please try again.'));
   }
 };
 

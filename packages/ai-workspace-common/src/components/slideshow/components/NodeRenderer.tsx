@@ -14,10 +14,12 @@ import {
 } from './LazyComponents';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, Button } from 'antd';
-import { DownloadIcon } from 'lucide-react';
+import { DownloadIcon, CopyIcon } from 'lucide-react';
 import {
   downloadNodeData,
   hasDownloadableData,
+  copyNodeData,
+  hasCopyableData,
   type NodeData,
 } from '@refly-packages/ai-workspace-common/utils/download-node-data';
 
@@ -101,10 +103,16 @@ const NodeRenderer = memo(
     );
 
     const canDownload = useMemo(() => hasDownloadableData(nodeData), [nodeData]);
+    const canCopy = useMemo(() => hasCopyableData(nodeData), [nodeData]);
 
     // Handle download for any node type
     const handleDownload = useCallback(async () => {
       await downloadNodeData(nodeData, t);
+    }, [nodeData, t]);
+
+    // Handle copy for any node type
+    const handleCopy = useCallback(async () => {
+      await copyNodeData(nodeData, t);
     }, [nodeData, t]);
 
     // Generic node block header
@@ -119,18 +127,32 @@ const NodeRenderer = memo(
           onWideMode={() => onWideMode?.(node.nodeId)}
           onDelete={onDelete}
           rightActions={
-            canDownload ? (
-              <Tooltip title={t('canvas.nodeActions.download', 'Download ')}>
-                <Button
-                  type="default"
-                  className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
-                  icon={<DownloadIcon className="w-4 h-4" />}
-                  onClick={handleDownload}
-                >
-                  <span className="sr-only" />
-                </Button>
-              </Tooltip>
-            ) : null
+            <div className="flex items-center gap-1">
+              {canCopy && (
+                <Tooltip title={t('canvas.nodeActions.copy', 'Copy')}>
+                  <Button
+                    type="default"
+                    className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                    icon={<CopyIcon className="w-4 h-4" />}
+                    onClick={handleCopy}
+                  >
+                    <span className="sr-only" />
+                  </Button>
+                </Tooltip>
+              )}
+              {canDownload && (
+                <Tooltip title={t('canvas.nodeActions.download', 'Download')}>
+                  <Button
+                    type="default"
+                    className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                    icon={<DownloadIcon className="w-4 h-4" />}
+                    onClick={handleDownload}
+                  >
+                    <span className="sr-only" />
+                  </Button>
+                </Tooltip>
+              )}
+            </div>
           }
         />
       ) : null;
@@ -324,7 +346,9 @@ const NodeRenderer = memo(
       t,
       renderNodeHeader,
       canDownload,
+      canCopy,
       handleDownload,
+      handleCopy,
     ]);
 
     return renderContent;
