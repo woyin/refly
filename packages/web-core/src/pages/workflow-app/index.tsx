@@ -52,7 +52,7 @@ const WorkflowAppPage: React.FC = () => {
   const { data: workflowDetail } = useWorkflowExecutionPolling({
     executionId,
     enabled: true,
-    interval: 5000,
+    interval: 2000,
 
     onComplete: (status, data) => {
       // Save final nodeExecutions before clearing executionId

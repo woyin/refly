@@ -3,6 +3,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { TFunction } from 'i18next';
 import { getFileExtensionFromType } from '@refly/utils/artifact';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
+import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 
 // Interface for node data structure
 interface NodeData {
@@ -478,6 +479,249 @@ export const copyNodeData = async (nodeData: NodeData, t: TFunction): Promise<vo
   } catch (error) {
     console.error('Copy failed:', error);
     message.error(t('canvas.copy.error.general', 'Copy failed. Please try again.'));
+  }
+};
+
+// Check if node has shareable data
+export const hasShareableData = (nodeData: NodeData): boolean => {
+  const { nodeType, entityId, metadata = {} } = nodeData;
+
+  switch (nodeType) {
+    case 'image':
+      return Boolean(metadata.imageUrl);
+
+    case 'video':
+      return Boolean(metadata.videoUrl);
+
+    case 'audio':
+      return Boolean(metadata.audioUrl);
+
+    case 'document':
+    case 'codeArtifact':
+    case 'skillResponse':
+    case 'resource':
+      return Boolean(entityId);
+
+    case 'memo':
+      return Boolean(metadata.content);
+
+    case 'website':
+      return Boolean(metadata.url);
+
+    default:
+      return false;
+  }
+};
+
+// Main share function for different node types
+export const shareNodeData = async (nodeData: NodeData, t: TFunction): Promise<void> => {
+  const { nodeType, entityId, metadata = {} } = nodeData;
+
+  try {
+    switch (nodeType) {
+      case 'image': {
+        const imageUrl = metadata.imageUrl;
+        if (!imageUrl) {
+          message.error(t('canvas.share.error.noImageUrl', 'No image URL found'));
+          return;
+        }
+        copyToClipboard(imageUrl);
+        message.success(t('canvas.share.success.image', 'Image URL copied to clipboard'));
+        break;
+      }
+
+      case 'video': {
+        const videoUrl = metadata.videoUrl;
+        if (!videoUrl) {
+          message.error(t('canvas.share.error.noVideoUrl', 'No video URL found'));
+          return;
+        }
+        copyToClipboard(videoUrl);
+        message.success(t('canvas.share.success.video', 'Video URL copied to clipboard'));
+        break;
+      }
+
+      case 'audio': {
+        const audioUrl = metadata.audioUrl;
+        if (!audioUrl) {
+          message.error(t('canvas.share.error.noAudioUrl', 'No audio URL found'));
+          return;
+        }
+        copyToClipboard(audioUrl);
+        message.success(t('canvas.share.success.audio', 'Audio URL copied to clipboard'));
+        break;
+      }
+
+      case 'document': {
+        if (!entityId) {
+          message.error(t('canvas.share.error.noEntityId', 'No document ID found'));
+          return;
+        }
+        const loadingMessage = message.loading(t('canvas.share.loading', 'Creating share...'), 0);
+        try {
+          const { data, error } = await getClient().createShare({
+            body: {
+              entityId,
+              entityType: 'document',
+            },
+          });
+          if (!data?.success || error) {
+            throw new Error(error ? String(error) : 'Failed to create share');
+          }
+          const shareLink = getShareLink('document', data.data?.shareId ?? '');
+          copyToClipboard(shareLink);
+          loadingMessage();
+          message.success(
+            t(
+              'canvas.share.success.document',
+              'Document shared successfully! Link copied to clipboard.',
+            ),
+          );
+        } catch (err) {
+          console.error('Failed to share document:', err);
+          loadingMessage();
+          message.error(t('canvas.share.error.document', 'Failed to share document'));
+        }
+        break;
+      }
+
+      case 'codeArtifact': {
+        if (!entityId) {
+          message.error(t('canvas.share.error.noEntityId', 'No code artifact ID found'));
+          return;
+        }
+        const loadingMessage = message.loading(t('canvas.share.loading', 'Creating share...'), 0);
+        try {
+          const { data, error } = await getClient().createShare({
+            body: {
+              entityId,
+              entityType: 'codeArtifact',
+            },
+          });
+          if (!data?.success || error) {
+            throw new Error(error ? String(error) : 'Failed to create share');
+          }
+          const shareLink = getShareLink('codeArtifact', data.data?.shareId ?? '');
+          copyToClipboard(shareLink);
+          loadingMessage();
+          message.success(
+            t(
+              'canvas.share.success.code',
+              'Code artifact shared successfully! Link copied to clipboard.',
+            ),
+          );
+        } catch (err) {
+          console.error('Failed to share code artifact:', err);
+          loadingMessage();
+          message.error(t('canvas.share.error.code', 'Failed to share code artifact'));
+        }
+        break;
+      }
+
+      case 'skillResponse': {
+        if (!entityId) {
+          message.error(t('canvas.share.error.noEntityId', 'No skill response ID found'));
+          return;
+        }
+        const loadingMessage = message.loading(t('canvas.share.loading', 'Creating share...'), 0);
+        try {
+          // Get skill response data first
+          const { data: resultData } = await getClient().getActionResult({
+            query: { resultId: entityId },
+          });
+
+          const { data, error } = await getClient().createShare({
+            body: {
+              entityId,
+              entityType: 'skillResponse',
+              shareData: JSON.stringify(resultData?.data ?? {}),
+            },
+          });
+          if (!data?.success || error) {
+            throw new Error(error ? String(error) : 'Failed to create share');
+          }
+          const shareLink = getShareLink('skillResponse', data.data?.shareId ?? '');
+          copyToClipboard(shareLink);
+          loadingMessage();
+          message.success(
+            t(
+              'canvas.share.success.skillResponse',
+              'Skill response shared successfully! Link copied to clipboard.',
+            ),
+          );
+        } catch (err) {
+          console.error('Failed to share skill response:', err);
+          loadingMessage();
+          message.error(t('canvas.share.error.skillResponse', 'Failed to share skill response'));
+        }
+        break;
+      }
+
+      case 'memo': {
+        const content = metadata.content || '';
+        if (!content) {
+          message.error(t('canvas.share.error.noMemoContent', 'No memo content found'));
+          return;
+        }
+        copyToClipboard(content);
+        message.success(t('canvas.share.success.memo', 'Memo content copied to clipboard'));
+        break;
+      }
+
+      case 'resource': {
+        if (!entityId) {
+          message.error(t('canvas.share.error.noEntityId', 'No resource ID found'));
+          return;
+        }
+        const loadingMessage = message.loading(t('canvas.share.loading', 'Creating share...'), 0);
+        try {
+          const { data, error } = await getClient().createShare({
+            body: {
+              entityId,
+              entityType: 'resource',
+            },
+          });
+          if (!data?.success || error) {
+            throw new Error(error ? String(error) : 'Failed to create share');
+          }
+          const shareLink = getShareLink('resource', data.data?.shareId ?? '');
+          copyToClipboard(shareLink);
+          loadingMessage();
+          message.success(
+            t(
+              'canvas.share.success.resource',
+              'Resource shared successfully! Link copied to clipboard.',
+            ),
+          );
+        } catch (err) {
+          console.error('Failed to share resource:', err);
+          loadingMessage();
+          message.error(t('canvas.share.error.resource', 'Failed to share resource'));
+        }
+        break;
+      }
+
+      case 'website': {
+        const url = metadata.url;
+        if (!url) {
+          message.error(t('canvas.share.error.noWebsiteUrl', 'No website URL found'));
+          return;
+        }
+        copyToClipboard(url);
+        message.success(t('canvas.share.success.website', 'Website URL copied to clipboard'));
+        break;
+      }
+
+      default: {
+        message.warning(
+          t('canvas.share.error.unsupportedType', `Unsupported node type: ${nodeType}`),
+        );
+        break;
+      }
+    }
+  } catch (error) {
+    console.error('Share failed:', error);
+    message.error(t('canvas.share.error.general', 'Share failed. Please try again.'));
   }
 };
 

@@ -14,12 +14,14 @@ import {
 } from './LazyComponents';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, Button } from 'antd';
-import { DownloadIcon, CopyIcon } from 'lucide-react';
+import { DownloadIcon, CopyIcon, ShareIcon } from 'lucide-react';
 import {
   downloadNodeData,
   hasDownloadableData,
   copyNodeData,
   hasCopyableData,
+  shareNodeData,
+  hasShareableData,
   type NodeData,
 } from '@refly-packages/ai-workspace-common/utils/download-node-data';
 
@@ -104,6 +106,7 @@ const NodeRenderer = memo(
 
     const canDownload = useMemo(() => hasDownloadableData(nodeData), [nodeData]);
     const canCopy = useMemo(() => hasCopyableData(nodeData), [nodeData]);
+    const canShare = useMemo(() => hasShareableData(nodeData), [nodeData]);
 
     // Handle download for any node type
     const handleDownload = useCallback(async () => {
@@ -113,6 +116,11 @@ const NodeRenderer = memo(
     // Handle copy for any node type
     const handleCopy = useCallback(async () => {
       await copyNodeData(nodeData, t);
+    }, [nodeData, t]);
+
+    // Handle share for any node type
+    const handleShare = useCallback(async () => {
+      await shareNodeData(nodeData, t);
     }, [nodeData, t]);
 
     // Generic node block header
@@ -128,6 +136,18 @@ const NodeRenderer = memo(
           onDelete={onDelete}
           rightActions={
             <div className="flex items-center gap-1">
+              {canShare && (
+                <Tooltip title={t('canvas.nodeActions.share', 'Share')}>
+                  <Button
+                    type="default"
+                    className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                    icon={<ShareIcon className="w-4 h-4" />}
+                    onClick={handleShare}
+                  >
+                    <span className="sr-only" />
+                  </Button>
+                </Tooltip>
+              )}
               {canCopy && (
                 <Tooltip title={t('canvas.nodeActions.copy', 'Copy')}>
                   <Button
@@ -347,8 +367,10 @@ const NodeRenderer = memo(
       renderNodeHeader,
       canDownload,
       canCopy,
+      canShare,
       handleDownload,
       handleCopy,
+      handleShare,
     ]);
 
     return renderContent;
