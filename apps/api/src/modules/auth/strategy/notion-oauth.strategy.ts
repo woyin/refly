@@ -84,20 +84,17 @@ export class NotionOauthStrategy extends PassportStrategy(Strategy, 'notion') {
     // Extract uid and redirect from state parameter (passed during initial OAuth request)
     let uid: string | undefined;
     const state = req?.query?.state as string;
-    console.log('state', state);
     if (state) {
       try {
         const stateObj = JSON.parse(state);
         uid = stateObj.uid;
-      } catch (error) {
-        console.log('Failed to parse state:', error);
+      } catch {
         // Ignore parsing errors
       }
     }
 
     // For Notion OAuth, we need to create a profile object from the token response
     // Notion OAuth returns workspace info in the token response
-    console.log('params', params);
     const profile = {
       id: params.workspace_id || 'notion-user',
       displayName: params.workspace_name || 'Notion User',
