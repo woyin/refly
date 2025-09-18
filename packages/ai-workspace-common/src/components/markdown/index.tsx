@@ -1,5 +1,5 @@
 import { LoadingOutlined } from '@ant-design/icons';
-import { memo, useEffect, useRef, useState, Suspense, useMemo } from 'react';
+import { memo, useEffect, useRef, useState, Suspense, useMemo, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import RemarkBreaks from 'remark-breaks';
@@ -73,7 +73,7 @@ export const Markdown = memo(
     } & React.DOMAttributes<HTMLDivElement>,
   ) => {
     const { content: rawContent, mode = 'interactive', showActions = true } = props;
-    const content = processWithArtifact(rawContent);
+    const content = useMemo(() => processWithArtifact(rawContent), [rawContent]);
 
     const mdRef = useRef<HTMLDivElement>(null);
     const { t } = useTranslation();
@@ -111,7 +111,7 @@ export const Markdown = memo(
           ];
         }),
       );
-    }, [props.resultId, mode]);
+    }, [props.resultId, mode, showActions]);
 
     // Dynamically import KaTeX CSS
     useEffect(() => {
@@ -131,6 +131,54 @@ export const Markdown = memo(
       );
     }, []);
 
+    const remarkPlugins = useMemo(
+      () => [
+        RemarkBreaks,
+        [
+          remarkGfm,
+          {
+            singleTilde: false,
+            tablePipeAlign: true,
+            tableCellPadding: true,
+          },
+        ],
+        plugins.RemarkMath,
+      ],
+      [plugins.RemarkMath],
+    );
+
+    const rehypePluginsList = useMemo(
+      () => [
+        ...rehypePlugins,
+        [
+          plugins.RehypeHighlight,
+          {
+            detect: false,
+            ignoreMissing: true,
+          },
+        ],
+        rehypeHighlight,
+        plugins.RehypeKatex,
+      ],
+      [plugins.RehypeHighlight, plugins.RehypeKatex],
+    );
+
+    const LinkComponent = useCallback(
+      (args: any) => LinkElement.Component(args, props?.sources || []),
+      [props.sources],
+    );
+
+    const components = useMemo(
+      () => ({
+        ...artifactComponents,
+        a: LinkComponent,
+        img: MarkdownImage,
+        mark: HighlightComponent,
+        del: StrikethroughComponent,
+      }),
+      [artifactComponents, LinkComponent],
+    );
+
     return (
       <div className={markdownClassName} ref={mdRef}>
         {props.loading ? (
@@ -142,37 +190,9 @@ export const Markdown = memo(
               plugins.RehypeKatex &&
               plugins.RehypeHighlight && (
                 <ReactMarkdown
-                  remarkPlugins={[
-                    RemarkBreaks,
-                    [
-                      remarkGfm,
-                      {
-                        singleTilde: false,
-                        tablePipeAlign: true,
-                        tableCellPadding: true,
-                      },
-                    ],
-                    plugins.RemarkMath,
-                  ]}
-                  rehypePlugins={[
-                    ...rehypePlugins,
-                    [
-                      plugins.RehypeHighlight,
-                      {
-                        detect: false,
-                        ignoreMissing: true,
-                      },
-                    ],
-                    rehypeHighlight,
-                    plugins.RehypeKatex,
-                  ]}
-                  components={{
-                    ...artifactComponents,
-                    a: (args) => LinkElement.Component(args, props?.sources || []),
-                    img: MarkdownImage,
-                    mark: HighlightComponent,
-                    del: StrikethroughComponent,
-                  }}
+                  remarkPlugins={remarkPlugins}
+                  rehypePlugins={rehypePluginsList}
+                  components={components}
                   linkTarget={'_blank'}
                 >
                   {parsedContent}
