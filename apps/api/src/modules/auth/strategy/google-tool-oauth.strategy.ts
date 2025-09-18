@@ -6,23 +6,28 @@ import { Request } from 'express';
 import { AuthService } from '../auth.service';
 
 @Injectable()
-export class GoogleOauthStrategy extends PassportStrategy(Strategy, 'google') {
-  private readonly logger = new Logger(GoogleOauthStrategy.name);
+export class GoogleToolOauthStrategy extends PassportStrategy(Strategy, 'google') {
+  private readonly logger = new Logger(GoogleToolOauthStrategy.name);
 
   constructor(
     private configService: ConfigService,
     private authService: AuthService,
   ) {
     super({
-      clientID: configService.get('auth.google.clientId'),
-      clientSecret: configService.get('auth.google.clientSecret'),
-      callbackURL: configService.get('auth.google.callbackUrl'),
+      clientID:
+        configService.get('tools.google.clientId') ?? configService.get('auth.google.clientId'),
+      clientSecret:
+        configService.get('tools.google.clientSecret') ??
+        configService.get('auth.google.clientSecret'),
+      callbackURL:
+        configService.get('tools.google.callbackUrl') ??
+        configService.get('auth.google.callbackUrl'),
       scope: ['profile', 'email'],
       accessType: 'offline',
       passReqToCallback: true,
     });
 
-    this.logger.log('GoogleOauthStrategy initialized');
+    this.logger.log('GoogleToolOauthStrategy initialized');
   }
 
   async validate(req: Request, accessToken: string, refreshToken: string, profile: Profile) {

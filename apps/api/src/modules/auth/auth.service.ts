@@ -14,6 +14,7 @@ import {
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
+  EMAIL_COOKIE,
   genUID,
   genVerificationSessionID,
   omit,
@@ -82,6 +83,7 @@ export class AuthService {
 
     return {
       uid: user.uid,
+      email: user.email,
       accessToken,
       refreshToken,
     };
@@ -183,6 +185,11 @@ export class AuthService {
           ...baseOptions,
           expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
         };
+      case EMAIL_COOKIE:
+        return {
+          ...baseOptions,
+          expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
+        };
       case ACCESS_TOKEN_COOKIE:
         return {
           ...baseOptions,
@@ -200,9 +207,10 @@ export class AuthService {
     }
   }
 
-  setAuthCookie(res: Response, { uid, accessToken, refreshToken }: TokenData) {
+  setAuthCookie(res: Response, { uid, email, accessToken, refreshToken }: TokenData) {
     return res
       .cookie(UID_COOKIE, uid, this.cookieOptions(UID_COOKIE))
+      .cookie(EMAIL_COOKIE, email, this.cookieOptions(EMAIL_COOKIE))
       .cookie(ACCESS_TOKEN_COOKIE, accessToken, this.cookieOptions(ACCESS_TOKEN_COOKIE))
       .cookie(REFRESH_TOKEN_COOKIE, refreshToken, this.cookieOptions(REFRESH_TOKEN_COOKIE));
   }
@@ -225,6 +233,37 @@ export class AuthService {
       userExists = await this.prisma.user.findUnique({ where: { name } });
     }
     return name;
+  }
+
+  async parseOAuthState(state: string) {
+    this.logger.log(`parseOAuthState: ${state}`);
+
+    // Parse state safely once
+    const defaultRedirect = this.configService.get('auth.redirectUrl');
+    let parsedState: { uid?: string; redirect?: string } | null = null;
+    try {
+      parsedState = state ? JSON.parse(state) : null;
+    } catch {
+      this.logger.warn('Invalid state JSON received in Google OAuth callback');
+    }
+    // Build a safe redirect URL (allowlist by origin; fall back to default)
+    const requested = parsedState?.redirect;
+    let finalRedirect = defaultRedirect;
+    try {
+      if (typeof requested === 'string') {
+        const allowed = this.configService.get<string[]>('auth.allowedRedirectOrigins') ?? [
+          new URL(defaultRedirect).origin,
+        ];
+        const u = new URL(requested, defaultRedirect);
+        if (allowed.includes(u.origin)) {
+          finalRedirect = u.toString();
+        }
+      }
+    } catch {
+      // ignore and use default
+    }
+
+    return { parsedState, finalRedirect };
   }
 
   /**
@@ -746,12 +785,26 @@ export class AuthService {
    * @param redirectUrl Redirect URL after authorization
    */
   async generateGoogleOAuthUrl(scope: string, redirect: string, uid: string): Promise<string> {
+    this.logger.log(`generateGoogleOAuthUrl, scope: ${scope}, redirect: ${redirect}, uid: ${uid}`);
+
     const baseScope = ['profile', 'email'];
     const scopeArray = scope?.split(',') ?? [];
     const finalScope = [...baseScope, ...scopeArray];
     this.logger.log(`finalScope: ${finalScope}`);
-    const clientId = this.configService.get('auth.google.clientId');
-    const callbackUrl = this.configService.get('auth.google.callbackUrl');
+
+    // Check if user-specified scope contains elements not found in baseScope
+    const hasAdditionalScopes = scopeArray.some((s) => !baseScope.includes(s.trim()));
+
+    // Use tool oauth client id if additional scopes are requested
+    const clientId = hasAdditionalScopes
+      ? (this.configService.get('tools.google.clientId') ??
+        this.configService.get('auth.google.clientId'))
+      : this.configService.get('auth.google.clientId');
+
+    const callbackUrl = hasAdditionalScopes
+      ? (this.configService.get('tools.google.callbackUrl') ??
+        this.configService.get('auth.google.callbackUrl'))
+      : this.configService.get('auth.google.callbackUrl');
 
     // Check if user already has Google OAuth with refresh token
     let prompt = 'consent';
@@ -785,7 +838,7 @@ export class AuthService {
       scope: finalScope.join(' '),
       response_type: 'code',
       access_type: 'offline',
-      prompt: prompt,
+      prompt,
       state: JSON.stringify({
         redirect: redirect ?? this.configService.get('auth.redirectUrl'),
         uid: uid,

@@ -825,6 +825,8 @@ const translations = {
       part2: 'Human-AI Collaborative Agent',
       part3: 'Platform',
     },
+    agentInputPlaceholder: 'Enter task description, Agent will generate reusable workflows',
+    chatInputPlaceholder: 'Enter a task (choose model & tools)',
     githubStar: 'Star us on GitHub!',
     fromCommunity: 'From the community',
     fromCommunityDesc: 'Discover a way to use Refly for work, or even beyond.',
@@ -1146,9 +1148,9 @@ const translations = {
     },
     launchpad: {
       placeholder: 'Describe needs...',
-      chatInputPlaceholder: 'Input task description, Agent will generate reusable workflows',
+      chatInputPlaceholder: 'Enter task description, Agent will generate reusable workflows',
       commonChatInputPlaceholder:
-        'Input task description, @ can quickly select variables/resources',
+        'Enter task description, @ can quickly select variables/resources',
     },
     contextMenu: {
       createGroup: 'Create Group',

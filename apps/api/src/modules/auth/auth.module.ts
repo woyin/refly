@@ -13,6 +13,7 @@ import { TwitterOauthStrategy } from './strategy/twitter-oauth.strategy';
 import { NotionOauthStrategy } from './strategy/notion-oauth.strategy';
 import { ProviderModule } from '../provider/provider.module';
 import { NotificationModule } from '../notification/notification.module';
+import { GoogleToolOauthStrategy } from './strategy/google-tool-oauth.strategy';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { NotificationModule } from '../notification/notification.module';
     AuthService,
     GithubOauthStrategy,
     GoogleOauthStrategy,
+    GoogleToolOauthStrategy,
     TwitterOauthStrategy,
     NotionOauthStrategy,
   ],

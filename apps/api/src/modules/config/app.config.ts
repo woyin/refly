@@ -123,6 +123,14 @@ export default () => ({
       authorizationURL: process.env.NOTION_AUTHORIZATION_URL || 'test',
     },
   },
+  tools: {
+    supportedToolsets: process.env.SUPPORTED_TOOLSETS || '', // comma separated list of toolset keys
+    google: {
+      clientId: process.env.GOOGLE_TOOLS_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_TOOLS_CLIENT_SECRET,
+      callbackUrl: process.env.GOOGLE_TOOLS_CALLBACK_URL,
+    },
+  },
   encryption: {
     key: process.env.ENCRYPTION_KEY,
   },

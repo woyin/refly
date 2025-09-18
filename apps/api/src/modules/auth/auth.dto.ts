@@ -3,6 +3,7 @@ import { Account as AccountPO } from '../../generated/client';
 
 export interface TokenData {
   uid: string;
+  email: string;
   accessToken: string;
   refreshToken: string;
 }
