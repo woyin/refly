@@ -31,6 +31,12 @@ export const LazySkillResponseRenderer = lazy(() =>
   })),
 );
 
+export const LazyVideoRenderer = lazy(() =>
+  import('./VideoRenderer').then((module) => ({
+    default: module.VideoRenderer,
+  })),
+);
+
 export const LazyImageRenderer = lazy(() =>
   import('./ImageRenderer').then((module) => ({
     default: module.ImageRenderer,

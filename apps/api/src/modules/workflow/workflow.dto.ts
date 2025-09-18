@@ -40,6 +40,7 @@ export const workflowNodeExecutionPO2DTO = (
       'entityId',
       'title',
       'progress',
+      'nodeData',
     ]),
     status: nodeExecution.status as ActionStatus,
     createdAt: nodeExecution.createdAt.toJSON(),

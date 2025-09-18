@@ -1,4 +1,4 @@
-import { memo, useMemo, CSSProperties } from 'react';
+import { memo, useMemo, CSSProperties, useCallback } from 'react';
 import { type NodeRelation } from './ArtifactRenderer';
 import { NodeBlockHeader } from './NodeBlockHeader';
 import {
@@ -10,8 +10,21 @@ import {
   LazyMemoRenderer,
   LazyResourceRenderer,
   LazyWebsiteRenderer,
+  LazyVideoRenderer,
 } from './LazyComponents';
 import { useTranslation } from 'react-i18next';
+import { Tooltip, Button } from 'antd';
+import { DownloadIcon } from 'lucide-react';
+import {
+  downloadNodeData,
+  hasDownloadableData,
+  copyNodeData,
+  hasCopyableData,
+  shareNodeData,
+  hasShareableData,
+  type NodeData,
+} from '@refly-packages/ai-workspace-common/utils/download-node-data';
+import { Share } from 'refly-icons';
 
 // Create a generic content container component to reduce code duplication
 const ContentContainer = ({
@@ -80,15 +93,76 @@ const NodeRenderer = memo(
   }) => {
     const { t } = useTranslation();
 
+    // Check if node has downloadable data
+    const nodeData: NodeData = useMemo(
+      () => ({
+        nodeId: node.nodeId,
+        nodeType: node.nodeType,
+        entityId: node.entityId,
+        title: node.nodeData?.title,
+        metadata: node.nodeData?.metadata,
+      }),
+      [node],
+    );
+
+    const canDownload = useMemo(() => hasDownloadableData(nodeData), [nodeData]);
+    const canCopy = useMemo(() => hasCopyableData(nodeData), [nodeData]);
+    const canShare = useMemo(() => hasShareableData(nodeData), [nodeData]);
+
+    // Handle download for any node type
+    const handleDownload = useCallback(async () => {
+      await downloadNodeData(nodeData, t);
+    }, [nodeData, t]);
+
+    // Handle copy for any node type
+    const handleCopy = useCallback(async () => {
+      await copyNodeData(nodeData, t);
+    }, [nodeData, t]);
+
+    // Handle share for any node type
+    const handleShare = useCallback(async () => {
+      await shareNodeData(nodeData, t);
+    }, [nodeData, t]);
+
     // Generic node block header
     const renderNodeHeader =
       !isFullscreen && !isModal ? (
         <NodeBlockHeader
+          isFullscreen={isFullscreen}
+          isModal={isModal}
           node={node}
           isMinimap={isMinimap}
-          onMaximize={() => onStartSlideshow?.(node.nodeId)}
-          onWideMode={() => onWideMode?.(node.nodeId)}
+          onMaximize={onStartSlideshow && (() => onStartSlideshow?.(node.nodeId))}
+          onWideMode={onWideMode && (() => onWideMode?.(node.nodeId))}
           onDelete={onDelete}
+          rightActions={
+            <div className="flex items-center gap-1">
+              {canDownload && (
+                <Tooltip title={t('canvas.nodeActions.download', 'Download')}>
+                  <Button
+                    type="text"
+                    className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                    icon={<DownloadIcon size={16} />}
+                    onClick={handleDownload}
+                  >
+                    {/* <span className="sr-only" /> */}
+                  </Button>
+                </Tooltip>
+              )}
+              {canShare && (
+                <Tooltip title={t('canvas.nodeActions.share', 'Share')}>
+                  <Button
+                    type="text"
+                    className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                    icon={<Share size={16} />}
+                    onClick={handleShare}
+                  >
+                    {/* <span className="sr-only" /> */}
+                  </Button>
+                </Tooltip>
+              )}
+            </div>
+          }
         />
       ) : null;
 
@@ -168,6 +242,26 @@ const NodeRenderer = memo(
               >
                 <WithSuspense>
                   <LazyImageRenderer
+                    node={node}
+                    isFullscreen={isFullscreen}
+                    isMinimap={isMinimap}
+                  />
+                </WithSuspense>
+              </ContentContainer>
+            </div>
+          );
+        case 'video':
+          return (
+            <div className="flex flex-col h-full">
+              {renderNodeHeader}
+              <ContentContainer
+                isFullscreen={isFullscreen}
+                isFocused={isFocused}
+                isMinimap={isMinimap}
+                isModal={isModal}
+              >
+                <WithSuspense>
+                  <LazyVideoRenderer
                     node={node}
                     isFullscreen={isFullscreen}
                     isMinimap={isMinimap}
@@ -260,6 +354,12 @@ const NodeRenderer = memo(
       onWideMode,
       t,
       renderNodeHeader,
+      canDownload,
+      canCopy,
+      canShare,
+      handleDownload,
+      handleCopy,
+      handleShare,
     ]);
 
     return renderContent;

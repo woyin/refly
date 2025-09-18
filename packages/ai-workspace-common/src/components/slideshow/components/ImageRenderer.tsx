@@ -43,14 +43,12 @@ const ImageRenderer = memo(
         <div className="h-full w-full overflow-hidden flex flex-col">
           {/* Image content area */}
           <div className="flex-1 overflow-auto p-4 dark:bg-gray-900">
-            <div
-              className="cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={handleOpenPreview}
-            >
+            <div className="w-full h-full flex items-center justify-center">
               <img
                 src={imageUrl}
                 alt={title}
-                className="max-w-full max-h-full object-contain mx-auto"
+                className="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={handleOpenPreview}
               />
             </div>
           </div>
