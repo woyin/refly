@@ -5,5 +5,6 @@ export * from './calculator';
 export * from './inventory';
 export * from './jina';
 export * from './code-interpreter';
+export * from './generate-audio';
 
 export type { ReflyService } from './builtin/interface';

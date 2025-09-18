@@ -4049,7 +4049,6 @@ export type MediaGenerateRequest = {
   providerItemId?: string;
   /**
    * Optional provider selection (use providerItemId instead)
-   * @deprecated
    */
   provider?: string | null;
   /**
@@ -4082,6 +4081,10 @@ export type MediaGenerateRequest = {
   input?: {
     [key: string]: unknown;
   };
+  /**
+   * Unit cost for the media generation
+   */
+  unitCost?: number;
 };
 
 export type MediaGenerateResponse = BaseResponse & {

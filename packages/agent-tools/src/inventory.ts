@@ -7,6 +7,7 @@ import { GoogleDriveToolset, GoogleDriveToolsetDefinition } from './google-drive
 import { JinaToolset, JinaToolsetDefinition } from './jina';
 import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code-interpreter';
 import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
+import { GenerateAudioToolset, GenerateAudioToolsetDefinition } from './generate-audio';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -44,5 +45,9 @@ export const toolsetInventory: Record<
   [WhaleWisdomToolsetDefinition.key]: {
     class: WhaleWisdomToolset,
     definition: WhaleWisdomToolsetDefinition,
+  },
+  [GenerateAudioToolsetDefinition.key]: {
+    class: GenerateAudioToolset,
+    definition: GenerateAudioToolsetDefinition,
   },
 };

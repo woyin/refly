@@ -5735,7 +5735,6 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Optional provider selection (use providerItemId instead)',
       nullable: true,
-      deprecated: true,
     },
     prompt: {
       type: 'string',
@@ -5769,6 +5768,10 @@ export const MediaGenerateRequestSchema = {
       type: 'object',
       description: 'Flexible key-value pairs for additional input parameters',
       additionalProperties: true,
+    },
+    unitCost: {
+      type: 'number',
+      description: 'Unit cost for the media generation',
     },
   },
 } as const;
