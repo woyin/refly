@@ -5860,6 +5860,10 @@ export type WorkflowNodeExecution = {
    */
   nodeType?: string;
   /**
+   * Node data
+   */
+  nodeData?: string;
+  /**
    * Node entity ID
    */
   entityId?: string;

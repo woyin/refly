@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 
-import { WorkflowNodeExecution } from '@refly/openapi-schema';
+import { CanvasNodeData, WorkflowNodeExecution } from '@refly/openapi-schema';
 import { Empty } from 'antd';
 import { NodeRenderer } from '@refly-packages/ai-workspace-common/components/slideshow/components/NodeRenderer';
 import { type NodeRelation } from '@refly-packages/ai-workspace-common/components/slideshow/components/ArtifactRenderer';
+import { safeParseJSON } from '@refly/utils/parse';
 
 export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecution[] }) => {
   const { t } = useTranslation();
@@ -15,6 +16,8 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
     product: WorkflowNodeExecution,
     index: number,
   ): NodeRelation => {
+    const nodeData = safeParseJSON(product!.nodeData)?.data as CanvasNodeData;
+
     return {
       relationId: product.nodeExecutionId || `workflow-${product.nodeId}-${index}`,
       pageId: undefined, // Optional field
@@ -22,17 +25,7 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
       nodeType: product.nodeType || 'unknown',
       entityId: product.entityId || '',
       orderIndex: index,
-      nodeData: {
-        title: product.title,
-        content: undefined, // Will be fetched by renderer if needed
-        metadata: {
-          status: product.status,
-          progress: product.progress,
-          createdAt: product.createdAt,
-          updatedAt: product.updatedAt,
-        },
-        entityId: product.entityId, // Ensure entityId is also in nodeData
-      },
+      nodeData: nodeData,
     };
   };
 

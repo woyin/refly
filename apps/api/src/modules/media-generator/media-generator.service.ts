@@ -6,6 +6,7 @@ import {
   CreditBilling,
   MediaGenerationModelConfig,
   EntityType,
+  CanvasNodeType,
 } from '@refly/openapi-schema';
 
 import { ModelUsageQuotaExceeded, ProviderItemNotFoundError } from '@refly/errors';
@@ -18,7 +19,7 @@ import { MiscService } from '../misc/misc.service';
 import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
 import { PromptProcessorService } from './prompt-processor.service';
-import { genActionResultID, genMediaID } from '@refly/utils';
+import { genActionResultID, genMediaID, safeParseJSON } from '@refly/utils';
 import { fal } from '@fal-ai/client';
 import Replicate from 'replicate';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
@@ -158,8 +159,6 @@ export class MediaGeneratorService {
    */
   async generate(user: User, request: MediaGenerateRequest): Promise<MediaGenerateResponse> {
     try {
-      const resultId = request.resultId || genActionResultID();
-
       const { mediaType, model, prompt, providerItemId, wait, parentResultId } = request;
       let { targetType, targetId } = request;
 
@@ -208,12 +207,16 @@ export class MediaGeneratorService {
       }
       this.logger.log(`Media generation request validation passed for user ${user.uid}`);
 
+      let mediaId = '';
+
       // If parentResultId is provided, use the targetId and targetType from the parent result
       if (parentResultId) {
         const parentResult = await this.prisma.actionResult.findFirst({
           select: {
             targetId: true,
             targetType: true,
+            workflowNodeExecutionId: true,
+            workflowExecutionId: true,
           },
           where: { resultId: parentResultId },
           orderBy: { version: 'desc' },
@@ -226,8 +229,33 @@ export class MediaGeneratorService {
             targetId = parentResult.targetId;
             targetType = parentResult.targetType as EntityType;
           }
+
+          if (parentResult.workflowExecutionId) {
+            const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
+              where: {
+                nodeExecutionId: parentResult.workflowNodeExecutionId,
+              },
+            });
+            if (nodeExecution?.childNodeIds) {
+              const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
+              const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+                where: {
+                  nodeId: { in: childNodeIds },
+                  status: 'waiting',
+                  nodeType: mediaType as CanvasNodeType,
+                },
+                orderBy: {
+                  createdAt: 'asc',
+                },
+              });
+              if (docNodeExecution) {
+                mediaId = docNodeExecution.entityId;
+              }
+            }
+          }
         }
       }
+      const resultId = request.resultId || genActionResultID();
 
       // Creating an ActionResult Record
       const result = await this.prisma.actionResult.create({
@@ -259,7 +287,7 @@ export class MediaGeneratorService {
       };
 
       // Start media generation asynchronously
-      this.executeGenerate(user, result, finalRequest).catch((error) => {
+      this.executeGenerate(user, result, finalRequest, mediaId).catch((error) => {
         this.logger.error(`Media generation failed for ${resultId}:`, error);
       });
 
@@ -306,6 +334,7 @@ export class MediaGeneratorService {
     user: User,
     result: ActionResult,
     request: MediaGenerateRequest,
+    mediaId?: string,
   ): Promise<void> {
     const { mediaType } = request;
     const { pk, resultId, parentResultId, title, targetType, targetId } = result;
@@ -401,6 +430,7 @@ export class MediaGeneratorService {
       });
 
       if (parentResultId && targetType === 'canvas' && targetId) {
+        const entityId = mediaId || genMediaID(mediaType);
         await this.canvasSyncService.addNodeToCanvas(
           user,
           targetId,
@@ -408,7 +438,7 @@ export class MediaGeneratorService {
             type: mediaType,
             data: {
               title,
-              entityId: genMediaID(mediaType),
+              entityId,
               metadata: {
                 resultId,
                 storageKey: uploadResult.storageKey,
