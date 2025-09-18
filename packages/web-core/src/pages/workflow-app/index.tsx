@@ -15,7 +15,6 @@ import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/component
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
 import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
-import { ResultList } from '@refly-packages/ai-workspace-common/components/canvas/canvas-resources/result-list';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 
 const WorkflowAppPage: React.FC = () => {
@@ -225,8 +224,6 @@ const WorkflowAppPage: React.FC = () => {
             </div>
           </div>
         </div>
-
-        <ResultList />
 
         {/* Settings Modal */}
         <SettingModal visible={showSettingModal} setVisible={setShowSettingModal} />

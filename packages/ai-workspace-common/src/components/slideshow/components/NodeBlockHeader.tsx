@@ -23,6 +23,9 @@ interface NodeBlockHeaderProps {
   isWideMode?: boolean;
   isMinimap?: boolean;
   onDelete?: (nodeId: string) => void;
+  isFullscreen?: boolean;
+  isModal?: boolean;
+  rightActions?: React.ReactNode;
 }
 
 export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
@@ -35,6 +38,9 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
     isWideMode = false,
     isMinimap = false,
     onDelete,
+    isFullscreen,
+    isModal,
+    rightActions,
   }) => {
     const { t } = useTranslation();
     const title = getNodeTitle(node);
@@ -92,7 +98,8 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
 
         {/* Right: Action Buttons */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          {onWideMode && (
+          {rightActions}
+          {onWideMode && (isFullscreen || isModal) && (
             <Button
               type="text"
               className={`p-1.5 hover:bg-gray-100 ${isWideMode ? 'text-primary-600' : 'text-gray-500'}`}
@@ -102,7 +109,7 @@ export const NodeBlockHeader: React.FC<NodeBlockHeaderProps> = memo(
               <IconWideMode className="w-4 h-4" />
             </Button>
           )}
-          {onMaximize && (
+          {onMaximize && (isFullscreen || isModal) && (
             <Button
               type="text"
               className={`p-1.5 hover:bg-gray-100 ${isMaximized ? 'text-primary-600' : 'text-gray-500'}`}

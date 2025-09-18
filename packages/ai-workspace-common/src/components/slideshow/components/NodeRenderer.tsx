@@ -1,4 +1,4 @@
-import { memo, useMemo, CSSProperties } from 'react';
+import { memo, useMemo, CSSProperties, useCallback } from 'react';
 import { type NodeRelation } from './ArtifactRenderer';
 import { NodeBlockHeader } from './NodeBlockHeader';
 import {
@@ -13,6 +13,12 @@ import {
   LazyVideoRenderer,
 } from './LazyComponents';
 import { useTranslation } from 'react-i18next';
+import { Tooltip, Button } from 'antd';
+import { DownloadIcon } from 'lucide-react';
+import {
+  downloadNodeData,
+  type NodeData,
+} from '@refly-packages/ai-workspace-common/utils/download-node-data';
 
 // Create a generic content container component to reduce code duplication
 const ContentContainer = ({
@@ -81,15 +87,42 @@ const NodeRenderer = memo(
   }) => {
     const { t } = useTranslation();
 
+    // Handle download for any node type
+    const handleDownload = useCallback(async () => {
+      const nodeData: NodeData = {
+        nodeId: node.nodeId,
+        nodeType: node.nodeType,
+        entityId: node.entityId,
+        title: node.nodeData?.title,
+        metadata: node.nodeData?.metadata,
+      };
+
+      await downloadNodeData(nodeData, t);
+    }, [node, t]);
+
     // Generic node block header
     const renderNodeHeader =
       !isFullscreen && !isModal ? (
         <NodeBlockHeader
+          isFullscreen={isFullscreen}
+          isModal={isModal}
           node={node}
           isMinimap={isMinimap}
           onMaximize={() => onStartSlideshow?.(node.nodeId)}
           onWideMode={() => onWideMode?.(node.nodeId)}
           onDelete={onDelete}
+          rightActions={
+            <Tooltip title={t('canvas.nodeActions.download', 'Download ')}>
+              <Button
+                type="default"
+                className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                icon={<DownloadIcon className="w-4 h-4" />}
+                onClick={handleDownload}
+              >
+                <span className="sr-only" />
+              </Button>
+            </Tooltip>
+          }
         />
       ) : null;
 
@@ -281,6 +314,7 @@ const NodeRenderer = memo(
       onWideMode,
       t,
       renderNodeHeader,
+      handleDownload,
     ]);
 
     return renderContent;
