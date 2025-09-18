@@ -148,11 +148,19 @@ export class AuthController {
     // UID is stored in session by the guard's canActivate method
   }
 
-  @UseGuards(NotionOauthGuard)
   @Get('notion')
-  async notion() {
-    // NotionOauthGuard handles OAuth flow automatically
-    // UID is stored in session by the guard's canActivate method
+  async notion(
+    @Query('uid') uid: string,
+    @Query('redirect') redirect: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const authUrl = await this.authService.generateNotionOAuthUrl(uid, redirect);
+      res.redirect(authUrl);
+    } catch (error) {
+      this.logger.error('Notion OAuth initiation failed:', error.stack);
+      throw new OAuthError();
+    }
   }
   @UseGuards(NotionOauthGuard)
   @Get('callback/notion')
