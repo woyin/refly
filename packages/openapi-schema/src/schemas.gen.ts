@@ -8385,6 +8385,10 @@ export const WorkflowNodeExecutionSchema = {
       type: 'string',
       description: 'Node type',
     },
+    nodeData: {
+      type: 'string',
+      description: 'Node data',
+    },
     entityId: {
       type: 'string',
       description: 'Node entity ID',

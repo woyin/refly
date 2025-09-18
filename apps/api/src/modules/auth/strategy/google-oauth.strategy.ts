@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Profile, Strategy } from 'passport-google-oauth20';
@@ -7,6 +7,8 @@ import { AuthService } from '../auth.service';
 
 @Injectable()
 export class GoogleOauthStrategy extends PassportStrategy(Strategy, 'google') {
+  private readonly logger = new Logger(GoogleOauthStrategy.name);
+
   constructor(
     private configService: ConfigService,
     private authService: AuthService,
@@ -19,6 +21,8 @@ export class GoogleOauthStrategy extends PassportStrategy(Strategy, 'google') {
       accessType: 'offline',
       passReqToCallback: true,
     });
+
+    this.logger.log('GoogleOauthStrategy initialized');
   }
 
   async validate(req: Request, accessToken: string, refreshToken: string, profile: Profile) {

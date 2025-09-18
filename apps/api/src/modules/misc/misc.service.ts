@@ -209,7 +209,11 @@ export class MiscService implements OnModuleInit {
     return this.internalOss;
   }
 
-  async batchRemoveObjects(user: User | null, objects: FileObject[]) {
+  async batchRemoveObjects(
+    user: User | null,
+    objects: FileObject[],
+    options?: { force?: boolean },
+  ) {
     // Group objects by storageKey for efficient querying
     const storageKeys = objects.map((fo) => fo.storageKey);
 
@@ -252,7 +256,7 @@ export class MiscService implements OnModuleInit {
     if (objectsToRemove.size > 0) {
       await Promise.all(
         Array.from(objectsToRemove.entries()).map(([visibility, storageKeys]) =>
-          this.minioClient(visibility).removeObjects(Array.from(storageKeys)),
+          this.minioClient(visibility).removeObjects(Array.from(storageKeys), options?.force),
         ),
       );
     }

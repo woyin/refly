@@ -53,6 +53,7 @@ import {
   markdown2StateUpdate,
   genReferenceID,
   genDocumentID,
+  safeParseJSON,
 } from '@refly/utils';
 import {
   DocumentDetail,
@@ -1016,6 +1017,30 @@ export class KnowledgeService {
       }
       if (result.projectId) {
         param.projectId = result.projectId;
+      }
+
+      if (result.workflowExecutionId) {
+        const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
+          where: {
+            nodeExecutionId: result.workflowNodeExecutionId,
+          },
+        });
+        if (nodeExecution?.childNodeIds) {
+          const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
+          const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+            where: {
+              nodeId: { in: childNodeIds },
+              status: 'waiting',
+              nodeType: 'document',
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          });
+          if (docNodeExecution) {
+            param.docId = docNodeExecution.entityId;
+          }
+        }
       }
     }
 

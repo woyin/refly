@@ -1358,3 +1358,6 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     </EditorPerformanceProvider>
   );
 };
+
+// Re-export providers for external use
+export { ReactFlowProvider } from '@xyflow/react';

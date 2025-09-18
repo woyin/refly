@@ -36,6 +36,8 @@ import { hours, minutes, seconds, Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { REFRESH_TOKEN_COOKIE } from '@refly/utils';
 import { accountPO2DTO } from './auth.dto';
+import { TwitterOauthGuard } from './guard/twitter-oauth.guard';
+import { NotionOauthGuard } from './guard/notion-oauth.guard';
 
 @Controller('v1/auth')
 export class AuthController {
@@ -133,6 +135,39 @@ export class AuthController {
     }
   }
 
+  @UseGuards(TwitterOauthGuard)
+  @Get('callback/twitter')
+  async twitterAuthCallback(@Res() res: Response) {
+    return res.redirect(this.configService.get('auth.redirectUrl'));
+  }
+
+  @UseGuards(TwitterOauthGuard)
+  @Get('twitter')
+  async twitter() {
+    // TwitterOauthGuard handles OAuth flow automatically
+    // UID is stored in session by the guard's canActivate method
+  }
+
+  @Get('notion')
+  async notion(
+    @Query('uid') uid: string,
+    @Query('redirect') redirect: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const authUrl = await this.authService.generateNotionOAuthUrl(uid, redirect);
+      res.redirect(authUrl);
+    } catch (error) {
+      this.logger.error('Notion OAuth initiation failed:', error.stack);
+      throw new OAuthError();
+    }
+  }
+  @UseGuards(NotionOauthGuard)
+  @Get('callback/notion')
+  async notionAuthCallback(@Res() res: Response) {
+    return res.redirect(this.configService.get('auth.redirectUrl'));
+  }
+
   @UseGuards(GoogleOauthGuard)
   @Get('callback/google')
   async googleAuthCallback(
@@ -142,31 +177,33 @@ export class AuthController {
   ) {
     try {
       this.logger.log(`google oauth callback success, req.user = ${user?.email}`);
-      this.logger.log(`state: ${state}`);
-      // Parse state safely once
-      const defaultRedirect = this.configService.get('auth.redirectUrl');
-      let parsedState: { uid?: string; redirect?: string } | null = null;
-      try {
-        parsedState = state ? JSON.parse(state) : null;
-      } catch {
-        this.logger.warn('Invalid state JSON received in Google OAuth callback');
+
+      const { parsedState, finalRedirect } = await this.authService.parseOAuthState(state);
+
+      if (parsedState?.uid) {
+        // Tool OAuth path: skip login cookie and just redirect back
+        return res.redirect(finalRedirect);
       }
-      // Build a safe redirect URL (allowlist by origin; fall back to default)
-      const requested = parsedState?.redirect;
-      let finalRedirect = defaultRedirect;
-      try {
-        if (typeof requested === 'string') {
-          const allowed = this.configService.get<string[]>('auth.allowedRedirectOrigins') ?? [
-            new URL(defaultRedirect).origin,
-          ];
-          const u = new URL(requested, defaultRedirect);
-          if (allowed.includes(u.origin)) {
-            finalRedirect = u.toString();
-          }
-        }
-      } catch {
-        // ignore and use default
-      }
+      const tokens = await this.authService.login(user);
+      this.authService.setAuthCookie(res, tokens).redirect(finalRedirect);
+    } catch (error) {
+      this.logger.error('Google OAuth callback failed:', error.stack);
+      throw new OAuthError();
+    }
+  }
+
+  @UseGuards(GoogleOauthGuard)
+  @Get('callback/google/tool')
+  async googleToolAuthCallback(
+    @LoginedUser() user: User,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ) {
+    try {
+      this.logger.log(`google oauth tool callback success, req.user = ${user?.email}`);
+
+      const { parsedState, finalRedirect } = await this.authService.parseOAuthState(state);
+
       if (parsedState?.uid) {
         // Tool OAuth path: skip login cookie and just redirect back
         return res.redirect(finalRedirect);

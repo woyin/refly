@@ -541,11 +541,13 @@ export const SkillResponseNode = memo(
             return;
           }
 
-          // Extract full content from all steps
+          // Extract full content from all steps and remove tool_use tags
           const fullContent = data.data.steps
             ?.map((step) => step?.content || '')
             .filter(Boolean)
-            .join('\n\n');
+            .join('\n\n')
+            .replace(/<tool_use>[\s\S]*?<\/tool_use>/g, '')
+            .trim();
 
           const { position, connectTo } = getConnectionInfo(
             { entityId, type: 'skillResponse' },

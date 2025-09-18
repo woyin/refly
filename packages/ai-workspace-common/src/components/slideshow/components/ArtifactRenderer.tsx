@@ -93,6 +93,8 @@ const ArtifactRenderer = memo(
       [shareData, remoteData],
     );
 
+    console.log('artifactData', { artifactData, remoteData, shareData });
+
     // Get content
     const content = artifactData?.content || node.nodeData?.metadata?.content || '';
 

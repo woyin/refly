@@ -54,19 +54,21 @@ export class ObjectStorageService implements OnModuleInit {
   /**
    * Remove an object from storage
    * @param key The storage key
+   * @param force Whether to force the removal of the object
    * @returns true if the object was removed, false if it didn't exist
    */
-  async removeObject(key: string): Promise<boolean> {
-    return this.storageBackend.removeObject(key);
+  async removeObject(key: string, force?: boolean): Promise<boolean> {
+    return this.storageBackend.removeObject(key, force);
   }
 
   /**
    * Remove multiple objects from storage
    * @param keys The storage keys
+   * @param force Whether to force the removal of the objects
    * @returns true if the objects were removed, false if they didn't exist
    */
-  async removeObjects(keys: string[]): Promise<boolean> {
-    return this.storageBackend.removeObjects(keys);
+  async removeObjects(keys: string[], force?: boolean): Promise<boolean> {
+    return this.storageBackend.removeObjects(keys, force);
   }
 
   /**

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import React from 'react';
 
 const GithubStarComponent = () => {
-  const [starCount, setStarCount] = useState('4.3k');
+  const [starCount, setStarCount] = useState('');
 
   const handleClick = () => {
     window.open('https://github.com/refly-ai/refly', '_blank');
@@ -18,6 +18,8 @@ const GithubStarComponent = () => {
       })
       .catch(() => {});
   }, []);
+
+  if (!starCount) return null;
 
   return (
     <div

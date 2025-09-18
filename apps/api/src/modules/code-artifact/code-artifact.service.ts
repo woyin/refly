@@ -13,7 +13,7 @@ import {
   CodeArtifactNotFoundError,
   ParamsError,
 } from '@refly/errors';
-import { genCodeArtifactID } from '@refly/utils';
+import { genCodeArtifactID, safeParseJSON } from '@refly/utils';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { CodeArtifact as CodeArtifactModel } from '../../generated/client';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
@@ -30,8 +30,6 @@ export class CodeArtifactService {
     const { uid } = user;
     const { title, type, language, content, previewStorageKey, resultId } = param;
     let { canvasId, resultVersion } = param;
-    const artifactId = genCodeArtifactID();
-    const storageKey = `code-artifact/${artifactId}`;
 
     if (canvasId) {
       const canvas = await this.prisma.canvas.findUnique({
@@ -60,7 +58,34 @@ export class CodeArtifactService {
         }
         canvasId = result.targetId;
       }
+
+      if (result.workflowExecutionId) {
+        const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
+          where: {
+            nodeExecutionId: result.workflowNodeExecutionId,
+          },
+        });
+        if (nodeExecution?.childNodeIds) {
+          const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
+          const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+            where: {
+              nodeId: { in: childNodeIds },
+              status: 'waiting',
+              nodeType: 'codeArtifact',
+            },
+            orderBy: {
+              createdAt: 'asc',
+            },
+          });
+          if (docNodeExecution) {
+            param.artifactId = docNodeExecution.entityId;
+          }
+        }
+      }
     }
+
+    const artifactId = param.artifactId ?? genCodeArtifactID();
+    const storageKey = `code-artifact/${artifactId}`;
 
     const codeArtifact = await this.prisma.codeArtifact.create({
       data: {

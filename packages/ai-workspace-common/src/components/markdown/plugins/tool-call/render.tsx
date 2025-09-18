@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MarkdownMode } from '../../types';
 import { ToolOutlined } from '@ant-design/icons';
@@ -48,11 +48,11 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Extract tool name from props
-  const toolName = useMemo(() => props['data-tool-name'] || 'unknown', [props]);
-  const toolsetKey = useMemo(() => props['data-tool-toolset-key'] || 'unknown', [props]);
+  const toolName = props['data-tool-name'] || 'unknown';
+  const toolsetKey = props['data-tool-toolset-key'] || 'unknown';
 
   // Format the content for parameters
-  const parametersContent = useMemo(() => {
+  const parametersContent = () => {
     try {
       const argsStr = props['data-tool-arguments'] || '{}';
       const args = JSON.parse(argsStr);
@@ -62,10 +62,10 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
     } catch (_e) {
       return props['data-tool-arguments'] || t('components.markdown.noParameters', 'No parameters');
     }
-  }, [props, t]);
+  };
 
   // Format the content for result
-  const resultContent = useMemo(() => props['data-tool-result'] || '', [props]);
+  const resultContent = props['data-tool-result'] || '';
 
   // Check if result exists
   const hasResult = !!resultContent;
@@ -115,7 +115,7 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
               </div>
               {/* Parameter content block with background, rounded corners, margin and padding */}
               <div className="mx-4 my-2 rounded-md bg-gray-100 dark:bg-gray-700 px-4 py-3 font-mono text-xs font-normal whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-[22px]">
-                {parametersContent}
+                {parametersContent()}
               </div>
             </div>
             {/* Result section only if hasResult */}

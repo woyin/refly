@@ -1,9 +1,11 @@
-import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography } from 'antd';
+import { Button, Popover, Input, Segmented, Dropdown, Badge, Typography, Tooltip } from 'antd';
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Tools, Close } from 'refly-icons';
+import { Tools, Close, Mcp, Cancelled } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
-import { useListTools } from '@refly-packages/ai-workspace-common/queries/queries';
-import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
+import {
+  useListTools,
+  useGetCanvasData,
+} from '@refly-packages/ai-workspace-common/queries/queries';
 import { GenericToolset } from '@refly/openapi-schema';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import React from 'react';
@@ -214,6 +216,40 @@ const ReferencedNodesDisplay = React.memo(({ nodes }: { nodes: Array<ReferencedN
   );
 });
 
+// Notice Block component for showing uninstalled tools warning
+const NoticeBlock = React.memo(
+  ({
+    uninstalledCount,
+    onGoInstall,
+  }: {
+    uninstalledCount: number;
+    onGoInstall: () => void;
+  }) => {
+    if (uninstalledCount <= 0) return null;
+
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 bg-refly-bg-control-z0 rounded-[99px] shadow-sm border border-refly-Card-Border">
+        <Cancelled
+          size={16}
+          color="var(--func-danger---refly-func-danger-default, #F93920)"
+          className="flex-shrink-0"
+        />
+        <span className="text-refly-text-0 text-xs leading-4 whitespace-nowrap">
+          当前账号不包含其中 {uninstalledCount} 个工具
+        </span>
+        <span
+          className="text-refly-primary-default text-xs leading-4 font-semibold cursor-pointer hover:text-refly-primary-hover active:text-refly-primary-active whitespace-nowrap"
+          onClick={onGoInstall}
+        >
+          去安装
+        </span>
+      </div>
+    );
+  },
+);
+
+NoticeBlock.displayName = 'NoticeBlock';
+
 const EmptyContent = (props: { searchTerm: string }) => {
   const { searchTerm } = props;
   const { t } = useTranslation();
@@ -247,6 +283,7 @@ const ToolsDependencyContent = React.memo(
     setOpen,
     isLogin,
     totalCount,
+    showReferencedNodesDisplay = true,
   }: {
     uninstalledCount: number;
     handleClose: () => void;
@@ -260,6 +297,7 @@ const ToolsDependencyContent = React.memo(
     setOpen: (value: boolean) => void;
     isLogin: boolean;
     totalCount: number;
+    showReferencedNodesDisplay?: boolean;
   }) => {
     const { t, i18n } = useTranslation();
     const currentLanguage = i18n.language;
@@ -367,7 +405,7 @@ const ToolsDependencyContent = React.memo(
                             )}
                           </div>
                           <div className="text-refly-text-2 text-xs leading-4 truncate">
-                            {description}
+                            {description ? description : <>&nbsp;</>}
                           </div>
                         </div>
 
@@ -382,7 +420,9 @@ const ToolsDependencyContent = React.memo(
                       </div>
 
                       {/* Referenced Nodes */}
-                      <ReferencedNodesDisplay nodes={referencedNodes} />
+                      {showReferencedNodesDisplay && (
+                        <ReferencedNodesDisplay nodes={referencedNodes} />
+                      )}
                     </div>
                   );
                 })
@@ -397,7 +437,11 @@ const ToolsDependencyContent = React.memo(
   },
 );
 
-export const ToolsDependency = () => {
+interface ToolsDependencyProps {
+  canvasId: string;
+}
+
+export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -406,7 +450,242 @@ export const ToolsDependency = () => {
     isLogin: state.isLogin,
   }));
 
-  const { nodes } = useCanvasData();
+  const { data: canvasResponse } = useGetCanvasData({ query: { canvasId } }, [], {
+    enabled: !!canvasId,
+    refetchOnWindowFocus: false,
+  });
+
+  const nodes = canvasResponse?.data?.nodes || [];
+
+  const { data } = useListTools({ query: { enabled: true } }, [], {
+    enabled: isLogin,
+    refetchOnWindowFocus: false,
+  });
+
+  const installedToolsets = data?.data ?? [];
+
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
+
+  // Set initial selected toolsets when installedToolsets data is loaded
+  useEffect(() => {
+    if (installedToolsets?.length > 0) {
+      setSelectedToolsets(installedToolsets);
+    }
+  }, [installedToolsets]);
+
+  // Process canvas data to find tool dependencies
+  const toolsetsWithNodes = useMemo(() => {
+    return extractToolsetsWithNodes(nodes);
+  }, [nodes]);
+
+  const filteredToolsets = useMemo(() => {
+    if (!searchTerm.trim()) return toolsetsWithNodes;
+
+    return toolsetsWithNodes.filter(
+      ({ toolset }) =>
+        toolset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        toolset.id.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [toolsetsWithNodes, searchTerm]);
+
+  const categorizedTools = useMemo(() => {
+    const installed: ToolWithNodes[] = [];
+    const uninstalled: ToolWithNodes[] = [];
+
+    for (const toolWithNodes of filteredToolsets) {
+      const isInstalled = isToolsetInstalled(toolWithNodes.toolset, installedToolsets);
+
+      // Find the complete toolset data from installedToolsets
+      let completeToolset = toolWithNodes.toolset;
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      // If we found a matching installed toolset with more complete data, use it
+      if (matchingInstalled?.toolset?.definition) {
+        completeToolset = matchingInstalled;
+      }
+
+      const enhancedToolWithNodes = {
+        ...toolWithNodes,
+        toolset: completeToolset,
+      };
+
+      if (isInstalled) {
+        installed.push(enhancedToolWithNodes);
+      } else {
+        uninstalled.push(enhancedToolWithNodes);
+      }
+    }
+
+    // Also enhance the 'all' array
+    const enhancedAll = filteredToolsets.map((toolWithNodes) => {
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      if (matchingInstalled?.toolset?.definition) {
+        return {
+          ...toolWithNodes,
+          toolset: matchingInstalled,
+        };
+      }
+
+      return toolWithNodes;
+    });
+
+    return {
+      all: enhancedAll,
+      installed,
+      uninstalled,
+    };
+  }, [filteredToolsets, installedToolsets]);
+
+  const currentTools = categorizedTools[activeTab as keyof typeof categorizedTools] || [];
+
+  const uninstalledCount = useMemo(() => {
+    if (!isLogin) return 0;
+    if (!toolsetsWithNodes.length) return 0;
+    return toolsetsWithNodes.filter((tool) => {
+      return !isToolsetInstalled(tool.toolset, installedToolsets);
+    }).length;
+  }, [isLogin, installedToolsets, toolsetsWithNodes]);
+
+  const options = useMemo(() => {
+    return [
+      {
+        label: t('canvas.toolsDepencency.all'),
+        value: 'all',
+      },
+      {
+        label: t('canvas.toolsDepencency.installed'),
+        value: 'installed',
+      },
+
+      {
+        label: t('canvas.toolsDepencency.uninstalled'),
+        value: 'uninstalled',
+      },
+    ];
+  }, [t]);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    setSearchTerm('');
+    setActiveTab('all');
+  }, []);
+
+  const handleGoInstall = useCallback(() => {
+    setOpen(true);
+    setActiveTab('uninstalled');
+  }, []);
+
+  const defaultTrigger = (
+    <Tooltip title={t('tools.useTools')} placement="bottom">
+      <Button
+        className={cn(
+          'gap-0 h-7 w-auto flex items-center justify-center hover:bg-refly-tertiary-hover',
+          {
+            '!w-7': !selectedToolsets?.length,
+            'bg-refly-bg-control-z0': selectedToolsets?.length,
+            'bg-refly-fill-active': open,
+          },
+        )}
+        type="text"
+        size="small"
+        icon={<Mcp size={20} className="flex items-center" />}
+      >
+        {selectedToolsets?.length > 0 && (
+          <div className="ml-1.5 flex items-center">
+            {selectedToolsets.slice(0, 3).map((toolset) => {
+              return (
+                <ToolsetIcon
+                  key={toolset.id}
+                  toolset={toolset}
+                  isBuiltin={toolset.id === 'builtin'}
+                  config={{
+                    size: 14,
+                    className:
+                      'bg-refly-bg-body-z0 shadow-refly-s p-0.5 -mr-[7px] last:mr-0 rounded-full',
+                    builtinClassName: '!w-3.5 !h-3.5',
+                  }}
+                />
+              );
+            })}
+            {selectedToolsets.length > 3 && (
+              <div className="min-w-[18px] h-[18px] p-0.5 box-border flex items-center justify-center rounded-full bg-refly-bg-body-z0 shadow-refly-s text-refly-text-1 text-[10px]">
+                +{selectedToolsets.length - 3}
+              </div>
+            )}
+          </div>
+        )}
+      </Button>
+    </Tooltip>
+  );
+
+  return (
+    <Popover
+      className="tools-in-canvas"
+      open={open}
+      onOpenChange={setOpen}
+      trigger="click"
+      placement="bottomLeft"
+      styles={{
+        body: {
+          padding: 0,
+          borderRadius: '20px',
+          boxShadow: '0px 8px 32px 0px rgba(0, 0, 0, 0.08)',
+        },
+      }}
+      content={
+        <ToolsDependencyContent
+          isLogin={isLogin}
+          uninstalledCount={uninstalledCount}
+          handleClose={handleClose}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          options={options}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          currentTools={currentTools}
+          installedToolsets={installedToolsets}
+          totalCount={toolsetsWithNodes.length}
+          setOpen={setOpen}
+          showReferencedNodesDisplay={false}
+        />
+      }
+      arrow={false}
+    >
+      <div className="relative flex items-center">
+        <Badge count={uninstalledCount} size="small" offset={[-2, 0]}>
+          {defaultTrigger}
+        </Badge>
+        {/* Notice block for uninstalled tools */}
+        {uninstalledCount > 0 && isLogin && (
+          <div className="ml-2">
+            <NoticeBlock uninstalledCount={uninstalledCount} onGoInstall={handleGoInstall} />
+          </div>
+        )}
+      </div>
+    </Popover>
+  );
+};
+
+export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
+  const { isLogin } = useUserStoreShallow((state) => ({
+    isLogin: state.isLogin,
+  }));
+
+  const { data: canvasResponse } = useGetCanvasData({ query: { canvasId } }, [], {
+    enabled: !!canvasId,
+    refetchOnWindowFocus: false,
+  });
+
+  const nodes = canvasResponse?.data?.nodes || [];
 
   const { data } = useListTools({ query: { enabled: true } }, [], {
     enabled: isLogin,
@@ -437,15 +716,47 @@ export const ToolsDependency = () => {
     for (const toolWithNodes of filteredToolsets) {
       const isInstalled = isToolsetInstalled(toolWithNodes.toolset, installedToolsets);
 
+      // Find the complete toolset data from installedToolsets
+      let completeToolset = toolWithNodes.toolset;
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      // If we found a matching installed toolset with more complete data, use it
+      if (matchingInstalled?.toolset?.definition) {
+        completeToolset = matchingInstalled;
+      }
+
+      const enhancedToolWithNodes = {
+        ...toolWithNodes,
+        toolset: completeToolset,
+      };
+
       if (isInstalled) {
-        installed.push(toolWithNodes);
+        installed.push(enhancedToolWithNodes);
       } else {
-        uninstalled.push(toolWithNodes);
+        uninstalled.push(enhancedToolWithNodes);
       }
     }
 
+    // Also enhance the 'all' array
+    const enhancedAll = filteredToolsets.map((toolWithNodes) => {
+      const matchingInstalled = installedToolsets?.find(
+        (installedTool) => installedTool.id === toolWithNodes.toolset.id,
+      );
+
+      if (matchingInstalled?.toolset?.definition) {
+        return {
+          ...toolWithNodes,
+          toolset: matchingInstalled,
+        };
+      }
+
+      return toolWithNodes;
+    });
+
     return {
-      all: filteredToolsets,
+      all: enhancedAll,
       installed,
       uninstalled,
     };
