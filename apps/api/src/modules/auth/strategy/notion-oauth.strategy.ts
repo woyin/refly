@@ -81,7 +81,7 @@ export class NotionOauthStrategy extends PassportStrategy(Strategy, 'notion') {
   async validate(req: Request, accessToken: string, refreshToken: string, params: any) {
     const scopes = ['read_content', 'update_content', 'insert_content']; // Scopes for account storage
 
-    // Extract uid from state parameter (passed during initial OAuth request)
+    // Extract uid and redirect from state parameter (passed during initial OAuth request)
     let uid: string | undefined;
     const state = req?.query?.state as string;
     if (state) {

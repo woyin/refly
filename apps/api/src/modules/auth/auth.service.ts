@@ -847,4 +847,22 @@ export class AuthService {
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }
+
+  async generateNotionOAuthUrl(uid: string, redirect?: string): Promise<string> {
+    const clientId = this.configService.get('auth.notion.clientId');
+    const callbackUrl = this.configService.get('auth.notion.callbackUrl');
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      owner: 'user',
+      redirect_uri: callbackUrl,
+      state: JSON.stringify({
+        redirect: redirect ?? this.configService.get('auth.redirectUrl'),
+        uid: uid,
+      }),
+    });
+
+    return `https://api.notion.com/v1/oauth/authorize?${params.toString()}`;
+  }
 }
