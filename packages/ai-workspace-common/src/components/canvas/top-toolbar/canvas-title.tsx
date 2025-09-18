@@ -81,20 +81,23 @@ export const ReadonlyCanvasTitle = memo(
           <Skeleton className="w-32" active paragraph={false} />
         ) : (
           <>
-            <Typography.Text className="!max-w-72 text-gray-500" ellipsis={{ tooltip: true }}>
+            <Typography.Text className="!max-w-64 text-gray-500" ellipsis={{ tooltip: true }}>
               {canvasTitle || t('common.untitled')}
             </Typography.Text>
 
             {owner && (
               <>
-                <Divider type="vertical" className="h-4" />
+                <Divider type="vertical" className="h-6 mx-1" />
                 <Avatar
                   src={owner.avatar}
                   size={18}
                   shape="circle"
                   icon={!owner.avatar ? <AiOutlineUser /> : undefined}
                 />
-                <Typography.Text className="text-gray-500 font-light text-sm">
+                <Typography.Text
+                  className="text-gray-500 font-light text-sm"
+                  ellipsis={{ tooltip: true }}
+                >
                   {`@${owner.name}`}
                 </Typography.Text>
               </>

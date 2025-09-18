@@ -115,6 +115,7 @@ export class ShareCommonService {
         storageKey: r.storageKey,
         visibility: 'public',
       })),
+      { force: true }, // share static files must be deleted
     );
   }
 
