@@ -108,6 +108,43 @@ const getSanitizedFileName = (title: string, nodeType: string, metadata?: any): 
   return `${sanitizedTitle}.${extension}`;
 };
 
+// Check if node has downloadable data
+export const hasDownloadableData = (nodeData: NodeData): boolean => {
+  const { nodeType, entityId, metadata = {} } = nodeData;
+
+  switch (nodeType) {
+    case 'image':
+      return Boolean(metadata.imageUrl);
+
+    case 'video':
+      return Boolean(metadata.videoUrl);
+
+    case 'audio':
+      return Boolean(metadata.audioUrl);
+
+    case 'document':
+      return Boolean(metadata.content || entityId);
+
+    case 'codeArtifact':
+      return Boolean(metadata.content || entityId);
+
+    case 'skillResponse':
+      return Boolean(entityId);
+
+    case 'memo':
+      return Boolean(metadata.content);
+
+    case 'resource':
+      return Boolean(metadata.content || entityId);
+
+    case 'website':
+      return Boolean(metadata.url);
+
+    default:
+      return false;
+  }
+};
+
 // Main download function for different node types
 export const downloadNodeData = async (nodeData: NodeData, t: TFunction): Promise<void> => {
   const { nodeType, entityId, title = '', metadata = {} } = nodeData;

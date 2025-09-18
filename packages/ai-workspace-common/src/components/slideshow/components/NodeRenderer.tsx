@@ -17,6 +17,7 @@ import { Tooltip, Button } from 'antd';
 import { DownloadIcon } from 'lucide-react';
 import {
   downloadNodeData,
+  hasDownloadableData,
   type NodeData,
 } from '@refly-packages/ai-workspace-common/utils/download-node-data';
 
@@ -87,18 +88,24 @@ const NodeRenderer = memo(
   }) => {
     const { t } = useTranslation();
 
-    // Handle download for any node type
-    const handleDownload = useCallback(async () => {
-      const nodeData: NodeData = {
+    // Check if node has downloadable data
+    const nodeData: NodeData = useMemo(
+      () => ({
         nodeId: node.nodeId,
         nodeType: node.nodeType,
         entityId: node.entityId,
         title: node.nodeData?.title,
         metadata: node.nodeData?.metadata,
-      };
+      }),
+      [node],
+    );
 
+    const canDownload = useMemo(() => hasDownloadableData(nodeData), [nodeData]);
+
+    // Handle download for any node type
+    const handleDownload = useCallback(async () => {
       await downloadNodeData(nodeData, t);
-    }, [node, t]);
+    }, [nodeData, t]);
 
     // Generic node block header
     const renderNodeHeader =
@@ -112,16 +119,18 @@ const NodeRenderer = memo(
           onWideMode={() => onWideMode?.(node.nodeId)}
           onDelete={onDelete}
           rightActions={
-            <Tooltip title={t('canvas.nodeActions.download', 'Download ')}>
-              <Button
-                type="default"
-                className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
-                icon={<DownloadIcon className="w-4 h-4" />}
-                onClick={handleDownload}
-              >
-                <span className="sr-only" />
-              </Button>
-            </Tooltip>
+            canDownload ? (
+              <Tooltip title={t('canvas.nodeActions.download', 'Download ')}>
+                <Button
+                  type="default"
+                  className="flex items-center justify-center border-none bg-white/70 dark:bg-gray-800/70 hover:bg-gray-100 dark:hover:bg-gray-700/80 hover:text-blue-600 dark:hover:text-blue-400 text-gray-700 dark:text-gray-300"
+                  icon={<DownloadIcon className="w-4 h-4" />}
+                  onClick={handleDownload}
+                >
+                  <span className="sr-only" />
+                </Button>
+              </Tooltip>
+            ) : null
           }
         />
       ) : null;
@@ -314,6 +323,7 @@ const NodeRenderer = memo(
       onWideMode,
       t,
       renderNodeHeader,
+      canDownload,
       handleDownload,
     ]);
 
