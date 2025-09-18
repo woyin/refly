@@ -243,12 +243,13 @@ export const CanvasProvider = ({
 
   // Check if it's a 404 error
   const shareNotFound = useMemo(() => {
-    if (!canvasError) return false;
+    if (!readonly || shareLoading || !canvasError) return false;
     return (
+      !canvasData ||
       canvasError.message.includes('404') ||
       canvasError.message.includes('Failed to fetch share data: 404')
     );
-  }, [canvasError]);
+  }, [canvasError, canvasData, shareLoading, readonly]);
 
   // Set canvas data from API response when in readonly mode
   useEffect(() => {
