@@ -10,6 +10,7 @@ import {
   LazyMemoRenderer,
   LazyResourceRenderer,
   LazyWebsiteRenderer,
+  LazyVideoRenderer,
 } from './LazyComponents';
 import { useTranslation } from 'react-i18next';
 
@@ -168,6 +169,26 @@ const NodeRenderer = memo(
               >
                 <WithSuspense>
                   <LazyImageRenderer
+                    node={node}
+                    isFullscreen={isFullscreen}
+                    isMinimap={isMinimap}
+                  />
+                </WithSuspense>
+              </ContentContainer>
+            </div>
+          );
+        case 'video':
+          return (
+            <div className="flex flex-col h-full">
+              {renderNodeHeader}
+              <ContentContainer
+                isFullscreen={isFullscreen}
+                isFocused={isFocused}
+                isMinimap={isMinimap}
+                isModal={isModal}
+              >
+                <WithSuspense>
+                  <LazyVideoRenderer
                     node={node}
                     isFullscreen={isFullscreen}
                     isMinimap={isMinimap}
