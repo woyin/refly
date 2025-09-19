@@ -166,8 +166,7 @@ export class MediaGeneratorService {
       let finalModel = model;
       let finalProviderItemId = providerItemId;
 
-      if (!finalModel /* || !finalProviderItemId */) {
-        // TODO: finalProviderItemId is not used
+      if (!finalModel) {
         this.logger.log(
           `No model or providerItemId specified for ${mediaType} generation, using user's default configuration`,
         );
@@ -191,22 +190,7 @@ export class MediaGeneratorService {
         );
       }
 
-      // Validate the final model and providerItemId
       this.logger.log(`Validating ${mediaType} generation request for user ${user.uid}`);
-      /*const validation = await this.validateMediaGenerationRequest(
-        user,
-        mediaType,
-        finalModel,
-        finalProviderItemId,
-      );
-      if (!validation.isValid) {
-        this.logger.warn(`Media generation validation failed: ${validation.error}`);
-        return {
-          success: false,
-          errMsg: validation.error || 'Invalid media generation configuration',
-        };
-      }
-      this.logger.log(`Media generation request validation passed for user ${user.uid}`);*/
 
       let mediaId = '';
 
@@ -348,11 +332,6 @@ export class MediaGeneratorService {
         },
       });
 
-      /*const providerItem = await this.providerService.findProviderItemById(
-        user,
-        request.providerItemId,
-      );*/
-
       const mediaProvider = await this.providerService.findProvider(user, {
         enabled: true,
         isGlobal: true,
@@ -360,15 +339,7 @@ export class MediaGeneratorService {
         providerKey: provider,
       });
 
-      /*const config = JSON.parse(providerItem?.config) as MediaGenerationModelConfig;*/
-
-      /*if (!providerItem) {
-        throw new ProviderItemNotFoundError(`provider item ${request.providerItemId} not found`);
-      }*/
-
-      const creditBilling: CreditBilling = /*providerItem?.creditBilling
-        ? JSON.parse(providerItem?.creditBilling)
-        :*/ {
+      const creditBilling: CreditBilling = {
         unitCost: request.unitCost,
         unit: 'product',
         minCharge: request.unitCost,
@@ -382,20 +353,19 @@ export class MediaGeneratorService {
         }
       }
 
-      const input =
-        request.input; /* ?? (await this.buildInputObject(user, request, config.supportedLanguages));*/
+      const input = request.input;
 
       this.logger.log(`input: ${JSON.stringify(input)}`);
 
       let url = '';
 
       // Generate media based on provider type
-      const providerKey = provider /*?? providerItem?.provider?.providerKey*/;
+      const providerKey = provider;
 
       if (providerKey === 'replicate') {
         // Use Replicate provider
         const replicate = new Replicate({
-          auth: mediaProvider?.apiKey /*?? providerItem?.provider?.apiKey*/ ?? '',
+          auth: mediaProvider?.apiKey ?? '',
         });
 
         const output = await replicate.run(
@@ -407,7 +377,7 @@ export class MediaGeneratorService {
       } else if (providerKey === 'fal') {
         // Use Fal provider
         fal.config({
-          credentials: mediaProvider?.apiKey /*?? providerItem.provider.apiKey*/,
+          credentials: mediaProvider?.apiKey,
         });
 
         const result = await fal.subscribe(request.model, {
@@ -459,10 +429,9 @@ export class MediaGeneratorService {
                 modelInfo: {
                   name: request.model,
                   label: request.model,
-                  provider: provider /*?? providerItem.provider.providerKey*/,
+                  provider: provider,
                   providerItemId: request.providerItemId,
                 },
-                //selectedModel: providerItemPO2DTO(providerItem),
               },
             },
           },
