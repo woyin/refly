@@ -65,7 +65,7 @@ const WorkflowAppPage: React.FC = () => {
   const { data: workflowDetail } = useWorkflowExecutionPolling({
     executionId,
     enabled: true,
-    interval: 2000,
+    interval: 1000,
 
     onComplete: (status, data) => {
       // Save final nodeExecutions before clearing executionId
@@ -162,7 +162,7 @@ const WorkflowAppPage: React.FC = () => {
       message.warning('Please login to copy this workflow');
       // Redirect to login with return URL
       const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-      navigate(`/login?returnUrl=${returnUrl}`);
+      navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
       return;
     }
 
