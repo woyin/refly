@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, Query, Param } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { User as UserModel } from '../../generated/client';
@@ -7,7 +7,6 @@ import {
   CreateWorkflowAppRequest,
   CreateWorkflowAppResponse,
   GetWorkflowAppDetailResponse,
-  GetPublicWorkflowAppDetailResponse,
   ExecuteWorkflowAppRequest,
   ExecuteWorkflowAppResponse,
 } from '@refly/openapi-schema';
@@ -34,14 +33,6 @@ export class WorkflowAppController {
     @Query('appId') appId: string,
   ): Promise<GetWorkflowAppDetailResponse> {
     const workflowApp = await this.workflowAppService.getWorkflowAppDetail(user, appId);
-    return buildSuccessResponse(workflowApp);
-  }
-
-  @Get('public/:appId')
-  async getPublicWorkflowAppDetail(
-    @Param('appId') appId: string,
-  ): Promise<GetPublicWorkflowAppDetailResponse> {
-    const workflowApp = await this.workflowAppService.getPublicWorkflowAppDetail(appId);
     return buildSuccessResponse(workflowApp);
   }
 

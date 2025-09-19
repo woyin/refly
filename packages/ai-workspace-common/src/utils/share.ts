@@ -8,6 +8,8 @@ export const getShareLink = (entityType: string, shareId: string) => {
     entity = 'answer';
   } else if (entityType === 'document') {
     entity = 'doc';
+  } else if (entityType === 'workflowApp') {
+    entity = 'app';
   }
-  return `${window.location.origin}/share/${entity}/${shareId}`;
+  return `${window.location.origin}/${entity}/${shareId}`;
 };

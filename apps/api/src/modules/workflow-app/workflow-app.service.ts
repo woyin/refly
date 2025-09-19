@@ -121,50 +121,23 @@ export class WorkflowAppService {
     return workflowAppPO2DTO(workflowApp);
   }
 
-  async getWorkflowAppDetail(_user: User, appId: string) {
-    // Always use public workflow app data for consistent behavior
-    // This ensures both owner and other users see the same published version
-    return this.getPublicWorkflowAppDetail(appId);
-  }
-
-  async getPublicWorkflowAppDetail(appId: string) {
+  async getWorkflowAppDetail(user: User, appId: string) {
     const workflowApp = await this.prisma.workflowApp.findUnique({
-      where: { appId, deletedAt: null },
+      where: { appId, uid: user.uid, deletedAt: null },
     });
 
     if (!workflowApp) {
       throw new ShareNotFoundError();
     }
 
-    // If no shareId, return basic info only
-    if (!workflowApp.shareId) {
-      return workflowAppPO2DTO(workflowApp);
-    }
-
-    // Get shared data from public storage
-    try {
-      const publicData = await this.shareCommonService.getSharedData(workflowApp.storageKey);
-
-      // Ensure the returned data has the correct structure
-      return {
-        appId: publicData.appId,
-        title: publicData.title,
-        description: publicData.description,
-        canvasId: workflowApp.canvasId, // Use the original canvasId from database
-        query: publicData.query,
-        variables: publicData.variables,
-        createdAt: publicData.createdAt,
-        updatedAt: publicData.updatedAt,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to get shared data for app ${appId}: ${error.stack}`);
-      throw new ShareNotFoundError();
-    }
+    return workflowAppPO2DTO(workflowApp);
   }
 
   async executeWorkflowApp(user: User, appId: string, variables: WorkflowVariable[]) {
-    // Always use public workflow app data for consistent behavior
-    const workflowApp = await this.getPublicWorkflowAppDetail(appId);
+    // Get workflow app from database to get canvasId
+    const workflowApp = await this.prisma.workflowApp.findUnique({
+      where: { appId, deletedAt: null },
+    });
 
     if (!workflowApp?.canvasId) {
       throw new ShareNotFoundError();

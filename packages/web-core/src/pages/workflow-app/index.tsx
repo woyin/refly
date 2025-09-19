@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { useGetPublicWorkflowAppDetail } from '@refly-packages/ai-workspace-common/queries';
+import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { message, Segmented, notification } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -20,9 +20,9 @@ import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-log
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
-  const { appId: routeAppId } = useParams();
+  const { shareId: routeShareId } = useParams();
   const navigate = useNavigate();
-  const appId = routeAppId ?? '';
+  const shareId = routeShareId ?? '';
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [workflowVariables, setWorkflowVariables] = useState<WorkflowVariable[]>([]);
@@ -42,19 +42,8 @@ const WorkflowAppPage: React.FC = () => {
   // Check user login status
   const { isLoggedRef } = useIsLogin();
 
-  // Always use public workflow app data for consistent behavior
-  // This ensures both owner and other users see the same published version
-  const { data: publicData, isLoading: isPublicLoading } = useGetPublicWorkflowAppDetail(
-    { path: { appId } },
-    undefined,
-    { enabled: !!appId },
-  );
-
-  const data = publicData;
-  const isLoading = isPublicLoading;
-  const workflowApp = data?.data;
-  console.log('appDetail', workflowApp);
-  console.log('isLoading', isLoading);
+  // Use shareId to directly access static JSON file
+  const { data: workflowApp, loading: isLoading } = useFetchShareData(shareId);
 
   useEffect(() => {
     if (workflowApp?.variables) {
@@ -95,16 +84,10 @@ const WorkflowAppPage: React.FC = () => {
     },
   });
 
-  useEffect(() => {
-    console.log('workflowDetail', workflowDetail);
-  }, [workflowDetail]);
-
   const nodeExecutions = useMemo(() => {
     // Use current workflowDetail if available, otherwise use final cached results
     return workflowDetail?.nodeExecutions || finalNodeExecutions || [];
   }, [workflowDetail, finalNodeExecutions]);
-
-  console.log('nodeExecutions', nodeExecutions);
 
   const products = useMemo(() => {
     return nodeExecutions.filter((nodeExecution: WorkflowNodeExecution) =>
@@ -133,7 +116,7 @@ const WorkflowAppPage: React.FC = () => {
 
       const { data, error } = await getClient().executeWorkflowApp({
         body: {
-          appId,
+          appId: shareId, // shareId is the same as appId
           variables,
         },
       });
@@ -151,12 +134,10 @@ const WorkflowAppPage: React.FC = () => {
         message.error('Failed to get execution ID');
       }
     },
-    [appId, isLoggedRef, navigate],
+    [shareId, isLoggedRef, navigate],
   );
 
   const handleCopyWorkflow = useCallback(() => {
-    console.log('copy workflow');
-
     // Check if user is logged in before copying workflow
     if (!isLoggedRef.current) {
       message.warning('Please login to copy this workflow');
@@ -166,13 +147,20 @@ const WorkflowAppPage: React.FC = () => {
       return;
     }
 
-    if (!workflowApp?.canvasId || !workflowApp?.title) {
+    if (!workflowApp?.canvasData?.canvasId || !workflowApp?.title) {
       message.error(t('common.error'));
       return;
     }
 
-    openDuplicateModal(workflowApp.canvasId, workflowApp.title);
-  }, [workflowApp?.canvasId, workflowApp?.title, openDuplicateModal, t, isLoggedRef, navigate]);
+    openDuplicateModal(workflowApp.canvasData.canvasId, workflowApp.title);
+  }, [
+    workflowApp?.canvasData?.canvasId,
+    workflowApp?.title,
+    openDuplicateModal,
+    t,
+    isLoggedRef,
+    navigate,
+  ]);
 
   const segmentedOptions = useMemo(() => {
     return [
@@ -187,11 +175,9 @@ const WorkflowAppPage: React.FC = () => {
     ];
   }, [t]);
 
-  console.log('products', products);
-
   return (
     <ReactFlowProvider>
-      <CanvasProvider readonly={true} canvasId={workflowApp?.canvasId ?? ''}>
+      <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>
         <div className="min-h-screen bg-gray-50">
           {/* Header */}
           <div className="bg-white border-b border-gray-200">
@@ -228,9 +214,9 @@ const WorkflowAppPage: React.FC = () => {
             </div>
 
             {/* Tools Dependency Form */}
-            {workflowApp?.canvasId && (
+            {workflowApp?.canvasData?.canvasId && (
               <div className="mb-6 sm:mb-8">
-                <ToolsDependencyChecker canvasId={workflowApp.canvasId} />
+                <ToolsDependencyChecker canvasId={workflowApp.canvasData.canvasId} />
               </div>
             )}
 
