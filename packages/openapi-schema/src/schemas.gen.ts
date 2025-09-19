@@ -1272,6 +1272,7 @@ export const EntityTypeSchema = {
     'codeArtifact',
     'page',
     'mediaResult',
+    'workflowApp',
   ],
 } as const;
 

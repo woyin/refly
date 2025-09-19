@@ -645,7 +645,9 @@ export const MentionList = ({
       } else if (key === 'ArrowRight') {
         handleArrowRight();
         // Don't prevent default when at second level to allow editor to handle it
-        handled = focusLevel !== 'second' && !query;
+        const len = navigationItems?.length ?? 0;
+
+        handled = !query && focusLevel === 'first' && len > 0;
       } else if (key === 'Enter') {
         handleEnter();
         handled = true;
@@ -675,7 +677,7 @@ export const MentionList = ({
     return (
       <div
         ref={secondLevelRef}
-        className="w-[200px] p-2 flex box-border max-h-60 overflow-y-auto bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border rounded-xl"
+        className="w-[200px] p-2 flex box-border max-h-60 overflow-y-auto bg-refly-bg-body-z0 border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-refly-m"
       >
         <div className="space-y-1 w-full">
           {queryModeItems?.map((item, idx) => {
@@ -710,7 +712,11 @@ export const MentionList = ({
       ) : (
         <>
           {/* First level menu - Categories */}
-          <div ref={firstLevelRef} className={firstLevelClasses}>
+          <div
+            ref={firstLevelRef}
+            className={firstLevelClasses}
+            style={{ boxShadow: '-10px 2px 20px 4px rgba(0, 0, 0, 0.04)' }}
+          >
             {firstLevels.map((item, idx) => (
               <div
                 key={item.key}
@@ -732,7 +738,11 @@ export const MentionList = ({
           </div>
 
           {/* Second level menu - Variables */}
-          <div ref={secondLevelRef} className={secondLevelClasses}>
+          <div
+            ref={secondLevelRef}
+            className={secondLevelClasses}
+            style={{ boxShadow: '10px 2px 20px 4px rgba(0, 0, 0, 0.04)' }}
+          >
             {hoveredCategory === 'startNode' && (
               <div className="flex-1 w-full">
                 {isLoadingVariables ? (

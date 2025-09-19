@@ -11,4 +11,5 @@ export const SHARE_CODE_PREFIX: Record<EntityType, string> = {
   user: 'usr-',
   project: 'prj-',
   mediaResult: 'med-',
+  workflowApp: 'wfa-',
 };

@@ -39,7 +39,8 @@ export const useUpdateNodeQuery = () => {
       const latestNodePreviews = useCanvasStore.getState().config[canvasId]?.nodePreviews || [];
       const preview = latestNodePreviews.find((p) => p?.id === nodeId);
 
-      if (preview) {
+      // Only update if this is the correct node and preview exists
+      if (preview && preview.data?.entityId === entityId) {
         updateNodePreview(canvasId, {
           ...preview,
           data: {

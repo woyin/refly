@@ -159,11 +159,12 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     (structuredData?.query as string) ?? (result?.input?.query as string) ?? title,
   );
 
+  // Update currentQuery when node data changes, ensuring it's specific to this node
   useEffect(() => {
-    if (result?.input?.query) {
-      setCurrentQuery((structuredData?.query as string) ?? (result?.input?.query as string));
-    }
-  }, [result?.input?.query, structuredData?.query]);
+    const nodeSpecificQuery =
+      (structuredData?.query as string) ?? (result?.input?.query as string) ?? title;
+    setCurrentQuery(nodeSpecificQuery);
+  }, [node.id, structuredData?.query, result?.input?.query, title]);
 
   const { steps = [], context, history = [] } = result ?? {};
   const contextItems = useMemo(() => {
@@ -174,7 +175,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
     // Fallback to contextItems from context (could be legacy nodes)
     return convertResultContextToItems(context ?? {}, history);
-  }, [data, context, history]);
+  }, [data?.metadata?.contextItems, context, history]);
 
   useEffect(() => {
     const skillName = actionMeta?.name || 'commonQnA';
@@ -256,7 +257,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
   return (
     <div
-      className="flex flex-col gap-4 h-full max-w-[1024px] mx-auto overflow-hidden"
+      className="flex flex-col gap-4 h-full w-full max-w-[1024px] mx-auto overflow-hidden"
       onClick={() => {
         if (editMode) {
           setEditMode(false);
@@ -361,9 +362,4 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   );
 };
 
-export const SkillResponseNodePreview = memo(
-  SkillResponseNodePreviewComponent,
-  (prevProps, nextProps) => {
-    return prevProps.node.id === nextProps.node.id && prevProps.resultId === nextProps.resultId;
-  },
-);
+export const SkillResponseNodePreview = memo(SkillResponseNodePreviewComponent);

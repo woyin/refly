@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { useGetWorkflowAppDetail } from '@refly-packages/ai-workspace-common/queries';
+import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
 import { message, Segmented, notification } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -16,12 +16,13 @@ import SettingModal from '@refly-packages/ai-workspace-common/components/setting
 import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
-  const { appId: routeAppId } = useParams();
+  const { shareId: routeShareId } = useParams();
   const navigate = useNavigate();
-  const appId = routeAppId ?? '';
+  const shareId = routeShareId ?? '';
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [workflowVariables, setWorkflowVariables] = useState<WorkflowVariable[]>([]);
@@ -38,10 +39,11 @@ const WorkflowAppPage: React.FC = () => {
     openDuplicateModal: state.openDuplicateModal,
   }));
 
-  const { data, isLoading } = useGetWorkflowAppDetail({ query: { appId } });
-  const workflowApp = data?.data;
-  console.log('appDetail', workflowApp);
-  console.log('isLoading', isLoading);
+  // Check user login status
+  const { isLoggedRef } = useIsLogin();
+
+  // Use shareId to directly access static JSON file
+  const { data: workflowApp, loading: isLoading } = useFetchShareData(shareId);
 
   useEffect(() => {
     if (workflowApp?.variables) {
@@ -52,7 +54,7 @@ const WorkflowAppPage: React.FC = () => {
   const { data: workflowDetail } = useWorkflowExecutionPolling({
     executionId,
     enabled: true,
-    interval: 2000,
+    interval: 1000,
 
     onComplete: (status, data) => {
       // Save final nodeExecutions before clearing executionId
@@ -82,16 +84,10 @@ const WorkflowAppPage: React.FC = () => {
     },
   });
 
-  useEffect(() => {
-    console.log('workflowDetail', workflowDetail);
-  }, [workflowDetail]);
-
   const nodeExecutions = useMemo(() => {
     // Use current workflowDetail if available, otherwise use final cached results
     return workflowDetail?.nodeExecutions || finalNodeExecutions || [];
   }, [workflowDetail, finalNodeExecutions]);
-
-  console.log('nodeExecutions', nodeExecutions);
 
   const products = useMemo(() => {
     return nodeExecutions.filter((nodeExecution: WorkflowNodeExecution) =>
@@ -109,9 +105,18 @@ const WorkflowAppPage: React.FC = () => {
 
   const onSubmit = useCallback(
     async (variables: WorkflowVariable[]) => {
+      // Check if user is logged in before executing workflow
+      if (!isLoggedRef.current) {
+        message.warning('Please login to run this workflow');
+        // Redirect to login with return URL
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
+        return;
+      }
+
       const { data, error } = await getClient().executeWorkflowApp({
         body: {
-          appId,
+          appId: shareId, // shareId is the same as appId
           variables,
         },
       });
@@ -129,19 +134,33 @@ const WorkflowAppPage: React.FC = () => {
         message.error('Failed to get execution ID');
       }
     },
-    [appId],
+    [shareId, isLoggedRef, navigate],
   );
 
   const handleCopyWorkflow = useCallback(() => {
-    console.log('copy workflow');
+    // Check if user is logged in before copying workflow
+    if (!isLoggedRef.current) {
+      message.warning('Please login to copy this workflow');
+      // Redirect to login with return URL
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
+      return;
+    }
 
-    if (!workflowApp?.canvasId || !workflowApp?.title) {
+    if (!workflowApp?.canvasData?.canvasId || !workflowApp?.title) {
       message.error(t('common.error'));
       return;
     }
 
-    openDuplicateModal(workflowApp.canvasId, workflowApp.title);
-  }, [workflowApp?.canvasId, workflowApp?.title, openDuplicateModal, t]);
+    openDuplicateModal(workflowApp.canvasData.canvasId, workflowApp.title);
+  }, [
+    workflowApp?.canvasData?.canvasId,
+    workflowApp?.title,
+    openDuplicateModal,
+    t,
+    isLoggedRef,
+    navigate,
+  ]);
 
   const segmentedOptions = useMemo(() => {
     return [
@@ -156,11 +175,9 @@ const WorkflowAppPage: React.FC = () => {
     ];
   }, [t]);
 
-  console.log('products', products);
-
   return (
     <ReactFlowProvider>
-      <CanvasProvider readonly={true} canvasId={workflowApp?.canvasId ?? ''}>
+      <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>
         <div className="min-h-screen bg-gray-50">
           {/* Header */}
           <div className="bg-white border-b border-gray-200">
@@ -197,9 +214,9 @@ const WorkflowAppPage: React.FC = () => {
             </div>
 
             {/* Tools Dependency Form */}
-            {workflowApp?.canvasId && (
+            {workflowApp?.canvasData?.canvasId && (
               <div className="mb-6 sm:mb-8">
-                <ToolsDependencyChecker canvasId={workflowApp.canvasId} />
+                <ToolsDependencyChecker canvasId={workflowApp.canvasData.canvasId} />
               </div>
             )}
 

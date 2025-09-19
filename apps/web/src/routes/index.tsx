@@ -72,7 +72,7 @@ export const RoutesList: RouteObject[] = [
     element: <ProjectPage />,
   },
   {
-    path: '/app/:appId',
+    path: '/app/:shareId',
     element: <WorkflowAppPage />,
   },
 ];

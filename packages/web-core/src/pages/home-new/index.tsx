@@ -7,6 +7,7 @@ import { TemplateList } from '@refly-packages/ai-workspace-common/components/can
 import { useAuthStoreShallow } from '@refly/stores';
 import { canvasTemplateEnabled } from '@refly/ui-kit';
 import Header from '../../components/landing-page-partials/Header';
+import { useSearchParams } from 'react-router-dom';
 
 import cn from 'classnames';
 import { Title } from '@refly-packages/ai-workspace-common/components/canvas/front-page/title';
@@ -15,6 +16,7 @@ const UnsignedFrontPage = memo(() => {
   const { t, i18n } = useTranslation();
   const templateLanguage = i18n.language;
   const templateCategoryId = '';
+  const [searchParams] = useSearchParams();
 
   const { query, setQuery, runtimeConfig, setRuntimeConfig, reset } = useFrontPageStoreShallow(
     (state) => ({
@@ -38,6 +40,14 @@ const UnsignedFrontPage = memo(() => {
     setLoginModalOpen(true);
   }, [setLoginModalOpen]);
 
+  // Check for autoLogin parameter and auto-open login modal
+  useEffect(() => {
+    const autoLogin = searchParams.get('autoLogin');
+    if (autoLogin === 'true') {
+      setLoginModalOpen(true);
+    }
+  }, [searchParams, setLoginModalOpen]);
+
   useEffect(() => {
     return () => {
       reset();
@@ -55,7 +65,12 @@ const UnsignedFrontPage = memo(() => {
       <Header />
 
       <div className="w-full h-full pt-2 overflow-y-auto" id="front-page-scrollable-div">
-        <div className={cn('relative w-full h-full')}>
+        <div
+          className={cn(
+            'relative w-full h-full',
+            canvasTemplateEnabled ? '' : 'flex flex-col justify-center',
+          )}
+        >
           <div className={cn('p-6 max-w-4xl mx-auto z-10')}>
             <Title />
 

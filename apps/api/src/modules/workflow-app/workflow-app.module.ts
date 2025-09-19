@@ -5,9 +5,10 @@ import { WorkflowAppService } from './workflow-app.service';
 import { CanvasModule } from '../canvas/canvas.module';
 import { MiscModule } from '../misc/misc.module';
 import { WorkflowModule } from '../workflow/workflow.module';
+import { ShareModule } from '../share/share.module';
 
 @Module({
-  imports: [CommonModule, CanvasModule, MiscModule, WorkflowModule],
+  imports: [CommonModule, CanvasModule, MiscModule, WorkflowModule, ShareModule],
   controllers: [WorkflowAppController],
   providers: [WorkflowAppService],
   exports: [WorkflowAppService],
