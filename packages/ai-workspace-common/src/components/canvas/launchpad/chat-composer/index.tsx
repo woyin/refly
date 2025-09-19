@@ -24,7 +24,9 @@ export interface ChatComposerProps {
 
   // Context items
   contextItems: IContextItem[];
-  setContextItems: (items: IContextItem[]) => void;
+  setContextItems: (
+    items: IContextItem[] | ((prevItems: IContextItem[]) => IContextItem[]),
+  ) => void;
 
   // Model and runtime config
   modelInfo: ModelInfo | null;
@@ -133,8 +135,9 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
       const nodeData = await handleUploadImage(file, canvasId);
       if (nodeData) {
         setTimeout(() => {
-          setContextItems([
-            ...(contextItems || []),
+          // Use functional update to avoid state race conditions
+          setContextItems((prevContextItems) => [
+            ...(prevContextItems || []),
             {
               type: 'image',
               ...nodeData,
@@ -143,42 +146,25 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
         }, 10);
       }
     },
-    [contextItems, handleUploadImage, setContextItems],
+    [handleUploadImage, setContextItems, canvasId],
   );
 
   const handleMultipleImagesUpload = useCallback(
     async (files: File[]) => {
-      if (handleUploadMultipleImages) {
-        const nodesData = await handleUploadMultipleImages(files, canvasId);
-        if (nodesData?.length) {
-          setTimeout(() => {
-            const newContextItems = nodesData.map((nodeData) => ({
-              type: 'image' as const,
-              ...nodeData,
-            }));
+      const nodesData = await handleUploadMultipleImages(files, canvasId);
+      if (nodesData?.length) {
+        setTimeout(() => {
+          const newContextItems = nodesData.map((nodeData) => ({
+            type: 'image' as const,
+            ...nodeData,
+          }));
 
-            setContextItems([...contextItems, ...newContextItems]);
-          }, 10);
-        }
-      } else {
-        // Fallback to uploading one at a time if multiple uploader not provided
-        const uploadPromises = files.map((file) => handleUploadImage(file, canvasId));
-        const results = await Promise.all(uploadPromises);
-        const validResults = results.filter(Boolean);
-
-        if (validResults.length) {
-          setTimeout(() => {
-            const newContextItems = validResults.map((nodeData) => ({
-              type: 'image' as const,
-              ...nodeData,
-            }));
-
-            setContextItems([...contextItems, ...newContextItems]);
-          }, 10);
-        }
+          // Use functional update to avoid state race conditions
+          setContextItems((prevContextItems) => [...(prevContextItems || []), ...newContextItems]);
+        }, 10);
       }
     },
-    [contextItems, handleUploadImage, handleUploadMultipleImages, setContextItems, canvasId],
+    [handleUploadMultipleImages, setContextItems, canvasId],
   );
 
   return (

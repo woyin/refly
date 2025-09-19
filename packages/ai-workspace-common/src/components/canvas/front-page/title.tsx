@@ -11,7 +11,7 @@ export const Title = () => {
     <div
       className={cn(
         'flex flex-col items-center justify-center mb-6',
-        canvasTemplateEnabled ? 'mt-48' : '',
+        canvasTemplateEnabled ? 'mt-48' : '-mt-36',
       )}
     >
       <div className="flex flex-col max-w-full w-[800px] text-refly-text-0">
