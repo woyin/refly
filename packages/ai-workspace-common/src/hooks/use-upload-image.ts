@@ -49,13 +49,17 @@ export const useUploadImage = () => {
           } as ImageNodeMeta,
         };
 
-        nodeOperationsEmitter.emit('addNode', {
-          node: {
-            type: 'image',
-            data: nodeData,
-          },
-          shouldPreview: false,
-          needSetCenter: true,
+        await new Promise<void>((resolve) => {
+          const timeoutId = setTimeout(resolve, 1000);
+          nodeOperationsEmitter.emit('addNode', {
+            node: { type: 'image', data: nodeData },
+            shouldPreview: false,
+            needSetCenter: true,
+            positionCallback: () => {
+              clearTimeout(timeoutId);
+              resolve();
+            },
+          });
         });
 
         // Mark upload as successful - only after node is successfully created
