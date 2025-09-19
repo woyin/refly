@@ -4477,6 +4477,7 @@ components:
         - codeArtifact
         - page
         - mediaResult
+        - workflowApp
     Entity:
       type: object
       description: Entity

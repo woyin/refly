@@ -2,6 +2,7 @@ import { Button, Modal, Divider, Input, Form } from 'antd';
 import { Link } from '@refly-packages/ai-workspace-common/utils/router';
 import { useCallback, useEffect, useMemo } from 'react';
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { OAuthButton } from './oauth-button';
 
@@ -21,6 +22,7 @@ interface FormValues {
 
 const LoginModal = (props: { visible?: boolean; from?: string }) => {
   const [form] = Form.useForm<FormValues>();
+  const [searchParams] = useSearchParams();
 
   const authStore = useAuthStoreShallow((state) => ({
     loginInProgress: state.loginInProgress,
@@ -105,7 +107,13 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
 
         if (data.data?.skipVerification) {
           authStore.reset();
-          window.location.replace(isPublicAccessPage ? window.location.href : '/');
+          const returnUrl = searchParams.get('returnUrl');
+          const redirectUrl = returnUrl
+            ? decodeURIComponent(returnUrl)
+            : isPublicAccessPage
+              ? window.location.href
+              : '/';
+          window.location.replace(redirectUrl);
         } else {
           authStore.setEmail(values.email);
           authStore.setSessionId(data.data?.sessionId ?? null);
@@ -125,10 +133,16 @@ const LoginModal = (props: { visible?: boolean; from?: string }) => {
       if (data?.success) {
         authStore.setLoginModalOpen(false);
         authStore.reset();
-        window.location.replace(isPublicAccessPage ? window.location.href : '/');
+        const returnUrl = searchParams.get('returnUrl');
+        const redirectUrl = returnUrl
+          ? decodeURIComponent(returnUrl)
+          : isPublicAccessPage
+            ? window.location.href
+            : '/';
+        window.location.replace(redirectUrl);
       }
     }
-  }, [authStore, form, isPublicAccessPage]);
+  }, [authStore, form, isPublicAccessPage, searchParams]);
 
   const handleResetPassword = useCallback(() => {
     authStore.setLoginModalOpen(false);

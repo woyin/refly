@@ -8,6 +8,9 @@ import { genCanvasID, genWorkflowAppID } from '@refly/utils';
 import { WorkflowService } from '../workflow/workflow.service';
 import { workflowAppPO2DTO } from './workflow-app.dto';
 import { Injectable } from '@nestjs/common';
+import { ShareCommonService } from '../share/share-common.service';
+import { ShareCreationService } from '../share/share-creation.service';
+import { ShareNotFoundError } from '@refly/errors';
 
 @Injectable()
 export class WorkflowAppService {
@@ -18,6 +21,8 @@ export class WorkflowAppService {
     private readonly canvasService: CanvasService,
     private readonly miscService: MiscService,
     private readonly workflowService: WorkflowService,
+    private readonly shareCommonService: ShareCommonService,
+    private readonly shareCreationService: ShareCreationService,
   ) {}
 
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
@@ -85,6 +90,30 @@ export class WorkflowAppService {
       });
     }
 
+    // Create share for workflow app
+    try {
+      const { shareRecord } = await this.shareCreationService.createShareForWorkflowApp(user, {
+        entityId: appId,
+        entityType: 'workflowApp',
+        title: canvasData.title,
+        parentShareId: null,
+        allowDuplication: true,
+      });
+
+      // Update WorkflowApp record with shareId
+      await this.prisma.workflowApp.update({
+        where: { appId },
+        data: {
+          shareId: shareRecord.shareId,
+        },
+      });
+
+      this.logger.log(`Created share for workflow app: ${appId}, shareId: ${shareRecord.shareId}`);
+    } catch (error) {
+      this.logger.error(`Failed to create share for workflow app ${appId}: ${error.stack}`);
+      // Don't throw error, just log it - workflow app creation should still succeed
+    }
+
     const workflowApp = await this.prisma.workflowApp.findUnique({
       where: { appId, uid: user.uid, deletedAt: null },
     });
@@ -97,11 +126,22 @@ export class WorkflowAppService {
       where: { appId, uid: user.uid, deletedAt: null },
     });
 
+    if (!workflowApp) {
+      throw new ShareNotFoundError();
+    }
+
     return workflowAppPO2DTO(workflowApp);
   }
 
   async executeWorkflowApp(user: User, appId: string, variables: WorkflowVariable[]) {
-    const workflowApp = await this.getWorkflowAppDetail(user, appId);
+    // Get workflow app from database to get canvasId
+    const workflowApp = await this.prisma.workflowApp.findUnique({
+      where: { appId, deletedAt: null },
+    });
+
+    if (!workflowApp?.canvasId) {
+      throw new ShareNotFoundError();
+    }
 
     const newCanvasId = genCanvasID();
 
