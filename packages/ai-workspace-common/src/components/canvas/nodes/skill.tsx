@@ -56,7 +56,7 @@ export const SkillNode = memo(
     const { edges } = useCanvasData();
     const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
-    const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
+    const { getNode, getNodes, getEdges, setEdges, deleteElements } = useReactFlow();
     const { addNode } = useAddNode();
     const { deleteNode } = useDeleteNode();
     useSelectedNodeZIndex(id, selected);
@@ -127,12 +127,23 @@ export const SkillNode = memo(
     );
 
     const setContextItems = useCallback(
-      (items: IContextItem[]) => {
-        setNodeData(id, { metadata: { contextItems: items } });
+      (items: IContextItem[] | ((prevItems: IContextItem[]) => IContextItem[])) => {
+        const currentNode = getNode(id);
+        const currentContextItems = ((currentNode?.data as CanvasNodeData<SkillNodeMeta>)?.metadata
+          ?.contextItems ?? []) as IContextItem[];
+
+        // Resolve the new items (handle both direct array and function updates)
+        const newItems = typeof items === 'function' ? items(currentContextItems) : items;
+
+        setNodeData(id, { metadata: { contextItems: newItems } });
 
         const nodes = getNodes() as CanvasNode<any>[];
         const entityNodeMap = new Map(nodes.map((node) => [node.data?.entityId, node]));
-        const contextNodes = items.map((item) => entityNodeMap.get(item.entityId)).filter(Boolean);
+
+        // Filter items that have corresponding nodes (exclude uploaded images without nodes)
+        const contextNodes = newItems
+          .map((item) => entityNodeMap.get(item.entityId))
+          .filter(Boolean);
 
         const edges = getEdges();
         const existingEdges = edges?.filter((edge) => edge.target === id) ?? [];
@@ -151,16 +162,25 @@ export const SkillNode = memo(
         const edgesToRemove = existingEdges.filter((edge) => !contextNodeIds.has(edge.source));
 
         setTimeout(() => {
-          if (newEdges?.length > 0) {
-            addEdges(newEdges);
-          }
+          setEdges((currentEdges) => {
+            let updatedEdges = [...currentEdges];
 
-          if (edgesToRemove?.length > 0) {
-            deleteElements({ edges: edgesToRemove });
-          }
+            // Add new edges
+            if (newEdges?.length > 0) {
+              updatedEdges = [...updatedEdges, ...newEdges];
+            }
+
+            // Remove edges that are no longer needed
+            if (edgesToRemove?.length > 0) {
+              const edgesToRemoveIds = new Set(edgesToRemove.map((edge) => edge.id));
+              updatedEdges = updatedEdges.filter((edge) => !edgesToRemoveIds.has(edge.id));
+            }
+
+            return updatedEdges;
+          });
         }, 10);
       },
-      [id, setNodeData, addEdges, getNodes, getEdges, deleteElements, edgeStyles.hover],
+      [id, setNodeData, setEdges, getNodes, getEdges, edgeStyles.hover],
     );
 
     const setRuntimeConfig = useCallback(

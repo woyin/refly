@@ -21,7 +21,7 @@ import { useDrag, useDrop, DndProvider, XYCoord } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import withScrolling, { createHorizontalStrength } from 'react-dnd-scrolling';
 import { Slideshow } from '@refly-packages/ai-workspace-common/components/canvas/slideshow';
-import { EnhancedSkillResponse } from './skill-response/enhanced-skill-response';
+import { SkillResponseNodePreview } from './skill-response';
 import { useSearchParams } from 'react-router-dom';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { preloadMonacoEditor } from '@refly-packages/ai-workspace-common/modules/artifacts/code-runner/monaco-editor/monacoPreloader';
@@ -55,7 +55,7 @@ export const PreviewComponent = memo(
         case 'tool':
           return <ToolNodePreview />;
         case 'skillResponse':
-          return <EnhancedSkillResponse node={node} resultId={node.data?.entityId} />;
+          return <SkillResponseNodePreview node={node} resultId={node.data?.entityId} />;
         case 'codeArtifact':
           return <CodeArtifactNodePreview nodeId={node.id} />;
         case 'website':
@@ -80,6 +80,7 @@ export const PreviewComponent = memo(
       node.data?.metadata?.activeTab,
       node.data?.metadata?.url,
       node.data?.metadata?.viewMode,
+      node.data?.metadata?.contextItems,
     ]);
   },
   (prevProps, nextProps) => {
@@ -101,6 +102,9 @@ export const PreviewComponent = memo(
     const statusEqual =
       prevProps.node?.data?.metadata?.status === nextProps.node?.data?.metadata?.status;
 
+    const contextItemsEqual =
+      prevProps.node?.data?.metadata?.contextItems === nextProps.node?.data?.metadata?.contextItems;
+
     // Check node-specific metadata
     let nodeSpecificEqual = true;
     if (prevProps.node?.type === 'codeArtifact') {
@@ -112,7 +116,14 @@ export const PreviewComponent = memo(
         prevProps.node?.data?.metadata?.viewMode === nextProps.node?.data?.metadata?.viewMode;
     }
 
-    return basicPropsEqual && contentEqual && titleEqual && statusEqual && nodeSpecificEqual;
+    return (
+      basicPropsEqual &&
+      contentEqual &&
+      titleEqual &&
+      statusEqual &&
+      nodeSpecificEqual &&
+      contextItemsEqual
+    );
   },
 );
 

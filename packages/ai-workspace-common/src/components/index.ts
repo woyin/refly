@@ -27,6 +27,7 @@ export * from './common/image-preview';
 export * from './common/spin';
 export * from './common/resourceIcon';
 export * from './common/tooltip-button';
+export * from './common/upload-notification';
 
 // Canvas exports (index.tsx exists)
 export * from './canvas';

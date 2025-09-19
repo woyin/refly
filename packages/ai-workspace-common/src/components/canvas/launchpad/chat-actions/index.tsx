@@ -8,7 +8,6 @@ import { ModelSelector } from './model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
 import { cn } from '@refly/utils/index';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { IContextItem } from '@refly/common-types';
 import { SkillRuntimeConfig, GenericToolset } from '@refly/openapi-schema';
 import { ToolSelectorPopover } from '../tool-selector-panel';
@@ -32,7 +31,7 @@ interface ChatActionsProps {
   handleSendMessage: () => void;
   handleAbort: () => void;
   customActions?: CustomAction[];
-  onUploadImage?: (file: File) => Promise<void>;
+  onUploadImage: (file: File) => Promise<void>;
   contextItems: IContextItem[];
   isExecuting?: boolean;
   selectedToolsets?: GenericToolset[];
@@ -58,8 +57,7 @@ export const ChatActions = memo(
       enableChatModeSelector = false,
     } = props;
     const { t } = useTranslation();
-    const { canvasId, readonly } = useCanvasContext();
-    const { handleUploadImage } = useUploadImage();
+    const { readonly } = useCanvasContext();
     const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
       chatMode: state.chatMode,
       setChatMode: state.setChatMode,
@@ -131,11 +129,7 @@ export const ChatActions = memo(
                 accept="image/*"
                 showUploadList={false}
                 customRequest={({ file }) => {
-                  if (onUploadImage) {
-                    onUploadImage(file as File);
-                  } else {
-                    handleUploadImage(file as File, canvasId);
-                  }
+                  onUploadImage(file as File);
                 }}
                 multiple
               >

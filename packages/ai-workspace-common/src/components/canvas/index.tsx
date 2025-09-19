@@ -82,6 +82,7 @@ import { WorkflowRun } from './workflow-run';
 import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
 import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
+import { UploadNotification } from '@refly-packages/ai-workspace-common/components/common/upload-notification';
 
 const GRID_SIZE = 10;
 
@@ -1307,6 +1308,8 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
             pollingError,
           }}
         >
+          <UploadNotification />
+
           <Splitter
             className="canvas-splitter w-full h-[calc(100vh-16px)]"
             onResize={handlePanelResize}
