@@ -498,16 +498,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       }
     }, [form]);
 
-    const handleNameChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        // Remove all spaces from the input value in real-time
-        const filteredValue = value.replace(/\s/g, '');
-        form.setFieldValue('name', filteredValue);
-      },
-      [form],
-    );
-
     return (
       <Modal
         className="create-variables-modal"
@@ -614,7 +604,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                   maxLength={50}
                   showCount
                   onBlur={handleNameBlur}
-                  onChange={handleNameChange}
                 />
               </Form.Item>
               {renderForm()}

@@ -754,6 +754,21 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         const nodes: any[] = [];
         if (!content) return nodes;
 
+        // Normalize input to avoid generating unexpected extra blank lines
+        // - Unify EOL to \n
+        // - Remove trailing whitespace before newlines
+        // - Collapse 3+ consecutive newlines to exactly 2 (represents a single empty line)
+        // - Trim leading and trailing newlines
+        const normalizeContent = (input: string): string => {
+          let s = input?.replace(/\r\n?/g, '\n') ?? '';
+          s = s.replace(/[ \t]+\n/g, '\n');
+          s = s.replace(/\n{3,}/g, '\n\n');
+          s = s.replace(/^\n+/, '').replace(/\n+$/, '');
+          return s;
+        };
+
+        const normalized = normalizeContent(content);
+
         const findVarMeta = (name: string) => {
           // Priority 1: Look in allItems first (includes canvas-based items and workflow variables)
           const foundFromAll = (allItems || []).find((it: any) => it?.name === name);
@@ -788,8 +803,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
         let i = 0;
         let textBuffer = '';
-        while (i < content.length) {
-          const ch = content[i];
+        while (i < normalized.length) {
+          const ch = normalized[i];
 
           // Preserve newlines by mapping to hardBreak nodes
           if (ch === '\n') {
@@ -806,9 +821,9 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             // Try to match any known name right after '@'
             let matchedName: string | null = null;
             for (const name of allNames) {
-              const candidate = content.slice(i + 1, i + 1 + name.length);
+              const candidate = normalized.slice(i + 1, i + 1 + name.length);
               if (candidate === name) {
-                const nextChar = content[i + 1 + name.length] ?? '';
+                const nextChar = normalized[i + 1 + name.length] ?? '';
                 if (nextChar === ' ' || nextChar === '\n' || nextChar === '' || nextChar === '\t') {
                   matchedName = name;
                   break;
