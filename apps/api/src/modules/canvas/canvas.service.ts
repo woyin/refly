@@ -174,146 +174,167 @@ export class CanvasService {
     const newTitle = title || canvas.title;
     this.logger.log(`Duplicating canvas ${canvasId} to ${newCanvasId} with ${newTitle}`);
 
+    // Create a temporary canvas record first to satisfy foreign key constraints
+    // This will be updated later in the transaction
+    await this.prisma.canvas.create({
+      data: {
+        uid: user.uid,
+        canvasId: newCanvasId,
+        title: newTitle,
+        status: 'creating', // Temporary status
+        projectId,
+        version: '0', // Temporary version
+        workflow: canvas.workflow,
+      },
+    });
+
     // This is used to trace the replacement of entities
     // Key is the original entity id, value is the duplicated entity id
     const replaceEntityMap: Record<string, string> = {};
 
-    // Duplicate resources and documents if needed
-    if (duplicateEntities) {
-      const limit = pLimit(5); // Limit concurrent operations
+    try {
+      // Duplicate resources and documents if needed
+      if (duplicateEntities) {
+        const limit = pLimit(5); // Limit concurrent operations
 
-      await Promise.all(
-        libEntityNodes.map((node) =>
-          limit(async () => {
-            const entityType = node.type;
-            const { entityId } = node.data;
+        await Promise.all(
+          libEntityNodes.map((node) =>
+            limit(async () => {
+              const entityType = node.type;
+              const { entityId } = node.data;
 
-            // Create new entity based on type
-            switch (entityType) {
-              case 'document': {
-                const doc = await this.knowledgeService.duplicateDocument(user, {
-                  docId: entityId,
-                  title: node.data?.title,
-                  canvasId: newCanvasId,
-                });
-                if (doc) {
-                  node.data.entityId = doc.docId;
-                  replaceEntityMap[entityId] = doc.docId;
+              // Create new entity based on type
+              switch (entityType) {
+                case 'document': {
+                  const doc = await this.knowledgeService.duplicateDocument(user, {
+                    docId: entityId,
+                    title: node.data?.title,
+                    canvasId: newCanvasId,
+                  });
+                  if (doc) {
+                    node.data.entityId = doc.docId;
+                    replaceEntityMap[entityId] = doc.docId;
+                  }
+                  break;
                 }
-                break;
-              }
-              case 'resource': {
-                const resource = await this.knowledgeService.duplicateResource(user, {
-                  resourceId: entityId,
-                  title: node.data?.title,
-                  canvasId: newCanvasId,
-                });
-                if (resource) {
-                  node.data.entityId = resource.resourceId;
-                  replaceEntityMap[entityId] = resource.resourceId;
+                case 'resource': {
+                  const resource = await this.knowledgeService.duplicateResource(user, {
+                    resourceId: entityId,
+                    title: node.data?.title,
+                    canvasId: newCanvasId,
+                  });
+                  if (resource) {
+                    node.data.entityId = resource.resourceId;
+                    replaceEntityMap[entityId] = resource.resourceId;
+                  }
+                  break;
                 }
-                break;
-              }
-              case 'codeArtifact': {
-                const codeArtifact = await this.codeArtifactService.duplicateCodeArtifact(user, {
-                  artifactId: entityId,
-                  canvasId: newCanvasId,
-                });
-                if (codeArtifact) {
-                  node.data.entityId = codeArtifact.artifactId;
-                  replaceEntityMap[entityId] = codeArtifact.artifactId;
+                case 'codeArtifact': {
+                  const codeArtifact = await this.codeArtifactService.duplicateCodeArtifact(user, {
+                    artifactId: entityId,
+                    canvasId: newCanvasId,
+                  });
+                  if (codeArtifact) {
+                    node.data.entityId = codeArtifact.artifactId;
+                    replaceEntityMap[entityId] = codeArtifact.artifactId;
+                  }
+                  break;
                 }
-                break;
               }
+            }),
+          ),
+        );
+      }
+
+      // Action results must be duplicated
+      const actionResultIds = nodes
+        .filter((node) => node.type === 'skillResponse')
+        .map((node) => node.data.entityId);
+      await this.actionService.duplicateActionResults(user, {
+        sourceResultIds: actionResultIds,
+        targetId: newCanvasId,
+        targetType: 'canvas',
+        replaceEntityMap,
+      });
+
+      for (const node of nodes) {
+        if (node.type !== 'skillResponse') {
+          continue;
+        }
+
+        const { entityId, metadata } = node.data;
+        if (entityId) {
+          node.data.entityId = replaceEntityMap[entityId];
+        }
+        if (Array.isArray(metadata.contextItems)) {
+          metadata.contextItems = metadata.contextItems.map((item) => {
+            if (item.entityId && replaceEntityMap[item.entityId]) {
+              item.entityId = replaceEntityMap[item.entityId];
             }
-          }),
-        ),
-      );
-    }
-
-    // Action results must be duplicated
-    const actionResultIds = nodes
-      .filter((node) => node.type === 'skillResponse')
-      .map((node) => node.data.entityId);
-    await this.actionService.duplicateActionResults(user, {
-      sourceResultIds: actionResultIds,
-      targetId: newCanvasId,
-      targetType: 'canvas',
-      replaceEntityMap,
-    });
-
-    for (const node of nodes) {
-      if (node.type !== 'skillResponse') {
-        continue;
+            return item;
+          });
+        }
       }
 
-      const { entityId, metadata } = node.data;
-      if (entityId) {
-        node.data.entityId = replaceEntityMap[entityId];
-      }
-      if (Array.isArray(metadata.contextItems)) {
-        metadata.contextItems = metadata.contextItems.map((item) => {
-          if (item.entityId && replaceEntityMap[item.entityId]) {
-            item.entityId = replaceEntityMap[item.entityId];
-          }
-          return item;
+      if (canvas.uid !== user.uid) {
+        await this.miscService.duplicateFilesNoCopy(user, {
+          sourceEntityId: canvasId,
+          sourceEntityType: 'canvas',
+          sourceUid: user.uid,
+          targetEntityId: newCanvasId,
+          targetEntityType: 'canvas',
         });
       }
-    }
 
-    if (canvas.uid !== user.uid) {
-      await this.miscService.duplicateFilesNoCopy(user, {
-        sourceEntityId: canvasId,
-        sourceEntityType: 'canvas',
-        sourceUid: user.uid,
-        targetEntityId: newCanvasId,
-        targetEntityType: 'canvas',
-      });
-    }
+      const newState = {
+        ...initEmptyCanvasState(),
+        nodes,
+        edges,
+      };
+      const stateStorageKey = await this.canvasSyncService.saveState(newCanvasId, newState);
 
-    const newState = {
-      ...initEmptyCanvasState(),
-      nodes,
-      edges,
-    };
-    const stateStorageKey = await this.canvasSyncService.saveState(newCanvasId, newState);
+      // Update canvas status and create version
+      const [newCanvas] = await this.prisma.$transaction([
+        this.prisma.canvas.update({
+          where: { canvasId: newCanvasId },
+          data: {
+            status: 'ready',
+            version: newState.version,
+          },
+        }),
+        this.prisma.canvasVersion.create({
+          data: {
+            canvasId: newCanvasId,
+            version: newState.version,
+            hash: '',
+            stateStorageKey,
+          },
+        }),
+      ]);
 
-    // Update canvas status and create version
-    const [newCanvas] = await this.prisma.$transaction([
-      this.prisma.canvas.create({
+      await this.prisma.duplicateRecord.create({
         data: {
           uid: user.uid,
-          canvasId: newCanvasId,
-          title: newTitle,
-          status: 'ready',
-          projectId,
-          version: newState.version,
-          workflow: canvas.workflow,
+          sourceId: canvasId,
+          targetId: newCanvasId,
+          entityType: 'canvas',
+          status: 'finish',
         },
-      }),
-      this.prisma.canvasVersion.create({
-        data: {
-          canvasId: newCanvasId,
-          version: newState.version,
-          hash: '',
-          stateStorageKey,
-        },
-      }),
-    ]);
+      });
 
-    await this.prisma.duplicateRecord.create({
-      data: {
-        uid: user.uid,
-        sourceId: canvasId,
-        targetId: newCanvasId,
-        entityType: 'canvas',
-        status: 'finish',
-      },
-    });
+      this.logger.log(`Successfully duplicated canvas ${canvasId} to ${newCanvasId}`);
 
-    this.logger.log(`Successfully duplicated canvas ${canvasId} to ${newCanvasId}`);
-
-    return newCanvas;
+      return newCanvas;
+    } catch (error) {
+      // If duplication fails, clean up the temporary canvas record
+      await this.prisma.canvas.delete({
+        where: { canvasId: newCanvasId },
+      });
+      this.logger.error(
+        `Failed to duplicate canvas ${canvasId} to ${newCanvasId}: ${error?.message}`,
+      );
+      throw error;
+    }
   }
 
   async createCanvasWithState(user: User, param: UpsertCanvasRequest, state: CanvasState) {
