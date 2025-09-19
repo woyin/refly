@@ -2796,27 +2796,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExecuteWorkflowAppResponse'
-  /workflow-app/public/{appId}:
-    get:
-      tags:
-        - app
-      summary: Get public workflow app detail
-      description: Get detail for a workflow app without authentication
-      operationId: getPublicWorkflowAppDetail
-      parameters:
-        - name: appId
-          in: path
-          description: Workflow app ID
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetPublicWorkflowAppDetailResponse'
   /user/settings:
     get:
       tags:
@@ -9656,13 +9635,6 @@ components:
             data:
               $ref: '#/components/schemas/WorkflowApp'
     GetWorkflowAppDetailResponse:
-      allOf:
-        - $ref: '#/components/schemas/BaseResponse'
-        - type: object
-          properties:
-            data:
-              $ref: '#/components/schemas/WorkflowApp'
-    GetPublicWorkflowAppDetailResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
         - type: object

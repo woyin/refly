@@ -81,7 +81,6 @@ import {
   getPageDetail,
   getPilotSessionDetail,
   getProjectDetail,
-  getPublicWorkflowAppDetail,
   getResourceDetail,
   getSettings,
   getSubscriptionPlans,
@@ -307,8 +306,6 @@ import {
   GetPilotSessionDetailError,
   GetProjectDetailData,
   GetProjectDetailError,
-  GetPublicWorkflowAppDetailData,
-  GetPublicWorkflowAppDetailError,
   GetResourceDetailData,
   GetResourceDetailError,
   GetSettingsError,
@@ -1026,23 +1023,6 @@ export const useGetWorkflowAppDetail = <
     queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getWorkflowAppDetail({ ...clientOptions }).then(
-        (response) => response.data as TData,
-      ) as TData,
-    ...options,
-  });
-export const useGetPublicWorkflowAppDetail = <
-  TData = Common.GetPublicWorkflowAppDetailDefaultResponse,
-  TError = GetPublicWorkflowAppDetailError,
-  TQueryKey extends Array<unknown> = unknown[],
->(
-  clientOptions: Options<GetPublicWorkflowAppDetailData, true>,
-  queryKey?: TQueryKey,
-  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
-) =>
-  useQuery<TData, TError>({
-    queryKey: Common.UseGetPublicWorkflowAppDetailKeyFn(clientOptions, queryKey),
-    queryFn: () =>
-      getPublicWorkflowAppDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,

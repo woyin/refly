@@ -8540,22 +8540,6 @@ export const GetWorkflowAppDetailResponseSchema = {
   ],
 } as const;
 
-export const GetPublicWorkflowAppDetailResponseSchema = {
-  allOf: [
-    {
-      $ref: '#/components/schemas/BaseResponse',
-    },
-    {
-      type: 'object',
-      properties: {
-        data: {
-          $ref: '#/components/schemas/WorkflowApp',
-        },
-      },
-    },
-  ],
-} as const;
-
 export const ExecuteWorkflowAppRequestSchema = {
   type: 'object',
   required: ['appId', 'variables'],
