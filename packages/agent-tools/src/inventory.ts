@@ -12,6 +12,7 @@ import { GoogleSheetsToolset, GoogleSheetsToolsetDefinition } from './google-she
 import { GmailToolset, GmailToolsetDefinition } from './gmail';
 import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
 import { NotionToolset, NotionToolsetDefinition } from './notion';
+import { GenerateAudioFalToolset, GenerateAudioFalToolsetDefinition } from './generate-audio-fal';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -69,5 +70,9 @@ export const toolsetInventory: Record<
   [NotionToolsetDefinition.key]: {
     class: NotionToolset,
     definition: NotionToolsetDefinition,
+  },
+  [GenerateAudioFalToolsetDefinition.key]: {
+    class: GenerateAudioFalToolset,
+    definition: GenerateAudioFalToolsetDefinition,
   },
 };

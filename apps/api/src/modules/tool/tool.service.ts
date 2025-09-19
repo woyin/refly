@@ -807,6 +807,7 @@ export class ToolService {
         ...config,
         ...authData,
         reflyService: engine.service,
+        user,
       });
 
       return toolset.definition.tools

@@ -87,13 +87,15 @@ export const Actions = memo(
           </div>
 
           {userStore.isLogin && !isPilotActivated && (
-            <ModelSelector
-              model={model}
-              setModel={setModel}
-              size="medium"
-              briefMode={false}
-              trigger={['click']}
-            />
+            <div className="mr-2">
+              <ModelSelector
+                model={model}
+                setModel={setModel}
+                size="medium"
+                briefMode={false}
+                trigger={['click']}
+              />
+            </div>
           )}
 
           {userStore.isLogin && chatMode === 'ask' && (

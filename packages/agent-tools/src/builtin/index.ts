@@ -3,7 +3,6 @@ import { RunnableConfig } from '@langchain/core/runnables';
 import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
 import { ToolsetDefinition, User } from '@refly/openapi-schema';
 import { ReflyService } from './interface';
-
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
   domain: 'https://refly.ai',

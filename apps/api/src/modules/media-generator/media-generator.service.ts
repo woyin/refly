@@ -4,12 +4,12 @@ import {
   MediaGenerateRequest,
   MediaGenerateResponse,
   CreditBilling,
-  MediaGenerationModelConfig,
+  //MediaGenerationModelConfig,
   EntityType,
   CanvasNodeType,
 } from '@refly/openapi-schema';
 
-import { ModelUsageQuotaExceeded, ProviderItemNotFoundError } from '@refly/errors';
+import { ModelUsageQuotaExceeded /*ProviderItemNotFoundError*/ } from '@refly/errors';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_SYNC_MEDIA_CREDIT_USAGE } from '../../utils/const';
@@ -24,7 +24,7 @@ import { fal } from '@fal-ai/client';
 import Replicate from 'replicate';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { ActionResult } from '../../generated/client';
-import { providerItemPO2DTO } from '../provider/provider.dto';
+//import { providerItemPO2DTO } from '../provider/provider.dto';
 
 @Injectable()
 export class MediaGeneratorService {
@@ -166,7 +166,7 @@ export class MediaGeneratorService {
       let finalModel = model;
       let finalProviderItemId = providerItemId;
 
-      if (!finalModel || !finalProviderItemId) {
+      if (!finalModel) {
         this.logger.log(
           `No model or providerItemId specified for ${mediaType} generation, using user's default configuration`,
         );
@@ -190,22 +190,7 @@ export class MediaGeneratorService {
         );
       }
 
-      // Validate the final model and providerItemId
       this.logger.log(`Validating ${mediaType} generation request for user ${user.uid}`);
-      const validation = await this.validateMediaGenerationRequest(
-        user,
-        mediaType,
-        finalModel,
-        finalProviderItemId,
-      );
-      if (!validation.isValid) {
-        this.logger.warn(`Media generation validation failed: ${validation.error}`);
-        return {
-          success: false,
-          errMsg: validation.error || 'Invalid media generation configuration',
-        };
-      }
-      this.logger.log(`Media generation request validation passed for user ${user.uid}`);
 
       let mediaId = '';
 
@@ -336,7 +321,7 @@ export class MediaGeneratorService {
     request: MediaGenerateRequest,
     mediaId?: string,
   ): Promise<void> {
-    const { mediaType } = request;
+    const { mediaType, provider } = request;
     const { pk, resultId, parentResultId, title, targetType, targetId } = result;
     try {
       // Update status to executing
@@ -347,20 +332,18 @@ export class MediaGeneratorService {
         },
       });
 
-      const providerItem = await this.providerService.findProviderItemById(
-        user,
-        request.providerItemId,
-      );
+      const mediaProvider = await this.providerService.findProvider(user, {
+        enabled: true,
+        isGlobal: true,
+        category: 'mediaGeneration',
+        providerKey: provider,
+      });
 
-      const config = JSON.parse(providerItem?.config) as MediaGenerationModelConfig;
-
-      if (!providerItem) {
-        throw new ProviderItemNotFoundError(`provider item ${request.providerItemId} not found`);
-      }
-
-      const creditBilling: CreditBilling = providerItem?.creditBilling
-        ? JSON.parse(providerItem?.creditBilling)
-        : undefined;
+      const creditBilling: CreditBilling = {
+        unitCost: request.unitCost,
+        unit: 'product',
+        minCharge: request.unitCost,
+      };
 
       if (creditBilling) {
         const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
@@ -370,19 +353,19 @@ export class MediaGeneratorService {
         }
       }
 
-      const input = await this.buildInputObject(user, request, config.supportedLanguages);
+      const input = request.input;
 
       this.logger.log(`input: ${JSON.stringify(input)}`);
 
       let url = '';
 
       // Generate media based on provider type
-      const providerKey = providerItem?.provider?.providerKey;
+      const providerKey = provider;
 
       if (providerKey === 'replicate') {
         // Use Replicate provider
         const replicate = new Replicate({
-          auth: providerItem?.provider?.apiKey ?? '',
+          auth: mediaProvider?.apiKey ?? '',
         });
 
         const output = await replicate.run(
@@ -394,7 +377,7 @@ export class MediaGeneratorService {
       } else if (providerKey === 'fal') {
         // Use Fal provider
         fal.config({
-          credentials: providerItem.provider.apiKey,
+          credentials: mediaProvider?.apiKey,
         });
 
         const result = await fal.subscribe(request.model, {
@@ -445,11 +428,10 @@ export class MediaGeneratorService {
                 [`${mediaType}Url`]: uploadResult.url,
                 modelInfo: {
                   name: request.model,
-                  label: providerItem.name,
-                  provider: providerItem.provider.providerKey,
+                  label: request.model,
+                  provider: provider,
                   providerItemId: request.providerItemId,
                 },
-                selectedModel: providerItemPO2DTO(providerItem),
               },
             },
           },
