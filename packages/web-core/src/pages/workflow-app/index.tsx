@@ -16,6 +16,7 @@ import SettingModal from '@refly-packages/ai-workspace-common/components/setting
 import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -37,6 +38,9 @@ const WorkflowAppPage: React.FC = () => {
   const { openDuplicateModal } = useCanvasOperationStoreShallow((state) => ({
     openDuplicateModal: state.openDuplicateModal,
   }));
+
+  // Check user login status
+  const { isLoggedRef } = useIsLogin();
 
   // Always use public workflow app data for consistent behavior
   // This ensures both owner and other users see the same published version
@@ -118,6 +122,15 @@ const WorkflowAppPage: React.FC = () => {
 
   const onSubmit = useCallback(
     async (variables: WorkflowVariable[]) => {
+      // Check if user is logged in before executing workflow
+      if (!isLoggedRef.current) {
+        message.warning('Please login to run this workflow');
+        // Redirect to login with return URL
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        navigate(`/?autoLogin=true&returnUrl=${returnUrl}`);
+        return;
+      }
+
       const { data, error } = await getClient().executeWorkflowApp({
         body: {
           appId,
@@ -138,11 +151,20 @@ const WorkflowAppPage: React.FC = () => {
         message.error('Failed to get execution ID');
       }
     },
-    [appId],
+    [appId, isLoggedRef, navigate],
   );
 
   const handleCopyWorkflow = useCallback(() => {
     console.log('copy workflow');
+
+    // Check if user is logged in before copying workflow
+    if (!isLoggedRef.current) {
+      message.warning('Please login to copy this workflow');
+      // Redirect to login with return URL
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      navigate(`/login?returnUrl=${returnUrl}`);
+      return;
+    }
 
     if (!workflowApp?.canvasId || !workflowApp?.title) {
       message.error(t('common.error'));
@@ -150,7 +172,7 @@ const WorkflowAppPage: React.FC = () => {
     }
 
     openDuplicateModal(workflowApp.canvasId, workflowApp.title);
-  }, [workflowApp?.canvasId, workflowApp?.title, openDuplicateModal, t]);
+  }, [workflowApp?.canvasId, workflowApp?.title, openDuplicateModal, t, isLoggedRef, navigate]);
 
   const segmentedOptions = useMemo(() => {
     return [
