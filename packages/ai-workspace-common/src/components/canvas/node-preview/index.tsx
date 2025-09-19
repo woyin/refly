@@ -102,6 +102,9 @@ export const PreviewComponent = memo(
     const statusEqual =
       prevProps.node?.data?.metadata?.status === nextProps.node?.data?.metadata?.status;
 
+    const contextItemsEqual =
+      prevProps.node?.data?.metadata?.contextItems === nextProps.node?.data?.metadata?.contextItems;
+
     // Check node-specific metadata
     let nodeSpecificEqual = true;
     if (prevProps.node?.type === 'codeArtifact') {
@@ -113,7 +116,14 @@ export const PreviewComponent = memo(
         prevProps.node?.data?.metadata?.viewMode === nextProps.node?.data?.metadata?.viewMode;
     }
 
-    return basicPropsEqual && contentEqual && titleEqual && statusEqual && nodeSpecificEqual;
+    return (
+      basicPropsEqual &&
+      contentEqual &&
+      titleEqual &&
+      statusEqual &&
+      nodeSpecificEqual &&
+      contextItemsEqual
+    );
   },
 );
 
