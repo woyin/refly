@@ -34,6 +34,13 @@ const SuccessMessage = memo(({ appId }: SuccessMessageProps) => {
     }
   }, [shareLink]);
 
+  // Auto copy link when component mounts
+  useEffect(() => {
+    if (shareLink) {
+      handleCopy();
+    }
+  }, [shareLink, handleCopy]);
+
   return (
     <div className="flex items-center gap-2">
       <Checked size={20} color="#12B76A" />
