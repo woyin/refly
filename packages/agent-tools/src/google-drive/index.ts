@@ -302,17 +302,54 @@ export class GoogleDriveListFiles extends AgentBaseTool<GoogleDriveParams> {
   toolsetKey = GoogleDriveToolsetDefinition.key;
 
   schema = z.object({
+    drive: z.string().optional().describe('The ID of the shared drive to search in'),
+    parentId: z
+      .string()
+      .optional()
+      .describe(
+        "The ID of the parent folder to list files from. If not specified, lists files from the drive's top-level folder",
+      ),
     pageSize: z.number().optional().describe('Maximum number of files to return (default: 10)'),
     pageToken: z.string().optional().describe('Token for pagination to the next page of results'),
-    q: z
-      .string()
-      .optional()
-      .describe('Query string for filtering files (e.g., "name contains \'report\'")'),
-    orderBy: z.string().optional().describe('Order by field (e.g., "createdTime desc", "name")'),
     fields: z
-      .string()
+      .array(z.string())
       .optional()
-      .describe('Fields to include in response (e.g., "files(id,name,mimeType,createdTime)")'),
+      .describe(
+        'Fields to include in response. Common fields: id, name, mimeType, createdTime, modifiedTime, size, parents, webViewLink',
+      ),
+    filterText: z.string().optional().describe('Filter by file name that contains specific text'),
+    filterType: z
+      .enum(['CONTAINS', 'EXACT MATCH'])
+      .optional()
+      .describe(
+        'Whether to return files with names containing the filter text or files with names that match exactly. Only used when filterText is provided',
+      ),
+    trashed: z
+      .boolean()
+      .optional()
+      .describe(
+        'If true, list only trashed files. If false, list only non-trashed files. If not specified, include both',
+      ),
+    orderBy: z
+      .enum([
+        'createdTime',
+        'createdTime desc',
+        'modifiedTime',
+        'modifiedTime desc',
+        'name',
+        'name desc',
+        'quotaBytesUsed',
+        'quotaBytesUsed desc',
+        'recency',
+        'recency desc',
+        'sharedWithMeTime',
+        'sharedWithMeTime desc',
+        'starred',
+        'viewedByMeTime',
+        'viewedByMeTime desc',
+      ])
+      .optional()
+      .describe('Order by field and direction. Default is by relevance'),
   });
   description = 'List files and folders in Google Drive with optional filtering and pagination.';
 
@@ -327,13 +364,37 @@ export class GoogleDriveListFiles extends AgentBaseTool<GoogleDriveParams> {
     try {
       const drive = createDriveService(this.params);
 
+      // Build query string based on input parameters
+      let q = '';
+
+      if (input.parentId) {
+        q = `"${input.parentId}" in parents`;
+      }
+
+      if (input.filterText) {
+        const filterType = input.filterType ?? 'CONTAINS';
+        const operator = filterType === 'CONTAINS' ? 'contains' : '=';
+        q += `${q ? ' AND ' : ''}name ${operator} '${input.filterText}'`;
+      }
+
+      if (typeof input.trashed !== 'undefined') {
+        q += `${q ? ' AND ' : ''}trashed=${input.trashed}`;
+      }
+
+      // Validate pageSize
+      const pageSize = Math.min(Math.max(input.pageSize ?? 10, 1), 100); // Limit between 1 and 100
+
       const response = await drive.files.list({
-        pageSize: input.pageSize ?? 10,
+        driveId: input.drive,
+        corpora: input.drive ? 'drive' : undefined,
+        includeItemsFromAllDrives: input.drive ? true : undefined,
+        supportsAllDrives: input.drive ? true : undefined,
+        pageSize: pageSize,
         pageToken: input.pageToken,
-        q: input.q,
+        q: q || undefined,
         orderBy: input.orderBy,
         fields:
-          input.fields ??
+          input.fields?.join() ??
           'files(id,name,mimeType,createdTime,modifiedTime,size,parents),nextPageToken',
       });
 
@@ -362,7 +423,11 @@ export class GoogleDriveListFiles extends AgentBaseTool<GoogleDriveParams> {
         message: `Found ${files.length} files`,
         count: files.length,
         files: fileList,
-        nextPageToken,
+        pagination: {
+          pageSize: pageSize,
+          nextPageToken: nextPageToken,
+          hasNextPage: !!nextPageToken,
+        },
       };
 
       return {
@@ -387,7 +452,12 @@ export class GoogleDriveGetFile extends AgentBaseTool<GoogleDriveParams> {
 
   schema = z.object({
     fileId: z.string().describe('The ID of the file to retrieve'),
-    fields: z.string().optional().describe('Fields to include in response'),
+    fields: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Fields to include in response. Common fields: id, name, mimeType, createdTime, modifiedTime, size, parents, webViewLink, description, owners, permissions',
+      ),
   });
   description = 'Get detailed information about a specific file or folder in Google Drive.';
 
@@ -400,34 +470,54 @@ export class GoogleDriveGetFile extends AgentBaseTool<GoogleDriveParams> {
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
+      // Validate input parameters
+      if (!input.fileId || input.fileId.trim().length === 0) {
+        return {
+          status: 'error',
+          error: 'Invalid file ID',
+          summary: 'File ID cannot be empty',
+        };
+      }
+
       const drive = createDriveService(this.params);
+
+      const strFields =
+        input.fields?.join() ??
+        'id,name,mimeType,createdTime,modifiedTime,size,parents,webViewLink,description,owners,permissions';
 
       const response = await drive.files.get({
         fileId: input.fileId,
-        fields: input.fields ?? '*',
+        fields: strFields,
       });
 
       const file = response.data;
 
       const result = {
         message: 'File details retrieved successfully',
+        success: true,
         file: {
-          name: file.name,
           id: file.id,
+          name: file.name,
           mimeType: file.mimeType,
+          size: file.size,
           createdTime: file.createdTime,
           modifiedTime: file.modifiedTime,
-          size: file.size,
           parents: file.parents,
           webViewLink: file.webViewLink,
           description: file.description,
+          owners: file.owners,
+          permissions: file.permissions,
+        },
+        metadata: {
+          retrievedAt: new Date().toISOString(),
+          source: 'Google Drive API',
         },
       };
 
       return {
         status: 'success',
         data: result,
-        summary: `Successfully retrieved details for file: ${file.name}`,
+        summary: `Successfully retrieved details for file "${file.name}" (${file.mimeType})`,
       };
     } catch (error) {
       return {
@@ -445,10 +535,11 @@ export class GoogleDriveUploadFile extends AgentBaseTool<GoogleDriveParams> {
   toolsetKey = GoogleDriveToolsetDefinition.key;
 
   schema = z.object({
+    drive: z.string().optional().describe('The ID of the shared drive to upload to'),
     name: z.string().describe('Name of the file to upload'),
     content: z.string().describe('Content of the file to upload'),
     mimeType: z.string().optional().describe('MIME type of the file (default: text/plain)'),
-    parentFolderId: z.string().optional().describe('ID of the parent folder (optional)'),
+    parentId: z.string().optional().describe('ID of the parent folder (optional)'),
     description: z.string().optional().describe('Description of the file (optional)'),
   });
   description = 'Upload a new file to Google Drive with specified metadata and content.';
@@ -462,13 +553,30 @@ export class GoogleDriveUploadFile extends AgentBaseTool<GoogleDriveParams> {
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
+      // Validate input parameters
+      if (!input.name || input.name.trim().length === 0) {
+        return {
+          status: 'error',
+          error: 'Invalid file name',
+          summary: 'File name cannot be empty',
+        };
+      }
+
+      if (!input.content) {
+        return {
+          status: 'error',
+          error: 'Invalid file content',
+          summary: 'File content cannot be empty',
+        };
+      }
+
       const drive = createDriveService(this.params);
 
       const fileMetadata = {
         name: input.name,
         mimeType: input.mimeType ?? 'text/plain',
         description: input.description,
-        ...(input.parentFolderId && { parents: [input.parentFolderId] }),
+        ...(input.parentId && { parents: [input.parentId] }),
       };
 
       const media = {
@@ -476,29 +584,46 @@ export class GoogleDriveUploadFile extends AgentBaseTool<GoogleDriveParams> {
         body: input.content,
       };
 
-      const response = await drive.files.create({
+      const createOptions: any = {
         requestBody: fileMetadata,
         media: media,
         fields: 'id,name,mimeType,createdTime,webViewLink',
-      });
+      };
+
+      if (input.drive) {
+        createOptions.driveId = input.drive;
+        createOptions.corpora = 'drive';
+        createOptions.includeItemsFromAllDrives = true;
+        createOptions.supportsAllDrives = true;
+      }
+
+      const response = await drive.files.create(createOptions);
 
       const file = response.data;
 
       const result = {
         message: 'File uploaded successfully',
+        success: true,
         file: {
-          name: file.name,
           id: file.id,
+          name: file.name,
           mimeType: file.mimeType,
+          size: file.size,
           createdTime: file.createdTime,
+          modifiedTime: file.modifiedTime,
           webViewLink: file.webViewLink,
+          parents: file.parents,
+        },
+        metadata: {
+          uploadedAt: new Date().toISOString(),
+          uploader: 'Google Drive API',
         },
       };
 
       return {
         status: 'success',
         data: result,
-        summary: `Successfully uploaded file: ${file.name} to Google Drive`,
+        summary: `Successfully uploaded file "${file.name}" (${file.size ? `${file.size} bytes` : 'unknown size'}) to Google Drive`,
       };
     } catch (error) {
       return {
@@ -617,8 +742,9 @@ export class GoogleDriveCreateFolder extends AgentBaseTool<GoogleDriveParams> {
   toolsetKey = GoogleDriveToolsetDefinition.key;
 
   schema = z.object({
+    drive: z.string().optional().describe('The ID of the shared drive to create the folder in'),
     name: z.string().describe('Name of the folder to create'),
-    parentFolderId: z.string().optional().describe('ID of the parent folder (optional)'),
+    parentId: z.string().optional().describe('ID of the parent folder (optional)'),
     description: z.string().optional().describe('Description of the folder (optional)'),
   });
   description = 'Create a new folder in Google Drive with specified name and parent folder.';
@@ -632,37 +758,62 @@ export class GoogleDriveCreateFolder extends AgentBaseTool<GoogleDriveParams> {
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
+      // Validate input parameters
+      if (!input.name || input.name.trim().length === 0) {
+        return {
+          status: 'error',
+          error: 'Invalid folder name',
+          summary: 'Folder name cannot be empty',
+        };
+      }
+
       const drive = createDriveService(this.params);
 
       const folderMetadata = {
         name: input.name,
         mimeType: 'application/vnd.google-apps.folder',
         description: input.description,
-        ...(input.parentFolderId && { parents: [input.parentFolderId] }),
+        ...(input.parentId && { parents: [input.parentId] }),
       };
 
-      const response = await drive.files.create({
+      const createOptions: any = {
         requestBody: folderMetadata,
         fields: 'id,name,mimeType,createdTime,webViewLink',
-      });
+      };
+
+      if (input.drive) {
+        createOptions.driveId = input.drive;
+        createOptions.corpora = 'drive';
+        createOptions.includeItemsFromAllDrives = true;
+        createOptions.supportsAllDrives = true;
+      }
+
+      const response = await drive.files.create(createOptions);
 
       const folder = response.data;
 
       const result = {
         message: 'Folder created successfully',
+        success: true,
         folder: {
-          name: folder.name,
           id: folder.id,
+          name: folder.name,
           mimeType: folder.mimeType,
           createdTime: folder.createdTime,
+          modifiedTime: folder.modifiedTime,
           webViewLink: folder.webViewLink,
+          parents: folder.parents,
+        },
+        metadata: {
+          createdAt: new Date().toISOString(),
+          creator: 'Google Drive API',
         },
       };
 
       return {
         status: 'success',
         data: result,
-        summary: `Successfully created folder: ${folder.name} in Google Drive`,
+        summary: `Successfully created folder "${folder.name}" in Google Drive`,
       };
     } catch (error) {
       return {
@@ -808,6 +959,32 @@ export class GoogleDriveSearchFiles extends AgentBaseTool<GoogleDriveParams> {
       .describe('Search query (e.g., "name contains \'report\'", "mimeType contains \'image\'")'),
     pageSize: z.number().optional().describe('Maximum number of results to return (default: 10)'),
     pageToken: z.string().optional().describe('Token for pagination'),
+    fields: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Fields to include in response. Common fields: id, name, mimeType, createdTime, modifiedTime, size',
+      ),
+    orderBy: z
+      .enum([
+        'createdTime',
+        'createdTime desc',
+        'modifiedTime',
+        'modifiedTime desc',
+        'name',
+        'name desc',
+        'quotaBytesUsed',
+        'quotaBytesUsed desc',
+        'recency',
+        'recency desc',
+        'sharedWithMeTime',
+        'sharedWithMeTime desc',
+        'starred',
+        'viewedByMeTime',
+        'viewedByMeTime desc',
+      ])
+      .optional()
+      .describe('Order by field and direction. Default is by relevance'),
   });
   description = 'Search for files and folders in Google Drive using query parameters.';
 
@@ -822,11 +999,17 @@ export class GoogleDriveSearchFiles extends AgentBaseTool<GoogleDriveParams> {
     try {
       const drive = createDriveService(this.params);
 
+      // Validate pageSize
+      const pageSize = Math.min(Math.max(input.pageSize ?? 10, 1), 100); // Limit between 1 and 100
+
       const response = await drive.files.list({
         q: input.query,
-        pageSize: input.pageSize ?? 10,
+        pageSize: pageSize,
         pageToken: input.pageToken,
-        fields: 'files(id,name,mimeType,createdTime,modifiedTime,size),nextPageToken',
+        fields:
+          input.fields?.join() ??
+          'files(id,name,mimeType,createdTime,modifiedTime,size),nextPageToken',
+        orderBy: input.orderBy,
       });
 
       const files = response.data.files ?? [];
@@ -858,7 +1041,11 @@ export class GoogleDriveSearchFiles extends AgentBaseTool<GoogleDriveParams> {
         query: input.query,
         count: files.length,
         files: fileList,
-        nextPageToken,
+        pagination: {
+          pageSize: pageSize,
+          nextPageToken: nextPageToken,
+          hasNextPage: !!nextPageToken,
+        },
       };
 
       return {
@@ -1523,10 +1710,11 @@ export class GoogleDriveCreateFileFromText extends AgentBaseTool<GoogleDrivePara
   toolsetKey = GoogleDriveToolsetDefinition.key;
 
   schema = z.object({
+    drive: z.string().optional().describe('The ID of the shared drive to create the file in'),
     name: z.string().describe('The name of the file to create'),
     content: z.string().describe('The text content of the file'),
     mimeType: z.string().optional().describe('The MIME type of the file (default: text/plain)'),
-    parentFolderId: z.string().optional().describe('The ID of the parent folder'),
+    parentId: z.string().optional().describe('The ID of the parent folder'),
   });
   description = 'Create a new file from plain text.';
 
@@ -1539,6 +1727,23 @@ export class GoogleDriveCreateFileFromText extends AgentBaseTool<GoogleDrivePara
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
+      // Validate input parameters
+      if (!input.name || input.name.trim().length === 0) {
+        return {
+          status: 'error',
+          error: 'Invalid file name',
+          summary: 'File name cannot be empty',
+        };
+      }
+
+      if (!input.content) {
+        return {
+          status: 'error',
+          error: 'Invalid file content',
+          summary: 'File content cannot be empty',
+        };
+      }
+
       const drive = createDriveService(this.params);
 
       const mimeType = input.mimeType ?? 'text/plain';
@@ -1546,7 +1751,7 @@ export class GoogleDriveCreateFileFromText extends AgentBaseTool<GoogleDrivePara
       const fileMetadata = {
         name: input.name,
         mimeType: mimeType,
-        ...(input.parentFolderId && { parents: [input.parentFolderId] }),
+        ...(input.parentId && { parents: [input.parentId] }),
       };
 
       const media = {
@@ -1554,11 +1759,20 @@ export class GoogleDriveCreateFileFromText extends AgentBaseTool<GoogleDrivePara
         body: input.content,
       };
 
-      const response = await drive.files.create({
+      const createOptions: any = {
         requestBody: fileMetadata,
         media: media,
         fields: 'id,name,mimeType,createdTime,webViewLink',
-      });
+      };
+
+      if (input.drive) {
+        createOptions.driveId = input.drive;
+        createOptions.corpora = 'drive';
+        createOptions.includeItemsFromAllDrives = true;
+        createOptions.supportsAllDrives = true;
+      }
+
+      const response = await drive.files.create(createOptions);
 
       const createdFile = response.data;
 
@@ -1596,9 +1810,10 @@ export class GoogleDriveCreateFileFromTemplate extends AgentBaseTool<GoogleDrive
   toolsetKey = GoogleDriveToolsetDefinition.key;
 
   schema = z.object({
+    drive: z.string().optional().describe('The ID of the shared drive to create the file in'),
     templateId: z.string().describe('The ID of the template file'),
     name: z.string().describe('The name of the new file'),
-    parentFolderId: z.string().optional().describe('The ID of the parent folder'),
+    parentId: z.string().optional().describe('The ID of the parent folder'),
     replaceValues: z
       .record(z.string())
       .optional()
@@ -1622,15 +1837,24 @@ export class GoogleDriveCreateFileFromTemplate extends AgentBaseTool<GoogleDrive
         name: input.name,
       };
 
-      if (input.parentFolderId) {
-        copyRequest.parents = [input.parentFolderId];
+      if (input.parentId) {
+        copyRequest.parents = [input.parentId];
       }
 
-      const copyResponse = await drive.files.copy({
+      const copyOptions: any = {
         fileId: input.templateId,
         requestBody: copyRequest,
         fields: 'id,name,mimeType,createdTime,webViewLink',
-      });
+      };
+
+      if (input.drive) {
+        copyOptions.driveId = input.drive;
+        copyOptions.corpora = 'drive';
+        copyOptions.includeItemsFromAllDrives = true;
+        copyOptions.supportsAllDrives = true;
+      }
+
+      const copyResponse = await drive.files.copy(copyOptions);
 
       const newFile = copyResponse.data;
 
