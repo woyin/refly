@@ -13,6 +13,7 @@ import { GmailToolset, GmailToolsetDefinition } from './gmail';
 import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
 import { NotionToolset, NotionToolsetDefinition } from './notion';
 import { GenerateAudioFalToolset, GenerateAudioFalToolsetDefinition } from './generate-audio-fal';
+import { GenerateImageFalToolset, GenerateImageFalToolsetDefinition } from './generate-image-fal';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -74,5 +75,9 @@ export const toolsetInventory: Record<
   [GenerateAudioFalToolsetDefinition.key]: {
     class: GenerateAudioFalToolset,
     definition: GenerateAudioFalToolsetDefinition,
+  },
+  [GenerateImageFalToolsetDefinition.key]: {
+    class: GenerateImageFalToolset,
+    definition: GenerateImageFalToolsetDefinition,
   },
 };

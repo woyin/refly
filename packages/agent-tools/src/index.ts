@@ -12,5 +12,6 @@ export * from './gmail';
 export * from './twitter';
 export * from './notion';
 export * from './generate-audio-fal';
+export * from './generate-image-fal';
 
 export type { ReflyService } from './builtin/interface';
