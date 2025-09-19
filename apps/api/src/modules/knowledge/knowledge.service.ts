@@ -1094,7 +1094,10 @@ export class KnowledgeService {
     const doc = await this.prisma.document.upsert({
       where: { docId: param.docId },
       create: createInput,
-      update: pick(param, ['title', 'readOnly', 'projectId']),
+      update: {
+        ...pick(param, ['title', 'readOnly', 'projectId']),
+        contentPreview: createInput.contentPreview,
+      },
     });
 
     await this.fts.upsertDocument(user, 'document', {
