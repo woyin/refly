@@ -46,7 +46,7 @@ export class SyncStorageUsageProcessor extends WorkerHost {
   async process(job: Job<SyncStorageUsageJobData>) {
     this.logger.log(`[${QUEUE_SYNC_STORAGE_USAGE}] job: ${JSON.stringify(job)}`);
     try {
-      await this.subscriptionService.syncStorageUsage(job.data);
+      await this.subscriptionService.handleSyncStorageUsage(job.data);
     } catch (error) {
       this.logger.error(`[${QUEUE_SYNC_STORAGE_USAGE}] error: ${error?.stack}`);
       throw error;

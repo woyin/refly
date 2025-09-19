@@ -40,7 +40,6 @@ import { genActionResultID, genSkillID, genSkillTriggerID, safeParseJSON } from 
 import { PrismaService } from '../common/prisma.service';
 import { QUEUE_SKILL, pick, QUEUE_CHECK_STUCK_ACTIONS } from '../../utils';
 import { InvokeSkillJobData, CheckStuckActionsJobData } from './skill.dto';
-import { KnowledgeService } from '../knowledge/knowledge.service';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import { CreditService } from '../credit/credit.service';
 import {
@@ -59,6 +58,8 @@ import { SkillInvokerService } from './skill-invoker.service';
 import { ActionService } from '../action/action.service';
 import { ConfigService } from '@nestjs/config';
 import { ToolService } from '../tool/tool.service';
+import { DocumentService } from '../knowledge/document.service';
+import { ResourceService } from '../knowledge/resource.service';
 
 function validateSkillTriggerCreateParam(param: SkillTriggerCreateParam) {
   if (param.triggerType === 'simpleEvent') {
@@ -81,7 +82,8 @@ export class SkillService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly knowledgeService: KnowledgeService,
+    private readonly resourceService: ResourceService,
+    private readonly documentService: DocumentService,
     private readonly credit: CreditService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly providerService: ProviderService,
@@ -816,7 +818,7 @@ export class SkillService implements OnModuleInit {
       const limit = pLimit(5);
       const resources = await Promise.all(
         resourceIds.map((id) =>
-          limit(() => this.knowledgeService.getResourceDetail(user, { resourceId: id })),
+          limit(() => this.resourceService.getResourceDetail(user, { resourceId: id })),
         ),
       );
       const resourceMap = new Map<string, Resource>();
@@ -835,7 +837,7 @@ export class SkillService implements OnModuleInit {
       const limit = pLimit(5);
       const docs = await Promise.all(
         docIds.map((id) =>
-          limit(() => this.knowledgeService.getDocumentDetail(user, { docId: id })),
+          limit(() => this.documentService.getDocumentDetail(user, { docId: id })),
         ),
       );
       const docMap = new Map<string, Document>();

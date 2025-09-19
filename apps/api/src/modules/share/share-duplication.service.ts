@@ -20,8 +20,9 @@ import {
   ShareNotFoundError,
   StorageQuotaExceeded,
   DuplicationNotAllowedError,
+  CanvasNotFoundError,
+  ProjectNotFoundError,
 } from '@refly/errors';
-import { KnowledgeService } from '../knowledge/knowledge.service';
 import pLimit from 'p-limit';
 import { SubscriptionService } from '../subscription/subscription.service';
 import {
@@ -61,12 +62,31 @@ export class ShareDuplicationService {
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly toolService: ToolService,
-    private readonly knowledgeService: KnowledgeService,
     private readonly subscriptionService: SubscriptionService,
     private readonly shareCommonService: ShareCommonService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
     @Inject(FULLTEXT_SEARCH) private readonly fts: FulltextSearchService,
   ) {}
+
+  async checkCanvasExists(user: User, canvasId: string) {
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { pk: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    if (!canvas) {
+      throw new CanvasNotFoundError();
+    }
+  }
+
+  async checkProjectExists(user: User, projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      select: { pk: true },
+      where: { projectId, uid: user.uid, deletedAt: null },
+    });
+    if (!project) {
+      throw new ProjectNotFoundError();
+    }
+  }
 
   async duplicateSharedDocument(
     user: User,
@@ -76,11 +96,11 @@ export class ShareDuplicationService {
     const { shareId, projectId, canvasId } = param;
 
     if (canvasId && !options?.skipCanvasCheck) {
-      await this.knowledgeService.checkCanvasExists(user, canvasId);
+      await this.checkCanvasExists(user, canvasId);
     }
 
     if (projectId && !options?.skipProjectCheck) {
-      await this.knowledgeService.checkProjectExists(user, projectId);
+      await this.checkProjectExists(user, projectId);
     }
 
     // Check storage quota
@@ -170,7 +190,7 @@ export class ShareDuplicationService {
       },
     });
 
-    await this.knowledgeService.syncStorageUsage(user);
+    await this.subscriptionService.syncStorageUsage(user);
 
     return { entityId: newDocId, entityType: 'document' };
   }
@@ -183,11 +203,11 @@ export class ShareDuplicationService {
     const { shareId, projectId, canvasId } = param;
 
     if (canvasId && !options?.skipCanvasCheck) {
-      await this.knowledgeService.checkCanvasExists(user, canvasId);
+      await this.checkCanvasExists(user, canvasId);
     }
 
     if (projectId && !options?.skipProjectCheck) {
-      await this.knowledgeService.checkProjectExists(user, projectId);
+      await this.checkProjectExists(user, projectId);
     }
 
     // Check storage quota
@@ -288,7 +308,7 @@ export class ShareDuplicationService {
       },
     });
 
-    await this.knowledgeService.syncStorageUsage(user);
+    await this.subscriptionService.syncStorageUsage(user);
 
     return { entityId: newResourceId, entityType: 'resource' };
   }
@@ -301,7 +321,7 @@ export class ShareDuplicationService {
     const { shareId, canvasId } = param;
 
     if (canvasId && !options?.skipCanvasCheck) {
-      await this.knowledgeService.checkCanvasExists(user, canvasId);
+      await this.checkCanvasExists(user, canvasId);
     }
 
     // Find the source record
@@ -665,7 +685,7 @@ export class ShareDuplicationService {
         },
       }),
       // Also sync storage usage in parallel
-      this.knowledgeService.syncStorageUsage(user),
+      this.subscriptionService.syncStorageUsage(user),
     ]);
 
     return { entityId: newCanvasId, entityType: 'canvas' };

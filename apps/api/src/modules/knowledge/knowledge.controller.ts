@@ -43,10 +43,16 @@ import { documentPO2DTO, resourcePO2DTO, referencePO2DTO } from './knowledge.dto
 import { ParamsError } from '@refly/errors';
 import { safeParseJSON } from '@refly/utils';
 import { Response, Request } from 'express';
+import { ResourceService } from './resource.service';
+import { DocumentService } from './document.service';
 
 @Controller('v1/knowledge')
 export class KnowledgeController {
-  constructor(private knowledgeService: KnowledgeService) {}
+  constructor(
+    private knowledgeService: KnowledgeService,
+    private resourceService: ResourceService,
+    private documentService: DocumentService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('resource/list')
@@ -59,7 +65,7 @@ export class KnowledgeController {
     @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
     @Query('order', new DefaultValuePipe('creationDesc')) order: ListOrder,
   ): Promise<ListResourceResponse> {
-    const resources = await this.knowledgeService.listResources(user, {
+    const resources = await this.resourceService.listResources(user, {
       resourceId,
       resourceType,
       projectId,
@@ -76,7 +82,7 @@ export class KnowledgeController {
     @LoginedUser() user: User,
     @Query('resourceId') resourceId: string,
   ): Promise<GetResourceDetailResponse> {
-    const resource = await this.knowledgeService.getResourceDetail(user, { resourceId });
+    const resource = await this.resourceService.getResourceDetail(user, { resourceId });
     return buildSuccessResponse(resourcePO2DTO(resource));
   }
 
@@ -86,10 +92,10 @@ export class KnowledgeController {
     @LoginedUser() user: User,
     @Body() body: UpsertResourceRequest,
   ): Promise<UpsertResourceResponse> {
-    const resource = await this.knowledgeService.createResource(user, body, {
+    const resource = await this.resourceService.createResource(user, body, {
       checkStorageQuota: true,
+      syncStorageUsage: true,
     });
-    await this.knowledgeService.syncStorageUsage(user);
     return buildSuccessResponse(resourcePO2DTO(resource));
   }
 
@@ -110,7 +116,7 @@ export class KnowledgeController {
     const data = typeof body.data === 'object' ? body.data : safeParseJSON(body.data);
 
     // Create resource with file content
-    const resource = await this.knowledgeService.createResource(
+    const resource = await this.resourceService.createResource(
       user,
       {
         ...body,
@@ -119,10 +125,10 @@ export class KnowledgeController {
       },
       {
         checkStorageQuota: true,
+        syncStorageUsage: true,
       },
     );
 
-    await this.knowledgeService.syncStorageUsage(user);
     return buildSuccessResponse(resourcePO2DTO(resource));
   }
 
@@ -132,8 +138,7 @@ export class KnowledgeController {
     @LoginedUser() user: User,
     @Body() body: UpsertResourceRequest[],
   ): Promise<BatchCreateResourceResponse> {
-    const resources = await this.knowledgeService.batchCreateResource(user, body ?? []);
-    await this.knowledgeService.syncStorageUsage(user);
+    const resources = await this.resourceService.batchCreateResource(user, body ?? []);
     return buildSuccessResponse(resources.map(resourcePO2DTO));
   }
 
@@ -149,9 +154,9 @@ export class KnowledgeController {
     }
 
     // Check if the resource exists
-    await this.knowledgeService.getResourceDetail(user, { resourceId });
+    await this.resourceService.getResourceDetail(user, { resourceId });
 
-    const updated = await this.knowledgeService.updateResource(user, body);
+    const updated = await this.resourceService.updateResource(user, body);
     return buildSuccessResponse(resourcePO2DTO(updated));
   }
 
@@ -161,7 +166,7 @@ export class KnowledgeController {
     @LoginedUser() user: User,
     @Body() body: ReindexResourceRequest,
   ): Promise<ReindexResourceResponse> {
-    const resources = await this.knowledgeService.reindexResource(user, body);
+    const resources = await this.resourceService.reindexResource(user, body);
     return buildSuccessResponse(resources.map(resourcePO2DTO));
   }
 
@@ -174,7 +179,7 @@ export class KnowledgeController {
     if (!body.resourceId) {
       throw new ParamsError('Resource ID is required');
     }
-    await this.knowledgeService.deleteResource(user, body.resourceId);
+    await this.resourceService.deleteResource(user, body.resourceId);
     return buildSuccessResponse(null);
   }
 
@@ -187,7 +192,7 @@ export class KnowledgeController {
     @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
     @Query('order', new DefaultValuePipe('creationDesc')) order: ListOrder,
   ): Promise<ListDocumentResponse> {
-    const documents = await this.knowledgeService.listDocuments(user, {
+    const documents = await this.documentService.listDocuments(user, {
       page,
       pageSize,
       order,
@@ -202,7 +207,7 @@ export class KnowledgeController {
     @LoginedUser() user: User,
     @Query('docId') docId: string,
   ): Promise<GetDocumentDetailResponse> {
-    const document = await this.knowledgeService.getDocumentDetail(user, { docId });
+    const document = await this.documentService.getDocumentDetail(user, { docId });
     return buildSuccessResponse(documentPO2DTO(document));
   }
 
@@ -215,7 +220,7 @@ export class KnowledgeController {
     @Res() res: Response,
     @Req() req: Request,
   ): Promise<void> {
-    const data = await this.knowledgeService.exportDocument(user, { docId, format });
+    const data = await this.documentService.exportDocument(user, { docId, format });
 
     const origin = req.headers.origin;
     let contentType = 'text/markdown';
@@ -242,7 +247,7 @@ export class KnowledgeController {
     @LoginedUser() user: User,
     @Body() body: UpsertDocumentRequest,
   ): Promise<UpsertDocumentResponse> {
-    const document = await this.knowledgeService.createDocument(user, body, {
+    const document = await this.documentService.createDocument(user, body, {
       checkStorageQuota: true,
     });
     return buildSuccessResponse(documentPO2DTO(document));
@@ -257,14 +262,14 @@ export class KnowledgeController {
     if (!body.docId) {
       throw new ParamsError('Document ID is required');
     }
-    const documents = await this.knowledgeService.batchUpdateDocument(user, [body]);
+    const documents = await this.documentService.batchUpdateDocument(user, [body]);
     return buildSuccessResponse(documentPO2DTO(documents?.[0]));
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('document/batchUpdate')
   async batchUpdateDocument(@LoginedUser() user: User, @Body() body: UpsertDocumentRequest[]) {
-    await this.knowledgeService.batchUpdateDocument(user, body);
+    await this.documentService.batchUpdateDocument(user, body);
     return buildSuccessResponse({});
   }
 
@@ -274,7 +279,7 @@ export class KnowledgeController {
     if (!body.docId) {
       throw new ParamsError('Document ID is required');
     }
-    await this.knowledgeService.deleteDocument(user, body);
+    await this.documentService.deleteDocument(user, body);
     return buildSuccessResponse({});
   }
 

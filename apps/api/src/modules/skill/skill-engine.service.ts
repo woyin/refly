@@ -20,6 +20,8 @@ import { NotificationService } from '../notification/notification.service';
 import { genBaseRespDataFromError } from '../../utils/exception';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
+import { ResourceService } from '../knowledge/resource.service';
+import { DocumentService } from '../knowledge/document.service';
 
 @Injectable()
 export class SkillEngineService implements OnModuleInit {
@@ -27,6 +29,8 @@ export class SkillEngineService implements OnModuleInit {
 
   private searchService: SearchService;
   private knowledgeService: KnowledgeService;
+  private resourceService: ResourceService;
+  private documentService: DocumentService;
   private ragService: RAGService;
   private canvasService: CanvasService;
   private providerService: ProviderService;
@@ -46,6 +50,8 @@ export class SkillEngineService implements OnModuleInit {
   async onModuleInit() {
     this.searchService = this.moduleRef.get(SearchService, { strict: false });
     this.knowledgeService = this.moduleRef.get(KnowledgeService, { strict: false });
+    this.resourceService = this.moduleRef.get(ResourceService, { strict: false });
+    this.documentService = this.moduleRef.get(DocumentService, { strict: false });
     this.ragService = this.moduleRef.get(RAGService, { strict: false });
     this.canvasService = this.moduleRef.get(CanvasService, { strict: false });
     this.providerService = this.moduleRef.get(ProviderService, { strict: false });
@@ -87,34 +93,34 @@ export class SkillEngineService implements OnModuleInit {
         return buildSuccessResponse({});
       },
       getDocumentDetail: async (user, param) => {
-        const canvas = await this.knowledgeService.getDocumentDetail(user, param);
+        const canvas = await this.documentService.getDocumentDetail(user, param);
         return buildSuccessResponse(documentPO2DTO(canvas));
       },
       createDocument: async (user, req) => {
-        const canvas = await this.knowledgeService.createDocument(user, req);
+        const canvas = await this.documentService.createDocument(user, req);
         return documentPO2DTO(canvas);
       },
       listDocuments: async (user, param) => {
-        const canvasList = await this.knowledgeService.listDocuments(user, param);
+        const canvasList = await this.documentService.listDocuments(user, param);
         return canvasList.map((canvas) => documentPO2DTO(canvas));
       },
       deleteDocument: async (user, param) => {
-        await this.knowledgeService.deleteDocument(user, param);
+        await this.documentService.deleteDocument(user, param);
       },
       getResourceDetail: async (user, req) => {
-        const resource = await this.knowledgeService.getResourceDetail(user, req);
+        const resource = await this.resourceService.getResourceDetail(user, req);
         return buildSuccessResponse(resourcePO2DTO(resource));
       },
       createResource: async (user, req) => {
-        const resource = await this.knowledgeService.createResource(user, req);
+        const resource = await this.resourceService.createResource(user, req);
         return buildSuccessResponse(resourcePO2DTO(resource));
       },
       batchCreateResource: async (user, req) => {
-        const resources = await this.knowledgeService.batchCreateResource(user, req);
+        const resources = await this.resourceService.batchCreateResource(user, req);
         return buildSuccessResponse(resources.map(resourcePO2DTO));
       },
       updateResource: async (user, req) => {
-        const resource = await this.knowledgeService.updateResource(user, req);
+        const resource = await this.resourceService.updateResource(user, req);
         return buildSuccessResponse(resourcePO2DTO(resource));
       },
       createCodeArtifact: async (user, req) => {

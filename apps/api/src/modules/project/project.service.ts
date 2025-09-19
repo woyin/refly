@@ -12,7 +12,8 @@ import {
 import { ParamsError, ProjectNotFoundError } from '@refly/errors';
 import { genProjectID } from '@refly/utils';
 import { MiscService } from '../misc/misc.service';
-import { KnowledgeService } from '../knowledge/knowledge.service';
+import { DocumentService } from '../knowledge/document.service';
+import { ResourceService } from '../knowledge/resource.service';
 import { RAGService } from '../rag/rag.service';
 import { CanvasService } from '../canvas/canvas.service';
 
@@ -21,7 +22,8 @@ export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ragService: RAGService,
-    private readonly knowledgeService: KnowledgeService,
+    private readonly documentService: DocumentService,
+    private readonly resourceService: ResourceService,
     private readonly canvasService: CanvasService,
     private readonly miscService: MiscService,
   ) {}
@@ -264,10 +266,10 @@ export class ProjectService {
               await this.canvasService.deleteCanvas(user, { canvasId: item.entityId });
               break;
             case 'document':
-              await this.knowledgeService.deleteDocument(user, { docId: item.entityId });
+              await this.documentService.deleteDocument(user, { docId: item.entityId });
               break;
             case 'resource':
-              await this.knowledgeService.deleteResource(user, item.entityId);
+              await this.resourceService.deleteResource(user, item.entityId);
               break;
           }
         }),

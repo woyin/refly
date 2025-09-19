@@ -22,6 +22,8 @@ import {
 import { ProviderModule } from '../provider/provider.module';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
+import { ResourceService } from './resource.service';
+import { DocumentService } from './document.service';
 
 @Module({
   imports: [
@@ -44,10 +46,12 @@ import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
   controllers: [KnowledgeController],
   providers: [
     KnowledgeService,
+    ResourceService,
+    DocumentService,
     ...(isDesktop()
       ? []
       : [ResourceProcessor, DeleteKnowledgeEntityProcessor, PostDeleteKnowledgeEntityProcessor]),
   ],
-  exports: [KnowledgeService],
+  exports: [KnowledgeService, ResourceService, DocumentService],
 })
 export class KnowledgeModule {}
