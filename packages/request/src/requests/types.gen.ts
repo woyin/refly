@@ -891,7 +891,8 @@ export type EntityType =
   | 'skillResponse'
   | 'codeArtifact'
   | 'page'
-  | 'mediaResult';
+  | 'mediaResult'
+  | 'workflowApp';
 
 /**
  * Entity
@@ -5996,6 +5997,10 @@ export type GetWorkflowAppDetailResponse = BaseResponse & {
   data?: WorkflowApp;
 };
 
+export type GetPublicWorkflowAppDetailResponse = BaseResponse & {
+  data?: WorkflowApp;
+};
+
 export type ExecuteWorkflowAppRequest = {
   /**
    * Workflow app ID
@@ -7587,6 +7592,19 @@ export type ExecuteWorkflowAppData = {
 export type ExecuteWorkflowAppResponse2 = ExecuteWorkflowAppResponse;
 
 export type ExecuteWorkflowAppError = unknown;
+
+export type GetPublicWorkflowAppDetailData = {
+  path: {
+    /**
+     * Workflow app ID
+     */
+    appId: string;
+  };
+};
+
+export type GetPublicWorkflowAppDetailResponse2 = GetPublicWorkflowAppDetailResponse;
+
+export type GetPublicWorkflowAppDetailError = unknown;
 
 export type GetSettingsResponse = GetUserSettingsResponse;
 

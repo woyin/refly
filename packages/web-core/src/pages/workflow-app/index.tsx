@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { useGetWorkflowAppDetail } from '@refly-packages/ai-workspace-common/queries';
+import { useGetPublicWorkflowAppDetail } from '@refly-packages/ai-workspace-common/queries';
 import { message, Segmented, notification } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -38,7 +38,16 @@ const WorkflowAppPage: React.FC = () => {
     openDuplicateModal: state.openDuplicateModal,
   }));
 
-  const { data, isLoading } = useGetWorkflowAppDetail({ query: { appId } });
+  // Always use public workflow app data for consistent behavior
+  // This ensures both owner and other users see the same published version
+  const { data: publicData, isLoading: isPublicLoading } = useGetPublicWorkflowAppDetail(
+    { path: { appId } },
+    undefined,
+    { enabled: !!appId },
+  );
+
+  const data = publicData;
+  const isLoading = isPublicLoading;
   const workflowApp = data?.data;
   console.log('appDetail', workflowApp);
   console.log('isLoading', isLoading);

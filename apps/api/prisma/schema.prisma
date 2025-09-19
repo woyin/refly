@@ -788,6 +788,8 @@ model WorkflowApp {
   canvasId    String?   @map("canvas_id")
   /// Storage key
   storageKey  String?   @map("storage_key")
+  /// Share id for public access
+  shareId     String?   @map("share_id")
   /// Create timestamp
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -796,6 +798,7 @@ model WorkflowApp {
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
 
   @@index([canvasId, deletedAt])
+  @@index([shareId])
   @@map("workflow_apps")
 }
 

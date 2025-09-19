@@ -23,6 +23,7 @@ import {
   getPageDetail,
   getPilotSessionDetail,
   getProjectDetail,
+  getPublicWorkflowAppDetail,
   getResourceDetail,
   getSettings,
   getSubscriptionPlans,
@@ -95,6 +96,8 @@ import {
   GetPilotSessionDetailError,
   GetProjectDetailData,
   GetProjectDetailError,
+  GetPublicWorkflowAppDetailData,
+  GetPublicWorkflowAppDetailError,
   GetResourceDetailData,
   GetResourceDetailError,
   GetSettingsError,
@@ -734,6 +737,23 @@ export const useGetWorkflowAppDetailSuspense = <
     queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions, queryKey),
     queryFn: () =>
       getWorkflowAppDetail({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
+    ...options,
+  });
+export const useGetPublicWorkflowAppDetailSuspense = <
+  TData = Common.GetPublicWorkflowAppDetailDefaultResponse,
+  TError = GetPublicWorkflowAppDetailError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<GetPublicWorkflowAppDetailData, true>,
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseGetPublicWorkflowAppDetailKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getPublicWorkflowAppDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
     ...options,

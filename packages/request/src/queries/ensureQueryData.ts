@@ -23,6 +23,7 @@ import {
   getPageDetail,
   getPilotSessionDetail,
   getProjectDetail,
+  getPublicWorkflowAppDetail,
   getResourceDetail,
   getSettings,
   getSubscriptionPlans,
@@ -75,6 +76,7 @@ import {
   GetPageDetailData,
   GetPilotSessionDetailData,
   GetProjectDetailData,
+  GetPublicWorkflowAppDetailData,
   GetResourceDetailData,
   GetWorkflowAppDetailData,
   GetWorkflowDetailData,
@@ -405,6 +407,15 @@ export const ensureUseGetWorkflowAppDetailData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions),
     queryFn: () => getWorkflowAppDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetPublicWorkflowAppDetailData = (
+  queryClient: QueryClient,
+  clientOptions: Options<GetPublicWorkflowAppDetailData, true>,
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetPublicWorkflowAppDetailKeyFn(clientOptions),
+    queryFn: () =>
+      getPublicWorkflowAppDetail({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSettingsData = (
   queryClient: QueryClient,

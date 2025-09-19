@@ -1272,6 +1272,7 @@ export const EntityTypeSchema = {
     'codeArtifact',
     'page',
     'mediaResult',
+    'workflowApp',
   ],
 } as const;
 
@@ -8524,6 +8525,22 @@ export const CreateWorkflowAppResponseSchema = {
 } as const;
 
 export const GetWorkflowAppDetailResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/WorkflowApp',
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetPublicWorkflowAppDetailResponseSchema = {
   allOf: [
     {
       $ref: '#/components/schemas/BaseResponse',

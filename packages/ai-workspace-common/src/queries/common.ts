@@ -80,6 +80,7 @@ import {
   getPageDetail,
   getPilotSessionDetail,
   getProjectDetail,
+  getPublicWorkflowAppDetail,
   getResourceDetail,
   getSettings,
   getSubscriptionPlans,
@@ -568,6 +569,18 @@ export const UseGetWorkflowAppDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetWorkflowAppDetailKey, ...(queryKey ?? [clientOptions])];
+export type GetPublicWorkflowAppDetailDefaultResponse = Awaited<
+  ReturnType<typeof getPublicWorkflowAppDetail>
+>['data'];
+export type GetPublicWorkflowAppDetailQueryResult<
+  TData = GetPublicWorkflowAppDetailDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useGetPublicWorkflowAppDetailKey = 'GetPublicWorkflowAppDetail';
+export const UseGetPublicWorkflowAppDetailKeyFn = (
+  clientOptions: Options<unknown, true>,
+  queryKey?: Array<unknown>,
+) => [useGetPublicWorkflowAppDetailKey, ...(queryKey ?? [clientOptions])];
 export type GetSettingsDefaultResponse = Awaited<ReturnType<typeof getSettings>>['data'];
 export type GetSettingsQueryResult<
   TData = GetSettingsDefaultResponse,

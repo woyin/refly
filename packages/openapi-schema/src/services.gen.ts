@@ -345,6 +345,9 @@ import type {
   ExecuteWorkflowAppData,
   ExecuteWorkflowAppError,
   ExecuteWorkflowAppResponse2,
+  GetPublicWorkflowAppDetailData,
+  GetPublicWorkflowAppDetailError,
+  GetPublicWorkflowAppDetailResponse2,
   GetSettingsError,
   GetSettingsResponse,
   UpdateSettingsData,
@@ -2280,6 +2283,23 @@ export const executeWorkflowApp = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow-app/execute',
+  });
+};
+
+/**
+ * Get public workflow app detail
+ * Get detail for a workflow app without authentication
+ */
+export const getPublicWorkflowAppDetail = <ThrowOnError extends boolean = false>(
+  options: Options<GetPublicWorkflowAppDetailData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetPublicWorkflowAppDetailResponse2,
+    GetPublicWorkflowAppDetailError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/public/{appId}',
   });
 };
 
