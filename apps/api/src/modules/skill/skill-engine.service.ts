@@ -3,14 +3,13 @@ import { ModuleRef } from '@nestjs/core';
 import { ReflyService } from '@refly/agent-tools';
 import { SkillEngine, SkillEngineOptions, SkillRunnableConfig } from '@refly/skill-template';
 import { CanvasService } from '../canvas/canvas.service';
-import { KnowledgeService } from '../knowledge/knowledge.service';
 import { ProviderService } from '../provider/provider.service';
 import { RAGService } from '../rag/rag.service';
 import { SearchService } from '../search/search.service';
 import { buildSuccessResponse } from '../../utils';
 import { canvasPO2DTO } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
-import { documentPO2DTO, referencePO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
+import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth/auth.service';
 import { MediaGeneratorService } from '../media-generator/media-generator.service';
@@ -28,7 +27,6 @@ export class SkillEngineService implements OnModuleInit {
   private logger = new Logger(SkillEngineService.name);
 
   private searchService: SearchService;
-  private knowledgeService: KnowledgeService;
   private resourceService: ResourceService;
   private documentService: DocumentService;
   private ragService: RAGService;
@@ -49,7 +47,6 @@ export class SkillEngineService implements OnModuleInit {
 
   async onModuleInit() {
     this.searchService = this.moduleRef.get(SearchService, { strict: false });
-    this.knowledgeService = this.moduleRef.get(KnowledgeService, { strict: false });
     this.resourceService = this.moduleRef.get(ResourceService, { strict: false });
     this.documentService = this.moduleRef.get(DocumentService, { strict: false });
     this.ragService = this.moduleRef.get(RAGService, { strict: false });
@@ -155,14 +152,6 @@ export class SkillEngineService implements OnModuleInit {
           config as SkillRunnableConfig,
         );
         return result;
-      },
-      addReferences: async (user, req) => {
-        const references = await this.knowledgeService.addReferences(user, req);
-        return buildSuccessResponse(references.map(referencePO2DTO));
-      },
-      deleteReferences: async (user, req) => {
-        await this.knowledgeService.deleteReferences(user, req);
-        return buildSuccessResponse({});
       },
       inMemorySearchWithIndexing: async (user, options) => {
         const result = await this.ragService.inMemorySearchWithIndexing(user, options);

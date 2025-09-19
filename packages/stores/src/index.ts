@@ -50,7 +50,6 @@ export {
   useQuickSearchStateStore,
   useQuickSearchStateStoreShallow,
 } from './stores/quick-search-state';
-export { useReferencesStore, useReferencesStoreShallow } from './stores/references';
 export { useSearchStateStore, useSearchStateStoreShallow } from './stores/search-state';
 export { useSearchStore, useSearchStoreShallow } from './stores/search';
 export { useSiderStore, useSiderStoreShallow } from './stores/sider';

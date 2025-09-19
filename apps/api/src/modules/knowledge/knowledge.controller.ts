@@ -25,9 +25,6 @@ import {
   BatchCreateResourceResponse,
   ReindexResourceRequest,
   ReindexResourceResponse,
-  QueryReferencesRequest,
-  AddReferencesRequest,
-  DeleteReferencesRequest,
   ListOrder,
   ListDocumentResponse,
   GetDocumentDetailResponse,
@@ -35,11 +32,10 @@ import {
   UpsertDocumentResponse,
   DeleteDocumentRequest,
 } from '@refly/openapi-schema';
-import { KnowledgeService } from './knowledge.service';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { buildSuccessResponse } from '../../utils';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
-import { documentPO2DTO, resourcePO2DTO, referencePO2DTO } from './knowledge.dto';
+import { documentPO2DTO, resourcePO2DTO } from './knowledge.dto';
 import { ParamsError } from '@refly/errors';
 import { safeParseJSON } from '@refly/utils';
 import { Response, Request } from 'express';
@@ -49,7 +45,6 @@ import { DocumentService } from './document.service';
 @Controller('v1/knowledge')
 export class KnowledgeController {
   constructor(
-    private knowledgeService: KnowledgeService,
     private resourceService: ResourceService,
     private documentService: DocumentService,
   ) {}
@@ -280,27 +275,6 @@ export class KnowledgeController {
       throw new ParamsError('Document ID is required');
     }
     await this.documentService.deleteDocument(user, body);
-    return buildSuccessResponse({});
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('reference/query')
-  async queryReferences(@LoginedUser() user: User, @Body() body: QueryReferencesRequest) {
-    const references = await this.knowledgeService.queryReferences(user, body);
-    return buildSuccessResponse(references.map(referencePO2DTO));
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('reference/add')
-  async addReferences(@LoginedUser() user: User, @Body() body: AddReferencesRequest) {
-    const references = await this.knowledgeService.addReferences(user, body);
-    return buildSuccessResponse(references.map(referencePO2DTO));
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('reference/delete')
-  async deleteReferences(@LoginedUser() user: User, @Body() body: DeleteReferencesRequest) {
-    await this.knowledgeService.deleteReferences(user, body);
     return buildSuccessResponse({});
   }
 }

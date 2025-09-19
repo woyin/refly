@@ -570,42 +570,6 @@ export type ShareUser = {
 export type ListOrder = 'creationAsc' | 'creationDesc';
 
 /**
- * Reference metadata
- */
-export type ReferenceMeta = {
-  /**
-   * Reference title
-   */
-  title?: string;
-  /**
-   * Reference URL
-   */
-  url?: string;
-};
-
-/**
- * Basic reference info
- */
-export type BaseReference = {
-  /**
-   * Source entity type
-   */
-  sourceType: ReferenceType;
-  /**
-   * Source entity ID
-   */
-  sourceId: string;
-  /**
-   * Target entity type
-   */
-  targetType: ReferenceType;
-  /**
-   * Target entity ID
-   */
-  targetId: string;
-};
-
-/**
  * Canvas status
  */
 export type CanvasStatus = 'ready' | 'duplicating' | 'duplicate_failed';
@@ -715,21 +679,6 @@ export type CanvasTemplate = {
   updatedAt: string;
 };
 
-export type Reference = BaseReference & {
-  /**
-   * Reference ID
-   */
-  referenceId: string;
-  /**
-   * Source entity metadata
-   */
-  sourceMeta?: ReferenceMeta;
-  /**
-   * Target entity metadata
-   */
-  targetMeta?: ReferenceMeta;
-};
-
 /**
  * Resource metadata
  */
@@ -837,11 +786,6 @@ export type Resource = {
    */
   downloadURL?: string;
 };
-
-/**
- * Reference type
- */
-export type ReferenceType = 'document' | 'resource';
 
 export type Document = {
   /**
@@ -3035,53 +2979,6 @@ export type AbortActionRequest = {
    * Action result version
    */
   version?: number;
-};
-
-export type QueryReferencesRequest = {
-  /**
-   * Source entity type
-   */
-  sourceType?: EntityType;
-  /**
-   * Source entity ID
-   */
-  sourceId?: string;
-  /**
-   * Target entity type
-   */
-  targetType?: EntityType;
-  /**
-   * Target entity ID
-   */
-  targetId?: string;
-};
-
-export type QueryReferencesResponse = BaseResponse & {
-  /**
-   * Reference list
-   */
-  data?: Array<Reference>;
-};
-
-export type AddReferencesRequest = {
-  /**
-   * Reference operation list
-   */
-  references: Array<BaseReference>;
-};
-
-export type AddReferencesResponse = BaseResponse & {
-  /**
-   * Reference list
-   */
-  data?: Array<Reference>;
-};
-
-export type DeleteReferencesRequest = {
-  /**
-   * Reference ID list
-   */
-  referenceIds: Array<string>;
 };
 
 export type ListProjectResponse = BaseResponse & {
@@ -7002,30 +6899,6 @@ export type BatchUpdateDocumentData = {
 export type BatchUpdateDocumentResponse = BaseResponse;
 
 export type BatchUpdateDocumentError = unknown;
-
-export type QueryReferencesData = {
-  body: QueryReferencesRequest;
-};
-
-export type QueryReferencesResponse2 = unknown;
-
-export type QueryReferencesError = unknown;
-
-export type AddReferencesData = {
-  body: AddReferencesRequest;
-};
-
-export type AddReferencesResponse2 = BaseResponse;
-
-export type AddReferencesError = unknown;
-
-export type DeleteReferencesData = {
-  body: DeleteReferencesRequest;
-};
-
-export type DeleteReferencesResponse = unknown;
-
-export type DeleteReferencesError = unknown;
 
 export type ListProjectsData = {
   query?: {

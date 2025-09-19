@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 
 import { KnowledgeController } from './knowledge.controller';
-import { KnowledgeService } from './knowledge.service';
 import { CommonModule } from '../common/common.module';
 import { RAGModule } from '../rag/rag.module';
 import { MiscModule } from '../misc/misc.module';
@@ -45,13 +44,12 @@ import { DocumentService } from './document.service';
   ],
   controllers: [KnowledgeController],
   providers: [
-    KnowledgeService,
     ResourceService,
     DocumentService,
     ...(isDesktop()
       ? []
       : [ResourceProcessor, DeleteKnowledgeEntityProcessor, PostDeleteKnowledgeEntityProcessor]),
   ],
-  exports: [KnowledgeService, ResourceService, DocumentService],
+  exports: [ResourceService, DocumentService],
 })
 export class KnowledgeModule {}
