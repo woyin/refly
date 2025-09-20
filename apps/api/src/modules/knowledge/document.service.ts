@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Prisma } from '../../generated/client';
+import { Document as DocumentPO, Prisma } from '../../generated/client';
 import { RAGService } from '../rag/rag.service';
 import { PrismaService } from '../common/prisma.service';
 import { FULLTEXT_SEARCH, FulltextSearchService } from '../common/fulltext-search';
@@ -18,7 +18,13 @@ import {
   QUEUE_POST_DELETE_KNOWLEDGE_ENTITY,
   streamToString,
 } from '../../utils';
-import { genDocumentID, markdown2StateUpdate, safeParseJSON, pick } from '@refly/utils';
+import {
+  genDocumentID,
+  markdown2StateUpdate,
+  safeParseJSON,
+  pick,
+  incrementalMarkdownUpdate,
+} from '@refly/utils';
 import { DocumentDetail, PostDeleteKnowledgeEntityJobData } from './knowledge.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { MiscService } from '../misc/misc.service';
@@ -35,6 +41,8 @@ import { DocxParser } from '../knowledge/parsers/docx.parser';
 import { PdfParser } from '../knowledge/parsers/pdf.parser';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { CollabService } from '../collab/collab.service';
+import { CollabContext } from '../collab/collab.dto';
 
 @Injectable()
 export class DocumentService {
@@ -44,6 +52,7 @@ export class DocumentService {
     private prisma: PrismaService,
     private ragService: RAGService,
     private miscService: MiscService,
+    private collabService: CollabService,
     private canvasSyncService: CanvasSyncService,
     private subscriptionService: SubscriptionService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
@@ -166,6 +175,32 @@ export class DocumentService {
     }
   }
 
+  private async saveDocumentState(user: User, document: DocumentPO, content: string) {
+    const { docId } = document;
+
+    // Save initial content and ydoc state to object storage
+    const collabContext: CollabContext = {
+      user,
+      entity: document,
+      entityType: 'document',
+    };
+    const connection = await this.collabService.openDirectConnection(docId, collabContext);
+    incrementalMarkdownUpdate(connection.document, content);
+  }
+
+  private async updateDocumentStorageSize(document: DocumentPO) {
+    const { docId, storageKey, stateStorageKey } = document;
+    const [storageStat, stateStorageStat] = await Promise.all([
+      this.oss.statObject(storageKey),
+      this.oss.statObject(stateStorageKey),
+    ]);
+    const storageSize = storageStat.size + stateStorageStat.size;
+    await this.prisma.document.update({
+      where: { docId },
+      data: { storageSize },
+    });
+  }
+
   async createDocument(
     user: User,
     param: UpsertDocumentRequest,
@@ -217,6 +252,8 @@ export class DocumentService {
         param.projectId = result.projectId;
       }
 
+      // Check if this document is created by a workflow node execution
+      // If so, use the same docId to replace the original document.
       if (result.workflowExecutionId) {
         const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
           where: {
@@ -242,6 +279,13 @@ export class DocumentService {
       }
     }
 
+    const existingDoc = await this.prisma.document.findUnique({
+      where: { docId: param.docId },
+    });
+    if (existingDoc && existingDoc.uid !== user.uid) {
+      throw new ParamsError(`Document ${param.docId} already exists for another user`);
+    }
+
     const createInput: Prisma.DocumentCreateInput = {
       docId: param.docId,
       title: param.title,
@@ -256,18 +300,7 @@ export class DocumentService {
     createInput.stateStorageKey = `state/${param.docId}`;
 
     // Save initial content and ydoc state to object storage
-    const ydoc = markdown2StateUpdate(param.initialContent);
-    await Promise.all([
-      this.oss.putObject(createInput.storageKey, param.initialContent),
-      this.oss.putObject(createInput.stateStorageKey, Buffer.from(ydoc)),
-    ]);
-
-    // Calculate storage size
-    const [storageStat, stateStorageStat] = await Promise.all([
-      this.oss.statObject(createInput.storageKey),
-      this.oss.statObject(createInput.stateStorageKey),
-    ]);
-    createInput.storageSize = storageStat.size + stateStorageStat.size;
+    await this.oss.putObject(createInput.storageKey, param.initialContent);
 
     // Add to vector store
     if (param.initialContent) {
@@ -298,6 +331,14 @@ export class DocumentService {
       },
     });
 
+    if (existingDoc) {
+      await this.saveDocumentState(user, existingDoc, param.initialContent);
+    } else {
+      // Create new state from fresh
+      const ydoc = markdown2StateUpdate(param.initialContent);
+      await this.oss.putObject(createInput.stateStorageKey, Buffer.from(ydoc));
+    }
+
     await this.fts.upsertDocument(user, 'document', {
       id: param.docId,
       ...pick(doc, ['title', 'uid', 'projectId']),
@@ -326,6 +367,11 @@ export class DocumentService {
     }
 
     await this.subscriptionService.syncStorageUsage(user);
+
+    // Update storage size asynchronously
+    this.updateDocumentStorageSize(doc).catch((error) => {
+      this.logger.error(`failed to update document storage size: ${error.stack}`);
+    });
 
     return doc;
   }

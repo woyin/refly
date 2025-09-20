@@ -28,7 +28,12 @@ import { NodeActionButtons } from './shared/node-action-buttons';
 import { message } from 'antd';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import {
+  useNodeData,
+  useNodeExecutionStatus,
+} from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 const NODE_WIDTH = 320;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
@@ -42,7 +47,7 @@ export const DocumentNode = memo(
     hideHandles = false,
     onNodeClick,
   }: DocumentNodeProps) => {
-    const { readonly } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
     const [isHovered, setIsHovered] = useState(false);
     const { edges } = useCanvasData();
     const { i18n, t } = useTranslation();
@@ -71,6 +76,12 @@ export const DocumentNode = memo(
       setIsHovered(false);
       onHoverEnd();
     }, [onHoverEnd]);
+
+    // Get node execution status
+    const { status: executionStatus } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
 
     const { addToContext } = useAddToContext();
 
@@ -255,6 +266,8 @@ export const DocumentNode = memo(
           </>
         )}
 
+        <NodeExecutionOverlay status={executionStatus} />
+
         {!isPreview && !readonly && (
           <NodeActionButtons
             nodeId={id}
@@ -273,6 +286,9 @@ export const DocumentNode = memo(
             ${getNodeCommonStyles({ selected: !isPreview && selected, isHovered })}
           `}
         >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
+
           <NodeHeader
             title={data.title || t('common.untitled')}
             fixedTitle={t('canvas.nodeTypes.document')}

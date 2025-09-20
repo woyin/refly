@@ -21,6 +21,7 @@ import {
 import { ProviderModule } from '../provider/provider.module';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
+import { CollabModule } from '../collab/collab.module';
 import { ResourceService } from './resource.service';
 import { DocumentService } from './document.service';
 
@@ -29,6 +30,7 @@ import { DocumentService } from './document.service';
     CommonModule,
     RAGModule,
     MiscModule,
+    CollabModule,
     CanvasSyncModule,
     ProviderModule,
     SubscriptionModule,
