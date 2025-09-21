@@ -29,6 +29,9 @@ import { ModelInfo } from '@refly/openapi-schema';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { HiExclamationTriangle } from 'react-icons/hi2';
+import { useNodeExecutionStatus } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 // Define VideoNodeMeta interface
 interface VideoNodeMeta {
@@ -69,6 +72,12 @@ export const VideoNode = memo(
     const { readonly, canvasId } = useCanvasContext();
     const { previewNode } = useNodePreviewControl({ canvasId });
     const { t } = useTranslation();
+
+    // Get node execution status
+    const { status: executionStatus } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
 
     // Check if node has any connections
     const { getEdges } = useReactFlow();
@@ -299,11 +308,15 @@ export const VideoNode = memo(
           </>
         )}
 
+        <NodeExecutionOverlay status={executionStatus} />
+
         <div
           className={`h-full flex items-center justify-center relative z-1 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
           style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
           onClick={handleVideoClick}
         >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
           {videoError ? (
             <div className="flex flex-col items-center justify-center gap-2 text-red-500 p-4 w-full h-full bg-black/60 rounded-2xl">
               <HiExclamationTriangle className="w-8 h-8" />

@@ -29,6 +29,9 @@ import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks
 import { ModelInfo } from '@refly/openapi-schema';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
+import { useNodeExecutionStatus } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 const NODE_SIDE_CONFIG = {
   width: 350,
@@ -82,6 +85,12 @@ export const AudioNode = memo(
     const { readonly, canvasId } = useCanvasContext();
     const { previewNode } = useNodePreviewControl({ canvasId });
     const { t } = useTranslation();
+
+    // Get node execution status
+    const { status: executionStatus } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -298,6 +307,8 @@ export const AudioNode = memo(
           </>
         )}
 
+        <NodeExecutionOverlay status={executionStatus} />
+
         <div
           className={`
                 w-full
@@ -311,6 +322,8 @@ export const AudioNode = memo(
           style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
           onClick={handleAudioClick}
         >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
           <div className={cn('flex flex-col h-full relative box-border')}>
             {showTitle && (
               <NodeHeader
