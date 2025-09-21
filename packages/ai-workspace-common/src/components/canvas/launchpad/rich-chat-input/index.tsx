@@ -62,8 +62,7 @@ export interface RichChatInputRef {
 
 // Helper function to render NodeIcon consistently
 const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) => {
-  if (source === 'startNode') {
-    // For startNode variables, use getStartNodeIcon to render variable type icons
+  if (source === 'variables') {
     return getVariableIcon(variableType);
   } else if (source === 'stepRecord') {
     return React.createElement(NodeIcon, {
@@ -246,7 +245,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       const startNodeItems = workflowVariables.map((variable) => ({
         name: variable.name,
         description: variable.description || '',
-        source: 'startNode' as const,
+        source: 'variables' as const,
         variableType: variable.variableType || 'string',
         variableId: variable.variableId || '',
       }));
@@ -728,7 +727,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             const source = node?.attrs?.source;
 
             // Only convert startNode and resourceLibrary variables to @variableName format
-            if (mentionName && (source === 'startNode' || source === 'resourceLibrary')) {
+            if (mentionName && (source === 'variables' || source === 'resourceLibrary')) {
               processedContent += `@${mentionName} `;
             } else if (mentionName) {
               // For other types (stepRecord, resultRecord), just add the name without @
@@ -774,7 +773,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           const foundFromAll = (allItems || []).find((it: any) => it?.name === name);
           if (foundFromAll) {
             return {
-              source: foundFromAll?.source ?? 'startNode',
               variableType: foundFromAll?.variableType ?? 'string',
             };
           }
@@ -783,14 +781,12 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           const foundInVariables = (workflowVariables || []).find((v: any) => v?.name === name);
           if (foundInVariables) {
             return {
-              source: foundInVariables?.source ?? 'startNode',
               variableType: foundInVariables?.variableType ?? 'string',
             };
           }
 
-          // Fallback: Default to startNode with string type
+          // Fallback: Default to variables with string type
           return {
-            source: 'startNode',
             variableType: 'string',
           };
         };
@@ -842,7 +838,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                 attrs: {
                   id: matchedName,
                   label: matchedName,
-                  source: meta.source,
                   variableType: meta.variableType,
                 },
               });

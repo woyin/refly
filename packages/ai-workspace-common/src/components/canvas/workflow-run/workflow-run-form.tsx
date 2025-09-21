@@ -370,7 +370,7 @@ export const WorkflowRunForm = ({
         >
           <Select
             variant="filled"
-            placeholder="请选择"
+            placeholder={t('canvas.workflow.variables.selectPlaceholder')}
             mode={isSingle ? undefined : 'multiple'}
             value={value}
             onChange={(val) => handleValueChange(name, val)}

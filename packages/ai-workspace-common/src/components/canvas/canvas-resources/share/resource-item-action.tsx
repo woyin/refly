@@ -114,7 +114,6 @@ export const ResourceItemAction = ({
       name: resourceType + (variable.length + 1).toString(), // User will input
       value: variableValue,
       description: '',
-      source: 'startNode',
       variableType: 'resource',
       required: true,
       resourceTypes: [resourceType], // Set specific resource type based on file

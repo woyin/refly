@@ -1723,7 +1723,7 @@ const translations = {
       importFromExtension: '插件剪存',
     },
     richChatInput: {
-      startNode: '开始节点',
+      variables: '变量',
       resourceLibrary: '资源库',
       myUploads: '我的上传',
       myUpload: '上传',

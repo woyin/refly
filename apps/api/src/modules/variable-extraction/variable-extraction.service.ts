@@ -747,7 +747,6 @@ export class VariableExtractionService {
             value,
             description: v.description || `Extracted variable ${index + 1}`,
             variableType: v.variableType || 'string',
-            source: (v.source as 'startNode' | 'resourceLibrary') || 'startNode',
           };
         },
       );
@@ -773,7 +772,6 @@ export class VariableExtractionService {
             value: canvasVar?.value ?? [{ type: 'text' as const, text: '' }],
             description: canvasVar?.description ?? `Reused variable: ${rv.reusedVariableName}`,
             variableType: canvasVar?.variableType ?? 'string',
-            source: 'startNode' as const, // Use valid source type
           };
         });
 
@@ -1456,7 +1454,6 @@ export class VariableExtractionService {
             value,
             description: v.description || `Variable ${v.name}`,
             variableType: (v.variableType as 'string' | 'resource' | 'option') || 'string',
-            source: 'startNode' as const, // Use valid source type
           };
         },
       );

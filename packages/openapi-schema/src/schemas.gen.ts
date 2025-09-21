@@ -8558,11 +8558,6 @@ export const WorkflowVariableSchema = {
       description: 'Variable updated at',
       example: '2021-01-01T00:00:00.000Z',
     },
-    source: {
-      type: 'string',
-      description: 'Variable source',
-      enum: ['startNode', 'resourceLibrary'],
-    },
     variableType: {
       type: 'string',
       description: 'Variable type',

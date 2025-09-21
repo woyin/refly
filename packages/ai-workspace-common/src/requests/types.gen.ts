@@ -6009,10 +6009,6 @@ export type WorkflowVariable = {
    */
   updatedAt?: string;
   /**
-   * Variable source
-   */
-  source?: 'startNode' | 'resourceLibrary';
-  /**
    * Variable type
    */
   variableType?: 'string' | 'option' | 'resource';
@@ -6033,11 +6029,6 @@ export type WorkflowVariable = {
    */
   resourceTypes?: Array<VariableResourceType>;
 };
-
-/**
- * Variable source
- */
-export type source2 = 'startNode' | 'resourceLibrary';
 
 /**
  * Variable type

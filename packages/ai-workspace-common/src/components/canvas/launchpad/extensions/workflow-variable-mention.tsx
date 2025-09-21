@@ -20,41 +20,14 @@ interface VariableSuggestionListProps {
 const VariableSuggestionList = forwardRef<VariableSuggestionListRef, VariableSuggestionListProps>(
   ({ items, command }, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-    // Group variables by source
-    const groupedItems = items.reduce(
-      (acc, item) => {
-        const source = item.source ?? 'other';
-        if (!acc[source]) {
-          acc[source] = [];
-        }
-        acc[source].push(item);
-        return acc;
-      },
-      {} as Record<string, WorkflowVariable[]>,
-    );
-
-    // Get available categories
-    const categories = Object.keys(groupedItems).filter(
-      (source) => source === 'startNode' || source === 'resourceLibrary',
-    );
-
-    // Get current display items (categories or variables)
-    const currentItems = selectedCategory ? groupedItems[selectedCategory] || [] : categories;
+    // Simplified - just use items directly since there's no source property to group by
+    const currentItems = items;
 
     const selectItem = (index: number) => {
-      if (selectedCategory) {
-        // Second level - select variable
-        const item = currentItems[index] as WorkflowVariable;
-        if (item) {
-          command(item);
-        }
-      } else {
-        // First level - select category
-        const category = currentItems[index] as string;
-        setSelectedCategory(category);
-        setSelectedIndex(0);
+      const item = currentItems[index];
+      if (item) {
+        command(item);
       }
     };
 
@@ -70,16 +43,8 @@ const VariableSuggestionList = forwardRef<VariableSuggestionListRef, VariableSug
       selectItem(selectedIndex);
     };
 
-    const backHandler = () => {
-      if (selectedCategory) {
-        setSelectedCategory(null);
-        setSelectedIndex(0);
-      }
-    };
-
     useEffect(() => {
       setSelectedIndex(0);
-      setSelectedCategory(null);
     }, [items]);
 
     useImperativeHandle(ref, () => ({
@@ -99,36 +64,9 @@ const VariableSuggestionList = forwardRef<VariableSuggestionListRef, VariableSug
           return true;
         }
 
-        if (event.key === 'ArrowLeft' || event.key === 'Backspace') {
-          backHandler();
-          return true;
-        }
-
         return false;
       },
     }));
-
-    const getSourceIcon = (source: string) => {
-      switch (source) {
-        case 'startNode':
-          return '📄';
-        case 'resourceLibrary':
-          return '📚';
-        default:
-          return '⚙️';
-      }
-    };
-
-    const getSourceLabel = (source: string) => {
-      switch (source) {
-        case 'startNode':
-          return '开始节点';
-        case 'resourceLibrary':
-          return '资源库';
-        default:
-          return 'Other';
-      }
-    };
 
     const getVariableTypeColor = (variableType?: string) => {
       switch (variableType) {
@@ -153,71 +91,33 @@ const VariableSuggestionList = forwardRef<VariableSuggestionListRef, VariableSug
 
     return (
       <div className="bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-auto p-1 min-w-[280px]">
-        {selectedCategory ? (
-          // Second level - show variables in selected category
-          <>
-            <div className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 rounded-md mb-1">
-              <button
-                type="button"
-                onClick={backHandler}
-                className="text-gray-400 hover:text-gray-600"
+        {currentItems.map((item, index) => (
+          <button
+            key={item.name}
+            type="button"
+            className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+              index === selectedIndex ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+            }`}
+            onClick={() => selectItem(index)}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-gray-800">@{item.name}</span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${getVariableTypeColor(
+                  item.variableType,
+                )}`}
               >
-                ←
-              </button>
-              <span>{getSourceIcon(selectedCategory)}</span>
-              <span>{getSourceLabel(selectedCategory)}</span>
+                {item.variableType ?? 'string'}
+              </span>
             </div>
-            {(groupedItems[selectedCategory] || []).map((item, index) => (
-              <button
-                key={item.name}
-                type="button"
-                className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                  index === selectedIndex ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
-                }`}
-                onClick={() => selectItem(index)}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-gray-800">@{item.name}</span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${getVariableTypeColor(
-                      item.variableType,
-                    )}`}
-                  >
-                    {item.variableType ?? 'string'}
-                  </span>
-                </div>
-                {item.description && (
-                  <div className="text-xs text-gray-500 mb-1">{item.description}</div>
-                )}
-                {item.value?.length && (
-                  <div className="text-xs text-gray-400 truncate">
-                    Current: {item.value[0]?.text}
-                  </div>
-                )}
-              </button>
-            ))}
-          </>
-        ) : (
-          // First level - show categories
-          <>
-            {categories.map((source, index) => (
-              <button
-                key={source}
-                type="button"
-                className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center justify-between ${
-                  index === selectedIndex ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
-                }`}
-                onClick={() => selectItem(index)}
-              >
-                <div className="flex items-center gap-2">
-                  <span>{getSourceIcon(source)}</span>
-                  <span className="font-medium text-gray-800">{getSourceLabel(source)}</span>
-                </div>
-                <span className="text-gray-400">→</span>
-              </button>
-            ))}
-          </>
-        )}
+            {item.description && (
+              <div className="text-xs text-gray-500 mb-1">{item.description}</div>
+            )}
+            {item.value?.length && (
+              <div className="text-xs text-gray-400 truncate">Current: {item.value[0]?.text}</div>
+            )}
+          </button>
+        ))}
       </div>
     );
   },
@@ -272,19 +172,15 @@ export const WorkflowVariableMention = Extension.create<WorkflowVariableMentionO
         suggestion: {
           ...this.options.suggestion,
           items: ({ query }) => {
-            // Filter variables by startNode and resourceLibrary sources only
-            const filteredVariables = this.options.variables?.filter(
-              (variable) =>
-                variable.source === 'startNode' || variable.source === 'resourceLibrary',
-            );
+            const variables = this.options.variables ?? [];
 
             // Further filter by query if provided
             if (!query) {
-              return filteredVariables ?? [];
+              return variables ?? [];
             }
 
             return (
-              filteredVariables?.filter((variable) =>
+              variables?.filter((variable) =>
                 variable.name.toLowerCase().includes(query.toLowerCase()),
               ) ?? []
             );

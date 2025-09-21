@@ -391,7 +391,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           name: values.name,
           value: finalValue,
           description: values.description,
-          source: 'startNode',
           variableType: variableType as 'string' | 'option' | 'resource',
           required: values.required,
           ...(variableType === 'resource' && {
