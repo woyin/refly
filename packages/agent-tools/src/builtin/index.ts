@@ -111,6 +111,10 @@ export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
         { enableReranker: true },
       );
 
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
+
       return {
         status: 'success',
         data: result,
@@ -154,6 +158,10 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
         limit: input.num_results,
       });
 
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
+
       return {
         status: 'success',
         data: result,
@@ -179,24 +187,34 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
   schema = z.object({
     mediaType: z.enum(['image', 'audio', 'video']).describe('Type of media to generate'),
     prompt: z.string().describe('Prompt describing the media to generate'),
-    model: z.string().optional().describe('Optional model to use for generation'),
-    provider: z.string().optional().describe('Optional provider to use for generation'),
-    targetType: z
-      .enum([
-        'document',
-        'resource',
-        'canvas',
-        'share',
-        'user',
-        'project',
-        'skillResponse',
-        'codeArtifact',
-        'page',
-        'mediaResult',
-      ])
-      .optional()
-      .describe('Optional target entity type'),
-    targetId: z.string().optional().describe('Optional target entity ID'),
+    // model: z
+    //   .string()
+    //   .optional()
+    //   .describe(
+    //     'Specific model to use for generation. If not specified, the default model will be used.',
+    //   ),
+    // provider: z
+    //   .string()
+    //   .optional()
+    //   .describe(
+    //     'Specific provider to use for generation. If not specified, the default provider will be used.',
+    //   ),
+    // targetType: z
+    //   .enum([
+    //     'document',
+    //     'resource',
+    //     'canvas',
+    //     'share',
+    //     'user',
+    //     'project',
+    //     'skillResponse',
+    //     'codeArtifact',
+    //     'page',
+    //     'mediaResult',
+    //   ])
+    //   .optional()
+    //   .describe('Optional target entity type'),
+    // targetId: z.string().optional().describe('Optional target entity ID'),
   });
 
   description = 'Generate images, audio, or video content using AI.';
@@ -218,13 +236,17 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
       const result = await reflyService.generateMedia(user, {
         mediaType: input.mediaType,
         prompt: input.prompt,
-        model: input.model,
-        provider: input.provider,
-        targetType: input.targetType,
-        targetId: input.targetId,
+        // model: input.model,
+        // provider: input.provider,
+        // targetType: input.targetType,
+        // targetId: input.targetId,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
 
       return {
         status: 'success',
@@ -386,6 +408,10 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
         to: input.to,
         attachments: input.attachments,
       });
+
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
 
       return {
         status: 'success',
