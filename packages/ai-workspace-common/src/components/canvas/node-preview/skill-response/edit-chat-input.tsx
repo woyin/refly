@@ -253,6 +253,10 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
           ...activeNode.data,
           metadata: {
             ...activeNode.data?.metadata,
+            selectedToolsets,
+            structuredData: {
+              query: editQuery,
+            },
             contextItems: editContextItems,
           },
         },

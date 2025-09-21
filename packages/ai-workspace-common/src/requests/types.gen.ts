@@ -835,7 +835,8 @@ export type EntityType =
   | 'skillResponse'
   | 'codeArtifact'
   | 'page'
-  | 'mediaResult';
+  | 'mediaResult'
+  | 'workflowApp';
 
 /**
  * Entity

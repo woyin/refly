@@ -58,6 +58,69 @@ export const GoogleDocsToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '使用查询参数搜索 Google 文档。',
       },
     },
+    {
+      name: 'append_text',
+      descriptionDict: {
+        en: 'Append text to an existing Google Doc.',
+        'zh-CN': '向现有的 Google 文档追加文本。',
+      },
+    },
+    {
+      name: 'insert_text',
+      descriptionDict: {
+        en: 'Insert text into a Google Doc at a specific location.',
+        'zh-CN': '在 Google 文档的指定位置插入文本。',
+      },
+    },
+    {
+      name: 'replace_text',
+      descriptionDict: {
+        en: 'Replace all instances of matched text in a Google Doc.',
+        'zh-CN': '替换 Google 文档中所有匹配的文本。',
+      },
+    },
+    {
+      name: 'insert_table',
+      descriptionDict: {
+        en: 'Insert a table into a Google Doc.',
+        'zh-CN': '在 Google 文档中插入表格。',
+      },
+    },
+    {
+      name: 'append_image',
+      descriptionDict: {
+        en: 'Append an image to the end of a Google Doc.',
+        'zh-CN': '向 Google 文档末尾追加图片。',
+      },
+    },
+    {
+      name: 'replace_image',
+      descriptionDict: {
+        en: 'Replace an image in a Google Doc.',
+        'zh-CN': '替换 Google 文档中的图片。',
+      },
+    },
+    {
+      name: 'insert_page_break',
+      descriptionDict: {
+        en: 'Insert a page break into a Google Doc.',
+        'zh-CN': '在 Google 文档中插入分页符。',
+      },
+    },
+    {
+      name: 'create_document_from_template',
+      descriptionDict: {
+        en: 'Create a new Google Doc from a template.',
+        'zh-CN': '从模板创建新的 Google 文档。',
+      },
+    },
+    {
+      name: 'get_tab_content',
+      descriptionDict: {
+        en: 'Get the content of specific tabs in a Google Doc.',
+        'zh-CN': '获取 Google 文档中特定标签页的内容。',
+      },
+    },
   ],
   requiresAuth: true,
   authPatterns: [
@@ -612,6 +675,741 @@ export class GoogleDocsSearchDocuments extends AgentBaseTool<GoogleDocsParams> {
   }
 }
 
+export class GoogleDocsAppendText extends AgentBaseTool<GoogleDocsParams> {
+  name = 'append_text';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc to append text to'),
+    text: z.string().describe('The text to append to the document'),
+    appendAtBeginning: z
+      .boolean()
+      .optional()
+      .describe('Whether to append at the beginning instead of the end')
+      .default(false),
+  });
+  description = 'Append text to an existing Google Doc.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      // Get the document to find the insertion point
+      const docResponse = await docs.documents.get({
+        documentId: input.documentId,
+      });
+
+      const document = docResponse.data;
+      const insertIndex = input.appendAtBeginning ? 1 : (document.body?.content?.length ?? 1) - 1;
+
+      // Insert the text
+      await docs.documents.batchUpdate({
+        documentId: input.documentId,
+        requestBody: {
+          requests: [
+            {
+              insertText: {
+                location: {
+                  index: insertIndex,
+                },
+                text: input.text,
+              },
+            },
+          ],
+        },
+      });
+
+      const result = {
+        message: 'Text appended successfully',
+        document: {
+          id: input.documentId,
+          text: input.text,
+          appendAtBeginning: input.appendAtBeginning,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully appended text to Google Doc: ${input.documentId}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error appending text',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while appending text',
+      };
+    }
+  }
+}
+
+export class GoogleDocsInsertText extends AgentBaseTool<GoogleDocsParams> {
+  name = 'insert_text';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc to insert text into'),
+    text: z.string().describe('The text to insert into the document'),
+    index: z
+      .number()
+      .optional()
+      .describe('The index to insert the text at (default: 1)')
+      .default(1),
+    tabId: z.string().optional().describe('The ID of the tab to insert text into'),
+  });
+  description = 'Insert text into a Google Doc at a specific location.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      const insertRequest: any = {
+        text: input.text,
+        location: {
+          index: input.index,
+        },
+      };
+
+      if (input.tabId) {
+        insertRequest.location.tabId = input.tabId;
+      }
+
+      // Insert the text
+      await docs.documents.batchUpdate({
+        documentId: input.documentId,
+        requestBody: {
+          requests: [
+            {
+              insertText: insertRequest,
+            },
+          ],
+        },
+      });
+
+      const result = {
+        message: 'Text inserted successfully',
+        document: {
+          id: input.documentId,
+          text: input.text,
+          index: input.index,
+          tabId: input.tabId,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully inserted text into Google Doc: ${input.documentId} at index ${input.index}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error inserting text',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while inserting text',
+      };
+    }
+  }
+}
+
+export class GoogleDocsReplaceText extends AgentBaseTool<GoogleDocsParams> {
+  name = 'replace_text';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc to replace text in'),
+    oldText: z.string().describe('The text to be replaced'),
+    newText: z.string().describe('The new text to replace with'),
+    matchCase: z
+      .boolean()
+      .optional()
+      .describe('Whether to match case when replacing text')
+      .default(false),
+    tabIds: z.array(z.string()).optional().describe('The tab IDs to replace the text in'),
+  });
+  description = 'Replace all instances of matched text in a Google Doc.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      const replaceRequest: any = {
+        replaceText: input.newText,
+        containsText: {
+          text: input.oldText,
+          matchCase: input.matchCase,
+        },
+      };
+
+      if (input.tabIds && input.tabIds.length > 0) {
+        replaceRequest.tabsCriteria = {
+          tabIds: input.tabIds,
+        };
+      }
+
+      // Replace the text
+      await docs.documents.batchUpdate({
+        documentId: input.documentId,
+        requestBody: {
+          requests: [
+            {
+              replaceAllText: replaceRequest,
+            },
+          ],
+        },
+      });
+
+      const result = {
+        message: 'Text replaced successfully',
+        document: {
+          id: input.documentId,
+          oldText: input.oldText,
+          newText: input.newText,
+          matchCase: input.matchCase,
+          tabIds: input.tabIds,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully replaced text in Google Doc: ${input.documentId}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error replacing text',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while replacing text',
+      };
+    }
+  }
+}
+
+export class GoogleDocsInsertTable extends AgentBaseTool<GoogleDocsParams> {
+  name = 'insert_table';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc to insert table into'),
+    rows: z.number().describe('The number of rows in the table'),
+    columns: z.number().describe('The number of columns in the table'),
+    index: z
+      .number()
+      .optional()
+      .describe('The index to insert the table at (default: 1)')
+      .default(1),
+    tabId: z.string().optional().describe('The ID of the tab to insert the table into'),
+  });
+  description = 'Insert a table into a Google Doc.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      const insertRequest: any = {
+        rows: input.rows,
+        columns: input.columns,
+        location: {
+          index: input.index,
+        },
+      };
+
+      if (input.tabId) {
+        insertRequest.location.tabId = input.tabId;
+      }
+
+      // Insert the table
+      await docs.documents.batchUpdate({
+        documentId: input.documentId,
+        requestBody: {
+          requests: [
+            {
+              insertTable: insertRequest,
+            },
+          ],
+        },
+      });
+
+      const result = {
+        message: 'Table inserted successfully',
+        document: {
+          id: input.documentId,
+          rows: input.rows,
+          columns: input.columns,
+          index: input.index,
+          tabId: input.tabId,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully inserted ${input.rows}x${input.columns} table into Google Doc: ${input.documentId}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error inserting table',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while inserting table',
+      };
+    }
+  }
+}
+
+export class GoogleDocsAppendImage extends AgentBaseTool<GoogleDocsParams> {
+  name = 'append_image';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc to append image to'),
+    imageUri: z.string().describe('The URI of the image to append'),
+    appendAtBeginning: z
+      .boolean()
+      .optional()
+      .describe('Whether to append at the beginning instead of the end')
+      .default(false),
+  });
+  description = 'Append an image to the end of a Google Doc.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      // Get the document to find the insertion point
+      const docResponse = await docs.documents.get({
+        documentId: input.documentId,
+      });
+
+      const document = docResponse.data;
+      const insertIndex = input.appendAtBeginning ? 1 : (document.body?.content?.length ?? 1) - 1;
+
+      // Insert the image
+      await docs.documents.batchUpdate({
+        documentId: input.documentId,
+        requestBody: {
+          requests: [
+            {
+              insertInlineImage: {
+                location: {
+                  index: insertIndex,
+                },
+                uri: input.imageUri,
+              },
+            },
+          ],
+        },
+      });
+
+      const result = {
+        message: 'Image appended successfully',
+        document: {
+          id: input.documentId,
+          imageUri: input.imageUri,
+          appendAtBeginning: input.appendAtBeginning,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully appended image to Google Doc: ${input.documentId}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error appending image',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while appending image',
+      };
+    }
+  }
+}
+
+export class GoogleDocsReplaceImage extends AgentBaseTool<GoogleDocsParams> {
+  name = 'replace_image';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc containing the image'),
+    imageId: z.string().describe('The ID of the image to be replaced'),
+    imageUri: z.string().describe('The URI of the new image'),
+  });
+  description = 'Replace an image in a Google Doc.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      // Replace the image
+      await docs.documents.batchUpdate({
+        documentId: input.documentId,
+        requestBody: {
+          requests: [
+            {
+              replaceImage: {
+                imageObjectId: input.imageId,
+                uri: input.imageUri,
+              },
+            },
+          ],
+        },
+      });
+
+      const result = {
+        message: 'Image replaced successfully',
+        document: {
+          id: input.documentId,
+          imageId: input.imageId,
+          imageUri: input.imageUri,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully replaced image in Google Doc: ${input.documentId}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error replacing image',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while replacing image',
+      };
+    }
+  }
+}
+
+export class GoogleDocsInsertPageBreak extends AgentBaseTool<GoogleDocsParams> {
+  name = 'insert_page_break';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc to insert page break into'),
+    index: z
+      .number()
+      .optional()
+      .describe('The index to insert the page break at (default: 1)')
+      .default(1),
+    tabId: z.string().optional().describe('The ID of the tab to insert the page break into'),
+  });
+  description = 'Insert a page break into a Google Doc.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      const insertRequest: any = {
+        location: {
+          index: input.index,
+        },
+      };
+
+      if (input.tabId) {
+        insertRequest.location.tabId = input.tabId;
+      }
+
+      // Insert the page break
+      await docs.documents.batchUpdate({
+        documentId: input.documentId,
+        requestBody: {
+          requests: [
+            {
+              insertPageBreak: insertRequest,
+            },
+          ],
+        },
+      });
+
+      const result = {
+        message: 'Page break inserted successfully',
+        document: {
+          id: input.documentId,
+          index: input.index,
+          tabId: input.tabId,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully inserted page break into Google Doc: ${input.documentId} at index ${input.index}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error inserting page break',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while inserting page break',
+      };
+    }
+  }
+}
+
+export class GoogleDocsCreateFromTemplate extends AgentBaseTool<GoogleDocsParams> {
+  name = 'create_document_from_template';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    templateId: z.string().describe('The ID of the template document'),
+    title: z.string().describe('Title for the new document'),
+    folderId: z.string().optional().describe('The ID of the folder to place the new document in'),
+    replacements: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe('Key-value pairs for replacing placeholders in the template'),
+  });
+  description = 'Create a new Google Doc from a template.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const drive = createDriveService(this.params);
+
+      // Copy the template document
+      const copyResponse = await drive.files.copy({
+        fileId: input.templateId,
+        requestBody: {
+          name: input.title,
+        },
+      });
+
+      const newDocumentId = copyResponse.data.id;
+
+      if (!newDocumentId) {
+        throw new Error('Failed to create document from template - no ID returned');
+      }
+
+      // Move to folder if specified
+      if (input.folderId) {
+        // Get current parents
+        const fileResponse = await drive.files.get({
+          fileId: newDocumentId,
+          fields: 'parents',
+        });
+
+        const currentParents = fileResponse.data.parents ?? [];
+
+        // Move to new folder
+        await drive.files.update({
+          fileId: newDocumentId,
+          removeParents: currentParents.join(','),
+          addParents: input.folderId,
+          fields: 'id,name',
+        });
+      }
+
+      // Replace placeholders if provided
+      if (input.replacements && Object.keys(input.replacements).length > 0) {
+        const docs = createDocsService(this.params);
+
+        const replaceRequests = Object.entries(input.replacements).map(
+          ([placeholder, replacement]) => ({
+            replaceAllText: {
+              containsText: {
+                text: placeholder,
+              },
+              replaceText: replacement,
+            },
+          }),
+        );
+
+        await docs.documents.batchUpdate({
+          documentId: newDocumentId,
+          requestBody: {
+            requests: replaceRequests,
+          },
+        });
+      }
+
+      // Get final document info
+      const finalResponse = await drive.files.get({
+        fileId: newDocumentId,
+        fields: 'id,name,webViewLink,createdTime',
+      });
+
+      const result = {
+        message: 'Document created from template successfully',
+        document: {
+          id: newDocumentId,
+          name: finalResponse.data.name,
+          webViewLink: finalResponse.data.webViewLink,
+          createdTime: finalResponse.data.createdTime,
+          templateId: input.templateId,
+        },
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully created Google Doc from template: "${finalResponse.data.name}"`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error creating document from template',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while creating document from template',
+      };
+    }
+  }
+}
+
+export class GoogleDocsGetTabContent extends AgentBaseTool<GoogleDocsParams> {
+  name = 'get_tab_content';
+  toolsetKey = GoogleDocsToolsetDefinition.key;
+
+  schema = z.object({
+    documentId: z.string().describe('The ID of the Google Doc to get tab content from'),
+    tabIds: z.array(z.string()).describe('The IDs of the tabs to get content for'),
+  });
+  description = 'Get the content of specific tabs in a Google Doc.';
+
+  protected params: GoogleDocsParams;
+
+  constructor(params: GoogleDocsParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const docs = createDocsService(this.params);
+
+      // Get the document with tabs
+      const response = await docs.documents.get({
+        documentId: input.documentId,
+      });
+
+      const document = response.data;
+
+      if (!document.tabs || document.tabs.length === 0) {
+        return {
+          status: 'success',
+          data: {
+            message: 'No tabs found in document',
+            documentId: input.documentId,
+            tabs: [],
+          },
+          summary: `No tabs found in Google Doc: ${input.documentId}`,
+        };
+      }
+
+      // Filter tabs by requested IDs
+      const requestedTabs = document.tabs.filter((tab: any) =>
+        input.tabIds.includes(tab.tabProperties?.tabId),
+      );
+
+      // Extract content from each requested tab
+      const tabContents = requestedTabs.map((tab: any) => {
+        let content = '';
+        if (tab.tabProperties && tab.tabContent?.length) {
+          for (const element of tab.tabContent) {
+            if (element.paragraph?.elements) {
+              for (const paragraphElement of element.paragraph.elements) {
+                if (paragraphElement.textRun?.content) {
+                  content += paragraphElement.textRun.content;
+                }
+              }
+              content += '\n';
+            }
+          }
+        }
+
+        return {
+          tabId: tab.tabProperties?.tabId,
+          title: tab.tabProperties?.title,
+          content: content.trim(),
+        };
+      });
+
+      const result = {
+        message: `Successfully retrieved tab content for document: ${input.documentId}`,
+        documentId: input.documentId,
+        tabs: tabContents,
+        requestedTabIds: input.tabIds,
+      };
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully retrieved content for ${tabContents.length} tab(s) in Google Doc: ${input.documentId}`,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error getting tab content',
+        summary:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error occurred while getting tab content',
+      };
+    }
+  }
+}
+
 export class GoogleDocsToolset extends AgentBaseToolset<GoogleDocsParams> {
   toolsetKey = GoogleDocsToolsetDefinition.key;
   tools = [
@@ -621,5 +1419,14 @@ export class GoogleDocsToolset extends AgentBaseToolset<GoogleDocsParams> {
     GoogleDocsExportDocument,
     GoogleDocsDeleteDocument,
     GoogleDocsSearchDocuments,
+    GoogleDocsAppendText,
+    GoogleDocsInsertText,
+    GoogleDocsReplaceText,
+    GoogleDocsInsertTable,
+    GoogleDocsAppendImage,
+    GoogleDocsReplaceImage,
+    GoogleDocsInsertPageBreak,
+    GoogleDocsCreateFromTemplate,
+    GoogleDocsGetTabContent,
   ] satisfies readonly AgentToolConstructor<GoogleDocsParams>[];
 }

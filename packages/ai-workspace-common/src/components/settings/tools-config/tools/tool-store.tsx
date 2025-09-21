@@ -193,7 +193,7 @@ export const ToolStore = () => {
   }, [t, setToolStoreModalOpen, setCurrentToolDefinition]);
 
   return (
-    <div className="h-full flex flex-col px-5 py-3">
+    <div className="h-full flex flex-col px-5 py-3 overflow-hidden">
       <Input
         placeholder={t('settings.toolStore.searchPlaceholder')}
         prefix={<Search size={16} color="var(--refly-text-3)" />}
@@ -204,7 +204,7 @@ export const ToolStore = () => {
         className="mb-4"
       />
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <Row gutter={[16, 12]}>
             {Array.from({ length: 8 }).map((_, index) => (

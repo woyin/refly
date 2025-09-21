@@ -6,5 +6,8 @@ export const usePublicAccessPage = () => {
   const isPreviewPage = location?.pathname?.startsWith('/preview/') ?? false;
   const isArtifactGalleryPage = location?.pathname?.startsWith('/artifact-gallery') ?? false;
   const isUseCasesGalleryPage = location?.pathname?.startsWith('/use-cases-gallery') ?? false;
-  return isPreviewPage || isSharePage || isArtifactGalleryPage || isUseCasesGalleryPage;
+  const isAppPage = location?.pathname?.startsWith('/app/') ?? false;
+  return (
+    isPreviewPage || isSharePage || isArtifactGalleryPage || isUseCasesGalleryPage || isAppPage
+  );
 };

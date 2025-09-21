@@ -159,11 +159,12 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     (structuredData?.query as string) ?? (result?.input?.query as string) ?? title,
   );
 
+  // Update currentQuery when node data changes, ensuring it's specific to this node
   useEffect(() => {
-    if (result?.input?.query) {
-      setCurrentQuery((structuredData?.query as string) ?? (result?.input?.query as string));
-    }
-  }, [result?.input?.query, structuredData?.query]);
+    const nodeSpecificQuery =
+      (structuredData?.query as string) ?? (result?.input?.query as string) ?? title;
+    setCurrentQuery(nodeSpecificQuery);
+  }, [node.id, structuredData?.query, result?.input?.query, title]);
 
   const { steps = [], context, history = [] } = result ?? {};
   const contextItems = useMemo(() => {
@@ -361,13 +362,4 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   );
 };
 
-export const SkillResponseNodePreview = memo(
-  SkillResponseNodePreviewComponent,
-  (prevProps, nextProps) => {
-    return (
-      prevProps.node.id === nextProps.node.id &&
-      prevProps.resultId === nextProps.resultId &&
-      prevProps.node.data?.metadata?.contextItems === nextProps.node.data?.metadata?.contextItems
-    );
-  },
-);
+export const SkillResponseNodePreview = memo(SkillResponseNodePreviewComponent);

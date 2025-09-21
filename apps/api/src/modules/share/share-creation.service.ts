@@ -957,6 +957,140 @@ export class ShareCreationService {
     return { shareRecord, pageData };
   }
 
+  async createShareForWorkflowApp(user: User, param: CreateShareRequest) {
+    const { entityId: appId, title, parentShareId, allowDuplication } = param;
+
+    // Check if shareRecord already exists
+    const existingShareRecord = await this.prisma.shareRecord.findFirst({
+      where: {
+        entityId: appId,
+        entityType: 'workflowApp',
+        uid: user.uid,
+        deletedAt: null,
+      },
+    });
+
+    // Generate shareId only if needed
+    const shareId = existingShareRecord?.shareId ?? genShareId('workflowApp');
+
+    // Get workflow app data
+    const workflowApp = await this.prisma.workflowApp.findUnique({
+      where: { appId, uid: user.uid, deletedAt: null },
+    });
+
+    if (!workflowApp) {
+      throw new ShareNotFoundError();
+    }
+
+    // Get canvas data
+    const canvasData = await this.canvasService.getCanvasRawData(user, workflowApp.canvasId);
+
+    // If title is provided, use it as the title of the workflow app
+    if (title) {
+      canvasData.title = title;
+    }
+
+    // Set up concurrency limit for image processing
+    const limit = pLimit(5); // Limit to 5 concurrent operations
+
+    // Find all image video audio nodes
+    const mediaNodes =
+      canvasData.nodes?.filter(
+        (node) => node.type === 'image' || node.type === 'video' || node.type === 'audio',
+      ) ?? [];
+
+    // Process all images in parallel with concurrency control
+    const mediaProcessingPromises = mediaNodes.map((node) => {
+      return limit(async () => {
+        const storageKey = node.data?.metadata?.storageKey as string;
+        if (storageKey) {
+          try {
+            const mediaUrl = await this.miscService.publishFile(storageKey);
+            // Update the node with the published image URL
+            if (node.data?.metadata) {
+              node.data.metadata[`${node.type}Url`] = mediaUrl;
+            }
+          } catch (error) {
+            this.logger.error(
+              `Failed to publish image for storageKey: ${storageKey}, error: ${error.stack}`,
+            );
+          }
+        }
+        return node;
+      });
+    });
+
+    // Wait for all image processing to complete
+    await Promise.all(mediaProcessingPromises);
+
+    // Publish minimap
+    if (canvasData.minimapUrl) {
+      canvasData.minimapUrl = await this.miscService.publishFile(canvasData.minimapUrl);
+    }
+
+    // Create public workflow app data
+    const publicData = {
+      appId: workflowApp.appId,
+      title: title || canvasData.title,
+      description: workflowApp.description,
+      query: workflowApp.query,
+      variables: JSON.parse(workflowApp.variables || '[]'),
+      canvasData,
+      createdAt: workflowApp.createdAt,
+      updatedAt: workflowApp.updatedAt,
+    };
+
+    // Upload public workflow app data to Minio
+    const { storageKey } = await this.miscService.uploadBuffer(user, {
+      fpath: 'workflow-app.json',
+      buf: Buffer.from(JSON.stringify(publicData)),
+      entityId: appId,
+      entityType: 'workflowApp',
+      visibility: 'public',
+      storageKey: `share/${shareId}.json`,
+    });
+
+    let shareRecord: ShareRecord;
+
+    if (existingShareRecord) {
+      // Update existing shareRecord
+      shareRecord = await this.prisma.shareRecord.update({
+        where: {
+          pk: existingShareRecord.pk,
+        },
+        data: {
+          title: publicData.title,
+          storageKey,
+          parentShareId,
+          allowDuplication,
+          updatedAt: new Date(),
+        },
+      });
+      this.logger.log(
+        `Updated existing share record: ${shareRecord.shareId} for workflow app: ${appId}`,
+      );
+    } else {
+      // Create new shareRecord
+      shareRecord = await this.prisma.shareRecord.create({
+        data: {
+          shareId,
+          title: publicData.title,
+          uid: user.uid,
+          entityId: appId,
+          entityType: 'workflowApp',
+          storageKey,
+          parentShareId,
+          allowDuplication,
+        },
+      });
+      this.logger.log(
+        `Created new share record: ${shareRecord.shareId} for workflow app: ${appId}`,
+      );
+    }
+
+    return { shareRecord, workflowApp };
+  }
+
   async createShare(user: User, req: CreateShareRequest): Promise<ShareRecord> {
     const entityType = req.entityType as EntityType;
 
@@ -1029,6 +1163,9 @@ export class ShareCreationService {
         return;
       case 'page':
         await this.createShareForPage(user, req);
+        return;
+      case 'workflowApp':
+        await this.createShareForWorkflowApp(user, req);
         return;
       default:
         throw new ParamsError(`Unsupported entity type ${req.entityType} for sharing`);
