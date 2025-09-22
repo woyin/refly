@@ -759,7 +759,7 @@ export class ToolService {
       .map(
         (tool) =>
           new DynamicStructuredTool({
-            name: tool.name,
+            name: `${BuiltinToolsetDefinition.key}_${tool.name}`,
             description: tool.description,
             schema: tool.schema,
             func: tool.invoke.bind(tool),
@@ -815,7 +815,7 @@ export class ToolService {
         .map(
           (tool) =>
             new DynamicStructuredTool({
-              name: tool.name,
+              name: `${toolset.definition.key}_${tool.name}`,
               description: tool.description,
               schema: tool.schema,
               func: tool.invoke.bind(tool),

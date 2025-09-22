@@ -11,8 +11,8 @@ export * from './google-sheets';
 export * from './gmail';
 export * from './twitter';
 export * from './notion';
-export * from './generate-audio-fal';
-export * from './generate-image-fal';
-export * from './generate-video-fal';
+export * from './fal-audio';
+export * from './fal-image';
+export * from './fal-video';
 
 export type { ReflyService } from './builtin/interface';

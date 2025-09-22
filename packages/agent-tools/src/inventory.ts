@@ -12,9 +12,9 @@ import { GoogleSheetsToolset, GoogleSheetsToolsetDefinition } from './google-she
 import { GmailToolset, GmailToolsetDefinition } from './gmail';
 import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
 import { NotionToolset, NotionToolsetDefinition } from './notion';
-import { GenerateAudioFalToolset, GenerateAudioFalToolsetDefinition } from './generate-audio-fal';
-import { GenerateImageFalToolset, GenerateImageFalToolsetDefinition } from './generate-image-fal';
-import { GenerateVideoFalToolset, GenerateVideoFalToolsetDefinition } from './generate-video-fal';
+import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
+import { FalImageToolset, FalImageToolsetDefinition } from './fal-image';
+import { FalVideoToolset, FalVideoToolsetDefinition } from './fal-video';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -73,16 +73,16 @@ export const toolsetInventory: Record<
     class: NotionToolset,
     definition: NotionToolsetDefinition,
   },
-  [GenerateAudioFalToolsetDefinition.key]: {
-    class: GenerateAudioFalToolset,
-    definition: GenerateAudioFalToolsetDefinition,
+  [FalAudioToolsetDefinition.key]: {
+    class: FalAudioToolset,
+    definition: FalAudioToolsetDefinition,
   },
-  [GenerateImageFalToolsetDefinition.key]: {
-    class: GenerateImageFalToolset,
-    definition: GenerateImageFalToolsetDefinition,
+  [FalImageToolsetDefinition.key]: {
+    class: FalImageToolset,
+    definition: FalImageToolsetDefinition,
   },
-  [GenerateVideoFalToolsetDefinition.key]: {
-    class: GenerateVideoFalToolset,
-    definition: GenerateVideoFalToolsetDefinition,
+  [FalVideoToolsetDefinition.key]: {
+    class: FalVideoToolset,
+    definition: FalVideoToolsetDefinition,
   },
 };

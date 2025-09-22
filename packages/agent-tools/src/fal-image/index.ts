@@ -15,13 +15,13 @@ export interface ReflyService {
   batchProcessURL: (urls: string[]) => Promise<string[]>;
 }
 
-export interface GenerateImageFalParams extends ToolParams {
+export interface FalImageParams extends ToolParams {
   user: User;
   reflyService: ReflyService;
 }
 
-export const GenerateImageFalToolsetDefinition: ToolsetDefinition = {
-  key: 'generate_image_fal',
+export const FalImageToolsetDefinition: ToolsetDefinition = {
+  key: 'fal_image',
   domain: 'https://fal.ai/',
   labelDict: {
     en: 'Generate Image with FAL',
@@ -33,14 +33,14 @@ export const GenerateImageFalToolsetDefinition: ToolsetDefinition = {
   },
   tools: [
     {
-      name: 'generate_image_with_seedream_t2i_fal',
+      name: 'seedream_generate_image',
       descriptionDict: {
         en: 'Generate image content with Seedream.',
         'zh-CN': '使用 Seedream 生成图像内容。',
       },
     },
     {
-      name: 'generate_image_with_seedream_i2i_fal',
+      name: 'seedream_edit_image',
       descriptionDict: {
         en: 'Edit image content with Seedream.',
         'zh-CN': '使用 Seedream 编辑图像内容。',
@@ -49,9 +49,9 @@ export const GenerateImageFalToolsetDefinition: ToolsetDefinition = {
   ],
 };
 
-export class GenerateImageWithSeedreamT2IFal extends AgentBaseTool<GenerateImageFalParams> {
-  name = 'generate_image_with_seedream_t2i_fal';
-  toolsetKey = GenerateImageFalToolsetDefinition.key;
+export class SeedreamGenerateImage extends AgentBaseTool<FalImageParams> {
+  name = 'seedream_generate_image';
+  toolsetKey = FalImageToolsetDefinition.key;
 
   schema = z.object({
     prompt: z.string().describe('The prompt to generate image.accept chinese and english.'),
@@ -70,9 +70,9 @@ export class GenerateImageWithSeedreamT2IFal extends AgentBaseTool<GenerateImage
   description =
     'A new-generation image creation model ByteDance, Seedream 4.0 i2i integrates image edit capabilities into a single, unified architecture.';
 
-  protected params: GenerateImageFalParams;
+  protected params: FalImageParams;
 
-  constructor(params: GenerateImageFalParams) {
+  constructor(params: FalImageParams) {
     super(params);
     this.params = params;
   }
@@ -111,9 +111,9 @@ export class GenerateImageWithSeedreamT2IFal extends AgentBaseTool<GenerateImage
   }
 }
 
-export class GenerateImageWithSeedreamI2IFal extends AgentBaseTool<GenerateImageFalParams> {
-  name = 'generate_image_with_seedream_i2i_fal';
-  toolsetKey = GenerateImageFalToolsetDefinition.key;
+export class SeedreamEditImage extends AgentBaseTool<FalImageParams> {
+  name = 'seedream_edit_image';
+  toolsetKey = FalImageToolsetDefinition.key;
 
   schema = z.object({
     prompt: z.string().describe('The prompt to generate image.accept chinese and english.'),
@@ -137,9 +137,9 @@ export class GenerateImageWithSeedreamI2IFal extends AgentBaseTool<GenerateImage
   description =
     'A new-generation image creation model ByteDance, Seedream 4.0 integrates image generation and image editing capabilities into a single, unified architecture.';
 
-  protected params: GenerateImageFalParams;
+  protected params: FalImageParams;
 
-  constructor(params: GenerateImageFalParams) {
+  constructor(params: FalImageParams) {
     super(params);
     this.params = params;
   }
@@ -182,10 +182,10 @@ export class GenerateImageWithSeedreamI2IFal extends AgentBaseTool<GenerateImage
   }
 }
 
-export class GenerateImageFalToolset extends AgentBaseToolset<GenerateImageFalParams> {
-  toolsetKey = GenerateImageFalToolsetDefinition.key;
+export class FalImageToolset extends AgentBaseToolset<FalImageParams> {
+  toolsetKey = FalImageToolsetDefinition.key;
   tools = [
-    GenerateImageWithSeedreamT2IFal,
-    GenerateImageWithSeedreamI2IFal,
-  ] satisfies readonly AgentToolConstructor<GenerateImageFalParams>[];
+    SeedreamGenerateImage,
+    SeedreamEditImage,
+  ] satisfies readonly AgentToolConstructor<FalImageParams>[];
 }

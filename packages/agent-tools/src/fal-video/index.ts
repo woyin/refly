@@ -15,13 +15,13 @@ export interface ReflyService {
   batchProcessURL: (urls: string[]) => Promise<string[]>;
 }
 
-export interface GenerateVideoFalParams extends ToolParams {
+export interface FalVideoParams extends ToolParams {
   user: User;
   reflyService: ReflyService;
 }
 
-export const GenerateVideoFalToolsetDefinition: ToolsetDefinition = {
-  key: 'generate_video_fal',
+export const FalVideoToolsetDefinition: ToolsetDefinition = {
+  key: 'fal_video',
   domain: 'https://fal.ai/',
   labelDict: {
     en: 'Generate Video with FAL',
@@ -33,14 +33,14 @@ export const GenerateVideoFalToolsetDefinition: ToolsetDefinition = {
   },
   tools: [
     {
-      name: 'generate_video_with_seedance_t2v_fal',
+      name: 'seedance_generate_video',
       descriptionDict: {
         en: 'Seedance 1.0 Pro text to video, a high quality video generation model developed by Bytedance.',
         'zh-CN': '使用 Seedance 从文本生成视频内容。',
       },
     },
     {
-      name: 'generate_video_with_seedance_i2v_fal',
+      name: 'seedance_refrence_video',
       descriptionDict: {
         en: 'Seedance 1.0 Pro image to video, a high quality video generation model developed by Bytedance.',
         'zh-CN': '使用 Seedance 从图片生成视频内容。',
@@ -49,9 +49,9 @@ export const GenerateVideoFalToolsetDefinition: ToolsetDefinition = {
   ],
 };
 
-export class GenerateVideoWithSeedanceT2VFal extends AgentBaseTool<GenerateVideoFalParams> {
-  name = 'generate_video_with_seedance_t2v_fal';
-  toolsetKey = GenerateVideoFalToolsetDefinition.key;
+export class SeedanceGenerateVideo extends AgentBaseTool<FalVideoParams> {
+  name = 'seedance_generate_video';
+  toolsetKey = FalVideoToolsetDefinition.key;
 
   schema = z.object({
     prompt: z.string().describe('The prompt to generate video.accept chinese and english.'),
@@ -77,9 +77,9 @@ export class GenerateVideoWithSeedanceT2VFal extends AgentBaseTool<GenerateVideo
   description =
     'A new-generation image creation model ByteDance, Seedream 4.0 i2i integrates image edit capabilities into a single, unified architecture.';
 
-  protected params: GenerateVideoFalParams;
+  protected params: FalVideoParams;
 
-  constructor(params: GenerateVideoFalParams) {
+  constructor(params: FalVideoParams) {
     super(params);
     this.params = params;
   }
@@ -118,9 +118,9 @@ export class GenerateVideoWithSeedanceT2VFal extends AgentBaseTool<GenerateVideo
   }
 }
 
-export class GenerateVideoWithSeedanceI2VFal extends AgentBaseTool<GenerateVideoFalParams> {
-  name = 'generate_video_with_seedance_i2v_fal';
-  toolsetKey = GenerateVideoFalToolsetDefinition.key;
+export class SeedanceRefrenceVideo extends AgentBaseTool<FalVideoParams> {
+  name = 'seedance_refrence_video';
+  toolsetKey = FalVideoToolsetDefinition.key;
 
   schema = z.object({
     prompt: z.string().describe('The prompt to generate video.accept chinese and english.'),
@@ -147,9 +147,9 @@ export class GenerateVideoWithSeedanceI2VFal extends AgentBaseTool<GenerateVideo
   description =
     'A new-generation image creation model ByteDance, Seedream 4.0 integrates image generation and image editing capabilities into a single, unified architecture.';
 
-  protected params: GenerateVideoFalParams;
+  protected params: FalVideoParams;
 
-  constructor(params: GenerateVideoFalParams) {
+  constructor(params: FalVideoParams) {
     super(params);
     this.params = params;
   }
@@ -192,10 +192,10 @@ export class GenerateVideoWithSeedanceI2VFal extends AgentBaseTool<GenerateVideo
   }
 }
 
-export class GenerateVideoFalToolset extends AgentBaseToolset<GenerateVideoFalParams> {
-  toolsetKey = GenerateVideoFalToolsetDefinition.key;
+export class FalVideoToolset extends AgentBaseToolset<FalVideoParams> {
+  toolsetKey = FalVideoToolsetDefinition.key;
   tools = [
-    GenerateVideoWithSeedanceT2VFal,
-    GenerateVideoWithSeedanceI2VFal,
-  ] satisfies readonly AgentToolConstructor<GenerateVideoFalParams>[];
+    SeedanceGenerateVideo,
+    SeedanceRefrenceVideo,
+  ] satisfies readonly AgentToolConstructor<FalVideoParams>[];
 }
