@@ -411,7 +411,7 @@ export const WorkflowRunForm = ({
   };
 
   return (
-    <div className="w-full max-h-[500px] sm:max-h-[600px] flex flex-col bg-white rounded-lg border border-refly-Card-Border shadow-sm">
+    <div className="w-full max-h-[500px] sm:max-h-[600px] flex flex-col bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm">
       <div className="p-3 sm:p-4 flex-1 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
         {/* Workflow variables form */}
         {workflowVariables.length > 0 ? (
@@ -428,7 +428,7 @@ export const WorkflowRunForm = ({
         )}
       </div>
 
-      <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-gray-50 rounded-b-lg">
+      <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
         <div className="flex gap-2">
           <Button
             className={cn(
@@ -441,7 +441,11 @@ export const WorkflowRunForm = ({
               <Play
                 size={14}
                 className="sm:w-4 sm:h-4"
-                color={!isFormValid || isPolling ? 'var(--refly-text-3)' : 'white'}
+                color={
+                  !isFormValid || isPolling
+                    ? 'var(--refly-text-3)'
+                    : 'var(--refly-text-StaticWhite)'
+                }
               />
             }
             onClick={handleRun}
