@@ -103,7 +103,7 @@ export class ProductHuntListPosts extends AgentBaseTool<ProductHuntToolParams> {
       .enum(['NEWEST', 'POPULAR', 'FEATURED'])
       .describe('Sort order for posts')
       .default('NEWEST'),
-    max: z.number().describe('Maximum number of posts to return').default(20),
+    max: z.number().describe('Maximum number of posts to return').max(100).default(20),
   });
 
   description =
@@ -158,7 +158,7 @@ export class ProductHuntListUserPosts extends AgentBaseTool<ProductHuntToolParam
 
   schema = z.object({
     username: z.string().describe('The username (without @) of the user to fetch posts for'),
-    max: z.number().describe('Maximum number of posts to return').default(20),
+    max: z.number().describe('Maximum number of posts to return').max(100).default(20),
   });
 
   description =
@@ -228,7 +228,7 @@ export class ProductHuntListUpvotedPosts extends AgentBaseTool<ProductHuntToolPa
     username: z
       .string()
       .describe('The username (without @) of the user to fetch upvoted posts for'),
-    max: z.number().describe('Maximum number of posts to return').default(20),
+    max: z.number().describe('Maximum number of posts to return').max(100).default(20),
   });
 
   description =
