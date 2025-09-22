@@ -138,8 +138,6 @@ export class WorkflowAppService {
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
-    // MIGRATION: Changed from appId to shareId for unified workflow app access
-    // Find workflow app by shareId instead of appId to align with frontend URL pattern
     const workflowApp = await this.prisma.workflowApp.findFirst({
       where: { shareId, deletedAt: null },
     });

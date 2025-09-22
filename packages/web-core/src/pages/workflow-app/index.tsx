@@ -118,9 +118,7 @@ const WorkflowAppPage: React.FC = () => {
 
       const { data, error } = await getClient().executeWorkflowApp({
         body: {
-          // MIGRATION: Send shareId instead of appId for workflow execution
-          // This aligns with the unified shareId-based access pattern
-          shareId: shareId, // Changed from appId: shareId
+          shareId: shareId,
           variables,
         },
       });
