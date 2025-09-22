@@ -3,7 +3,7 @@ import { throttle } from 'lodash';
 import { User, UpsertDocumentRequest, CodeArtifactType } from '@refly/openapi-schema';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { PrismaService } from '../common/prisma.service';
-import { KnowledgeService } from '../knowledge/knowledge.service';
+import { DocumentService } from '../knowledge/document.service';
 import { CollabService } from '../collab/collab.service';
 import { CollabContext } from '../collab/collab.dto';
 import { ProviderService } from '../provider/provider.service';
@@ -24,7 +24,7 @@ export class InternalToolService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly knowledgeService: KnowledgeService,
+    private readonly documentService: DocumentService,
     private readonly providerService: ProviderService,
     private readonly collabService: CollabService,
     private readonly canvasSyncService: CanvasSyncService,
@@ -50,10 +50,9 @@ export class InternalToolService {
       const actionResult = await this.prisma.actionResult.findFirst({
         where: {
           resultId,
+          uid: user.uid,
         },
-        orderBy: {
-          version: 'desc',
-        },
+        orderBy: { version: 'desc' },
         take: 1,
       });
 
@@ -73,7 +72,7 @@ export class InternalToolService {
         canvasId,
       };
 
-      const document = await this.knowledgeService.createDocument(user, documentRequest);
+      const document = await this.documentService.createDocument(user, documentRequest);
 
       // Add node to canvas if canvasId is provided
       if (canvasId) {
@@ -154,10 +153,9 @@ export class InternalToolService {
       const actionResult = await this.prisma.actionResult.findFirst({
         where: {
           resultId,
+          uid: user.uid,
         },
-        orderBy: {
-          version: 'desc',
-        },
+        orderBy: { version: 'desc' },
         take: 1,
       });
 
@@ -281,9 +279,11 @@ export class InternalToolService {
     contentUpdater: (content: string) => Promise<void> | void,
     throttleDelay = 1000,
   ): Promise<void> {
+    let lastUpdate: Promise<void> = Promise.resolve();
     const throttledUpdate = throttle(
       (content: string) => {
-        contentUpdater(content);
+        const p = Promise.resolve(contentUpdater(content));
+        lastUpdate = p;
       },
       throttleDelay,
       {
@@ -309,6 +309,7 @@ export class InternalToolService {
       // Final update to ensure all content is saved
       if (accumulatedContent) {
         throttledUpdate.flush();
+        await lastUpdate;
       }
     }
   }

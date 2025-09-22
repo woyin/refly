@@ -15,10 +15,6 @@ import {
   WebSearchRequest,
   WebSearchResponse,
   ListCanvasesData,
-  AddReferencesRequest,
-  AddReferencesResponse,
-  DeleteReferencesRequest,
-  DeleteReferencesResponse,
   GetResourceDetailData,
   BatchCreateResourceResponse,
   SearchResult,
@@ -87,8 +83,6 @@ export interface ReflyService {
     type: CodeArtifactType,
     config: RunnableConfig,
   ) => Promise<{ artifactId: string }>;
-  addReferences: (user: User, req: AddReferencesRequest) => Promise<AddReferencesResponse>;
-  deleteReferences: (user: User, req: DeleteReferencesRequest) => Promise<DeleteReferencesResponse>;
   inMemorySearchWithIndexing: (
     user: User,
     options: {

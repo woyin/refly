@@ -1,8 +1,10 @@
 import { z } from 'zod/v3';
-import { RunnableConfig } from '@langchain/core/runnables';
-import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
-import { ToolsetDefinition, User } from '@refly/openapi-schema';
-import { ReflyService } from './interface';
+import { AgentBaseTool, AgentBaseToolset } from '../base';
+
+import type { RunnableConfig } from '@langchain/core/runnables';
+import type { ToolsetDefinition, User } from '@refly/openapi-schema';
+import type { AgentToolConstructor, ToolCallResult } from '../base';
+import type { ReflyService } from './interface';
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
   domain: 'https://refly.ai',
@@ -111,6 +113,10 @@ export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {
         { enableReranker: true },
       );
 
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
+
       return {
         status: 'success',
         data: result,
@@ -154,6 +160,10 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
         limit: input.num_results,
       });
 
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
+
       return {
         status: 'success',
         data: result,
@@ -179,8 +189,18 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
   schema = z.object({
     mediaType: z.enum(['image', 'audio', 'video']).describe('Type of media to generate'),
     prompt: z.string().describe('Prompt describing the media to generate'),
-    model: z.string().optional().describe('Optional model to use for generation'),
-    provider: z.string().optional().describe('Optional provider to use for generation'),
+    model: z
+      .string()
+      .optional()
+      .describe(
+        'Specific model to use for generation. If not specified, the default model will be used.',
+      ),
+    provider: z
+      .string()
+      .optional()
+      .describe(
+        'Specific provider to use for generation. If not specified, the default provider will be used.',
+      ),
     targetType: z
       .enum([
         'document',
@@ -210,7 +230,7 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
 
   async _call(
     input: z.infer<typeof this.schema>,
-    _: any,
+    _: unknown,
     config: RunnableConfig,
   ): Promise<ToolCallResult> {
     try {
@@ -225,6 +245,10 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
 
       return {
         status: 'success',
@@ -262,7 +286,7 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
 
   async _call(
     input: z.infer<typeof this.schema>,
-    _: any,
+    _: unknown,
     config: RunnableConfig,
   ): Promise<ToolCallResult> {
     try {
@@ -322,7 +346,7 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
 
   async _call(
     input: z.infer<typeof this.schema>,
-    _: any,
+    _: unknown,
     config: RunnableConfig,
   ): Promise<ToolCallResult> {
     try {
@@ -386,6 +410,10 @@ export class BuiltinSendEmail extends AgentBaseTool<BuiltinToolParams> {
         to: input.to,
         attachments: input.attachments,
       });
+
+      if (!result.success) {
+        throw new Error(result.errMsg);
+      }
 
       return {
         status: 'success',

@@ -25,10 +25,15 @@ import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks
 import { NodeActionButtons } from './shared/node-action-buttons';
 import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import {
+  useNodeData,
+  useNodeExecutionStatus,
+} from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import { useTranslation } from 'react-i18next';
 import { CanvasNodeType } from '@refly/openapi-schema';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 const NODE_SIDE_CONFIG = { width: 320, height: 'auto' };
 export const ImageNode = memo(
@@ -59,6 +64,12 @@ export const ImageNode = memo(
       setIsHovered(false);
       onHoverEnd();
     }, [onHoverEnd]);
+
+    // Get node execution status
+    const { status: executionStatus } = useNodeExecutionStatus({
+      canvasId: canvasId || '',
+      nodeId: id,
+    });
 
     const handleAddToContext = useCallback(() => {
       addToContext({
@@ -324,11 +335,16 @@ export const ImageNode = memo(
           </>
         )}
 
+        <NodeExecutionOverlay status={executionStatus} />
+
         <div
           className="w-full relative z-1 rounded-2xl overflow-hidden flex items-center justify-center"
           style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
           onClick={handleImageClick}
         >
+          {/* Node execution status badge */}
+          <NodeExecutionStatus status={executionStatus} />
+
           <img src={imageUrl} alt={data.title || 'Image'} className="w-full h-full object-cover" />
         </div>
       </div>

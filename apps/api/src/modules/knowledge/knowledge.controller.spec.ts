@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KnowledgeController } from './knowledge.controller';
-import { KnowledgeService } from './knowledge.service';
+import { DocumentService } from './document.service';
+import { ResourceService } from './resource.service';
 import { createMock } from '@golevelup/ts-jest';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -8,7 +9,8 @@ import { JwtService } from '@nestjs/jwt';
 describe('KnowledgeController', () => {
   let controller: KnowledgeController;
 
-  const knowledgeService = createMock<KnowledgeService>();
+  const documentService = createMock<DocumentService>();
+  const resourceService = createMock<ResourceService>();
   const configService = createMock<ConfigService>();
   const jwtService = createMock<JwtService>();
 
@@ -16,7 +18,8 @@ describe('KnowledgeController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KnowledgeController],
       providers: [
-        { provide: KnowledgeService, useValue: knowledgeService },
+        { provide: DocumentService, useValue: documentService },
+        { provide: ResourceService, useValue: resourceService },
         { provide: ConfigService, useValue: configService },
         { provide: JwtService, useValue: jwtService },
       ],

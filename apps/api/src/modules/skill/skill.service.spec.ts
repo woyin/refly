@@ -10,7 +10,8 @@ import { CollabService } from '../collab/collab.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { RAGService } from '../rag/rag.service';
 import { SubscriptionService } from '../subscription/subscription.service';
-import { KnowledgeService } from '../knowledge/knowledge.service';
+import { DocumentService } from '../knowledge/document.service';
+import { ResourceService } from '../knowledge/resource.service';
 import { SearchService } from '../search/search.service';
 import { QUEUE_SKILL, QUEUE_SYNC_REQUEST_USAGE, QUEUE_SYNC_TOKEN_USAGE } from '../../utils';
 
@@ -21,7 +22,8 @@ describe('SkillService', () => {
   const prismaService = createMock<PrismaService>();
   const labelService = createMock<LabelService>();
   const searchService = createMock<SearchService>();
-  const knowledgeService = createMock<KnowledgeService>();
+  const documentService = createMock<DocumentService>();
+  const resourceService = createMock<ResourceService>();
   const ragService = createMock<RAGService>();
   const canvasService = createMock<CanvasService>();
   const subscriptionService = createMock<SubscriptionService>();
@@ -52,8 +54,12 @@ describe('SkillService', () => {
           useValue: searchService,
         },
         {
-          provide: KnowledgeService,
-          useValue: knowledgeService,
+          provide: DocumentService,
+          useValue: documentService,
+        },
+        {
+          provide: ResourceService,
+          useValue: resourceService,
         },
         {
           provide: RAGService,

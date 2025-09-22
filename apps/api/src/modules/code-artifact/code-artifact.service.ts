@@ -84,11 +84,22 @@ export class CodeArtifactService {
       }
     }
 
+    if (param.artifactId) {
+      const existingArtifact = await this.prisma.codeArtifact.findUnique({
+        where: { artifactId: param.artifactId },
+        select: { uid: true, deletedAt: true },
+      });
+      if (existingArtifact && existingArtifact.uid !== uid && !existingArtifact.deletedAt) {
+        throw new ParamsError(`Code artifact ${param.artifactId} already exists for another user`);
+      }
+    }
+
     const artifactId = param.artifactId ?? genCodeArtifactID();
     const storageKey = `code-artifact/${artifactId}`;
 
-    const codeArtifact = await this.prisma.codeArtifact.create({
-      data: {
+    const codeArtifact = await this.prisma.codeArtifact.upsert({
+      where: { artifactId },
+      create: {
         artifactId,
         title,
         type,
@@ -99,6 +110,11 @@ export class CodeArtifactService {
         canvasId,
         resultId,
         resultVersion,
+      },
+      update: {
+        title,
+        type,
+        language,
       },
     });
 

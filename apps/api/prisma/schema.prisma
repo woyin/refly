@@ -864,34 +864,6 @@ model DuplicateRecord {
   @@map("duplicate_records")
 }
 
-model Reference {
-  /// Primary key
-  pk          BigInt    @id @default(autoincrement())
-  /// Reference ID
-  referenceId String    @unique @map("reference_id")
-  /// Source entity type (e.g., "canvas" or "resource")
-  sourceType  String    @map("source_type")
-  /// Source entity ID
-  sourceId    String    @map("source_id")
-  /// Target entity type (e.g., "canvas" or "resource")
-  targetType  String    @map("target_type")
-  /// Target entity ID
-  targetId    String    @map("target_id")
-  /// UID of the user who created the reference
-  uid         String    @map("uid")
-  /// Create timestamp
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  /// Update timestamp
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
-  /// Soft delete timestamp
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz()
-
-  @@unique([sourceType, sourceId, targetType, targetId])
-  @@index([sourceType, sourceId])
-  @@index([targetType, targetId])
-  @@map("references")
-}
-
 /// User-defined skills.
 model SkillInstance {
   /// Primary key

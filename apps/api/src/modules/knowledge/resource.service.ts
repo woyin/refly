@@ -9,7 +9,6 @@ import { readingTime } from 'reading-time-estimator';
 import {
   Prisma,
   Resource as ResourceModel,
-  Document as DocumentModel,
   StaticFile as StaticFileModel,
   User as UserModel,
 } from '../../generated/client';
@@ -24,59 +23,29 @@ import {
   GetResourceDetailData,
   ReindexResourceRequest,
   ResourceType,
-  QueryReferencesRequest,
-  ReferenceType,
-  BaseReference,
-  AddReferencesRequest,
-  DeleteReferencesRequest,
-  ReferenceMeta,
-  ListDocumentsData,
-  GetDocumentDetailData,
-  UpsertDocumentRequest,
-  DeleteDocumentRequest,
-  IndexError,
-  DuplicateDocumentRequest,
   DuplicateResourceRequest,
+  IndexError,
 } from '@refly/openapi-schema';
 import {
   QUEUE_SIMPLE_EVENT,
   QUEUE_RESOURCE,
   streamToString,
-  QUEUE_SYNC_STORAGE_USAGE,
   QUEUE_CLEAR_CANVAS_ENTITY,
-  streamToBuffer,
   QUEUE_POST_DELETE_KNOWLEDGE_ENTITY,
+  pick,
+  streamToBuffer,
 } from '../../utils';
-import {
-  genResourceID,
-  cleanMarkdownForIngest,
-  markdown2StateUpdate,
-  genReferenceID,
-  genDocumentID,
-  safeParseJSON,
-} from '@refly/utils';
-import {
-  DocumentDetail,
-  ExtendedReferenceModel,
-  FinalizeResourceParam,
-  PostDeleteKnowledgeEntityJobData,
-  ResourcePrepareResult,
-} from './knowledge.dto';
-import { pick } from '../../utils';
+import { genResourceID, cleanMarkdownForIngest } from '@refly/utils';
+import { ResourcePrepareResult, FinalizeResourceParam } from './knowledge.dto';
 import { SimpleEventData } from '../event/event.dto';
-import { SyncStorageUsageJobData } from '../subscription/subscription.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { MiscService } from '../misc/misc.service';
 import {
   StorageQuotaExceeded,
   ResourceNotFoundError,
   ParamsError,
-  ReferenceNotFoundError,
-  ReferenceObjectMissingError,
-  DocumentNotFoundError,
   CanvasNotFoundError,
   ProjectNotFoundError,
-  ActionResultNotFoundError,
 } from '@refly/errors';
 import { DeleteCanvasNodesJobData } from '../canvas/canvas.dto';
 import { ParserFactory } from '../knowledge/parsers/factory';
@@ -84,20 +53,17 @@ import { ConfigService } from '@nestjs/config';
 import { ParseResult, ParserOptions } from './parsers/base';
 import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
-import { DocxParser } from '../knowledge/parsers/docx.parser';
-import { PdfParser } from '../knowledge/parsers/pdf.parser';
-import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { PostDeleteKnowledgeEntityJobData } from './knowledge.dto';
 
 @Injectable()
-export class KnowledgeService {
-  private logger = new Logger(KnowledgeService.name);
+export class ResourceService {
+  private logger = new Logger(ResourceService.name);
 
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
     private ragService: RAGService,
     private miscService: MiscService,
-    private canvasSyncService: CanvasSyncService,
     private providerService: ProviderService,
     private subscriptionService: SubscriptionService,
     @Inject(OSS_INTERNAL) private oss: ObjectStorageService,
@@ -105,30 +71,12 @@ export class KnowledgeService {
     @Optional() @InjectQueue(QUEUE_RESOURCE) private queue?: Queue<FinalizeResourceParam>,
     @Optional() @InjectQueue(QUEUE_SIMPLE_EVENT) private simpleEventQueue?: Queue<SimpleEventData>,
     @Optional()
-    @InjectQueue(QUEUE_SYNC_STORAGE_USAGE)
-    private ssuQueue?: Queue<SyncStorageUsageJobData>,
-    @Optional()
     @InjectQueue(QUEUE_CLEAR_CANVAS_ENTITY)
     private canvasQueue?: Queue<DeleteCanvasNodesJobData>,
     @Optional()
     @InjectQueue(QUEUE_POST_DELETE_KNOWLEDGE_ENTITY)
     private postDeleteKnowledgeQueue?: Queue<PostDeleteKnowledgeEntityJobData>,
   ) {}
-
-  async syncStorageUsage(user: User) {
-    await this.ssuQueue?.add(
-      'syncStorageUsage',
-      {
-        uid: user.uid,
-        timestamp: new Date(),
-      },
-      {
-        jobId: user.uid,
-        removeOnComplete: true,
-        removeOnFail: true,
-      },
-    );
-  }
 
   async listResources(user: User, param: ListResourcesData['query']) {
     const {
@@ -281,7 +229,7 @@ export class KnowledgeService {
   async createResource(
     user: User,
     param: UpsertResourceRequest,
-    options?: { checkStorageQuota?: boolean },
+    options?: { checkStorageQuota?: boolean; syncStorageUsage?: boolean },
   ) {
     if (options?.checkStorageQuota) {
       const usageResult = await this.subscriptionService.checkStorageUsage(user);
@@ -361,7 +309,9 @@ export class KnowledgeService {
     }
 
     // Sync storage usage
-    await this.syncStorageUsage(user);
+    if (options?.syncStorageUsage) {
+      await this.subscriptionService.syncStorageUsage(user);
+    }
 
     // Add to queue to be processed by worker
     await this.queue?.add('finalizeResource', {
@@ -380,7 +330,11 @@ export class KnowledgeService {
 
     const limit = pLimit(5);
     const tasks = params.map((param) => limit(async () => await this.createResource(user, param)));
-    return Promise.all(tasks);
+    const resources = await Promise.all(tasks);
+
+    await this.subscriptionService.syncStorageUsage(user);
+
+    return resources;
   }
 
   /**
@@ -751,7 +705,7 @@ export class KnowledgeService {
     }
 
     // Sync storage usage
-    await this.syncStorageUsage(user);
+    await this.subscriptionService.syncStorageUsage(user);
 
     return resource;
   }
@@ -834,7 +788,7 @@ export class KnowledgeService {
       data: { deletedAt: new Date() },
     });
 
-    await this.syncStorageUsage(user);
+    await this.subscriptionService.syncStorageUsage(user);
 
     await this.postDeleteKnowledgeQueue?.add('postDeleteKnowledgeEntity', {
       uid,
@@ -868,452 +822,6 @@ export class KnowledgeService {
     }
 
     await Promise.all(cleanups);
-  }
-
-  async listDocuments(user: User, param: ListDocumentsData['query']) {
-    const { page = 1, pageSize = 10, order = 'creationDesc', projectId, canvasId } = param;
-
-    const orderBy: Prisma.DocumentOrderByWithRelationInput = {};
-    if (order === 'creationAsc') {
-      orderBy.pk = 'asc';
-    } else {
-      orderBy.pk = 'desc';
-    }
-
-    return this.prisma.document.findMany({
-      where: {
-        uid: user.uid,
-        deletedAt: null,
-        projectId,
-        canvasId,
-      },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy,
-    });
-  }
-
-  async getDocumentDetail(
-    user: User,
-    params: GetDocumentDetailData['query'],
-  ): Promise<DocumentDetail> {
-    const { docId } = params;
-
-    if (!docId) {
-      throw new ParamsError('Document ID is required');
-    }
-
-    const doc = await this.prisma.document.findFirst({
-      where: {
-        docId,
-        uid: user.uid,
-        deletedAt: null,
-      },
-    });
-
-    if (!doc) {
-      throw new DocumentNotFoundError('Document not found');
-    }
-
-    let content: string;
-    if (doc.storageKey) {
-      const contentStream = await this.oss.getObject(doc.storageKey);
-      content = await streamToString(contentStream);
-    }
-
-    return { ...doc, content };
-  }
-
-  async exportDocument(
-    user: User,
-    params: { docId: string; format: 'markdown' | 'docx' | 'pdf' },
-  ): Promise<Buffer> {
-    const { docId, format } = params;
-
-    if (!docId) {
-      throw new ParamsError('Document ID is required');
-    }
-
-    const doc = await this.prisma.document.findFirst({
-      where: {
-        docId,
-        uid: user.uid,
-        deletedAt: null,
-      },
-    });
-
-    if (!doc) {
-      throw new DocumentNotFoundError('Document not found');
-    }
-
-    let content: string;
-    if (doc.storageKey) {
-      const contentStream = await this.oss.getObject(doc.storageKey);
-      content = await streamToString(contentStream);
-    }
-
-    // Process images in the document content
-    if (content) {
-      content = await this.miscService.processContentImages(content);
-    }
-
-    // 添加文档标题作为 H1 标题
-    const title = doc.title || 'Untitled';
-    const markdownContent = `# ${title}\n\n${content || ''}`;
-
-    // 根据格式转换内容
-    switch (format) {
-      case 'markdown':
-        return Buffer.from(markdownContent);
-      case 'docx': {
-        const docxParser = new DocxParser();
-        const docxData = await docxParser.parse(markdownContent);
-        return docxData.buffer;
-      }
-      case 'pdf': {
-        const pdfParser = new PdfParser();
-        const pdfData = await pdfParser.parse(markdownContent);
-        return pdfData.buffer;
-      }
-      default:
-        throw new ParamsError('Unsupported format');
-    }
-  }
-
-  async createDocument(
-    user: User,
-    param: UpsertDocumentRequest,
-    options?: { checkStorageQuota?: boolean },
-  ) {
-    if (options?.checkStorageQuota) {
-      const usageResult = await this.subscriptionService.checkStorageUsage(user);
-      if (usageResult.available < 1) {
-        throw new StorageQuotaExceeded();
-      }
-    }
-
-    param.docId = genDocumentID();
-    param.title ||= '';
-    param.initialContent ||= '';
-
-    if (param.canvasId) {
-      await this.checkCanvasExists(user, param.canvasId);
-    }
-
-    if (param.projectId) {
-      await this.checkProjectExists(user, param.projectId);
-    }
-
-    if (param.resultId) {
-      const result = await this.prisma.actionResult.findFirst({
-        where: { resultId: param.resultId, uid: user.uid },
-        orderBy: { version: 'desc' },
-      });
-      if (!result) {
-        throw new ActionResultNotFoundError(`Action result ${param.resultId} not found`);
-      }
-      if (result.targetType === 'canvas') {
-        param.canvasId = result.targetId;
-      }
-      if (result.projectId) {
-        param.projectId = result.projectId;
-      }
-
-      if (result.workflowExecutionId) {
-        const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
-          where: {
-            nodeExecutionId: result.workflowNodeExecutionId,
-          },
-        });
-        if (nodeExecution?.childNodeIds) {
-          const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
-          const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
-            where: {
-              nodeId: { in: childNodeIds },
-              status: 'waiting',
-              nodeType: 'document',
-            },
-            orderBy: {
-              createdAt: 'asc',
-            },
-          });
-          if (docNodeExecution) {
-            param.docId = docNodeExecution.entityId;
-          }
-        }
-      }
-    }
-
-    const createInput: Prisma.DocumentCreateInput = {
-      docId: param.docId,
-      title: param.title,
-      uid: user.uid,
-      readOnly: param.readOnly ?? false,
-      contentPreview: param.initialContent?.slice(0, 500),
-      ...(param.canvasId ? { canvas: { connect: { canvasId: param.canvasId } } } : {}),
-      ...(param.projectId ? { project: { connect: { projectId: param.projectId } } } : {}),
-    };
-
-    createInput.storageKey = `doc/${param.docId}.txt`;
-    createInput.stateStorageKey = `state/${param.docId}`;
-
-    // Save initial content and ydoc state to object storage
-    const ydoc = markdown2StateUpdate(param.initialContent);
-    await Promise.all([
-      this.oss.putObject(createInput.storageKey, param.initialContent),
-      this.oss.putObject(createInput.stateStorageKey, Buffer.from(ydoc)),
-    ]);
-
-    // Calculate storage size
-    const [storageStat, stateStorageStat] = await Promise.all([
-      this.oss.statObject(createInput.storageKey),
-      this.oss.statObject(createInput.stateStorageKey),
-    ]);
-    createInput.storageSize = storageStat.size + stateStorageStat.size;
-
-    // Add to vector store
-    if (param.initialContent) {
-      this.ragService
-        .indexDocument(user, {
-          pageContent: param.initialContent,
-          metadata: {
-            nodeType: 'document',
-            docId: param.docId,
-            title: param.title,
-            projectId: param.projectId,
-          },
-        })
-        .then(({ size }) => {
-          createInput.vectorSize = size;
-        })
-        .catch((error) => {
-          this.logger.error(`failed to index document ${param.docId}: ${error.stack}`);
-        });
-    }
-
-    const doc = await this.prisma.document.upsert({
-      where: { docId: param.docId },
-      create: createInput,
-      update: pick(param, ['title', 'readOnly', 'projectId']),
-    });
-
-    await this.fts.upsertDocument(user, 'document', {
-      id: param.docId,
-      ...pick(doc, ['title', 'uid', 'projectId']),
-      content: param.initialContent,
-      createdAt: doc.createdAt.toJSON(),
-      updatedAt: doc.updatedAt.toJSON(),
-    });
-
-    if (param.canvasId && param.resultId) {
-      await this.canvasSyncService.addNodeToCanvas(
-        user,
-        param.canvasId,
-        {
-          type: 'document',
-          data: {
-            title: doc.title,
-            entityId: doc.docId,
-            metadata: {
-              status: 'finish',
-            },
-            contentPreview: doc.contentPreview,
-          },
-        },
-        [{ type: 'skillResponse', entityId: param.resultId }],
-      );
-    }
-
-    await this.syncStorageUsage(user);
-
-    return doc;
-  }
-
-  async batchUpdateDocument(user: User, param: UpsertDocumentRequest[]) {
-    const docIds = param.map((p) => p.docId);
-    if (docIds.length !== new Set(docIds).size) {
-      throw new ParamsError('Duplicate document IDs');
-    }
-
-    const count = await this.prisma.document.count({
-      where: { docId: { in: docIds }, uid: user.uid, deletedAt: null },
-    });
-
-    if (count !== docIds.length) {
-      throw new DocumentNotFoundError('Some of the documents cannot be found');
-    }
-
-    await this.prisma.$transaction(
-      param.map((p) =>
-        this.prisma.document.update({
-          where: { docId: p.docId },
-          data: pick(p, ['title', 'readOnly']),
-        }),
-      ),
-    );
-
-    // TODO: update elastcisearch docs and qdrant data points
-  }
-
-  async deleteDocument(user: User, param: DeleteDocumentRequest) {
-    const { uid } = user;
-    const { docId } = param;
-
-    const doc = await this.prisma.document.findFirst({
-      where: { docId, uid, deletedAt: null },
-    });
-    if (!doc) {
-      throw new DocumentNotFoundError();
-    }
-
-    await this.prisma.document.update({
-      where: { docId },
-      data: { deletedAt: new Date() },
-    });
-
-    await this.syncStorageUsage(user);
-
-    await this.postDeleteKnowledgeQueue?.add('postDeleteKnowledgeEntity', {
-      uid,
-      entityId: docId,
-      entityType: 'document',
-    });
-  }
-
-  async postDeleteDocument(user: User, docId: string) {
-    const doc = await this.prisma.document.findFirst({
-      where: { docId, deletedAt: { not: null } },
-    });
-    if (!doc) {
-      this.logger.warn(`Deleted document ${docId} not found`);
-      return;
-    }
-
-    const cleanups: Promise<any>[] = [
-      this.prisma.labelInstance.updateMany({
-        where: { entityType: 'document', entityId: docId, deletedAt: null },
-        data: { deletedAt: new Date() },
-      }),
-      this.ragService.deleteDocumentNodes(user, docId),
-      this.fts.deleteDocument(user, 'document', docId),
-      this.canvasQueue?.add('deleteNodes', {
-        entities: [{ entityId: docId, entityType: 'document' }],
-      }),
-    ];
-
-    if (doc.storageKey) {
-      cleanups.push(this.oss.removeObject(doc.storageKey));
-    }
-
-    if (doc.stateStorageKey) {
-      cleanups.push(this.oss.removeObject(doc.stateStorageKey));
-    }
-
-    await Promise.all(cleanups);
-  }
-
-  /**
-   * Duplicate an existing document
-   * @param user The user duplicating the document
-   * @param param The duplicate document request param
-   * @returns The newly created document
-   */
-  async duplicateDocument(user: User, param: DuplicateDocumentRequest) {
-    const { docId: sourceDocId, title: newTitle, canvasId } = param;
-
-    // Check storage quota
-    const usageResult = await this.subscriptionService.checkStorageUsage(user);
-    if (usageResult.available < 1) {
-      throw new StorageQuotaExceeded();
-    }
-
-    // Find the source document
-    const sourceDoc = await this.prisma.document.findFirst({
-      where: { docId: sourceDocId, deletedAt: null },
-    });
-    if (!sourceDoc) {
-      throw new DocumentNotFoundError(`Document ${sourceDocId} not found`);
-    }
-
-    // Generate a new document ID
-    const newDocId = genDocumentID();
-
-    const newStorageKey = `doc/${newDocId}.txt`;
-    const newStateStorageKey = `state/${newDocId}`;
-
-    // Create the new document using the existing createDocument method
-    const newDoc = await this.prisma.document.create({
-      data: {
-        ...pick(sourceDoc, [
-          'wordCount',
-          'contentPreview',
-          'storageSize',
-          'vectorSize',
-          'readOnly',
-          'canvasId',
-        ]),
-        docId: newDocId,
-        title: newTitle ?? sourceDoc.title,
-        uid: user.uid,
-        storageKey: newStorageKey,
-        stateStorageKey: newStateStorageKey,
-        canvasId,
-      },
-    });
-
-    const dupRecord = await this.prisma.duplicateRecord.create({
-      data: {
-        uid: user.uid,
-        sourceId: sourceDoc.docId,
-        targetId: newDocId,
-        entityType: 'document',
-        status: 'pending',
-      },
-    });
-
-    const migrations: Promise<any>[] = [
-      this.oss.duplicateFile(sourceDoc.storageKey, newStorageKey),
-      this.oss.duplicateFile(sourceDoc.stateStorageKey, newStateStorageKey),
-      this.ragService.duplicateDocument({
-        sourceUid: sourceDoc.uid,
-        targetUid: user.uid,
-        sourceDocId: sourceDoc.docId,
-        targetDocId: newDocId,
-      }),
-      this.fts.duplicateDocument(user, 'document', sourceDoc.docId, newDocId),
-    ];
-
-    if (sourceDoc.uid !== user.uid) {
-      migrations.push(
-        this.miscService.duplicateFilesNoCopy(user, {
-          sourceEntityId: sourceDoc.docId,
-          sourceEntityType: 'document',
-          sourceUid: sourceDoc.uid,
-          targetEntityId: newDocId,
-          targetEntityType: 'document',
-        }),
-      );
-    }
-
-    try {
-      // Duplicate the files and index
-      await Promise.all(migrations);
-
-      await this.prisma.duplicateRecord.update({
-        where: { pk: dupRecord.pk },
-        data: { status: 'finish' },
-      });
-
-      await this.syncStorageUsage(user);
-    } catch (error) {
-      await this.prisma.duplicateRecord.update({
-        where: { pk: dupRecord.pk },
-        data: { status: 'failed' },
-      });
-      throw error;
-    }
-
-    return newDoc;
   }
 
   /**
@@ -1408,7 +916,7 @@ export class KnowledgeService {
         data: { status: 'finish' },
       });
 
-      await this.syncStorageUsage(user);
+      await this.subscriptionService.syncStorageUsage(user);
     } catch (error) {
       await this.prisma.duplicateRecord.update({
         where: { pk: dupRecord.pk },
@@ -1418,244 +926,5 @@ export class KnowledgeService {
     }
 
     return newResource;
-  }
-
-  async queryReferences(
-    user: User,
-    param: QueryReferencesRequest,
-  ): Promise<ExtendedReferenceModel[]> {
-    const { sourceType, sourceId, targetType, targetId } = param;
-
-    // Check if the source and target entities exist for this user
-    const entityChecks: Promise<void>[] = [];
-    if (sourceType && sourceId) {
-      entityChecks.push(this.miscService.checkEntity(user, sourceId, sourceType));
-    }
-    if (targetType && targetId) {
-      entityChecks.push(this.miscService.checkEntity(user, targetId, targetType));
-    }
-    await Promise.all(entityChecks);
-
-    const where: Prisma.ReferenceWhereInput = {};
-    if (sourceType && sourceId) {
-      where.sourceType = sourceType;
-      where.sourceId = sourceId;
-    }
-    if (targetType && targetId) {
-      where.targetType = targetType;
-      where.targetId = targetId;
-    }
-    if (Object.keys(where).length === 0) {
-      throw new ParamsError('Either source or target condition is required');
-    }
-
-    const references = await this.prisma.reference.findMany({ where });
-
-    // Collect all document IDs and resource IDs from both source and target
-    const docIds = new Set<string>();
-    const resourceIds = new Set<string>();
-    for (const ref of references) {
-      if (ref.sourceType === 'document') docIds.add(ref.sourceId);
-      if (ref.targetType === 'document') docIds.add(ref.targetId);
-      if (ref.sourceType === 'resource') resourceIds.add(ref.sourceId);
-      if (ref.targetType === 'resource') resourceIds.add(ref.targetId);
-    }
-
-    // Fetch document mappings if there are any documents
-    const docsMap: Record<string, DocumentModel> = {};
-    if (docIds.size > 0) {
-      const docs = await this.prisma.document.findMany({
-        where: { docId: { in: Array.from(docIds) }, deletedAt: null },
-      });
-      for (const doc of docs) {
-        docsMap[doc.docId] = doc;
-      }
-    }
-
-    // Fetch resource mappings if there are any resources
-    const resourceMap: Record<string, ResourceModel> = {};
-    if (resourceIds.size > 0) {
-      const resources = await this.prisma.resource.findMany({
-        where: { resourceId: { in: Array.from(resourceIds) }, deletedAt: null },
-      });
-      for (const resource of resources) {
-        resourceMap[resource.resourceId] = resource;
-      }
-    }
-
-    const genReferenceMeta = (sourceType: string, sourceId: string) => {
-      let refMeta: ReferenceMeta;
-      if (sourceType === 'resource') {
-        refMeta = {
-          title: resourceMap[sourceId]?.title,
-          url: JSON.parse(resourceMap[sourceId]?.meta || '{}')?.url,
-        };
-      } else if (sourceType === 'document') {
-        refMeta = {
-          title: docsMap[sourceId]?.title,
-        };
-      }
-      return refMeta;
-    };
-
-    // Attach metadata to references
-    return references.map((ref) => {
-      return {
-        ...ref,
-        sourceMeta: genReferenceMeta(ref.sourceType, ref.sourceId),
-        targetMeta: genReferenceMeta(ref.targetType, ref.targetId),
-      };
-    });
-  }
-
-  private async prepareReferenceInputs(
-    user: User,
-    references: BaseReference[],
-  ): Promise<Prisma.ReferenceCreateManyInput[]> {
-    const validRefTypes: ReferenceType[] = ['resource', 'document'];
-
-    // Deduplicate references using a Set with stringified unique properties
-    const uniqueRefs = new Set(
-      references.map((ref) =>
-        JSON.stringify({
-          sourceType: ref.sourceType,
-          sourceId: ref.sourceId,
-          targetType: ref.targetType,
-          targetId: ref.targetId,
-        }),
-      ),
-    );
-    const deduplicatedRefs: BaseReference[] = Array.from(uniqueRefs).map((ref) => JSON.parse(ref));
-
-    const resourceIds: Set<string> = new Set();
-    const docIds: Set<string> = new Set();
-
-    for (const ref of deduplicatedRefs) {
-      if (!validRefTypes.includes(ref.sourceType)) {
-        throw new ParamsError(`Invalid source type: ${ref.sourceType}`);
-      }
-      if (!validRefTypes.includes(ref.targetType)) {
-        throw new ParamsError(`Invalid target type: ${ref.targetType}`);
-      }
-      if (ref.sourceType === 'resource' && ref.targetType === 'document') {
-        throw new ParamsError('Resource to document reference is not allowed');
-      }
-      if (ref.sourceType === ref.targetType && ref.sourceId === ref.targetId) {
-        throw new ParamsError('Source and target cannot be the same');
-      }
-
-      if (ref.sourceType === 'resource') {
-        resourceIds.add(ref.sourceId);
-      } else if (ref.sourceType === 'document') {
-        docIds.add(ref.sourceId);
-      }
-
-      if (ref.targetType === 'resource') {
-        resourceIds.add(ref.targetId);
-      } else if (ref.targetType === 'document') {
-        docIds.add(ref.targetId);
-      }
-    }
-
-    const [resources, docs] = await Promise.all([
-      this.prisma.resource.findMany({
-        select: { resourceId: true },
-        where: {
-          resourceId: { in: Array.from(resourceIds) },
-          uid: user.uid,
-          deletedAt: null,
-        },
-      }),
-      this.prisma.document.findMany({
-        select: { docId: true },
-        where: {
-          docId: { in: Array.from(docIds) },
-          uid: user.uid,
-          deletedAt: null,
-        },
-      }),
-    ]);
-
-    // Check if all the entities exist
-    const foundIds = new Set([...resources.map((r) => r.resourceId), ...docs.map((c) => c.docId)]);
-    const missingEntities = deduplicatedRefs.filter(
-      (e) => !foundIds.has(e.sourceId) || !foundIds.has(e.targetId),
-    );
-    if (missingEntities.length > 0) {
-      this.logger.warn(`Entities not found: ${JSON.stringify(missingEntities)}`);
-      throw new ReferenceObjectMissingError();
-    }
-
-    return deduplicatedRefs.map((ref) => ({
-      ...ref,
-      referenceId: genReferenceID(),
-      uid: user.uid,
-    }));
-  }
-
-  async addReferences(user: User, param: AddReferencesRequest) {
-    const { references } = param;
-    const referenceInputs = await this.prepareReferenceInputs(user, references);
-
-    return this.prisma.$transaction(
-      referenceInputs.map((input) =>
-        this.prisma.reference.upsert({
-          where: {
-            sourceType_sourceId_targetType_targetId: {
-              sourceType: input.sourceType,
-              sourceId: input.sourceId,
-              targetType: input.targetType,
-              targetId: input.targetId,
-            },
-          },
-          create: input,
-          update: { deletedAt: null },
-        }),
-      ),
-    );
-  }
-
-  async deleteReferences(user: User, param: DeleteReferencesRequest) {
-    const { referenceIds } = param;
-
-    const references = await this.prisma.reference.findMany({
-      where: {
-        referenceId: { in: referenceIds },
-        uid: user.uid,
-        deletedAt: null,
-      },
-    });
-
-    if (references.length !== referenceIds.length) {
-      throw new ReferenceNotFoundError('Some of the references cannot be found');
-    }
-
-    await this.prisma.reference.updateMany({
-      data: { deletedAt: new Date() },
-      where: {
-        referenceId: { in: referenceIds },
-        uid: user.uid,
-        deletedAt: null,
-      },
-    });
-  }
-
-  /**
-   * Get resource by storage key (rawFileKey)
-   */
-  async getResourceByStorageKey(user: User, storageKey: string) {
-    return this.prisma.resource.findFirst({
-      where: { rawFileKey: storageKey, deletedAt: null, uid: user.uid },
-    });
-  }
-
-  /**
-   * Bind resource to canvas
-   */
-  async bindResourceToCanvas(resourceId: string, canvasId: string) {
-    return this.prisma.resource.update({
-      where: { resourceId },
-      data: { canvasId },
-    });
   }
 }
