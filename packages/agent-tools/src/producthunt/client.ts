@@ -2,7 +2,7 @@
 // Based on Product Hunt GraphQL API
 
 export interface ProductHuntConfig {
-  apiKey: string;
+  accessToken: string;
   baseUrl?: string;
 }
 
@@ -113,7 +113,7 @@ export class ProductHuntClient {
   constructor(config: ProductHuntConfig) {
     this.config = {
       baseUrl: config.baseUrl || 'https://api.producthunt.com/v2/api/graphql',
-      apiKey: config.apiKey,
+      accessToken: config.accessToken,
     };
   }
 
@@ -122,7 +122,7 @@ export class ProductHuntClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.config.apiKey}`,
+        Authorization: `Bearer ${this.config.accessToken}`,
       },
       body: JSON.stringify({
         query,

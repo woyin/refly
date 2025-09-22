@@ -90,6 +90,7 @@ export const ProductHuntToolsetDefinition: ToolsetDefinition = {
 
 interface ProductHuntToolParams extends ToolParams {
   apiKey: string;
+  accessToken: string;
   baseUrl?: string;
 }
 
@@ -119,7 +120,7 @@ export class ProductHuntListPosts extends AgentBaseTool<ProductHuntToolParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const client = new ProductHuntClient({
-        apiKey: this.params.apiKey,
+        accessToken: this.params.accessToken,
         baseUrl: this.params.baseUrl,
       });
 
@@ -174,7 +175,7 @@ export class ProductHuntListUserPosts extends AgentBaseTool<ProductHuntToolParam
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const client = new ProductHuntClient({
-        apiKey: this.params.apiKey,
+        accessToken: this.params.accessToken,
         baseUrl: this.params.baseUrl,
       });
 
@@ -244,7 +245,7 @@ export class ProductHuntListUpvotedPosts extends AgentBaseTool<ProductHuntToolPa
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const client = new ProductHuntClient({
-        apiKey: this.params.apiKey,
+        accessToken: this.params.accessToken,
         baseUrl: this.params.baseUrl,
       });
 
@@ -313,7 +314,7 @@ export class ProductHuntListTopics extends AgentBaseTool<ProductHuntToolParams> 
   async _call(_input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       const client = new ProductHuntClient({
-        apiKey: this.params.apiKey,
+        accessToken: this.params.accessToken,
         baseUrl: this.params.baseUrl,
       });
 
