@@ -14,13 +14,17 @@ interface CreateWorkflowAppModalProps {
 }
 
 interface SuccessMessageProps {
-  appId: string;
+  // MIGRATION: Changed from appId to shareId for unified workflow app access
+  // This enables direct static file access via shareId instead of API calls
+  shareId: string;
 }
 
 // Success message shown inside antd message with share link and copy action
-const SuccessMessage = memo(({ appId }: SuccessMessageProps) => {
+const SuccessMessage = memo(({ shareId }: SuccessMessageProps) => {
   const { t } = useTranslation();
-  const shareLink = useMemo(() => `${window.location.origin}/app/${appId}`, [appId]);
+  // MIGRATION: Use shareId for URL generation instead of appId
+  // This allows direct access to static JSON files at /share/{shareId}.json
+  const shareLink = useMemo(() => `${window.location.origin}/app/${shareId}`, [shareId]);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -111,11 +115,13 @@ export const CreateWorkflowAppModal = ({
         },
       });
 
-      const appId = data?.data?.appId ?? '';
+      // MIGRATION: Get shareId from API response for unified access
+      // shareId is used for URL generation and static file access
+      const shareId = data?.data?.shareId ?? '';
 
-      if (data?.success && appId) {
+      if (data?.success && shareId) {
         setVisible(false);
-        messageApi.open({ content: <SuccessMessage appId={appId} />, duration: 5 });
+        messageApi.open({ content: <SuccessMessage shareId={shareId} />, duration: 5 });
       } else if (!data?.success) {
         message.error(t('common.operationFailed'));
       }

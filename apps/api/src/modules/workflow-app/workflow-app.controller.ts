@@ -42,9 +42,11 @@ export class WorkflowAppController {
     @LoginedUser() user: UserModel,
     @Body() request: ExecuteWorkflowAppRequest,
   ): Promise<ExecuteWorkflowAppResponse> {
+    // MIGRATION: Accept shareId instead of appId for unified workflow app access
+    // This aligns with the frontend's direct static file access pattern
     const executionId = await this.workflowAppService.executeWorkflowApp(
       user,
-      request.appId,
+      request.shareId, // Changed from request.appId to request.shareId
       request.variables,
     );
 

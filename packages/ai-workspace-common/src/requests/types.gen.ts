@@ -2468,6 +2468,10 @@ export type CanvasState = CanvasData & {
  */
 export type RawCanvasData = CanvasData & {
   /**
+   * Canvas ID
+   */
+  canvasId?: string;
+  /**
    * Canvas title
    */
   title?: string;
@@ -5990,6 +5994,10 @@ export type WorkflowApp = {
    */
   appId: string;
   /**
+   * Share ID for public access and URL generation
+   */
+  shareId?: string;
+  /**
    * Workflow app title
    */
   title?: string;
@@ -6029,9 +6037,9 @@ export type GetWorkflowAppDetailResponse = BaseResponse & {
 
 export type ExecuteWorkflowAppRequest = {
   /**
-   * Workflow app ID
+   * Workflow app share ID for execution
    */
-  appId: string;
+  shareId: string;
   /**
    * Workflow app variables
    */

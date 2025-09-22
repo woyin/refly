@@ -6011,6 +6011,9 @@ components:
         - $ref: '#/components/schemas/CanvasData'
         - type: object
           properties:
+            canvasId:
+              type: string
+              description: Canvas ID
             title:
               type: string
               description: Canvas title
@@ -9635,6 +9638,9 @@ components:
         appId:
           type: string
           description: Workflow app ID
+        shareId:
+          type: string
+          description: Share ID for public access and URL generation
         title:
           type: string
           description: Workflow app title
@@ -9677,12 +9683,12 @@ components:
     ExecuteWorkflowAppRequest:
       type: object
       required:
-        - appId
+        - shareId
         - variables
       properties:
-        appId:
+        shareId:
           type: string
-          description: Workflow app ID
+          description: Workflow app share ID for execution
         variables:
           type: array
           description: Workflow app variables

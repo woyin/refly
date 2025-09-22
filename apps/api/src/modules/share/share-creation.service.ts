@@ -983,9 +983,16 @@ export class ShareCreationService {
     // Get canvas data
     const canvasData = await this.canvasService.getCanvasRawData(user, workflowApp.canvasId);
 
+    // IMPORTANT: Add canvasId to canvasData for frontend access
+    // Frontend needs canvasId for CanvasProvider and other canvas-related operations
+    const canvasDataWithId = {
+      ...canvasData,
+      canvasId: workflowApp.canvasId,
+    };
+
     // If title is provided, use it as the title of the workflow app
     if (title) {
-      canvasData.title = title;
+      canvasDataWithId.title = title;
     }
 
     // Set up concurrency limit for image processing
@@ -993,7 +1000,7 @@ export class ShareCreationService {
 
     // Find all image video audio nodes
     const mediaNodes =
-      canvasData.nodes?.filter(
+      canvasDataWithId.nodes?.filter(
         (node) => node.type === 'image' || node.type === 'video' || node.type === 'audio',
       ) ?? [];
 
@@ -1022,18 +1029,18 @@ export class ShareCreationService {
     await Promise.all(mediaProcessingPromises);
 
     // Publish minimap
-    if (canvasData.minimapUrl) {
-      canvasData.minimapUrl = await this.miscService.publishFile(canvasData.minimapUrl);
+    if (canvasDataWithId.minimapUrl) {
+      canvasDataWithId.minimapUrl = await this.miscService.publishFile(canvasDataWithId.minimapUrl);
     }
 
     // Create public workflow app data
     const publicData = {
       appId: workflowApp.appId,
-      title: title || canvasData.title,
+      title: title || canvasDataWithId.title,
       description: workflowApp.description,
       query: workflowApp.query,
       variables: JSON.parse(workflowApp.variables || '[]'),
-      canvasData,
+      canvasData: canvasDataWithId, // Use the extended canvas data with canvasId
       createdAt: workflowApp.createdAt,
       updatedAt: workflowApp.updatedAt,
     };

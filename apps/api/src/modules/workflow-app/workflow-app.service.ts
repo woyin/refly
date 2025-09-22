@@ -133,10 +133,11 @@ export class WorkflowAppService {
     return workflowAppPO2DTO(workflowApp);
   }
 
-  async executeWorkflowApp(user: User, appId: string, variables: WorkflowVariable[]) {
-    // Get workflow app from database to get canvasId
-    const workflowApp = await this.prisma.workflowApp.findUnique({
-      where: { appId, deletedAt: null },
+  async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
+    // MIGRATION: Changed from appId to shareId for unified workflow app access
+    // Find workflow app by shareId instead of appId to align with frontend URL pattern
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { shareId, deletedAt: null },
     });
 
     if (!workflowApp?.canvasId) {
@@ -145,12 +146,13 @@ export class WorkflowAppService {
 
     const newCanvasId = genCanvasID();
 
+    // Note: Internal workflow execution still uses appId for tracking purposes
     return this.workflowService.initializeWorkflowExecution(
       user,
       workflowApp.canvasId,
       newCanvasId,
       variables,
-      { appId },
+      { appId: workflowApp.appId }, // Keep appId for internal workflow tracking
     );
   }
 }
