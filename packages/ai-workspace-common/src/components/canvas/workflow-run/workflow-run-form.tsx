@@ -437,17 +437,7 @@ export const WorkflowRunForm = ({
                 'bg-refly-bg-control-z0 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
             )}
             type="primary"
-            icon={
-              <Play
-                size={14}
-                className="sm:w-4 sm:h-4"
-                color={
-                  !isFormValid || isPolling
-                    ? 'var(--refly-text-3)'
-                    : 'var(--refly-text-StaticWhite)'
-                }
-              />
-            }
+            icon={<Play size={14} className="sm:w-4 sm:h-4" />}
             onClick={handleRun}
             loading={loading || isRunning || isPolling}
             disabled={loading || isRunning || isPolling}
