@@ -8599,6 +8599,26 @@ export const GetWorkflowAppDetailResponseSchema = {
   ],
 } as const;
 
+export const ListWorkflowAppsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'List of workflow apps',
+          items: {
+            $ref: '#/components/schemas/WorkflowApp',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const ExecuteWorkflowAppRequestSchema = {
   type: 'object',
   required: ['shareId', 'variables'],

@@ -151,7 +151,7 @@ export const CreateWorkflowAppModal = ({
         description: '',
       });
     }
-  }, [visible]);
+  }, [visible, title]);
 
   return (
     <Modal

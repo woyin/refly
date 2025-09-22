@@ -1,5 +1,9 @@
 import { User } from '../../generated/client';
-import { CreateWorkflowAppRequest, WorkflowVariable } from '@refly/openapi-schema';
+import {
+  CreateWorkflowAppRequest,
+  WorkflowVariable,
+  ListWorkflowAppsData,
+} from '@refly/openapi-schema';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
@@ -154,5 +158,26 @@ export class WorkflowAppService {
       variables,
       { appId: workflowApp.appId }, // Keep appId for internal workflow tracking
     );
+  }
+
+  async listWorkflowApps(user: User, query: ListWorkflowAppsData) {
+    const { canvasId } = query.query ?? {};
+
+    const whereClause: any = {
+      uid: user.uid,
+      deletedAt: null,
+    };
+
+    if (canvasId) {
+      whereClause.canvasId = canvasId;
+    }
+
+    const workflowApps = await this.prisma.workflowApp.findMany({
+      where: whereClause,
+      orderBy: { updatedAt: 'desc' },
+      take: 1, // Only get the latest one
+    });
+
+    return workflowApps.map(workflowAppPO2DTO).filter(Boolean);
   }
 }

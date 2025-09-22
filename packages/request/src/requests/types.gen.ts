@@ -6035,6 +6035,13 @@ export type GetWorkflowAppDetailResponse = BaseResponse & {
   data?: WorkflowApp;
 };
 
+export type ListWorkflowAppsResponse = BaseResponse & {
+  /**
+   * List of workflow apps
+   */
+  data?: Array<WorkflowApp>;
+};
+
 export type ExecuteWorkflowAppRequest = {
   /**
    * Workflow app share ID for execution
@@ -7626,6 +7633,19 @@ export type ExecuteWorkflowAppData = {
 export type ExecuteWorkflowAppResponse2 = ExecuteWorkflowAppResponse;
 
 export type ExecuteWorkflowAppError = unknown;
+
+export type ListWorkflowAppsData = {
+  query?: {
+    /**
+     * Canvas ID to filter by
+     */
+    canvasId?: string;
+  };
+};
+
+export type ListWorkflowAppsResponse2 = ListWorkflowAppsResponse;
+
+export type ListWorkflowAppsError = unknown;
 
 export type GetSettingsResponse = GetUserSettingsResponse;
 

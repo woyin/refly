@@ -115,6 +115,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listWorkflowApps,
   logout,
   multiLingualWebSearch,
   pinSkillInstance,
@@ -568,6 +569,16 @@ export const UseGetWorkflowAppDetailKeyFn = (
   clientOptions: Options<unknown, true>,
   queryKey?: Array<unknown>,
 ) => [useGetWorkflowAppDetailKey, ...(queryKey ?? [clientOptions])];
+export type ListWorkflowAppsDefaultResponse = Awaited<ReturnType<typeof listWorkflowApps>>['data'];
+export type ListWorkflowAppsQueryResult<
+  TData = ListWorkflowAppsDefaultResponse,
+  TError = unknown,
+> = UseQueryResult<TData, TError>;
+export const useListWorkflowAppsKey = 'ListWorkflowApps';
+export const UseListWorkflowAppsKeyFn = (
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: Array<unknown>,
+) => [useListWorkflowAppsKey, ...(queryKey ?? [clientOptions])];
 export type GetSettingsDefaultResponse = Awaited<ReturnType<typeof getSettings>>['data'];
 export type GetSettingsQueryResult<
   TData = GetSettingsDefaultResponse,
