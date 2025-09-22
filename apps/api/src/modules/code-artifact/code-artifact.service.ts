@@ -84,11 +84,14 @@ export class CodeArtifactService {
       }
     }
 
-    const existingArtifact = await this.prisma.codeArtifact.findUnique({
-      where: { artifactId: param.artifactId },
-    });
-    if (existingArtifact && existingArtifact.uid !== uid) {
-      throw new ParamsError(`Code artifact ${param.artifactId} already exists for another user`);
+    if (param.artifactId) {
+      const existingArtifact = await this.prisma.codeArtifact.findUnique({
+        where: { artifactId: param.artifactId },
+        select: { uid: true, deletedAt: true },
+      });
+      if (existingArtifact && existingArtifact.uid !== uid && !existingArtifact.deletedAt) {
+        throw new ParamsError(`Code artifact ${param.artifactId} already exists for another user`);
+      }
     }
 
     const artifactId = param.artifactId ?? genCodeArtifactID();

@@ -69,7 +69,7 @@ export class ShareDuplicationService {
   ) {}
 
   async checkCanvasExists(user: User, canvasId: string) {
-    const canvas = await this.prisma.canvas.findUnique({
+    const canvas = await this.prisma.canvas.findFirst({
       select: { pk: true },
       where: { canvasId, uid: user.uid, deletedAt: null },
     });
@@ -79,7 +79,7 @@ export class ShareDuplicationService {
   }
 
   async checkProjectExists(user: User, projectId: string) {
-    const project = await this.prisma.project.findUnique({
+    const project = await this.prisma.project.findFirst({
       select: { pk: true },
       where: { projectId, uid: user.uid, deletedAt: null },
     });
@@ -324,6 +324,12 @@ export class ShareDuplicationService {
       await this.checkCanvasExists(user, canvasId);
     }
 
+    // Check storage quota (code artifacts consume storage)
+    const usageResult = await this.subscriptionService.checkStorageUsage(user);
+    if (usageResult.available < 1) {
+      throw new StorageQuotaExceeded();
+    }
+
     // Find the source record
     const record = await this.prisma.shareRecord.findFirst({
       where: { shareId, deletedAt: null },
@@ -379,6 +385,9 @@ export class ShareDuplicationService {
         status: 'finish',
       },
     });
+
+    // Sync storage usage like other duplication flows
+    await this.subscriptionService.syncStorageUsage(user);
 
     return { entityId: newCodeArtifactId, entityType: 'codeArtifact' };
   }

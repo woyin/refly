@@ -1,8 +1,10 @@
 import { z } from 'zod/v3';
-import { RunnableConfig } from '@langchain/core/runnables';
-import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
-import { ToolsetDefinition, User } from '@refly/openapi-schema';
-import { ReflyService } from './interface';
+import { AgentBaseTool, AgentBaseToolset } from '../base';
+
+import type { RunnableConfig } from '@langchain/core/runnables';
+import type { ToolsetDefinition, User } from '@refly/openapi-schema';
+import type { AgentToolConstructor, ToolCallResult } from '../base';
+import type { ReflyService } from './interface';
 export const BuiltinToolsetDefinition: ToolsetDefinition = {
   key: 'builtin',
   domain: 'https://refly.ai',
@@ -228,7 +230,7 @@ export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
 
   async _call(
     input: z.infer<typeof this.schema>,
-    _: any,
+    _: unknown,
     config: RunnableConfig,
   ): Promise<ToolCallResult> {
     try {
@@ -284,7 +286,7 @@ export class BuiltinGenerateDoc extends AgentBaseTool<BuiltinToolParams> {
 
   async _call(
     input: z.infer<typeof this.schema>,
-    _: any,
+    _: unknown,
     config: RunnableConfig,
   ): Promise<ToolCallResult> {
     try {
@@ -344,7 +346,7 @@ export class BuiltinGenerateCodeArtifact extends AgentBaseTool<BuiltinToolParams
 
   async _call(
     input: z.infer<typeof this.schema>,
-    _: any,
+    _: unknown,
     config: RunnableConfig,
   ): Promise<ToolCallResult> {
     try {

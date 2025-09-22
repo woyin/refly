@@ -24,7 +24,7 @@ export class ResourceProcessor extends WorkerHost {
   }
 
   async process(job: Job<FinalizeResourceParam>) {
-    this.logger.log(`[${QUEUE_RESOURCE}] job: ${JSON.stringify(job)}`);
+    this.logger.log(`[${QUEUE_RESOURCE}] job: ${JSON.stringify(job.data)}`);
 
     try {
       await this.resourceService.finalizeResource(job.data);

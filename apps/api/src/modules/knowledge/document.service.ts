@@ -185,7 +185,11 @@ export class DocumentService {
       entityType: 'document',
     };
     const connection = await this.collabService.openDirectConnection(docId, collabContext);
-    incrementalMarkdownUpdate(connection.document, content);
+    try {
+      incrementalMarkdownUpdate(connection.document, content);
+    } finally {
+      if (connection) await connection.disconnect().catch(() => undefined);
+    }
   }
 
   private async updateDocumentStorageSize(document: DocumentPO) {
@@ -254,25 +258,28 @@ export class DocumentService {
 
       // Check if this document is created by a workflow node execution
       // If so, use the same docId to replace the original document.
-      if (result.workflowExecutionId) {
+      if (result.workflowNodeExecutionId) {
         const nodeExecution = await this.prisma.workflowNodeExecution.findUnique({
           where: {
             nodeExecutionId: result.workflowNodeExecutionId,
           },
         });
-        if (nodeExecution?.childNodeIds) {
-          const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
+        const parsed = nodeExecution?.childNodeIds
+          ? safeParseJSON(nodeExecution.childNodeIds)
+          : undefined;
+        const childNodeIds = Array.isArray(parsed)
+          ? parsed.filter((id: unknown): id is string => typeof id === 'string')
+          : [];
+        if (childNodeIds.length > 0) {
           const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
             where: {
               nodeId: { in: childNodeIds },
               status: 'waiting',
               nodeType: 'document',
             },
-            orderBy: {
-              createdAt: 'asc',
-            },
+            orderBy: { createdAt: 'asc' },
           });
-          if (docNodeExecution) {
+          if (docNodeExecution?.entityId) {
             param.docId = docNodeExecution.entityId;
           }
         }
@@ -315,6 +322,7 @@ export class DocumentService {
           },
         })
         .then(({ size }) => {
+          // TODO: the vector size is not updated to DB.
           createInput.vectorSize = size;
         })
         .catch((error) => {

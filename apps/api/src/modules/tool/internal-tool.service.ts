@@ -50,10 +50,9 @@ export class InternalToolService {
       const actionResult = await this.prisma.actionResult.findFirst({
         where: {
           resultId,
+          uid: user.uid,
         },
-        orderBy: {
-          version: 'desc',
-        },
+        orderBy: { version: 'desc' },
         take: 1,
       });
 
@@ -154,10 +153,9 @@ export class InternalToolService {
       const actionResult = await this.prisma.actionResult.findFirst({
         where: {
           resultId,
+          uid: user.uid,
         },
-        orderBy: {
-          version: 'desc',
-        },
+        orderBy: { version: 'desc' },
         take: 1,
       });
 
@@ -281,9 +279,11 @@ export class InternalToolService {
     contentUpdater: (content: string) => Promise<void> | void,
     throttleDelay = 1000,
   ): Promise<void> {
+    let lastUpdate: Promise<void> = Promise.resolve();
     const throttledUpdate = throttle(
       (content: string) => {
-        contentUpdater(content);
+        const p = Promise.resolve(contentUpdater(content));
+        lastUpdate = p;
       },
       throttleDelay,
       {
@@ -309,6 +309,7 @@ export class InternalToolService {
       // Final update to ensure all content is saved
       if (accumulatedContent) {
         throttledUpdate.flush();
+        await lastUpdate;
       }
     }
   }
