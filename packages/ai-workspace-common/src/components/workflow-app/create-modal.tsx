@@ -51,11 +51,11 @@ const SuccessMessage = memo(({ shareId }: SuccessMessageProps) => {
 
   return (
     <div className="flex items-center gap-2">
-      <Checked size={20} color="#12B76A" />
+      <Checked size={20} color="var(--refly-func-success-default)" />
       <span className="text-base font-medium text-refly-text-0">
         {t('workflowApp.publishSuccess')}
       </span>
-      <div className="flex items-center gap-2 border border-refly-Card-Border bg-refly-bg-content-z1 rounded-full pl-3 pr-1 py-1 max-w-[500px] bg-gray-100 dark:bg-gray-800">
+      <div className="flex items-center gap-2 border border-refly-Card-Border bg-refly-bg-content-z1 rounded-full pl-3 pr-1 py-1 max-w-[500px]">
         <span className="flex-1 text-sm text-refly-text-1 max-w-[260px] overflow-hidden text-ellipsis whitespace-nowrap">
           {shareLink}
         </span>
@@ -172,10 +172,10 @@ export const CreateWorkflowAppModal = ({
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="title-input"
-                className="text-xs font-semibold text-[#1C1F23] leading-[1.33]"
+                className="text-xs font-semibold text-refly-text-0 leading-[1.33]"
               >
                 {t('workflowApp.title')}
-                <span className="text-red-500 ml-1">*</span>
+                <span className="text-refly-func-danger-default ml-1">*</span>
               </label>
               <Form.Item
                 name="title"
@@ -185,7 +185,7 @@ export const CreateWorkflowAppModal = ({
                 <Input
                   id="title-input"
                   placeholder={t('workflowApp.titlePlaceholder')}
-                  className="h-8 rounded-lg border-0 bg-[#F6F6F6] px-3 text-sm font-normal text-[#1C1F23] placeholder:text-gray-400 focus:bg-[#F6F6F6] focus:shadow-sm"
+                  className="h-8 rounded-lg border-0 bg-refly-bg-control-z0 px-3 text-sm font-normal text-refly-text-0 placeholder:text-refly-text-3 focus:bg-refly-bg-control-z0 focus:shadow-sm"
                 />
               </Form.Item>
             </div>
@@ -195,7 +195,7 @@ export const CreateWorkflowAppModal = ({
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="description-input"
-                  className="text-xs font-semibold text-[#1C1F23] leading-[1.33]"
+                  className="text-xs font-semibold text-refly-text-0 leading-[1.33]"
                 >
                   {t('workflowApp.description')}
                 </label>
@@ -204,7 +204,7 @@ export const CreateWorkflowAppModal = ({
                 <Input.TextArea
                   id="description-input"
                   placeholder={t('workflowApp.descriptionPlaceholder')}
-                  className="min-h-[80px] rounded-lg border-0 bg-[#F6F6F6] px-3 py-2 text-sm font-normal text-[#1C1F23] placeholder:text-gray-400 focus:bg-[#F6F6F6] focus:shadow-sm"
+                  className="min-h-[80px] rounded-lg border-0 bg-refly-bg-control-z0 px-3 py-2 text-sm font-normal text-refly-text-0 placeholder:text-refly-text-3 focus:bg-refly-bg-control-z0 focus:shadow-sm"
                   autoSize={{ minRows: 3, maxRows: 6 }}
                 />
               </Form.Item>
