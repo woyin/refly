@@ -13,13 +13,13 @@ export interface ReflyService {
   generateMedia: (user: User, req: MediaGenerateRequest) => Promise<MediaGenerateResponse>;
 }
 
-export interface GenerateAudioFalParams extends ToolParams {
+export interface FalAudioParams extends ToolParams {
   user: User;
   reflyService: ReflyService;
 }
 
-export const GenerateAudioFalToolsetDefinition: ToolsetDefinition = {
-  key: 'generate_audio_fal',
+export const FalAudioToolsetDefinition: ToolsetDefinition = {
+  key: 'fal_audio',
   domain: 'https://fal.ai/',
   labelDict: {
     en: 'Generate Audio with FAL',
@@ -31,21 +31,21 @@ export const GenerateAudioFalToolsetDefinition: ToolsetDefinition = {
   },
   tools: [
     {
-      name: 'generate_audio_with_vibevoice_fal',
+      name: 'vibevoice_generate_audio',
       descriptionDict: {
         en: "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.",
         'zh-CN': '使用 Microsoft 的强大 TTS 生成长、表达性的多语音演讲。',
       },
     },
     {
-      name: 'generate_audio_with_elevenlabs_dialogue_fal',
+      name: 'elevenlabs_dialogue_generate_audio',
       descriptionDict: {
         en: 'Generate realistic audio dialogues using Eleven-v3 from ElevenLabs.',
         'zh-CN': '使用 ElevenLabs 的 Eleven-v3 生成真实的音频对话。',
       },
     },
     {
-      name: 'generate_audio_with_minimax_speech_fal',
+      name: 'minimax_speech_generate_audio',
       descriptionDict: {
         en: 'Generate fast speech from text prompts and different voices using the MiniMax Speech-02 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.',
         'zh-CN': '使用 Minimax 的 Minimax Speech-02 Turbo 模型生成快速语音。',
@@ -54,15 +54,15 @@ export const GenerateAudioFalToolsetDefinition: ToolsetDefinition = {
   ],
 };
 
-export class GenerateAudioWithVibeVoiceFal extends AgentBaseTool<GenerateAudioFalParams> {
-  name = 'generate_audio_with_vibevoice_fal';
-  toolsetKey = GenerateAudioFalToolsetDefinition.key;
+export class VibeVoiceGenerateAudio extends AgentBaseTool<FalAudioParams> {
+  name = 'vibevoice_generate_audio';
+  toolsetKey = FalAudioToolsetDefinition.key;
 
   schema = z.object({
     script: z
       .string()
       .describe(
-        "The script to convert to speech. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues. supports up to four speakers at once, match the speakers and speaker's language. example: \"Speaker 0: VibeVoice is now available on Fal. Isn't that right, Carter?\nSpeaker 1: That's right Frank, and it supports up to four speakers at once. Try it now!\"",
+        "The script to convert to speech up to 25 minutes. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues. supports up to four speakers at once, match the speakers and speaker's language. example: \"Speaker 0: VibeVoice is now available on Fal. Isn't that right, Carter?\nSpeaker 1: That's right Frank, and it supports up to four speakers at once. Try it now!\"",
       ),
     speakers: z
       .array(
@@ -94,9 +94,9 @@ export class GenerateAudioWithVibeVoiceFal extends AgentBaseTool<GenerateAudioFa
 
   description = "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.";
 
-  protected params: GenerateAudioFalParams;
+  protected params: FalAudioParams;
 
-  constructor(params: GenerateAudioFalParams) {
+  constructor(params: FalAudioParams) {
     super(params);
     this.params = params;
   }
@@ -135,9 +135,9 @@ export class GenerateAudioWithVibeVoiceFal extends AgentBaseTool<GenerateAudioFa
   }
 }
 
-export class GenerateAudioWithElevenLabsDialogueFal extends AgentBaseTool<GenerateAudioFalParams> {
-  name = 'generate_audio_with_elevenlabs_dialogue_fal';
-  toolsetKey = GenerateAudioFalToolsetDefinition.key;
+export class ElevenLabsDialogueGenerateAudio extends AgentBaseTool<FalAudioParams> {
+  name = 'elevenlabs_dialogue_generate_audio';
+  toolsetKey = FalAudioToolsetDefinition.key;
 
   schema = z.object({
     inputs: z
@@ -181,9 +181,9 @@ export class GenerateAudioWithElevenLabsDialogueFal extends AgentBaseTool<Genera
 
   description = 'Generate realistic audio dialogues using Eleven-v3 from ElevenLabs.';
 
-  protected params: GenerateAudioFalParams;
+  protected params: FalAudioParams;
 
-  constructor(params: GenerateAudioFalParams) {
+  constructor(params: FalAudioParams) {
     super(params);
     this.params = params;
   }
@@ -222,9 +222,9 @@ export class GenerateAudioWithElevenLabsDialogueFal extends AgentBaseTool<Genera
   }
 }
 
-export class GenerateAudioWithMinimaxSpeechFal extends AgentBaseTool<GenerateAudioFalParams> {
-  name = 'generate_audio_with_minimax_speech_fal';
-  toolsetKey = GenerateAudioFalToolsetDefinition.key;
+export class MinimaxSpeechGenerateAudio extends AgentBaseTool<FalAudioParams> {
+  name = 'minimax_speech_generate_audio';
+  toolsetKey = FalAudioToolsetDefinition.key;
 
   schema = z.object({
     text: z
@@ -309,9 +309,9 @@ export class GenerateAudioWithMinimaxSpeechFal extends AgentBaseTool<GenerateAud
 
   description = "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.";
 
-  protected params: GenerateAudioFalParams;
+  protected params: FalAudioParams;
 
-  constructor(params: GenerateAudioFalParams) {
+  constructor(params: FalAudioParams) {
     super(params);
     this.params = params;
   }
@@ -350,11 +350,11 @@ export class GenerateAudioWithMinimaxSpeechFal extends AgentBaseTool<GenerateAud
   }
 }
 
-export class GenerateAudioFalToolset extends AgentBaseToolset<GenerateAudioFalParams> {
-  toolsetKey = GenerateAudioFalToolsetDefinition.key;
+export class FalAudioToolset extends AgentBaseToolset<FalAudioParams> {
+  toolsetKey = FalAudioToolsetDefinition.key;
   tools = [
-    GenerateAudioWithVibeVoiceFal,
-    GenerateAudioWithElevenLabsDialogueFal,
-    GenerateAudioWithMinimaxSpeechFal,
-  ] satisfies readonly AgentToolConstructor<GenerateAudioFalParams>[];
+    VibeVoiceGenerateAudio,
+    ElevenLabsDialogueGenerateAudio,
+    MinimaxSpeechGenerateAudio,
+  ] satisfies readonly AgentToolConstructor<FalAudioParams>[];
 }
