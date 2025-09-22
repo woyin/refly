@@ -40,7 +40,7 @@ import { ObjectStorageService, OSS_INTERNAL } from '../common/object-storage';
 import { ShareCommonService } from './share-common.service';
 import { ShareExtraData, SharePageData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
-import { extractToolsetsWithNodes, initEmptyCanvasState } from '@refly/canvas-common';
+import { initEmptyCanvasState } from '@refly/canvas-common';
 import { CanvasService } from '../canvas/canvas.service';
 import { ToolService } from '../tool/tool.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
@@ -517,6 +517,7 @@ export class ShareDuplicationService {
         canvasId: newCanvasId,
         title: canvasData.title,
         projectId,
+        variables: canvasData.variables,
       },
       state,
     );
@@ -553,8 +554,7 @@ export class ShareDuplicationService {
     };
 
     // Convert toolsets
-    const toolsetsWithNodes = extractToolsetsWithNodes(nodes).map((t) => t.toolset);
-    const { replaceToolsetMap } = await this.toolService.importToolsets(user, toolsetsWithNodes);
+    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
     this.logger.log(`Replace toolsets map: ${JSON.stringify(replaceToolsetMap)}`);
 
     // Prepare duplication tasks in parallel

@@ -89,7 +89,7 @@ import type {
   GetCanvasDetailResponse2,
   GetCanvasDataData,
   GetCanvasDataError,
-  GetCanvasDataResponse,
+  GetCanvasDataResponse2,
   ExportCanvasData,
   ExportCanvasError,
   ExportCanvasResponse2,
@@ -890,7 +890,7 @@ export const getCanvasDetail = <ThrowOnError extends boolean = false>(
 export const getCanvasData = <ThrowOnError extends boolean = false>(
   options: Options<GetCanvasDataData, ThrowOnError>,
 ) => {
-  return (options?.client ?? client).get<GetCanvasDataResponse, GetCanvasDataError, ThrowOnError>({
+  return (options?.client ?? client).get<GetCanvasDataResponse2, GetCanvasDataError, ThrowOnError>({
     ...options,
     url: '/canvas/data',
   });
@@ -918,6 +918,11 @@ export const importCanvas = <ThrowOnError extends boolean = false>(
 ) => {
   return (options?.client ?? client).post<ImportCanvasResponse, ImportCanvasError, ThrowOnError>({
     ...options,
+    ...formDataBodySerializer,
+    headers: {
+      'Content-Type': null,
+      ...options?.headers,
+    },
     url: '/canvas/import',
   });
 };

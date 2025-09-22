@@ -8,7 +8,9 @@ import { useExportCanvasAsImage } from '@refly-packages/ai-workspace-common/hook
 import { useCanvasStoreShallow, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { Help } from '@refly-packages/ai-workspace-common/components/canvas/layout-control/help';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { logEvent } from '@refly/telemetry-web';
+
 export type Mode = 'mouse' | 'touchpad';
 
 // Add interface for TooltipButton props
@@ -37,6 +39,7 @@ interface MoreMenuProps {
   onModeChange: (mode: 'mouse' | 'touchpad') => void;
   onSlideshowClick: () => void;
   onExportImageClick: () => void;
+  onExportCanvasClick: () => void;
   t: TFunction;
 }
 
@@ -83,6 +86,7 @@ const MoreMenu = memo(
     onModeChange,
     onSlideshowClick,
     onExportImageClick,
+    onExportCanvasClick,
     t,
     readonly,
   }: MoreMenuProps) => {
@@ -110,6 +114,19 @@ const MoreMenu = memo(
             </div>
           ),
         },
+        ...(readonly
+          ? []
+          : [
+              {
+                key: 'exportCanvas',
+                label: (
+                  <div className="flex items-center gap-2" onClick={onExportCanvasClick}>
+                    <Download size={18} />
+                    {t('canvas.toolbar.exportCanvas')}
+                  </div>
+                ),
+              },
+            ]),
         {
           type: 'divider' as const,
         },
@@ -128,7 +145,16 @@ const MoreMenu = memo(
           })),
         },
       ],
-      [mode, modeItems, onSlideshowClick, onExportImageClick, onModeChange, t, readonly],
+      [
+        mode,
+        modeItems,
+        onSlideshowClick,
+        onExportImageClick,
+        onExportCanvasClick,
+        onModeChange,
+        t,
+        readonly,
+      ],
     );
 
     return (
@@ -223,6 +249,54 @@ export const ToolbarButtons = memo(
       exportCanvasAsImage(canvasTitle);
     }, [canvasId, exportCanvasAsImage, canvasTitle]);
 
+    const handleExportCanvasClick = useCallback(async () => {
+      if (!canvasId) return;
+
+      try {
+        logEvent('canvas::canvas_export_click', Date.now(), {
+          canvas_id: canvasId,
+        });
+
+        const { data } = await getClient().exportCanvas({
+          query: { canvasId },
+        });
+        if (data?.data?.downloadUrl) {
+          try {
+            // Fetch the content from the download URL
+            const response = await fetch(data.data.downloadUrl);
+
+            if (!response.ok) {
+              throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+            }
+
+            // Get the content as blob
+            const blob = await response.blob();
+
+            // Create a blob URL
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            // Create a temporary link element to trigger download
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `${canvasTitle || 'canvas'}.json`;
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up the blob URL and link element
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+          } catch (fetchError) {
+            console.error('Failed to download file:', fetchError);
+            // Fallback: try to open in new tab if fetch fails
+            window.open(data.data.downloadUrl, '_blank');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to export canvas:', error);
+        // TODO: Add proper error handling/notification
+      }
+    }, [canvasId, canvasTitle]);
+
     return (
       <>
         <div className="flex items-center">
@@ -233,6 +307,7 @@ export const ToolbarButtons = memo(
             onModeChange={changeMode}
             onSlideshowClick={handleSlideshowClick}
             onExportImageClick={handleExportImageClick}
+            onExportCanvasClick={handleExportCanvasClick}
             t={t}
           />
 

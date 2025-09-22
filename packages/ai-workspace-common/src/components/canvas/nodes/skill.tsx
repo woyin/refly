@@ -2,7 +2,7 @@ import { Edge, NodeProps, Position, useReactFlow } from '@xyflow/react';
 import { CanvasNode, CanvasNodeData, purgeToolsets, SkillNodeMeta } from '@refly/canvas-common';
 import { Node } from '@xyflow/react';
 import { CustomHandle } from './shared/custom-handle';
-import { useState, useCallback, useEffect, useMemo, memo } from 'react';
+import { useState, useCallback, useEffect, useMemo, memo, useRef } from 'react';
 
 import { getNodeCommonStyles } from './shared/styles';
 import { ModelCapabilities, ModelInfo, SkillRuntimeConfig } from '@refly/openapi-schema';
@@ -24,7 +24,10 @@ import { genActionResultID, genUniqueId } from '@refly/utils/id';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useContextUpdateByEdges } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
-import { ChatPanel } from '@refly-packages/ai-workspace-common/components/canvas/node-chat-panel';
+import {
+  ChatComposer,
+  type ChatComposerRef,
+} from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { useDebouncedCallback } from 'use-debounce';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
@@ -38,6 +41,7 @@ import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/event
 import { useExtractVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { ExtractVariablesRequest, VariableExtractionResult } from '@refly/openapi-schema';
 import { processQueryWithVariables } from '@refly-packages/ai-workspace-common/utils/workflow-variable-processor';
+import { useTranslation } from 'react-i18next';
 
 const NODE_WIDTH = 480;
 const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto' };
@@ -48,17 +52,19 @@ export const SkillNode = memo(
   ({ data, selected, id }: NodeProps<SkillNode>) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isMediaGenerating, setIsMediaGenerating] = useState(false);
+    const chatComposerRef = useRef<ChatComposerRef>(null);
     const { edges } = useCanvasData();
     const { setNodeData, setNodeStyle } = useNodeData();
     const edgeStyles = useEdgeStyles();
-    const { getNode, getNodes, getEdges, addEdges, deleteElements } = useReactFlow();
+    const { getNode, getNodes, getEdges, setEdges, deleteElements } = useReactFlow();
     const { addNode } = useAddNode();
     const { deleteNode } = useDeleteNode();
     useSelectedNodeZIndex(id, selected);
 
     const { canvasId, readonly } = useCanvasContext();
+    const { t } = useTranslation();
 
-    const { projectId, handleProjectChange, getFinalProjectId } = useAskProject();
+    const { getFinalProjectId } = useAskProject();
 
     const { metadata = {} } = data;
     const {
@@ -121,12 +127,23 @@ export const SkillNode = memo(
     );
 
     const setContextItems = useCallback(
-      (items: IContextItem[]) => {
-        setNodeData(id, { metadata: { contextItems: items } });
+      (items: IContextItem[] | ((prevItems: IContextItem[]) => IContextItem[])) => {
+        const currentNode = getNode(id);
+        const currentContextItems = ((currentNode?.data as CanvasNodeData<SkillNodeMeta>)?.metadata
+          ?.contextItems ?? []) as IContextItem[];
+
+        // Resolve the new items (handle both direct array and function updates)
+        const newItems = typeof items === 'function' ? items(currentContextItems) : items;
+
+        setNodeData(id, { metadata: { contextItems: newItems } });
 
         const nodes = getNodes() as CanvasNode<any>[];
         const entityNodeMap = new Map(nodes.map((node) => [node.data?.entityId, node]));
-        const contextNodes = items.map((item) => entityNodeMap.get(item.entityId)).filter(Boolean);
+
+        // Filter items that have corresponding nodes (exclude uploaded images without nodes)
+        const contextNodes = newItems
+          .map((item) => entityNodeMap.get(item.entityId))
+          .filter(Boolean);
 
         const edges = getEdges();
         const existingEdges = edges?.filter((edge) => edge.target === id) ?? [];
@@ -145,16 +162,25 @@ export const SkillNode = memo(
         const edgesToRemove = existingEdges.filter((edge) => !contextNodeIds.has(edge.source));
 
         setTimeout(() => {
-          if (newEdges?.length > 0) {
-            addEdges(newEdges);
-          }
+          setEdges((currentEdges) => {
+            let updatedEdges = [...currentEdges];
 
-          if (edgesToRemove?.length > 0) {
-            deleteElements({ edges: edgesToRemove });
-          }
+            // Add new edges
+            if (newEdges?.length > 0) {
+              updatedEdges = [...updatedEdges, ...newEdges];
+            }
+
+            // Remove edges that are no longer needed
+            if (edgesToRemove?.length > 0) {
+              const edgesToRemoveIds = new Set(edgesToRemove.map((edge) => edge.id));
+              updatedEdges = updatedEdges.filter((edge) => !edgesToRemoveIds.has(edge.id));
+            }
+
+            return updatedEdges;
+          });
         }, 10);
       },
-      [id, setNodeData, addEdges, getNodes, getEdges, deleteElements, edgeStyles.hover],
+      [id, setNodeData, setEdges, getNodes, getEdges, edgeStyles.hover],
     );
 
     const setRuntimeConfig = useCallback(
@@ -182,6 +208,18 @@ export const SkillNode = memo(
     useEffect(() => {
       setNodeStyle(id, NODE_SIDE_CONFIG);
     }, [id, setNodeStyle]);
+
+    // Auto-focus input when node is selected
+    useEffect(() => {
+      if (selected && !readonly) {
+        // Use a small delay to ensure the component is fully rendered
+        const timer = setTimeout(() => {
+          chatComposerRef.current?.focus();
+        }, 100);
+
+        return () => clearTimeout(timer);
+      }
+    }, [selected, readonly]);
 
     useEffect(() => {
       if (skillSelectedModel && !modelInfo) {
@@ -487,28 +525,26 @@ export const SkillNode = memo(
         <div
           className={`h-full flex flex-col relative z-1 px-4 py-3 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
         >
-          <ChatPanel
-            mode="node"
-            readonly={readonly}
+          <ChatComposer
+            ref={chatComposerRef}
             query={localQuery}
             setQuery={setQuery}
+            handleSendMessage={handleSendMessage}
+            handleAbort={abortAction}
             contextItems={contextItems}
             setContextItems={setContextItems}
             modelInfo={modelInfo}
             setModelInfo={setModelInfo}
             runtimeConfig={runtimeConfig || {}}
             setRuntimeConfig={setRuntimeConfig}
-            handleSendMessage={handleSendMessage}
-            handleAbortAction={abortAction}
-            projectId={projectId}
-            handleProjectChange={(projectId) => {
-              handleProjectChange(projectId);
-              updateNodeData({ metadata: { projectId } });
-            }}
+            placeholder={t('canvas.launchpad.commonChatInputPlaceholder')}
+            inputClassName="px-1 py-0"
+            maxRows={6}
+            onFocus={() => {}}
             enableRichInput={true}
             selectedToolsets={selectedToolsets}
             onSelectedToolsetsChange={setSelectedToolsets}
-            loading={isMediaGenerating}
+            isExecuting={isMediaGenerating}
           />
         </div>
       </div>

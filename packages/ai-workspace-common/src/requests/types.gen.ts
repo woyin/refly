@@ -2479,13 +2479,34 @@ export type RawCanvasData = CanvasData & {
    * Minimap URL
    */
   minimapUrl?: string;
+  /**
+   * Workflow variables
+   */
+  variables?: Array<WorkflowVariable>;
+};
+
+export type GetCanvasDataResponse = BaseResponse & {
+  data?: RawCanvasData;
 };
 
 export type ExportCanvasResponse = BaseResponse & {
+  data?: {
+    /**
+     * Download URL for the canvas data
+     */
+    downloadUrl?: string;
+  };
+};
+
+export type ImportCanvasRequest = {
   /**
-   * Canvas data
+   * File to import
    */
-  data?: RawCanvasData;
+  file: Blob | File;
+  /**
+   * Canvas ID to specify
+   */
+  canvasId?: string;
 };
 
 export type DuplicateCanvasRequest = {
@@ -4029,7 +4050,6 @@ export type MediaGenerateRequest = {
   providerItemId?: string;
   /**
    * Optional provider selection (use providerItemId instead)
-   * @deprecated
    */
   provider?: string | null;
   /**
@@ -4056,6 +4076,16 @@ export type MediaGenerateRequest = {
    * Input parameter configurations
    */
   inputParameters?: Array<MediaModelParameter>;
+  /**
+   * Flexible key-value pairs for additional input parameters
+   */
+  input?: {
+    [key: string]: unknown;
+  };
+  /**
+   * Unit cost for the media generation
+   */
+  unitCost?: number;
 };
 
 export type MediaGenerateResponse = BaseResponse & {
@@ -5539,7 +5569,7 @@ export type ToolsetInstance = {
   /**
    * Toolset key
    */
-  key?: string;
+  key: string;
   /**
    * Whether the toolset is global
    */
@@ -6552,7 +6582,7 @@ export type GetCanvasDataData = {
   };
 };
 
-export type GetCanvasDataResponse = ExportCanvasResponse;
+export type GetCanvasDataResponse2 = GetCanvasDataResponse;
 
 export type GetCanvasDataError = unknown;
 
@@ -6570,7 +6600,7 @@ export type ExportCanvasResponse2 = ExportCanvasResponse;
 export type ExportCanvasError = unknown;
 
 export type ImportCanvasData = {
-  body: RawCanvasData;
+  body: ImportCanvasRequest;
 };
 
 export type ImportCanvasResponse = UpsertCanvasResponse;

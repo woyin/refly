@@ -13,9 +13,15 @@ import {
   ToolsetAuthType,
   UpsertToolsetRequest,
   User,
+  CanvasNode,
 } from '@refly/openapi-schema';
 import { genToolsetID, safeParseJSON, validateConfig } from '@refly/utils';
-import { BuiltinToolset, BuiltinToolsetDefinition, toolsetInventory } from '@refly/agent-tools';
+import {
+  BuiltinToolset,
+  BuiltinToolsetDefinition,
+  toolsetInventory,
+  AnyToolsetClass,
+} from '@refly/agent-tools';
 import { ParamsError, ToolsetNotFoundError } from '@refly/errors';
 import { mcpServerPo2GenericToolset, toolsetPo2GenericToolset } from './tool.dto';
 import { McpServerService } from '../mcp-server/mcp-server.service';
@@ -25,6 +31,7 @@ import {
   MultiServerMCPClient,
   SkillEngine,
 } from '@refly/skill-template';
+import { extractToolsetsWithNodes } from '@refly/canvas-common';
 
 @Injectable()
 export class ToolService {
@@ -37,8 +44,27 @@ export class ToolService {
     private readonly mcpServerService: McpServerService,
   ) {}
 
+  get toolsetInventory(): Record<
+    string,
+    {
+      class: AnyToolsetClass;
+      definition: ToolsetDefinition;
+    }
+  > {
+    const supportedToolsets = this.configService.get<string>('tools.supportedToolsets');
+
+    if (!supportedToolsets) {
+      return toolsetInventory;
+    }
+
+    const supportedToolsetsArray = supportedToolsets.split(',');
+    return Object.fromEntries(
+      Object.entries(toolsetInventory).filter(([key]) => supportedToolsetsArray.includes(key)),
+    );
+  }
+
   listToolsetInventory(): ToolsetDefinition[] {
-    return Object.values(toolsetInventory)
+    return Object.values(this.toolsetInventory)
       .map((toolset) => toolset.definition)
       .sort((a, b) => a.key.localeCompare(b.key));
   }
@@ -51,6 +77,7 @@ export class ToolService {
       builtin: true,
       toolset: {
         toolsetId: 'builtin',
+        key: 'builtin',
         name: 'Builtin',
         definition: BuiltinToolsetDefinition,
       },
@@ -94,6 +121,8 @@ export class ToolService {
     // Get clientId and clientSecret from config
     const clientId = this.configService.get(`auth.${provider}.clientId`);
     const clientSecret = this.configService.get(`auth.${provider}.clientSecret`);
+    const consumerKey = this.configService.get(`auth.${provider}.consumerKey`);
+    const consumerSecret = this.configService.get(`auth.${provider}.consumerSecret`);
 
     if (!clientId || !clientSecret) {
       throw new ParamsError(`OAuth config not found for provider: ${provider}`);
@@ -118,6 +147,8 @@ export class ToolService {
     return {
       clientId,
       clientSecret,
+      consumerKey,
+      consumerSecret,
       refreshToken: account.refreshToken,
       accessToken: account.accessToken,
     };
@@ -132,12 +163,12 @@ export class ToolService {
 
     if (!key) {
       throw new ParamsError('key is required');
-    } else if (!toolsetInventory[key]) {
+    } else if (!this.toolsetInventory[key]) {
       throw new ParamsError(`Toolset ${key} not valid`);
     }
 
     // Get toolset definition for validation
-    const toolsetDefinition = toolsetInventory[key]?.definition;
+    const toolsetDefinition = this.toolsetInventory[key]?.definition;
     if (!toolsetDefinition) {
       throw new ParamsError(`Toolset definition not found for key: ${key}`);
     }
@@ -259,11 +290,8 @@ export class ToolService {
     if (param.name !== undefined) {
       updates.name = param.name;
     }
-    if (param.key !== undefined) {
-      if (!toolsetInventory[param.key]) {
-        throw new ParamsError(`Toolset ${param.key} not valid`);
-      }
-      updates.key = param.key;
+    if (param.key !== undefined && param.key !== toolset.key) {
+      throw new ParamsError(`Toolset key ${param.key} cannot be updated`);
     }
     if (param.enabled !== undefined) {
       updates.enabled = param.enabled;
@@ -559,7 +587,23 @@ export class ToolService {
       }
     }
 
+    this.logger.log(`Imported toolsets: ${JSON.stringify(replaceToolsetMap)}`);
+
     return { toolsets: importedToolsets, replaceToolsetMap };
+  }
+
+  async importToolsetsFromNodes(
+    user: User,
+    nodes: CanvasNode[],
+  ): Promise<{ replaceToolsetMap: Record<string, GenericToolset> }> {
+    if (!nodes?.length) {
+      return { replaceToolsetMap: {} };
+    }
+
+    const toolsetsWithNodes = extractToolsetsWithNodes(nodes).map((t) => t.toolset);
+    const { replaceToolsetMap } = await this.importToolsets(user, toolsetsWithNodes);
+
+    return { replaceToolsetMap };
   }
 
   /**
@@ -585,7 +629,7 @@ export class ToolService {
     }
 
     // Check if toolset key exists in inventory
-    const toolsetDefinition = toolsetInventory[key];
+    const toolsetDefinition = this.toolsetInventory[key];
     if (!toolsetDefinition) {
       this.logger.warn(`Toolset key not found in inventory: ${key}, skipping`);
       return null;
@@ -690,7 +734,7 @@ export class ToolService {
     const mcpServers = toolsets.filter((t) => t.type === 'mcp');
 
     const [regularTools, mcpTools] = await Promise.all([
-      this.instantiateRegularToolsets(user, regularToolsets),
+      this.instantiateRegularToolsets(user, regularToolsets, engine),
       this.instantiateMcpServers(user, mcpServers),
     ]);
 
@@ -735,6 +779,7 @@ export class ToolService {
   private async instantiateRegularToolsets(
     user: User,
     toolsets: GenericToolset[],
+    engine: SkillEngine,
   ): Promise<DynamicStructuredTool[]> {
     if (!toolsets?.length) {
       return [];
@@ -758,7 +803,12 @@ export class ToolService {
       const authData = t.authData ? safeParseJSON(this.encryptionService.decrypt(t.authData)) : {};
 
       // TODO: check for constructor parameters
-      const toolsetInstance = new toolset.class({ ...config, ...authData });
+      const toolsetInstance = new toolset.class({
+        ...config,
+        ...authData,
+        reflyService: engine.service,
+        user,
+      });
 
       return toolset.definition.tools
         ?.map((tool) => toolsetInstance.getToolInstance(tool.name))

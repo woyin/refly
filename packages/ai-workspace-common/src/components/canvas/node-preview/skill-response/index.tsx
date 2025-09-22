@@ -159,11 +159,12 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     (structuredData?.query as string) ?? (result?.input?.query as string) ?? title,
   );
 
+  // Update currentQuery when node data changes, ensuring it's specific to this node
   useEffect(() => {
-    if (result?.input?.query) {
-      setCurrentQuery((structuredData?.query as string) ?? (result?.input?.query as string));
-    }
-  }, [result?.input?.query, structuredData?.query]);
+    const nodeSpecificQuery =
+      (structuredData?.query as string) ?? (result?.input?.query as string) ?? title;
+    setCurrentQuery(nodeSpecificQuery);
+  }, [node.id, structuredData?.query, result?.input?.query, title]);
 
   const { steps = [], context, history = [] } = result ?? {};
   const contextItems = useMemo(() => {
@@ -174,12 +175,11 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
     // Fallback to contextItems from context (could be legacy nodes)
     return convertResultContextToItems(context ?? {}, history);
-  }, [data, context, history]);
+  }, [data?.metadata?.contextItems, context, history]);
 
   useEffect(() => {
     const skillName = actionMeta?.name || 'commonQnA';
     if (result?.status !== 'executing' && result?.status !== 'waiting') return;
-    setEditMode(false);
 
     const sortedSteps = sortSteps(steps);
 
@@ -253,108 +253,104 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     };
   }, [node.id]);
 
-  if (!result && !loading) {
-    return (
-      <div className="h-full w-full flex items-center justify-center">
-        <Result
-          status="404"
-          subTitle={t('canvas.skillResponse.resultNotFound')}
-          extra={<Button onClick={handleDelete}>{t('canvas.nodeActions.delete')}</Button>}
-        />
-      </div>
-    );
-  }
-
   const outputStep = steps.find((step) => OUTPUT_STEP_NAMES.includes(step.name));
 
   return (
     <div
-      className="flex flex-col gap-4 h-full max-w-[1024px] mx-auto overflow-hidden"
+      className="flex flex-col gap-4 h-full w-full max-w-[1024px] mx-auto overflow-hidden"
       onClick={() => {
         if (editMode) {
           setEditMode(false);
         }
       }}
     >
-      {title && (
-        <div className="px-4 pt-4">
-          <EditChatInput
-            enabled={editMode}
-            resultId={resultId}
-            version={version}
-            contextItems={contextItems}
-            query={currentQuery}
-            actionMeta={actionMeta}
-            modelInfo={
-              modelInfo ?? {
-                name: '',
-                label: '',
-                provider: '',
-                contextLimit: 0,
-                maxOutput: 0,
-              }
+      <div className="px-4 pt-4">
+        <EditChatInput
+          enabled={editMode}
+          resultId={resultId}
+          version={version}
+          contextItems={contextItems}
+          query={currentQuery}
+          actionMeta={actionMeta}
+          modelInfo={
+            modelInfo ?? {
+              name: '',
+              label: '',
+              provider: '',
+              contextLimit: 0,
+              maxOutput: 0,
             }
-            setEditMode={setEditMode}
-            runtimeConfig={runtimeConfig}
-            onQueryChange={setCurrentQuery}
-            selectedToolsets={selectedToolsets}
-            setSelectedToolsets={setSelectedToolsets}
-          />
-          <PreviewChatInput
-            enabled={!editMode}
-            readonly={readonly}
-            contextItems={contextItems}
-            query={currentQuery}
-            actionMeta={actionMeta}
-            setEditMode={setEditMode}
-          />
-        </div>
-      )}
+          }
+          setEditMode={setEditMode}
+          runtimeConfig={runtimeConfig}
+          onQueryChange={setCurrentQuery}
+          selectedToolsets={selectedToolsets}
+          setSelectedToolsets={setSelectedToolsets}
+        />
+        <PreviewChatInput
+          enabled={!editMode}
+          readonly={readonly}
+          contextItems={contextItems}
+          query={currentQuery}
+          actionMeta={actionMeta}
+          setEditMode={setEditMode}
+        />
+      </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4">
-        <Spin
-          spinning={!isStreaming && result?.status === 'executing'}
-          indicator={<IconLoading className="animate-spin" />}
-          size="large"
-          tip={t('canvas.skillResponse.generating')}
-          wrapperClassName="h-full w-full flex flex-col"
-        >
-          <div
-            className={cn(
-              'h-full overflow-auto preview-container transition-opacity duration-500',
-              { 'opacity-30': editMode },
-            )}
-          >
-            {loading && !isStreaming && (
-              <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />
-            )}
-            {(result?.status === 'executing' || result?.status === 'waiting') &&
-              !outputStep &&
-              statusText && (
-                <div className="flex flex-col gap-2 animate-pulse">
-                  <Divider dashed className="my-2" />
-                  <div className="m-2 flex items-center gap-1 text-gray-500">
-                    <Thinking size={16} />
-                    <span className="text-sm">{statusText}</span>
-                  </div>
-                </div>
-              )}
-            {outputStep && (
-              <>
-                <Divider dashed className="my-2" />
-                <ActionStepCard
-                  result={result}
-                  step={outputStep}
-                  status={result?.status}
-                  query={title}
-                />
-              </>
-            )}
-            {result?.status === 'failed' && (
-              <FailureNotice result={result} handleRetry={handleRetry} />
-            )}
+        {!result && !loading ? (
+          <div className="h-full w-full flex items-center justify-center">
+            <Result
+              status="404"
+              subTitle={t('canvas.skillResponse.resultNotFound')}
+              extra={<Button onClick={handleDelete}>{t('canvas.nodeActions.delete')}</Button>}
+            />
           </div>
-        </Spin>
+        ) : (
+          <Spin
+            spinning={!isStreaming && result?.status === 'executing'}
+            indicator={<IconLoading className="animate-spin" />}
+            size="large"
+            tip={t('canvas.skillResponse.generating')}
+            wrapperClassName="h-full w-full flex flex-col"
+          >
+            <div
+              className={cn(
+                'h-full overflow-auto preview-container transition-opacity duration-500',
+                { 'opacity-30': editMode },
+              )}
+            >
+              {loading && !isStreaming && (
+                <Skeleton className="mt-1" active paragraph={{ rows: 5 }} />
+              )}
+              {(result?.status === 'executing' || result?.status === 'waiting') &&
+                !outputStep &&
+                statusText && (
+                  <div className="flex flex-col gap-2 animate-pulse">
+                    <Divider dashed className="my-2" />
+                    <div className="m-2 flex items-center gap-1 text-gray-500">
+                      <Thinking size={16} />
+                      <span className="text-sm">{statusText}</span>
+                    </div>
+                  </div>
+                )}
+              {outputStep && (
+                <>
+                  <Divider dashed className="my-2" />
+                  <ActionStepCard
+                    result={result}
+                    step={outputStep}
+                    status={result?.status}
+                    query={currentQuery ?? title ?? ''}
+                  />
+                </>
+              )}
+              {result?.status === 'failed' && (
+                <FailureNotice result={result} handleRetry={handleRetry} />
+              )}
+            </div>
+          </Spin>
+        )}
       </div>
 
       {outputStep && <ActionContainer result={result} step={outputStep} nodeId={node.id} />}
@@ -366,9 +362,4 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   );
 };
 
-export const SkillResponseNodePreview = memo(
-  SkillResponseNodePreviewComponent,
-  (prevProps, nextProps) => {
-    return prevProps.node.id === nextProps.node.id && prevProps.resultId === nextProps.resultId;
-  },
-);
+export const SkillResponseNodePreview = memo(SkillResponseNodePreviewComponent);

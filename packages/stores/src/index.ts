@@ -70,6 +70,11 @@ export { useThemeStore, useThemeStoreShallow } from './stores/theme';
 export { useToolStore, useToolStoreShallow } from './stores/tool';
 export { type LocalSettings, useUserStore, useUserStoreShallow } from './stores/user';
 export {
+  useImageUploadStore,
+  useImageUploadStoreShallow,
+  type UploadProgress,
+} from './stores/image-upload';
+export {
   createAutoEvictionStorage,
   AutoEvictionStorageManager,
 } from './stores/utils/storage-manager';

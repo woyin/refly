@@ -248,7 +248,7 @@ export const VideoNode = memo(
         style={NODE_SIDE_CONFIG}
         onClick={onNodeClick}
       >
-        <div className="absolute -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[80%]">
+        <div className="absolute -top-8 left-3 right-0 z-10 flex items-center h-8 gap-2 w-[70%]">
           <div
             className={cn(
               'flex-1 min-w-0 rounded-t-lg px-1 py-1 transition-opacity duration-200 bg-transparent',

@@ -10,3 +10,4 @@ export * from './sync';
 export * from './history';
 export * from './workflow';
 export * from './tools';
+export * from './data';

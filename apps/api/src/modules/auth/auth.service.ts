@@ -14,6 +14,7 @@ import {
 import { TokenData } from './auth.dto';
 import {
   ACCESS_TOKEN_COOKIE,
+  EMAIL_COOKIE,
   genUID,
   genVerificationSessionID,
   omit,
@@ -82,6 +83,7 @@ export class AuthService {
 
     return {
       uid: user.uid,
+      email: user.email,
       accessToken,
       refreshToken,
     };
@@ -183,6 +185,11 @@ export class AuthService {
           ...baseOptions,
           expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
         };
+      case EMAIL_COOKIE:
+        return {
+          ...baseOptions,
+          expires: new Date(Date.now() + ms(this.configService.get('auth.jwt.refreshExpiresIn'))),
+        };
       case ACCESS_TOKEN_COOKIE:
         return {
           ...baseOptions,
@@ -200,9 +207,10 @@ export class AuthService {
     }
   }
 
-  setAuthCookie(res: Response, { uid, accessToken, refreshToken }: TokenData) {
+  setAuthCookie(res: Response, { uid, email, accessToken, refreshToken }: TokenData) {
     return res
       .cookie(UID_COOKIE, uid, this.cookieOptions(UID_COOKIE))
+      .cookie(EMAIL_COOKIE, email, this.cookieOptions(EMAIL_COOKIE))
       .cookie(ACCESS_TOKEN_COOKIE, accessToken, this.cookieOptions(ACCESS_TOKEN_COOKIE))
       .cookie(REFRESH_TOKEN_COOKIE, refreshToken, this.cookieOptions(REFRESH_TOKEN_COOKIE));
   }
@@ -227,6 +235,37 @@ export class AuthService {
     return name;
   }
 
+  async parseOAuthState(state: string) {
+    this.logger.log(`parseOAuthState: ${state}`);
+
+    // Parse state safely once
+    const defaultRedirect = this.configService.get('auth.redirectUrl');
+    let parsedState: { uid?: string; redirect?: string } | null = null;
+    try {
+      parsedState = state ? JSON.parse(state) : null;
+    } catch {
+      this.logger.warn('Invalid state JSON received in Google OAuth callback');
+    }
+    // Build a safe redirect URL (allowlist by origin; fall back to default)
+    const requested = parsedState?.redirect;
+    let finalRedirect = defaultRedirect;
+    try {
+      if (typeof requested === 'string') {
+        const allowed = this.configService.get<string[]>('auth.allowedRedirectOrigins') ?? [
+          new URL(defaultRedirect).origin,
+        ];
+        const u = new URL(requested, defaultRedirect);
+        if (allowed.includes(u.origin)) {
+          finalRedirect = u.toString();
+        }
+      }
+    } catch {
+      // ignore and use default
+    }
+
+    return { parsedState, finalRedirect };
+  }
+
   /**
    * General OAuth logic
    * @param accessToken
@@ -243,7 +282,7 @@ export class AuthService {
     const { provider, id, emails, displayName, photos } = profile;
 
     this.logger.log(
-      `oauth provider=${provider}, accountId=${id}, scopes=${JSON.stringify(scopes)}`,
+      `oauth provider=${provider}, accountId=${id},uid=${uid},email=${emails}, scopes=${JSON.stringify(scopes)}`,
     );
 
     // Check if there is an authentication account record
@@ -307,12 +346,14 @@ export class AuthService {
       this.logger.log(`user ${account.uid} not found for provider ${provider} account id: ${id}`);
     }
 
+    let email = '';
     // oauth profile returns no email, this is invalid
     if (emails?.length === 0) {
       this.logger.warn('emails is empty, invalid oauth');
-      throw new OAuthError();
+      //throw new OAuthError();
+    } else if (emails?.length > 0) {
+      email = emails[0].value;
     }
-    const email = emails[0].value;
 
     // Determine the uid to use
     let targetUid = uid;
@@ -384,18 +425,22 @@ export class AuthService {
       this.logger.log(`user created: ${newUser.uid}`);
     }
 
-    const newAccount = await this.prisma.account.create({
-      data: {
-        type: 'oauth',
-        uid: targetUid,
-        provider,
-        providerAccountId: id,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        scope: JSON.stringify(scopes), // Default scope for login
-      },
-    });
-    this.logger.log(`new account created for ${newAccount.uid}`);
+    try {
+      await this.prisma.account.create({
+        data: {
+          type: 'oauth',
+          uid: targetUid,
+          provider,
+          providerAccountId: id,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          scope: JSON.stringify(scopes), // Default scope for login
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to create account for ${targetUid}:`, error);
+      throw error;
+    }
 
     // Get the user for logging and return
     const finalUser = await this.prisma.user.findUnique({
@@ -740,11 +785,26 @@ export class AuthService {
    * @param redirectUrl Redirect URL after authorization
    */
   async generateGoogleOAuthUrl(scope: string, redirect: string, uid: string): Promise<string> {
+    this.logger.log(`generateGoogleOAuthUrl, scope: ${scope}, redirect: ${redirect}, uid: ${uid}`);
+
     const baseScope = ['profile', 'email'];
     const scopeArray = scope?.split(',') ?? [];
     const finalScope = [...baseScope, ...scopeArray];
-    const clientId = this.configService.get('auth.google.clientId');
-    const callbackUrl = this.configService.get('auth.google.callbackUrl');
+    this.logger.log(`finalScope: ${finalScope}`);
+
+    // Check if user-specified scope contains elements not found in baseScope
+    const hasAdditionalScopes = scopeArray.some((s) => !baseScope.includes(s.trim()));
+
+    // Use tool oauth client id if additional scopes are requested
+    const clientId = hasAdditionalScopes
+      ? (this.configService.get('tools.google.clientId') ??
+        this.configService.get('auth.google.clientId'))
+      : this.configService.get('auth.google.clientId');
+
+    const callbackUrl = hasAdditionalScopes
+      ? (this.configService.get('tools.google.callbackUrl') ??
+        this.configService.get('auth.google.callbackUrl'))
+      : this.configService.get('auth.google.callbackUrl');
 
     // Check if user already has Google OAuth with refresh token
     let prompt = 'consent';
@@ -759,7 +819,11 @@ export class AuthService {
         });
 
         // If account exists and has a valid refresh token, don't force consent
-        if (existingAccount?.refreshToken && existingAccount.refreshToken !== undefined) {
+        if (
+          existingAccount?.refreshToken &&
+          existingAccount.refreshToken !== undefined &&
+          scopeArray.length === 0
+        ) {
           prompt = 'none';
         }
       } catch (error) {
@@ -774,7 +838,7 @@ export class AuthService {
       scope: finalScope.join(' '),
       response_type: 'code',
       access_type: 'offline',
-      prompt: prompt,
+      prompt,
       state: JSON.stringify({
         redirect: redirect ?? this.configService.get('auth.redirectUrl'),
         uid: uid,
@@ -782,5 +846,23 @@ export class AuthService {
     });
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  async generateNotionOAuthUrl(uid: string, redirect?: string): Promise<string> {
+    const clientId = this.configService.get('auth.notion.clientId');
+    const callbackUrl = this.configService.get('auth.notion.callbackUrl');
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      owner: 'user',
+      redirect_uri: callbackUrl,
+      state: JSON.stringify({
+        redirect: redirect ?? this.configService.get('auth.redirectUrl'),
+        uid: uid,
+      }),
+    });
+
+    return `https://api.notion.com/v1/oauth/authorize?${params.toString()}`;
   }
 }

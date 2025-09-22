@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button, Modal, Form, Input, Checkbox, message } from 'antd';
-import { Attachment, Close, List, Text1 } from 'refly-icons';
+import { Close, List, Text1 } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -45,11 +45,11 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           value: 'string',
           icon: <Text1 size={16} />,
         },
-        {
-          label: t('canvas.workflow.variables.variableTypeOptions.resource'),
-          value: 'resource',
-          icon: <Attachment size={16} />,
-        },
+        // {
+        //   label: t('canvas.workflow.variables.variableTypeOptions.resource'),
+        //   value: 'resource',
+        //   icon: <Attachment size={16} />,
+        // },
         {
           label: t('canvas.workflow.variables.variableTypeOptions.option'),
           value: 'option',
@@ -492,7 +492,9 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
     const handleNameBlur = useCallback(() => {
       const value = form.getFieldValue('name');
       if (value) {
-        form.setFieldValue('name', value.trim());
+        // Remove all spaces from the variable name
+        const trimmedValue = value.replace(/\s/g, '');
+        form.setFieldValue('name', trimmedValue);
       }
     }, [form]);
 
@@ -567,6 +569,14 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                     validator: async (_, value) => {
                       if (!value) {
                         return Promise.resolve();
+                      }
+
+                      // Check if the value contains spaces
+                      if (/\s/.test(value)) {
+                        throw new Error(
+                          t('canvas.workflow.variables.noSpacesAllowed') ||
+                            'Variable name cannot contain spaces.',
+                        );
                       }
 
                       // Check for duplicate names in workflowVariables array

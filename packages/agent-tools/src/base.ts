@@ -1,4 +1,5 @@
 import { StructuredTool } from '@langchain/core/tools';
+import { ReflyService } from './builtin/interface';
 
 export interface ToolCallResult {
   /**
@@ -167,4 +168,10 @@ export abstract class AgentBaseToolset<TParams = unknown> {
 
     return ctor as AgentToolConstructor<TParams>;
   }
+}
+/**
+ * BaseToolParams ReflyService is the Refly service instance.
+ */
+export interface BaseToolParams {
+  reflyService?: ReflyService;
 }

@@ -77,6 +77,19 @@ const translations = {
     uploadImage: 'Upload Image',
     uploadSuccess: 'Upload successful',
     uploadFailed: 'Upload failed',
+    upload: {
+      notification: {
+        uploading: 'Uploading {{count}} image(s)',
+        progress: '{{completed}} of {{total}} completed',
+        complete: 'complete',
+        success: 'Successfully uploaded {{count}} image(s)',
+        allUploaded: 'All images have been uploaded successfully',
+        partialSuccess: 'Upload completed with some errors',
+        partialSuccessDesc: '{{success}} successful, {{error}} failed',
+        failed: 'Upload failed',
+        allFailed: 'All images failed to upload',
+      },
+    },
     dropImageHere: 'Drop image here',
     presetColors: 'Preset Colors',
     duplicate: 'Duplicate',
@@ -825,6 +838,8 @@ const translations = {
       part2: 'Human-AI Collaborative Agent',
       part3: 'Platform',
     },
+    agentInputPlaceholder: 'Enter task description, Agent will generate reusable workflows',
+    chatInputPlaceholder: 'Enter a task (choose model & tools)',
     githubStar: 'Star us on GitHub!',
     fromCommunity: 'From the community',
     fromCommunityDesc: 'Discover a way to use Refly for work, or even beyond.',
@@ -1146,9 +1161,9 @@ const translations = {
     },
     launchpad: {
       placeholder: 'Describe needs...',
-      chatInputPlaceholder:
-        'Give Refly a task, it will analyze and plan intelligently, and help you complete the task...',
-      commonChatInputPlaceholder: 'Ask Refly any question...',
+      chatInputPlaceholder: 'Enter task description, Agent will generate reusable workflows',
+      commonChatInputPlaceholder:
+        'Enter task description, @ can quickly select variables/resources',
     },
     contextMenu: {
       createGroup: 'Create Group',
@@ -1257,6 +1272,7 @@ const translations = {
       hideTemplates: 'Hide Templates',
       showTemplates: 'Show Templates',
       exportImage: 'Export Image',
+      exportCanvas: 'Export Canvas',
       slideshow: 'Slideshow',
       copyLink: 'Copy Link',
       createWebsite: 'Create Website Node',
@@ -1762,6 +1778,7 @@ const translations = {
       defaultPlaceholder: 'Describe what you want to generate...',
       runningRecord: 'Running Record',
       noRunningRecords: 'No running records',
+      createVariable: 'Create variable "{{variableName}}"',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
@@ -2038,6 +2055,7 @@ const translations = {
       subscription: 'Subscription',
       canvas: 'Canvas',
       newCanvas: 'New Canvas',
+      importCanvas: 'Import Canvas',
       news: "What's new?",
       threadLibrary: 'Threads',
       explore: 'Explore',

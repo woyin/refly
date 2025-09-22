@@ -14,7 +14,7 @@ import { useReactFlow } from '@xyflow/react';
 
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { useUpdateNodeQuery } from '@refly-packages/ai-workspace-common/hooks/use-update-node-query';
-import { useActionResultStoreShallow } from '@refly/stores';
+import { useActionResultStoreShallow, useActiveNode } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { Undo } from 'refly-icons';
 import { GenericToolset } from '@refly/openapi-schema';
@@ -118,18 +118,15 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   const { canvasId } = useCanvasContext();
   const { invokeAction } = useInvokeAction({ source: 'edit-chat-input' });
 
+  const { activeNode, setActiveNode } = useActiveNode(canvasId);
+
   const textareaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (enabled && textareaRef.current) {
-      const textarea = textareaRef.current.querySelector('textarea');
-      if (textarea) {
-        const length = textarea.value.length;
-        textarea.focus();
-        textarea.setSelectionRange(length, length);
-      }
+      textareaRef.current.focus();
     }
-  }, [enabled]);
+  }, [enabled, textareaRef.current]);
 
   useEffect(() => {
     contextItemsRef.current = editContextItems;
@@ -233,6 +230,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         entityType: 'canvas',
       },
     );
+
     // Update node data with processed query for title and original query in structuredData
     setNodeDataByEntity(
       { entityId: resultId, type: 'skillResponse' },
@@ -243,9 +241,27 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
           structuredData: {
             query: editQuery, // Store original query in structuredData
           },
+          contextItems: editContextItems,
         },
       },
     );
+
+    if (activeNode?.id === currentNode.id) {
+      setActiveNode({
+        ...activeNode,
+        data: {
+          ...activeNode.data,
+          metadata: {
+            ...activeNode.data?.metadata,
+            selectedToolsets,
+            structuredData: {
+              query: editQuery,
+            },
+            contextItems: editContextItems,
+          },
+        },
+      });
+    }
 
     setEditMode(false);
   }, [
@@ -265,6 +281,9 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     selectedToolsets,
     setNodeDataByEntity,
     addNode,
+    editContextItems,
+    activeNode,
+    setActiveNode,
   ]);
 
   const customActions: CustomAction[] = useMemo(

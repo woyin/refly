@@ -3280,6 +3280,29 @@ export const RawCanvasDataSchema = {
           type: 'string',
           description: 'Minimap URL',
         },
+        variables: {
+          type: 'array',
+          description: 'Workflow variables',
+          items: {
+            $ref: '#/components/schemas/WorkflowVariable',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
+export const GetCanvasDataResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          $ref: '#/components/schemas/RawCanvasData',
+        },
       },
     },
   ],
@@ -3295,12 +3318,32 @@ export const ExportCanvasResponseSchema = {
       properties: {
         data: {
           type: 'object',
-          description: 'Canvas data',
-          $ref: '#/components/schemas/RawCanvasData',
+          properties: {
+            downloadUrl: {
+              type: 'string',
+              description: 'Download URL for the canvas data',
+            },
+          },
         },
       },
     },
   ],
+} as const;
+
+export const ImportCanvasRequestSchema = {
+  type: 'object',
+  required: ['file'],
+  properties: {
+    file: {
+      type: 'string',
+      format: 'binary',
+      description: 'File to import',
+    },
+    canvasId: {
+      type: 'string',
+      description: 'Canvas ID to specify',
+    },
+  },
 } as const;
 
 export const DuplicateCanvasRequestSchema = {
@@ -5693,7 +5736,6 @@ export const MediaGenerateRequestSchema = {
       type: 'string',
       description: 'Optional provider selection (use providerItemId instead)',
       nullable: true,
-      deprecated: true,
     },
     prompt: {
       type: 'string',
@@ -5722,6 +5764,15 @@ export const MediaGenerateRequestSchema = {
       items: {
         $ref: '#/components/schemas/MediaModelParameter',
       },
+    },
+    input: {
+      type: 'object',
+      description: 'Flexible key-value pairs for additional input parameters',
+      additionalProperties: true,
+    },
+    unitCost: {
+      type: 'number',
+      description: 'Unit cost for the media generation',
     },
   },
 } as const;
@@ -7860,7 +7911,7 @@ export const ToolsetDefinitionSchema = {
 
 export const ToolsetInstanceSchema = {
   type: 'object',
-  required: ['toolsetId', 'name'],
+  required: ['toolsetId', 'name', 'key'],
   properties: {
     toolsetId: {
       type: 'string',

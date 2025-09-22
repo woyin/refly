@@ -2,7 +2,7 @@ import { Typography } from 'antd';
 import { IContextItem } from '@refly/common-types';
 import { PreviewContextManager } from './preview-context-manager';
 import { useMemo, memo } from 'react';
-import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
+import { useTranslation } from 'react-i18next';
 
 const { Paragraph } = Typography;
 
@@ -19,20 +19,15 @@ interface PreviewChatInputProps {
 }
 
 const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
-  const { enabled, contextItems, query, readonly, actionMeta, setEditMode } = props;
-
-  const hideSelectedSkillHeader = useMemo(
-    () => !actionMeta || actionMeta?.name === 'commonQnA' || !actionMeta?.name,
-    [actionMeta],
-  );
-
+  const { enabled, contextItems, query, readonly, setEditMode } = props;
+  const { t } = useTranslation();
   // Function to render query with @variableName format as components
   const renderQueryWithVariables = useMemo(() => {
-    if (!query) return null;
+    if (!query) return t('common.noContent');
 
     // Return the original query text without variable parsing
     return String(query);
-  }, [query]);
+  }, [query, t]);
 
   if (!enabled) {
     return null;
@@ -40,7 +35,7 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
 
   return (
     <div
-      className="rounded-lg bg-refly-bg-control-z0 p-2 hover:bg-refly-tertiary-hover cursor-pointer"
+      className="min-h-10 rounded-lg bg-refly-bg-control-z0 p-2 hover:bg-refly-tertiary-hover cursor-pointer"
       onClick={(e) => {
         e.stopPropagation();
         if (!readonly) {
@@ -48,16 +43,6 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
         }
       }}
     >
-      {!hideSelectedSkillHeader && (
-        <SelectedSkillHeader
-          readonly={readonly}
-          skill={{
-            icon: actionMeta?.icon,
-            name: actionMeta?.name ?? '',
-          }}
-          className="rounded-t-[7px]"
-        />
-      )}
       {contextItems?.length > 0 && <PreviewContextManager contextItems={contextItems} />}
       <Paragraph
         className="text-base break-all text-refly-text-0 font-semibold leading-[26px] !mb-0"

@@ -66,8 +66,8 @@ const SelectedModelDisplay = memo(
           type="text"
           size="small"
           className={cn(
-            'h-7 text-xs gap-1.5 p-1 hover:border-refly-Card-Border',
-            open && 'border-refly-Card-Border',
+            'h-7 text-xs gap-1.5 p-1 hover:bg-refly-tertiary-hover',
+            open && 'bg-refly-fill-active',
           )}
           style={{ color: '#f59e0b' }}
           icon={<LuInfo className="flex items-center" />}
@@ -83,8 +83,8 @@ const SelectedModelDisplay = memo(
         type="text"
         size="small"
         className={cn(
-          'h-7 text-sm gap-1.5 p-1 hover:border-refly-Card-Border min-w-0 flex items-center',
-          open && 'border-refly-Card-Border',
+          'h-7 text-sm gap-1.5 p-1 hover:bg-refly-tertiary-hover min-w-0 flex items-center',
+          open && 'bg-refly-fill-active',
         )}
       >
         <ModelIcon model={model.name} type={'color'} size={18} />
