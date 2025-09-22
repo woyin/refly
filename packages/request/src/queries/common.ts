@@ -5,7 +5,6 @@ import { UseQueryResult } from '@tanstack/react-query';
 import {
   abortAction,
   addNodesToCanvasPage,
-  addReferences,
   autoNameCanvas,
   batchCreateProviderItems,
   batchCreateResource,
@@ -48,7 +47,6 @@ import {
   deleteProjectItems,
   deleteProvider,
   deleteProviderItem,
-  deleteReferences,
   deleteResource,
   deleteShare,
   deleteSkillInstance,
@@ -118,7 +116,6 @@ import {
   logout,
   multiLingualWebSearch,
   pinSkillInstance,
-  queryReferences,
   recoverPilotSession,
   refreshToken,
   reindexResource,
@@ -956,24 +953,6 @@ export type BatchUpdateDocumentMutationResult = Awaited<ReturnType<typeof batchU
 export const useBatchUpdateDocumentKey = 'BatchUpdateDocument';
 export const UseBatchUpdateDocumentKeyFn = (mutationKey?: Array<unknown>) => [
   useBatchUpdateDocumentKey,
-  ...(mutationKey ?? []),
-];
-export type QueryReferencesMutationResult = Awaited<ReturnType<typeof queryReferences>>;
-export const useQueryReferencesKey = 'QueryReferences';
-export const UseQueryReferencesKeyFn = (mutationKey?: Array<unknown>) => [
-  useQueryReferencesKey,
-  ...(mutationKey ?? []),
-];
-export type AddReferencesMutationResult = Awaited<ReturnType<typeof addReferences>>;
-export const useAddReferencesKey = 'AddReferences';
-export const UseAddReferencesKeyFn = (mutationKey?: Array<unknown>) => [
-  useAddReferencesKey,
-  ...(mutationKey ?? []),
-];
-export type DeleteReferencesMutationResult = Awaited<ReturnType<typeof deleteReferences>>;
-export const useDeleteReferencesKey = 'DeleteReferences';
-export const UseDeleteReferencesKeyFn = (mutationKey?: Array<unknown>) => [
-  useDeleteReferencesKey,
   ...(mutationKey ?? []),
 ];
 export type CreateProjectMutationResult = Awaited<ReturnType<typeof createProject>>;

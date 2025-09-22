@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 
 import { KnowledgeController } from './knowledge.controller';
-import { KnowledgeService } from './knowledge.service';
 import { CommonModule } from '../common/common.module';
 import { RAGModule } from '../rag/rag.module';
 import { MiscModule } from '../misc/misc.module';
@@ -22,12 +21,16 @@ import {
 import { ProviderModule } from '../provider/provider.module';
 import { isDesktop } from '../../utils/runtime';
 import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
+import { CollabModule } from '../collab/collab.module';
+import { ResourceService } from './resource.service';
+import { DocumentService } from './document.service';
 
 @Module({
   imports: [
     CommonModule,
     RAGModule,
     MiscModule,
+    CollabModule,
     CanvasSyncModule,
     ProviderModule,
     SubscriptionModule,
@@ -43,11 +46,12 @@ import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
   ],
   controllers: [KnowledgeController],
   providers: [
-    KnowledgeService,
+    ResourceService,
+    DocumentService,
     ...(isDesktop()
       ? []
       : [ResourceProcessor, DeleteKnowledgeEntityProcessor, PostDeleteKnowledgeEntityProcessor]),
   ],
-  exports: [KnowledgeService],
+  exports: [ResourceService, DocumentService],
 })
 export class KnowledgeModule {}

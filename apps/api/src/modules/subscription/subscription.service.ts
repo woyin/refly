@@ -29,6 +29,7 @@ import { OperationTooFrequent, ParamsError } from '@refly/errors';
 import {
   QUEUE_CHECK_CANCELED_SUBSCRIPTIONS,
   QUEUE_EXPIRE_AND_RECHARGE_CREDITS,
+  QUEUE_SYNC_STORAGE_USAGE,
 } from '../../utils/const';
 import { RedisService } from '../common/redis.service';
 
@@ -53,6 +54,9 @@ export class SubscriptionService implements OnModuleInit {
     @Optional()
     @InjectQueue(QUEUE_EXPIRE_AND_RECHARGE_CREDITS)
     private readonly expireAndRechargeCreditsQueue?: Queue,
+    @Optional()
+    @InjectQueue(QUEUE_SYNC_STORAGE_USAGE)
+    private ssuQueue?: Queue<SyncStorageUsageJobData>,
   ) {}
 
   async onModuleInit() {
@@ -1032,7 +1036,22 @@ export class SubscriptionService implements OnModuleInit {
     ]);
   }
 
-  async syncStorageUsage(data: SyncStorageUsageJobData) {
+  async syncStorageUsage(user: User) {
+    await this.ssuQueue?.add(
+      'syncStorageUsage',
+      {
+        uid: user.uid,
+        timestamp: new Date(),
+      },
+      {
+        jobId: user.uid,
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+    );
+  }
+
+  async handleSyncStorageUsage(data: SyncStorageUsageJobData) {
     const { uid, timestamp } = data;
 
     try {

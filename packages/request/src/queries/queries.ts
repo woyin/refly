@@ -5,7 +5,6 @@ import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from '@tan
 import {
   abortAction,
   addNodesToCanvasPage,
-  addReferences,
   autoNameCanvas,
   batchCreateProviderItems,
   batchCreateResource,
@@ -48,7 +47,6 @@ import {
   deleteProjectItems,
   deleteProvider,
   deleteProviderItem,
-  deleteReferences,
   deleteResource,
   deleteShare,
   deleteSkillInstance,
@@ -118,7 +116,6 @@ import {
   logout,
   multiLingualWebSearch,
   pinSkillInstance,
-  queryReferences,
   recoverPilotSession,
   refreshToken,
   reindexResource,
@@ -159,8 +156,6 @@ import {
   AbortActionError,
   AddNodesToCanvasPageData,
   AddNodesToCanvasPageError,
-  AddReferencesData,
-  AddReferencesError,
   AutoNameCanvasData,
   AutoNameCanvasError,
   BatchCreateProviderItemsData,
@@ -244,8 +239,6 @@ import {
   DeleteProviderError,
   DeleteProviderItemData,
   DeleteProviderItemError,
-  DeleteReferencesData,
-  DeleteReferencesError,
   DeleteResourceData,
   DeleteResourceError,
   DeleteShareData,
@@ -372,8 +365,6 @@ import {
   MultiLingualWebSearchError,
   PinSkillInstanceData,
   PinSkillInstanceError,
-  QueryReferencesData,
-  QueryReferencesError,
   RecoverPilotSessionData,
   RecoverPilotSessionError,
   RefreshTokenError,
@@ -1888,57 +1879,6 @@ export const useBatchUpdateDocument = <
   useMutation<TData, TError, Options<BatchUpdateDocumentData, true>, TContext>({
     mutationKey: Common.UseBatchUpdateDocumentKeyFn(mutationKey),
     mutationFn: (clientOptions) => batchUpdateDocument(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useQueryReferences = <
-  TData = Common.QueryReferencesMutationResult,
-  TError = QueryReferencesError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<QueryReferencesData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<QueryReferencesData, true>, TContext>({
-    mutationKey: Common.UseQueryReferencesKeyFn(mutationKey),
-    mutationFn: (clientOptions) => queryReferences(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useAddReferences = <
-  TData = Common.AddReferencesMutationResult,
-  TError = AddReferencesError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<AddReferencesData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<AddReferencesData, true>, TContext>({
-    mutationKey: Common.UseAddReferencesKeyFn(mutationKey),
-    mutationFn: (clientOptions) => addReferences(clientOptions) as unknown as Promise<TData>,
-    ...options,
-  });
-export const useDeleteReferences = <
-  TData = Common.DeleteReferencesMutationResult,
-  TError = DeleteReferencesError,
-  TQueryKey extends Array<unknown> = unknown[],
-  TContext = unknown,
->(
-  mutationKey?: TQueryKey,
-  options?: Omit<
-    UseMutationOptions<TData, TError, Options<DeleteReferencesData, true>, TContext>,
-    'mutationKey' | 'mutationFn'
-  >,
-) =>
-  useMutation<TData, TError, Options<DeleteReferencesData, true>, TContext>({
-    mutationKey: Common.UseDeleteReferencesKeyFn(mutationKey),
-    mutationFn: (clientOptions) => deleteReferences(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useCreateProject = <

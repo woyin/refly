@@ -27,7 +27,8 @@ import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
 import { AutoNameCanvasJobData, DeleteCanvasJobData } from './canvas.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
-import { KnowledgeService } from '../knowledge/knowledge.service';
+import { ResourceService } from '../knowledge/resource.service';
+import { DocumentService } from '../knowledge/document.service';
 import { ActionService } from '../action/action.service';
 import { generateCanvasTitle } from './canvas-title-generator';
 import { CanvasContentItem } from './canvas.dto';
@@ -50,7 +51,8 @@ export class CanvasService {
     private actionService: ActionService,
     private toolService: ToolService,
     private canvasSyncService: CanvasSyncService,
-    private knowledgeService: KnowledgeService,
+    private resourceService: ResourceService,
+    private documentService: DocumentService,
     private providerService: ProviderService,
     private codeArtifactService: CodeArtifactService,
     private subscriptionService: SubscriptionService,
@@ -209,7 +211,7 @@ export class CanvasService {
               // Create new entity based on type
               switch (entityType) {
                 case 'document': {
-                  const doc = await this.knowledgeService.duplicateDocument(user, {
+                  const doc = await this.documentService.duplicateDocument(user, {
                     docId: entityId,
                     title: node.data?.title,
                     canvasId: newCanvasId,
@@ -221,7 +223,7 @@ export class CanvasService {
                   break;
                 }
                 case 'resource': {
-                  const resource = await this.knowledgeService.duplicateResource(user, {
+                  const resource = await this.resourceService.duplicateResource(user, {
                     resourceId: entityId,
                     title: node.data?.title,
                     canvasId: newCanvasId,

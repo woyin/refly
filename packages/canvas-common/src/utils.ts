@@ -3,7 +3,7 @@ import { CanvasNodeFilter } from './types';
 import { Node, Edge, Viewport } from '@xyflow/react';
 import { calculateNodePosition } from './position';
 import { getNodeDefaultMetadata } from './nodes';
-import { genUniqueId } from '@refly/utils';
+import { deepmerge, genUniqueId } from '@refly/utils';
 import { purgeContextItems } from './context';
 import { IContextItem } from '@refly/common-types';
 
@@ -36,6 +36,16 @@ export const prepareAddNode = (
   param: AddNodeParam,
 ): { newNode: CanvasNode; newEdges: CanvasEdge[] } => {
   const { node = {}, connectTo = [], nodes, edges, viewport, autoLayout } = param;
+
+  // Check if a node with the same entityType and entityId already exists
+  const existingNode = nodes.find(
+    (n) => n.type === node.type && n.data?.entityId === node.data?.entityId,
+  );
+
+  if (existingNode) {
+    // If node exists, return it without creating new edges
+    return { newNode: deepmerge(existingNode, node) as CanvasNode, newEdges: [] };
+  }
 
   // If connectTo is not provided, connect the new node to the start node
   if (!connectTo?.length) {

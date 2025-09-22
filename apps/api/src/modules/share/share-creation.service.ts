@@ -7,7 +7,8 @@ import * as Y from 'yjs';
 import { CreateShareRequest, EntityType, User } from '@refly/openapi-schema';
 import { PageNotFoundError, ParamsError, ShareNotFoundError } from '@refly/errors';
 import { CanvasService } from '../canvas/canvas.service';
-import { KnowledgeService } from '../knowledge/knowledge.service';
+import { DocumentService } from '../knowledge/document.service';
+import { ResourceService } from '../knowledge/resource.service';
 import { ActionService } from '../action/action.service';
 import { actionResultPO2DTO } from '../action/action.dto';
 import { documentPO2DTO, resourcePO2DTO } from '../knowledge/knowledge.dto';
@@ -36,7 +37,8 @@ export class ShareCreationService {
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
     private readonly canvasService: CanvasService,
-    private readonly knowledgeService: KnowledgeService,
+    private readonly documentService: DocumentService,
+    private readonly resourceService: ResourceService,
     private readonly actionService: ActionService,
     private readonly codeArtifactService: CodeArtifactService,
     private readonly shareCommonService: ShareCommonService,
@@ -318,7 +320,7 @@ export class ShareCreationService {
     // Generate shareId only if needed
     const shareId = existingShareRecord?.shareId ?? genShareId('document');
 
-    const documentDetail = await this.knowledgeService.getDocumentDetail(user, {
+    const documentDetail = await this.documentService.getDocumentDetail(user, {
       docId: documentId,
     });
     const document = documentPO2DTO(documentDetail);
@@ -407,7 +409,7 @@ export class ShareCreationService {
     // Generate shareId only if needed
     const shareId = existingShareRecord?.shareId ?? genShareId('resource');
 
-    const resourceDetail = await this.knowledgeService.getResourceDetail(user, {
+    const resourceDetail = await this.resourceService.getResourceDetail(user, {
       resourceId,
     });
     const resource = resourcePO2DTO(resourceDetail);

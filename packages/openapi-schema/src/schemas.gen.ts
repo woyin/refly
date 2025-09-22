@@ -893,45 +893,6 @@ export const ListOrderSchema = {
   enum: ['creationAsc', 'creationDesc'],
 } as const;
 
-export const ReferenceMetaSchema = {
-  type: 'object',
-  description: 'Reference metadata',
-  properties: {
-    title: {
-      type: 'string',
-      description: 'Reference title',
-    },
-    url: {
-      type: 'string',
-      description: 'Reference URL',
-    },
-  },
-} as const;
-
-export const BaseReferenceSchema = {
-  type: 'object',
-  description: 'Basic reference info',
-  required: ['sourceType', 'sourceId', 'targetType', 'targetId'],
-  properties: {
-    sourceType: {
-      $ref: '#/components/schemas/ReferenceType',
-      description: 'Source entity type',
-    },
-    sourceId: {
-      type: 'string',
-      description: 'Source entity ID',
-    },
-    targetType: {
-      $ref: '#/components/schemas/ReferenceType',
-      description: 'Target entity type',
-    },
-    targetId: {
-      type: 'string',
-      description: 'Target entity ID',
-    },
-  },
-} as const;
-
 export const CanvasStatusSchema = {
   type: 'string',
   description: 'Canvas status',
@@ -1066,33 +1027,6 @@ export const CanvasTemplateSchema = {
   },
 } as const;
 
-export const ReferenceSchema = {
-  allOf: [
-    {
-      $ref: '#/components/schemas/BaseReference',
-    },
-    {
-      type: 'object',
-      description: 'Reference extra data',
-      required: ['referenceId'],
-      properties: {
-        referenceId: {
-          type: 'string',
-          description: 'Reference ID',
-        },
-        sourceMeta: {
-          $ref: '#/components/schemas/ReferenceMeta',
-          description: 'Source entity metadata',
-        },
-        targetMeta: {
-          $ref: '#/components/schemas/ReferenceMeta',
-          description: 'Target entity metadata',
-        },
-      },
-    },
-  ],
-} as const;
-
 export const ResourceMetaSchema = {
   type: 'object',
   description: 'Resource metadata',
@@ -1207,12 +1141,6 @@ export const ResourceSchema = {
       description: 'Download URL for this resource (for file type only)',
     },
   },
-} as const;
-
-export const ReferenceTypeSchema = {
-  type: 'string',
-  description: 'Reference type',
-  enum: ['document', 'resource'],
 } as const;
 
 export const DocumentSchema = {
@@ -4215,96 +4143,6 @@ export const AbortActionRequestSchema = {
     version: {
       type: 'integer',
       description: 'Action result version',
-    },
-  },
-} as const;
-
-export const QueryReferencesRequestSchema = {
-  type: 'object',
-  properties: {
-    sourceType: {
-      description: 'Source entity type',
-      $ref: '#/components/schemas/EntityType',
-    },
-    sourceId: {
-      type: 'string',
-      description: 'Source entity ID',
-    },
-    targetType: {
-      description: 'Target entity type',
-      $ref: '#/components/schemas/EntityType',
-    },
-    targetId: {
-      type: 'string',
-      description: 'Target entity ID',
-    },
-  },
-} as const;
-
-export const QueryReferencesResponseSchema = {
-  allOf: [
-    {
-      $ref: '#/components/schemas/BaseResponse',
-    },
-    {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'array',
-          description: 'Reference list',
-          items: {
-            $ref: '#/components/schemas/Reference',
-          },
-        },
-      },
-    },
-  ],
-} as const;
-
-export const AddReferencesRequestSchema = {
-  type: 'object',
-  required: ['references'],
-  properties: {
-    references: {
-      type: 'array',
-      description: 'Reference operation list',
-      items: {
-        $ref: '#/components/schemas/BaseReference',
-      },
-    },
-  },
-} as const;
-
-export const AddReferencesResponseSchema = {
-  allOf: [
-    {
-      $ref: '#/components/schemas/BaseResponse',
-    },
-    {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'array',
-          description: 'Reference list',
-          items: {
-            $ref: '#/components/schemas/Reference',
-          },
-        },
-      },
-    },
-  ],
-} as const;
-
-export const DeleteReferencesRequestSchema = {
-  type: 'object',
-  required: ['referenceIds'],
-  properties: {
-    referenceIds: {
-      type: 'array',
-      description: 'Reference ID list',
-      items: {
-        type: 'string',
-      },
     },
   },
 } as const;

@@ -188,15 +188,6 @@ import type {
   BatchUpdateDocumentData,
   BatchUpdateDocumentError,
   BatchUpdateDocumentResponse,
-  QueryReferencesData,
-  QueryReferencesError,
-  QueryReferencesResponse2,
-  AddReferencesData,
-  AddReferencesError,
-  AddReferencesResponse2,
-  DeleteReferencesData,
-  DeleteReferencesError,
-  DeleteReferencesResponse,
   ListProjectsData,
   ListProjectsError,
   ListProjectsResponse,
@@ -1434,55 +1425,6 @@ export const batchUpdateDocument = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/knowledge/document/batchUpdate',
-  });
-};
-
-/**
- * Query references
- * Query references by source or target entity
- */
-export const queryReferences = <ThrowOnError extends boolean = false>(
-  options: Options<QueryReferencesData, ThrowOnError>,
-) => {
-  return (options?.client ?? client).post<
-    QueryReferencesResponse2,
-    QueryReferencesError,
-    ThrowOnError
-  >({
-    ...options,
-    url: '/knowledge/reference/query',
-  });
-};
-
-/**
- * Add references
- * Add references between source and target entities
- */
-export const addReferences = <ThrowOnError extends boolean = false>(
-  options: Options<AddReferencesData, ThrowOnError>,
-) => {
-  return (options?.client ?? client).post<AddReferencesResponse2, AddReferencesError, ThrowOnError>(
-    {
-      ...options,
-      url: '/knowledge/reference/add',
-    },
-  );
-};
-
-/**
- * Delete references
- * Delete references between source and target entities
- */
-export const deleteReferences = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteReferencesData, ThrowOnError>,
-) => {
-  return (options?.client ?? client).post<
-    DeleteReferencesResponse,
-    DeleteReferencesError,
-    ThrowOnError
-  >({
-    ...options,
-    url: '/knowledge/reference/delete',
   });
 };
 
