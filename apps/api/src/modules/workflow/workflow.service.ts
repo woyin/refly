@@ -14,6 +14,7 @@ import {
   pickReadyChildNodes,
   convertContextItemsToInvokeParams,
   ResponseNodeMeta,
+  sortNodeExecutionsByExecutionOrder,
 } from '@refly/canvas-common';
 import { SkillService } from '../skill/skill.service';
 import { CanvasService } from '../canvas/canvas.service';
@@ -151,9 +152,14 @@ export class WorkflowService {
       }),
     ]);
 
-    // Add start nodes to runWorkflowQueue
+    // Add start nodes to runWorkflowQueue in sorted order to maintain original canvas order
     if (this.runWorkflowQueue) {
-      for (const startNodeId of startNodes) {
+      // Sort start nodes by their original order in the canvas
+      const sortedStartNodes = [...startNodes].sort((a, b) => {
+        return a.localeCompare(b);
+      });
+
+      for (const startNodeId of sortedStartNodes) {
         await this.runWorkflowQueue.add('runWorkflow', {
           user: { uid: user.uid },
           executionId,
@@ -369,9 +375,15 @@ export class WorkflowService {
           status: n.status as ActionStatus,
         })),
       );
+
+      // Sort ready child nodes by their original order in the canvas to maintain execution order
+      const sortedReadyChildNodeIds = readyChildNodeIds.sort((a, b) => {
+        return a.localeCompare(b);
+      });
+
       const existingJobs = await this.runWorkflowQueue?.getJobs(['waiting', 'active']);
 
-      for (const childNodeId of readyChildNodeIds) {
+      for (const childNodeId of sortedReadyChildNodeIds) {
         const isAlreadyQueued = existingJobs?.some(
           (job) => job?.data?.executionId === executionId && job?.data?.nodeId === childNodeId,
         );
@@ -570,10 +582,12 @@ export class WorkflowService {
     // Get node executions
     const nodeExecutions = await this.prisma.workflowNodeExecution.findMany({
       where: { executionId },
-      orderBy: { createdAt: 'asc' },
     });
 
+    // Sort node executions by execution order (topological sort based on parent-child relationships)
+    const sortedNodeExecutions = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+
     // Return workflow execution detail
-    return { ...workflowExecution, nodeExecutions };
+    return { ...workflowExecution, nodeExecutions: sortedNodeExecutions };
   }
 }

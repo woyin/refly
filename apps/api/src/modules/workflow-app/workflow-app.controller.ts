@@ -9,6 +9,8 @@ import {
   GetWorkflowAppDetailResponse,
   ExecuteWorkflowAppRequest,
   ExecuteWorkflowAppResponse,
+  ListWorkflowAppsData,
+  ListWorkflowAppsResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 
@@ -44,10 +46,20 @@ export class WorkflowAppController {
   ): Promise<ExecuteWorkflowAppResponse> {
     const executionId = await this.workflowAppService.executeWorkflowApp(
       user,
-      request.appId,
+      request.shareId, // Changed from request.appId to request.shareId
       request.variables,
     );
 
     return buildSuccessResponse({ executionId });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('list')
+  async listWorkflowApps(
+    @LoginedUser() user: UserModel,
+    @Query() query: ListWorkflowAppsData,
+  ): Promise<ListWorkflowAppsResponse> {
+    const workflowApps = await this.workflowAppService.listWorkflowApps(user, query);
+    return buildSuccessResponse(workflowApps);
   }
 }
