@@ -15,6 +15,9 @@ import { NotionToolset, NotionToolsetDefinition } from './notion';
 import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
 import { FalImageToolset, FalImageToolsetDefinition } from './fal-image';
 import { FalVideoToolset, FalVideoToolsetDefinition } from './fal-video';
+import { PerplexityToolset, PerplexityToolsetDefinition } from './perplexity';
+import { ProductHuntToolset, ProductHuntToolsetDefinition } from './producthunt';
+import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -84,5 +87,17 @@ export const toolsetInventory: Record<
   [FalVideoToolsetDefinition.key]: {
     class: FalVideoToolset,
     definition: FalVideoToolsetDefinition,
+  },
+  [PerplexityToolsetDefinition.key]: {
+    class: PerplexityToolset,
+    definition: PerplexityToolsetDefinition,
+  },
+  [ProductHuntToolsetDefinition.key]: {
+    class: ProductHuntToolset,
+    definition: ProductHuntToolsetDefinition,
+  },
+  [BrowserUseToolsetDefinition.key]: {
+    class: BrowserUseToolset,
+    definition: BrowserUseToolsetDefinition,
   },
 };
