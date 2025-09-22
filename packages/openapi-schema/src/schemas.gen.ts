@@ -8495,6 +8495,10 @@ export const ResourceValueSchema = {
       type: 'string',
       description: 'Resource storage key',
     },
+    entityId: {
+      type: 'string',
+      description: 'Resource ID',
+    },
   },
 } as const;
 

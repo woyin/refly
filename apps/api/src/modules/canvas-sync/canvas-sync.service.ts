@@ -12,7 +12,6 @@ import {
   CreateCanvasVersionResult,
   CanvasData,
   CanvasNode,
-  WorkflowVariable,
 } from '@refly/openapi-schema';
 import {
   getCanvasDataFromState,
@@ -560,55 +559,5 @@ export class CanvasSyncService {
     } finally {
       await releaseLock();
     }
-  }
-
-  /**
-   * Get workflow variables from Canvas DB field
-   * @param user - The user
-   * @param param - The get workflow variables request
-   * @returns The workflow variables
-   */
-  async getWorkflowVariables(user: User, param: { canvasId: string }): Promise<WorkflowVariable[]> {
-    const { canvasId } = param;
-    const canvas = await this.prisma.canvas.findUnique({
-      select: { workflow: true },
-      where: { canvasId, uid: user.uid, deletedAt: null },
-    });
-    if (!canvas) return [];
-    try {
-      const workflow = canvas.workflow ? JSON.parse(canvas.workflow) : undefined;
-      return workflow?.variables ?? [];
-    } catch {
-      return [];
-    }
-  }
-
-  /**
-   * Update workflow variables in Canvas DB field
-   * @param user - The user
-   * @param param - The update workflow variables request
-   * @returns The updated workflow variables
-   */
-  async updateWorkflowVariables(
-    user: User,
-    param: { canvasId: string; variables: WorkflowVariable[] },
-  ): Promise<WorkflowVariable[]> {
-    const { canvasId, variables } = param;
-    const canvas = await this.prisma.canvas.findUnique({
-      select: { workflow: true },
-      where: { canvasId, uid: user.uid, deletedAt: null },
-    });
-    let workflowObj: any = {};
-    if (canvas?.workflow) {
-      try {
-        workflowObj = JSON.parse(canvas.workflow) ?? {};
-      } catch {}
-    }
-    workflowObj.variables = variables;
-    await this.prisma.canvas.update({
-      where: { canvasId, uid: user.uid, deletedAt: null },
-      data: { workflow: JSON.stringify(workflowObj) },
-    });
-    return variables;
   }
 }

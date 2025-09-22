@@ -9563,6 +9563,9 @@ components:
         storageKey:
           type: string
           description: Resource storage key
+        entityId:
+          type: string
+          description: Resource ID
     VariableValue:
       type: object
       required:

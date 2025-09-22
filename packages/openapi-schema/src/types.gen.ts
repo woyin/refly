@@ -5961,6 +5961,10 @@ export type ResourceValue = {
    * Resource storage key
    */
   storageKey: string;
+  /**
+   * Resource ID
+   */
+  entityId?: string;
 };
 
 export type VariableValue = {

@@ -7,6 +7,7 @@ import {
   CanvasNodeType,
   WorkflowVariable,
 } from '@refly/openapi-schema';
+import { IContextItem } from '@refly/common-types';
 import { CanvasNodeFilter, ResponseNodeMeta } from './types';
 import { ThreadHistoryQuery } from './history';
 import { mirrorCanvasData } from './data';
@@ -38,7 +39,7 @@ const escapeRegExp = (string: string): string => {
 /**
  * Enhanced process query with workflow variables
  * - string: as before
- * - resource: return special marker for resource injection
+ * - resource: replace with resource name
  * - option: use defaultValue array first if value missing
  */
 export const processQueryWithTypes = (
@@ -55,6 +56,19 @@ export const processQueryWithTypes = (
     const values = variable.value;
 
     if (variable.variableType === 'resource') {
+      // For resource variables, extract resource names
+      const resourceNames =
+        values
+          ?.filter((v) => v.type === 'resource' && v.resource?.name)
+          .map((v) => v.resource?.name)
+          .filter(Boolean) ?? [];
+
+      const stringValue = resourceNames.length > 0 ? resourceNames.join(', ') : '';
+      const escapedName = escapeRegExp(variable.name);
+      processedQuery = processedQuery.replace(
+        new RegExp(`@${escapedName}(?=\\s|$|[^\\w\\p{L}\\p{N}])`, 'gu'),
+        `${stringValue}`,
+      );
       continue;
     }
 
@@ -73,6 +87,56 @@ export const processQueryWithTypes = (
     );
   }
   return processedQuery;
+};
+
+/**
+ * Add resource variables referenced in query to context items
+ * @param contextItems - Existing context items
+ * @param variables - Workflow variables
+ * @param query - The query to check for variable references
+ * @returns Enhanced context items with resource variables added
+ */
+export const addResourceVariablesToContext = (
+  contextItems: IContextItem[],
+  variables: WorkflowVariable[],
+  query: string,
+): any[] => {
+  const enhancedContextItems = [...contextItems];
+
+  // Extract variable names from query using @variableName pattern
+  const variableRegex = /@([^\s@]+)/g;
+  const referencedVariables = new Set<string>();
+  let match: RegExpExecArray | null;
+
+  match = variableRegex.exec(query);
+  while (match !== null) {
+    referencedVariables.add(match[1]);
+    match = variableRegex.exec(query);
+  }
+
+  // For each referenced variable that is a resource type, add it to context
+  for (const variable of variables) {
+    if (variable.variableType === 'resource' && referencedVariables.has(variable.name)) {
+      for (const value of variable.value) {
+        if (value.type === 'resource' && value.resource?.entityId) {
+          // Check if this resource is already in context
+          const alreadyInContext = enhancedContextItems.some(
+            (item) => item.entityId === value.resource?.entityId && item.type === 'resource',
+          );
+
+          if (!alreadyInContext) {
+            enhancedContextItems.push({
+              entityId: value.resource.entityId,
+              type: 'resource',
+              title: value.resource.name,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return enhancedContextItems;
 };
 
 // Helper function to find all nodes in the subtree starting from given start nodes
@@ -240,7 +304,19 @@ export const prepareNodeExecutions = (params: {
       const metadata = node.data?.metadata ?? {};
       const { contextItems = [] } = metadata as ResponseNodeMeta;
 
-      const resultHistory = contextItems
+      const originalQuery =
+        String((node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ?? '') ??
+        node.data?.title ??
+        '';
+
+      // Add resource variables referenced in query to context items
+      const enhancedContextItems = addResourceVariablesToContext(
+        contextItems,
+        variables,
+        originalQuery,
+      );
+
+      const resultHistory = enhancedContextItems
         .filter((item) => item.type === 'skillResponse' && item.metadata?.withHistory)
         .flatMap((item) =>
           historyQuery.findThreadHistory({ resultId: item.entityId }).map((node) => ({
@@ -249,10 +325,13 @@ export const prepareNodeExecutions = (params: {
           })),
         );
 
-      nodeExecution.originalQuery =
-        String((node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ?? '') ??
-        node.data?.title ??
-        '';
+      // Update node metadata with enhanced context items
+      node.data.metadata = {
+        ...metadata,
+        contextItems: enhancedContextItems,
+      };
+
+      nodeExecution.originalQuery = originalQuery;
       nodeExecution.processedQuery = node?.data.title;
       nodeExecution.resultHistory = resultHistory;
     } else if (['document', 'codeArtifact', 'image', 'video', 'audio'].includes(node.type)) {

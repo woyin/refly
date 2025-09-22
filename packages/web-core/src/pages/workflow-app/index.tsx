@@ -210,6 +210,7 @@ const WorkflowAppPage: React.FC = () => {
                 onSubmitVariables={onSubmit}
                 loading={isLoading}
                 onCopyWorkflow={handleCopyWorkflow}
+                className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-content-z0 rounded-lg border border-refly-Card-Border shadow-sm"
               />
             </div>
 

@@ -821,7 +821,7 @@ export class VariableExtractionService {
       );
 
       // Get current canvas state to retrieve workflow variables
-      const currentVariables = await this.canvasSyncService.getWorkflowVariables(user, {
+      const currentVariables = await this.canvasService.getWorkflowVariables(user, {
         canvasId,
       });
 
@@ -859,8 +859,8 @@ export class VariableExtractionService {
 
       // Only update if there are actual changes
       if (hasChanges) {
-        // Use CanvasSyncService to update workflow variables in canvas
-        await this.canvasSyncService.updateWorkflowVariables(user, {
+        // Use CanvasService to update workflow variables in canvas
+        await this.canvasService.updateWorkflowVariables(user, {
           canvasId,
           variables: mergedVariables,
         });
@@ -1071,7 +1071,7 @@ export class VariableExtractionService {
   private async getCanvasVariables(user: User, canvasId: string): Promise<WorkflowVariable[]> {
     try {
       // Get workflow variables from Canvas service
-      const variables = await this.canvasSyncService.getWorkflowVariables(user, {
+      const variables = await this.canvasService.getWorkflowVariables(user, {
         canvasId,
       });
 

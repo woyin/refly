@@ -20,6 +20,9 @@ import {
   User,
   SkillContext,
   ActionResult,
+  WorkflowVariable,
+  ResourceType,
+  VariableValue,
 } from '@refly/openapi-schema';
 import { Prisma } from '../../generated/client';
 import { genCanvasID, genTransactionId, safeParseJSON } from '@refly/utils';
@@ -346,6 +349,8 @@ export class CanvasService {
     param.canvasId ||= genCanvasID();
     const { canvasId } = param;
     const stateStorageKey = await this.canvasSyncService.saveState(canvasId, state);
+
+    param.variables = await this.processResourceVariables(user, canvasId, param.variables);
 
     const [canvas] = await this.prisma.$transaction([
       this.prisma.canvas.create({
@@ -963,5 +968,184 @@ export class CanvasService {
       this.logger.error(`Error exporting canvas ${canvasId}: ${error?.message}`);
       throw new ParamsError('Failed to export canvas data');
     }
+  }
+
+  /**
+   * Process resource variables for workflow execution
+   * @param user - The user processing the variables
+   * @param variables - The workflow variables to process
+   * @param canvasId - The target canvas ID
+   * @returns Processed variables with updated resource information
+   */
+  private async processResourceVariables(
+    user: User,
+    canvasId: string,
+    variables: WorkflowVariable[],
+  ): Promise<WorkflowVariable[]> {
+    if (!Array.isArray(variables)) return [];
+
+    const processedVariables = await Promise.all(
+      variables.map(async (variable) => {
+        const processedValues = await Promise.all(
+          variable.value.map(async (value) => {
+            if (value.type === 'resource' && value.resource) {
+              return await this.processResourceValue(user, canvasId, value);
+            }
+            return value;
+          }),
+        );
+        return {
+          ...variable,
+          value: processedValues,
+        };
+      }),
+    );
+
+    return processedVariables;
+  }
+
+  /**
+   * Process a single resource variable value
+   * @param user - The user processing the resource
+   * @param value - The resource variable value
+   * @param canvasId - The target canvas ID
+   * @returns Processed resource variable value
+   */
+  private async processResourceValue(
+    user: User,
+    canvasId: string,
+    value: VariableValue,
+  ): Promise<VariableValue> {
+    const { resource } = value;
+    if (!resource) return value;
+
+    const { storageKey } = resource;
+
+    // Check if static file already exists with entity_id and entity_type
+    const resourceFile = await this.prisma.staticFile.findFirst({
+      where: { storageKey, deletedAt: null },
+    });
+
+    if (resourceFile?.entityId && resourceFile?.entityType) {
+      // Resource already exists, read it
+      this.logger.log(
+        `Resource already exists for storageKey: ${storageKey}, entityId: ${resourceFile.entityId}`,
+      );
+      return value;
+    }
+
+    if (!resource.entityId) {
+      // New upload - create new resource
+      const newResource = await this.resourceService.createResource(user, {
+        title: resource.name,
+        resourceType: 'file' as ResourceType, // Assuming file type for uploaded resources
+        canvasId,
+        storageKey,
+      });
+
+      // Update static file with new entity information
+      if (resourceFile) {
+        await this.prisma.staticFile.update({
+          where: { pk: resourceFile.pk },
+          data: {
+            entityId: newResource.resourceId,
+            entityType: 'resource',
+          },
+        });
+      }
+
+      // Update the variable value with new entityId
+      return {
+        ...value,
+        resource: {
+          ...resource,
+          entityId: newResource.resourceId,
+        },
+      };
+    }
+
+    // Find existing resource - update old resource
+    const existingResource = await this.prisma.resource.findUnique({
+      where: { resourceId: resource.entityId },
+    });
+
+    if (!existingResource) {
+      this.logger.warn(`Existing resource not found: ${resource.entityId}`);
+      return value;
+    }
+
+    // Update existing resource with new storage key
+    await this.resourceService.updateResource(user, {
+      title: resource.name,
+      resourceType: existingResource.resourceType as ResourceType,
+      canvasId,
+      storageKey,
+      resourceId: existingResource.resourceId,
+    });
+
+    // Update static file with new entity information
+    if (resourceFile) {
+      await this.prisma.staticFile.update({
+        where: { pk: resourceFile.pk },
+        data: {
+          entityId: existingResource.resourceId,
+          entityType: 'resource',
+        },
+      });
+    }
+
+    return value;
+  }
+
+  /**
+   * Get workflow variables from Canvas DB field
+   * @param user - The user
+   * @param param - The get workflow variables request
+   * @returns The workflow variables
+   */
+  async getWorkflowVariables(user: User, param: { canvasId: string }): Promise<WorkflowVariable[]> {
+    const { canvasId } = param;
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { workflow: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    if (!canvas) return [];
+    try {
+      const workflow = canvas.workflow ? JSON.parse(canvas.workflow) : undefined;
+      return workflow?.variables ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Update workflow variables in Canvas DB field
+   * @param user - The user
+   * @param param - The update workflow variables request
+   * @returns The updated workflow variables
+   */
+  async updateWorkflowVariables(
+    user: User,
+    param: { canvasId: string; variables: WorkflowVariable[] },
+  ): Promise<WorkflowVariable[]> {
+    const { canvasId, variables } = param;
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { workflow: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    let workflowObj: { variables: WorkflowVariable[] } = { variables: [] };
+    if (canvas?.workflow) {
+      try {
+        workflowObj = JSON.parse(canvas.workflow) ?? {};
+      } catch {}
+    }
+
+    workflowObj.variables = await this.processResourceVariables(user, canvasId, variables);
+
+    await this.prisma.canvas.update({
+      where: { canvasId, uid: user.uid, deletedAt: null },
+      data: { workflow: JSON.stringify(workflowObj) },
+    });
+    return variables;
   }
 }

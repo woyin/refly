@@ -63,6 +63,7 @@ interface WorkflowRunFormProps {
   workflowStatus?: WorkflowExecutionStatus | null;
   isPolling?: boolean;
   pollingError?: any;
+  className?: string;
 }
 
 export const WorkflowRunForm = ({
@@ -71,6 +72,7 @@ export const WorkflowRunForm = ({
   onCopyWorkflow,
   loading,
   isPolling,
+  className,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
@@ -411,8 +413,8 @@ export const WorkflowRunForm = ({
   };
 
   return (
-    <div className="w-full max-h-[500px] sm:max-h-[600px] flex flex-col bg-white rounded-lg border border-refly-Card-Border shadow-sm">
-      <div className="p-3 sm:p-4 flex-1 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
+    <div className={cn('w-full h-full gap-3 flex flex-col', className)}>
+      <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
         {/* Workflow variables form */}
         {workflowVariables.length > 0 ? (
           <Form
@@ -428,13 +430,13 @@ export const WorkflowRunForm = ({
         )}
       </div>
 
-      <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-gray-50 rounded-b-lg">
+      <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
         <div className="flex gap-2">
           <Button
             className={cn(
               'flex-1 h-9 sm:h-10 text-sm sm:text-base',
               (!isFormValid || isPolling) &&
-                'bg-refly-bg-control-z0 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
+                'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
             )}
             type="primary"
             icon={

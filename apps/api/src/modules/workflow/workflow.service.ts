@@ -18,6 +18,7 @@ import {
 import { SkillService } from '../skill/skill.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { ResourceService } from '../knowledge/resource.service';
 import {
   genWorkflowExecutionID,
   genTransactionId,
@@ -40,6 +41,7 @@ export class WorkflowService {
     private readonly skillService: SkillService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly resourceService: ResourceService,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
   ) {}
 
@@ -87,17 +89,19 @@ export class WorkflowService {
     const isNewCanvas = targetCanvasId !== sourceCanvasId;
 
     // Use variables from request if provided, otherwise use variables from canvas
-    const finalVariables = variables ?? safeParseJSON(canvas.workflow).variables ?? [];
+    let finalVariables: WorkflowVariable[] =
+      variables ?? safeParseJSON(canvas.workflow).variables ?? [];
 
     // Note: Canvas creation is now handled on the frontend to avoid version conflicts
     if (isNewCanvas) {
-      await this.canvasService.createCanvas(user, {
+      const newCanvas = await this.canvasService.createCanvas(user, {
         canvasId: targetCanvasId,
         title: canvas?.title,
         variables: finalVariables,
       });
+      finalVariables = safeParseJSON(newCanvas.workflow).variables ?? [];
     } else {
-      await this.canvasSyncService.updateWorkflowVariables(user, {
+      finalVariables = await this.canvasService.updateWorkflowVariables(user, {
         canvasId: targetCanvasId,
         variables: finalVariables,
       });
