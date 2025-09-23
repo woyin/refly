@@ -51,7 +51,6 @@ const HTMLRenderer = memo(
                 overflow: auto;
               }
               #html-content {
-                width: 100%;
                 min-height: 100%;
               }
             </style>
