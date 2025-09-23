@@ -37,6 +37,7 @@ export const reflyColors = {
   'refly-Colorful-red': 'var(--refly-Colorful-red)',
   'refly-Colorful-Blue': 'var(--refly-Colorful-Blue)',
   'refly-Colorful-orange': 'var(--refly-Colorful-orange)',
+  'refly-Colorful-orange-light': 'var(--refly-Colorful-orange-light)',
   'refly-Colorful-violet': 'var(--refly-Colorful-violet)',
   'refly-secondary-default': 'var(--refly-secondary-default)',
   'refly-secondary-hover': 'var(--refly-secondary-hover)',
