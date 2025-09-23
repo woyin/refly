@@ -336,6 +336,9 @@ import type {
   ExecuteWorkflowAppData,
   ExecuteWorkflowAppError,
   ExecuteWorkflowAppResponse2,
+  ListWorkflowAppsData,
+  ListWorkflowAppsError,
+  ListWorkflowAppsResponse2,
   GetSettingsError,
   GetSettingsResponse,
   UpdateSettingsData,
@@ -2227,6 +2230,23 @@ export const executeWorkflowApp = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow-app/execute',
+  });
+};
+
+/**
+ * List workflow apps
+ * List workflow apps for a user, optionally filtered by canvasId
+ */
+export const listWorkflowApps = <ThrowOnError extends boolean = false>(
+  options?: Options<ListWorkflowAppsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ListWorkflowAppsResponse2,
+    ListWorkflowAppsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/list',
   });
 };
 

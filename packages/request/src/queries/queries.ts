@@ -113,6 +113,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listWorkflowApps,
   logout,
   multiLingualWebSearch,
   pinSkillInstance,
@@ -360,6 +361,8 @@ import {
   ListToolsetInventoryError,
   ListToolsetsData,
   ListToolsetsError,
+  ListWorkflowAppsData,
+  ListWorkflowAppsError,
   LogoutError,
   MultiLingualWebSearchData,
   MultiLingualWebSearchError,
@@ -1015,6 +1018,21 @@ export const useGetWorkflowAppDetail = <
       getWorkflowAppDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListWorkflowApps = <
+  TData = Common.ListWorkflowAppsDefaultResponse,
+  TError = ListWorkflowAppsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListWorkflowAppsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listWorkflowApps({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetSettings = <

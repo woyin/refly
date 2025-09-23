@@ -2412,6 +2412,10 @@ export type CanvasState = CanvasData & {
  */
 export type RawCanvasData = CanvasData & {
   /**
+   * Canvas ID
+   */
+  canvasId?: string;
+  /**
    * Canvas title
    */
   title?: string;
@@ -5887,6 +5891,10 @@ export type WorkflowApp = {
    */
   appId: string;
   /**
+   * Share ID for public access and URL generation
+   */
+  shareId?: string;
+  /**
    * Workflow app title
    */
   title?: string;
@@ -5924,11 +5932,18 @@ export type GetWorkflowAppDetailResponse = BaseResponse & {
   data?: WorkflowApp;
 };
 
+export type ListWorkflowAppsResponse = BaseResponse & {
+  /**
+   * List of workflow apps
+   */
+  data?: Array<WorkflowApp>;
+};
+
 export type ExecuteWorkflowAppRequest = {
   /**
-   * Workflow app ID
+   * Workflow app share ID for execution
    */
-  appId: string;
+  shareId: string;
   /**
    * Workflow app variables
    */
@@ -7491,6 +7506,19 @@ export type ExecuteWorkflowAppData = {
 export type ExecuteWorkflowAppResponse2 = ExecuteWorkflowAppResponse;
 
 export type ExecuteWorkflowAppError = unknown;
+
+export type ListWorkflowAppsData = {
+  query?: {
+    /**
+     * Canvas ID to filter by
+     */
+    canvasId?: string;
+  };
+};
+
+export type ListWorkflowAppsResponse2 = ListWorkflowAppsResponse;
+
+export type ListWorkflowAppsError = unknown;
 
 export type GetSettingsResponse = GetUserSettingsResponse;
 

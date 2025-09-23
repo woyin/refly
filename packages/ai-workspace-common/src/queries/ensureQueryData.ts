@@ -55,6 +55,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listWorkflowApps,
   serveStatic,
 } from '../requests/services.gen';
 import {
@@ -99,6 +100,7 @@ import {
   ListSkillTriggersData,
   ListToolsData,
   ListToolsetsData,
+  ListWorkflowAppsData,
 } from '../requests/types.gen';
 import * as Common from './common';
 export const ensureUseListMcpServersData = (
@@ -405,6 +407,14 @@ export const ensureUseGetWorkflowAppDetailData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseGetWorkflowAppDetailKeyFn(clientOptions),
     queryFn: () => getWorkflowAppDetail({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseListWorkflowAppsData = (
+  queryClient: QueryClient,
+  clientOptions: Options<ListWorkflowAppsData, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions),
+    queryFn: () => listWorkflowApps({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSettingsData = (
   queryClient: QueryClient,

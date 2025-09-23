@@ -29,6 +29,17 @@ export interface WorkflowNode {
 }
 
 /**
+ * Workflow node execution interface for database operations
+ * This represents the structure of WorkflowNodeExecution from Prisma
+ */
+export interface WorkflowNodeExecution {
+  nodeId: string;
+  parentNodeIds?: string | null;
+  childNodeIds?: string | null;
+  [key: string]: any; // Allow additional properties
+}
+
+/**
  * Escape special regex characters in a string to be used in RegExp constructor
  */
 const escapeRegExp = (string: string): string => {
@@ -289,4 +300,59 @@ export const pickReadyChildNodes = (
   }
 
   return ready;
+};
+
+/**
+ * Sort node executions by execution order using topological sort
+ * Parents should always come before their children, maintaining original canvas order
+ * @param nodeExecutions - Array of WorkflowNodeExecution
+ * @returns Sorted array of WorkflowNodeExecution
+ */
+export const sortNodeExecutionsByExecutionOrder = <T extends WorkflowNodeExecution>(
+  nodeExecutions: T[],
+): T[] => {
+  // Build a map from nodeId to nodeExecution
+  const nodeMap = new Map(nodeExecutions.map((n) => [n.nodeId, n]));
+  // Track visited nodes
+  const visited = new Set<string>();
+  // Result array
+  const result: T[] = [];
+
+  // Helper for DFS that maintains original canvas order
+  const visit = (nodeExecution: T) => {
+    if (visited.has(nodeExecution.nodeId)) return;
+    // Mark as visited BEFORE recursing to parents to prevent infinite loop on cycles
+    visited.add(nodeExecution.nodeId);
+
+    // Visit parents first if they exist and are in the map
+    // Sort parents by their original order in the canvas to maintain consistency
+    const parentNodeIds = JSON.parse(nodeExecution.parentNodeIds || '[]') as string[];
+    const parentNodes = parentNodeIds
+      .map((parentId) => nodeMap.get(parentId))
+      .filter((node): node is T => node !== undefined)
+      .sort((a, b) => {
+        // Sort by creation order or nodeId to maintain consistent ordering
+        return a.nodeId.localeCompare(b.nodeId);
+      });
+
+    for (const parentNode of parentNodes) {
+      visit(parentNode);
+    }
+
+    result.push(nodeExecution);
+  };
+
+  // Sort nodes by their original order in the canvas before processing
+  // This ensures that when multiple nodes have no dependencies, they maintain their original order
+  const sortedNodeExecutions = [...nodeExecutions].sort((a, b) => {
+    // First sort by creation order (if available) or nodeId
+    return a.nodeId.localeCompare(b.nodeId);
+  });
+
+  // Visit all nodes in sorted order
+  for (const nodeExecution of sortedNodeExecutions) {
+    visit(nodeExecution);
+  }
+
+  return result;
 };
