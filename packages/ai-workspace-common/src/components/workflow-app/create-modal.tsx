@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
+import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { Checked } from 'refly-icons';
 
 interface CreateWorkflowAppModalProps {
@@ -20,7 +21,7 @@ interface SuccessMessageProps {
 // Success message shown inside antd message with share link and copy action
 const SuccessMessage = memo(({ shareId }: SuccessMessageProps) => {
   const { t } = useTranslation();
-  const shareLink = useMemo(() => `${window.location.origin}/app/${shareId}`, [shareId]);
+  const shareLink = useMemo(() => getShareLink('workflowApp', shareId), [shareId]);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {

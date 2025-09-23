@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from 'react';
-import { Checkbox, Form, Input, Modal, message } from 'antd';
+import { Form, Input, Modal, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useNavigate } from 'react-router-dom';
@@ -69,7 +69,7 @@ export const DuplicateCanvasModal = memo(() => {
   useEffect(() => {
     if (visible) {
       form.resetFields();
-      form.setFieldValue('duplicateEntities', false);
+      form.setFieldValue('duplicateEntities', true);
       form.setFieldValue('title', canvasName);
     }
   }, [visible]);
@@ -97,11 +97,11 @@ export const DuplicateCanvasModal = memo(() => {
             <Input placeholder={t('template.duplicateCanvasTitlePlaceholder')} />
           </Form.Item>
 
-          <Form.Item className="ml-2.5" name="duplicateEntities" valuePropName="checked">
+          {/* <Form.Item className="ml-2.5" name="duplicateEntities" valuePropName="checked">
             <Checkbox>
               <span className="text-sm">{t('template.duplicateCanvasEntities')}</span>
             </Checkbox>
-          </Form.Item>
+          </Form.Item> */}
         </Form>
       </div>
     </Modal>
