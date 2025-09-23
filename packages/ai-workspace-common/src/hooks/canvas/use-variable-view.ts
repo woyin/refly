@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { locateToVariableEmitter } from '@refly-packages/ai-workspace-common/events/locateToVariable';
-import type { WorkflowVariable } from '@refly/openapi-schema';
+import type { CanvasNode, WorkflowVariable } from '@refly/openapi-schema';
 
 /**
  * Hook for handling variable view operations
@@ -10,7 +10,7 @@ import type { WorkflowVariable } from '@refly/openapi-schema';
  */
 export const useVariableView = (canvasId: string) => {
   const { getNodes } = useReactFlow();
-  const { previewNode } = useNodePreviewControl({ canvasId });
+  const { handleNodePreview } = useNodePreviewControl({ canvasId });
 
   const handleVariableView = useCallback(
     (variable: WorkflowVariable) => {
@@ -19,23 +19,10 @@ export const useVariableView = (canvasId: string) => {
       const startNode = nodes.find((node) => node.type === 'start');
 
       if (startNode) {
-        // Convert ReactFlow Node to CanvasNode
-        const canvasNode = {
-          id: startNode.id,
-          type: startNode.type as any,
-          position: startNode.position,
-          data: {
-            title: startNode.data?.title || 'Start',
-            entityId: startNode.data?.entityId || startNode.id,
-            ...startNode.data,
-          } as any,
-          selected: startNode.selected,
-          dragging: startNode.dragging,
-          ...startNode,
-        } as any;
+        const canvasNode = startNode as CanvasNode;
 
         // Open the start node preview
-        previewNode(canvasNode);
+        handleNodePreview(canvasNode);
 
         // Emit event to locate to the specific variable
         setTimeout(() => {
@@ -48,7 +35,7 @@ export const useVariableView = (canvasId: string) => {
         }, 100); // Small delay to ensure preview is open
       }
     },
-    [canvasId, getNodes, previewNode],
+    [canvasId, getNodes, handleNodePreview],
   );
 
   return {
