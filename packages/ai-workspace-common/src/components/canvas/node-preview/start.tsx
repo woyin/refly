@@ -1,5 +1,5 @@
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { memo, useMemo, useState, useCallback } from 'react';
+import { memo, useMemo, useState, useCallback, useEffect } from 'react';
 import { Divider, Button, Popconfirm, message } from 'antd';
 import { Add, Edit, Delete, Image, Doc2, Video, Audio } from 'refly-icons';
 import { BiText } from 'react-icons/bi';
@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import SVGX from '../../../assets/x.svg';
 import { CreateVariablesModal } from '../workflow-variables';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { locateToVariableEmitter } from '@refly-packages/ai-workspace-common/events/locateToVariable';
 
 type VariableType = 'string' | 'option' | 'resource';
 export const MAX_VARIABLE_LENGTH = {
@@ -33,6 +34,7 @@ const VariableItem = memo(
     variable,
     onEdit,
     readonly,
+    isHighlighted = false,
   }: {
     canvasId: string;
     totalVariables: WorkflowVariable[];
@@ -40,6 +42,7 @@ const VariableItem = memo(
     variable: WorkflowVariable;
     onEdit?: (variable: WorkflowVariable) => void;
     readonly: boolean;
+    isHighlighted?: boolean;
   }) => {
     const { name, variableType, required, isSingle } = variable;
     const { t } = useTranslation();
@@ -71,9 +74,10 @@ const VariableItem = memo(
 
     return (
       <div
-        className={`group flex h-9 box-border gap-2 items-center justify-between py-1.5 px-3 bg-refly-bg-body-z0 rounded-xl border-[1px] border-solid border-refly-Card-Border cursor-pointer ${
-          isPopconfirmOpen ? 'bg-refly-tertiary-hover' : 'hover:bg-refly-tertiary-hover'
-        }`}
+        data-variable-id={variable.variableId}
+        className={`group flex h-9 box-border gap-2 items-center justify-between py-1.5  px-3 rounded-xl border-[1px] border-solid border-refly-Card-Border cursor-pointer transition-all duration-300 ${
+          isHighlighted ? 'bg-refly-Colorful-orange-light' : 'bg-refly-bg-body-z0'
+        } ${isPopconfirmOpen ? 'bg-refly-tertiary-hover' : 'hover:bg-refly-tertiary-hover'}`}
       >
         <div className="flex items-center gap-1 flex-1 min-w-0">
           <img src={SVGX} alt="x" className="w-[10px] h-[10px] flex-shrink-0" />
@@ -145,6 +149,7 @@ const VariableTypeSection = ({
   totalVariables,
   refetchWorkflowVariables,
   readonly,
+  highlightedVariableId,
 }: {
   canvasId: string;
   type: VariableType;
@@ -152,6 +157,7 @@ const VariableTypeSection = ({
   totalVariables: WorkflowVariable[];
   refetchWorkflowVariables: () => void;
   readonly: boolean;
+  highlightedVariableId?: string;
 }) => {
   const { t } = useTranslation();
   const Icon = VARIABLE_TYPE_ICON_MAP[type] ?? BiText;
@@ -206,6 +212,7 @@ const VariableTypeSection = ({
               refetchWorkflowVariables={refetchWorkflowVariables}
               onEdit={handleEditVariable}
               readonly={readonly}
+              isHighlighted={highlightedVariableId === variable.variableId}
             />
           ))}
         </div>
@@ -241,6 +248,46 @@ const VariableTypeSection = ({
 export const StartNodePreview = () => {
   const { workflow, canvasId, readonly } = useCanvasContext();
   const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
+  const [highlightedVariableId, setHighlightedVariableId] = useState<string | undefined>();
+
+  // Listen for variable highlight events
+  useEffect(() => {
+    const handleLocateToVariable = (event: {
+      canvasId: string;
+      nodeId: string;
+      variableId: string;
+      variableName: string;
+    }) => {
+      if (event.canvasId === canvasId) {
+        // Set the highlighted variable
+        setHighlightedVariableId(event.variableId);
+
+        // Scroll to the variable section
+        setTimeout(() => {
+          const variableElement = document.querySelector(
+            `[data-variable-id="${event.variableId}"]`,
+          );
+          if (variableElement) {
+            variableElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            });
+          }
+        }, 100);
+
+        // Remove highlight after 5 seconds
+        setTimeout(() => {
+          setHighlightedVariableId(undefined);
+        }, 5000);
+      }
+    };
+
+    locateToVariableEmitter.on('locateToVariable', handleLocateToVariable);
+
+    return () => {
+      locateToVariableEmitter.off('locateToVariable', handleLocateToVariable);
+    };
+  }, [canvasId]);
 
   // Group variables by type
   const groupedVariables = useMemo(() => {
@@ -280,6 +327,7 @@ export const StartNodePreview = () => {
           totalVariables={workflowVariables}
           refetchWorkflowVariables={refetchWorkflowVariables}
           readonly={readonly}
+          highlightedVariableId={highlightedVariableId}
         />
 
         {/* <VariableTypeSection
@@ -289,6 +337,7 @@ export const StartNodePreview = () => {
           totalVariables={workflowVariables}
           refetchWorkflowVariables={refetchWorkflowVariables}
           readonly={readonly}
+          highlightedVariableId={highlightedVariableId}
         /> */}
 
         <VariableTypeSection
@@ -298,6 +347,7 @@ export const StartNodePreview = () => {
           totalVariables={workflowVariables}
           refetchWorkflowVariables={refetchWorkflowVariables}
           readonly={readonly}
+          highlightedVariableId={highlightedVariableId}
         />
       </div>
     </div>

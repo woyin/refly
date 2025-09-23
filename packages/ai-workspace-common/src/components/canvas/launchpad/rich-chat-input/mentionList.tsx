@@ -14,9 +14,10 @@ import { ArrowRight, X } from 'refly-icons';
 import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { message } from 'antd';
+import { Button, message } from 'antd';
 import { cn, genVariableID } from '@refly/utils';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
+import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
 
 export interface MentionItem {
   name: string;
@@ -65,6 +66,8 @@ export const MentionList = ({
 
   const [isAddingVariable, setIsAddingVariable] = useState(false);
 
+  const { handleVariableView } = useVariableView(canvasId);
+
   const handleAddVariable = useCallback(async () => {
     const isDuplicate = workflowVariables.some((variable) => variable.name === query);
     if (isDuplicate) {
@@ -96,7 +99,22 @@ export const MentionList = ({
       });
 
       if (data?.success) {
-        message.success(t('canvas.workflow.variables.saveSuccess'));
+        message.success(
+          <div className="flex items-center gap-2">
+            <span>
+              {t('canvas.workflow.variables.saveSuccess') || 'Variable created successfully'}
+            </span>
+            <Button
+              type="link"
+              size="small"
+              className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
+              onClick={() => handleVariableView(newItem)}
+            >
+              {t('canvas.workflow.variables.viewAndEdit') || 'View'}
+            </Button>
+          </div>,
+          5, // Show for 5 seconds
+        );
         refetchWorkflowVariables();
         const newMentionItem: MentionItem = newItem as MentionItem;
         command(newMentionItem);

@@ -16,18 +16,12 @@ import { useFormData } from './hooks/use-form-data';
 import { getFileExtension } from './utils';
 import type { CreateVariablesModalProps, VariableFormData } from './types';
 import type { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
+import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import './index.scss';
 import { RESOURCE_TYPE } from './constants';
 
 export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.memo(
-  ({
-    visible,
-    onCancel,
-    defaultValue,
-    variableType: initialVariableType,
-    mode,
-    onViewCreatedVariable,
-  }) => {
+  ({ visible, onCancel, defaultValue, variableType: initialVariableType, mode }) => {
     const { t } = useTranslation();
     const [form] = Form.useForm<VariableFormData>();
     const [variableType, setVariableType] = useState<string>(
@@ -37,6 +31,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
     const { workflow, canvasId } = useCanvasContext();
     const { workflowVariables, refetchWorkflowVariables } = workflow;
     const [isSaving, setIsSaving] = useState(false);
+    const { handleVariableView } = useVariableView(canvasId);
 
     const variableTypeOptions = useMemo(() => {
       return [
@@ -301,43 +296,28 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
         });
 
         if (data?.success) {
-          // Show success message with view/edit option
-          const isNewVariable = existingIndex === -1;
-          if (isNewVariable) {
-            // For new variables, show message with view option
-            message.success(
-              <div className="flex items-center gap-2">
-                <span>
-                  {t('canvas.workflow.variables.saveSuccess') || 'Variable created successfully'}
-                </span>
-                <Button
-                  type="link"
-                  size="small"
-                  className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
-                  onClick={() => {
-                    // Call the callback to view/edit the created variable
-                    if (onViewCreatedVariable) {
-                      onViewCreatedVariable(variable);
-                    }
-                  }}
-                >
-                  {t('canvas.workflow.variables.viewAndEdit') || 'View'}
-                </Button>
-              </div>,
-              5, // Show for 5 seconds
-            );
-          } else {
-            // For existing variables, show regular success message
-            message.success(
-              t('canvas.workflow.variables.updateSuccess') || 'Variable updated successfully',
-            );
-          }
+          message.success(
+            <div className="flex items-center gap-2">
+              <span>
+                {t('canvas.workflow.variables.saveSuccess') || 'Variable created successfully'}
+              </span>
+              <Button
+                type="link"
+                size="small"
+                className="p-0 h-auto !text-refly-primary-default hover:!text-refly-primary-default"
+                onClick={() => handleVariableView(variable)}
+              >
+                {t('canvas.workflow.variables.viewAndEdit') || 'View'}
+              </Button>
+            </div>,
+            5, // Show for 5 seconds
+          );
         } else {
           message.error(t('canvas.workflow.variables.saveError') || 'Failed to save variable');
         }
         return data?.success;
       },
-      [t, canvasId, workflowVariables, onViewCreatedVariable],
+      [t, canvasId, workflowVariables, handleVariableView],
     );
 
     const handleSubmit = useCallback(async () => {
