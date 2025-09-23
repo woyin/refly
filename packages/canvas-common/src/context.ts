@@ -1,7 +1,7 @@
 import { ActionResult, CanvasNodeType, MediaType, SkillContext } from '@refly/openapi-schema';
 import { IContextItem } from '@refly/common-types';
 import { Node, Edge } from '@xyflow/react';
-import { genUniqueId, getClientOrigin, omit } from '@refly/utils';
+import { genUniqueId, getClientOrigin, omit, safeParseJSON } from '@refly/utils';
 import { CanvasNodeFilter } from './types';
 
 export const convertResultContextToItems = (
@@ -403,4 +403,33 @@ export const purgeContextItems = (items: IContextItem[]): IContextItem[] => {
       },
     };
   });
+};
+
+export const purgeContextForActionResult = (context: SkillContext) => {
+  // remove actual content from context to save storage
+  const contextCopy: SkillContext = safeParseJSON(JSON.stringify(context ?? {}));
+  if (contextCopy.resources) {
+    for (const { resource } of contextCopy.resources) {
+      if (resource) {
+        resource.content = '';
+      }
+    }
+  }
+  if (contextCopy.documents) {
+    for (const { document } of contextCopy.documents) {
+      if (document) {
+        document.content = '';
+      }
+    }
+  }
+
+  if (contextCopy.codeArtifacts) {
+    for (const { codeArtifact } of contextCopy.codeArtifacts) {
+      if (codeArtifact) {
+        codeArtifact.content = '';
+      }
+    }
+  }
+
+  return contextCopy;
 };
