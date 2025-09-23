@@ -62,7 +62,7 @@ export class VibeVoiceGenerateAudio extends AgentBaseTool<FalAudioParams> {
     script: z
       .string()
       .describe(
-        "The script to convert to speech up to 25 minutes. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues. supports up to four speakers at once, match the speakers and speaker's language. example: \"Speaker 0: VibeVoice is now available on Fal. Isn't that right, Carter?\nSpeaker 1: That's right Frank, and it supports up to four speakers at once. Try it now!\"",
+        "The script to convert to speech up to 25 minutes. You can use it to generate a whole podcast without splitting it into segments. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues. supports up to four speakers at once, match the speakers and speaker's language. example: \"Speaker 0: VibeVoice is now available on Fal. Isn't that right, Carter?\nSpeaker 1: That's right Frank, and it supports up to four speakers at once. Try it now!\"",
       ),
     speakers: z
       .array(
@@ -92,7 +92,8 @@ export class VibeVoiceGenerateAudio extends AgentBaseTool<FalAudioParams> {
       .default(1.3),
   });
 
-  description = "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.";
+  description =
+    "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.You can use it to generate a whole podcast without splitting it into segments.";
 
   protected params: FalAudioParams;
 
@@ -179,7 +180,8 @@ export class ElevenLabsDialogueGenerateAudio extends AgentBaseTool<FalAudioParam
       ),
   });
 
-  description = 'Generate realistic audio dialogues using Eleven-v3 from ElevenLabs.';
+  description =
+    'Generate realistic audio dialogues using Eleven-v3 from ElevenLabs. You can use it to generate a whole podcast without splitting it into segments.';
 
   protected params: FalAudioParams;
 
@@ -307,7 +309,8 @@ export class MinimaxSpeechGenerateAudio extends AgentBaseTool<FalAudioParams> {
       .default('auto'),
   });
 
-  description = "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.";
+  description =
+    "Generate long, expressive multi-voice speech using Microsoft's powerful TTS. You can use it to generate a whole podcast without splitting it into segments.";
 
   protected params: FalAudioParams;
 
