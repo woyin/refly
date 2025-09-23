@@ -109,9 +109,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   const latestWorkflowApp = useMemo(() => workflowAppsData?.data?.[0] ?? null, [workflowAppsData]);
   const workflowAppLink = useMemo(
     () =>
-      latestWorkflowApp?.shareId
-        ? `${window.location.origin}/app/${latestWorkflowApp.shareId}`
-        : '',
+      latestWorkflowApp?.shareId ? getShareLink('workflowApp', latestWorkflowApp.shareId) : '',
     [latestWorkflowApp],
   );
 
