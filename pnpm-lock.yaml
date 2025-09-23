@@ -206,6 +206,9 @@ importers:
       '@sentry/profiling-node':
         specifier: ^7.113.0
         version: 7.120.3
+      '@superfaceai/passport-twitter-oauth2':
+        specifier: ^1.2.4
+        version: 1.2.4
       apache-arrow:
         specifier: ^20.0.0
         version: 20.0.0
@@ -1674,7 +1677,7 @@ importers:
         version: 3.13.0
       langchain:
         specifier: 0.3.30
-        version: 0.3.30(xrncnyvox6qt27yfey74vrztwa)
+        version: 0.3.30(t7e23p2uipox3ku4fnginsjtve)
       lodash:
         specifier: ~4.17.21
         version: 4.17.21
@@ -6930,6 +6933,9 @@ packages:
     resolution: {integrity: sha512-9g9dWI4gsSVe8bNLlb+lMkBYsnIKCZTmvqvDG+Avnn69XfmHZKiaMrx7cgTaddq7aTPPmXiTsbFcUy0xgI4+wA==}
     peerDependencies:
       react: '>= 16.3.0'
+
+  '@superfaceai/passport-twitter-oauth2@1.2.4':
+    resolution: {integrity: sha512-f2P4X1HqBHJuAnQefINpgJvMGLHx+nT9APbfJzN/CCBcazvP9NOD9IiENHMZMXEgfcHU40V3KwKiIZTBH5Q4Wg==}
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0':
     resolution: {integrity: sha512-b9MIk7yhdS1pMCZM8VeNfUlSKVRhsHZNMl5O9SfaX0l0t5wjdgu4IDzGB8bpnGBBOjGST3rRFVsaaEtI4W6f7g==}
@@ -23305,6 +23311,13 @@ snapshots:
   '@stitches/react@1.2.8(react@18.3.1)':
     dependencies:
       react: 18.3.1
+
+  '@superfaceai/passport-twitter-oauth2@1.2.4':
+    dependencies:
+      passport-oauth2: 1.8.0
+    optionalDependencies:
+      '@types/passport': 1.0.17
+      '@types/passport-oauth2': 1.8.0
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0(@babel/core@7.28.0)':
     dependencies:
