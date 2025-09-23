@@ -68,6 +68,7 @@ export const mentionStyles = `
     transition: all 0.2s ease;
     position: relative;
     top: -1px;
+    user-select: none; /* Prevent partial native selection inside mention */
   }
   
   [data-cy="rich-chat-input"] .mention .mention-icon {
