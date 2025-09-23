@@ -1,6 +1,6 @@
 import { z } from 'zod/v3';
 import { ToolParams } from '@langchain/core/tools';
-import { PerplexityClient } from './client';
+import { PerplexityClient, ChatCompletionMessage } from './client';
 import { AgentBaseTool, AgentBaseToolset, AgentToolConstructor, ToolCallResult } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
 
@@ -148,7 +148,7 @@ export class PerplexityChatCompletions extends AgentBaseTool<PerplexityToolParam
 
       const response = await client.chatCompletions({
         model: input.model,
-        messages: input.messages,
+        messages: input.messages as ChatCompletionMessage[],
         max_tokens: input.max_tokens,
         temperature: input.temperature,
         top_p: input.top_p,
