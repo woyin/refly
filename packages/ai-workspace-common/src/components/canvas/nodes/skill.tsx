@@ -7,8 +7,6 @@ import { useState, useCallback, useEffect, useMemo, memo, useRef } from 'react';
 import { getNodeCommonStyles } from './shared/styles';
 import { ModelCapabilities, ModelInfo, SkillRuntimeConfig } from '@refly/openapi-schema';
 
-// Use union type from launchpad/types for mention-capable variables
-import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useChatStoreShallow, useLaunchpadStoreShallow } from '@refly/stores';
@@ -20,7 +18,7 @@ import { createNodeEventName } from '@refly-packages/ai-workspace-common/events/
 import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { IContextItem } from '@refly/common-types';
 import { useEdgeStyles } from '@refly-packages/ai-workspace-common/components/canvas/constants';
-import { genActionResultID, genUniqueId } from '@refly/utils/id';
+import { genActionResultID, genUniqueId, processQueryWithMentions } from '@refly/utils';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { useContextUpdateByEdges } from '@refly-packages/ai-workspace-common/hooks/canvas/use-debounced-context-update';
@@ -40,7 +38,6 @@ import { GenericToolset } from '@refly/openapi-schema';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useExtractVariables } from '@refly-packages/ai-workspace-common/queries';
 import type { ExtractVariablesRequest, VariableExtractionResult } from '@refly/openapi-schema';
-import { processQueryWithVariables } from '@refly-packages/ai-workspace-common/utils/workflow-variable-processor';
 import { useTranslation } from 'react-i18next';
 
 const NODE_WIDTH = 480;
@@ -297,8 +294,11 @@ export const SkillNode = memo(
       }
 
       // Process query with workflow variables
-      const variables = (workflowVariables?.data ?? []) as MentionVariable[];
-      const { query: processedQuery } = processQueryWithVariables(originalQuery, variables);
+      const variables = workflowVariables?.data ?? [];
+      const { query: processedQuery } = processQueryWithMentions(originalQuery, {
+        replaceVars: true,
+        variables,
+      });
 
       const resultId = genActionResultID();
       invokeAction(

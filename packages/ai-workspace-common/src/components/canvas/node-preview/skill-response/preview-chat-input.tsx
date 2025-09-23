@@ -3,6 +3,7 @@ import { IContextItem } from '@refly/common-types';
 import { PreviewContextManager } from './preview-context-manager';
 import { useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { processQueryWithMentions } from '@refly/utils/query-processor';
 
 const { Paragraph } = Typography;
 
@@ -25,8 +26,8 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
   const renderQueryWithVariables = useMemo(() => {
     if (!query) return t('common.noContent');
 
-    // Return the original query text without variable parsing
-    return String(query);
+    const { query: processedQuery } = processQueryWithMentions(query);
+    return String(processedQuery);
   }, [query, t]);
 
   if (!enabled) {
