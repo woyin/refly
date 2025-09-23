@@ -12,6 +12,9 @@ import { ReloadOutlined } from '@ant-design/icons';
 import { IContextItem } from '@refly/common-types';
 import { useContextPanelStoreShallow } from '@refly/stores';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 import { CONTEXT_FILTER_NODE_TYPES } from '@refly/canvas-common';
 
 import './index.scss';
@@ -74,6 +77,15 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
   }, [onClickOutside]);
 
   const { nodes } = useCanvasData();
+  const { canvasId } = useCanvasContext();
+  const { projectId } = useGetProjectCanvasId();
+  const { data: resourcesData } = useListResources({
+    query: {
+      canvasId,
+      projectId,
+    },
+  });
+  const resources = resourcesData?.data ?? [];
   const targetNodes = nodes.filter((node) => !CONTEXT_FILTER_NODE_TYPES.includes(node?.type));
 
   const handleClear = () => {
@@ -84,7 +96,7 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
     }
   };
 
-  // Memoize the filtered and sorted nodes to prevent unnecessary recalculations
+  // Memoize the filtered and sorted nodes and resources to prevent unnecessary recalculations
   const processedNodes = useMemo(() => {
     // First get unselected nodes and reverse them to show most recent first
     const unselectedNodes =
@@ -105,14 +117,31 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
           metadata: node.data?.metadata,
         })) ?? [];
 
+    // Process unselected resources
+    const unselectedResources =
+      resources
+        ?.filter(
+          (resource) =>
+            !selectedItems.some((selected) => selected.entityId === resource.resourceId),
+        )
+        .map((resource) => ({
+          title: resource.title,
+          entityId: resource.resourceId,
+          type: resource.resourceType,
+          metadata: resource.data,
+        })) ?? [];
+
+    // Combine nodes and resources
+    const combinedUnselectedItems = [...unselectedNodes, ...unselectedResources];
+
     // Filter based on search value
-    const filteredUnselectedNodes = unselectedNodes.filter((item) =>
+    const filteredUnselectedItems = combinedUnselectedItems.filter((item) =>
       item?.title?.toLowerCase().includes(searchValue.toLowerCase()),
     );
 
-    // Return selected items first, followed by filtered & reversed unselected nodes
-    return [...(selectedItems ?? []), ...filteredUnselectedNodes];
-  }, [targetNodes, searchValue, selectedItems]);
+    // Return selected items first, followed by filtered unselected items
+    return [...(selectedItems ?? []), ...filteredUnselectedItems];
+  }, [targetNodes, resources, searchValue, selectedItems]);
 
   // Memoize the render data transformation
   const sortedRenderData = useMemo(() => {

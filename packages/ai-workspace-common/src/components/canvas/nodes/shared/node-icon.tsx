@@ -5,7 +5,6 @@ import {
   type ResourceFileType,
 } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { CanvasNodeType, ResourceMeta, ResourceType, SelectionKey } from '@refly/openapi-schema';
-import { GrResources } from 'react-icons/gr';
 
 import {
   AiChat,
@@ -26,6 +25,7 @@ import {
   GeneralFile,
   Html,
   Start,
+  File,
 } from 'refly-icons';
 import { Avatar } from 'antd';
 import { Favicon } from '../../../common/favicon';
@@ -38,7 +38,7 @@ const ICONS: Record<CanvasNodeType | SelectionKey, IconComponent> = {
   video: Video,
   audio: Audio,
   document: Doc1,
-  resource: GrResources,
+  resource: File,
   codeArtifact: Code1,
   website: Web1,
   memo: Note,

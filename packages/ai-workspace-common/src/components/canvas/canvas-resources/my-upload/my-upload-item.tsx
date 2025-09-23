@@ -1,7 +1,6 @@
 import { memo, useCallback, useState } from 'react';
 import { Button, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { CanvasNode, ResourceNodeMeta } from '@refly/canvas-common';
 import { cn } from '@refly/utils/cn';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -9,24 +8,26 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 import { ResourceItemAction } from '../share/resource-item-action';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
+import { Resource } from '@refly/openapi-schema';
 
 const { Text } = Typography;
 
 export interface MyUploadItemProps {
-  node: CanvasNode;
+  resource: Resource;
   isActive: boolean;
-  onSelect: (node: CanvasNode, beforeParsed: boolean) => void;
+  onSelect: (resource: Resource, beforeParsed: boolean) => void;
 }
 
 /**
  * Render a single uploaded resource item.
  */
-export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProps) => {
+export const MyUploadItem = memo(({ resource, isActive, onSelect }: MyUploadItemProps) => {
   const { t } = useTranslation();
   const { readonly } = useCanvasContext();
   const [isReindexing, setIsReindexing] = useState(false);
-  const { indexStatus, resourceType, resourceMeta } = (node.data?.metadata ??
-    {}) as ResourceNodeMeta;
+  const indexStatus = resource.indexStatus;
+  const resourceType = resource.resourceType;
+  const resourceMeta = resource.data;
 
   const isParseFailed = indexStatus === 'parse_failed';
   const isIndexFailed = indexStatus === 'index_failed';
@@ -38,7 +39,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
   const setNodeDataByEntity = useSetNodeDataByEntity();
 
   const handleReindexResource = useCallback(async () => {
-    const resourceId = node.data?.entityId;
+    const resourceId = resource.resourceId;
 
     if (!resourceId || isReindexing) return;
 
@@ -54,8 +55,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
       return;
     }
 
-    const indexStatus =
-      node.data?.metadata?.indexStatus === 'index_failed' ? 'wait_index' : 'wait_parse';
+    const newIndexStatus = indexStatus === 'index_failed' ? 'wait_index' : 'wait_parse';
 
     setNodeDataByEntity(
       {
@@ -64,11 +64,11 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
       },
       {
         metadata: {
-          indexStatus,
+          indexStatus: newIndexStatus,
         },
       },
     );
-  }, [isReindexing, setNodeDataByEntity, node.data?.entityId]);
+  }, [isReindexing, setNodeDataByEntity, resource.resourceId, indexStatus]);
 
   return (
     <div
@@ -77,7 +77,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
         isActive && 'bg-refly-tertiary-hover',
         isFailed && 'bg-refly-Colorful-red-light',
       )}
-      onClick={() => onSelect(node, beforeParsed)}
+      onClick={() => onSelect(resource, beforeParsed)}
     >
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <NodeIcon
@@ -85,7 +85,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
           resourceType={resourceType}
           resourceMeta={resourceMeta}
           filled={false}
-          url={node.data?.metadata?.imageUrl as string}
+          url={resourceMeta?.url}
           small
         />
 
@@ -96,7 +96,7 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
             'text-refly-text-2': isFailed || isRunning,
           })}
         >
-          {node?.data?.title ?? t('common.untitled')}
+          {resource?.title ?? t('common.untitled')}
         </Text>
       </div>
       <div className="flex items-center gap-2">
@@ -119,7 +119,22 @@ export const MyUploadItem = memo(({ node, isActive, onSelect }: MyUploadItemProp
             {t('common.retry')}
           </Button>
         )}
-        <ResourceItemAction node={node} />
+        <ResourceItemAction
+          node={{
+            id: resource.resourceId,
+            type: 'resource',
+            position: { x: 0, y: 0 },
+            data: {
+              title: resource.title,
+              entityId: resource.resourceId,
+              metadata: {
+                ...resource.data,
+                indexStatus: resource.indexStatus,
+                resourceType: resource.resourceType,
+              },
+            },
+          }}
+        />
       </div>
     </div>
   );

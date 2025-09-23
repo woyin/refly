@@ -1335,7 +1335,7 @@ const translations = {
         acceptResourceTypes: '支持的资源类型：',
         fileSizeLimit: '{{type}}（小于{{size}}M）',
         unsupportedFileType: '不支持的文件类型：{{type}}',
-        reloadFile: '替换文件',
+        replaceFile: '替换文件',
         duplicateFileName: '相同文件名已存在，请替换文件',
         tooManyFiles: '最多可上传{{max}}个文件',
         noSpacesAllowed: '变量名称不能包含空格',

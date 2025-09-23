@@ -20,7 +20,6 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import type { IContextItem } from '@refly/common-types';
 import type { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
 import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
@@ -34,6 +33,8 @@ import {
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { type MentionItem, MentionList } from './mentionList';
 
 interface RichChatInputProps {
@@ -225,8 +226,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
-    const { nodes: realtimeNodes } = useRealtimeCanvasData();
     const { canvasId, workflow } = useCanvasContext();
+    const { projectId } = useGetProjectCanvasId();
+    const { data: resourcesData } = useListResources({
+      query: {
+        canvasId,
+        projectId,
+      },
+    });
+    const resources = resourcesData?.data ?? [];
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
@@ -285,29 +293,24 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             },
           })) ?? [];
 
-      // Get my upload items from realtime canvas data
+      // Get my upload items from API resources data
       const myUploadItems: MentionItem[] =
-        realtimeNodes
-          ?.filter(
-            (node) =>
-              node.type === 'resource' || (node.type === 'image' && !node.data?.metadata?.resultId),
-          )
-          ?.map((node) => ({
-            name: node.data?.title ?? t('canvas.richChatInput.untitledUpload'),
-            description: t('canvas.richChatInput.myUpload'),
-            source: 'myUpload' as const,
-            variableType: node.type,
-            entityId: node.data?.entityId || '',
-            nodeId: node.id,
-            metadata: {
-              imageUrl: node.data?.metadata?.imageUrl as string | undefined,
-              resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
-              resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
-            },
-          })) ?? [];
+        resources?.map((resource) => ({
+          name: resource.title ?? t('canvas.richChatInput.untitledUpload'),
+          description: t('canvas.richChatInput.myUpload'),
+          source: 'myUpload' as const,
+          variableType: resource.resourceType || 'resource',
+          entityId: resource.resourceId,
+          nodeId: resource.resourceId,
+          metadata: {
+            imageUrl: resource.data?.url as string | undefined,
+            resourceType: resource.resourceType as ResourceType | undefined,
+            resourceMeta: resource.data as ResourceMeta | undefined,
+          },
+        })) ?? [];
 
       return [...startNodeItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
-    }, [workflowVariables, nodes, realtimeNodes]);
+    }, [workflowVariables, nodes, resources]);
 
     // Keep latest items in a ref so Mention suggestion always sees fresh data
     const allItemsRef = useRef<MentionItem[]>(allItems);
@@ -372,18 +375,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                     return item.variableType as CanvasNodeType;
                   }
 
-                  // Log warning for unknown types and fallback to document
-                  console.warn(
-                    `Unknown variableType "${item.variableType}" for source "${item.source}", falling back to "document"`,
-                    { item, validTypes: validCanvasNodeTypes },
-                  );
-                  return 'document' as CanvasNodeType;
+                  // Fallback to resource context item
+                  return 'resource' as CanvasNodeType;
                 }
                 // Fallback for unexpected sources
                 console.warn(`Unexpected source "${item.source}", falling back to "document"`, {
                   item,
                 });
-                return 'document' as CanvasNodeType;
+                return 'resource' as CanvasNodeType;
               })(),
 
               metadata: {

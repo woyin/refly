@@ -13,11 +13,25 @@ import { ResultList } from '../result-list';
 import { MyUploadList } from '../my-upload';
 import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 
 export const ResourceOverview = memo(() => {
   const { t } = useTranslation();
   const { nodes } = useRealtimeCanvasData();
+  const { canvasId } = useCanvasContext();
+  const { projectId } = useGetProjectCanvasId();
   const { createSingleDocumentInCanvas, isCreating: isCreatingDocument } = useCreateDocument();
+
+  // Fetch resources using react-query
+  const { data: resourcesData, isLoading: isLoadingResources } = useListResources({
+    query: {
+      canvasId,
+      projectId,
+    },
+  });
+  const resources = resourcesData?.data ?? [];
 
   const { searchKeyword, setSearchKeyword, parentType, activeTab, setActiveTab } =
     useCanvasResourcesPanelStoreShallow((state) => ({
@@ -72,6 +86,10 @@ export const ResourceOverview = memo(() => {
   }, [activeTab, t]);
 
   const hasData = useMemo(() => {
+    if (isLoadingResources) {
+      return true;
+    }
+
     return (
       nodes.filter((node) =>
         [
@@ -84,9 +102,9 @@ export const ResourceOverview = memo(() => {
           'audio',
           'website',
         ].includes(node.type),
-      ).length > 0
+      ).length > 0 || resources.length > 0
     );
-  }, [nodes]);
+  }, [nodes, isLoadingResources, resources]);
 
   useEffect(() => {
     if (parentType) {
@@ -96,10 +114,14 @@ export const ResourceOverview = memo(() => {
 
   return (
     <div className="p-4 flex-grow flex flex-col gap-4 overflow-hidden">
-      {!hasData ? (
+      {isLoadingResources ? (
+        <div className="h-full flex flex-col items-center justify-center gap-4">
+          <div className="text-refly-text-2 text-sm leading-5">{t('common.loading')}</div>
+        </div>
+      ) : !hasData ? (
         <div className="h-full flex flex-col items-center justify-center gap-4">
           <img src={EmptyImage} alt="empty" className="w-[200px] h-[200px]" />
-          <div className="text-refly-text-2 text-xs leading-5">
+          <div className="text-refly-text-2 text-sm leading-5">
             {t('canvas.resourceLibrary.empty')}
           </div>
           <div className="flex gap-2">
@@ -154,7 +176,7 @@ export const ResourceOverview = memo(() => {
           <div className="flex-grow overflow-y-auto min-h-0">
             {activeTab === 'stepsRecord' && <StepList />}
             {activeTab === 'resultsRecord' && <ResultList />}
-            {activeTab === 'myUpload' && <MyUploadList />}
+            {activeTab === 'myUpload' && <MyUploadList resources={resources} />}
           </div>
         </>
       )}
