@@ -18,7 +18,6 @@ import {
 import { SkillService } from '../skill/skill.service';
 import { CanvasService } from '../canvas/canvas.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
-import { ResourceService } from '../knowledge/resource.service';
 import {
   genWorkflowExecutionID,
   genTransactionId,
@@ -41,7 +40,6 @@ export class WorkflowService {
     private readonly skillService: SkillService,
     private readonly canvasService: CanvasService,
     private readonly canvasSyncService: CanvasSyncService,
-    private readonly resourceService: ResourceService,
     @InjectQueue(QUEUE_RUN_WORKFLOW) private readonly runWorkflowQueue?: Queue,
   ) {}
 

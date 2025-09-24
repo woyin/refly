@@ -9,7 +9,6 @@ import { WorkflowController } from './workflow.controller';
 import { SyncWorkflowProcessor, RunWorkflowProcessor } from './workflow.processor';
 import { QUEUE_SYNC_WORKFLOW, QUEUE_RUN_WORKFLOW } from '../../utils/const';
 import { isDesktop } from '../../utils/runtime';
-import { KnowledgeModule } from '../knowledge/knowledge.module';
 
 @Module({
   imports: [
@@ -17,7 +16,6 @@ import { KnowledgeModule } from '../knowledge/knowledge.module';
     CanvasModule,
     CanvasSyncModule,
     SkillModule,
-    KnowledgeModule,
     ...(isDesktop()
       ? []
       : [
