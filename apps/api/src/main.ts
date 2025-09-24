@@ -3,6 +3,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'node:path';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import session from 'express-session';
 
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
@@ -64,6 +65,21 @@ async function bootstrap() {
 
   app.use(setTraceID);
   app.use(helmet());
+
+  // Session middleware for OAuth state management
+  app.use(
+    session({
+      secret: configService.get('session.secret', 'your-super-secret-key'),
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: configService.get('NODE_ENV') === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      },
+    }),
+  );
+
   app.enableCors({
     origin: configService.get('origin').split(','),
     credentials: true,
