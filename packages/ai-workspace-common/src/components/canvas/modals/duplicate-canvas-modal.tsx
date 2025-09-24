@@ -16,15 +16,15 @@ export const DuplicateCanvasModal = memo(() => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const { canvasId, canvasName, modalVisible, modalType, reset } = useCanvasOperationStoreShallow(
-    (state) => ({
+  const { canvasId, canvasName, shareId, modalVisible, modalType, reset } =
+    useCanvasOperationStoreShallow((state) => ({
       canvasId: state.canvasId,
       canvasName: state.canvasTitle,
+      shareId: state.shareId,
       modalVisible: state.modalVisible,
       modalType: state.modalType,
       reset: state.reset,
-    }),
-  );
+    }));
   const visible = modalVisible && modalType === 'duplicate';
 
   const [form] = Form.useForm();
@@ -43,26 +43,51 @@ export const DuplicateCanvasModal = memo(() => {
 
     if (loading) return;
     setLoading(true);
-    const { title, duplicateEntities } = values;
-    const { data } = await getClient().duplicateCanvas({
-      body: {
-        projectId,
-        canvasId,
-        title,
-        duplicateEntities,
-      },
-    });
-    setLoading(false);
 
-    if (data?.success && data?.data?.canvasId) {
-      message.success(t('canvas.action.duplicateSuccess'));
-      reset();
-      getCanvasList();
-      const newCanvasId = data.data.canvasId;
-      const url = projectId
-        ? `/project/${projectId}?canvasId=${newCanvasId}`
-        : `/canvas/${newCanvasId}`;
-      navigate(url);
+    try {
+      let data: any;
+
+      if (shareId) {
+        // Cross-user duplication via share
+        const response = await getClient().duplicateShare({
+          body: {
+            shareId,
+            projectId,
+          },
+        });
+        data = response.data;
+      } else {
+        // Same-user duplication
+        const { title, duplicateEntities } = values;
+        const response = await getClient().duplicateCanvas({
+          body: {
+            projectId,
+            canvasId,
+            title,
+            duplicateEntities,
+          },
+        });
+        data = response.data;
+      }
+
+      if (data?.success) {
+        message.success(t('canvas.action.duplicateSuccess'));
+        reset();
+        getCanvasList();
+
+        const newEntityId = shareId ? data.data?.entityId : data.data?.canvasId;
+        if (newEntityId) {
+          const url = projectId
+            ? `/project/${projectId}?canvasId=${newEntityId}`
+            : `/canvas/${newEntityId}`;
+          navigate(url);
+        }
+      }
+    } catch (error) {
+      console.error('Error duplicating canvas', error);
+      message.error(t('canvas.action.duplicateError') || 'Failed to duplicate canvas');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,11 +122,13 @@ export const DuplicateCanvasModal = memo(() => {
             <Input placeholder={t('template.duplicateCanvasTitlePlaceholder')} />
           </Form.Item>
 
-          {/* <Form.Item className="ml-2.5" name="duplicateEntities" valuePropName="checked">
-            <Checkbox>
-              <span className="text-sm">{t('template.duplicateCanvasEntities')}</span>
-            </Checkbox>
-          </Form.Item> */}
+          {/* {!shareId && (
+            <Form.Item className="ml-2.5" name="duplicateEntities" valuePropName="checked">
+              <Checkbox>
+                <span className="text-sm">{t('template.duplicateCanvasEntities')}</span>
+              </Checkbox>
+            </Form.Item>
+          )} */}
         </Form>
       </div>
     </Modal>
