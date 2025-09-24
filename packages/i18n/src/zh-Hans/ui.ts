@@ -3301,7 +3301,7 @@ const translations = {
     preview: '预览',
     use: '使用模板',
     duplicateCanvas: 'Remix 工作流',
-    canvasTitle: '画布名称',
+    canvasTitle: '工作流名称',
     duplicateCanvasTitlePlaceholder: '请输入新画布名称',
     moreTemplates: '更多模版',
     searchPlaceholder: '请输入关键词搜索模板',

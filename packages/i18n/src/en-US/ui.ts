@@ -3560,7 +3560,7 @@ const translations = {
     preview: 'Preview',
     use: 'Use Template',
     duplicateCanvas: 'Remix Workflow',
-    canvasTitle: 'Canvas Name',
+    canvasTitle: 'Workflow Name',
     duplicateCanvasTitlePlaceholder: 'Please enter canvas name',
     moreTemplates: 'More Templates',
     searchPlaceholder: 'Please enter keyword to search template',
