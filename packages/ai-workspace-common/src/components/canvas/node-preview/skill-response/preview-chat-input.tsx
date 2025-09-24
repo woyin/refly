@@ -26,7 +26,7 @@ const PreviewChatInputComponent = (props: PreviewChatInputProps) => {
   const renderQueryWithVariables = useMemo(() => {
     if (!query) return t('common.noContent');
 
-    const { query: processedQuery } = processQueryWithMentions(query);
+    const { processedQuery } = processQueryWithMentions(query);
     return String(processedQuery);
   }, [query, t]);
 

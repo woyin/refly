@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CanvasData, CanvasNodeType, WorkflowVariable } from '@refly/openapi-schema';
-import {
-  processQueryWithTypes,
-  prepareNodeExecutions,
-  WorkflowNode,
-  addResourceVariablesToContext,
-} from './workflow';
+import { prepareNodeExecutions, WorkflowNode, updateContextItemsFromVariables } from './workflow';
 import { ResponseNodeMeta } from './types';
 import { IContextItem } from '@refly-packages/common-types';
 
@@ -38,93 +33,6 @@ const setMockSequences = (s: {
   };
 };
 
-describe('processQueryWithTypes', () => {
-  it('returns original query when variables empty or query falsy', () => {
-    expect(processQueryWithTypes('', [])).toBe('');
-    expect(processQueryWithTypes('no vars here')).toBe('no vars here');
-  });
-
-  it('replaces resource type variables with resource names', () => {
-    const query = 'find @doc ';
-    const variables: WorkflowVariable[] = [
-      {
-        variableId: 'v1',
-        name: 'doc',
-        value: [
-          {
-            type: 'resource',
-            resource: { name: 'a.pdf', fileType: 'application/pdf', storageKey: 's1' },
-          },
-        ],
-        variableType: 'resource',
-      },
-    ];
-    expect(processQueryWithTypes(query, variables)).toBe('find a.pdf ');
-  });
-
-  it('replaces string variables with text values', () => {
-    const query = 'hello @name world';
-    const variables: WorkflowVariable[] = [
-      {
-        variableId: 'v1',
-        name: 'name',
-        value: [{ type: 'text', text: 'Alice' }],
-        variableType: 'string',
-      },
-    ];
-    expect(processQueryWithTypes(query, variables)).toBe('hello Alice world');
-  });
-
-  it('handles non-ascii variable names', () => {
-    const query = '查找 @变量\n';
-    const variables: WorkflowVariable[] = [
-      {
-        variableId: 'v1',
-        name: '变量',
-        value: [
-          {
-            type: 'text',
-            text: '测试',
-          },
-        ],
-      },
-    ];
-    expect(processQueryWithTypes(query, variables)).toBe('查找 测试\n');
-  });
-
-  it('replaces multiple occurrences and joins option values with comma', () => {
-    const query = '@topic is cool. I love @topic so much';
-    const variables: WorkflowVariable[] = [
-      {
-        variableId: 'v1',
-        name: 'topic',
-        value: [
-          { type: 'text', text: 'TypeScript' },
-          { type: 'text', text: 'React' },
-        ],
-        variableType: 'option',
-        options: ['TypeScript', 'React'],
-      },
-    ];
-    const expected = 'TypeScript, React is cool. I love TypeScript, React so much';
-    expect(processQueryWithTypes(query, variables)).toBe(expected);
-  });
-
-  it('handles missing text values by removing the placeholder token', () => {
-    const query = 'hello @name world';
-    const variables: WorkflowVariable[] = [
-      {
-        variableId: 'v1',
-        name: 'name',
-        value: [{ type: 'text' }],
-        variableType: 'string',
-      },
-    ];
-    // Note: replacement keeps a single space in place of the placeholder
-    expect(processQueryWithTypes(query, variables)).toBe('hello  world');
-  });
-});
-
 describe('prepareNodeExecutions', () => {
   const buildCanvas = () => {
     const nodes = [
@@ -151,7 +59,7 @@ describe('prepareNodeExecutions', () => {
           title: 'Hello JavaScript world',
           entityId: 'entityA',
           metadata: {
-            structuredData: { query: 'Hello @topic world' },
+            structuredData: { query: 'Hello @{type=var,id=v-topic,name=topic} world' },
             contextItems: [],
             modelInfo: {
               name: 'openai/gpt-5',
@@ -178,10 +86,12 @@ describe('prepareNodeExecutions', () => {
         type: 'skillResponse' as CanvasNodeType,
         position: { x: 0, y: 0 },
         data: {
-          title: 'Analyze @doc',
+          title: 'Analyze test.pdf',
           entityId: 'entityC',
           metadata: {
-            structuredData: { query: 'Analyze @doc please' },
+            structuredData: {
+              query: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
+            },
             contextItems: [
               {
                 entityId: 'entityA',
@@ -189,6 +99,7 @@ describe('prepareNodeExecutions', () => {
                 metadata: { withHistory: true },
               },
               { entityId: 'entityB', type: 'document' },
+              { entityId: 'resource1', type: 'resource', title: 'test.pdf' },
             ],
             modelInfo: {
               name: 'openai/gpt-5-mini',
@@ -225,7 +136,7 @@ describe('prepareNodeExecutions', () => {
         {
           type: 'resource',
           resource: {
-            name: 'test.pdf',
+            name: 'test2.pdf', // different name from test.pdf
             fileType: 'application/pdf',
             storageKey: 's1',
             entityId: 'resource1',
@@ -284,7 +195,7 @@ describe('prepareNodeExecutions', () => {
         nodeType: 'skillResponse',
         childNodeIds: ['B', 'C'],
         parentNodeIds: ['S'],
-        originalQuery: 'Hello @topic world',
+        originalQuery: 'Hello @{type=var,id=v-topic,name=topic} world',
         processedQuery: 'Hello TypeScript world',
         status: 'waiting',
         title: 'Hello TypeScript world',
@@ -303,7 +214,7 @@ describe('prepareNodeExecutions', () => {
             metadata: {
               contextItems: [],
               structuredData: {
-                query: 'Hello @topic world',
+                query: 'Hello @{type=var,id=v-topic,name=topic} world',
               },
               modelInfo: {
                 name: 'openai/gpt-5',
@@ -356,11 +267,11 @@ describe('prepareNodeExecutions', () => {
       {
         nodeId: 'C',
         nodeType: 'skillResponse',
-        originalQuery: 'Analyze @doc please',
+        originalQuery: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
         parentNodeIds: ['B', 'A'],
-        processedQuery: 'Analyze test.pdf please',
+        processedQuery: 'Analyze test2.pdf please',
         status: 'waiting',
-        title: 'Analyze test.pdf please',
+        title: 'Analyze test2.pdf please',
         childNodeIds: [],
         entityId: 'entityC',
         connectTo: [
@@ -386,7 +297,7 @@ describe('prepareNodeExecutions', () => {
             entityId: 'entityC',
             metadata: {
               structuredData: {
-                query: 'Analyze @doc please',
+                query: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
               },
               contextItems: [
                 {
@@ -403,7 +314,7 @@ describe('prepareNodeExecutions', () => {
                 {
                   entityId: 'resource1',
                   type: 'resource',
-                  title: 'test.pdf',
+                  title: 'test2.pdf',
                 },
               ],
               modelInfo: {
@@ -415,7 +326,7 @@ describe('prepareNodeExecutions', () => {
                 maxOutput: 1000,
               },
             },
-            title: 'Analyze test.pdf please',
+            title: 'Analyze test2.pdf please',
           },
           id: 'C',
           position: {
@@ -484,7 +395,7 @@ describe('prepareNodeExecutions', () => {
         nodeId: 'N2',
         nodeType: 'skillResponse',
         title: 'Hello TypeScript world',
-        originalQuery: 'Hello @topic world',
+        originalQuery: 'Hello @{type=var,id=v-topic,name=topic} world',
         parentNodeIds: ['N1'],
         processedQuery: 'Hello TypeScript world',
         resultHistory: [],
@@ -513,7 +424,7 @@ describe('prepareNodeExecutions', () => {
                 providerItemId: 'pi-1',
               },
               structuredData: {
-                query: 'Hello @topic world',
+                query: 'Hello @{type=var,id=v-topic,name=topic} world',
               },
             },
             title: 'Hello TypeScript world',
@@ -558,9 +469,9 @@ describe('prepareNodeExecutions', () => {
       {
         nodeId: 'N4',
         nodeType: 'skillResponse',
-        originalQuery: 'Analyze @doc please',
+        originalQuery: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
         parentNodeIds: ['N3', 'N2'],
-        processedQuery: 'Analyze test.pdf please',
+        processedQuery: 'Analyze test2.pdf please',
         resultHistory: [
           {
             title: 'Hello TypeScript world',
@@ -568,7 +479,7 @@ describe('prepareNodeExecutions', () => {
           },
         ],
         status: 'waiting',
-        title: 'Analyze test.pdf please',
+        title: 'Analyze test2.pdf please',
         childNodeIds: [],
         connectTo: [
           {
@@ -603,7 +514,7 @@ describe('prepareNodeExecutions', () => {
                 {
                   entityId: 'resource1',
                   type: 'resource',
-                  title: 'test.pdf',
+                  title: 'test2.pdf',
                 },
               ],
               modelInfo: {
@@ -615,10 +526,10 @@ describe('prepareNodeExecutions', () => {
                 providerItemId: 'pi-2',
               },
               structuredData: {
-                query: 'Analyze @doc please',
+                query: 'Analyze @{type=resource,id=resource1,name=test2.pdf} please',
               },
             },
-            title: 'Analyze test.pdf please',
+            title: 'Analyze test2.pdf please',
           },
           id: 'N4',
           position: {
@@ -632,15 +543,13 @@ describe('prepareNodeExecutions', () => {
   });
 });
 
-describe('addResourceVariablesToContext', () => {
+describe('updateContextItemsFromVariables', () => {
   it('returns original context items when variables empty or query has no references', () => {
     const contextItems: IContextItem[] = [{ entityId: 'existing', type: 'document' }];
     const variables: WorkflowVariable[] = [];
 
-    expect(addResourceVariablesToContext(contextItems, variables, 'no vars here')).toEqual(
-      contextItems,
-    );
-    expect(addResourceVariablesToContext(contextItems, variables, '')).toEqual(contextItems);
+    expect(updateContextItemsFromVariables(contextItems, variables)).toEqual(contextItems);
+    expect(updateContextItemsFromVariables(contextItems, variables)).toEqual(contextItems);
   });
 
   it('ignores non-resource variables', () => {
@@ -654,39 +563,14 @@ describe('addResourceVariablesToContext', () => {
       },
     ];
 
-    expect(addResourceVariablesToContext(contextItems, variables, '@textVar')).toEqual([]);
-  });
-
-  it('adds resource variables referenced in query to context', () => {
-    const contextItems: IContextItem[] = [{ entityId: 'existing', type: 'document' }];
-    const variables: WorkflowVariable[] = [
-      {
-        variableId: 'v1',
-        name: 'doc',
-        value: [
-          {
-            type: 'resource',
-            resource: {
-              name: 'test.pdf',
-              fileType: 'application/pdf',
-              storageKey: 's1',
-              entityId: 'resource1',
-            },
-          },
-        ],
-        variableType: 'resource',
-      },
-    ];
-
-    const result = addResourceVariablesToContext(contextItems, variables, 'analyze @doc');
-    expect(result).toEqual([
-      { entityId: 'existing', type: 'document' },
-      { entityId: 'resource1', type: 'resource', title: 'test.pdf' },
-    ]);
+    expect(updateContextItemsFromVariables(contextItems, variables)).toEqual([]);
   });
 
   it('handles multiple resource variables in query', () => {
-    const contextItems: IContextItem[] = [];
+    const contextItems: IContextItem[] = [
+      { entityId: 'resource1', type: 'resource', title: 'doc1.pdf' },
+      { entityId: 'resource2', type: 'resource', title: 'doc2.pdf' },
+    ];
     const variables: WorkflowVariable[] = [
       {
         variableId: 'v1',
@@ -722,11 +606,7 @@ describe('addResourceVariablesToContext', () => {
       },
     ];
 
-    const result = addResourceVariablesToContext(
-      contextItems,
-      variables,
-      'compare @doc1 and @doc2',
-    );
+    const result = updateContextItemsFromVariables(contextItems, variables);
     expect(result).toEqual([
       { entityId: 'resource1', type: 'resource', title: 'doc1.pdf' },
       { entityId: 'resource2', type: 'resource', title: 'doc2.pdf' },
@@ -754,11 +634,11 @@ describe('addResourceVariablesToContext', () => {
       },
     ];
 
-    const result = addResourceVariablesToContext(contextItems, variables, 'analyze @doc');
+    const result = updateContextItemsFromVariables(contextItems, variables);
     expect(result).toEqual([]);
   });
 
-  it('does not add duplicate resources already in context', () => {
+  it('updates existing resource context item title to variable name when entityId matches', () => {
     const contextItems: IContextItem[] = [
       { entityId: 'resource1', type: 'resource', title: 'existing.pdf' },
     ];
@@ -781,49 +661,17 @@ describe('addResourceVariablesToContext', () => {
       },
     ];
 
-    const result = addResourceVariablesToContext(contextItems, variables, 'analyze @doc');
-    expect(result).toEqual([{ entityId: 'resource1', type: 'resource', title: 'existing.pdf' }]);
-  });
-
-  it('handles multiple values in resource variables', () => {
-    const contextItems: IContextItem[] = [];
-    const variables: WorkflowVariable[] = [
-      {
-        variableId: 'v1',
-        name: 'docs',
-        value: [
-          {
-            type: 'resource',
-            resource: {
-              name: 'doc1.pdf',
-              fileType: 'application/pdf',
-              storageKey: 's1',
-              entityId: 'resource1',
-            },
-          },
-          {
-            type: 'resource',
-            resource: {
-              name: 'doc2.pdf',
-              fileType: 'application/pdf',
-              storageKey: 's2',
-              entityId: 'resource2',
-            },
-          },
-        ],
-        variableType: 'resource',
-      },
-    ];
-
-    const result = addResourceVariablesToContext(contextItems, variables, 'analyze @docs');
-    expect(result).toEqual([
-      { entityId: 'resource1', type: 'resource', title: 'doc1.pdf' },
-      { entityId: 'resource2', type: 'resource', title: 'doc2.pdf' },
-    ]);
+    const result = updateContextItemsFromVariables(contextItems, variables);
+    expect(result).toEqual([{ entityId: 'resource1', type: 'resource', title: 'test.pdf' }]);
   });
 
   it('handles non-ASCII variable names', () => {
-    const contextItems: IContextItem[] = [];
+    const contextItems: IContextItem[] = [
+      {
+        entityId: 'resource1',
+        type: 'resource',
+      },
+    ];
     const variables: WorkflowVariable[] = [
       {
         variableId: 'v1',
@@ -843,7 +691,56 @@ describe('addResourceVariablesToContext', () => {
       },
     ];
 
-    const result = addResourceVariablesToContext(contextItems, variables, '分析 @文档');
+    const result = updateContextItemsFromVariables(contextItems, variables);
     expect(result).toEqual([{ entityId: 'resource1', type: 'resource', title: 'test.pdf' }]);
+  });
+
+  it('updates multiple existing resources with different variable names', () => {
+    const contextItems: IContextItem[] = [
+      { entityId: 'resource1', type: 'resource', title: 'old_name1.pdf' },
+      { entityId: 'resource2', type: 'resource', title: 'old_name2.pdf' },
+      { entityId: 'resource3', type: 'resource', title: 'old_name3.pdf' },
+    ];
+    const variables: WorkflowVariable[] = [
+      {
+        variableId: 'v1',
+        name: 'doc1',
+        value: [
+          {
+            type: 'resource',
+            resource: {
+              name: 'test1.pdf',
+              fileType: 'application/pdf',
+              storageKey: 's1',
+              entityId: 'resource1',
+            },
+          },
+        ],
+        variableType: 'resource',
+      },
+      {
+        variableId: 'v2',
+        name: 'doc2',
+        value: [
+          {
+            type: 'resource',
+            resource: {
+              name: 'test2.pdf',
+              fileType: 'application/pdf',
+              storageKey: 's2',
+              entityId: 'resource2',
+            },
+          },
+        ],
+        variableType: 'resource',
+      },
+    ];
+
+    const result = updateContextItemsFromVariables(contextItems, variables);
+    expect(result).toEqual([
+      { entityId: 'resource1', type: 'resource', title: 'test1.pdf' },
+      { entityId: 'resource2', type: 'resource', title: 'test2.pdf' },
+      { entityId: 'resource3', type: 'resource', title: 'old_name3.pdf' },
+    ]);
   });
 });

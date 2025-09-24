@@ -11,6 +11,7 @@ import { IContextItem } from '@refly/common-types';
 import { CanvasNodeFilter, ResponseNodeMeta } from './types';
 import { ThreadHistoryQuery } from './history';
 import { mirrorCanvasData } from './data';
+import { deepmerge, processQueryWithMentions } from '@refly/utils';
 
 export interface WorkflowNode {
   nodeId: string;
@@ -30,106 +31,30 @@ export interface WorkflowNode {
 }
 
 /**
- * Escape special regex characters in a string to be used in RegExp constructor
- */
-const escapeRegExp = (string: string): string => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
-
-/**
- * Enhanced process query with workflow variables
- * - string: as before
- * - resource: replace with resource name
- * - option: use defaultValue array first if value missing
- */
-export const processQueryWithTypes = (
-  query: string,
-  variables: WorkflowVariable[] = [],
-): string => {
-  if (!query || !variables.length) {
-    return query;
-  }
-
-  let processedQuery = query;
-
-  for (const variable of variables) {
-    const values = variable.value;
-
-    if (variable.variableType === 'resource') {
-      // For resource variables, extract resource names
-      const resourceNames =
-        values
-          ?.filter((v) => v.type === 'resource' && v.resource?.name)
-          .map((v) => v.resource?.name)
-          .filter(Boolean) ?? [];
-
-      const stringValue = resourceNames.length > 0 ? resourceNames.join(', ') : '';
-      const escapedName = escapeRegExp(variable.name);
-      processedQuery = processedQuery.replace(
-        new RegExp(`@${escapedName}(?=\\s|$|[^\\w\\p{L}\\p{N}])`, 'gu'),
-        `${stringValue}`,
-      );
-      continue;
-    }
-
-    // string/option: extract text values from VariableValue array
-    const textValues =
-      values
-        ?.filter((v) => v.type === 'text' && v.text)
-        .map((v) => v.text)
-        .filter(Boolean) ?? [];
-
-    const stringValue = textValues.length > 0 ? textValues.join(', ') : '';
-    const escapedName = escapeRegExp(variable.name);
-    processedQuery = processedQuery.replace(
-      new RegExp(`@${escapedName}(?=\\s|$|[^\\w\\p{L}\\p{N}])`, 'gu'),
-      `${stringValue}`,
-    );
-  }
-  return processedQuery;
-};
-
-/**
  * Add resource variables referenced in query to context items
  * @param contextItems - Existing context items
  * @param variables - Workflow variables
- * @param query - The query to check for variable references
  * @returns Enhanced context items with resource variables added
  */
-export const addResourceVariablesToContext = (
+export const updateContextItemsFromVariables = (
   contextItems: IContextItem[],
   variables: WorkflowVariable[],
-  query: string,
-): any[] => {
+): IContextItem[] => {
   const enhancedContextItems = [...contextItems];
-
-  // Extract variable names from query using @variableName pattern
-  const variableRegex = /@([^\s@]+)/g;
-  const referencedVariables = new Set<string>();
-  let match: RegExpExecArray | null;
-
-  match = variableRegex.exec(query);
-  while (match !== null) {
-    referencedVariables.add(match[1]);
-    match = variableRegex.exec(query);
-  }
 
   // For each referenced variable that is a resource type, add it to context
   for (const variable of variables) {
-    if (variable.variableType === 'resource' && referencedVariables.has(variable.name)) {
+    if (variable.variableType === 'resource') {
       for (const value of variable.value) {
         if (value.type === 'resource' && value.resource?.entityId) {
           // Check if this resource is already in context
-          const alreadyInContext = enhancedContextItems.some(
+          const existingItemIndex = enhancedContextItems.findIndex(
             (item) => item.entityId === value.resource?.entityId && item.type === 'resource',
           );
 
-          if (!alreadyInContext) {
-            enhancedContextItems.push({
-              entityId: value.resource.entityId,
-              type: 'resource',
-              title: value.resource.name,
-            });
+          if (existingItemIndex >= 0) {
+            // Update the existing context item title to the variable name
+            enhancedContextItems[existingItemIndex].title = value.resource.name;
           }
         }
       }
@@ -220,7 +145,16 @@ export const prepareNodeExecutions = (params: {
               node.data?.title ??
               '',
           );
-          node.data.title = processQueryWithTypes(originalQuery, variables);
+          const { processedQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
+            replaceVars: true,
+            variables,
+          });
+          node.data.title = processedQuery;
+          node.data.metadata = deepmerge(node.data.metadata, {
+            structuredData: {
+              query: updatedQuery,
+            },
+          });
         }
 
         return node;
@@ -238,7 +172,16 @@ export const prepareNodeExecutions = (params: {
             node.data?.title ??
             '',
         );
-        node.data.title = processQueryWithTypes(originalQuery, variables);
+        const { processedQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
+          replaceVars: true,
+          variables,
+        });
+        node.data.title = processedQuery;
+        node.data.metadata = deepmerge(node.data.metadata, {
+          structuredData: {
+            query: updatedQuery,
+          },
+        });
       }
       return node;
     });
@@ -310,11 +253,7 @@ export const prepareNodeExecutions = (params: {
         '';
 
       // Add resource variables referenced in query to context items
-      const enhancedContextItems = addResourceVariablesToContext(
-        contextItems,
-        variables,
-        originalQuery,
-      );
+      const enhancedContextItems = updateContextItemsFromVariables(contextItems, variables);
 
       const resultHistory = enhancedContextItems
         .filter((item) => item.type === 'skillResponse' && item.metadata?.withHistory)

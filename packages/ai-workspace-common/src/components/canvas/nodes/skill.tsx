@@ -295,7 +295,7 @@ export const SkillNode = memo(
 
       // Process query with workflow variables
       const variables = workflowVariables?.data ?? [];
-      const { query: processedQuery } = processQueryWithMentions(originalQuery, {
+      const { processedQuery } = processQueryWithMentions(originalQuery, {
         replaceVars: true,
         variables,
       });

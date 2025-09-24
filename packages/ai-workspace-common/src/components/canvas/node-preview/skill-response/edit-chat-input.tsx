@@ -211,7 +211,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
     // Process query with workflow variables
     const variables = workflowVariables?.data ?? [];
-    const { query: processedQuery } = processQueryWithMentions(editQuery, {
+    const { processedQuery } = processQueryWithMentions(editQuery, {
       replaceVars: true,
       variables,
     });

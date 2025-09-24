@@ -23,14 +23,15 @@ export function processQueryWithMentions(
     replaceVars?: boolean;
     variables?: WorkflowVariable[];
   },
-): { query: string; resourceVars: WorkflowVariable[] } {
+): { processedQuery: string; updatedQuery: string; resourceVars: WorkflowVariable[] } {
   const { replaceVars = false, variables = [] } = options ?? {};
 
   if (!query) {
-    return { query, resourceVars: [] };
+    return { processedQuery: query, updatedQuery: query, resourceVars: [] };
   }
 
   let processedQuery = query;
+  let updatedQuery = query;
   const resourceVars: WorkflowVariable[] = [];
 
   // Regex to match mentions like @{type=var,id=var-1,name=cv_folder_url}
@@ -76,6 +77,33 @@ export function processQueryWithMentions(
     }
 
     if (type === 'resource') {
+      // Check if there's a resource variable with the same entityId
+      // If found, use the variable's name instead of the mention's name
+      const matchingVariable = variables.find(
+        (v) =>
+          'value' in v &&
+          v.variableType === 'resource' &&
+          v.value?.some((val) => val.type === 'resource' && val.resource?.entityId === id),
+      );
+
+      if (matchingVariable) {
+        // Mark for resource injection and use variable's name
+        // Check if already added to avoid duplicates
+        const alreadyAdded = resourceVars.some(
+          (rv) => rv.variableId === matchingVariable.variableId,
+        );
+        if (!alreadyAdded) {
+          resourceVars.push({ ...matchingVariable, value: matchingVariable.value });
+        }
+
+        // Update the updatedQuery with the correct resource name
+        const variableResourceName = matchingVariable.value[0]?.resource?.name ?? '';
+        const updatedMention = `@{type=resource,id=${id},name=${variableResourceName}}`;
+        updatedQuery = updatedQuery.replace(match, updatedMention);
+
+        return variableResourceName;
+      }
+
       // Replace resource mentions with the name
       return name ?? '';
     }
@@ -113,7 +141,11 @@ export function processQueryWithMentions(
 
         if (variable.variableType === 'resource') {
           // Mark for resource injection, remove from query
-          resourceVars.push({ ...variable, value: values });
+          // Check if already added to avoid duplicates
+          const alreadyAdded = resourceVars.some((rv) => rv.variableId === variable.variableId);
+          if (!alreadyAdded) {
+            resourceVars.push({ ...variable, value: values });
+          }
           // Remove @name from query
           processedQuery = processedQuery.replace(
             new RegExp(`\\s*@${variable.name}\\s*`, 'g'),
@@ -142,5 +174,5 @@ export function processQueryWithMentions(
     }
   }
 
-  return { query: processedQuery, resourceVars };
+  return { processedQuery, updatedQuery, resourceVars };
 }
