@@ -83,7 +83,7 @@
     "avsc": "^5.7.7",
     "bullmq": "~5.34.4",
     "cheerio": "~1.0.0",
-    "connect-redis": "^9.0.0",
+    "connect-redis": "^7.0.0",
     "cookie-parser": "~1.4.6",
     "express": "~4.19.2",
     "express-session": "^1.18.2",
