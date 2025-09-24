@@ -762,7 +762,6 @@ export type Resource = {
   vectorSize?: string;
   /**
    * Raw file storage key (used to download the file)
-   * @deprecated
    */
   rawFileKey?: string;
   /**

@@ -1075,13 +1075,17 @@ export class CanvasService {
     }
 
     // Update existing resource with new storage key
-    await this.resourceService.updateResource(user, {
-      title: resource.name,
-      resourceType: existingResource.resourceType as ResourceType,
-      canvasId,
-      storageKey,
-      resourceId: existingResource.resourceId,
-    });
+    await this.resourceService.updateResource(
+      user,
+      {
+        title: resource.name,
+        resourceType: existingResource.resourceType as ResourceType,
+        canvasId,
+        storageKey,
+        resourceId: existingResource.resourceId,
+      },
+      { waitFor: 'parse_completed' }, // we must wait for the resource to be parsed
+    );
 
     // Update static file with new entity information
     if (resourceFile) {

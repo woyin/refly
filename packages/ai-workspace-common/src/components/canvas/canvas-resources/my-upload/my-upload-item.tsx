@@ -129,7 +129,7 @@ export const MyUploadItem = memo(({ resource, isActive, onSelect }: MyUploadItem
               entityId: resource.resourceId,
               metadata: {
                 ...resource.data,
-                storageKey: resource.storageKey,
+                storageKey: resource.rawFileKey,
                 indexStatus: resource.indexStatus,
                 resourceType: resource.resourceType,
               },

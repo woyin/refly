@@ -710,7 +710,11 @@ export class ResourceService {
     return resource;
   }
 
-  async updateResource(user: User, param: UpsertResourceRequest) {
+  async updateResource(
+    user: User,
+    param: UpsertResourceRequest,
+    options?: { waitFor: 'parse_completed' | 'completed' },
+  ) {
     const resource = await this.prisma.resource.findFirst({
       where: { resourceId: param.resourceId, uid: user.uid },
     });
@@ -718,21 +722,36 @@ export class ResourceService {
       throw new ResourceNotFoundError(`resource ${param.resourceId} not found`);
     }
 
-    const updates: Prisma.ResourceUpdateInput = pick(param, ['title']);
-    if (param.data) {
-      updates.meta = JSON.stringify(param.data);
+    // Use prepareResource to determine updated resource fields
+    const {
+      identifier,
+      indexStatus,
+      contentPreview,
+      storageKey,
+      storageSize,
+      staticFile,
+      metadata,
+    } = await this.prepareResource(user, param);
+
+    const updates: Prisma.ResourceUpdateInput = {
+      title: param.title,
+      identifier,
+      indexStatus,
+      contentPreview,
+      storageKey,
+      storageSize,
+      rawFileKey: staticFile?.storageKey,
+    };
+
+    // If identifier is the same, we don't need to reindex
+    if (resource.identifier === identifier) {
+      updates.indexStatus = undefined;
     }
 
-    if (param.storageKey) {
-      const contentStream = await this.oss.getObject(param.storageKey);
-      if (!contentStream) {
-        throw new ParamsError(`file not found for storage key: ${param.storageKey}`);
-      }
-
-      const content = await streamToString(contentStream);
-      updates.storageKey = param.storageKey;
-      updates.storageSize = (await this.oss.statObject(param.storageKey)).size;
-      updates.contentPreview = content.slice(0, 500);
+    // Merge metadata with existing data if provided
+    if (metadata || param.data) {
+      const existingMeta = JSON.parse(resource.meta || '{}');
+      updates.meta = JSON.stringify({ ...existingMeta, ...metadata, ...param.data });
     }
 
     if (param.projectId !== undefined) {
@@ -743,15 +762,28 @@ export class ResourceService {
       }
     }
 
-    if (param.content) {
-      await this.oss.putObject(resource.storageKey, param.content);
-      updates.storageSize = (await this.oss.statObject(resource.storageKey)).size;
+    if (param.canvasId !== undefined) {
+      if (param.canvasId) {
+        updates.canvas = { connect: { canvasId: param.canvasId } };
+      } else {
+        updates.canvas = { disconnect: true };
+      }
     }
+
+    this.logger.log(`update resource ${param.resourceId} with updates: ${JSON.stringify(updates)}`);
 
     const updatedResource = await this.prisma.resource.update({
       where: { resourceId: param.resourceId, uid: user.uid },
       data: updates,
     });
+
+    // Update static file entity reference for file resources
+    if (staticFile) {
+      await this.prisma.staticFile.update({
+        where: { pk: staticFile.pk },
+        data: { entityId: resource.resourceId, entityType: 'resource' },
+      });
+    }
 
     // Update projectId for vector store
     if (param.projectId !== undefined) {
@@ -768,6 +800,25 @@ export class ResourceService {
       updatedAt: updatedResource.updatedAt.toJSON(),
       ...pick(updatedResource, ['title', 'uid', 'projectId']),
     });
+
+    // Send to processing queue if resource needs parsing or indexing
+    if (
+      updatedResource.indexStatus === 'wait_parse' ||
+      updatedResource.indexStatus === 'wait_index'
+    ) {
+      await this.queue?.add('finalizeResource', {
+        resourceId: updatedResource.resourceId,
+        uid: user.uid,
+      });
+
+      // Handle polling if waitFor option is specified
+      if (options?.waitFor) {
+        this.logger.log(
+          `poll resource ${updatedResource.resourceId}, wait for: ${options.waitFor}`,
+        );
+        await this.pollResourceProcessing(updatedResource.resourceId, user.uid, options.waitFor);
+      }
+    }
 
     return updatedResource;
   }
@@ -802,6 +853,62 @@ export class ResourceService {
       entityId: resourceId,
       entityType: 'resource',
     });
+  }
+
+  /**
+   * Poll resource processing status until completion
+   * @param resourceId Resource ID to poll
+   * @param uid User ID
+   * @param waitFor Wait condition ('parse_completed' or 'completed')
+   */
+  private async pollResourceProcessing(
+    resourceId: string,
+    uid: string,
+    waitFor: 'parse_completed' | 'completed',
+  ): Promise<void> {
+    const pollInterval = 1000; // 1 second
+    const maxPollTime = 300000; // 5 minutes
+    const startTime = Date.now();
+
+    this.logger.log(`Starting polling for resource ${resourceId}, waitFor: ${waitFor}`);
+
+    while (Date.now() - startTime < maxPollTime) {
+      // Wait for polling interval
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+      // Check resource status
+      const resource = await this.prisma.resource.findFirst({
+        where: { resourceId, uid },
+        select: { indexStatus: true },
+      });
+
+      if (!resource) {
+        throw new Error(`Resource ${resourceId} not found during polling`);
+      }
+
+      const { indexStatus } = resource;
+
+      // Define target statuses based on waitFor option
+      const targetStatuses: string[] = [];
+      if (waitFor === 'parse_completed') {
+        targetStatuses.push('wait_index', 'finish', 'parse_failed', 'index_failed');
+      } else if (waitFor === 'completed') {
+        targetStatuses.push('finish', 'parse_failed', 'index_failed');
+      }
+
+      // Check if we've reached a target status
+      if (targetStatuses.includes(indexStatus)) {
+        this.logger.log(`Resource ${resourceId} reached target status: ${indexStatus}`);
+        return;
+      }
+
+      // Continue polling if still processing
+      this.logger.debug(`Resource ${resourceId} status: ${indexStatus}, continuing to poll...`);
+    }
+
+    // Timeout reached
+    this.logger.warn(`Polling timeout reached for resource ${resourceId}`);
+    throw new Error(`Resource processing polling timeout for resource ${resourceId}`);
   }
 
   async postDeleteResource(user: User, resourceId: string) {

@@ -1116,7 +1116,6 @@ export const ResourceSchema = {
     rawFileKey: {
       type: 'string',
       description: 'Raw file storage key (used to download the file)',
-      deprecated: true,
     },
     canvasId: {
       type: 'string',
