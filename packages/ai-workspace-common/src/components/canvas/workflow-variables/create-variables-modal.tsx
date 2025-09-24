@@ -123,8 +123,8 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
 
             // Set file list for resource type
             if (defaultValue.value?.length) {
-              const files: UploadFile[] = defaultValue.value.map((value, index) => ({
-                uid: `file-${index}`,
+              const files: UploadFile[] = defaultValue.value.map((value) => ({
+                uid: value.resource?.entityId,
                 name: value.resource?.name || '',
                 status: 'done',
                 url: value.resource?.storageKey || '', // Use storageKey from resource
@@ -375,6 +375,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               name: file.name || '',
               storageKey: file.url || '',
               fileType: getFileExtension(file.name) || 'file',
+              entityId: file.uid,
             },
           }));
         } else if (variableType === 'option' && options.length > 0 && options[0]) {

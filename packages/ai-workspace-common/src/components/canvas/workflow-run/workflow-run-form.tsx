@@ -153,17 +153,25 @@ export const WorkflowRunForm = ({
           value: value.map((v) => ({ type: 'text', text: v })),
         });
       } else if (variable.variableType === 'resource') {
-        newVariables.push({
-          ...variable,
-          value: value.map((v) => ({
-            type: 'resource',
-            resource: {
-              name: v.name,
-              storageKey: v.url,
-              fileType: getFileExtension(v.name),
-            },
-          })),
-        });
+        const v = value[0];
+        const entityId = variable.value[0].resource.entityId;
+
+        if (v && entityId) {
+          newVariables.push({
+            ...variable,
+            value: [
+              {
+                type: 'resource',
+                resource: {
+                  name: v.name,
+                  storageKey: v.url,
+                  fileType: getFileExtension(v.name),
+                  entityId: variable.value[0].resource.entityId,
+                },
+              },
+            ],
+          });
+        }
       }
     }
     return newVariables;
@@ -266,6 +274,9 @@ export const WorkflowRunForm = ({
 
       // If validation passes, proceed with running
       const newVariables = convertFormValueToVariable();
+
+      console.log('newVariables', newVariables);
+
       setIsRunning(true);
 
       await onSubmitVariables(newVariables);

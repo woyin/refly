@@ -97,7 +97,7 @@ export const ResourceItemAction = ({
     }
 
     // Get file extension and determine file type for new variable
-    const fileName = node?.data?.title || resourceData.name || resourceData.entityId;
+    const fileName = resourceData?.title || resourceData?.name || resourceData.entityId;
     const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
 
     // Determine resource type based on file extension
@@ -116,8 +116,9 @@ export const ResourceItemAction = ({
         type: 'resource',
         resource: {
           name: fileName,
-          storageKey: resourceData.storageKey || resourceData.entityId,
+          storageKey: node.data.metadata.storageKey as string,
           fileType: fileExtension || 'file',
+          entityId: node.data.entityId,
         },
       },
     ];
@@ -146,8 +147,7 @@ export const ResourceItemAction = ({
   const isResourceAlreadyUsed = useCallback(() => {
     if (!workflowVariables.length || !node?.data?.entityId) return false;
 
-    const resourceData = node.data as any;
-    const currentStorageKey = resourceData.storageKey || resourceData.entityId;
+    const resourceData = node.data;
 
     // Check all resource type variables for matching storageKey
     return (
@@ -155,10 +155,14 @@ export const ResourceItemAction = ({
         if (variable?.variableType !== 'resource') return false;
 
         return variable.value?.some((value) => {
-          if (value?.type === 'resource' && value.resource?.storageKey === currentStorageKey) {
-            return true;
+          if (value?.type !== 'resource' || !value.resource) {
+            return false;
           }
-          return false;
+          const resourceVal = value.resource;
+          if (resourceVal.entityId) {
+            return resourceVal.entityId === resourceData.entityId;
+          }
+          return resourceVal.storageKey === resourceData.metadata?.storageKey;
         });
       }) || false
     );

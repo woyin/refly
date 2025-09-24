@@ -1491,7 +1491,7 @@ const translations = {
       centerNode: '定位节点',
       centerNodeDescription: '将选中的节点定位到画布中心',
       createVariable: '转化为变量',
-      alreadyCreated: '该资源已被转化为变量，后续流程中将使用新的值替代。',
+      alreadyCreated: '从变量中移除',
       editQuery: '编辑提问',
       editQueryDescription: '编辑选中的节点提问',
       duplicateDocument: '创建文档副本',

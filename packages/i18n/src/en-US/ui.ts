@@ -1526,8 +1526,7 @@ const translations = {
       centerNode: 'Center Node Position',
       centerNodeDescription: 'Center the selected node on the canvas',
       createVariable: 'Convert to variable',
-      alreadyCreated:
-        'This resource has already been converted to a variable and will be replaced with new values in subsequent workflows.',
+      alreadyCreated: 'Remove from variables',
       editQuery: 'Edit Query',
       editQueryDescription: 'Edit the query of the selected node',
       duplicateDocument: 'Duplicate Document',
