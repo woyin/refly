@@ -19,6 +19,7 @@ import getClient from '@refly-packages/ai-workspace-common/requests/proxiedReque
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import { getAvailableFileCount } from '@refly/utils/quota';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries';
 
 export const ImportResourceModal = memo(() => {
   const { t } = useTranslation();
@@ -54,12 +55,14 @@ export const ImportResourceModal = memo(() => {
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
   const canImportCount = getAvailableFileCount(storageUsage);
   const { updateSourceList } = useUpdateSourceList();
+  const { refetch: refetchResources } = useListResources({
+    query: {
+      canvasId,
+      projectId,
+    },
+  });
 
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
-
-  // TODO: 移动端支持 , 之前用了isWeb来判断是否展示菜单选项
-  // const runtime = getRuntime();
-  // const isWeb = runtime === 'web';
 
   // TODO: 计算文件数量时需要去除上传的图片吗？需要测试一下文件余额不足的情况不能上传
   const disableSave = useMemo(() => {
@@ -110,6 +113,7 @@ export const ImportResourceModal = memo(() => {
               projectId: currentProjectId,
               resourceType: 'weblink',
               title: item.link.title || item.title || item.url || '',
+              canvasId,
               data: {
                 url: item.url,
                 title: item.link.title || item.title || '',
@@ -124,6 +128,7 @@ export const ImportResourceModal = memo(() => {
             projectId: currentProjectId,
             resourceType: item.type,
             title: item.title ?? '',
+            canvasId,
             storageKey: item.file?.storageKey,
             data: {
               url: item.url,
@@ -142,6 +147,7 @@ export const ImportResourceModal = memo(() => {
       }
 
       refetchUsage();
+      refetchResources();
       message.success(t('common.putSuccess'));
 
       const mediaFiles = waitingList.filter(

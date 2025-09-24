@@ -18,7 +18,9 @@ import {
   WebsiteNodeProps,
 } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/types';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
+import { useGetResourceDetail } from '@refly-packages/ai-workspace-common/queries';
 import { IContextItem } from '@refly/common-types';
+import { deepmerge } from '@refly/utils';
 import { ChatHistoryPreview } from './components/chat-history-preview';
 import { SelectionPreview } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager/components/selection-preview';
 
@@ -26,6 +28,18 @@ export const ContextPreview = memo(
   ({ item }: { item: IContextItem }) => {
     const { nodes } = useCanvasData();
     const node = nodes.find((node) => node.data?.entityId === item?.entityId);
+
+    // Fetch remote resource detail for resource type items
+    const { data: resourceResult } = useGetResourceDetail(
+      item?.type === 'resource' ? { query: { resourceId: item?.entityId } } : null,
+      null,
+      {
+        enabled: item?.type === 'resource',
+        staleTime: 60 * 1000, // Data fresh for 1 minute
+        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+      },
+    );
+    const remoteResourceData = resourceResult?.data;
 
     const commonProps = {
       isPreview: true,
@@ -43,8 +57,13 @@ export const ContextPreview = memo(
     switch (item?.type) {
       case 'document':
         return <DocumentNode {...(commonProps as DocumentNodeProps)} />;
-      case 'resource':
-        return <ResourceNode {...(commonProps as ResourceNodeProps)} />;
+      case 'resource': {
+        const resourceProps = {
+          ...commonProps,
+          data: deepmerge(commonProps.data, remoteResourceData || {}),
+        };
+        return <ResourceNode {...(resourceProps as ResourceNodeProps)} />;
+      }
       case 'skillResponse':
         if (item.metadata?.withHistory) {
           return <ChatHistoryPreview item={item} />;

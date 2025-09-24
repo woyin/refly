@@ -1,4 +1,4 @@
-import { useMemo, memo, useEffect } from 'react';
+import { useMemo, memo, useEffect, useRef, useCallback } from 'react';
 import {
   useCanvasResourcesPanelStoreShallow,
   useImportResourceStoreShallow,
@@ -24,14 +24,51 @@ export const ResourceOverview = memo(() => {
   const { projectId } = useGetProjectCanvasId();
   const { createSingleDocumentInCanvas, isCreating: isCreatingDocument } = useCreateDocument();
 
-  // Fetch resources using react-query
-  const { data: resourcesData, isLoading: isLoadingResources } = useListResources({
+  const {
+    data: resourcesData,
+    isLoading: isLoadingResources,
+    refetch: refetchResources,
+  } = useListResources({
     query: {
       canvasId,
       projectId,
     },
   });
   const resources = resourcesData?.data ?? [];
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    pollingIntervalRef.current = setInterval(() => {
+      refetchResources();
+    }, 2000);
+  }, [refetchResources]);
+
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const shouldPoll = resources.some(
+      (resource) => resource.indexStatus === 'wait_parse' || resource.indexStatus === 'wait_index',
+    );
+
+    if (shouldPoll && !pollingIntervalRef.current) {
+      startPolling();
+    } else if (!shouldPoll && pollingIntervalRef.current) {
+      stopPolling();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      stopPolling();
+    };
+  }, [resources, startPolling, stopPolling]);
 
   const { searchKeyword, setSearchKeyword, parentType, activeTab, setActiveTab } =
     useCanvasResourcesPanelStoreShallow((state) => ({

@@ -1525,7 +1525,7 @@ const translations = {
       layoutClusterDescription: 'Automatically layout all sub-nodes of the selected node',
       centerNode: 'Center Node Position',
       centerNodeDescription: 'Center the selected node on the canvas',
-      createVariable: 'This resource can be converted to a variable',
+      createVariable: 'Convert to variable',
       alreadyCreated:
         'This resource has already been converted to a variable and will be replaced with new values in subsequent workflows.',
       editQuery: 'Edit Query',
@@ -1534,12 +1534,10 @@ const translations = {
       duplicateDocumentDescription: 'Create a duplicate of the selected node document',
       deleteResource: 'Delete Resource',
       deleteResourceDescription: 'Delete the resource from the library and all canvases',
-      resourceDeleteConfirm:
-        'Confirm to delete resource {{title}}? This action will remove this resource from library and all canvases.',
+      resourceDeleteConfirm: 'Are you sure to delete resource [{{title}}]?',
       deleteDocument: 'Delete Document',
       deleteDocumentDescription: 'Delete the document from the library and all canvases',
-      documentDeleteConfirm:
-        'Confirm to delete document {{title}}? This action will remove this document from library and all canvases.',
+      documentDeleteConfirm: 'Are you sure to delete document [{{title}}]?',
       downloadFile: 'Download File',
       editGroupNamePlaceholder: 'Please enter the group name',
       addToSlideshow: 'Add to Slideshow',

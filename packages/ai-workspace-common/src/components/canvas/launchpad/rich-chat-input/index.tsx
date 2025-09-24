@@ -380,8 +380,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       [mentionExtension, placeholderExtension],
     );
 
-    console.log('query', query);
-
     const editor = useEditor(
       {
         extensions,

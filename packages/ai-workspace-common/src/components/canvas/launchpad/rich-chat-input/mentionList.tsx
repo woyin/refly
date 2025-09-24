@@ -263,13 +263,13 @@ export const MentionList = ({
     if (groupedItems.variables.length > 0) {
       items.push({
         type: 'header',
-        label: t('canvas.richChatInput.startNode'),
+        label: t('canvas.richChatInput.variables'),
         source: 'variables' as const,
       });
       items.push(
         ...groupedItems.variables.map((item) => ({
           ...item,
-          categoryLabel: t('canvas.richChatInput.startNode'),
+          categoryLabel: t('canvas.richChatInput.variables'),
           type: 'item' as const,
         })),
       );

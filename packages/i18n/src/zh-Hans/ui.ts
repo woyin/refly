@@ -1490,7 +1490,7 @@ const translations = {
       layoutClusterDescription: '自动布局选中的节点下的所有子节点',
       centerNode: '定位节点',
       centerNodeDescription: '将选中的节点定位到画布中心',
-      createVariable: '该资源可转化为变量',
+      createVariable: '转化为变量',
       alreadyCreated: '该资源已被转化为变量，后续流程中将使用新的值替代。',
       editQuery: '编辑提问',
       editQueryDescription: '编辑选中的节点提问',
@@ -1498,12 +1498,10 @@ const translations = {
       duplicateDocumentDescription: '创建选中的节点文档副本',
       deleteResource: '删除资源',
       deleteResourceDescription: '从知识库以及所有画布中删除该资源',
-      resourceDeleteConfirm:
-        '确认要删除资源 {{title}} 吗？该操作将从知识库以及所有画布中移除此资源。',
+      resourceDeleteConfirm: '确认要删除资源 [{{title}}] 吗？',
       deleteDocument: '删除文档',
       deleteDocumentDescription: '从知识库以及所有画布中删除该文档',
-      documentDeleteConfirm:
-        '确认要删除文档 {{title}} 吗？该操作将从知识库以及所有画布中移除此文档。',
+      documentDeleteConfirm: '确认要删除文档 [{{title}}] 吗？',
       downloadFile: '下载文件',
       editGroupNamePlaceholder: '请输入分组名称',
       addToSlideshow: '插入幻灯片',
