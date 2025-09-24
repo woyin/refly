@@ -723,9 +723,16 @@ export class ResourceService {
       updates.meta = JSON.stringify(param.data);
     }
 
-    if (!resource.storageKey) {
-      resource.storageKey = `resources/${resource.resourceId}.txt`;
-      updates.storageKey = resource.storageKey;
+    if (param.storageKey) {
+      const contentStream = await this.oss.getObject(param.storageKey);
+      if (!contentStream) {
+        throw new ParamsError(`file not found for storage key: ${param.storageKey}`);
+      }
+
+      const content = await streamToString(contentStream);
+      updates.storageKey = param.storageKey;
+      updates.storageSize = (await this.oss.statObject(param.storageKey)).size;
+      updates.contentPreview = content.slice(0, 500);
     }
 
     if (param.projectId !== undefined) {

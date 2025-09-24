@@ -1101,6 +1101,10 @@ export const ResourceSchema = {
       description: 'Error message for resource indexing',
       $ref: '#/components/schemas/IndexError',
     },
+    storageKey: {
+      type: 'string',
+      description: 'Resource storage key',
+    },
     storageSize: {
       type: 'string',
       description: 'Resource storage size (in bytes)',

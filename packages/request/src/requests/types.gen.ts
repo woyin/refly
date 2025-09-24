@@ -749,6 +749,10 @@ export type Resource = {
    */
   indexError?: IndexError;
   /**
+   * Resource storage key
+   */
+  storageKey?: string;
+  /**
    * Resource storage size (in bytes)
    */
   storageSize?: string;
