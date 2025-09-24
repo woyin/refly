@@ -149,13 +149,14 @@ const WorkflowAppPage: React.FC = () => {
       return;
     }
 
-    if (!workflowApp?.canvasData?.canvasId || !workflowApp?.title) {
+    if (!shareId || !workflowApp?.title) {
       message.error(t('common.error'));
       return;
     }
 
-    openDuplicateModal(workflowApp.canvasData.canvasId, workflowApp.title);
+    openDuplicateModal(workflowApp.canvasData?.canvasId || '', workflowApp.title, shareId);
   }, [
+    shareId,
     workflowApp?.canvasData?.canvasId,
     workflowApp?.title,
     openDuplicateModal,
