@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, message, Modal, Upload, Select } from 'antd';
+import { Button, Form, Input, message, Modal, Upload, Select, Image } from 'antd';
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -107,6 +107,11 @@ export const CreateWorkflowAppModal = ({
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverStorageKey, setCoverStorageKey] = useState<string>('');
 
+  // Preview state
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string>('');
+  const [previewTitle, setPreviewTitle] = useState<string>('');
+
   // Category tags state
   const [selectedCategories, setSelectedCategories] = useState<string[]>(['education']);
 
@@ -176,6 +181,32 @@ export const CreateWorkflowAppModal = ({
     return true;
   };
 
+  // Custom preview handler
+  const handlePreview = useCallback(async (file: UploadFile) => {
+    if (!file.url && !file.preview) {
+      // Generate preview for local file
+      file.preview = await getBase64(file.originFileObj as File);
+    }
+
+    setPreviewImage(file.url ?? file.preview ?? '');
+    setPreviewTitle(file.name ?? file.fileName ?? 'Cover Image');
+    setPreviewVisible(true);
+  }, []);
+
+  // Helper function to convert file to base64
+  const getBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+
+  // Handle preview modal close
+  const handlePreviewCancel = useCallback(() => {
+    setPreviewVisible(false);
+  }, []);
+
   const createWorkflowApp = async ({
     title,
     description,
@@ -240,6 +271,10 @@ export const CreateWorkflowAppModal = ({
       setCoverFileList([]);
       setCoverStorageKey('');
       setSelectedCategories(['education']);
+      // Reset preview state
+      setPreviewVisible(false);
+      setPreviewImage('');
+      setPreviewTitle('');
     }
   }, [visible, title]);
 
@@ -321,8 +356,14 @@ export const CreateWorkflowAppModal = ({
                   fileList={coverFileList}
                   onChange={handleCoverUploadChange}
                   beforeUpload={beforeUpload}
+                  onPreview={handlePreview}
                   accept={ALLOWED_IMAGE_TYPES.join(',')}
                   maxCount={1}
+                  showUploadList={{
+                    showPreviewIcon: true,
+                    showRemoveIcon: true,
+                    showDownloadIcon: false,
+                  }}
                   className="cover-upload"
                   style={
                     {
@@ -365,6 +406,24 @@ export const CreateWorkflowAppModal = ({
           </div>
         </Form>
       </div>
+
+      {/* Preview Modal */}
+      <Modal
+        open={previewVisible}
+        title={previewTitle}
+        footer={null}
+        onCancel={handlePreviewCancel}
+        centered
+        width="auto"
+        style={{ maxWidth: '90vw' }}
+      >
+        <Image
+          alt="Cover Preview"
+          style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+          src={previewImage}
+          preview={false}
+        />
+      </Modal>
     </Modal>
   );
 };
