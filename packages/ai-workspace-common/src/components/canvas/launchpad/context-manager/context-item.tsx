@@ -52,7 +52,7 @@ export const ContextItem = ({
   const finalTitle = useMemo(() => {
     if (type === 'resource') {
       const resource = resourcesData?.data?.find((resource) => resource.resourceId === entityId);
-      return resource?.title;
+      return resource?.title || t('common.untitled');
     }
     const nodeTitle = getNode(node?.id)?.data?.title;
     const stringifiedNodeTitle = nodeTitle != null ? String(nodeTitle) : null;

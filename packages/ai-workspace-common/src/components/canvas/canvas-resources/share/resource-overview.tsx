@@ -35,7 +35,7 @@ export const ResourceOverview = memo(() => {
     },
   });
   const resources = resourcesData?.data ?? [];
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startPolling = useCallback(() => {
     if (pollingIntervalRef.current) {

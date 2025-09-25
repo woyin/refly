@@ -32,13 +32,10 @@ export const ContextPreview = memo(
     const node = nodes.find((node) => node.data?.entityId === item?.entityId);
 
     // Fetch remote resource detail for resource type items
-    const { data: resourceResult } = useGetResourceDetail(
-      item?.type === 'resource' ? { query: { resourceId: item?.entityId } } : null,
-      null,
-      {
-        enabled: item?.type === 'resource',
-      },
-    );
+    const resourceId = item?.entityId ?? '';
+    const { data: resourceResult } = useGetResourceDetail({ query: { resourceId } }, undefined, {
+      enabled: item?.type === 'resource' && !!resourceId,
+    });
     const remoteResourceData = resourceResult?.data;
 
     const commonProps = {

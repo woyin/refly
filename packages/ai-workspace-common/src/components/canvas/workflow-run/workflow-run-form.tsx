@@ -153,8 +153,8 @@ export const WorkflowRunForm = ({
           value: value.map((v) => ({ type: 'text', text: v })),
         });
       } else if (variable.variableType === 'resource') {
-        const v = value[0];
-        const entityId = variable.value[0].resource.entityId;
+        const v = Array.isArray(value) ? value[0] : undefined;
+        const entityId = variable?.value?.[0]?.resource?.entityId;
 
         if (v && entityId) {
           newVariables.push({
@@ -166,7 +166,7 @@ export const WorkflowRunForm = ({
                   name: v.name,
                   storageKey: v.url,
                   fileType: getFileExtension(v.name),
-                  entityId: variable.value[0].resource.entityId,
+                  entityId,
                 },
               },
             ],
@@ -274,8 +274,6 @@ export const WorkflowRunForm = ({
 
       // If validation passes, proceed with running
       const newVariables = convertFormValueToVariable();
-
-      console.log('newVariables', newVariables);
 
       setIsRunning(true);
 

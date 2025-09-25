@@ -141,9 +141,11 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
     const combinedUnselectedItems = [...unselectedNodes, ...unselectedResources];
 
     // Filter based on search value
-    const filteredUnselectedItems = combinedUnselectedItems.filter((item) =>
-      item?.title?.toLowerCase().includes(searchValue.toLowerCase()),
-    );
+    const normalizedSearch = searchValue.toLowerCase();
+    const filteredUnselectedItems = combinedUnselectedItems.filter((item) => {
+      const normalizedTitle = item?.title?.toLowerCase() ?? '';
+      return normalizedTitle.includes(normalizedSearch);
+    });
 
     // Return selected items first, followed by filtered unselected items
     return [...(selectedItems ?? []), ...filteredUnselectedItems];
