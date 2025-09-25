@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Button, Spin, Avatar } from 'antd';
+import mime from 'mime/lite';
 import { Delete } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useImportResourceStoreShallow } from '@refly/stores';
@@ -77,7 +78,12 @@ const WaitingList = memo(() => {
               </svg>
             </div>
           ) : (
-            <ResourceIcon url="" resourceType="file" extension={item.file.extension} size={16} />
+            <ResourceIcon
+              url=""
+              resourceType="file"
+              resourceMeta={{ contentType: mime.getType(item.file.extension) }}
+              size={16}
+            />
           )}
         </Spin>
         <div className="flex-1 min-w-0">

@@ -480,8 +480,15 @@ export const SourcesMenu = ({
         size={14}
         className="text-green-600 flex-shrink-0 flex items-center justify-center"
       />
+    ) : item.data ? (
+      <ResourceIcon
+        url={item.data.url ?? ''}
+        resourceType={item.resourceType}
+        resourceMeta={item.data}
+        size={14}
+      />
     ) : (
-      <ResourceIcon url={item?.data?.url ?? ''} resourceType={item.resourceType} size={14} />
+      <IconFiles size={14} className="text-gray-500" />
     );
   }, []);
 

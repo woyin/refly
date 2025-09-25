@@ -65,6 +65,7 @@ export const resourcePO2DTO = (resource: ResourceDetail): Resource => {
       'canvasId',
       'rawFileKey',
       'downloadURL',
+      'storageKey',
     ]),
     resourceType: resource.resourceType as ResourceType,
     indexStatus: resource.indexStatus as IndexStatus,

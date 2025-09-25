@@ -700,7 +700,7 @@ export type ResourceMeta = {
 /**
  * Resource type
  */
-export type ResourceType = 'weblink' | 'text' | 'file';
+export type ResourceType = 'weblink' | 'text' | 'file' | 'image' | 'video' | 'audio';
 
 /**
  * Error message for resource indexing
@@ -749,6 +749,10 @@ export type Resource = {
    */
   indexError?: IndexError;
   /**
+   * Resource storage key
+   */
+  storageKey?: string;
+  /**
    * Resource storage size (in bytes)
    */
   storageSize?: string;
@@ -758,7 +762,6 @@ export type Resource = {
   vectorSize?: string;
   /**
    * Raw file storage key (used to download the file)
-   * @deprecated
    */
   rawFileKey?: string;
   /**
@@ -5976,6 +5979,10 @@ export type ResourceValue = {
    * Resource storage key
    */
   storageKey: string;
+  /**
+   * Resource ID
+   */
+  entityId?: string;
 };
 
 export type VariableValue = {
@@ -6024,10 +6031,6 @@ export type WorkflowVariable = {
    */
   updatedAt?: string;
   /**
-   * Variable source
-   */
-  source?: 'startNode' | 'resourceLibrary';
-  /**
    * Variable type
    */
   variableType?: 'string' | 'option' | 'resource';
@@ -6048,11 +6051,6 @@ export type WorkflowVariable = {
    */
   resourceTypes?: Array<VariableResourceType>;
 };
-
-/**
- * Variable source
- */
-export type source2 = 'startNode' | 'resourceLibrary';
 
 /**
  * Variable type

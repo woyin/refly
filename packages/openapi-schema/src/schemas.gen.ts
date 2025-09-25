@@ -1052,7 +1052,7 @@ export const ResourceMetaSchema = {
 export const ResourceTypeSchema = {
   type: 'string',
   description: 'Resource type',
-  enum: ['weblink', 'text', 'file'],
+  enum: ['weblink', 'text', 'file', 'image', 'video', 'audio'],
 } as const;
 
 export const IndexErrorSchema = {
@@ -1101,6 +1101,10 @@ export const ResourceSchema = {
       description: 'Error message for resource indexing',
       $ref: '#/components/schemas/IndexError',
     },
+    storageKey: {
+      type: 'string',
+      description: 'Resource storage key',
+    },
     storageSize: {
       type: 'string',
       description: 'Resource storage size (in bytes)',
@@ -1112,7 +1116,6 @@ export const ResourceSchema = {
     rawFileKey: {
       type: 'string',
       description: 'Raw file storage key (used to download the file)',
-      deprecated: true,
     },
     canvasId: {
       type: 'string',
@@ -8523,6 +8526,10 @@ export const ResourceValueSchema = {
       type: 'string',
       description: 'Resource storage key',
     },
+    entityId: {
+      type: 'string',
+      description: 'Resource ID',
+    },
   },
 } as const;
 
@@ -8585,11 +8592,6 @@ export const WorkflowVariableSchema = {
       type: 'string',
       description: 'Variable updated at',
       example: '2021-01-01T00:00:00.000Z',
-    },
-    source: {
-      type: 'string',
-      description: 'Variable source',
-      enum: ['startNode', 'resourceLibrary'],
     },
     variableType: {
       type: 'string',

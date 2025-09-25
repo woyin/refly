@@ -1,4 +1,4 @@
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip, Popconfirm } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { XBorder, Delete } from 'refly-icons';
 import { CanvasNode } from '@refly/canvas-common';
@@ -9,6 +9,9 @@ import { useActiveNode } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { CreateVariablesModal } from '../../workflow-variables/create-variables-modal';
 import type { WorkflowVariable, VariableValue, VariableResourceType } from '@refly/openapi-schema';
+import { useDeleteResource } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-resource';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
 
 export const ResourceItemAction = ({
   node,
@@ -21,7 +24,14 @@ export const ResourceItemAction = ({
   const { readonly, canvasId, workflow } = useCanvasContext();
   const { deleteNode } = useDeleteNode();
   const { activeNode, setActiveNode } = useActiveNode(canvasId);
-  const showCreateVariable = false;
+  const { deleteResource } = useDeleteResource();
+  const { projectId } = useGetProjectCanvasId();
+  const { refetch: refetchResources } = useListResources({
+    query: {
+      canvasId,
+      projectId,
+    },
+  });
 
   // Safely extract workflowVariables with fallback to prevent runtime crashes
   const workflowVariables = workflow?.workflowVariables ?? [];
@@ -39,7 +49,7 @@ export const ResourceItemAction = ({
   }, []);
 
   const handleDeleteNode = useCallback(
-    (node: CanvasNode) => {
+    async (node: CanvasNode) => {
       if (!node?.id) {
         return;
       }
@@ -52,8 +62,13 @@ export const ResourceItemAction = ({
       if (activeNode?.id === node.id) {
         setActiveNode(null);
       }
+
+      if (node.type === 'resource' && node.data.entityId) {
+        await deleteResource(node.data.entityId);
+        refetchResources();
+      }
     },
-    [activeNode?.id, deleteNode, setActiveNode],
+    [activeNode?.id, deleteNode, setActiveNode, deleteResource],
   );
 
   // Create default variable data for the current resource
@@ -82,7 +97,7 @@ export const ResourceItemAction = ({
     }
 
     // Get file extension and determine file type for new variable
-    const fileName = node?.data?.title || resourceData.name || resourceData.entityId;
+    const fileName = resourceData?.title || resourceData?.name || resourceData.entityId;
     const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
 
     // Determine resource type based on file extension
@@ -101,8 +116,9 @@ export const ResourceItemAction = ({
         type: 'resource',
         resource: {
           name: fileName,
-          storageKey: resourceData.storageKey || resourceData.entityId,
+          storageKey: node.data.metadata.storageKey as string,
           fileType: fileExtension || 'file',
+          entityId: node.data.entityId,
         },
       },
     ];
@@ -115,7 +131,6 @@ export const ResourceItemAction = ({
       name: resourceType + (variable.length + 1).toString(), // User will input
       value: variableValue,
       description: '',
-      source: 'startNode',
       variableType: 'resource',
       required: true,
       resourceTypes: [resourceType], // Set specific resource type based on file
@@ -132,8 +147,7 @@ export const ResourceItemAction = ({
   const isResourceAlreadyUsed = useCallback(() => {
     if (!workflowVariables.length || !node?.data?.entityId) return false;
 
-    const resourceData = node.data as any;
-    const currentStorageKey = resourceData.storageKey || resourceData.entityId;
+    const resourceData = node.data;
 
     // Check all resource type variables for matching storageKey
     return (
@@ -141,10 +155,14 @@ export const ResourceItemAction = ({
         if (variable?.variableType !== 'resource') return false;
 
         return variable.value?.some((value) => {
-          if (value?.type === 'resource' && value.resource?.storageKey === currentStorageKey) {
-            return true;
+          if (value?.type !== 'resource' || !value.resource) {
+            return false;
           }
-          return false;
+          const resourceVal = value.resource;
+          if (resourceVal.entityId) {
+            return resourceVal.entityId === resourceData.entityId;
+          }
+          return resourceVal.storageKey === resourceData.metadata?.storageKey;
         });
       }) || false
     );
@@ -166,31 +184,41 @@ export const ResourceItemAction = ({
           className,
         )}
       >
-        {showCreateVariable && (
-          <Tooltip title={getTooltipText()} arrow={false}>
-            <Button
-              type="text"
-              size="small"
-              icon={<XBorder size={16} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCreateVariable(node);
-              }}
-            />
-          </Tooltip>
-        )}
+        <Tooltip title={getTooltipText()} arrow={false}>
+          <Button
+            type="text"
+            size="small"
+            icon={<XBorder size={16} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCreateVariable(node);
+            }}
+          />
+        </Tooltip>
         {!readonly && (
-          <Tooltip title={t('common.delete')} arrow={false}>
-            <Button
-              type="text"
-              size="small"
-              icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteNode(node);
-              }}
-            />
-          </Tooltip>
+          <Popconfirm
+            title={t('canvas.nodeActions.resourceDeleteConfirm', {
+              title: node?.data?.title || t('common.untitled'),
+            })}
+            onConfirm={async (e) => {
+              e?.stopPropagation();
+              await handleDeleteNode(node);
+            }}
+            onCancel={(e) => {
+              e?.stopPropagation();
+            }}
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
+          >
+            <Tooltip title={t('common.delete')} arrow={false} placement="bottom">
+              <Button
+                type="text"
+                size="small"
+                icon={<Delete size={16} color="var(--refly-func-danger-default)" />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
         )}
       </div>
 

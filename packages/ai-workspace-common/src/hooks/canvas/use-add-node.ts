@@ -44,7 +44,7 @@ export const useAddNode = () => {
   const { setSelectedNode } = useNodeSelection();
   const { getState, setState } = useStoreApi();
   const { canvasId } = useCanvasContext();
-  const { calculatePosition, layoutBranchAndUpdatePositions, setNodeCenter } = useNodePosition();
+  const { layoutBranchAndUpdatePositions, setNodeCenter } = useNodePosition();
   const { previewNode } = useNodePreviewControl({ canvasId });
   const { setNodes, setEdges } = useReactFlow();
 
@@ -180,15 +180,7 @@ export const useAddNode = () => {
       // Return the calculated position
       return newNode.position;
     },
-    [
-      canvasId,
-      edgeStyles,
-      setNodeCenter,
-      previewNode,
-      t,
-      calculatePosition,
-      layoutBranchAndUpdatePositions,
-    ],
+    [canvasId, edgeStyles, setNodeCenter, previewNode, t, layoutBranchAndUpdatePositions],
   );
 
   return { addNode };
