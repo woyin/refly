@@ -122,8 +122,8 @@ export const ContextItem = ({
           type={type}
           small
           url={node?.data?.metadata?.imageUrl as string}
-          resourceType={node?.data?.metadata?.resourceType}
-          resourceMeta={node?.data?.metadata?.resourceMeta}
+          resourceType={node?.data?.metadata?.resourceType ?? item.metadata?.resourceType}
+          resourceMeta={node?.data?.metadata?.resourceMeta ?? item.metadata?.resourceMeta}
           iconSize={16}
           iconColor={NODE_COLORS[type]}
           filled={false}

@@ -7,6 +7,8 @@ import {
   CodeArtifactNode,
   WebsiteNode,
   SkillResponseNode,
+  VideoNode,
+  AudioNode,
 } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
 import {
   DocumentNodeProps,
@@ -60,6 +62,36 @@ export const ContextPreview = memo(
           ...commonProps,
           data: deepmerge(commonProps.data, remoteResourceData || {}),
         };
+        if (item.metadata?.resourceType === 'image') {
+          const imageProps = deepmerge(resourceProps, {
+            data: {
+              metadata: {
+                imageUrl: item.metadata?.imageUrl,
+              },
+            },
+          });
+          return <ImageNode {...(imageProps as ImageNodeProps)} />;
+        }
+        if (item.metadata?.resourceType === 'video') {
+          const videoProps = deepmerge(resourceProps, {
+            data: {
+              metadata: {
+                videoUrl: item.metadata?.videoUrl,
+              },
+            },
+          });
+          return <VideoNode {...(videoProps as any)} />;
+        }
+        if (item.metadata?.resourceType === 'audio') {
+          const audioProps = deepmerge(resourceProps, {
+            data: {
+              metadata: {
+                audioUrl: item.metadata?.audioUrl,
+              },
+            },
+          });
+          return <AudioNode {...(audioProps as any)} />;
+        }
         return <ResourceNode {...(resourceProps as ResourceNodeProps)} />;
       }
       case 'skillResponse':

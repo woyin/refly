@@ -158,6 +158,9 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             imageUrl: resource.data?.url as string | undefined,
             resourceType: resource.resourceType as ResourceType | undefined,
             resourceMeta: resource.data as ResourceMeta | undefined,
+            storageKey: resource.storageKey,
+            rawFileKey: resource.rawFileKey,
+            downloadURL: resource.downloadURL,
           },
         })) ?? [];
 
@@ -186,6 +189,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       ({ editor, range, props }: { editor: any; range: any; props: any }) => {
         const item = props;
 
+        console.log('handleCommand item', item);
+
         // For step and result records, add to context instead of inserting text
         if (
           item.source === 'stepRecord' ||
@@ -201,7 +206,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                 if (item.source === 'stepRecord') {
                   // For step records, use skillResponse type
                   return 'skillResponse' as CanvasNodeType;
-                } else if (item.source === 'resultRecord' || item.source === 'myUpload') {
+                } else if (item.source === 'resultRecord') {
                   // For result records and uploads, use the actual node type
                   // Validate that variableType is a valid CanvasNodeType
                   const validCanvasNodeTypes: CanvasNodeType[] = [
@@ -222,12 +227,13 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                     'mediaSkillResponse',
                     'start',
                   ];
+                  console.log('item.variableType', item.variableType);
 
                   if (validCanvasNodeTypes.includes(item.variableType as CanvasNodeType)) {
                     return item.variableType as CanvasNodeType;
                   }
-
-                  // Fallback to resource context item
+                  return 'resource' as CanvasNodeType;
+                } else if (item.source === 'myUpload') {
                   return 'resource' as CanvasNodeType;
                 }
                 // Fallback for unexpected sources
