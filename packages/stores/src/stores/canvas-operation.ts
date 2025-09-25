@@ -6,13 +6,14 @@ interface CanvasOperationState {
   // state
   canvasId: string;
   canvasTitle: string;
+  shareId?: string;
   modalVisible: boolean;
   modalType: 'rename' | 'delete' | 'duplicate';
 
   // method
   openRenameModal: (canvasId: string, canvasTitle: string) => void;
   openDeleteModal: (canvasId: string, canvasTitle: string) => void;
-  openDuplicateModal: (canvasId: string, canvasTitle: string) => void;
+  openDuplicateModal: (canvasId: string, canvasTitle: string, shareId?: string) => void;
 
   reset: () => void;
 }
@@ -20,6 +21,7 @@ interface CanvasOperationState {
 const defaultState = {
   canvasId: '',
   canvasTitle: '',
+  shareId: undefined,
   modalVisible: false,
   modalType: 'rename' as const,
 };
@@ -32,8 +34,8 @@ export const useCanvasOperationStore = create<CanvasOperationState>()(
       set({ canvasId, canvasTitle, modalVisible: true, modalType: 'rename' }),
     openDeleteModal: (canvasId: string, canvasTitle: string) =>
       set({ canvasId, canvasTitle, modalVisible: true, modalType: 'delete' }),
-    openDuplicateModal: (canvasId: string, canvasTitle: string) =>
-      set({ canvasId, canvasTitle, modalVisible: true, modalType: 'duplicate' }),
+    openDuplicateModal: (canvasId: string, canvasTitle: string, shareId?: string) =>
+      set({ canvasId, canvasTitle, shareId, modalVisible: true, modalType: 'duplicate' }),
 
     reset: () => set({ ...defaultState }),
   })),
