@@ -151,6 +151,7 @@ export class ResourceService {
     let identifier: string;
     let staticFile: StaticFileModel | null = null;
     let staticFileBuf: Buffer | null = null;
+    const mediaResourceTypes: ResourceType[] = ['image', 'video', 'audio'];
 
     if (resourceType === 'text') {
       if (!content) {
@@ -184,6 +185,27 @@ export class ResourceService {
 
       sha.update(staticFileBuf);
       identifier = `file://${sha.digest('hex')}`;
+    } else if (mediaResourceTypes.includes(resourceType)) {
+      if (!param.storageKey) {
+        throw new ParamsError('storageKey is required for media resource');
+      }
+      staticFile = await this.prisma.staticFile.findFirst({
+        where: {
+          storageKey: param.storageKey,
+          uid: user.uid,
+          deletedAt: null,
+        },
+      });
+      if (!staticFile) {
+        throw new ParamsError(`static file ${param.storageKey} not found`);
+      }
+      const sha = crypto.createHash('sha256');
+      const fileStream = await this.oss.getObject(staticFile.storageKey);
+
+      staticFileBuf = await streamToBuffer(fileStream);
+
+      sha.update(staticFileBuf);
+      identifier = `media://${sha.digest('hex')}`;
     } else {
       throw new ParamsError('Invalid resource type');
     }
@@ -210,6 +232,18 @@ export class ResourceService {
         metadata: {
           ...param.data,
           url: identifier,
+        },
+      };
+    }
+
+    if (mediaResourceTypes.includes(resourceType)) {
+      return {
+        identifier,
+        indexStatus: 'finish', // Media resources don't need parsing or indexing
+        staticFile,
+        metadata: {
+          ...param.data,
+          contentType: staticFile.contentType,
         },
       };
     }
@@ -500,6 +534,12 @@ export class ResourceService {
       this.logger.warn(
         `Resource ${resource.resourceId} is not in wait_parse or parse_failed status, skip parse`,
       );
+      return resource;
+    }
+
+    // Skip parsing for media resources
+    if (resource.resourceType === 'media') {
+      this.logger.log(`Resource ${resource.resourceId} is a media resource, skip parsing`);
       return resource;
     }
 

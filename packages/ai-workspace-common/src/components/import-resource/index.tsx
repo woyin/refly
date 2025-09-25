@@ -106,44 +106,37 @@ export const ImportResourceModal = memo(() => {
 
     setSaveLoading(true);
     try {
-      const batchCreateResourceData: UpsertResourceRequest[] = waitingList
-        .filter(
-          (item) =>
-            item.file?.type !== 'image' &&
-            item.file?.type !== 'video' &&
-            item.file?.type !== 'audio',
-        )
-        .map((item) => {
-          // For weblink items, use the link data if available
-          if (item.type === 'weblink' && item.link) {
-            return {
-              projectId: currentProjectId,
-              resourceType: 'weblink',
-              title: item.link.title || item.title || item.url || '',
-              canvasId,
-              data: {
-                url: item.url,
-                title: item.link.title || item.title || '',
-                description: item.link.description || '',
-                image: item.link.image || '',
-              },
-            };
-          }
-
-          // For other types, use the basic item data
+      const batchCreateResourceData: UpsertResourceRequest[] = waitingList.map((item) => {
+        // For weblink items, use the link data if available
+        if (item.type === 'weblink' && item.link) {
           return {
             projectId: currentProjectId,
-            resourceType: item.type,
-            title: item.title ?? '',
+            resourceType: 'weblink',
+            title: item.link.title || item.title || item.url || '',
             canvasId,
-            storageKey: item.file?.storageKey,
             data: {
               url: item.url,
-              title: item.title,
-              content: item.content,
+              title: item.link.title || item.title || '',
+              description: item.link.description || '',
+              image: item.link.image || '',
             },
           };
-        });
+        }
+
+        // For other types, use the basic item data
+        return {
+          projectId: currentProjectId,
+          resourceType: item.file?.type,
+          title: item.title ?? '',
+          canvasId,
+          storageKey: item.file?.storageKey,
+          data: {
+            url: item.url,
+            title: item.title,
+            content: item.content,
+          },
+        };
+      });
 
       const { data } = await getClient().batchCreateResource({
         body: batchCreateResourceData,

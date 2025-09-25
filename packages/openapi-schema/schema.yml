@@ -4253,6 +4253,9 @@ components:
         - weblink
         - text
         - file
+        - image
+        - video
+        - audio
     IndexError:
       type: object
       description: Error message for resource indexing

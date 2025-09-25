@@ -700,7 +700,7 @@ export type ResourceMeta = {
 /**
  * Resource type
  */
-export type ResourceType = 'weblink' | 'text' | 'file';
+export type ResourceType = 'weblink' | 'text' | 'file' | 'image' | 'video' | 'audio';
 
 /**
  * Error message for resource indexing

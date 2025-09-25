@@ -1052,7 +1052,7 @@ export const ResourceMetaSchema = {
 export const ResourceTypeSchema = {
   type: 'string',
   description: 'Resource type',
-  enum: ['weblink', 'text', 'file'],
+  enum: ['weblink', 'text', 'file', 'image', 'video', 'audio'],
 } as const;
 
 export const IndexErrorSchema = {

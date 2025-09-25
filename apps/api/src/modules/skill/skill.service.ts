@@ -507,6 +507,19 @@ export class SkillService implements OnModuleInit {
 
     if (param.context) {
       param.context = await this.populateSkillContext(user, param.context);
+
+      // Populate input.images with storage keys from image resources
+      if (param.context.resources?.length > 0) {
+        const imageResources = param.context.resources
+          .filter((item) => item.resource?.resourceType === 'image')
+          .map((item) => item.resource?.storageKey)
+          .filter((storageKey) => storageKey);
+
+        if (imageResources.length > 0) {
+          param.input.images ??= [];
+          param.input.images.push(...imageResources);
+        }
+      }
     }
     if (param.resultHistory) {
       param.resultHistory = await this.populateSkillResultHistory(user, param.resultHistory);
