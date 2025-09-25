@@ -6,7 +6,7 @@ import {
   useListTools,
   useGetCanvasData,
 } from '@refly-packages/ai-workspace-common/queries/queries';
-import { GenericToolset } from '@refly/openapi-schema';
+import { GenericToolset, RawCanvasData } from '@refly/openapi-schema';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import React from 'react';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
@@ -438,10 +438,11 @@ const ToolsDependencyContent = React.memo(
 );
 
 interface ToolsDependencyProps {
-  canvasId: string;
+  canvasId?: string;
+  canvasData?: RawCanvasData;
 }
 
-export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
+export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependencyProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -451,11 +452,11 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
   }));
 
   const { data: canvasResponse } = useGetCanvasData({ query: { canvasId } }, [], {
-    enabled: !!canvasId,
+    enabled: !canvasData && !!canvasId,
     refetchOnWindowFocus: false,
   });
 
-  const nodes = canvasResponse?.data?.nodes || [];
+  const nodes = canvasData?.nodes || canvasResponse?.data?.nodes || [];
 
   const { data } = useListTools({ query: { enabled: true } }, [], {
     enabled: isLogin,
@@ -671,7 +672,7 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
   );
 };
 
-export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
+export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -681,11 +682,11 @@ export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
   }));
 
   const { data: canvasResponse } = useGetCanvasData({ query: { canvasId } }, [], {
-    enabled: !!canvasId,
+    enabled: !canvasData && !!canvasId,
     refetchOnWindowFocus: false,
   });
 
-  const nodes = canvasResponse?.data?.nodes || [];
+  const nodes = canvasData?.nodes || canvasResponse?.data?.nodes || [];
 
   const { data } = useListTools({ query: { enabled: true } }, [], {
     enabled: isLogin,
