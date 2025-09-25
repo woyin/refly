@@ -386,7 +386,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         content: query,
         editable: !readonly,
         onUpdate: ({ editor }) => {
-          const content = editor.getText();
+          const content = serializeDocToTokens(editor?.state?.doc);
           // Keep raw text in state for UX; content is already serialized with mentions
           internalUpdateRef.current = true;
           setQuery(content);
@@ -419,60 +419,40 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       [editor, readonly],
     );
 
-    // Override editor.getText (no-arg) to serialize mentions into @{...} tokens
-    useEffect(() => {
-      if (!editor) return;
-
-      const getProcessedText = () => {
-        try {
-          const doc = editor?.state?.doc;
-          if (!doc) return '';
-          const text = doc.textBetween(0, doc.content.size, '\n', (node: any) => {
-            const nodeName = node?.type?.name ?? '';
-            if (nodeName === 'mention') {
-              const label = node?.attrs?.label ?? node?.attrs?.id ?? '';
-              const id = node?.attrs?.id ?? '';
-              const source = node?.attrs?.source ?? '';
-              const type =
-                source === 'variables'
-                  ? 'var'
-                  : source === 'stepRecord'
-                    ? 'step'
-                    : source === 'resultRecord' ||
-                        source === 'myUpload' ||
-                        source === 'resourceLibrary'
-                      ? 'resource'
-                      : 'var';
-              const safeId = String(id ?? '').trim();
-              const safeName = String(label ?? '').trim();
-              return safeName ? `@{type=${type},id=${safeId || safeName},name=${safeName}}` : '';
-            }
-            if (nodeName === 'hardBreak') {
-              return '\n';
-            }
-            return '';
-          });
-          return text ?? '';
-        } catch {
+    // Serializer: convert current doc with mentions into @{...} tokens for state/query
+    const serializeDocToTokens = useCallback((doc: any): string => {
+      try {
+        if (!doc) return '';
+        const text = doc.textBetween(0, doc.content.size, '\n', (node: any) => {
+          const nodeName = node?.type?.name ?? '';
+          if (nodeName === 'mention') {
+            const label = node?.attrs?.label ?? node?.attrs?.id ?? '';
+            const id = node?.attrs?.id ?? '';
+            const source = node?.attrs?.source ?? '';
+            const type =
+              source === 'variables'
+                ? 'var'
+                : source === 'stepRecord'
+                  ? 'step'
+                  : source === 'resultRecord' ||
+                      source === 'myUpload' ||
+                      source === 'resourceLibrary'
+                    ? 'resource'
+                    : 'var';
+            const safeId = String(id ?? '').trim();
+            const safeName = String(label ?? '').trim();
+            return safeName ? `@{type=${type},id=${safeId || safeName},name=${safeName}}` : '';
+          }
+          if (nodeName === 'hardBreak') {
+            return '\n';
+          }
           return '';
-        }
-      };
-
-      const originalGetText = (editor as any).getText?.bind(editor);
-      (editor as any).getText = (...args: any[]) => {
-        // Preserve original behavior when range args are passed
-        if (args?.length > 0) {
-          return originalGetText ? originalGetText(...args) : getProcessedText();
-        }
-        return getProcessedText();
-      };
-
-      return () => {
-        if (originalGetText) {
-          (editor as any).getText = originalGetText;
-        }
-      };
-    }, [editor]);
+        });
+        return text ?? '';
+      } catch {
+        return '';
+      }
+    }, []);
 
     // Build tiptap JSON content from a string with @variableName format
     const buildNodesFromContent = useCallback(
@@ -669,7 +649,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     // Enhanced handleSendMessage that converts mentions to Handlebars
     const handleSendMessageWithHandlebars = useCallback(() => {
       if (editor) {
-        const currentContent = editor.getText();
+        const currentContent = serializeDocToTokens(editor?.state?.doc);
         // Update the query with the serialized content before sending
         setQuery(currentContent);
         // Call the original handleSendMessage
@@ -677,7 +657,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       } else {
         handleSendMessage();
       }
-    }, [editor, setQuery, handleSendMessage]);
+    }, [editor, setQuery, handleSendMessage, serializeDocToTokens]);
 
     // Update editor content when query changes externally
     useEffect(() => {
@@ -687,7 +667,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         internalUpdateRef.current = false;
         return;
       }
-      const currentText = editor.getText();
+      const currentText = serializeDocToTokens(editor?.state?.doc);
       const nextText = query ?? '';
       if (currentText !== nextText) {
         // Convert handlebars variables back to mention nodes for rendering
@@ -702,14 +682,26 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             ],
           } as any;
+          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
+          if (prevSelection !== null) {
+            const size = editor?.state?.doc?.content?.size ?? 0;
+            const clamped = Math.min(prevSelection, size);
+            editor.commands.setTextSelection(clamped);
+          }
         } else {
+          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(nextText);
+          if (prevSelection !== null) {
+            const size = editor?.state?.doc?.content?.size ?? 0;
+            const clamped = Math.min(prevSelection, size);
+            editor.commands.setTextSelection(clamped);
+          }
         }
       }
-    }, [query, editor, buildNodesFromContent]);
+    }, [query, editor, buildNodesFromContent, serializeDocToTokens]);
 
     // Additional effect to re-render content when canvas data becomes available
     useEffect(() => {
@@ -747,8 +739,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             ],
           } as any;
+          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
+          if (prevSelection !== null) {
+            const size = editor?.state?.doc?.content?.size ?? 0;
+            const clamped = Math.min(prevSelection, size);
+            editor.commands.setTextSelection(clamped);
+          }
         }
       }
     }, [canvasId, editor, query, buildNodesFromContent, allItems]);
