@@ -11,6 +11,10 @@ export * from './google-sheets';
 export * from './gmail';
 export * from './twitter';
 export * from './notion';
-export * from './generate-audio-fal';
+export * from './fal-audio';
+export * from './fal-image';
+export * from './fal-video';
+export * from './perplexity';
+export * from './browser-use';
 
 export type { ReflyService } from './builtin/interface';

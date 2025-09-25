@@ -36,6 +36,7 @@ export * from './use-delete-canvas';
 export * from './use-node-selection';
 export * from './use-edge-operations';
 export * from './use-node-preview-control';
+export * from './use-variable-view';
 
 // Temporary edge hook
 export * from './use-drag-create-node';

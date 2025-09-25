@@ -32,6 +32,7 @@
   --refly-Colorful-red: #f93920;
   --refly-Colorful-Blue: #0062d6;
   --refly-Colorful-orange: #fc8800;
+  --refly-Colorful-orange-light: #fff8ef;
   --refly-Colorful-violet: #6a3ac7;
   --refly-fill-default: #ffffff;
   --refly-fill-hover: #e6e8ea;
@@ -88,6 +89,7 @@
   --refly-Colorful-red: rgba(252, 114, 90, 1);
   --refly-Colorful-Blue: rgba(127, 193, 255, 1);
   --refly-Colorful-orange: rgba(255, 174, 67, 1);
+  --refly-Colorful-orange-light: rgba(255, 174, 67, 0.12);
   --refly-Colorful-violet: rgba(136, 101, 212, 1);
   --refly-fill-default: #202020;
   --refly-fill-hover: #333333;

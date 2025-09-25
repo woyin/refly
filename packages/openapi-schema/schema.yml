@@ -2744,6 +2744,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExecuteWorkflowAppResponse'
+  /workflow-app/list:
+    get:
+      tags:
+        - app
+      summary: List workflow apps
+      description: List workflow apps for a user, optionally filtered by canvasId
+      operationId: listWorkflowApps
+      parameters:
+        - name: canvasId
+          in: query
+          description: Canvas ID to filter by
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListWorkflowAppsResponse'
   /user/settings:
     get:
       tags:
@@ -5910,6 +5931,9 @@ components:
         - $ref: '#/components/schemas/CanvasData'
         - type: object
           properties:
+            canvasId:
+              type: string
+              description: Canvas ID
             title:
               type: string
               description: Canvas title
@@ -9479,6 +9503,9 @@ components:
         appId:
           type: string
           description: Workflow app ID
+        shareId:
+          type: string
+          description: Share ID for public access and URL generation
         title:
           type: string
           description: Workflow app title
@@ -9518,15 +9545,25 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/WorkflowApp'
+    ListWorkflowAppsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: List of workflow apps
+              items:
+                $ref: '#/components/schemas/WorkflowApp'
     ExecuteWorkflowAppRequest:
       type: object
       required:
-        - appId
+        - shareId
         - variables
       properties:
-        appId:
+        shareId:
           type: string
-          description: Workflow app ID
+          description: Workflow app share ID for execution
         variables:
           type: array
           description: Workflow app variables

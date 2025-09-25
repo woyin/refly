@@ -12,7 +12,12 @@ import { GoogleSheetsToolset, GoogleSheetsToolsetDefinition } from './google-she
 import { GmailToolset, GmailToolsetDefinition } from './gmail';
 import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
 import { NotionToolset, NotionToolsetDefinition } from './notion';
-import { GenerateAudioFalToolset, GenerateAudioFalToolsetDefinition } from './generate-audio-fal';
+import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
+import { FalImageToolset, FalImageToolsetDefinition } from './fal-image';
+import { FalVideoToolset, FalVideoToolsetDefinition } from './fal-video';
+import { PerplexityToolset, PerplexityToolsetDefinition } from './perplexity';
+import { ProductHuntToolset, ProductHuntToolsetDefinition } from './producthunt';
+import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -71,8 +76,28 @@ export const toolsetInventory: Record<
     class: NotionToolset,
     definition: NotionToolsetDefinition,
   },
-  [GenerateAudioFalToolsetDefinition.key]: {
-    class: GenerateAudioFalToolset,
-    definition: GenerateAudioFalToolsetDefinition,
+  [FalAudioToolsetDefinition.key]: {
+    class: FalAudioToolset,
+    definition: FalAudioToolsetDefinition,
+  },
+  [FalImageToolsetDefinition.key]: {
+    class: FalImageToolset,
+    definition: FalImageToolsetDefinition,
+  },
+  [FalVideoToolsetDefinition.key]: {
+    class: FalVideoToolset,
+    definition: FalVideoToolsetDefinition,
+  },
+  [PerplexityToolsetDefinition.key]: {
+    class: PerplexityToolset,
+    definition: PerplexityToolsetDefinition,
+  },
+  [ProductHuntToolsetDefinition.key]: {
+    class: ProductHuntToolset,
+    definition: ProductHuntToolsetDefinition,
+  },
+  [BrowserUseToolsetDefinition.key]: {
+    class: BrowserUseToolset,
+    definition: BrowserUseToolsetDefinition,
   },
 };

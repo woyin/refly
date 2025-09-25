@@ -76,5 +76,8 @@
       "zod-to-json-schema": "3.24.6",
       "zod-validation-error": "3.4.1"
     }
+  },
+  "dependencies": {
+    "browser-use-sdk": "^2.0.4"
   }
 }

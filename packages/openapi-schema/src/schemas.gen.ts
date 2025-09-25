@@ -3198,6 +3198,10 @@ export const RawCanvasDataSchema = {
     {
       type: 'object',
       properties: {
+        canvasId: {
+          type: 'string',
+          description: 'Canvas ID',
+        },
         title: {
           type: 'string',
           description: 'Canvas title',
@@ -8364,6 +8368,10 @@ export const WorkflowAppSchema = {
       type: 'string',
       description: 'Workflow app ID',
     },
+    shareId: {
+      type: 'string',
+      description: 'Share ID for public access and URL generation',
+    },
     title: {
       type: 'string',
       description: 'Workflow app title',
@@ -8432,13 +8440,33 @@ export const GetWorkflowAppDetailResponseSchema = {
   ],
 } as const;
 
+export const ListWorkflowAppsResponseSchema = {
+  allOf: [
+    {
+      $ref: '#/components/schemas/BaseResponse',
+    },
+    {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          description: 'List of workflow apps',
+          items: {
+            $ref: '#/components/schemas/WorkflowApp',
+          },
+        },
+      },
+    },
+  ],
+} as const;
+
 export const ExecuteWorkflowAppRequestSchema = {
   type: 'object',
-  required: ['appId', 'variables'],
+  required: ['shareId', 'variables'],
   properties: {
-    appId: {
+    shareId: {
       type: 'string',
-      description: 'Workflow app ID',
+      description: 'Workflow app share ID for execution',
     },
     variables: {
       type: 'array',

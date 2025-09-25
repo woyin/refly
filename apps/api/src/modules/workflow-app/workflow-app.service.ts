@@ -1,5 +1,9 @@
 import { User } from '../../generated/client';
-import { CreateWorkflowAppRequest, WorkflowVariable } from '@refly/openapi-schema';
+import {
+  CreateWorkflowAppRequest,
+  WorkflowVariable,
+  ListWorkflowAppsData,
+} from '@refly/openapi-schema';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
@@ -133,10 +137,9 @@ export class WorkflowAppService {
     return workflowAppPO2DTO(workflowApp);
   }
 
-  async executeWorkflowApp(user: User, appId: string, variables: WorkflowVariable[]) {
-    // Get workflow app from database to get canvasId
-    const workflowApp = await this.prisma.workflowApp.findUnique({
-      where: { appId, deletedAt: null },
+  async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { shareId, deletedAt: null },
     });
 
     if (!workflowApp?.canvasId) {
@@ -145,12 +148,34 @@ export class WorkflowAppService {
 
     const newCanvasId = genCanvasID();
 
+    // Note: Internal workflow execution still uses appId for tracking purposes
     return this.workflowService.initializeWorkflowExecution(
       user,
       workflowApp.canvasId,
       newCanvasId,
       variables,
-      { appId },
+      { appId: workflowApp.appId }, // Keep appId for internal workflow tracking
     );
+  }
+
+  async listWorkflowApps(user: User, query: ListWorkflowAppsData) {
+    const { canvasId } = query.query ?? {};
+
+    const whereClause: any = {
+      uid: user.uid,
+      deletedAt: null,
+    };
+
+    if (canvasId) {
+      whereClause.canvasId = canvasId;
+    }
+
+    const workflowApps = await this.prisma.workflowApp.findMany({
+      where: whereClause,
+      orderBy: { updatedAt: 'desc' },
+      take: 1, // Only get the latest one
+    });
+
+    return workflowApps.map(workflowAppPO2DTO).filter(Boolean);
   }
 }

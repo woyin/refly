@@ -7,7 +7,7 @@ import { Share, Checked } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { CreateWorkflowAppModal } from '@refly-packages/ai-workspace-common/components/workflow-app/create-modal';
-import { useListShares } from '@refly-packages/ai-workspace-common/queries';
+import { useListShares, useListWorkflowApps } from '@refly-packages/ai-workspace-common/queries';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { logEvent } from '@refly/telemetry-web';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -89,6 +89,12 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     query: { entityId: canvasId, entityType: 'canvas' },
   });
 
+  // Get latest workflow app for this canvas
+  const { data: workflowAppsData } = useListWorkflowApps({ query: { canvasId } }, [
+    'workflow-apps',
+    canvasId,
+  ]);
+
   // Get the latest share record that is not a template
   const shareRecord = useMemo(
     () => data?.data?.filter((shareRecord) => !shareRecord.templateId)[0],
@@ -97,6 +103,14 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   const shareLink = useMemo(
     () => getShareLink('canvas', shareRecord?.shareId ?? ''),
     [shareRecord],
+  );
+
+  // Get the latest workflow app for this canvas
+  const latestWorkflowApp = useMemo(() => workflowAppsData?.data?.[0] ?? null, [workflowAppsData]);
+  const workflowAppLink = useMemo(
+    () =>
+      latestWorkflowApp?.shareId ? getShareLink('workflowApp', latestWorkflowApp.shareId) : '',
+    [latestWorkflowApp],
   );
 
   // Memoized function to re-share latest content before copying link
@@ -140,6 +154,17 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     // Reset copied state after 3 seconds
     setTimeout(() => setLinkCopied(false), 3000);
   }, [access, shareRecord?.shareId, t]);
+
+  const copyWorkflowAppLink = useCallback(async () => {
+    if (!workflowAppLink) return;
+    try {
+      await navigator.clipboard.writeText(workflowAppLink);
+      message.success(t('shareContent.linkCopied'));
+    } catch (error) {
+      console.error('Failed to copy workflow app link:', error);
+      message.error(t('common.operationFailed'));
+    }
+  }, [workflowAppLink, t]);
 
   const handlePublishToCommunity = useCallback(() => {
     setCreateTemplateModalVisible(true);
@@ -294,6 +319,32 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
           </div>
         )}
 
+        {/* latest app shared link published */}
+        {latestWorkflowApp && (
+          <div className="mt-2 pl-4 pr-2 py-2 border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z1 rounded-[12px]">
+            <div className="text-sm text-refly-text-0 leading-5 font-semibold mb-2">
+              {t('shareContent.latestPublishedApp')}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 text-sm text-refly-text-1 leading-4 truncate">
+                {workflowAppLink}
+              </div>
+              <Button
+                size="small"
+                className="w-[80px] h-[28px] text-xs"
+                onClick={() => {
+                  logEvent('canvas::canvas_copy_workflow_app_link', Date.now(), {
+                    canvas_id: canvasId,
+                  });
+                  copyWorkflowAppLink();
+                }}
+              >
+                {t('shareContent.copyLink')}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Publish to Community Section */}
         <div className="mt-2 pl-4 pr-2 py-2 border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z1 rounded-[12px] flex items-center justify-between">
           <div className="text-sm text-refly-text-0 leading-5 font-semibold flex-1 truncate">
@@ -327,6 +378,9 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
       updateShare,
       copyLink,
       handlePublishToCommunity,
+      latestWorkflowApp,
+      workflowAppLink,
+      copyWorkflowAppLink,
     ],
   );
 

@@ -199,7 +199,7 @@ export const AccountSetting = () => {
               </div>
               <div>
                 <div className="mb-[2px] text-base leading-[26px] font-semibold text-refly-text-0">
-                  {userProfile?.name || 'Unknown'}
+                  {userProfile?.nickname || 'Unknown'}
                 </div>
                 <div className="text-sm leading-5 text-refly-text-1">
                   {userProfile?.email || 'No email provided'}

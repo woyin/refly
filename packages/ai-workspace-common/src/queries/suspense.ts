@@ -55,6 +55,7 @@ import {
   listTools,
   listToolsetInventory,
   listToolsets,
+  listWorkflowApps,
   serveStatic,
 } from '../requests/services.gen';
 import {
@@ -151,6 +152,8 @@ import {
   ListToolsetInventoryError,
   ListToolsetsData,
   ListToolsetsError,
+  ListWorkflowAppsData,
+  ListWorkflowAppsError,
   ServeStaticError,
 } from '../requests/types.gen';
 import * as Common from './common';
@@ -736,6 +739,21 @@ export const useGetWorkflowAppDetailSuspense = <
       getWorkflowAppDetail({ ...clientOptions }).then(
         (response) => response.data as TData,
       ) as TData,
+    ...options,
+  });
+export const useListWorkflowAppsSuspense = <
+  TData = Common.ListWorkflowAppsDefaultResponse,
+  TError = ListWorkflowAppsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListWorkflowAppsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useSuspenseQuery<TData, TError>({
+    queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      listWorkflowApps({ ...clientOptions }).then((response) => response.data as TData) as TData,
     ...options,
   });
 export const useGetSettingsSuspense = <

@@ -15,6 +15,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      browser-use-sdk:
+        specifier: ^2.0.4
+        version: 2.0.4(react@18.3.1)(zod@3.25.76)
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.9.0
@@ -202,6 +206,9 @@ importers:
       '@sentry/profiling-node':
         specifier: ^7.113.0
         version: 7.120.3
+      '@superfaceai/passport-twitter-oauth2':
+        specifier: ^1.2.4
+        version: 1.2.4
       apache-arrow:
         specifier: ^20.0.0
         version: 20.0.0
@@ -827,8 +834,8 @@ importers:
         specifier: ^17.5.0
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       refly-icons:
-        specifier: ^1.0.9
-        version: 1.0.9(react@18.3.1)
+        specifier: ^1.1.0
+        version: 1.1.0(react@18.3.1)
     devDependencies:
       '@rsbuild/core':
         specifier: ^1.4.6
@@ -1261,8 +1268,8 @@ importers:
         specifier: ^17.5.0
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       refly-icons:
-        specifier: ^1.0.9
-        version: 1.0.9(react@18.3.1)
+        specifier: ^1.1.0
+        version: 1.1.0(react@18.3.1)
       rehype-highlight:
         specifier: ^6.0.0
         version: 6.0.0
@@ -2053,8 +2060,8 @@ importers:
         specifier: ^17.5.0
         version: 17.6.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       refly-icons:
-        specifier: ^1.0.9
-        version: 1.0.9(react@18.3.1)
+        specifier: ^1.1.0
+        version: 1.1.0(react@18.3.1)
     devDependencies:
       '@refly/tsconfig':
         specifier: workspace:*
@@ -6985,6 +6992,9 @@ packages:
     peerDependencies:
       react: '>= 16.3.0'
 
+  '@superfaceai/passport-twitter-oauth2@1.2.4':
+    resolution: {integrity: sha512-f2P4X1HqBHJuAnQefINpgJvMGLHx+nT9APbfJzN/CCBcazvP9NOD9IiENHMZMXEgfcHU40V3KwKiIZTBH5Q4Wg==}
+
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0':
     resolution: {integrity: sha512-b9MIk7yhdS1pMCZM8VeNfUlSKVRhsHZNMl5O9SfaX0l0t5wjdgu4IDzGB8bpnGBBOjGST3rRFVsaaEtI4W6f7g==}
     engines: {node: '>=14'}
@@ -8683,6 +8693,13 @@ packages:
 
   browser-resolve@2.0.0:
     resolution: {integrity: sha512-7sWsQlYL2rGLy2IWm8WL8DCTJvYLc/qlOnsakDac87SOoCd16WLsaAMdCiAqsTNHIe+SXfaqyxyo6THoWqs8WQ==}
+
+  browser-use-sdk@2.0.4:
+    resolution: {integrity: sha512-VrGzc2NeXAwyIaE6YvPLtuzucUhSeyCNdJqHUrPbm0UgrqB0g6ZISgiC69BUorRHG9oyFkCXwytOMO4Ijg8/Qg==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^18 || ^19
+      zod: 3.25.76
 
   browserify-aes@1.2.0:
     resolution: {integrity: sha512-+7CHXqGuspUn/Sl5aO7Ea0xWGAtETPXNSAjHo48JfLdPWcMng33Xe4znFvQweqc/uzk5zSOI3H52CYnjCfb5hA==}
@@ -14988,8 +15005,8 @@ packages:
     resolution: {integrity: sha512-00o4I+DVrefhv+nX0ulyi3biSHCPDe+yLv5o/p6d/UVlirijB8E16FtfwSAi4g3tcqrQ4lRAqQSoFEZJehYEcw==}
     engines: {node: '>= 0.4'}
 
-  refly-icons@1.0.9:
-    resolution: {integrity: sha512-7Ej3oQXVqvBHiI1YI8qyrdd4fWA7xAjkXh+DGX/sLRwAxN0Cqbw2SnZGFRgFCgAfs84Anvmp2PUtJsIzBGXZDA==}
+  refly-icons@1.1.0:
+    resolution: {integrity: sha512-AFNlo8Q2Ni3W07yqCOlA+S8LiVbRLsPbTg/ubZCoHZtftBJRRw4Oqrk0vZYBau5xzntdpXbG3+FR9k+yjFustA==}
     peerDependencies:
       react: '>=17.0.0'
 
@@ -23357,6 +23374,13 @@ snapshots:
     dependencies:
       react: 18.3.1
 
+  '@superfaceai/passport-twitter-oauth2@1.2.4':
+    dependencies:
+      passport-oauth2: 1.8.0
+    optionalDependencies:
+      '@types/passport': 1.0.17
+      '@types/passport-oauth2': 1.8.0
+
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0(@babel/core@7.28.0)':
     dependencies:
       '@babel/core': 7.28.0
@@ -25436,6 +25460,12 @@ snapshots:
   browser-resolve@2.0.0:
     dependencies:
       resolve: 1.22.10
+
+  browser-use-sdk@2.0.4(react@18.3.1)(zod@3.25.76):
+    dependencies:
+      fast-json-stable-stringify: 2.1.0
+      react: 18.3.1
+      zod: 3.25.76
 
   browserify-aes@1.2.0:
     dependencies:
@@ -33607,7 +33637,7 @@ snapshots:
       get-proto: 1.0.1
       which-builtin-type: 1.2.1
 
-  refly-icons@1.0.9(react@18.3.1):
+  refly-icons@1.1.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 

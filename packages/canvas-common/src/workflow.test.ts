@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CanvasData, CanvasNodeType, WorkflowVariable } from '@refly/openapi-schema';
-import { prepareNodeExecutions, WorkflowNode, updateContextItemsFromVariables } from './workflow';
+import {
+  prepareNodeExecutions,
+  WorkflowNode,
+  updateContextItemsFromVariables,
+  sortNodeExecutionsByExecutionOrder,
+  WorkflowNodeExecution,
+} from './workflow';
 import { ResponseNodeMeta } from './types';
 import { IContextItem } from '@refly-packages/common-types';
 
@@ -742,5 +748,159 @@ describe('updateContextItemsFromVariables', () => {
       { entityId: 'resource2', type: 'resource', title: 'test2.pdf' },
       { entityId: 'resource3', type: 'resource', title: 'old_name3.pdf' },
     ]);
+  });
+});
+
+describe('sortNodeExecutionsByExecutionOrder', () => {
+  // Helper function to create mock node executions
+  const createNodeExecution = (
+    nodeId: string,
+    parentNodeIds: string[] = [],
+  ): WorkflowNodeExecution => ({
+    nodeId,
+    parentNodeIds: JSON.stringify(parentNodeIds),
+    childNodeIds: JSON.stringify([]),
+  });
+
+  it('sorts nodes with no dependencies in original order', () => {
+    const nodeExecutions = [
+      createNodeExecution('C'),
+      createNodeExecution('A'),
+      createNodeExecution('B'),
+    ];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    expect(nodeIds).toEqual(['A', 'B', 'C']);
+  });
+
+  it('sorts nodes with simple parent-child relationship', () => {
+    const nodeExecutions = [
+      createNodeExecution('B', ['A']),
+      createNodeExecution('A'),
+      createNodeExecution('C', ['B']),
+    ];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    expect(nodeIds).toEqual(['A', 'B', 'C']);
+  });
+
+  it('sorts nodes with complex dependency graph', () => {
+    // A -> B -> D
+    // A -> C -> D
+    // E -> F
+    const nodeExecutions = [
+      createNodeExecution('D', ['B', 'C']),
+      createNodeExecution('C', ['A']),
+      createNodeExecution('B', ['A']),
+      createNodeExecution('A'),
+      createNodeExecution('F', ['E']),
+      createNodeExecution('E'),
+    ];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    // A should come before B and C
+    expect(nodeIds.indexOf('A')).toBeLessThan(nodeIds.indexOf('B'));
+    expect(nodeIds.indexOf('A')).toBeLessThan(nodeIds.indexOf('C'));
+
+    // B and C should come before D
+    expect(nodeIds.indexOf('B')).toBeLessThan(nodeIds.indexOf('D'));
+    expect(nodeIds.indexOf('C')).toBeLessThan(nodeIds.indexOf('D'));
+
+    // E should come before F
+    expect(nodeIds.indexOf('E')).toBeLessThan(nodeIds.indexOf('F'));
+  });
+
+  it('handles nodes with multiple parents correctly', () => {
+    // A -> C
+    // B -> C
+    const nodeExecutions = [
+      createNodeExecution('C', ['A', 'B']),
+      createNodeExecution('A'),
+      createNodeExecution('B'),
+    ];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    // Both A and B should come before C
+    expect(nodeIds.indexOf('A')).toBeLessThan(nodeIds.indexOf('C'));
+    expect(nodeIds.indexOf('B')).toBeLessThan(nodeIds.indexOf('C'));
+  });
+
+  it('handles empty array', () => {
+    const result = sortNodeExecutionsByExecutionOrder([]);
+    expect(result).toEqual([]);
+  });
+
+  it('handles single node', () => {
+    const nodeExecutions = [createNodeExecution('A')];
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    expect(result).toEqual(nodeExecutions);
+  });
+
+  it('handles nodes with null parentNodeIds', () => {
+    const nodeExecutions = [
+      { nodeId: 'A', parentNodeIds: null, childNodeIds: null },
+      { nodeId: 'B', parentNodeIds: null, childNodeIds: null },
+    ];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    expect(nodeIds).toEqual(['A', 'B']);
+  });
+
+  it('handles nodes with empty parentNodeIds string', () => {
+    const nodeExecutions = [
+      { nodeId: 'A', parentNodeIds: '[]', childNodeIds: '[]' },
+      { nodeId: 'B', parentNodeIds: '[]', childNodeIds: '[]' },
+    ];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    expect(nodeIds).toEqual(['A', 'B']);
+  });
+
+  it('handles circular dependencies gracefully', () => {
+    // A -> B -> A (circular)
+    const nodeExecutions = [createNodeExecution('A', ['B']), createNodeExecution('B', ['A'])];
+
+    // Should not throw and should return both nodes
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    expect(result).toHaveLength(2);
+    expect(result.map((n) => n.nodeId)).toContain('A');
+    expect(result.map((n) => n.nodeId)).toContain('B');
+  });
+
+  it('handles missing parent nodes gracefully', () => {
+    // A references non-existent parent X
+    const nodeExecutions = [createNodeExecution('A', ['X']), createNodeExecution('B')];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    // Should still sort correctly, ignoring missing parent
+    expect(nodeIds).toEqual(['A', 'B']);
+  });
+
+  it('maintains stable sort for nodes with same dependencies', () => {
+    // Both B and C depend on A, but B should come before C due to alphabetical order
+    const nodeExecutions = [
+      createNodeExecution('C', ['A']),
+      createNodeExecution('B', ['A']),
+      createNodeExecution('A'),
+    ];
+
+    const result = sortNodeExecutionsByExecutionOrder(nodeExecutions);
+    const nodeIds = result.map((n) => n.nodeId);
+
+    expect(nodeIds).toEqual(['A', 'B', 'C']);
   });
 });
