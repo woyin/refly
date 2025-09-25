@@ -1,6 +1,16 @@
 import { ToolsetInstance } from '@refly/openapi-schema';
 import { Delete, Edit, More } from 'refly-icons';
-import { Button, Skeleton, Tag, Switch, MenuProps, Popconfirm, Dropdown, message } from 'antd';
+import {
+  Button,
+  Skeleton,
+  Tag,
+  Switch,
+  MenuProps,
+  Popconfirm,
+  Dropdown,
+  message,
+  Tooltip,
+} from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useState } from 'react';
@@ -173,15 +183,17 @@ const ToolItem = ({
 
         {tool?.definition?.tools?.length && (
           <div className="mt-2 p-2 bg-refly-bg-control-z0 rounded-[8px]">
-            <div className="flex items-center flex-wrap">
+            <div className="flex items-center flex-wrap gap-1">
               {tool?.definition?.tools?.map((t, index) => {
+                const toolDesc = (t?.descriptionDict?.[currentLanguage] ||
+                  t?.descriptionDict?.en ||
+                  '') as string;
                 return (
-                  <Tag
-                    key={index}
-                    className="bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px]"
-                  >
-                    {t.name}
-                  </Tag>
+                  <Tooltip key={index} title={toolDesc} placement="top">
+                    <Tag className="bg-refly-tertiary-default border-solid border-[1px] border-refly-Card-Border font-semibold text-refly-text-1 h-[18px] flex items-center justify-center rounded-[4px] text-[10px] leading-[14px] cursor-pointer">
+                      {t.name}
+                    </Tag>
+                  </Tooltip>
                 );
               })}
             </div>
