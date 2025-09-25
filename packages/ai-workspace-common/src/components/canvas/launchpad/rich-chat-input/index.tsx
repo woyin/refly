@@ -191,8 +191,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       ({ editor, range, props }: { editor: any; range: any; props: any }) => {
         const item = props;
 
-        console.log('handleCommand item', item);
-
         // For step and result records, add to context instead of inserting text
         if (
           item.source === 'stepRecord' ||

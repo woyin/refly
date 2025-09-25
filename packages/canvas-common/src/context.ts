@@ -105,6 +105,11 @@ export const convertContextItemsToNodeFilters = (items: IContextItem[]): CanvasN
   const uniqueItems = new Map<string, CanvasNodeFilter>();
 
   for (const item of items ?? []) {
+    // resources are no longer present in canvas
+    if (item.type === 'resource') {
+      continue;
+    }
+
     const type = item.selection?.sourceEntityType ?? (item.type as CanvasNodeType);
     const entityId = item.selection?.sourceEntityId ?? item.entityId;
 

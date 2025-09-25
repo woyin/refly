@@ -15,13 +15,12 @@ import { genActionResultID, processQueryWithMentions } from '@refly/utils';
 import {
   CreatePilotSessionRequest,
   GenericToolset,
-  CanvasNodeType,
   ModelCapabilities,
 } from '@refly/openapi-schema';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import type { IContextItem } from '@refly/common-types';
-import { CanvasNodeFilter } from '@refly/canvas-common';
+import { CanvasNodeFilter, convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries/queries';
 
@@ -127,24 +126,7 @@ export const NoSession = memo(
       setIsExecuting(true);
 
       if (chatMode === 'ask' && canvasId) {
-        const connectTo: CanvasNodeFilter[] = contextItems.map((item) => {
-          const isTextSelection = [
-            'documentSelection',
-            'resourceSelection',
-            'skillResponseSelection',
-            'extensionWeblinkSelection',
-            'documentCursorSelection',
-            'documentBeforeCursorSelection',
-            'documentAfterCursorSelection',
-          ].includes(item.type);
-          return {
-            type: isTextSelection
-              ? item?.selection?.sourceEntityType
-              : (item.type as CanvasNodeType),
-            entityId: isTextSelection ? item?.selection?.sourceEntityId : item.entityId,
-            handleType: 'source',
-          };
-        });
+        const connectTo: CanvasNodeFilter[] = convertContextItemsToNodeFilters(contextItems);
         const isMediaGeneration = skillSelectedModel?.category === 'mediaGeneration';
         if (isMediaGeneration) {
           // Handle media generation using existing media generation flow

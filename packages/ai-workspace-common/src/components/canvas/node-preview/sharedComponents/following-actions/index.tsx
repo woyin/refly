@@ -21,6 +21,7 @@ import {
   createNodeEventName,
   nodeActionEmitter,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { convertContextItemsToNodeFilters } from '@refly/canvas-common';
 
 interface FollowingActionButtonProps {
   text: string;
@@ -169,11 +170,7 @@ export const FollowingActions = ({
       },
     );
 
-    const connectTo = followUpContextItems.map((contextItem) => ({
-      type: contextItem.type as any,
-      entityId: contextItem.entityId,
-      handleType: 'source' as const,
-    }));
+    const connectTo = convertContextItemsToNodeFilters(followUpContextItems);
 
     addNode(
       {
