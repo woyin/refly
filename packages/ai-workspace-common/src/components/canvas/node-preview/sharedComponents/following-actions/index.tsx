@@ -10,10 +10,13 @@ import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
 import { useLaunchpadStoreShallow, useUserStoreShallow } from '@refly/stores';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { genActionResultID } from '@refly/utils/id';
+import { genActionResultID, processQueryWithMentions } from '@refly/utils';
 import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import { AddContext, AiChat } from 'refly-icons';
-import { useListProviderItems } from '@refly-packages/ai-workspace-common/queries';
+import {
+  useGetWorkflowVariables,
+  useListProviderItems,
+} from '@refly-packages/ai-workspace-common/queries';
 import {
   createNodeEventName,
   nodeActionEmitter,
@@ -78,6 +81,13 @@ export const FollowingActions = ({
     },
   });
 
+  // Fetch workflow variables for mentions (startNode/resourceLibrary)
+  const { data: workflowVariables } = useGetWorkflowVariables({
+    query: {
+      canvasId,
+    },
+  });
+
   const defaultProviderItem = providerItemList?.data?.find((item) => item.category === 'llm');
   const defaultModelInfo: ModelInfo | null = useMemo(() => {
     if (defaultProviderItem) {
@@ -136,10 +146,17 @@ export const FollowingActions = ({
       return;
     }
 
+    // Process query with workflow variables
+    const variables = workflowVariables?.data ?? [];
+    const { processedQuery } = processQueryWithMentions(followUpQuery, {
+      replaceVars: true,
+      variables,
+    });
+
     // Invoke the action
     invokeAction(
       {
-        query: followUpQuery,
+        query: processedQuery,
         resultId,
         selectedToolsets,
         modelInfo,
@@ -162,7 +179,7 @@ export const FollowingActions = ({
       {
         type: 'skillResponse',
         data: {
-          title: followUpQuery,
+          title: processedQuery,
           entityId: resultId,
           metadata: {
             status: 'executing',
@@ -196,6 +213,7 @@ export const FollowingActions = ({
     getFinalProjectId,
     selectedToolsets,
     initModelInfo,
+    workflowVariables,
   ]);
 
   const initializeFollowUpInput = useCallback(() => {
