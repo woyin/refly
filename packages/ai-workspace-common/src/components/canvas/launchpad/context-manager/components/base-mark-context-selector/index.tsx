@@ -127,8 +127,14 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
         .map((resource) => ({
           title: resource.title,
           entityId: resource.resourceId,
-          type: resource.resourceType,
-          metadata: resource.data,
+          type: 'resource',
+          metadata: {
+            resourceType: resource.resourceType,
+            resourceMeta: resource.data,
+            storageKey: resource.storageKey,
+            rawFileKey: resource.rawFileKey,
+            downloadURL: resource.downloadURL,
+          },
         })) ?? [];
 
     // Combine nodes and resources

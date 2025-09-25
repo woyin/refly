@@ -102,13 +102,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Get all available items including canvas nodes with fallback data
     const allItems: MentionItem[] = useMemo(() => {
-      const startNodeItems = workflowVariables.map((variable) => ({
-        name: variable.name,
-        description: variable.description || '',
-        source: 'variables' as const,
-        variableType: variable.variableType || 'string',
-        variableId: variable.variableId || '',
-      }));
+      const variableItems = workflowVariables
+        .map((variable) => ({
+          name: variable.name,
+          description: variable.description || '',
+          source: 'variables' as const,
+          variableType: variable.variableType || 'string',
+          variableId: variable.variableId || '',
+        }))
+        .filter((variable) => variable.variableType !== 'resource'); // exclude resource variables
 
       // Get skillResponse nodes for step records
       const stepRecordItems: MentionItem[] =
@@ -164,7 +166,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           },
         })) ?? [];
 
-      return [...startNodeItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
+      return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
     }, [workflowVariables, nodes, resources]);
 
     // Keep latest items in a ref so Mention suggestion always sees fresh data

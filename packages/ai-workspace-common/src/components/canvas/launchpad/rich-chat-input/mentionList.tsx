@@ -440,7 +440,7 @@ export const MentionList = ({
   const categoryConfigs = useMemo(
     () => ({
       startNode: {
-        emptyStateKey: 'noStartNodeVariables',
+        emptyStateKey: 'noVariables',
       },
       resourceLibrary: {
         nodeIconProps: (item: MentionItem) => ({
@@ -777,7 +777,7 @@ export const MentionList = ({
                   </div>
                 ) : (
                   <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
-                    {t('canvas.richChatInput.noStartNodeVariables')}
+                    {t('canvas.richChatInput.noVariables')}
                   </div>
                 )}
               </div>

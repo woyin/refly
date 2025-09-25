@@ -1737,7 +1737,7 @@ const translations = {
       untitledUpload: '未命名上传',
       loadingEditor: '加载编辑器中...',
       loadingVariables: '加载变量中...',
-      noStartNodeVariables: '暂无开始节点变量',
+      noVariables: '暂无变量',
       defaultPlaceholder: '描述你想要生成的内容...',
       runningRecord: '运行记录',
       noRunningRecords: '暂无运行记录',

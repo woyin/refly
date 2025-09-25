@@ -1774,7 +1774,7 @@ const translations = {
       untitledUpload: 'Untitled Upload',
       loadingEditor: 'Loading editor...',
       loadingVariables: 'Loading variables...',
-      noStartNodeVariables: 'No start node variables',
+      noVariables: 'No variables',
       defaultPlaceholder: 'Describe what you want to generate...',
       runningRecord: 'Running Record',
       noRunningRecords: 'No running records',
