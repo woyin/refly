@@ -89,7 +89,7 @@ export class WorkflowService {
 
     // Use variables from request if provided, otherwise use variables from canvas
     let finalVariables: WorkflowVariable[] =
-      variables ?? safeParseJSON(canvas.workflow).variables ?? [];
+      variables ?? safeParseJSON(canvas.workflow)?.variables ?? [];
 
     // Note: Canvas creation is now handled on the frontend to avoid version conflicts
     if (isNewCanvas) {
@@ -98,7 +98,7 @@ export class WorkflowService {
         title: canvas?.title,
         variables: finalVariables,
       });
-      finalVariables = safeParseJSON(newCanvas.workflow).variables ?? [];
+      finalVariables = safeParseJSON(newCanvas.workflow)?.variables ?? [];
     } else {
       finalVariables = await this.canvasService.updateWorkflowVariables(user, {
         canvasId: targetCanvasId,

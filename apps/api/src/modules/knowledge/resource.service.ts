@@ -55,6 +55,8 @@ import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { PostDeleteKnowledgeEntityJobData } from './knowledge.dto';
 
+const MEDIA_RESOURCE_TYPES: ResourceType[] = ['image', 'video', 'audio'];
+
 @Injectable()
 export class ResourceService {
   private logger = new Logger(ResourceService.name);
@@ -151,7 +153,6 @@ export class ResourceService {
     let identifier: string;
     let staticFile: StaticFileModel | null = null;
     let staticFileBuf: Buffer | null = null;
-    const mediaResourceTypes: ResourceType[] = ['image', 'video', 'audio'];
 
     if (resourceType === 'text') {
       if (!content) {
@@ -185,7 +186,7 @@ export class ResourceService {
 
       sha.update(staticFileBuf);
       identifier = `file://${sha.digest('hex')}`;
-    } else if (mediaResourceTypes.includes(resourceType)) {
+    } else if (MEDIA_RESOURCE_TYPES.includes(resourceType)) {
       if (!param.storageKey) {
         throw new ParamsError('storageKey is required for media resource');
       }
@@ -236,7 +237,7 @@ export class ResourceService {
       };
     }
 
-    if (mediaResourceTypes.includes(resourceType)) {
+    if (MEDIA_RESOURCE_TYPES.includes(resourceType)) {
       return {
         identifier,
         indexStatus: 'finish', // Media resources don't need parsing or indexing
@@ -538,7 +539,7 @@ export class ResourceService {
     }
 
     // Skip parsing for media resources
-    if (resource.resourceType === 'media') {
+    if (MEDIA_RESOURCE_TYPES.includes(resource.resourceType as ResourceType)) {
       this.logger.log(`Resource ${resource.resourceId} is a media resource, skip parsing`);
       return resource;
     }

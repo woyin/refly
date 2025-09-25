@@ -512,7 +512,7 @@ export class SkillService implements OnModuleInit {
       if (param.context.resources?.length > 0) {
         const imageResources = param.context.resources
           .filter((item) => item.resource?.resourceType === 'image')
-          .map((item) => item.resource?.rawFileKey)
+          .map((item) => item.resource?.rawFileKey) // NOTE: for media resources, rawFileKey is the actual place where the media file is stored
           .filter(Boolean);
 
         if (imageResources.length > 0) {
@@ -962,7 +962,7 @@ export class SkillService implements OnModuleInit {
       return data.result;
     } catch (error) {
       this.logger.error(
-        `Failed to send invoke skill task for param: ${JSON.stringify(param)}: ${error?.stack}`,
+        `Failed to send invoke skill task for resultId: ${param.resultId}, error: ${error?.stack}`,
       );
       await this.createFailedActionResult(
         param.resultId || genActionResultID(),
@@ -991,7 +991,7 @@ export class SkillService implements OnModuleInit {
       return this.skillInvokerService.streamInvokeSkill(user, jobData, res);
     } catch (error) {
       this.logger.error(
-        `Failed to invoke skill from api for param: ${JSON.stringify(param)}: ${error?.stack}`,
+        `Failed to invoke skill from api for resultId: ${param.resultId}, error: ${error?.stack}`,
       );
       await this.createFailedActionResult(
         param.resultId || genActionResultID(),

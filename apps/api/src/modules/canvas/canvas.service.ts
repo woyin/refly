@@ -1020,13 +1020,17 @@ export class CanvasService {
     if (!resource) return value;
 
     const { storageKey } = resource;
+    if (!storageKey) {
+      this.logger.warn('Resource variable missing storageKey; skipping processing');
+      return value;
+    }
 
     // Check if static file already exists with entity_id and entity_type
     const resourceFile = await this.prisma.staticFile.findFirst({
       where: { storageKey, deletedAt: null },
     });
 
-    if (resourceFile?.entityId && resourceFile?.entityType) {
+    if (resourceFile?.entityId && resourceFile?.entityType === 'resource') {
       // Resource already exists, read it
       this.logger.log(
         `Resource already exists for storageKey: ${storageKey}, entityId: ${resourceFile.entityId}`,
@@ -1150,6 +1154,6 @@ export class CanvasService {
       where: { canvasId, uid: user.uid, deletedAt: null },
       data: { workflow: JSON.stringify(workflowObj) },
     });
-    return variables;
+    return workflowObj.variables;
   }
 }
