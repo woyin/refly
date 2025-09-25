@@ -481,7 +481,12 @@ export const SourcesMenu = ({
         className="text-green-600 flex-shrink-0 flex items-center justify-center"
       />
     ) : (
-      <ResourceIcon url={item?.data?.url ?? ''} resourceType={item.resourceType} size={14} />
+      <ResourceIcon
+        url={item?.data?.url ?? ''}
+        resourceType={item.resourceType}
+        resourceMeta={item.data}
+        size={14}
+      />
     );
   }, []);
 

@@ -66,6 +66,25 @@ const RESOURCE_ICONS: Record<ResourceFileType, IconComponent> = {
   'application/epub+zip': CodeZip,
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': Excel,
   'text/html': Html,
+  // Images
+  'image/jpeg': Image,
+  'image/png': Image,
+  'image/gif': Image,
+  'image/webp': Image,
+  'image/svg+xml': Image,
+  'image/bmp': Image,
+  // Videos
+  'video/mp4': Video,
+  'video/webm': Video,
+  'video/ogg': Video,
+  'video/quicktime': Video,
+  'video/x-msvideo': Video,
+  // Audio
+  'audio/mpeg': Audio,
+  'audio/wav': Audio,
+  'audio/ogg': Audio,
+  'audio/aac': Audio,
+  'audio/webm': Audio,
 };
 
 interface NodeIconProps {
@@ -95,7 +114,13 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
     const size = !filled ? 20 : small ? 14 : 16;
 
     const isWeblink = type === 'resource' && resourceType === 'weblink';
-    const isResourceFile = type === 'resource' && resourceType === 'file' && resourceMeta;
+    const isResourceFile =
+      type === 'resource' &&
+      (resourceType === 'file' ||
+        resourceType === 'image' ||
+        resourceType === 'video' ||
+        resourceType === 'audio') &&
+      resourceMeta;
 
     const Icon =
       (isResourceFile ? RESOURCE_ICONS[resourceMeta?.contentType ?? ''] : ICONS[type]) ??

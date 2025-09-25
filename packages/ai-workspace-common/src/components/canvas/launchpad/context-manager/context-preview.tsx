@@ -35,8 +35,6 @@ export const ContextPreview = memo(
       null,
       {
         enabled: item?.type === 'resource',
-        staleTime: 60 * 1000, // Data fresh for 1 minute
-        gcTime: 5 * 60 * 1000, // Cache for 5 minutes
       },
     );
     const remoteResourceData = resourceResult?.data;
