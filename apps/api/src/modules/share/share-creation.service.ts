@@ -1030,6 +1030,142 @@ export class ShareCreationService {
     // Wait for all image processing to complete
     await Promise.all(mediaProcessingPromises);
 
+    // Group nodes by type for parallel processing (same as createShareForCanvas)
+    const nodesByType = {
+      document: [] as typeof canvasDataWithId.nodes,
+      resource: [] as typeof canvasDataWithId.nodes,
+      skillResponse: [] as typeof canvasDataWithId.nodes,
+      codeArtifact: [] as typeof canvasDataWithId.nodes,
+    };
+
+    // Group nodes by their types
+    for (const node of canvasDataWithId.nodes ?? []) {
+      if (node.type in nodesByType) {
+        nodesByType[node.type].push(node);
+      }
+    }
+
+    // Process each node type in parallel with concurrency control
+    const nodeProcessingLimit = pLimit(3); // Limit concurrent operations per type
+
+    const processDocumentNodes = async () => {
+      const promises = nodesByType.document.map((node) =>
+        nodeProcessingLimit(async () => {
+          try {
+            const { shareRecord, document } = await this.createShareForDocument(user, {
+              entityId: node.data?.entityId,
+              entityType: 'document',
+              parentShareId: shareId,
+              allowDuplication,
+            });
+
+            if (node.data) {
+              node.data.contentPreview = document?.contentPreview;
+              node.data.metadata = {
+                ...node.data.metadata,
+                shareId: shareRecord?.shareId,
+              };
+            }
+          } catch (error) {
+            this.logger.error(
+              `Failed to process document node ${node.data?.entityId}, error: ${error.stack}`,
+            );
+          }
+        }),
+      );
+      await Promise.all(promises);
+    };
+
+    const processResourceNodes = async () => {
+      const promises = nodesByType.resource.map((node) =>
+        nodeProcessingLimit(async () => {
+          try {
+            const { shareRecord, resource } = await this.createShareForResource(user, {
+              entityId: node.data?.entityId,
+              entityType: 'resource',
+              parentShareId: shareId,
+              allowDuplication,
+            });
+
+            if (node.data) {
+              node.data.contentPreview = resource?.contentPreview;
+              node.data.metadata = {
+                ...node.data.metadata,
+                shareId: shareRecord?.shareId,
+              };
+            }
+          } catch (error) {
+            this.logger.error(
+              `Failed to process resource node ${node.data?.entityId}, error: ${error.stack}`,
+            );
+          }
+        }),
+      );
+      await Promise.all(promises);
+    };
+
+    const processSkillResponseNodes = async () => {
+      const promises = nodesByType.skillResponse.map((node) =>
+        nodeProcessingLimit(async () => {
+          try {
+            const { shareRecord } = await this.createShareForSkillResponse(user, {
+              entityId: node.data?.entityId,
+              entityType: 'skillResponse',
+              parentShareId: shareId,
+              allowDuplication,
+            });
+
+            if (node.data) {
+              node.data.metadata = {
+                ...node.data.metadata,
+                shareId: shareRecord?.shareId,
+              };
+            }
+          } catch (error) {
+            this.logger.error(
+              `Failed to process skill response node ${node.data?.entityId}, error: ${error.stack}`,
+            );
+          }
+        }),
+      );
+      await Promise.all(promises);
+    };
+
+    const processCodeArtifactNodes = async () => {
+      const promises = nodesByType.codeArtifact.map((node) =>
+        nodeProcessingLimit(async () => {
+          try {
+            const { shareRecord } = await this.createShareForCodeArtifact(user, {
+              entityId: node.data?.entityId,
+              entityType: 'codeArtifact',
+              parentShareId: shareId,
+              allowDuplication,
+            });
+
+            if (node.data) {
+              node.data.metadata = {
+                ...node.data.metadata,
+                shareId: shareRecord?.shareId,
+              };
+            }
+          } catch (error) {
+            this.logger.error(
+              `Failed to process code artifact node ${node.data?.entityId}, error: ${error.stack}`,
+            );
+          }
+        }),
+      );
+      await Promise.all(promises);
+    };
+
+    // Process all node types in parallel
+    await Promise.all([
+      processDocumentNodes(),
+      processResourceNodes(),
+      processSkillResponseNodes(),
+      processCodeArtifactNodes(),
+    ]);
+
     // Publish minimap
     if (canvasDataWithId.minimapUrl) {
       canvasDataWithId.minimapUrl = await this.miscService.publishFile(canvasDataWithId.minimapUrl);
