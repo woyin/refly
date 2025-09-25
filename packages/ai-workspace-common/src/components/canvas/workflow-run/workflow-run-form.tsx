@@ -121,7 +121,12 @@ export const WorkflowRunForm = ({
       if (variable.variableType === 'string') {
         formValues[variable.name] = variable.value?.[0]?.text ?? '';
       } else if (variable.variableType === 'option') {
-        formValues[variable.name] = variable.value.map((v) => v.text);
+        // Handle single vs multiple selection based on isSingle flag
+        if (variable.isSingle) {
+          formValues[variable.name] = variable.value?.[0]?.text ?? '';
+        } else {
+          formValues[variable.name] = variable.value?.map((v) => v.text) ?? [];
+        }
       } else if (variable.variableType === 'resource') {
         // Convert resource values to UploadFile format
         const fileList: UploadFile[] =
@@ -148,10 +153,20 @@ export const WorkflowRunForm = ({
           value: [{ type: 'text', text: value }],
         });
       } else if (variable.variableType === 'option') {
-        newVariables.push({
-          ...variable,
-          value: value.map((v) => ({ type: 'text', text: v })),
-        });
+        // Handle single vs multiple selection based on isSingle flag
+        if (variable.isSingle) {
+          // For single selection, value is a string
+          newVariables.push({
+            ...variable,
+            value: [{ type: 'text', text: value }],
+          });
+        } else {
+          // For multiple selection, value is an array
+          newVariables.push({
+            ...variable,
+            value: Array.isArray(value) ? value.map((v) => ({ type: 'text', text: v })) : [],
+          });
+        }
       } else if (variable.variableType === 'resource') {
         const v = Array.isArray(value) ? value[0] : undefined;
         const entityId = variable?.value?.[0]?.resource?.entityId;
