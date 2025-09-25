@@ -27,7 +27,7 @@ import { ModelIcon } from '@lobehub/icons';
 import { modelEmitter } from '@refly-packages/ai-workspace-common/utils/event-emitter/model';
 import { ModelFormModal } from './model-form';
 import { useUserStoreShallow, useChatStoreShallow } from '@refly/stores';
-import { More, Settings, Back, Chat, Media, AIModel } from 'refly-icons';
+import { More, Settings, Back, Chat, AIModel } from 'refly-icons';
 import { ContentHeader } from '../contentHeader';
 import { DefaultModel } from '../default-model';
 import { CreditBillingInfo } from '@refly-packages/ai-workspace-common/components/common/credit-billing-info';
@@ -515,15 +515,6 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
       {
         label: (
           <div className="flex items-center justify-center gap-1.5 w-full">
-            <Media size={16} />
-            <span>{t('settings.modelConfig.mediaGeneration')}</span>
-          </div>
-        ),
-        value: 'media',
-      },
-      {
-        label: (
-          <div className="flex items-center justify-center gap-1.5 w-full">
             <AIModel size={16} />
             <span>{t('settings.modelConfig.otherModels')}</span>
           </div>
@@ -579,42 +570,6 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
                 isSubmitting={isUpdating}
               />
             ))}
-
-          <div className="text-center text-refly-text-2 text-sm mt-4 pb-10">
-            {t('common.noMore')}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderMediaGenerationModels = () => (
-    <div className="flex-1 overflow-auto">
-      {isLoading ? (
-        <Skeleton className="p-4" active title={false} paragraph={{ rows: 7 }} />
-      ) : mediaGenerationModels.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t('settings.modelConfig.noMediaModels')}
-        >
-          {editable && (
-            <Button onClick={() => handleAddModel('mediaGeneration')}>
-              {t('settings.modelConfig.addFirstModel')}
-            </Button>
-          )}
-        </Empty>
-      ) : (
-        <div className="space-y-2">
-          {mediaGenerationModels.map((model) => (
-            <ModelItem
-              key={model.itemId}
-              model={model}
-              onEdit={handleEditModel}
-              onDelete={handleDeleteModel}
-              onToggleEnabled={handleToggleEnabled}
-              isSubmitting={isUpdating}
-            />
-          ))}
 
           <div className="text-center text-refly-text-2 text-sm mt-4 pb-10">
             {t('common.noMore')}
@@ -680,8 +635,6 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
     switch (activeTab) {
       case 'conversation':
         return renderConversationModels();
-      case 'media':
-        return renderMediaGenerationModels();
       case 'other':
         return renderOtherModels();
       default:
@@ -718,17 +671,8 @@ export const ModelConfig = ({ visible }: { visible: boolean }) => {
         >
           {t(`settings.${isConfigDefaultModel ? 'modelConfig' : 'defaultModel'}.title`)}
         </Button>
-        {['conversation', 'media'].includes(activeTab) && editable && (
-          <Button
-            type="primary"
-            onClick={() => {
-              if (activeTab === 'conversation') {
-                handleAddModel('llm');
-              } else {
-                handleAddModel('mediaGeneration');
-              }
-            }}
-          >
+        {activeTab === 'conversation' && editable && (
+          <Button type="primary" onClick={() => handleAddModel('llm')}>
             {t('settings.modelConfig.addModel')}
           </Button>
         )}

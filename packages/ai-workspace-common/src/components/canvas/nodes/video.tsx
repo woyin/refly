@@ -344,10 +344,6 @@ export const VideoNode = memo(
               preload="metadata"
               onError={handleVideoError}
               onLoadStart={() => setVideoError(false)}
-              onClick={(e) => {
-                // Prevent video controls from triggering the parent click
-                e.stopPropagation();
-              }}
             >
               <track kind="captions" />
               Your browser does not support the video tag.

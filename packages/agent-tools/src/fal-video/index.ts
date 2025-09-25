@@ -24,12 +24,12 @@ export const FalVideoToolsetDefinition: ToolsetDefinition = {
   key: 'fal_video',
   domain: 'https://fal.ai/',
   labelDict: {
-    en: 'Generate Video with FAL',
-    'zh-CN': '使用 FAL 生成视频',
+    en: 'Video Generation',
+    'zh-CN': '视频生成',
   },
   descriptionDict: {
-    en: 'Generate video content with FAL.',
-    'zh-CN': '使用 FAL 生成视频内容。',
+    en: 'Generate or edit video, support Seedance、Veo3、Kling、Wan multiple video models.',
+    'zh-CN': '生成或编辑视频，支持 Seedance、Veo3、Kling、Wan 多种视频模型。',
   },
   tools: [
     {

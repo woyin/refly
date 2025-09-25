@@ -1,14 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
-import {
-  Button,
-  Dropdown,
-  DropdownProps,
-  MenuProps,
-  Skeleton,
-  Tooltip,
-  Typography,
-  Segmented,
-} from 'antd';
+import { Button, Dropdown, DropdownProps, MenuProps, Skeleton, Tooltip, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { ModelIcon } from '@lobehub/icons';
 import { getPopupContainer } from '@refly-packages/ai-workspace-common/utils/ui';
@@ -179,7 +170,7 @@ export const ModelSelector = memo(
     contextItems,
   }: ModelSelectorProps) => {
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState<'llm' | 'mediaGeneration'>('llm');
+    const [selectedCategory, setSelectedCategory] = useState<'llm'>('llm');
     const { t } = useTranslation();
 
     const { userProfile } = useUserStoreShallow((state) => ({
@@ -230,11 +221,8 @@ export const ModelSelector = memo(
         const currentModelItem = providerItemList.data.find(
           (item) => item.itemId === model.providerItemId,
         );
-        if (
-          currentModelItem?.category &&
-          (currentModelItem.category === 'llm' || currentModelItem.category === 'mediaGeneration')
-        ) {
-          setSelectedCategory(currentModelItem.category as 'llm' | 'mediaGeneration');
+        if (currentModelItem?.category && currentModelItem.category === 'llm') {
+          setSelectedCategory(currentModelItem.category as 'llm');
         }
       }
     }, [model, providerItemList?.data]);
@@ -361,19 +349,16 @@ export const ModelSelector = memo(
       () => (
         <div className="w-[260px] bg-refly-bg-content-z2 rounded-lg border-[1px] border-solid border-refly-Card-Border shadow-refly-m">
           {/* Category Switch */}
-          <div className="p-2 pb-0">
+          {/*<div className="p-2 pb-0">
             <Segmented
               className="w-full [&_.ant-segmented-item]:flex-1 [&_.ant-segmented-item]:text-center [&_.ant-segmented-item]:py-0.5 [&_.ant-segmented-item]:text-xs"
               shape="round"
               size="small"
-              options={[
-                { label: '对话模型', value: 'llm' },
-                { label: '多模态模型', value: 'mediaGeneration' },
-              ]}
+              options={[{ label: '对话模型', value: 'llm' }]}
               value={selectedCategory}
-              onChange={(value) => setSelectedCategory(value as 'llm' | 'mediaGeneration')}
+              onChange={(value) => setSelectedCategory(value as 'llm')}
             />
-          </div>
+          </div>*/}
 
           <div className="max-h-[38vh] w-full overflow-y-auto p-1.5">
             {droplist
