@@ -48,31 +48,17 @@ export class ShareCreationService {
     private readonly createShareQueue?: Queue<CreateShareJobData>,
   ) {}
 
-  async createShareForCanvas(user: User, param: CreateShareRequest) {
-    const { entityId: canvasId, title, parentShareId, allowDuplication } = param;
-
-    // Check if shareRecord already exists
-    const existingShareRecord = await this.prisma.shareRecord.findFirst({
-      where: {
-        entityId: canvasId,
-        entityType: 'canvas',
-        uid: user.uid,
-        deletedAt: null,
-        templateId: null, // ignore canvas templates
-      },
-    });
-
-    // Generate shareId only if needed
-    const shareId = existingShareRecord?.shareId ?? genShareId('canvas');
-
-    const canvas = await this.prisma.canvas.findUnique({
-      where: { canvasId, uid: user.uid, deletedAt: null },
-    });
-
-    if (!canvas) {
-      throw new ShareNotFoundError();
-    }
-
+  /**
+   * Process canvas data for sharing - handles media nodes, node processing, and minimap
+   * This is a common method used by both createShareForCanvas and createShareForWorkflowApp
+   */
+  private async processCanvasForShare(
+    user: User,
+    canvasId: string,
+    shareId: string,
+    allowDuplication: boolean,
+    title?: string,
+  ) {
     const canvasData = await this.canvasService.getCanvasRawData(user, canvasId);
 
     // If title is provided, use it as the title of the canvas
@@ -248,6 +234,43 @@ export class ShareCreationService {
       processSkillResponseNodes(),
       processCodeArtifactNodes(),
     ]);
+
+    return canvasData;
+  }
+
+  async createShareForCanvas(user: User, param: CreateShareRequest) {
+    const { entityId: canvasId, title, parentShareId, allowDuplication } = param;
+
+    // Check if shareRecord already exists
+    const existingShareRecord = await this.prisma.shareRecord.findFirst({
+      where: {
+        entityId: canvasId,
+        entityType: 'canvas',
+        uid: user.uid,
+        deletedAt: null,
+        templateId: null, // ignore canvas templates
+      },
+    });
+
+    // Generate shareId only if needed
+    const shareId = existingShareRecord?.shareId ?? genShareId('canvas');
+
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+
+    if (!canvas) {
+      throw new ShareNotFoundError();
+    }
+
+    // Process canvas data using common method
+    const canvasData = await this.processCanvasForShare(
+      user,
+      canvasId,
+      shareId,
+      allowDuplication,
+      title,
+    );
 
     // Publish minimap
     if (canvas.minimapStorageKey) {
@@ -982,8 +1005,14 @@ export class ShareCreationService {
       throw new ShareNotFoundError();
     }
 
-    // Get canvas data
-    const canvasData = await this.canvasService.getCanvasRawData(user, workflowApp.canvasId);
+    // Process canvas data using common method
+    const canvasData = await this.processCanvasForShare(
+      user,
+      workflowApp.canvasId,
+      shareId,
+      allowDuplication,
+      title,
+    );
 
     // IMPORTANT: Add canvasId to canvasData for frontend access
     // Frontend needs canvasId for CanvasProvider and other canvas-related operations
@@ -991,180 +1020,6 @@ export class ShareCreationService {
       ...canvasData,
       canvasId: workflowApp.canvasId,
     };
-
-    // If title is provided, use it as the title of the workflow app
-    if (title) {
-      canvasDataWithId.title = title;
-    }
-
-    // Set up concurrency limit for image processing
-    const limit = pLimit(5); // Limit to 5 concurrent operations
-
-    // Find all image video audio nodes
-    const mediaNodes =
-      canvasDataWithId.nodes?.filter(
-        (node) => node.type === 'image' || node.type === 'video' || node.type === 'audio',
-      ) ?? [];
-
-    // Process all images in parallel with concurrency control
-    const mediaProcessingPromises = mediaNodes.map((node) => {
-      return limit(async () => {
-        const storageKey = node.data?.metadata?.storageKey as string;
-        if (storageKey) {
-          try {
-            const mediaUrl = await this.miscService.publishFile(storageKey);
-            // Update the node with the published image URL
-            if (node.data?.metadata) {
-              node.data.metadata[`${node.type}Url`] = mediaUrl;
-            }
-          } catch (error) {
-            this.logger.error(
-              `Failed to publish image for storageKey: ${storageKey}, error: ${error.stack}`,
-            );
-          }
-        }
-        return node;
-      });
-    });
-
-    // Wait for all image processing to complete
-    await Promise.all(mediaProcessingPromises);
-
-    // Group nodes by type for parallel processing (same as createShareForCanvas)
-    const nodesByType = {
-      document: [] as typeof canvasDataWithId.nodes,
-      resource: [] as typeof canvasDataWithId.nodes,
-      skillResponse: [] as typeof canvasDataWithId.nodes,
-      codeArtifact: [] as typeof canvasDataWithId.nodes,
-    };
-
-    // Group nodes by their types
-    for (const node of canvasDataWithId.nodes ?? []) {
-      if (node.type in nodesByType) {
-        nodesByType[node.type].push(node);
-      }
-    }
-
-    // Process each node type in parallel with concurrency control
-    const nodeProcessingLimit = pLimit(3); // Limit concurrent operations per type
-
-    const processDocumentNodes = async () => {
-      const promises = nodesByType.document.map((node) =>
-        nodeProcessingLimit(async () => {
-          try {
-            const { shareRecord, document } = await this.createShareForDocument(user, {
-              entityId: node.data?.entityId,
-              entityType: 'document',
-              parentShareId: shareId,
-              allowDuplication,
-            });
-
-            if (node.data) {
-              node.data.contentPreview = document?.contentPreview;
-              node.data.metadata = {
-                ...node.data.metadata,
-                shareId: shareRecord?.shareId,
-              };
-            }
-          } catch (error) {
-            this.logger.error(
-              `Failed to process document node ${node.data?.entityId}, error: ${error.stack}`,
-            );
-          }
-        }),
-      );
-      await Promise.all(promises);
-    };
-
-    const processResourceNodes = async () => {
-      const promises = nodesByType.resource.map((node) =>
-        nodeProcessingLimit(async () => {
-          try {
-            const { shareRecord, resource } = await this.createShareForResource(user, {
-              entityId: node.data?.entityId,
-              entityType: 'resource',
-              parentShareId: shareId,
-              allowDuplication,
-            });
-
-            if (node.data) {
-              node.data.contentPreview = resource?.contentPreview;
-              node.data.metadata = {
-                ...node.data.metadata,
-                shareId: shareRecord?.shareId,
-              };
-            }
-          } catch (error) {
-            this.logger.error(
-              `Failed to process resource node ${node.data?.entityId}, error: ${error.stack}`,
-            );
-          }
-        }),
-      );
-      await Promise.all(promises);
-    };
-
-    const processSkillResponseNodes = async () => {
-      const promises = nodesByType.skillResponse.map((node) =>
-        nodeProcessingLimit(async () => {
-          try {
-            const { shareRecord } = await this.createShareForSkillResponse(user, {
-              entityId: node.data?.entityId,
-              entityType: 'skillResponse',
-              parentShareId: shareId,
-              allowDuplication,
-            });
-
-            if (node.data) {
-              node.data.metadata = {
-                ...node.data.metadata,
-                shareId: shareRecord?.shareId,
-              };
-            }
-          } catch (error) {
-            this.logger.error(
-              `Failed to process skill response node ${node.data?.entityId}, error: ${error.stack}`,
-            );
-          }
-        }),
-      );
-      await Promise.all(promises);
-    };
-
-    const processCodeArtifactNodes = async () => {
-      const promises = nodesByType.codeArtifact.map((node) =>
-        nodeProcessingLimit(async () => {
-          try {
-            const { shareRecord } = await this.createShareForCodeArtifact(user, {
-              entityId: node.data?.entityId,
-              entityType: 'codeArtifact',
-              parentShareId: shareId,
-              allowDuplication,
-            });
-
-            if (node.data) {
-              node.data.metadata = {
-                ...node.data.metadata,
-                shareId: shareRecord?.shareId,
-              };
-            }
-          } catch (error) {
-            this.logger.error(
-              `Failed to process code artifact node ${node.data?.entityId}, error: ${error.stack}`,
-            );
-          }
-        }),
-      );
-      await Promise.all(promises);
-    };
-
-    // Process all node types in parallel
-    await Promise.all([
-      processDocumentNodes(),
-      processResourceNodes(),
-      processSkillResponseNodes(),
-      processCodeArtifactNodes(),
-    ]);
 
     // Publish minimap
     if (canvasDataWithId.minimapUrl) {
