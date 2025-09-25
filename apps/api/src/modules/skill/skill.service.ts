@@ -512,8 +512,8 @@ export class SkillService implements OnModuleInit {
       if (param.context.resources?.length > 0) {
         const imageResources = param.context.resources
           .filter((item) => item.resource?.resourceType === 'image')
-          .map((item) => item.resource?.storageKey)
-          .filter((storageKey) => storageKey);
+          .map((item) => item.resource?.rawFileKey)
+          .filter(Boolean);
 
         if (imageResources.length > 0) {
           param.input.images ??= [];
