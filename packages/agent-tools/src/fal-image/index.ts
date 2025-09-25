@@ -24,12 +24,12 @@ export const FalImageToolsetDefinition: ToolsetDefinition = {
   key: 'fal_image',
   domain: 'https://fal.ai/',
   labelDict: {
-    en: 'Generate Image with FAL',
-    'zh-CN': '使用 FAL 生成图像',
+    en: 'Image Generation',
+    'zh-CN': '图像生成',
   },
   descriptionDict: {
-    en: 'Generate image content with FAL.',
-    'zh-CN': '使用 FAL 生成图像内容。',
+    en: 'Generate or edit image, support Seedream（generate/edit）、Nano Banana（generate/edit） model.',
+    'zh-CN': '生成或编辑图像，支持 Seedream（生成/编辑）、Nano Banana（生成/编辑） 模型。',
   },
   tools: [
     {

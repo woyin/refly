@@ -22,12 +22,12 @@ export const FalAudioToolsetDefinition: ToolsetDefinition = {
   key: 'fal_audio',
   domain: 'https://fal.ai/',
   labelDict: {
-    en: 'Generate Audio with FAL',
-    'zh-CN': '使用 FAL 生成音频',
+    en: 'Audio Generation',
+    'zh-CN': '音频生成',
   },
   descriptionDict: {
-    en: 'Generate audio content with FAL.',
-    'zh-CN': '使用 FAL 生成音频内容。',
+    en: 'Generate high-quality speech and voiceover, support VibeVoice、ElevenLabs Dialogue、MiniMax Speech model.',
+    'zh-CN': '生成高质量语音与配音，支持 VibeVoice、ElevenLabs Dialogue、MiniMax Speech 模型。',
   },
   tools: [
     {
