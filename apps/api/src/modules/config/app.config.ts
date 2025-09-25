@@ -26,6 +26,11 @@ export default () => ({
     username: process.env.REDIS_USERNAME,
     password: process.env.REDIS_PASSWORD,
   },
+  session: {
+    secret: process.env.SESSION_SECRET || 'refly-session-secret-key-change-in-production',
+    maxAge: Number.parseInt(process.env.SESSION_MAX_AGE) || 86400000, // 24 hours in milliseconds
+    cookieName: process.env.SESSION_COOKIE_NAME || 'refly.sid',
+  },
   objectStorage: {
     reclaimPolicy: process.env.OBJECT_STORAGE_RECLAIM_POLICY || 'retain', // 'retain' or 'delete'
     backend: process.env.OBJECT_STORAGE_BACKEND || 'minio',

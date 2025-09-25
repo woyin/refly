@@ -1,9 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { Profile, Strategy } from '@superfaceai/passport-twitter-oauth2';
-import { AuthService } from '../auth.service';
+import { Profile, Strategy } from 'passport-twitter';
 import { Request } from 'express';
+import { AuthService } from '../auth.service';
+
+// Extend session type to include uid
+declare module 'express-session' {
+  interface SessionData {
+    uid?: string;
+  }
+}
 
 @Injectable()
 export class TwitterOauthStrategy extends PassportStrategy(Strategy, 'twitter') {
@@ -12,10 +19,10 @@ export class TwitterOauthStrategy extends PassportStrategy(Strategy, 'twitter') 
     private authService: AuthService,
   ) {
     super({
-      clientID: configService.get('auth.twitter.clientId'),
-      clientSecret: configService.get('auth.twitter.clientSecret'),
+      consumerKey: configService.get('auth.twitter.clientId'),
+      consumerSecret: configService.get('auth.twitter.clientSecret'),
       callbackURL: configService.get('auth.twitter.callbackUrl'),
-      scope: ['tweet.read', 'tweet.write', 'users.read'],
+      passReqToCallback: true,
     });
   }
 
@@ -25,16 +32,12 @@ export class TwitterOauthStrategy extends PassportStrategy(Strategy, 'twitter') 
     const scope = req?.query?.scope as string;
     const scopes = scope ? scope.split(' ') : [];
 
-    // Extract uid from state
+    // Extract uid from session (stored during initial OAuth request)
     let uid: string | undefined;
-    const state = req?.query?.state as string;
-    if (state) {
-      try {
-        const stateObj = JSON.parse(state);
-        uid = stateObj.uid;
-      } catch {
-        // Ignore parsing errors
-      }
+    if (req.session?.uid) {
+      uid = req.session.uid;
+      // Clean up session after use
+      req.session.uid = undefined;
     }
 
     return this.authService.oauthValidate(accessToken, refreshToken, profile, scopes, uid);

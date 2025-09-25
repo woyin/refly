@@ -1,11 +1,14 @@
 import { Divider, Modal, Button, Segmented, message } from 'antd';
-import { ImportResourceMenuItem, useImportResourceStoreShallow } from '@refly/stores';
+import {
+  ImportResourceMenuItem,
+  useCanvasResourcesPanelStoreShallow,
+  useImportResourceStoreShallow,
+} from '@refly/stores';
 
 import { useTranslation } from 'react-i18next';
 
 import './index.scss';
 import { useEffect, memo, useMemo, useState, useCallback } from 'react';
-// import { getRuntime } from '@refly/utils/env';
 import MultilingualSearch from '@refly-packages/ai-workspace-common/modules/multilingual-search';
 import { ImportFromWeblink } from './intergrations/import-from-weblink';
 import { ImportFromFile } from '@refly-packages/ai-workspace-common/components/import-resource/intergrations/import-from-file';
@@ -18,10 +21,9 @@ import { useUpdateSourceList } from '@refly-packages/ai-workspace-common/hooks/c
 import { UpsertResourceRequest } from '@refly/openapi-schema';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { getAvailableFileCount } from '@refly/utils/quota';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
-import { CanvasNodeType } from '@refly/openapi-schema';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries';
 
 export const ImportResourceModal = memo(() => {
   const { t } = useTranslation();
@@ -32,7 +34,6 @@ export const ImportResourceModal = memo(() => {
     selectedMenuItem,
     setSelectedMenuItem,
     setInsertNodePosition,
-    insertNodePosition,
     waitingList,
     clearWaitingList,
     setExtensionModalVisible,
@@ -48,6 +49,9 @@ export const ImportResourceModal = memo(() => {
     clearWaitingList: state.clearWaitingList,
     setExtensionModalVisible: state.setExtensionModalVisible,
   }));
+  const { setActiveTab } = useCanvasResourcesPanelStoreShallow((state) => ({
+    setActiveTab: state.setActiveTab,
+  }));
   const [showSearchResults, setShowSearchResults] = useState(false);
   const handleExtensionClick = useCallback(() => {
     setExtensionModalVisible(true);
@@ -58,12 +62,14 @@ export const ImportResourceModal = memo(() => {
   const { refetchUsage, storageUsage } = useSubscriptionUsage();
   const canImportCount = getAvailableFileCount(storageUsage);
   const { updateSourceList } = useUpdateSourceList();
+  const { refetch: refetchResources } = useListResources({
+    query: {
+      canvasId,
+      projectId,
+    },
+  });
 
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId);
-
-  // TODO: 移动端支持 , 之前用了isWeb来判断是否展示菜单选项
-  // const runtime = getRuntime();
-  // const isWeb = runtime === 'web';
 
   // TODO: 计算文件数量时需要去除上传的图片吗？需要测试一下文件余额不足的情况不能上传
   const disableSave = useMemo(() => {
@@ -93,49 +99,44 @@ export const ImportResourceModal = memo(() => {
     };
   }, [setInsertNodePosition]);
 
-  const handleSaveToCanvas = async () => {
+  const handleImportResources = async () => {
     if (waitingList.length === 0) {
       return;
     }
 
     setSaveLoading(true);
     try {
-      const batchCreateResourceData: UpsertResourceRequest[] = waitingList
-        .filter(
-          (item) =>
-            item.file?.type !== 'image' &&
-            item.file?.type !== 'video' &&
-            item.file?.type !== 'audio',
-        )
-        .map((item) => {
-          // For weblink items, use the link data if available
-          if (item.type === 'weblink' && item.link) {
-            return {
-              projectId: currentProjectId,
-              resourceType: 'weblink',
-              title: item.link.title || item.title || item.url || '',
-              data: {
-                url: item.url,
-                title: item.link.title || item.title || '',
-                description: item.link.description || '',
-                image: item.link.image || '',
-              },
-            };
-          }
-
-          // For other types, use the basic item data
+      const batchCreateResourceData: UpsertResourceRequest[] = waitingList.map((item) => {
+        // For weblink items, use the link data if available
+        if (item.type === 'weblink' && item.link) {
           return {
             projectId: currentProjectId,
-            resourceType: item.type,
-            title: item.title ?? '',
-            storageKey: item.file?.storageKey,
+            resourceType: 'weblink',
+            title: item.link.title || item.title || item.url || '',
+            canvasId,
             data: {
               url: item.url,
-              title: item.title,
-              content: item.content,
+              title: item.link.title || item.title || '',
+              description: item.link.description || '',
+              image: item.link.image || '',
             },
           };
-        });
+        }
+
+        // For other types, use the basic item data
+        return {
+          projectId: currentProjectId,
+          resourceType: item.file?.type,
+          title: item.title ?? '',
+          canvasId,
+          storageKey: item.file?.storageKey,
+          data: {
+            url: item.url,
+            title: item.title,
+            content: item.content,
+          },
+        };
+      });
 
       const { data } = await getClient().batchCreateResource({
         body: batchCreateResourceData,
@@ -146,33 +147,10 @@ export const ImportResourceModal = memo(() => {
       }
 
       refetchUsage();
+      refetchResources();
+      setActiveTab('myUpload');
+
       message.success(t('common.putSuccess'));
-
-      const resources = data && Array.isArray(data.data) ? data.data : [];
-      resources.forEach((resource, index) => {
-        const nodePosition = insertNodePosition
-          ? {
-              x: insertNodePosition?.x + index * 300,
-              y: insertNodePosition?.y,
-            }
-          : undefined;
-
-        nodeOperationsEmitter.emit('addNode', {
-          node: {
-            type: 'resource',
-            data: {
-              title: resource.title,
-              entityId: resource.resourceId,
-              contentPreview: resource.contentPreview,
-              metadata: {
-                resourceType: resource.resourceType,
-                resourceMeta: resource.data,
-              },
-            },
-            position: nodePosition,
-          },
-        });
-      });
 
       const mediaFiles = waitingList.filter(
         (item) =>
@@ -196,17 +174,6 @@ export const ImportResourceModal = memo(() => {
             metadata.audioUrl = item.file?.url;
             break;
         }
-
-        nodeOperationsEmitter.emit('addNode', {
-          node: {
-            type: item.file?.type as CanvasNodeType,
-            data: {
-              title: item.title,
-              entityId: item.file?.storageKey,
-              metadata,
-            },
-          },
-        });
       }
 
       // Update source list and clear waiting list after successful save
@@ -339,11 +306,11 @@ export const ImportResourceModal = memo(() => {
               </Button>
               <Button
                 type="primary"
-                onClick={handleSaveToCanvas}
+                onClick={handleImportResources}
                 disabled={disableSave}
                 loading={saveLoading}
               >
-                {t('common.saveToCanvas')}
+                {t('common.import')}
               </Button>
             </div>
           </div>

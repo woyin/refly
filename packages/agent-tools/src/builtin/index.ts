@@ -32,13 +32,6 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
       },
     },
     {
-      name: 'generate_media',
-      descriptionDict: {
-        en: 'Generate images, audio, or video content using AI.',
-        'zh-CN': '使用 AI 生成图像、音频或视频内容。',
-      },
-    },
-    {
       name: 'generate_doc',
       descriptionDict: {
         en: 'Generate a new document based on a title and content.',
@@ -177,90 +170,6 @@ export class BuiltinWebSearch extends AgentBaseTool<BuiltinToolParams> {
           error instanceof Error
             ? error.message
             : 'Unknown error occurred while performing web search',
-      };
-    }
-  }
-}
-
-export class BuiltinGenerateMedia extends AgentBaseTool<BuiltinToolParams> {
-  name = 'generate_media';
-  toolsetKey = BuiltinToolsetDefinition.key;
-
-  schema = z.object({
-    mediaType: z.enum(['image', 'audio', 'video']).describe('Type of media to generate'),
-    prompt: z.string().describe('Prompt describing the media to generate'),
-    model: z
-      .string()
-      .optional()
-      .describe(
-        'Specific model to use for generation. If not specified, the default model will be used.',
-      ),
-    provider: z
-      .string()
-      .optional()
-      .describe(
-        'Specific provider to use for generation. If not specified, the default provider will be used.',
-      ),
-    targetType: z
-      .enum([
-        'document',
-        'resource',
-        'canvas',
-        'share',
-        'user',
-        'project',
-        'skillResponse',
-        'codeArtifact',
-        'page',
-        'mediaResult',
-      ])
-      .optional()
-      .describe('Optional target entity type'),
-    targetId: z.string().optional().describe('Optional target entity ID'),
-  });
-
-  description = 'Generate images, audio, or video content using AI.';
-
-  protected params: BuiltinToolParams;
-
-  constructor(params: BuiltinToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(
-    input: z.infer<typeof this.schema>,
-    _: unknown,
-    config: RunnableConfig,
-  ): Promise<ToolCallResult> {
-    try {
-      const { reflyService, user } = this.params;
-      const result = await reflyService.generateMedia(user, {
-        mediaType: input.mediaType,
-        prompt: input.prompt,
-        model: input.model,
-        provider: input.provider,
-        targetType: input.targetType,
-        targetId: input.targetId,
-        wait: true,
-        parentResultId: config.configurable?.resultId,
-      });
-
-      if (!result.success) {
-        throw new Error(result.errMsg);
-      }
-
-      return {
-        status: 'success',
-        data: result,
-        summary: `Successfully generated media: ${input.mediaType} with URL: ${result?.outputUrl}`,
-      };
-    } catch (error) {
-      return {
-        status: 'error',
-        error: 'Error generating media',
-        summary:
-          error instanceof Error ? error.message : 'Unknown error occurred while generating media',
       };
     }
   }
@@ -479,7 +388,6 @@ export class BuiltinToolset extends AgentBaseToolset<BuiltinToolParams> {
   tools = [
     BuiltinLibrarySearch,
     BuiltinWebSearch,
-    BuiltinGenerateMedia,
     BuiltinGenerateDoc,
     BuiltinGenerateCodeArtifact,
     BuiltinSendEmail,

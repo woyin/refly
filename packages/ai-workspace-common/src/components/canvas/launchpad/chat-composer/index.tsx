@@ -132,15 +132,23 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
 
   const handleImageUpload = useCallback(
     async (file: File) => {
-      const nodeData = await handleUploadImage(file, canvasId);
-      if (nodeData) {
+      const resource = await handleUploadImage(file, canvasId);
+      if (resource) {
         setTimeout(() => {
           // Use functional update to avoid state race conditions
           setContextItems((prevContextItems) => [
             ...(prevContextItems || []),
             {
-              type: 'image',
-              ...nodeData,
+              type: 'resource',
+              entityId: resource.resourceId,
+              title: resource.title,
+              metadata: {
+                resourceType: resource.resourceType,
+                resourceMeta: resource.data,
+                storageKey: resource.storageKey,
+                rawFileKey: resource.rawFileKey,
+                downloadURL: resource.downloadURL,
+              },
             },
           ]);
         }, 10);
@@ -151,12 +159,20 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
 
   const handleMultipleImagesUpload = useCallback(
     async (files: File[]) => {
-      const nodesData = await handleUploadMultipleImages(files, canvasId);
-      if (nodesData?.length) {
+      const resources = await handleUploadMultipleImages(files, canvasId);
+      if (resources?.length) {
         setTimeout(() => {
-          const newContextItems = nodesData.map((nodeData) => ({
-            type: 'image' as const,
-            ...nodeData,
+          const newContextItems: IContextItem[] = resources.map((resource) => ({
+            type: 'resource' as const,
+            entityId: resource.resourceId,
+            title: resource.title,
+            metadata: {
+              resourceType: resource.resourceType,
+              resourceMeta: resource.data,
+              storageKey: resource.storageKey,
+              rawFileKey: resource.rawFileKey,
+              downloadURL: resource.downloadURL,
+            },
           }));
 
           // Use functional update to avoid state race conditions

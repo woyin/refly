@@ -7,9 +7,11 @@ import {
   CanvasNodeType,
   WorkflowVariable,
 } from '@refly/openapi-schema';
+import { IContextItem } from '@refly/common-types';
 import { CanvasNodeFilter, ResponseNodeMeta } from './types';
 import { ThreadHistoryQuery } from './history';
 import { mirrorCanvasData } from './data';
+import { deepmerge, processQueryWithMentions } from '@refly/utils';
 
 export interface WorkflowNode {
   nodeId: string;
@@ -40,50 +42,37 @@ export interface WorkflowNodeExecution {
 }
 
 /**
- * Escape special regex characters in a string to be used in RegExp constructor
+ * Update context items from variables
+ * @param contextItems - Existing context items
+ * @param variables - Workflow variables
+ * @returns Enhanced context items with resource variables added
  */
-const escapeRegExp = (string: string): string => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
+export const updateContextItemsFromVariables = (
+  contextItems: IContextItem[],
+  variables: WorkflowVariable[],
+): IContextItem[] => {
+  const enhancedContextItems = [...contextItems];
 
-/**
- * Enhanced process query with workflow variables
- * - string: as before
- * - resource: return special marker for resource injection
- * - option: use defaultValue array first if value missing
- */
-export const processQueryWithTypes = (
-  query: string,
-  variables: WorkflowVariable[] = [],
-): string => {
-  if (!query || !variables.length) {
-    return query;
-  }
-
-  let processedQuery = query;
-
+  // For each referenced variable that is a resource type, add it to context
   for (const variable of variables) {
-    const values = variable.value;
-
     if (variable.variableType === 'resource') {
-      continue;
+      for (const value of variable.value) {
+        if (value.type === 'resource' && value.resource?.entityId) {
+          // Check if this resource is already in context
+          const existingItemIndex = enhancedContextItems.findIndex(
+            (item) => item.entityId === value.resource?.entityId && item.type === 'resource',
+          );
+
+          if (existingItemIndex >= 0) {
+            // Update the existing context item title to the variable name
+            enhancedContextItems[existingItemIndex].title = value.resource.name;
+          }
+        }
+      }
     }
-
-    // string/option: extract text values from VariableValue array
-    const textValues =
-      values
-        ?.filter((v) => v.type === 'text' && v.text)
-        .map((v) => v.text)
-        .filter(Boolean) ?? [];
-
-    const stringValue = textValues.length > 0 ? textValues.join(', ') : '';
-    const escapedName = escapeRegExp(variable.name);
-    processedQuery = processedQuery.replace(
-      new RegExp(`@${escapedName}(?=\\s|$|[^\\w\\p{L}\\p{N}])`, 'gu'),
-      `${stringValue}`,
-    );
   }
-  return processedQuery;
+
+  return enhancedContextItems;
 };
 
 // Helper function to find all nodes in the subtree starting from given start nodes
@@ -167,7 +156,16 @@ export const prepareNodeExecutions = (params: {
               node.data?.title ??
               '',
           );
-          node.data.title = processQueryWithTypes(originalQuery, variables);
+          const { processedQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
+            replaceVars: true,
+            variables,
+          });
+          node.data.title = processedQuery;
+          node.data.metadata = deepmerge(node.data.metadata, {
+            structuredData: {
+              query: updatedQuery,
+            },
+          });
         }
 
         return node;
@@ -185,7 +183,16 @@ export const prepareNodeExecutions = (params: {
             node.data?.title ??
             '',
         );
-        node.data.title = processQueryWithTypes(originalQuery, variables);
+        const { processedQuery, updatedQuery } = processQueryWithMentions(originalQuery, {
+          replaceVars: true,
+          variables,
+        });
+        node.data.title = processedQuery;
+        node.data.metadata = deepmerge(node.data.metadata, {
+          structuredData: {
+            query: updatedQuery,
+          },
+        });
       }
       return node;
     });
@@ -251,7 +258,15 @@ export const prepareNodeExecutions = (params: {
       const metadata = node.data?.metadata ?? {};
       const { contextItems = [] } = metadata as ResponseNodeMeta;
 
-      const resultHistory = contextItems
+      const originalQuery =
+        String((node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ?? '') ??
+        node.data?.title ??
+        '';
+
+      // Add resource variables referenced in query to context items
+      const enhancedContextItems = updateContextItemsFromVariables(contextItems, variables);
+
+      const resultHistory = enhancedContextItems
         .filter((item) => item.type === 'skillResponse' && item.metadata?.withHistory)
         .flatMap((item) =>
           historyQuery.findThreadHistory({ resultId: item.entityId }).map((node) => ({
@@ -260,10 +275,13 @@ export const prepareNodeExecutions = (params: {
           })),
         );
 
-      nodeExecution.originalQuery =
-        String((node.data?.metadata as ResponseNodeMeta)?.structuredData?.query ?? '') ??
-        node.data?.title ??
-        '';
+      // Update node metadata with enhanced context items
+      node.data.metadata = {
+        ...metadata,
+        contextItems: enhancedContextItems,
+      };
+
+      nodeExecution.originalQuery = originalQuery;
       nodeExecution.processedQuery = node?.data.title;
       nodeExecution.resultHistory = resultHistory;
     } else if (['document', 'codeArtifact', 'image', 'video', 'audio'].includes(node.type)) {

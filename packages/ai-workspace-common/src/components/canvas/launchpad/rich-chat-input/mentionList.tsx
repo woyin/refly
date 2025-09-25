@@ -22,7 +22,7 @@ import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canva
 export interface MentionItem {
   name: string;
   description: string;
-  source: 'startNode' | 'resourceLibrary' | 'stepRecord' | 'resultRecord' | 'myUpload';
+  source: 'variables' | 'resourceLibrary' | 'stepRecord' | 'resultRecord' | 'myUpload';
   variableType: string;
   variableId?: string;
   entityId?: string;
@@ -49,7 +49,7 @@ export const MentionList = ({
   query?: string;
 }) => {
   const { t } = useTranslation();
-  const [hoveredCategory, setHoveredCategory] = useState<string | null>('startNode');
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>('variables');
   // Keyboard navigation states
   const [focusLevel, setFocusLevel] = useState<'first' | 'second'>('first');
   const [firstLevelIndex, setFirstLevelIndex] = useState<number>(0);
@@ -80,7 +80,6 @@ export const MentionList = ({
       variableId: genVariableID(),
       variableType: 'string',
       value: [{ type: 'text' as ValueType, text: '' }],
-      source: 'startNode',
       required: false,
       isSingle: true,
       options: [],
@@ -116,7 +115,7 @@ export const MentionList = ({
           5, // Show for 5 seconds
         );
         refetchWorkflowVariables();
-        const newMentionItem: MentionItem = newItem as MentionItem;
+        const newMentionItem: MentionItem = { ...newItem, source: 'variables' } as MentionItem;
         command(newMentionItem);
       } else {
         message.error(t('canvas.workflow.variables.saveError'));
@@ -214,10 +213,10 @@ export const MentionList = ({
   const firstLevels = useMemo(
     () => [
       {
-        key: 'startNode',
-        name: t('canvas.richChatInput.startNode'),
-        source: 'startNode' as const,
-        onMouseEnter: () => setHoveredCategory('startNode'),
+        key: 'variables',
+        name: t('canvas.richChatInput.variables'),
+        source: 'variables' as const,
+        onMouseEnter: () => setHoveredCategory('variables'),
       },
       {
         key: 'resourceLibrary',
@@ -241,8 +240,7 @@ export const MentionList = ({
 
   // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
-    const startNodeItems = items.filter((item) => item.source === 'startNode');
-
+    const variableItems = items.filter((item) => item.source === 'variables');
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
     const stepRecordItems = items.filter((item) => item.source === 'stepRecord');
     const resultRecordItems = items.filter((item) => item.source === 'resultRecord');
@@ -252,7 +250,7 @@ export const MentionList = ({
 
     // Apply filtering based on query
     return {
-      startNode: filterItems(startNodeItems, query) || [],
+      variables: filterItems(variableItems, query) || [],
       resourceLibrary: filterItems(myUploadItems, query) || [],
       runningRecord: filterItems(runningRecordItems, query) || [],
     };
@@ -266,14 +264,14 @@ export const MentionList = ({
 
     // Check if there's a matching item in startNode with the same name as query
     const hasMatchingStartNodeItem =
-      groupedItems.startNode?.some((item) => item.name === query) ?? false;
+      groupedItems.variables?.some((item) => item.name === query) ?? false;
 
     // If there's a query and no matching startNode item, add create variable button at the top
     if (query && !hasMatchingStartNodeItem) {
       items.push({
         type: 'item' as const,
         name: query,
-        source: 'startNode' as const,
+        source: 'variables' as const,
         variableType: 'string',
         variableId: 'create-variable',
         categoryLabel: t('canvas.richChatInput.createVariable', { variableName: query }),
@@ -281,16 +279,16 @@ export const MentionList = ({
     }
 
     // Add startNode group
-    if (groupedItems.startNode.length > 0) {
+    if (groupedItems.variables.length > 0) {
       items.push({
         type: 'header',
-        label: t('canvas.richChatInput.startNode'),
-        source: 'startNode' as const,
+        label: t('canvas.richChatInput.variables'),
+        source: 'variables' as const,
       });
       items.push(
-        ...groupedItems.startNode.map((item) => ({
+        ...groupedItems.variables.map((item) => ({
           ...item,
-          categoryLabel: t('canvas.richChatInput.startNode'),
+          categoryLabel: t('canvas.richChatInput.variables'),
           type: 'item' as const,
         })),
       );
@@ -367,8 +365,8 @@ export const MentionList = ({
 
   // Derive current second level items based on hovered category
   const currentSecondLevelItems = useMemo<MentionItem[]>(() => {
-    if (hoveredCategory === 'startNode') {
-      return groupedItems.startNode ?? [];
+    if (hoveredCategory === 'variables') {
+      return groupedItems.variables ?? [];
     }
     if (hoveredCategory === 'resourceLibrary') {
       return groupedItems.resourceLibrary ?? [];
@@ -404,7 +402,7 @@ export const MentionList = ({
   // Sync first level index with hoveredCategory
   useEffect(() => {
     let idx = 0;
-    if (hoveredCategory === 'startNode') {
+    if (hoveredCategory === 'variables') {
       idx = 0;
     } else if (hoveredCategory === 'resourceLibrary') {
       idx = 1;
@@ -442,7 +440,7 @@ export const MentionList = ({
   const categoryConfigs = useMemo(
     () => ({
       startNode: {
-        emptyStateKey: 'noStartNodeVariables',
+        emptyStateKey: 'noVariables',
       },
       resourceLibrary: {
         nodeIconProps: (item: MentionItem) => ({
@@ -482,7 +480,7 @@ export const MentionList = ({
     (item: MentionItem, index: number, isActive: boolean) => {
       // Map item source to category config key
       const getCategoryKey = (source: string) => {
-        if (source === 'startNode') return 'startNode';
+        if (source === 'variables') return 'variables';
         if (source === 'myUpload') return 'resourceLibrary';
         if (source === 'stepRecord' || source === 'resultRecord') return 'runningRecord';
         return source;
@@ -516,7 +514,7 @@ export const MentionList = ({
                 <Spin size="small" className="text-refly-text-3" spinning={isAddingVariable} />
               )}
             </div>
-          ) : item.source === 'startNode' ? (
+          ) : item.source === 'variables' ? (
             <>
               <X size={12} className="flex-shrink-0" color="var(--refly-primary-default)" />
               <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
@@ -563,7 +561,7 @@ export const MentionList = ({
       if (total > 0) {
         const next = (firstLevelIndex + total - 1) % total;
         setFirstLevelIndex(next);
-        const nextKey = (firstLevels?.[next] as any)?.key ?? 'startNode';
+        const nextKey = (firstLevels?.[next] as any)?.key ?? 'variables';
         setHoveredCategory(nextKey);
       }
     } else {
@@ -586,7 +584,7 @@ export const MentionList = ({
       if (total > 0) {
         const next = (firstLevelIndex + 1) % total;
         setFirstLevelIndex(next);
-        const nextKey = (firstLevels?.[next] as any)?.key ?? 'startNode';
+        const nextKey = (firstLevels?.[next] as any)?.key ?? 'variables';
         setHoveredCategory(nextKey);
       }
     } else {
@@ -761,15 +759,15 @@ export const MentionList = ({
             className={secondLevelClasses}
             style={{ boxShadow: '10px 2px 20px 4px rgba(0, 0, 0, 0.04)' }}
           >
-            {hoveredCategory === 'startNode' && (
+            {hoveredCategory === 'variables' && (
               <div className="flex-1 w-full">
                 {isLoadingVariables ? (
                   <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
                     {t('canvas.richChatInput.loadingVariables')}
                   </div>
-                ) : groupedItems.startNode?.length > 0 ? (
+                ) : groupedItems.variables?.length > 0 ? (
                   <div className="flex flex-col gap-1">
-                    {groupedItems.startNode.map((item, idx) =>
+                    {groupedItems.variables.map((item, idx) =>
                       renderListItem(
                         item,
                         idx,
@@ -779,7 +777,7 @@ export const MentionList = ({
                   </div>
                 ) : (
                   <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
-                    {t('canvas.richChatInput.noStartNodeVariables')}
+                    {t('canvas.richChatInput.noVariables')}
                   </div>
                 )}
               </div>

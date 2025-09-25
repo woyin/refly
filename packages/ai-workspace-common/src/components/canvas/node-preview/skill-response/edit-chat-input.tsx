@@ -11,7 +11,7 @@ import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canva
 import { convertContextItemsToEdges } from '@refly/canvas-common';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useReactFlow } from '@xyflow/react';
-
+import { processQueryWithMentions } from '@refly/utils';
 import { useAskProject } from '@refly-packages/ai-workspace-common/hooks/canvas/use-ask-project';
 import { useUpdateNodeQuery } from '@refly-packages/ai-workspace-common/hooks/use-update-node-query';
 import { useActionResultStoreShallow, useActiveNode } from '@refly/stores';
@@ -22,8 +22,6 @@ import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hook
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries';
-import type { MentionVariable } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/types';
-import { processQueryWithVariables } from '@refly-packages/ai-workspace-common/utils/workflow-variable-processor';
 
 interface EditChatInputProps {
   enabled: boolean;
@@ -212,8 +210,11 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     deleteElements({ edges: edgesToDelete });
 
     // Process query with workflow variables
-    const variables = (workflowVariables?.data ?? []) as MentionVariable[];
-    const { query: processedQuery } = processQueryWithVariables(editQuery, variables);
+    const variables = workflowVariables?.data ?? [];
+    const { processedQuery } = processQueryWithMentions(editQuery, {
+      replaceVars: true,
+      variables,
+    });
 
     invokeAction(
       {
