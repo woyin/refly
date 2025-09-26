@@ -134,7 +134,13 @@ export const WorkflowRunForm = ({
       if (variable.variableType === 'string') {
         formValues[variable.name] = variable.value?.[0]?.text ?? '';
       } else if (variable.variableType === 'option') {
-        formValues[variable.name] = variable.value.map((v) => v.text);
+        // Handle both array and single value cases
+        const valueArray = Array.isArray(variable.value)
+          ? variable.value
+          : variable.value
+            ? [variable.value]
+            : [];
+        formValues[variable.name] = valueArray.map((v) => v.text);
       } else if (variable.variableType === 'resource') {
         // Convert resource values to UploadFile format
         const fileList: UploadFile[] =
@@ -161,9 +167,11 @@ export const WorkflowRunForm = ({
           value: [{ type: 'text', text: value }],
         });
       } else if (variable.variableType === 'option') {
+        // Handle both array and single value cases
+        const valueArray = Array.isArray(value) ? value : value ? [value] : [];
         newVariables.push({
           ...variable,
-          value: value.map((v) => ({ type: 'text', text: v })),
+          value: valueArray.map((v) => ({ type: 'text', text: v })),
         });
       } else if (variable.variableType === 'resource') {
         const v = Array.isArray(value) ? value[0] : undefined;
