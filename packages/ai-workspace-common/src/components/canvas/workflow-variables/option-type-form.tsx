@@ -115,7 +115,7 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
           name="currentOption"
           rules={[
             {
-              validator: async (_, _value) => {
+              validator: async () => {
                 if (!options?.length || options.length < 1) {
                   throw new Error(
                     t('canvas.workflow.variables.optionsRequired') ||

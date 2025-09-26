@@ -188,8 +188,8 @@ export const ResourceTypeForm: React.FC<ResourceTypeFormProps> = React.memo(
           name="value"
           rules={[
             {
-              validator: async () => {
-                if (!fileList || fileList.length === 0) {
+              validator: async (_, value) => {
+                if (!value || (Array.isArray(value) && value.length === 0)) {
                   throw new Error(
                     t('canvas.workflow.variables.fileRequired') ||
                       'Please upload at least one file',
