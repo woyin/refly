@@ -136,10 +136,17 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               setFileList(files);
             }
           } else if (defaultValue.variableType === 'option') {
+            // Extract the selected value from the VariableValue array
+            const selectedValue =
+              defaultValue.value && defaultValue.value.length > 0
+                ? defaultValue.value[0].text || ''
+                : '';
+
             const newOptionFormData = {
               ...optionFormData,
               name: defaultValue.name || '',
               value: defaultValue.value || [],
+              selectedValue: selectedValue,
               description: defaultValue.description || '',
               required: defaultValue.required ?? true,
               isSingle: defaultValue.isSingle ?? true,
@@ -365,13 +372,31 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               fileType: getFileType(file.name),
             },
           }));
-        } else if (variableType === 'option' && options.length > 0 && options[0]) {
-          finalValue = [
-            {
-              type: 'text',
-              text: options[0] || '',
-            },
-          ];
+        } else if (variableType === 'option') {
+          // Get the selected value from the form
+          const selectedValue = (values as any).selectedValue;
+          if (
+            selectedValue &&
+            (Array.isArray(selectedValue) ? selectedValue.length > 0 : selectedValue)
+          ) {
+            const textValue = Array.isArray(selectedValue) ? selectedValue[0] : selectedValue;
+            finalValue = [
+              {
+                type: 'text',
+                text: textValue,
+              },
+            ];
+          }
+        } else {
+          finalValue = [];
+        }
+
+        // Check if final value is empty and show error message
+        if (!finalValue || finalValue.length === 0) {
+          message.error(
+            t('canvas.workflow.variables.valueRequired') || 'Variable value is required',
+          );
+          return;
         }
 
         const variable: WorkflowVariable = {
