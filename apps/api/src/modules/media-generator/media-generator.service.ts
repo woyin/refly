@@ -7,6 +7,7 @@ import {
   //MediaGenerationModelConfig,
   EntityType,
   CanvasNodeType,
+  CanvasNode,
 } from '@refly/openapi-schema';
 
 import { ModelUsageQuotaExceeded /*ProviderItemNotFoundError*/ } from '@refly/errors';
@@ -166,6 +167,13 @@ export class MediaGeneratorService {
       let finalModel = model;
       let finalProviderItemId = providerItemId;
 
+      let parentResult: {
+        targetType: string;
+        targetId: string;
+        workflowExecutionId: string;
+        workflowNodeExecutionId: string;
+      } | null = null;
+
       if (!finalModel) {
         this.logger.log(
           `No model or providerItemId specified for ${mediaType} generation, using user's default configuration`,
@@ -192,11 +200,11 @@ export class MediaGeneratorService {
 
       this.logger.log(`Validating ${mediaType} generation request for user ${user.uid}`);
 
-      let mediaId = '';
+      let mediaNodeExecution = null;
 
       // If parentResultId is provided, use the targetId and targetType from the parent result
       if (parentResultId) {
-        const parentResult = await this.prisma.actionResult.findFirst({
+        parentResult = await this.prisma.actionResult.findFirst({
           select: {
             targetId: true,
             targetType: true,
@@ -223,7 +231,7 @@ export class MediaGeneratorService {
             });
             if (nodeExecution?.childNodeIds) {
               const childNodeIds = safeParseJSON(nodeExecution.childNodeIds) as string[];
-              const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
+              mediaNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
                 where: {
                   nodeId: { in: childNodeIds },
                   status: 'waiting',
@@ -233,9 +241,6 @@ export class MediaGeneratorService {
                   createdAt: 'asc',
                 },
               });
-              if (docNodeExecution) {
-                mediaId = docNodeExecution.entityId;
-              }
             }
           }
         }
@@ -248,7 +253,7 @@ export class MediaGeneratorService {
           resultId,
           uid: user.uid,
           type: 'media',
-          title: `${mediaType} generation: ${prompt.substring(0, 50)}...`,
+          title: prompt,
           modelName: finalModel,
           targetType,
           targetId,
@@ -272,15 +277,45 @@ export class MediaGeneratorService {
       };
 
       // Start media generation asynchronously
-      this.executeGenerate(user, result, finalRequest, mediaId).catch((error) => {
-        this.logger.error(`Media generation failed for ${resultId}:`, error);
-      });
+      this.executeGenerate(user, result, finalRequest, mediaNodeExecution?.entityId).catch(
+        (error) => {
+          this.logger.error(`Media generation failed for ${resultId}:`, error);
+        },
+      );
 
       // If wait is true, execute synchronously and return result
       if (wait) {
         // Poll for completion
         try {
           const result = await this.pollActionResult(resultId, mediaType);
+
+          if (mediaNodeExecution) {
+            const nodeData: CanvasNode = safeParseJSON(mediaNodeExecution.nodeData);
+
+            await this.prisma.workflowNodeExecution.update({
+              where: {
+                nodeExecutionId: mediaNodeExecution.nodeExecutionId,
+              },
+              data: {
+                title: prompt,
+                entityId: mediaNodeExecution.entityId,
+                nodeData: JSON.stringify({
+                  ...nodeData,
+                  data: {
+                    ...nodeData.data,
+                    title: prompt,
+                    entityId: mediaNodeExecution.entityId,
+                    metadata: {
+                      ...nodeData.data.metadata,
+                      [`${mediaType}Url`]: result.outputUrl,
+                      [`${mediaType}StorageKey`]: result.storageKey,
+                    },
+                  },
+                }),
+              },
+            });
+          }
+
           return {
             success: true,
             resultId,

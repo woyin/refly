@@ -2,7 +2,6 @@ import { User } from '../../generated/client';
 import {
   CreateWorkflowAppRequest,
   WorkflowVariable,
-  ListWorkflowAppsData,
   GenericToolset,
   CanvasNode,
   RawCanvasData,
@@ -260,20 +259,14 @@ export class WorkflowAppService {
     }
   }
 
-  async listWorkflowApps(user: User, query: ListWorkflowAppsData) {
-    const { canvasId } = query.query ?? {};
-
-    const whereClause: {
-      uid: string;
-      deletedAt: null;
-      canvasId?: string;
-    } = {
+  async listWorkflowApps(user: User, query: { canvasId: string }) {
+    const whereClause: any = {
       uid: user.uid,
       deletedAt: null,
     };
 
-    if (canvasId) {
-      whereClause.canvasId = canvasId;
+    if (query.canvasId) {
+      whereClause.canvasId = query.canvasId;
     }
 
     const workflowApps = await this.prisma.workflowApp.findMany({

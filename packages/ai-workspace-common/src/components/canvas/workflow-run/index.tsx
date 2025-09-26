@@ -5,7 +5,7 @@ import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { WorkflowRunForm } from './workflow-run-form';
 import './index.scss';
-import { FC, useCallback } from 'react';
+import { FC, useCallback, useState } from 'react';
 import { InitializeWorkflowRequest, WorkflowVariable } from '@refly/openapi-schema';
 
 interface WorkflowRunProps {
@@ -36,6 +36,8 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
   const { workflow, canvasId } = useCanvasContext();
   const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
 
+  const [isRunning, setIsRunning] = useState(false);
+
   const handleClose = useCallback(() => {
     setShowWorkflowRun(false);
     setSidePanelVisible(false);
@@ -60,9 +62,13 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
           refetchWorkflowVariables();
         } else {
           console.warn('Workflow initialization failed');
+          // Reset running state on failure
+          setIsRunning(false);
         }
       } catch (error) {
         console.error('Error initializing workflow:', error);
+        // Reset running state on error
+        setIsRunning(false);
       }
     },
     [canvasId, initializeWorkflow, refetchWorkflowVariables],
@@ -95,6 +101,8 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
             workflowStatus={workflowStatus}
             isPolling={isPolling}
             pollingError={pollingError}
+            isRunning={isRunning}
+            onRunningChange={setIsRunning}
           />
         )}
       </div>
