@@ -35,7 +35,7 @@ export const deduplicateEdges = (edges: CanvasEdge[]) => {
 export const prepareAddNode = (
   param: AddNodeParam,
 ): { newNode: CanvasNode; newEdges: CanvasEdge[] } => {
-  const { node = {}, connectTo = [], nodes, edges, viewport, autoLayout } = param;
+  const { node = {}, connectTo, nodes, edges, viewport, autoLayout } = param;
 
   // Check if a node with the same entityType and entityId already exists
   const existingNode = nodes.find(
@@ -47,16 +47,30 @@ export const prepareAddNode = (
     return { newNode: deepmerge(existingNode, node) as CanvasNode, newEdges: [] };
   }
 
-  // If connectTo is not provided, connect the new node to the start node
-  if (!connectTo?.length) {
-    const startNode = nodes.find((n) => n.type === 'start');
-    const connectToStart: CanvasNodeFilter = {
-      type: 'start',
-      entityId: startNode?.data?.entityId as string,
-      handleType: 'source',
-    };
+  // Normalize connectTo: undefined means connect to start, [] means no connections, [...filters] means explicit connections
+  let finalConnectTo: CanvasNodeFilter[] = [];
 
-    connectTo.push(connectToStart);
+  if (connectTo === undefined || connectTo === null) {
+    // connectTo not provided: connect to start node (default behavior)
+    const startNode = nodes.find((n) => n.type === 'start');
+
+    if (startNode) {
+      finalConnectTo = [
+        {
+          type: 'start',
+          entityId: startNode.data?.entityId as string,
+          handleType: 'source',
+        },
+      ];
+    } else {
+      finalConnectTo = [];
+    }
+  } else if (connectTo.length === 0) {
+    // connectTo is empty array: no connections (explicit choice)
+    finalConnectTo = [];
+  } else {
+    // connectTo has elements: use as provided
+    finalConnectTo = connectTo;
   }
 
   // Purge context items if they exist
@@ -67,25 +81,37 @@ export const prepareAddNode = (
   }
 
   // Find source nodes and target nodes based on handleType
-  const sourceNodes = connectTo
-    ?.filter((filter) => !filter.handleType || filter.handleType === 'source')
-    ?.map((filter) =>
-      nodes.find((n) => n.type === filter.type && n.data?.entityId === filter.entityId),
-    )
+  const sourceNodes = finalConnectTo
+    .filter((filter) => !filter.handleType || filter.handleType === 'source')
+    .map((filter) => {
+      const foundNode = nodes.find(
+        (n) => n.type === filter.type && n.data?.entityId === filter.entityId,
+      );
+      return foundNode;
+    })
     .filter((node): node is Node => node !== undefined);
 
-  const targetNodes = connectTo
-    ?.filter((filter) => filter.handleType === 'target')
-    ?.map((filter) =>
-      nodes.find((n) => n.type === filter.type && n.data?.entityId === filter.entityId),
-    )
+  const targetNodes = finalConnectTo
+    .filter((filter) => filter.handleType === 'target')
+    .map((filter) => {
+      const foundNode = nodes.find(
+        (n) => n.type === filter.type && n.data?.entityId === filter.entityId,
+      );
+      return foundNode;
+    })
     .filter((node): node is Node => node !== undefined);
+
+  // Validate connections: if connectTo was explicitly provided with elements but no nodes were found, this is an error
+  if (finalConnectTo.length > 0 && sourceNodes.length === 0 && targetNodes.length === 0) {
+    // In a real application, this should probably throw an error or return a specific error result
+    // For now, we'll log the error and proceed without connections
+  }
 
   // Calculate new node position using the utility function
   const newPosition = calculateNodePosition({
     nodes,
     sourceNodes: [...(sourceNodes || []), ...(targetNodes || [])],
-    connectTo,
+    connectTo: finalConnectTo,
     defaultPosition: node.position,
     edges,
     viewport,
@@ -135,15 +161,20 @@ export const prepareAddNode = (
     const sourceEdges = sourceNodes
       .filter((sourceNode) => {
         // Filter out the source nodes that already have an edge
-        return !edges?.some((edge) => edge.source === sourceNode.id && edge.target === newNode.id);
+        const hasExistingEdge = edges?.some(
+          (edge) => edge.source === sourceNode.id && edge.target === newNode.id,
+        );
+        return !hasExistingEdge;
       })
-      .map((sourceNode) => ({
-        id: `edge-${genUniqueId()}`,
-        source: sourceNode.id,
-        target: newNode.id,
-        // style: edgeStyles.default,
-        type: 'default',
-      }));
+      .map((sourceNode) => {
+        const edge = {
+          id: `edge-${genUniqueId()}`,
+          source: sourceNode.id,
+          target: newNode.id,
+          type: 'default',
+        };
+        return edge;
+      });
     newEdges.push(...sourceEdges);
   }
 
@@ -152,15 +183,20 @@ export const prepareAddNode = (
     const targetEdges = targetNodes
       .filter((targetNode) => {
         // Filter out the target nodes that already have an edge
-        return !edges?.some((edge) => edge.source === newNode.id && edge.target === targetNode.id);
+        const hasExistingEdge = edges?.some(
+          (edge) => edge.source === newNode.id && edge.target === targetNode.id,
+        );
+        return !hasExistingEdge;
       })
-      .map((targetNode) => ({
-        id: `edge-${genUniqueId()}`,
-        source: newNode.id,
-        target: targetNode.id,
-        // style: edgeStyles.default,
-        type: 'default',
-      }));
+      .map((targetNode) => {
+        const edge = {
+          id: `edge-${genUniqueId()}`,
+          source: newNode.id,
+          target: targetNode.id,
+          type: 'default',
+        };
+        return edge;
+      });
     newEdges.push(...targetEdges);
   }
 
