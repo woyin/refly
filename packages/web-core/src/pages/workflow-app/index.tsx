@@ -27,6 +27,7 @@ const WorkflowAppPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('runLogs');
   const [workflowVariables, setWorkflowVariables] = useState<WorkflowVariable[]>([]);
   const [finalNodeExecutions, setFinalNodeExecutions] = useState<any[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
 
   // Settings modal state
   const { showSettingModal, setShowSettingModal } = useSiderStoreShallow((state) => ({
@@ -64,6 +65,8 @@ const WorkflowAppPage: React.FC = () => {
 
       // Clear executionId when workflow completes or fails
       setExecutionId(null);
+      // Reset running state when workflow completes
+      setIsRunning(false);
 
       if (status === 'finish') {
         notification.success({
@@ -78,6 +81,8 @@ const WorkflowAppPage: React.FC = () => {
     onError: (_error) => {
       // Clear executionId on error
       setExecutionId(null);
+      // Reset running state on error
+      setIsRunning(false);
       notification.error({
         message: t('workflowApp.run.error') || 'Run error',
       });
@@ -116,24 +121,35 @@ const WorkflowAppPage: React.FC = () => {
         return;
       }
 
-      const { data, error } = await getClient().executeWorkflowApp({
-        body: {
-          shareId: shareId,
-          variables,
-        },
-      });
+      try {
+        const { data, error } = await getClient().executeWorkflowApp({
+          body: {
+            shareId: shareId,
+            variables,
+          },
+        });
 
-      if (error) {
-        message.error(`executeWorkflowApp error: ${error}`);
-        return;
-      }
+        if (error) {
+          message.error(`executeWorkflowApp error: ${error}`);
+          // Reset running state on error
+          setIsRunning(false);
+          return;
+        }
 
-      const newExecutionId = data?.data?.executionId ?? null;
-      if (newExecutionId) {
-        setExecutionId(newExecutionId);
-        message.success('Workflow started');
-      } else {
-        message.error('Failed to get execution ID');
+        const newExecutionId = data?.data?.executionId ?? null;
+        if (newExecutionId) {
+          setExecutionId(newExecutionId);
+          message.success('Workflow started');
+        } else {
+          message.error('Failed to get execution ID');
+          // Reset running state on failure
+          setIsRunning(false);
+        }
+      } catch (error) {
+        console.error('Error executing workflow app:', error);
+        message.error('Failed to execute workflow');
+        // Reset running state on error
+        setIsRunning(false);
       }
     },
     [shareId, isLoggedRef, navigate],
@@ -164,6 +180,17 @@ const WorkflowAppPage: React.FC = () => {
     isLoggedRef,
     navigate,
   ]);
+
+  const handleCopyShareLink = useCallback(async () => {
+    try {
+      // Copy current browser URL to clipboard
+      await navigator.clipboard.writeText(window.location.href);
+      message.success(t('canvas.workflow.run.shareLinkCopied') || 'Share link copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy share link:', error);
+      message.error(t('canvas.workflow.run.shareLinkCopyFailed') || 'Failed to copy share link');
+    }
+  }, [t]);
 
   const segmentedOptions = useMemo(() => {
     return [
@@ -213,6 +240,9 @@ const WorkflowAppPage: React.FC = () => {
                 onSubmitVariables={onSubmit}
                 loading={isLoading}
                 onCopyWorkflow={handleCopyWorkflow}
+                onCopyShareLink={handleCopyShareLink}
+                isRunning={isRunning}
+                onRunningChange={setIsRunning}
                 className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm"
               />
             </div>
