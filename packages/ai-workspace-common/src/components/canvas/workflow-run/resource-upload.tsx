@@ -144,7 +144,7 @@ export const ResourceUpload: React.FC<ResourceUploadProps> = React.memo(
 
                 <div className="flex gap-1">
                   {onRefresh && (
-                    <Tooltip title={t('canvas.workflow.variables.reloadFile')}>
+                    <Tooltip title={t('canvas.workflow.variables.replaceFile')}>
                       <Button
                         size="small"
                         type="text"

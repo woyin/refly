@@ -15,26 +15,22 @@ import { cn } from '@refly/utils/cn';
 import { useUserStoreShallow } from '@refly/stores';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Mention from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
-import { ReactRenderer } from '@tiptap/react';
-import tippy from 'tippy.js';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import type { IContextItem } from '@refly/common-types';
 import type { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
-import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
 import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
-import { createRoot } from 'react-dom/client';
 import { useStore } from '@xyflow/react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   nodeActionEmitter,
   createNodeEventName,
 } from '@refly-packages/ai-workspace-common/events/nodeActions';
-import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { type MentionItem, MentionList } from './mentionList';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
+import { type MentionItem } from './mentionList';
+import { createMentionExtension } from './mention-extension';
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -60,150 +56,6 @@ export interface RichChatInputRef {
   focus: () => void;
 }
 
-// Helper function to render NodeIcon consistently
-const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) => {
-  if (source === 'startNode') {
-    // For startNode variables, use getStartNodeIcon to render variable type icons
-    return getVariableIcon(variableType);
-  } else if (source === 'stepRecord') {
-    return React.createElement(NodeIcon, {
-      type: 'skillResponse' as CanvasNodeType,
-      small: true,
-      filled: false,
-      className: '!w-3.5 !h-3.5',
-    });
-  } else if (source === 'resultRecord' || source === 'myUpload') {
-    const nodeType = variableType || 'document';
-    return React.createElement(NodeIcon, {
-      type: nodeType as CanvasNodeType,
-      small: true,
-      filled: false,
-      url: nodeType === 'image' ? nodeAttrs.url : undefined,
-      resourceType: nodeAttrs.resourceType,
-      resourceMeta: nodeAttrs.resourceMeta,
-      className: '!w-3.5 !h-3.5',
-    });
-  } else {
-    const nodeType = variableType || 'document';
-    return React.createElement(NodeIcon, {
-      type: nodeType as CanvasNodeType,
-      small: true,
-      filled: false,
-      className: '!w-3.5 !h-3.5',
-    });
-  }
-};
-
-// Custom Mention extension with icon support
-const CustomMention = Mention.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      source: {
-        default: null,
-        parseHTML: (element) => element.getAttribute('data-source'),
-        renderHTML: (attributes) => {
-          if (!attributes.source) {
-            return {};
-          }
-          return {
-            'data-source': attributes.source,
-          };
-        },
-      },
-      url: {
-        default: null,
-        parseHTML: (element) => element.getAttribute('data-url'),
-        renderHTML: (attributes) => {
-          if (!attributes.url) {
-            return {};
-          }
-          return {
-            'data-url': attributes.url,
-          };
-        },
-      },
-      variableType: {
-        default: null,
-        parseHTML: (element) => element.getAttribute('data-variable-type'),
-        renderHTML: (attributes) => {
-          if (!attributes.variableType) {
-            return {};
-          }
-          return {
-            'data-variable-type': attributes.variableType,
-          };
-        },
-      },
-      resourceType: {
-        default: null,
-        parseHTML: (element) => element.getAttribute('data-resource-type'),
-        renderHTML: (attributes) => {
-          if (!attributes.resourceType) {
-            return {};
-          }
-          return {
-            'data-resource-type': attributes.resourceType,
-          };
-        },
-      },
-      resourceMeta: {
-        default: null,
-        parseHTML: (element) => element.getAttribute('data-resource-meta'),
-        renderHTML: (attributes) => {
-          if (!attributes.resourceMeta) {
-            return {};
-          }
-          return {
-            'data-resource-meta': JSON.stringify(attributes.resourceMeta),
-          };
-        },
-      },
-    };
-  },
-  addNodeView() {
-    return ({ node }) => {
-      const dom = document.createElement('span');
-      dom.className = 'mention';
-
-      // Create icon container
-      const iconContainer = document.createElement('span');
-      iconContainer.className = 'mention-icon';
-
-      // Create text container
-      const textContainer = document.createElement('span');
-      textContainer.className = 'mention-text';
-      textContainer.textContent = node.attrs.label || node.attrs.id;
-
-      const variableType = node.attrs.variableType || node.attrs.source;
-      const source = node.attrs.source;
-
-      let reactRoot: any = null;
-      reactRoot = createRoot(iconContainer);
-
-      // Use NodeIcon based on source type
-      reactRoot.render(renderNodeIcon(source, variableType, node.attrs));
-
-      dom.appendChild(iconContainer);
-      dom.appendChild(textContainer);
-
-      return {
-        dom,
-        destroy() {
-          // Clean up React root when the node is destroyed
-          if (reactRoot) {
-            try {
-              reactRoot.unmount();
-            } catch {
-              // Ignore cleanup errors
-            }
-          }
-        },
-      };
-    };
-  },
-});
-
 const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
   (
     {
@@ -226,8 +78,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
     const { nodes } = useCanvasData();
-    const { nodes: realtimeNodes } = useRealtimeCanvasData();
     const { canvasId, workflow } = useCanvasContext();
+    const { projectId } = useGetProjectCanvasId();
+    const { data: resourcesData } = useListResources({
+      query: {
+        canvasId,
+        projectId,
+      },
+    });
+    const resources = resourcesData?.data ?? [];
     const searchStore = useSearchStoreShallow((state) => ({
       setIsSearchOpen: state.setIsSearchOpen,
     }));
@@ -243,13 +102,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Get all available items including canvas nodes with fallback data
     const allItems: MentionItem[] = useMemo(() => {
-      const startNodeItems = workflowVariables.map((variable) => ({
-        name: variable.name,
-        description: variable.description || '',
-        source: 'startNode' as const,
-        variableType: variable.variableType || 'string',
-        variableId: variable.variableId || '',
-      }));
+      const variableItems = workflowVariables
+        .map((variable) => ({
+          name: variable.name,
+          description: variable.description || '',
+          source: 'variables' as const,
+          variableType: variable.variableType || 'string',
+          variableId: variable.variableId || '',
+        }))
+        .filter((variable) => variable.variableType !== 'resource'); // exclude resource variables
 
       // Get skillResponse nodes for step records
       const stepRecordItems: MentionItem[] =
@@ -286,29 +147,27 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             },
           })) ?? [];
 
-      // Get my upload items from realtime canvas data
+      // Get my upload items from API resources data
       const myUploadItems: MentionItem[] =
-        realtimeNodes
-          ?.filter(
-            (node) =>
-              node.type === 'resource' || (node.type === 'image' && !node.data?.metadata?.resultId),
-          )
-          ?.map((node) => ({
-            name: node.data?.title ?? t('canvas.richChatInput.untitledUpload'),
-            description: t('canvas.richChatInput.myUpload'),
-            source: 'myUpload' as const,
-            variableType: node.type,
-            entityId: node.data?.entityId || '',
-            nodeId: node.id,
-            metadata: {
-              imageUrl: node.data?.metadata?.imageUrl as string | undefined,
-              resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
-              resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
-            },
-          })) ?? [];
+        resources?.map((resource) => ({
+          name: resource.title ?? t('canvas.richChatInput.untitledUpload'),
+          description: t('canvas.richChatInput.myUpload'),
+          source: 'myUpload' as const,
+          variableType: resource.resourceType || 'resource',
+          entityId: resource.resourceId,
+          nodeId: resource.resourceId,
+          metadata: {
+            imageUrl: resource.data?.url as string | undefined,
+            resourceType: resource.resourceType as ResourceType | undefined,
+            resourceMeta: resource.data as ResourceMeta | undefined,
+            storageKey: resource.storageKey,
+            rawFileKey: resource.rawFileKey,
+            downloadURL: resource.downloadURL,
+          },
+        })) ?? [];
 
-      return [...startNodeItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
-    }, [workflowVariables, nodes, realtimeNodes]);
+      return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
+    }, [workflowVariables, nodes, resources]);
 
     // Keep latest items in a ref so Mention suggestion always sees fresh data
     const allItemsRef = useRef<MentionItem[]>(allItems);
@@ -347,7 +206,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                 if (item.source === 'stepRecord') {
                   // For step records, use skillResponse type
                   return 'skillResponse' as CanvasNodeType;
-                } else if (item.source === 'resultRecord' || item.source === 'myUpload') {
+                } else if (item.source === 'resultRecord') {
                   // For result records and uploads, use the actual node type
                   // Validate that variableType is a valid CanvasNodeType
                   const validCanvasNodeTypes: CanvasNodeType[] = [
@@ -368,23 +227,20 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                     'mediaSkillResponse',
                     'start',
                   ];
+                  console.log('item.variableType', item.variableType);
 
                   if (validCanvasNodeTypes.includes(item.variableType as CanvasNodeType)) {
                     return item.variableType as CanvasNodeType;
                   }
-
-                  // Log warning for unknown types and fallback to document
-                  console.warn(
-                    `Unknown variableType "${item.variableType}" for source "${item.source}", falling back to "document"`,
-                    { item, validTypes: validCanvasNodeTypes },
-                  );
-                  return 'document' as CanvasNodeType;
+                  return 'resource' as CanvasNodeType;
+                } else if (item.source === 'myUpload') {
+                  return 'resource' as CanvasNodeType;
                 }
                 // Fallback for unexpected sources
                 console.warn(`Unexpected source "${item.source}", falling back to "document"`, {
                   item,
                 });
-                return 'document' as CanvasNodeType;
+                return 'resource' as CanvasNodeType;
               })(),
 
               metadata: {
@@ -419,13 +275,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                 {
                   type: 'mention',
                   attrs: {
-                    id: item.name,
-                    label: item.name, // Don't include @ in label
-                    source: item.source, // Store source for later processing
+                    // Use stable id for serialization
+                    id: item.entityId || item.nodeId || item.name,
+                    label: item.name,
+                    source: item.source,
                     variableType: item.variableType || item.source,
                     url: url,
                     resourceType: item.metadata?.resourceType,
                     resourceMeta: item.metadata?.resourceMeta,
+                    entityId: item.entityId || item.nodeId,
                   },
                 },
                 {
@@ -445,13 +303,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               {
                 type: 'mention',
                 attrs: {
-                  id: item.name,
-                  label: item.name, // Don't include @ in label
-                  source: item.source, // Store source for later processing
+                  // Use variableId as stable id when available
+                  id: item.variableId || item.name,
+                  label: item.name,
+                  source: item.source,
                   variableType: item.variableType || item.source,
                   url: item.metadata?.imageUrl,
                   resourceType: item.metadata?.resourceType,
                   resourceMeta: item.metadata?.resourceMeta,
+                  entityId: item.variableId,
                 },
               },
               {
@@ -467,151 +327,20 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Create mention extension with custom suggestion
     const mentionExtension = useMemo(() => {
-      return CustomMention.configure({
-        HTMLAttributes: {
-          class: 'mention',
-        },
-        suggestion: {
-          char: '@',
-          command: handleCommand,
-          items: () => {
-            // Require explicit user interaction before providing items
-            if (!hasUserInteractedRef.current) {
-              return [];
-            }
-
-            return allItemsRef.current ?? [];
-          },
-
-          // Only show suggestion when user is actively typing @
-          allow: () => {
-            // Require explicit user interaction to enable suggestions
-            if (!hasUserInteractedRef.current) {
-              return false;
-            }
-
-            return true;
-          },
-          render: () => {
-            let component: any;
-            let popup: any;
-            // Keep last non-null client rect to stabilize position during IME composition
-            // Some IMEs (e.g., Chinese) may temporarily return null on space confirmation
-            // which would cause Popper to position at (0,0). We cache the last rect instead.
-            let lastClientRect: DOMRect | null = null;
-            // Store latest props to avoid closure issues
-            let latestProps: any = null;
-            const parsePlacement = (inst: any): 'top' | 'bottom' => {
-              const resolved =
-                inst?.popperInstance?.state?.placement ??
-                inst?.popper?.getAttribute?.('data-placement') ??
-                inst?.state?.placement ??
-                inst?.props?.placement ??
-                'bottom-start';
-              const base = String(resolved).split('-')[0];
-              return base === 'top' ? 'top' : 'bottom';
-            };
-
-            return {
-              onStart: (props: any) => {
-                latestProps = props; // Store latest props
-                component = new ReactRenderer(MentionList, {
-                  props: {
-                    ...props,
-                    placement: mentionPosition,
-                    query: props.query || '',
-                  },
-                  editor: props.editor,
-                });
-
-                popup = tippy('body', {
-                  getReferenceClientRect: () => {
-                    const rect = props?.clientRect?.();
-                    // Cache valid rect; fallback to the last valid one during composition
-                    if (rect) lastClientRect = rect as DOMRect;
-                    return (rect as DOMRect) ?? (lastClientRect as DOMRect);
-                  },
-                  appendTo: () => document.body,
-                  content: component.element,
-                  showOnCreate: true,
-                  interactive: true,
-                  trigger: 'manual',
-                  placement: mentionPosition,
-                  theme: 'custom',
-                  arrow: false,
-                  offset: [0, 8],
-                  onMount(instance) {
-                    const placement = parsePlacement(instance);
-                    component.updateProps({
-                      ...latestProps,
-                      placement,
-                      query: latestProps?.query || '',
-                    });
-                  },
-                  onShown(instance) {
-                    const placement = parsePlacement(instance);
-                    setIsMentionListVisible(true);
-                    component.updateProps({
-                      ...latestProps,
-                      placement,
-                      isMentionListVisible: true,
-                      query: latestProps?.query || '',
-                    });
-                  },
-                  onHidden(instance) {
-                    const placement = parsePlacement(instance);
-                    setIsMentionListVisible(false);
-                    component.updateProps({
-                      ...latestProps,
-                      placement,
-                      isMentionListVisible: false,
-                      query: latestProps?.query || '',
-                    });
-                  },
-                  onDestroy() {
-                    setIsMentionListVisible(false);
-                    component.updateProps({
-                      ...latestProps,
-                      isMentionListVisible: false,
-                      query: latestProps?.query || '',
-                    });
-                  },
-                });
-
-                // Store popup instance for manual control
-                popupInstanceRef.current = popup[0];
-              },
-              onUpdate(props: any) {
-                latestProps = props; // Update latest props
-                component.updateProps({ ...props, query: props.query || '' });
-                // Update the reference rect while guarding against null during IME composition
-                popup[0].setProps({
-                  getReferenceClientRect: () => {
-                    const rect = props?.clientRect?.();
-                    if (rect) lastClientRect = rect as DOMRect;
-                    return (rect as DOMRect) ?? (lastClientRect as DOMRect);
-                  },
-                });
-                // Read actual placement after Popper updates layout
-                requestAnimationFrame(() => {
-                  try {
-                    const instance = popup?.[0];
-                    const placement = parsePlacement(instance);
-                    component.updateProps({ ...props, placement, query: props.query || '' });
-                  } catch {
-                    // noop
-                  }
-                });
-              },
-              onExit() {
-                popup[0].destroy();
-                component.destroy();
-              },
-            };
-          },
-        },
+      return createMentionExtension({
+        handleCommand,
+        hasUserInteractedRef,
+        allItemsRef,
+        mentionPosition,
+        setIsMentionListVisible,
       });
-    }, [handleCommand, isMentionListVisible, mentionPosition]);
+    }, [
+      handleCommand,
+      hasUserInteractedRef,
+      allItemsRef,
+      mentionPosition,
+      setIsMentionListVisible,
+    ]);
 
     // Create Tiptap editor
     const internalUpdateRef = useRef(false);
@@ -663,8 +392,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         content: query,
         editable: !readonly,
         onUpdate: ({ editor }) => {
-          const content = editor.getText();
-          // Keep raw text in state for UX; convert to handlebars only on send
+          const content = serializeDocToTokens(editor?.state?.doc);
+          // Keep raw text in state for UX; content is already serialized with mentions
           internalUpdateRef.current = true;
           setQuery(content);
         },
@@ -696,60 +425,43 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       [editor, readonly],
     );
 
-    // Function to convert mentions to Handlebars format
-    const convertMentionsToHandlebars = useCallback(
-      (content: string) => {
-        if (!editor) return content;
-
-        // Build the content by traversing the doc and handling nodes properly
-        let processedContent = '';
-        let paragraphIndex = 0;
-
-        editor.state.doc.descendants((node) => {
+    // Serializer: convert current doc with mentions into @{...} tokens for state/query
+    const serializeDocToTokens = useCallback((doc: any): string => {
+      try {
+        if (!doc) return '';
+        const text = doc.textBetween(0, doc.content.size, '\n', (node: any) => {
           const nodeName = node?.type?.name ?? '';
-
-          // Insert a newline between paragraphs to preserve line breaks created by Enter
-          if (nodeName === 'paragraph') {
-            if (paragraphIndex > 0) {
-              processedContent += '\n';
-            }
-            paragraphIndex += 1;
-            return; // Children will be handled in subsequent calls
-          }
-
-          // Map hardBreak nodes to '\n' to preserve single line breaks
-          if (nodeName === 'hardBreak') {
-            processedContent += '\n';
-            return;
-          }
-
           if (nodeName === 'mention') {
-            const mentionName = node?.attrs?.label ?? node?.attrs?.id;
-            const source = node?.attrs?.source;
-
-            // Only convert startNode and resourceLibrary variables to @variableName format
-            if (mentionName && (source === 'startNode' || source === 'resourceLibrary')) {
-              processedContent += `@${mentionName} `;
-            } else if (mentionName) {
-              // For other types (stepRecord, resultRecord), just add the name without @
-              processedContent += mentionName;
-            }
-            return;
+            const label = node?.attrs?.label ?? node?.attrs?.id ?? '';
+            const id = node?.attrs?.id ?? '';
+            const source = node?.attrs?.source ?? '';
+            const type =
+              source === 'variables'
+                ? 'var'
+                : source === 'stepRecord'
+                  ? 'step'
+                  : source === 'resultRecord' ||
+                      source === 'myUpload' ||
+                      source === 'resourceLibrary'
+                    ? 'resource'
+                    : 'var';
+            const safeId = String(id ?? '').trim();
+            const safeName = String(label ?? '').trim();
+            return safeName ? `@{type=${type},id=${safeId || safeName},name=${safeName}}` : '';
           }
-
-          if (nodeName === 'text') {
-            processedContent += node.text ?? '';
-            return;
+          if (nodeName === 'hardBreak') {
+            return '\n';
           }
+          return '';
         });
-
-        return processedContent;
-      },
-      [editor],
-    );
+        return text ?? '';
+      } catch {
+        return '';
+      }
+    }, []);
 
     // Build tiptap JSON content from a string with @variableName format
-    const buildContentFromHandlebars = useCallback(
+    const buildNodesFromContent = useCallback(
       (content: string) => {
         const nodes: any[] = [];
         if (!content) return nodes;
@@ -769,13 +481,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
         const normalized = normalizeContent(content);
 
-        const findVarMeta = (name: string) => {
+        const findVarMetaByName = (name: string) => {
           // Priority 1: Look in allItems first (includes canvas-based items and workflow variables)
           const foundFromAll = (allItems || []).find((it: any) => it?.name === name);
           if (foundFromAll) {
             return {
-              source: foundFromAll?.source ?? 'startNode',
               variableType: foundFromAll?.variableType ?? 'string',
+              entityId: foundFromAll?.entityId ?? foundFromAll?.variableId ?? foundFromAll?.nodeId,
+              source: foundFromAll?.source,
             };
           }
 
@@ -783,16 +496,34 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           const foundInVariables = (workflowVariables || []).find((v: any) => v?.name === name);
           if (foundInVariables) {
             return {
-              source: foundInVariables?.source ?? 'startNode',
               variableType: foundInVariables?.variableType ?? 'string',
+              entityId: foundInVariables?.variableId,
+              source: 'variables',
             };
           }
 
-          // Fallback: Default to startNode with string type
+          // Fallback: Default to variables with string type
           return {
-            source: 'startNode',
             variableType: 'string',
+            source: 'variables',
           };
+        };
+
+        const findMetaById = (id: string) => {
+          if (!id) return null as any;
+          const foundFromAll = (allItems || []).find((it: any) => {
+            const vid = it?.variableId ?? '';
+            const eid = it?.entityId ?? '';
+            const nid = it?.nodeId ?? '';
+            return vid === id || eid === id || nid === id;
+          });
+          if (foundFromAll) {
+            return {
+              variableType: foundFromAll?.variableType ?? 'string',
+              source: foundFromAll?.source,
+            };
+          }
+          return null as any;
         };
 
         // Prepare name list sorted by length desc to prefer the longest match
@@ -818,7 +549,63 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           }
 
           if (ch === '@') {
-            // Try to match any known name right after '@'
+            // Try new rich token: @{type=...,id=...,name=...}
+            if (normalized[i + 1] === '{') {
+              const closeIdx = normalized.indexOf('}', i + 2);
+              if (closeIdx !== -1) {
+                const inside = normalized.slice(i + 2, closeIdx);
+                // Parse key=value pairs separated by comma, allow spaces
+                const pairs = inside.split(',').map((s) => s.trim());
+                const map: Record<string, string> = {};
+                for (const p of pairs) {
+                  const eq = p.indexOf('=');
+                  if (eq > 0) {
+                    const k = p.slice(0, eq).trim();
+                    const v = p.slice(eq + 1).trim();
+                    map[k] = v;
+                  }
+                }
+                const tokenType = map.type || 'var';
+                const tokenId = map.id || '';
+                const tokenName = map.name || '';
+
+                if (textBuffer) {
+                  nodes.push({ type: 'text', text: textBuffer });
+                  textBuffer = '';
+                }
+
+                // Map type to source and variableType
+                let source = 'variables';
+                let variableType = 'string';
+                if (tokenType === 'var') {
+                  source = 'variables';
+                  const meta = findMetaById(tokenId) || findVarMetaByName(tokenName);
+                  variableType = meta?.variableType ?? 'string';
+                } else if (tokenType === 'step') {
+                  source = 'stepRecord';
+                  variableType = 'skillResponse';
+                } else if (tokenType === 'resource') {
+                  source = 'resultRecord';
+                  const meta = findMetaById(tokenId) || findVarMetaByName(tokenName);
+                  variableType = meta?.variableType ?? 'resource';
+                }
+
+                nodes.push({
+                  type: 'mention',
+                  attrs: {
+                    id: tokenId || tokenName,
+                    label: tokenName || tokenId,
+                    variableType,
+                    source,
+                    entityId: tokenId || undefined,
+                  },
+                });
+                i = closeIdx + 1;
+                continue;
+              }
+            }
+
+            // Fallback: legacy @name syntax
             let matchedName: string | null = null;
             for (const name of allNames) {
               const candidate = normalized.slice(i + 1, i + 1 + name.length);
@@ -836,17 +623,17 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                 nodes.push({ type: 'text', text: textBuffer });
                 textBuffer = '';
               }
-              const meta = findVarMeta(matchedName);
+              const meta = findVarMetaByName(matchedName);
               nodes.push({
                 type: 'mention',
                 attrs: {
-                  id: matchedName,
+                  id: meta?.entityId || matchedName,
                   label: matchedName,
-                  source: meta.source,
-                  variableType: meta.variableType,
+                  variableType: meta?.variableType ?? 'string',
+                  source: meta?.source ?? 'variables',
+                  entityId: meta?.entityId,
                 },
               });
-              // Consume '@' + name but do NOT consume trailing whitespace to preserve original spacing
               i = i + 1 + matchedName.length;
               continue;
             }
@@ -868,16 +655,15 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     // Enhanced handleSendMessage that converts mentions to Handlebars
     const handleSendMessageWithHandlebars = useCallback(() => {
       if (editor) {
-        const currentContent = editor.getText();
-        const processedContent = convertMentionsToHandlebars(currentContent);
-        // Update the query with the processed content before sending
-        setQuery(processedContent);
+        const currentContent = serializeDocToTokens(editor?.state?.doc);
+        // Update the query with the serialized content before sending
+        setQuery(currentContent);
         // Call the original handleSendMessage
         handleSendMessage();
       } else {
         handleSendMessage();
       }
-    }, [editor, convertMentionsToHandlebars, setQuery, handleSendMessage]);
+    }, [editor, setQuery, handleSendMessage, serializeDocToTokens]);
 
     // Update editor content when query changes externally
     useEffect(() => {
@@ -887,11 +673,11 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         internalUpdateRef.current = false;
         return;
       }
-      const currentText = editor.getText();
+      const currentText = serializeDocToTokens(editor?.state?.doc);
       const nextText = query ?? '';
       if (currentText !== nextText) {
         // Convert handlebars variables back to mention nodes for rendering
-        const nodes = buildContentFromHandlebars(nextText);
+        const nodes = buildNodesFromContent(nextText);
         if (nodes.length > 0) {
           const jsonDoc = {
             type: 'doc',
@@ -902,14 +688,26 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             ],
           } as any;
+          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
+          if (prevSelection !== null) {
+            const size = editor?.state?.doc?.content?.size ?? 0;
+            const clamped = Math.min(prevSelection, size);
+            editor.commands.setTextSelection(clamped);
+          }
         } else {
+          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(nextText);
+          if (prevSelection !== null) {
+            const size = editor?.state?.doc?.content?.size ?? 0;
+            const clamped = Math.min(prevSelection, size);
+            editor.commands.setTextSelection(clamped);
+          }
         }
       }
-    }, [query, editor, buildContentFromHandlebars]);
+    }, [query, editor, buildNodesFromContent, serializeDocToTokens]);
 
     // Additional effect to re-render content when canvas data becomes available
     useEffect(() => {
@@ -936,7 +734,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
       if (hasCanvasData) {
         // Try to re-render with current data
-        const nodes = buildContentFromHandlebars(query);
+        const nodes = buildNodesFromContent(query);
         if (nodes.length > 0) {
           const jsonDoc = {
             type: 'doc',
@@ -947,11 +745,17 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             ],
           } as any;
+          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
+          if (prevSelection !== null) {
+            const size = editor?.state?.doc?.content?.size ?? 0;
+            const clamped = Math.min(prevSelection, size);
+            editor.commands.setTextSelection(clamped);
+          }
         }
       }
-    }, [canvasId, editor, query, buildContentFromHandlebars, allItems]);
+    }, [canvasId, editor, query, buildNodesFromContent, allItems]);
 
     const isCursorAfterAtToken = useCallback((state: any): boolean => {
       try {

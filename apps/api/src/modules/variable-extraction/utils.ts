@@ -97,64 +97,6 @@ export function detectWorkflowType(
 }
 
 /**
- * Identify primary skills
- * @param contentItems Content items
- * @param variables Variables
- * @returns Primary skills list
- */
-export function identifyPrimarySkills(
-  contentItems: Array<{ type: string; title?: string }> = [],
-  variables: WorkflowVariable[] = [],
-): string[] {
-  if (!contentItems?.length && !variables?.length) {
-    return [...DEFAULT_VALUES.PRIMARY_SKILLS];
-  }
-
-  const skills = new Set<string>();
-
-  // Identify skills based on content item types
-  for (const item of contentItems) {
-    switch (item.type) {
-      case 'startNode':
-        skills.add('Requirements Analysis');
-        break;
-      case 'codeNode':
-        skills.add('Code Development');
-        break;
-      case 'dataNode':
-        skills.add('Data Processing');
-        break;
-      case 'designNode':
-        skills.add('Design Creation');
-        break;
-      case 'apiNode':
-        skills.add('API Integration');
-        break;
-      case 'workflowNode':
-        skills.add('Workflow Orchestration');
-        break;
-    }
-  }
-
-  // Identify skills based on variable names
-  const variableNames = variables.map((v) => v.name.toLowerCase()).join(' ');
-
-  if (variableNames.includes('prompt') || variableNames.includes('template')) {
-    skills.add('Prompt Engineering');
-  }
-
-  if (variableNames.includes('api') || variableNames.includes('endpoint')) {
-    skills.add('API Design');
-  }
-
-  if (variableNames.includes('database') || variableNames.includes('query')) {
-    skills.add('Database Operations');
-  }
-
-  return skills.size > 0 ? Array.from(skills) : [...DEFAULT_VALUES.PRIMARY_SKILLS];
-}
-
-/**
  * Calculate confidence score
  * @param variables Variable count
  * @param hasProcessedPrompt Whether there is a processed prompt
@@ -319,7 +261,6 @@ export function hasVariableChanged(
     'value',
     'description',
     'variableType',
-    'source',
     'options',
   ];
 

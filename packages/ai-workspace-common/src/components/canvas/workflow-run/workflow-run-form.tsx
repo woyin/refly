@@ -63,6 +63,7 @@ interface WorkflowRunFormProps {
   workflowStatus?: WorkflowExecutionStatus | null;
   isPolling?: boolean;
   pollingError?: any;
+  className?: string;
 }
 
 export const WorkflowRunForm = ({
@@ -71,6 +72,7 @@ export const WorkflowRunForm = ({
   onCopyWorkflow,
   loading,
   isPolling,
+  className,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
@@ -119,7 +121,12 @@ export const WorkflowRunForm = ({
       if (variable.variableType === 'string') {
         formValues[variable.name] = variable.value?.[0]?.text ?? '';
       } else if (variable.variableType === 'option') {
-        formValues[variable.name] = variable.value.map((v) => v.text);
+        // Handle single vs multiple selection based on isSingle flag
+        if (variable.isSingle) {
+          formValues[variable.name] = variable.value?.[0]?.text ?? '';
+        } else {
+          formValues[variable.name] = variable.value?.map((v) => v.text) ?? [];
+        }
       } else if (variable.variableType === 'resource') {
         // Convert resource values to UploadFile format
         const fileList: UploadFile[] =
@@ -146,22 +153,40 @@ export const WorkflowRunForm = ({
           value: [{ type: 'text', text: value }],
         });
       } else if (variable.variableType === 'option') {
-        newVariables.push({
-          ...variable,
-          value: value.map((v) => ({ type: 'text', text: v })),
-        });
+        // Handle single vs multiple selection based on isSingle flag
+        if (variable.isSingle) {
+          // For single selection, value is a string
+          newVariables.push({
+            ...variable,
+            value: [{ type: 'text', text: value }],
+          });
+        } else {
+          // For multiple selection, value is an array
+          newVariables.push({
+            ...variable,
+            value: Array.isArray(value) ? value.map((v) => ({ type: 'text', text: v })) : [],
+          });
+        }
       } else if (variable.variableType === 'resource') {
-        newVariables.push({
-          ...variable,
-          value: value.map((v) => ({
-            type: 'resource',
-            resource: {
-              name: v.name,
-              storageKey: v.url,
-              fileType: getFileExtension(v.name),
-            },
-          })),
-        });
+        const v = Array.isArray(value) ? value[0] : undefined;
+        const entityId = variable?.value?.[0]?.resource?.entityId;
+
+        if (v && entityId) {
+          newVariables.push({
+            ...variable,
+            value: [
+              {
+                type: 'resource',
+                resource: {
+                  name: v.name,
+                  storageKey: v.url,
+                  fileType: getFileExtension(v.name),
+                  entityId,
+                },
+              },
+            ],
+          });
+        }
       }
     }
     return newVariables;
@@ -264,6 +289,7 @@ export const WorkflowRunForm = ({
 
       // If validation passes, proceed with running
       const newVariables = convertFormValueToVariable();
+
       setIsRunning(true);
 
       await onSubmitVariables(newVariables);
@@ -370,7 +396,7 @@ export const WorkflowRunForm = ({
         >
           <Select
             variant="filled"
-            placeholder="请选择"
+            placeholder={t('canvas.workflow.variables.selectPlaceholder')}
             mode={isSingle ? undefined : 'multiple'}
             value={value}
             onChange={(val) => handleValueChange(name, val)}
@@ -411,8 +437,8 @@ export const WorkflowRunForm = ({
   };
 
   return (
-    <div className="w-full max-h-[500px] sm:max-h-[600px] flex flex-col bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm">
-      <div className="p-3 sm:p-4 flex-1 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
+    <div className={cn('w-full h-full gap-3 flex flex-col', className)}>
+      <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
         {/* Workflow variables form */}
         {workflowVariables.length > 0 ? (
           <Form
@@ -434,7 +460,7 @@ export const WorkflowRunForm = ({
             className={cn(
               'flex-1 h-9 sm:h-10 text-sm sm:text-base',
               (!isFormValid || isPolling) &&
-                'bg-refly-bg-control-z0 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
+                'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
             )}
             type="primary"
             icon={<Play size={14} className="sm:w-4 sm:h-4" />}

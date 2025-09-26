@@ -1,32 +1,37 @@
 import { useState } from 'react';
-import { ResourceType } from '@refly/openapi-schema';
+import { ResourceMeta, ResourceType } from '@refly/openapi-schema';
 import { IconText } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { BsFileRichtext } from 'react-icons/bs';
-import {
-  FileIcon,
-  defaultStyles,
-} from '@refly-packages/ai-workspace-common/components/common/resource-icon';
 import { IconResourceFilled } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
-
-const FileExtensionIcon = Object.keys(defaultStyles);
-const getExtensionIcon = (extension: string, size: number) => {
-  const fileExtension = FileExtensionIcon.includes(extension) ? extension : 'file';
-  return <FileIcon width={size} extension={fileExtension} {...defaultStyles[fileExtension]} />;
-};
+import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
 
 export const ResourceIcon = (props: {
   url: string;
   resourceType: ResourceType;
-  extension?: string;
+  resourceMeta: ResourceMeta;
   size?: number;
 }) => {
-  const { url, resourceType, extension, size = 18 } = props;
+  const { url, resourceType, resourceMeta, size = 18 } = props;
   const [showFallbackIcon, setShowFallbackIcon] = useState(false);
 
-  if (resourceType === 'file') {
-    return getExtensionIcon(extension, size);
+  if (
+    resourceType === 'file' ||
+    resourceType === 'image' ||
+    resourceType === 'video' ||
+    resourceType === 'audio'
+  ) {
+    return (
+      <NodeIcon
+        type="resource"
+        resourceType={resourceType}
+        resourceMeta={resourceMeta}
+        filled={false}
+        iconSize={size}
+      />
+    );
   }
+
   if (url) {
     return showFallbackIcon ? (
       <IconResourceFilled color={NODE_COLORS.resource} size={size} />

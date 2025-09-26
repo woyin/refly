@@ -103,6 +103,7 @@
     "markdown-it": "~14.1.0",
     "md5": "^2.3.0",
     "mermaid": "11.6.0",
+    "mime": "^3.0.0",
     "mitt": "~3.0.1",
     "modern-screenshot": "^4.6.0",
     "motion": "^12.4.5",

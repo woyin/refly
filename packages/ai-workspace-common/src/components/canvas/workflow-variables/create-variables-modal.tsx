@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button, Modal, Form, Input, Checkbox, message } from 'antd';
-import { Close, List, Text1 } from 'refly-icons';
+import { Attachment, Close, List, Text1 } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -40,11 +40,11 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           value: 'string',
           icon: <Text1 size={16} />,
         },
-        // {
-        //   label: t('canvas.workflow.variables.variableTypeOptions.resource'),
-        //   value: 'resource',
-        //   icon: <Attachment size={16} />,
-        // },
+        {
+          label: t('canvas.workflow.variables.variableTypeOptions.resource'),
+          value: 'resource',
+          icon: <Attachment size={16} />,
+        },
         {
           label: t('canvas.workflow.variables.variableTypeOptions.option'),
           value: 'option',
@@ -118,8 +118,8 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
 
             // Set file list for resource type
             if (defaultValue.value?.length) {
-              const files: UploadFile[] = defaultValue.value.map((value, index) => ({
-                uid: `file-${index}`,
+              const files: UploadFile[] = defaultValue.value.map((value) => ({
+                uid: value.resource?.entityId,
                 name: value.resource?.name || '',
                 status: 'done',
                 url: value.resource?.storageKey || '', // Use storageKey from resource
@@ -355,6 +355,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               name: file.name || '',
               storageKey: file.url || '',
               fileType: getFileExtension(file.name) || 'file',
+              entityId: file.uid,
             },
           }));
         } else if (variableType === 'option' && options.length > 0 && options[0]) {
@@ -371,7 +372,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           name: values.name,
           value: finalValue,
           description: values.description,
-          source: 'startNode',
           variableType: variableType as 'string' | 'option' | 'resource',
           required: values.required,
           ...(variableType === 'resource' && {

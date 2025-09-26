@@ -213,13 +213,14 @@ const WorkflowAppPage: React.FC = () => {
                 onSubmitVariables={onSubmit}
                 loading={isLoading}
                 onCopyWorkflow={handleCopyWorkflow}
+                className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm"
               />
             </div>
 
             {/* Tools Dependency Form */}
-            {workflowApp?.canvasData?.canvasId && (
+            {workflowApp?.canvasData && (
               <div className="mb-6 sm:mb-8">
-                <ToolsDependencyChecker canvasId={workflowApp.canvasData.canvasId} />
+                <ToolsDependencyChecker canvasData={workflowApp.canvasData} />
               </div>
             )}
 

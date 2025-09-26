@@ -221,7 +221,7 @@ const ResourceCard = ({ item, onDelete }: { item: Resource; onDelete: () => void
           <ResourceIcon
             url={url}
             resourceType={item?.resourceType}
-            extension={item?.downloadURL?.split('.').pop()}
+            resourceMeta={item?.data}
             size={24}
           />
           <div className="flex-1 min-w-0">

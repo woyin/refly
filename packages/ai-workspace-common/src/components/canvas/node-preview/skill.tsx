@@ -151,13 +151,21 @@ export const SkillNodePreview = memo(({ node }: SkillNodePreviewProps) => {
   }, [node, deleteElements, invokeAction, canvasId, addNode, selectedToolsets]);
 
   const handleImageUpload = async (file: File) => {
-    const nodeData = await handleUploadImage(file, canvasId);
-    if (nodeData) {
+    const resource = await handleUploadImage(file, canvasId);
+    if (resource) {
       const newContextItems = [
         ...(contextItems ?? []),
         {
-          type: 'image' as const,
-          ...nodeData,
+          type: 'resource',
+          entityId: resource.resourceId,
+          title: resource.title,
+          metadata: {
+            resourceType: resource.resourceType,
+            resourceMeta: resource.data,
+            storageKey: resource.storageKey,
+            rawFileKey: resource.rawFileKey,
+            downloadURL: resource.downloadURL,
+          },
         },
       ];
       setContextItems(newContextItems as IContextItem[]);

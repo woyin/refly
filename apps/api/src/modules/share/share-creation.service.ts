@@ -48,31 +48,17 @@ export class ShareCreationService {
     private readonly createShareQueue?: Queue<CreateShareJobData>,
   ) {}
 
-  async createShareForCanvas(user: User, param: CreateShareRequest) {
-    const { entityId: canvasId, title, parentShareId, allowDuplication } = param;
-
-    // Check if shareRecord already exists
-    const existingShareRecord = await this.prisma.shareRecord.findFirst({
-      where: {
-        entityId: canvasId,
-        entityType: 'canvas',
-        uid: user.uid,
-        deletedAt: null,
-        templateId: null, // ignore canvas templates
-      },
-    });
-
-    // Generate shareId only if needed
-    const shareId = existingShareRecord?.shareId ?? genShareId('canvas');
-
-    const canvas = await this.prisma.canvas.findUnique({
-      where: { canvasId, uid: user.uid, deletedAt: null },
-    });
-
-    if (!canvas) {
-      throw new ShareNotFoundError();
-    }
-
+  /**
+   * Process canvas data for sharing - handles media nodes, node processing, and minimap
+   * This is a common method used by both createShareForCanvas and createShareForWorkflowApp
+   */
+  private async processCanvasForShare(
+    user: User,
+    canvasId: string,
+    shareId: string,
+    allowDuplication: boolean,
+    title?: string,
+  ) {
     const canvasData = await this.canvasService.getCanvasRawData(user, canvasId);
 
     // If title is provided, use it as the title of the canvas
@@ -248,6 +234,43 @@ export class ShareCreationService {
       processSkillResponseNodes(),
       processCodeArtifactNodes(),
     ]);
+
+    return canvasData;
+  }
+
+  async createShareForCanvas(user: User, param: CreateShareRequest) {
+    const { entityId: canvasId, title, parentShareId, allowDuplication } = param;
+
+    // Check if shareRecord already exists
+    const existingShareRecord = await this.prisma.shareRecord.findFirst({
+      where: {
+        entityId: canvasId,
+        entityType: 'canvas',
+        uid: user.uid,
+        deletedAt: null,
+        templateId: null, // ignore canvas templates
+      },
+    });
+
+    // Generate shareId only if needed
+    const shareId = existingShareRecord?.shareId ?? genShareId('canvas');
+
+    const canvas = await this.prisma.canvas.findUnique({
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+
+    if (!canvas) {
+      throw new ShareNotFoundError();
+    }
+
+    // Process canvas data using common method
+    const canvasData = await this.processCanvasForShare(
+      user,
+      canvasId,
+      shareId,
+      allowDuplication,
+      title,
+    );
 
     // Publish minimap
     if (canvas.minimapStorageKey) {
@@ -982,8 +1005,14 @@ export class ShareCreationService {
       throw new ShareNotFoundError();
     }
 
-    // Get canvas data
-    const canvasData = await this.canvasService.getCanvasRawData(user, workflowApp.canvasId);
+    // Process canvas data using common method
+    const canvasData = await this.processCanvasForShare(
+      user,
+      workflowApp.canvasId,
+      shareId,
+      allowDuplication,
+      title,
+    );
 
     // IMPORTANT: Add canvasId to canvasData for frontend access
     // Frontend needs canvasId for CanvasProvider and other canvas-related operations
@@ -991,44 +1020,6 @@ export class ShareCreationService {
       ...canvasData,
       canvasId: workflowApp.canvasId,
     };
-
-    // If title is provided, use it as the title of the workflow app
-    if (title) {
-      canvasDataWithId.title = title;
-    }
-
-    // Set up concurrency limit for image processing
-    const limit = pLimit(5); // Limit to 5 concurrent operations
-
-    // Find all image video audio nodes
-    const mediaNodes =
-      canvasDataWithId.nodes?.filter(
-        (node) => node.type === 'image' || node.type === 'video' || node.type === 'audio',
-      ) ?? [];
-
-    // Process all images in parallel with concurrency control
-    const mediaProcessingPromises = mediaNodes.map((node) => {
-      return limit(async () => {
-        const storageKey = node.data?.metadata?.storageKey as string;
-        if (storageKey) {
-          try {
-            const mediaUrl = await this.miscService.publishFile(storageKey);
-            // Update the node with the published image URL
-            if (node.data?.metadata) {
-              node.data.metadata[`${node.type}Url`] = mediaUrl;
-            }
-          } catch (error) {
-            this.logger.error(
-              `Failed to publish image for storageKey: ${storageKey}, error: ${error.stack}`,
-            );
-          }
-        }
-        return node;
-      });
-    });
-
-    // Wait for all image processing to complete
-    await Promise.all(mediaProcessingPromises);
 
     // Publish minimap
     if (canvasDataWithId.minimapUrl) {

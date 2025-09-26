@@ -330,7 +330,7 @@ export const StartNodePreview = () => {
           highlightedVariableId={highlightedVariableId}
         />
 
-        {/* <VariableTypeSection
+        <VariableTypeSection
           canvasId={canvasId}
           type="resource"
           variables={groupedVariables.resource}
@@ -338,7 +338,7 @@ export const StartNodePreview = () => {
           refetchWorkflowVariables={refetchWorkflowVariables}
           readonly={readonly}
           highlightedVariableId={highlightedVariableId}
-        /> */}
+        />
 
         <VariableTypeSection
           canvasId={canvasId}
