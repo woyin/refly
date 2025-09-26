@@ -72,6 +72,8 @@ const WorkflowAppPage: React.FC = () => {
         notification.success({
           message: t('workflowApp.run.completed') || 'App run successfully',
         });
+        // Auto switch to products tab when workflow completes successfully
+        setActiveTab('products');
       } else if (status === 'failed') {
         notification.error({
           message: t('workflowApp.run.failed') || 'App run failed',
@@ -140,6 +142,8 @@ const WorkflowAppPage: React.FC = () => {
         if (newExecutionId) {
           setExecutionId(newExecutionId);
           message.success('Workflow started');
+          // Auto switch to runLogs tab when workflow starts
+          setActiveTab('runLogs');
         } else {
           message.error('Failed to get execution ID');
           // Reset running state on failure
