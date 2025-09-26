@@ -370,7 +370,12 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               name: file.name || '',
               storageKey: file.url || '',
               fileType: getFileType(file.name),
-              entityId: defaultValue?.value?.[0]?.resource?.entityId,
+              ...(defaultValue?.value
+                ? {
+                    entityId: defaultValue.value.find((v) => v.resource?.storageKey === file.url)
+                      ?.resource?.entityId,
+                  }
+                : {}),
             },
           }));
         } else if (variableType === 'option') {

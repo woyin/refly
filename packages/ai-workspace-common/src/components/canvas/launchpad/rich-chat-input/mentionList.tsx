@@ -489,7 +489,7 @@ export const MentionList = ({
       return value.text.length > 20 ? `${value.text.substring(0, 20)}...` : value.text;
     }
     if (value.type === 'resource') {
-      return value.resource.name;
+      return value.resource?.name ?? '';
     }
     return '';
   }, []);

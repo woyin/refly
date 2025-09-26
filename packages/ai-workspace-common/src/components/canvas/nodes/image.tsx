@@ -339,7 +339,7 @@ export const ImageNode = memo(
 
         <div
           className={cn(
-            'relative z-1 rounded-2xl overflow-hidden flex items-center justify-center',
+            'relative z-10 rounded-2xl overflow-hidden flex items-center justify-center',
             {
               'w-full': !isPreview,
               'max-w-64 max-h-64': isPreview,

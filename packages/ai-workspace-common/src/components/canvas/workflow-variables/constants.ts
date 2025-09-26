@@ -22,43 +22,4 @@ export const FILE_SIZE_LIMITS = {
   unknown: 100, // 100MB
 } as const;
 
-export const MIME_TYPE_VALIDATION = {
-  document: [
-    'text/plain', // TXT
-    'text/markdown', // MD, MDX, MARKDOWN
-    'text/html', // HTML
-    'text/csv', // CSV
-    'text/xml', // XML
-    'application/pdf', // PDF
-    'application/vnd.ms-excel', // XLS
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // XLSX
-    'application/msword', // DOC
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
-    'application/vnd.ms-powerpoint', // PPT
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // PPTX
-    'application/epub+zip', // EPUB
-    'message/rfc822', // EML
-    'application/vnd.ms-outlook', // MSG
-  ],
-  image: [
-    'image/jpeg', // JPG, JPEG
-    'image/png', // PNG
-    'image/gif', // GIF
-    'image/webp', // WEBP
-    'image/svg+xml', // SVG
-  ],
-  audio: [
-    'audio/mpeg', // MP3, MPGA
-    'audio/mp4', // M4A
-    'audio/wav', // WAV
-    'audio/amr', // AMR
-  ],
-  video: [
-    'video/mp4', // MP4
-    'video/quicktime', // MOV
-    'video/mpeg', // MPEG
-    'video/webm', // WEBM
-  ],
-} as const;
-
 export const RESOURCE_TYPE = ['document', 'image', 'audio', 'video'] as VariableResourceType[];

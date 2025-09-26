@@ -296,7 +296,7 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
               'Please select a value from the options above'
             }
             className="w-full"
-            mode={isSingle ? undefined : 'tags'}
+            mode={isSingle ? undefined : 'multiple'}
             maxTagCount={isSingle ? undefined : 5}
             options={options
               .filter((option) => option && option.trim().length > 0)
