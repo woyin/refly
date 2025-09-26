@@ -2,6 +2,7 @@ import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-s
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select, Form, Typography } from 'antd';
 import { Play, Copy } from 'refly-icons';
+import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useFileUpload } from '../workflow-variables';
@@ -58,11 +59,14 @@ interface WorkflowRunFormProps {
   workflowVariables: WorkflowVariable[];
   onSubmitVariables: (variables: WorkflowVariable[]) => Promise<void>;
   onCopyWorkflow?: () => void;
+  onCopyShareLink?: () => void;
   loading: boolean;
   executionId?: string | null;
   workflowStatus?: WorkflowExecutionStatus | null;
   isPolling?: boolean;
   pollingError?: any;
+  isRunning?: boolean;
+  onRunningChange?: (isRunning: boolean) => void;
   className?: string;
 }
 
@@ -70,17 +74,26 @@ export const WorkflowRunForm = ({
   workflowVariables,
   onSubmitVariables,
   onCopyWorkflow,
+  onCopyShareLink,
   loading,
   isPolling,
+  isRunning: externalIsRunning,
+  onRunningChange,
   className,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
   const navigate = useNavigate();
 
-  const [isRunning, setIsRunning] = useState(false);
+  const [internalIsRunning, setInternalIsRunning] = useState(false);
+
+  // Use external isRunning if provided, otherwise use internal state
+  const isRunning = externalIsRunning ?? internalIsRunning;
   const [form] = Form.useForm();
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
+
+  // Check if form should be disabled
+  const isFormDisabled = loading || isRunning || isPolling;
 
   // File upload hook
   const {
@@ -121,12 +134,13 @@ export const WorkflowRunForm = ({
       if (variable.variableType === 'string') {
         formValues[variable.name] = variable.value?.[0]?.text ?? '';
       } else if (variable.variableType === 'option') {
-        // Handle single vs multiple selection based on isSingle flag
-        if (variable.isSingle) {
-          formValues[variable.name] = variable.value?.[0]?.text ?? '';
-        } else {
-          formValues[variable.name] = variable.value?.map((v) => v.text) ?? [];
-        }
+        // Handle both array and single value cases
+        const valueArray = Array.isArray(variable.value)
+          ? variable.value
+          : variable.value
+            ? [variable.value]
+            : [];
+        formValues[variable.name] = valueArray.map((v) => v.text);
       } else if (variable.variableType === 'resource') {
         // Convert resource values to UploadFile format
         const fileList: UploadFile[] =
@@ -153,20 +167,12 @@ export const WorkflowRunForm = ({
           value: [{ type: 'text', text: value }],
         });
       } else if (variable.variableType === 'option') {
-        // Handle single vs multiple selection based on isSingle flag
-        if (variable.isSingle) {
-          // For single selection, value is a string
-          newVariables.push({
-            ...variable,
-            value: [{ type: 'text', text: value }],
-          });
-        } else {
-          // For multiple selection, value is an array
-          newVariables.push({
-            ...variable,
-            value: Array.isArray(value) ? value.map((v) => ({ type: 'text', text: v })) : [],
-          });
-        }
+        // Handle both array and single value cases
+        const valueArray = Array.isArray(value) ? value : value ? [value] : [];
+        newVariables.push({
+          ...variable,
+          value: valueArray.map((v) => ({ type: 'text', text: v })),
+        });
       } else if (variable.variableType === 'resource') {
         const v = Array.isArray(value) ? value[0] : undefined;
         const entityId = variable?.value?.[0]?.resource?.entityId;
@@ -290,7 +296,12 @@ export const WorkflowRunForm = ({
       // If validation passes, proceed with running
       const newVariables = convertFormValueToVariable();
 
-      setIsRunning(true);
+      // Set running state - use external callback if provided, otherwise use internal state
+      if (onRunningChange) {
+        onRunningChange(true);
+      } else {
+        setInternalIsRunning(true);
+      }
 
       await onSubmitVariables(newVariables);
     } catch (error) {
@@ -345,8 +356,13 @@ export const WorkflowRunForm = ({
           }
         }
       }
-    } finally {
-      setIsRunning(false);
+
+      // Reset running state on validation error
+      if (onRunningChange) {
+        onRunningChange(false);
+      } else {
+        setInternalIsRunning(false);
+      }
     }
   };
 
@@ -377,6 +393,7 @@ export const WorkflowRunForm = ({
             value={value}
             onChange={(e) => handleValueChange(name, e.target.value)}
             data-field-name={name}
+            disabled={isFormDisabled}
           />
         </Form.Item>
       );
@@ -402,6 +419,7 @@ export const WorkflowRunForm = ({
             onChange={(val) => handleValueChange(name, val)}
             options={options?.map((opt) => ({ label: opt, value: opt })) ?? []}
             data-field-name={name}
+            disabled={isFormDisabled}
           />
         </Form.Item>
       );
@@ -425,7 +443,7 @@ export const WorkflowRunForm = ({
             onRemove={(file) => handleFileRemove(file, name)}
             onRefresh={() => handleRefreshFile(name)}
             resourceTypes={resourceTypes}
-            disabled={uploading}
+            disabled={uploading || isFormDisabled}
             maxCount={1}
             data-field-name={name}
           />
@@ -479,9 +497,19 @@ export const WorkflowRunForm = ({
               type="default"
               icon={<Copy size={14} className="sm:w-4 sm:h-4" />}
               onClick={onCopyWorkflow}
-              disabled={loading || isRunning || isPolling}
             >
               {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
+            </Button>
+          )}
+
+          {onCopyShareLink && (
+            <Button
+              className="h-9 sm:h-10 text-sm sm:text-base"
+              type="default"
+              icon={<IconShare size={14} className="sm:w-4 sm:h-4" />}
+              onClick={onCopyShareLink}
+            >
+              {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
             </Button>
           )}
         </div>
