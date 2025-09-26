@@ -74,7 +74,7 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
     [canvasId, initializeWorkflow, refetchWorkflowVariables],
   );
 
-  const onCopyShareLink = useCallback(async () => {
+  const _onCopyShareLink = useCallback(async () => {
     try {
       // Copy current browser URL to clipboard
       await navigator.clipboard.writeText(window.location.href);
@@ -107,7 +107,6 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
           <WorkflowRunForm
             workflowVariables={workflowVariables}
             onSubmitVariables={onSubmitVariables}
-            onCopyShareLink={onCopyShareLink}
             loading={loading}
             executionId={executionId}
             workflowStatus={workflowStatus}
