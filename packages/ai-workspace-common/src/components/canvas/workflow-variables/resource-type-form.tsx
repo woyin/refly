@@ -211,7 +211,7 @@ export const ResourceTypeForm: React.FC<ResourceTypeFormProps> = React.memo(
                   </div>
 
                   <div className="fl">
-                    <Tooltip title={t('canvas.workflow.variables.reloadFile')}>
+                    <Tooltip title={t('canvas.workflow.variables.replaceFile')}>
                       <Button
                         size="small"
                         type="text"
