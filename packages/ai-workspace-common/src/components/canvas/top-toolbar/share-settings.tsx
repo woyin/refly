@@ -90,7 +90,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   });
 
   // Get latest workflow app for this canvas
-  const { data: workflowAppsData } = useListWorkflowApps(
+  const { data: workflowAppsData, refetch: refetchWorkflowApps } = useListWorkflowApps(
     { query: { canvasId } },
     ['workflow-apps', canvasId],
     {
@@ -177,6 +177,11 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     setCreateTemplateModalVisible(true);
     setOpen(false);
   }, []);
+
+  const handlePublishSuccess = useCallback(async () => {
+    // Refresh workflow apps data after successful publish
+    await refetchWorkflowApps();
+  }, [refetchWorkflowApps]);
 
   useEffect(() => {
     setAccess(shareRecord ? 'anyone' : 'off');
@@ -385,6 +390,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
       updateShare,
       copyLink,
       handlePublishToCommunity,
+      handlePublishSuccess,
       latestWorkflowApp,
       workflowAppLink,
       copyWorkflowAppLink,
@@ -398,6 +404,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         title={canvasTitle}
         visible={createTemplateModalVisible}
         setVisible={setCreateTemplateModalVisible}
+        onPublishSuccess={handlePublishSuccess}
       />
       <Popover
         className="canvas-share-setting-popover"

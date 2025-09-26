@@ -12,6 +12,7 @@ interface CreateWorkflowAppModalProps {
   canvasId: string;
   visible: boolean;
   setVisible: (visible: boolean) => void;
+  onPublishSuccess?: () => void;
 }
 
 interface SuccessMessageProps {
@@ -84,6 +85,7 @@ export const CreateWorkflowAppModal = ({
   title,
   visible,
   setVisible,
+  onPublishSuccess,
 }: CreateWorkflowAppModalProps) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -121,6 +123,8 @@ export const CreateWorkflowAppModal = ({
           content: <SuccessMessage shareId={shareId} onClose={() => messageInstance()} />,
           duration: 0, // Set to 0 to prevent auto-close
         });
+        // Trigger refresh of workflow apps data
+        onPublishSuccess?.();
       } else if (!data?.success) {
         message.error(t('common.operationFailed'));
       }
