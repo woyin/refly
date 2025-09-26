@@ -1052,7 +1052,7 @@ export const ResourceMetaSchema = {
 export const ResourceTypeSchema = {
   type: 'string',
   description: 'Resource type',
-  enum: ['weblink', 'text', 'file', 'image', 'video', 'audio'],
+  enum: ['weblink', 'text', 'file', 'document', 'image', 'video', 'audio'],
 } as const;
 
 export const IndexErrorSchema = {
@@ -8519,8 +8519,8 @@ export const ResourceValueSchema = {
       description: 'Resource name',
     },
     fileType: {
-      type: 'string',
       description: 'Resource file type',
+      $ref: '#/components/schemas/VariableResourceType',
     },
     storageKey: {
       type: 'string',

@@ -4274,6 +4274,7 @@ components:
         - weblink
         - text
         - file
+        - document
         - image
         - video
         - audio
@@ -9600,8 +9601,8 @@ components:
           type: string
           description: Resource name
         fileType:
-          type: string
           description: Resource file type
+          $ref: '#/components/schemas/VariableResourceType'
         storageKey:
           type: string
           description: Resource storage key

@@ -165,7 +165,7 @@ export class ResourceService {
         throw new ParamsError('URL is required for weblink resource');
       }
       identifier = normalizeUrl(param.data.url, { stripHash: true });
-    } else if (resourceType === 'file') {
+    } else if (resourceType === 'file' || resourceType === 'document') {
       if (!param.storageKey) {
         throw new ParamsError('storageKey is required for file resource');
       }
