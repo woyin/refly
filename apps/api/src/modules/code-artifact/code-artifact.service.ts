@@ -5,6 +5,7 @@ import {
   ListCodeArtifactsData,
   UpsertCodeArtifactRequest,
   User,
+  CanvasNode,
 } from '@refly/openapi-schema';
 import { streamToString } from '../../utils';
 import {
@@ -79,6 +80,24 @@ export class CodeArtifactService {
           });
           if (docNodeExecution) {
             param.artifactId = docNodeExecution.entityId;
+            const nodeData: CanvasNode = safeParseJSON(docNodeExecution.nodeData);
+            await this.prisma.workflowNodeExecution.update({
+              where: {
+                nodeExecutionId: docNodeExecution.nodeExecutionId,
+              },
+              data: {
+                title: title,
+                entityId: param.artifactId,
+                nodeData: JSON.stringify({
+                  ...nodeData,
+                  data: {
+                    ...nodeData.data,
+                    title: title,
+                    entityId: param.artifactId,
+                  },
+                }),
+              },
+            });
           }
         }
       }

@@ -12,6 +12,7 @@ import {
   DeleteDocumentRequest,
   DuplicateDocumentRequest,
   User,
+  CanvasNode,
 } from '@refly/openapi-schema';
 import {
   QUEUE_CLEAR_CANVAS_ENTITY,
@@ -281,6 +282,24 @@ export class DocumentService {
           });
           if (docNodeExecution?.entityId) {
             param.docId = docNodeExecution.entityId;
+            const nodeData: CanvasNode = safeParseJSON(docNodeExecution.nodeData);
+            await this.prisma.workflowNodeExecution.update({
+              where: {
+                nodeExecutionId: docNodeExecution.nodeExecutionId,
+              },
+              data: {
+                title: param.title,
+                entityId: param.docId,
+                nodeData: JSON.stringify({
+                  ...nodeData,
+                  data: {
+                    ...nodeData.data,
+                    title: param.title,
+                    entityId: param.docId,
+                  },
+                }),
+              },
+            });
           }
         }
       }
