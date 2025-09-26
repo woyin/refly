@@ -8,6 +8,7 @@ import {
   ResourceMeta,
   ResourceType,
   ValueType,
+  VariableValue,
   WorkflowVariable,
 } from '@refly/openapi-schema';
 import { ArrowRight, X } from 'refly-icons';
@@ -25,11 +26,14 @@ export interface MentionItem {
   source: 'variables' | 'resourceLibrary' | 'stepRecord' | 'resultRecord' | 'myUpload';
   variableType: string;
   variableId?: string;
+  variableValue?: VariableValue[];
   entityId?: string;
   nodeId?: string;
   categoryLabel?: string;
   metadata?: {
     imageUrl?: string | undefined;
+    videoUrl?: string | undefined;
+    audioUrl?: string | undefined;
     resourceType?: ResourceType;
     resourceMeta?: ResourceMeta;
   };
@@ -475,6 +479,21 @@ export const MentionList = ({
     [],
   );
 
+  // Helper function to format variable value for display
+  const formatVariableValue = useCallback((variableValue?: VariableValue[]) => {
+    if (!variableValue?.length) return '';
+
+    const value = variableValue[0];
+    if (value.type === 'text' && value.text) {
+      // Truncate long text values
+      return value.text.length > 20 ? `${value.text.substring(0, 20)}...` : value.text;
+    }
+    if (value.type === 'resource') {
+      return value.resource.name;
+    }
+    return '';
+  }, []);
+
   // Common component for rendering list items
   const renderListItem = useCallback(
     (item: MentionItem, index: number, isActive: boolean) => {
@@ -517,7 +536,14 @@ export const MentionList = ({
           ) : item.source === 'variables' ? (
             <>
               <X size={12} className="flex-shrink-0" color="var(--refly-primary-default)" />
-              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
+              <div className="flex-1 text-sm text-refly-text-1 leading-5 truncate">
+                {item.name}
+                {formatVariableValue(item.variableValue) && (
+                  <span className="text-xs text-refly-text-2 ml-1 relative -top-px">
+                    {`= ${formatVariableValue(item.variableValue)}`}
+                  </span>
+                )}
+              </div>
               <div className="flex">{getStartNodeIcon(item.variableType)}</div>
             </>
           ) : (
@@ -529,7 +555,7 @@ export const MentionList = ({
         </div>
       );
     },
-    [categoryConfigs, query, isAddingVariable],
+    [categoryConfigs, query, isAddingVariable, formatVariableValue],
   );
 
   // Generic function to render empty state

@@ -52,11 +52,11 @@ export const ContextItem = ({
   const finalTitle = useMemo(() => {
     if (type === 'resource') {
       const resource = resourcesData?.data?.find((resource) => resource.resourceId === entityId);
-      return resource?.title || t('common.untitled');
+      return resource?.title || title || t('common.untitled');
     }
     const nodeTitle = getNode(node?.id)?.data?.title;
     const stringifiedNodeTitle = nodeTitle != null ? String(nodeTitle) : null;
-    return stringifiedNodeTitle ?? title ?? t(`canvas.nodeTypes.${type}`);
+    return stringifiedNodeTitle || title || t(`canvas.nodeTypes.${type}`);
   }, [node?.id, getNode, title, type, t, resourcesData?.data, entityId]);
 
   const handleItemClick = useCallback(() => {
