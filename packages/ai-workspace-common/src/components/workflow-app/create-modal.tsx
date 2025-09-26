@@ -16,10 +16,11 @@ interface CreateWorkflowAppModalProps {
 
 interface SuccessMessageProps {
   shareId: string;
+  onClose?: () => void;
 }
 
 // Success message shown inside antd message with share link and copy action
-const SuccessMessage = memo(({ shareId }: SuccessMessageProps) => {
+const SuccessMessage = memo(({ shareId, onClose }: SuccessMessageProps) => {
   const { t } = useTranslation();
   const shareLink = useMemo(() => getShareLink('workflowApp', shareId), [shareId]);
   const [copied, setCopied] = useState(false);
@@ -36,8 +37,8 @@ const SuccessMessage = memo(({ shareId }: SuccessMessageProps) => {
   }, [shareLink]);
 
   const handleClose = useCallback(() => {
-    message.destroy();
-  }, []);
+    onClose?.();
+  }, [onClose]);
 
   // Auto copy link when component mounts
   useEffect(() => {
@@ -116,7 +117,10 @@ export const CreateWorkflowAppModal = ({
 
       if (data?.success && shareId) {
         setVisible(false);
-        messageApi.open({ content: <SuccessMessage shareId={shareId} />, duration: 5 });
+        const messageInstance = messageApi.open({
+          content: <SuccessMessage shareId={shareId} onClose={() => messageInstance()} />,
+          duration: 0, // Set to 0 to prevent auto-close
+        });
       } else if (!data?.success) {
         message.error(t('common.operationFailed'));
       }

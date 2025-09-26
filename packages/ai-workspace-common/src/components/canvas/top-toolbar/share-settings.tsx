@@ -90,10 +90,13 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   });
 
   // Get latest workflow app for this canvas
-  const { data: workflowAppsData } = useListWorkflowApps({ query: { canvasId } }, [
-    'workflow-apps',
-    canvasId,
-  ]);
+  const { data: workflowAppsData } = useListWorkflowApps(
+    { query: { canvasId } },
+    ['workflow-apps', canvasId],
+    {
+      enabled: !!canvasId, // Only run query if canvasId exists
+    },
+  );
 
   // Get the latest share record that is not a template
   const shareRecord = useMemo(
@@ -106,7 +109,11 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   );
 
   // Get the latest workflow app for this canvas
-  const latestWorkflowApp = useMemo(() => workflowAppsData?.data?.[0] ?? null, [workflowAppsData]);
+  const latestWorkflowApp = useMemo(() => {
+    const result = workflowAppsData?.data?.[0] ?? null;
+
+    return result;
+  }, [workflowAppsData, canvasId]);
   const workflowAppLink = useMemo(
     () =>
       latestWorkflowApp?.shareId ? getShareLink('workflowApp', latestWorkflowApp.shareId) : '',
@@ -320,7 +327,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         )}
 
         {/* latest app shared link published */}
-        {latestWorkflowApp && (
+        {latestWorkflowApp?.shareId && (
           <div className="mt-2 pl-4 pr-2 py-2 border-[1px] border-solid border-refly-Card-Border bg-refly-bg-content-z1 rounded-[12px]">
             <div className="text-sm text-refly-text-0 leading-5 font-semibold mb-2">
               {t('shareContent.latestPublishedApp')}

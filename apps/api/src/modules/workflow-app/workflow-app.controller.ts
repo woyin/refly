@@ -9,7 +9,6 @@ import {
   GetWorkflowAppDetailResponse,
   ExecuteWorkflowAppRequest,
   ExecuteWorkflowAppResponse,
-  ListWorkflowAppsData,
   ListWorkflowAppsResponse,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
@@ -57,7 +56,7 @@ export class WorkflowAppController {
   @Get('list')
   async listWorkflowApps(
     @LoginedUser() user: UserModel,
-    @Query() query: ListWorkflowAppsData,
+    @Query() query: { canvasId: string },
   ): Promise<ListWorkflowAppsResponse> {
     const workflowApps = await this.workflowAppService.listWorkflowApps(user, query);
     return buildSuccessResponse(workflowApps);
