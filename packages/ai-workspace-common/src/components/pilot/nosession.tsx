@@ -191,6 +191,7 @@ export const NoSession = memo(
               entityId: resultId,
               metadata: {
                 status: 'executing',
+                contextItems,
                 selectedToolsets,
                 selectedSkill: undefined,
                 modelInfo: skillSelectedModel,

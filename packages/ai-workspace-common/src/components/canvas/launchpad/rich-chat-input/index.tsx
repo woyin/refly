@@ -56,6 +56,54 @@ export interface RichChatInputRef {
   focus: () => void;
 }
 
+// Helper function to create context item from mention item
+const createContextItem = (item: MentionItem): IContextItem => {
+  return {
+    entityId: item.entityId,
+    title: item.name,
+    type: (() => {
+      if (item.source === 'stepRecord') {
+        return 'skillResponse' as CanvasNodeType;
+      } else if (item.source === 'resultRecord') {
+        const validCanvasNodeTypes: CanvasNodeType[] = [
+          'document',
+          'codeArtifact',
+          'website',
+          'resource',
+          'skill',
+          'tool',
+          'skillResponse',
+          'toolResponse',
+          'memo',
+          'group',
+          'image',
+          'video',
+          'audio',
+          'mediaSkill',
+          'mediaSkillResponse',
+          'start',
+        ];
+
+        if (validCanvasNodeTypes.includes(item.variableType as CanvasNodeType)) {
+          return item.variableType as CanvasNodeType;
+        }
+        return 'resource' as CanvasNodeType;
+      } else if (item.source === 'myUpload') {
+        return 'resource' as CanvasNodeType;
+      }
+
+      return 'resource' as CanvasNodeType;
+    })(),
+
+    metadata: {
+      nodeId: item.nodeId,
+      source: item.source,
+      variableType: item.variableType,
+      ...item.metadata,
+    },
+  };
+};
+
 const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
   (
     {
@@ -102,15 +150,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Get all available items including canvas nodes with fallback data
     const allItems: MentionItem[] = useMemo(() => {
-      const variableItems = workflowVariables
-        .map((variable) => ({
-          name: variable.name,
-          description: variable.description || '',
-          source: 'variables' as const,
-          variableType: variable.variableType || 'string',
-          variableId: variable.variableId || '',
-        }))
-        .filter((variable) => variable.variableType !== 'resource'); // exclude resource variables
+      const variableItems = workflowVariables.map((variable) => ({
+        name: variable.name,
+        description: variable.description || '',
+        source: 'variables' as const,
+        variableType: variable.variableType || 'string',
+        variableId: variable.variableId || '',
+        variableValue: variable.value,
+      }));
 
       // Get skillResponse nodes for step records
       const stepRecordItems: MentionItem[] =
@@ -162,7 +209,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             resourceMeta: resource.data as ResourceMeta | undefined,
             storageKey: resource.storageKey,
             rawFileKey: resource.rawFileKey,
-            downloadURL: resource.downloadURL,
+            [`${resource.resourceType}Url`]: resource.downloadURL,
           },
         })) ?? [];
 
@@ -187,8 +234,43 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     // Use ref to track previous canvas data to avoid infinite loops
     const prevCanvasDataRef = useRef({ canvasId: '', allItemsLength: 0 });
 
+    // Helper function to add item to context items
+    const addToContextItems = useCallback(
+      (contextItem: IContextItem) => {
+        if (!setContextItems) return;
+
+        const currentContextItems = contextItemsRef.current || [];
+        const isAlreadyInContext = currentContextItems.some(
+          (ctxItem) => ctxItem.entityId === contextItem.entityId,
+        );
+
+        if (!isAlreadyInContext) {
+          setContextItems([...currentContextItems, contextItem]);
+        }
+      },
+      [setContextItems],
+    );
+
+    // Helper function to insert mention into editor
+    const insertMention = useCallback((editor: any, range: any, attrs: any) => {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(range, [
+          {
+            type: 'mention',
+            attrs,
+          },
+          {
+            type: 'text',
+            text: ' ',
+          },
+        ])
+        .run();
+    }, []);
+
     const handleCommand = useCallback(
-      ({ editor, range, props }: { editor: any; range: any; props: any }) => {
+      ({ editor, range, props }: { editor: any; range: any; props: MentionItem }) => {
         const item = props;
 
         // For step and result records, add to context instead of inserting text
@@ -198,131 +280,71 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           item.source === 'myUpload'
         ) {
           if (setContextItems && item.entityId) {
-            // Create context item with correct type mapping
-            const contextItem: IContextItem = {
-              entityId: item.entityId,
-              title: item.name,
-              type: (() => {
-                if (item.source === 'stepRecord') {
-                  // For step records, use skillResponse type
-                  return 'skillResponse' as CanvasNodeType;
-                } else if (item.source === 'resultRecord') {
-                  // For result records and uploads, use the actual node type
-                  // Validate that variableType is a valid CanvasNodeType
-                  const validCanvasNodeTypes: CanvasNodeType[] = [
-                    'document',
-                    'codeArtifact',
-                    'website',
-                    'resource',
-                    'skill',
-                    'tool',
-                    'skillResponse',
-                    'toolResponse',
-                    'memo',
-                    'group',
-                    'image',
-                    'video',
-                    'audio',
-                    'mediaSkill',
-                    'mediaSkillResponse',
-                    'start',
-                  ];
-                  console.log('item.variableType', item.variableType);
-
-                  if (validCanvasNodeTypes.includes(item.variableType as CanvasNodeType)) {
-                    return item.variableType as CanvasNodeType;
-                  }
-                  return 'resource' as CanvasNodeType;
-                } else if (item.source === 'myUpload') {
-                  return 'resource' as CanvasNodeType;
-                }
-                // Fallback for unexpected sources
-                console.warn(`Unexpected source "${item.source}", falling back to "document"`, {
-                  item,
-                });
-                return 'resource' as CanvasNodeType;
-              })(),
-
-              metadata: {
-                nodeId: item.nodeId,
-                source: item.source,
-                variableType: item.variableType,
-                ...item.metadata,
-              },
-            };
-
-            // Add to context items using ref to get latest value
-            if (setContextItems) {
-              // Check if already in context using ref
-              const currentContextItems = contextItemsRef.current || [];
-              const isAlreadyInContext = currentContextItems.some(
-                (ctxItem) => ctxItem.entityId === item.entityId,
-              );
-
-              if (!isAlreadyInContext) {
-                setContextItems([...currentContextItems, contextItem]);
-              }
-            }
+            const contextItem = createContextItem(item);
+            addToContextItems(contextItem);
 
             const url =
               item.metadata?.imageUrl || item.metadata?.videoUrl || item.metadata?.audioUrl;
 
-            // Insert a placeholder text to show the selection
-            editor
-              .chain()
-              .focus()
-              .insertContentAt(range, [
-                {
-                  type: 'mention',
-                  attrs: {
-                    // Use stable id for serialization
-                    id: item.entityId || item.nodeId || item.name,
-                    label: item.name,
-                    source: item.source,
-                    variableType: item.variableType || item.source,
-                    url: url,
-                    resourceType: item.metadata?.resourceType,
-                    resourceMeta: item.metadata?.resourceMeta,
-                    entityId: item.entityId || item.nodeId,
-                  },
-                },
-                {
-                  type: 'text',
-                  text: ' ',
-                },
-              ])
-              .run();
+            insertMention(editor, range, {
+              id: item.entityId || item.nodeId || item.name,
+              label: item.name,
+              source: item.source,
+              variableType: item.variableType || item.source,
+              url: url,
+              resourceType: item.metadata?.resourceType,
+              resourceMeta: item.metadata?.resourceMeta,
+              entityId: item.entityId || item.nodeId,
+            });
+          }
+        } else if (item.variableType === 'resource') {
+          // For resource type variables, find the corresponding resource data and add to context
+          if (item.variableValue?.length && item.variableValue[0]?.resource) {
+            const resourceValue = item.variableValue[0].resource;
+            const resource = resources.find((r) => r.resourceId === resourceValue.entityId);
+
+            const contextItem: IContextItem = {
+              entityId: resourceValue.entityId,
+              title: resource?.title ?? resourceValue.name,
+              type: 'resource' as CanvasNodeType,
+              metadata: {
+                source: 'myUpload',
+                storageKey: resourceValue.storageKey,
+                resourceType: resourceValue.fileType,
+                resourceMeta: resource?.data,
+                [`${resourceValue.fileType}Url`]: resource?.downloadURL,
+              },
+            };
+
+            addToContextItems(contextItem);
+
+            insertMention(editor, range, {
+              id: resourceValue.entityId,
+              label: resourceValue.name,
+              source: 'myUpload',
+              variableType: 'resource',
+              url: resourceValue.storageKey,
+              resourceType: resourceValue.fileType,
+              resourceMeta: resource?.data,
+              entityId: resourceValue.entityId,
+            });
           }
         } else {
           // For regular variables (startNode and resourceLibrary), insert as normal mention
           // These will be converted to Handlebars format when sending
-          editor
-            .chain()
-            .focus()
-            .insertContentAt(range, [
-              {
-                type: 'mention',
-                attrs: {
-                  // Use variableId as stable id when available
-                  id: item.variableId || item.name,
-                  label: item.name,
-                  source: item.source,
-                  variableType: item.variableType || item.source,
-                  url: item.metadata?.imageUrl,
-                  resourceType: item.metadata?.resourceType,
-                  resourceMeta: item.metadata?.resourceMeta,
-                  entityId: item.variableId,
-                },
-              },
-              {
-                type: 'text',
-                text: ' ',
-              },
-            ])
-            .run();
+          insertMention(editor, range, {
+            id: item.variableId || item.name,
+            label: item.name,
+            source: item.source,
+            variableType: item.variableType || item.source,
+            url: item.metadata?.imageUrl,
+            resourceType: item.metadata?.resourceType,
+            resourceMeta: item.metadata?.resourceMeta,
+            entityId: item.variableId,
+          });
         }
       },
-      [setContextItems],
+      [addToContextItems, insertMention, resources],
     );
 
     // Create mention extension with custom suggestion

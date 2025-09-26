@@ -1016,6 +1016,8 @@ export class CanvasService {
     canvasId: string,
     value: VariableValue,
   ): Promise<VariableValue> {
+    this.logger.log(`Processing resource value for canvas ${canvasId}: ${JSON.stringify(value)}`);
+
     const { resource } = value;
     if (!resource) return value;
 
@@ -1042,7 +1044,7 @@ export class CanvasService {
       // New upload - create new resource
       const newResource = await this.resourceService.createResource(user, {
         title: resource.name,
-        resourceType: 'file' as ResourceType, // Assuming file type for uploaded resources
+        resourceType: resource.fileType as ResourceType,
         canvasId,
         storageKey,
       });

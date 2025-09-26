@@ -182,7 +182,18 @@ export const ResourceTypeForm: React.FC<ResourceTypeFormProps> = React.memo(
             tagRender={tagRender}
           />
         </Form.Item>
-        <Form.Item label={t('canvas.workflow.variables.value') || 'Variable Value'}>
+        <Form.Item
+          required
+          label={t('canvas.workflow.variables.value') || 'Variable Value'}
+          name="value"
+          rules={[
+            {
+              required: true,
+              message:
+                t('canvas.workflow.variables.fileRequired') || 'Please upload at least one file',
+            },
+          ]}
+        >
           <Upload
             className="file-upload-container"
             fileList={fileList}
@@ -211,7 +222,7 @@ export const ResourceTypeForm: React.FC<ResourceTypeFormProps> = React.memo(
                   </div>
 
                   <div className="fl">
-                    <Tooltip title={t('canvas.workflow.variables.reloadFile')}>
+                    <Tooltip title={t('canvas.workflow.variables.replaceFile')}>
                       <Button
                         size="small"
                         type="text"

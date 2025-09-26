@@ -1351,6 +1351,8 @@ const translations = {
         upload: 'Upload Files',
         typeLimitReached:
           '{{type}} type variables have reached the maximum limit and cannot be submitted.',
+        fileRequired: 'Please upload one file',
+        selectValuePlaceholder: 'Please select an option above',
         startNode: 'Start Node',
         resourceLibrary: 'Resource Library',
         viewAndEdit: 'View',

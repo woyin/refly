@@ -7,11 +7,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useFileUpload } from '../workflow-variables';
 import { ResourceUpload } from './resource-upload';
-import { getFileExtension } from '../workflow-variables/utils';
 import cn from 'classnames';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { useNavigate } from 'react-router-dom';
+import { getFileType } from '../workflow-variables/utils';
 
 const RequiredTagText = () => {
   const { t } = useTranslation();
@@ -175,6 +175,7 @@ export const WorkflowRunForm = ({
         });
       } else if (variable.variableType === 'resource') {
         const v = Array.isArray(value) ? value[0] : undefined;
+        console.log('v', v);
         const entityId = variable?.value?.[0]?.resource?.entityId;
 
         if (v && entityId) {
@@ -186,7 +187,7 @@ export const WorkflowRunForm = ({
                 resource: {
                   name: v.name,
                   storageKey: v.url,
-                  fileType: getFileExtension(v.name),
+                  fileType: getFileType(v.name),
                   entityId,
                 },
               },

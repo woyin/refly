@@ -1,4 +1,4 @@
-import { CanvasEdge, CanvasNode } from '@refly/openapi-schema';
+import { CanvasEdge, CanvasNode, GenericToolset } from '@refly/openapi-schema';
 import { CanvasNodeFilter } from './types';
 import { Node, Edge, Viewport } from '@xyflow/react';
 import { calculateNodePosition } from './position';
@@ -6,6 +6,7 @@ import { getNodeDefaultMetadata } from './nodes';
 import { deepmerge, genUniqueId } from '@refly/utils';
 import { purgeContextItems } from './context';
 import { IContextItem } from '@refly/common-types';
+import { purgeToolsets } from './tools';
 
 export interface AddNodeParam {
   node: Partial<CanvasNode>;
@@ -63,6 +64,13 @@ export const prepareAddNode = (
   if (node.data?.metadata?.contextItems) {
     node.data.metadata.contextItems = purgeContextItems(
       node.data.metadata.contextItems as IContextItem[],
+    );
+  }
+
+  // Purge selected toolsets if they exist
+  if (node.data?.metadata?.selectedToolsets) {
+    node.data.metadata.selectedToolsets = purgeToolsets(
+      node.data.metadata.selectedToolsets as GenericToolset[],
     );
   }
 

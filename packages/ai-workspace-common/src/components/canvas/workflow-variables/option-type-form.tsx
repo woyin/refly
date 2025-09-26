@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Form, Input, Button, Radio, Tooltip } from 'antd';
+import { Form, Input, Button, Radio, Tooltip, Select } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { Add, Delete } from 'refly-icons';
 import { MdOutlineDragIndicator } from 'react-icons/md';
@@ -38,6 +38,7 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
     onDragStart,
   }) => {
     const { t } = useTranslation();
+    const isSingle = Form.useWatch('isSingle');
 
     const handleAddOption = useCallback(() => {
       if (options.length < MAX_OPTIONS) {
@@ -94,6 +95,7 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
     return (
       <>
         <Form.Item
+          required
           label={t('canvas.workflow.variables.selectMode') || 'Selection Mode'}
           name="isSingle"
         >
@@ -108,11 +110,12 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
         </Form.Item>
 
         <Form.Item
+          required
           label={t('canvas.workflow.variables.options') || 'Options'}
           name="currentOption"
           rules={[
             {
-              validator: async (_, _value) => {
+              validator: async () => {
                 if (!options?.length || options.length < 1) {
                   throw new Error(
                     t('canvas.workflow.variables.optionsRequired') ||
@@ -268,6 +271,41 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
               {t('canvas.workflow.variables.addOption') || 'Add Option'}
             </Button>
           </Tooltip>
+        </Form.Item>
+
+        <Form.Item
+          required
+          label={t('canvas.workflow.variables.value') || 'Variable Value'}
+          name="selectedValue"
+          rules={[
+            {
+              validator: async (_, value) => {
+                if (!value || (Array.isArray(value) ? value.length === 0 : !value)) {
+                  throw new Error(
+                    t('canvas.workflow.variables.valueRequired') || 'Please select a value',
+                  );
+                }
+                return Promise.resolve();
+              },
+            },
+          ]}
+        >
+          <Select
+            placeholder={
+              t('canvas.workflow.variables.selectValuePlaceholder') ||
+              'Please select a value from the options above'
+            }
+            className="w-full"
+            mode={isSingle ? undefined : 'multiple'}
+            maxTagCount={isSingle ? undefined : 5}
+            options={options
+              .filter((option) => option && option.trim().length > 0)
+              .map((option) => ({
+                label: option,
+                value: option,
+              }))}
+            disabled={options.length === 0}
+          />
         </Form.Item>
       </>
     );

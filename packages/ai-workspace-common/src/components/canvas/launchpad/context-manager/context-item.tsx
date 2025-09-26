@@ -16,6 +16,7 @@ import { Close } from 'refly-icons';
 import { NODE_COLORS } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/colors';
 import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas';
 
 export const ContextItem = ({
   item,
@@ -37,6 +38,7 @@ export const ContextItem = ({
   const { getNodes, getNode } = useReactFlow();
   const { setNodeCenter } = useNodePosition();
   const { canvasId, projectId } = useGetProjectCanvasId();
+  const { handleNodePreview } = useNodePreviewControl({ canvasId });
   const { data: resourcesData } = useListResources({
     query: {
       canvasId,
@@ -52,11 +54,11 @@ export const ContextItem = ({
   const finalTitle = useMemo(() => {
     if (type === 'resource') {
       const resource = resourcesData?.data?.find((resource) => resource.resourceId === entityId);
-      return resource?.title || t('common.untitled');
+      return resource?.title || title || t('common.untitled');
     }
     const nodeTitle = getNode(node?.id)?.data?.title;
     const stringifiedNodeTitle = nodeTitle != null ? String(nodeTitle) : null;
-    return stringifiedNodeTitle ?? title ?? t(`canvas.nodeTypes.${type}`);
+    return stringifiedNodeTitle || title || t(`canvas.nodeTypes.${type}`);
   }, [node?.id, getNode, title, type, t, resourcesData?.data, entityId]);
 
   const handleItemClick = useCallback(() => {
@@ -64,6 +66,25 @@ export const ContextItem = ({
     const currentNode = nodes.find((node) => node.data?.entityId === entityId) as CanvasNode<any>;
 
     if (!currentNode) {
+      if (type === 'resource') {
+        // Create a fake resource node for preview
+        const fakeResourceNode: CanvasNode = {
+          id: `preview-resource-${entityId}`,
+          type: 'resource',
+          position: { x: 0, y: 0 },
+          data: {
+            title: finalTitle,
+            entityId,
+            contentPreview: '',
+            metadata: {
+              resourceType: item.metadata?.resourceType,
+              resourceMeta: item.metadata?.resourceMeta,
+            },
+          },
+        };
+
+        handleNodePreview(fakeResourceNode);
+      }
       return;
     }
 
@@ -93,7 +114,18 @@ export const ContextItem = ({
     } else {
       setSelectedNode(currentNode as CanvasNode<any>);
     }
-  }, [entityId, selection, setSelectedNode, setNodeCenter, getNodes, t]);
+  }, [
+    entityId,
+    type,
+    finalTitle,
+    item.metadata,
+    selection,
+    setSelectedNode,
+    setNodeCenter,
+    getNodes,
+    t,
+    handleNodePreview,
+  ]);
 
   const content = <ContextPreview item={item} />;
 
@@ -101,6 +133,7 @@ export const ContextItem = ({
     <Popover
       arrow={false}
       content={content}
+      placement="top"
       trigger="hover"
       mouseEnterDelay={0.5}
       mouseLeaveDelay={0.1}

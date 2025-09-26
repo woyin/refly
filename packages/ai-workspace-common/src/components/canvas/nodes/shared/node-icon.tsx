@@ -117,6 +117,7 @@ export const NodeIcon: NamedExoticComponent<NodeIconProps> = memo(
     const isResourceFile =
       type === 'resource' &&
       (resourceType === 'file' ||
+        resourceType === 'document' ||
         resourceType === 'image' ||
         resourceType === 'video' ||
         resourceType === 'audio') &&

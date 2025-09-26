@@ -1329,6 +1329,8 @@ const translations = {
         duplicateOption: '可选项不能存在重复值',
         upload: '上传文件',
         typeLimitReached: '{{type}}类型的变量数量已达上限，无法提交。',
+        fileRequired: '请上传一个文件',
+        selectValuePlaceholder: '请选择一个可选项',
         startNode: '起始节点',
         resourceLibrary: '资源库',
         viewAndEdit: '查看',

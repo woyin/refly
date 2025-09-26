@@ -143,7 +143,7 @@ describe('prepareNodeExecutions', () => {
           type: 'resource',
           resource: {
             name: 'test2.pdf', // different name from test.pdf
-            fileType: 'application/pdf',
+            fileType: 'document',
             storageKey: 's1',
             entityId: 'resource1',
           },
@@ -586,7 +586,7 @@ describe('updateContextItemsFromVariables', () => {
             type: 'resource',
             resource: {
               name: 'doc1.pdf',
-              fileType: 'application/pdf',
+              fileType: 'document',
               storageKey: 's1',
               entityId: 'resource1',
             },
@@ -602,7 +602,7 @@ describe('updateContextItemsFromVariables', () => {
             type: 'resource',
             resource: {
               name: 'doc2.pdf',
-              fileType: 'application/pdf',
+              fileType: 'document',
               storageKey: 's2',
               entityId: 'resource2',
             },
@@ -630,7 +630,7 @@ describe('updateContextItemsFromVariables', () => {
             type: 'resource',
             resource: {
               name: 'test.pdf',
-              fileType: 'application/pdf',
+              fileType: 'document',
               storageKey: 's1',
               // No entityId
             },
@@ -657,7 +657,7 @@ describe('updateContextItemsFromVariables', () => {
             type: 'resource',
             resource: {
               name: 'test.pdf',
-              fileType: 'application/pdf',
+              fileType: 'document',
               storageKey: 's1',
               entityId: 'resource1',
             },
@@ -687,7 +687,7 @@ describe('updateContextItemsFromVariables', () => {
             type: 'resource',
             resource: {
               name: 'test.pdf',
-              fileType: 'application/pdf',
+              fileType: 'document',
               storageKey: 's1',
               entityId: 'resource1',
             },
@@ -716,7 +716,7 @@ describe('updateContextItemsFromVariables', () => {
             type: 'resource',
             resource: {
               name: 'test1.pdf',
-              fileType: 'application/pdf',
+              fileType: 'document',
               storageKey: 's1',
               entityId: 'resource1',
             },
@@ -732,7 +732,7 @@ describe('updateContextItemsFromVariables', () => {
             type: 'resource',
             resource: {
               name: 'test2.pdf',
-              fileType: 'application/pdf',
+              fileType: 'document',
               storageKey: 's2',
               entityId: 'resource2',
             },
