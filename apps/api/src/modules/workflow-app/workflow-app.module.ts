@@ -6,9 +6,19 @@ import { CanvasModule } from '../canvas/canvas.module';
 import { MiscModule } from '../misc/misc.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { ShareModule } from '../share/share.module';
+import { ToolModule } from '../tool/tool.module';
+import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 
 @Module({
-  imports: [CommonModule, CanvasModule, MiscModule, WorkflowModule, ShareModule],
+  imports: [
+    CommonModule,
+    CanvasModule,
+    MiscModule,
+    WorkflowModule,
+    ShareModule,
+    ToolModule,
+    CanvasSyncModule,
+  ],
   controllers: [WorkflowAppController],
   providers: [WorkflowAppService],
   exports: [WorkflowAppService],

@@ -1,5 +1,11 @@
 import { User } from '../../generated/client';
-import { CreateWorkflowAppRequest, WorkflowVariable } from '@refly/openapi-schema';
+import {
+  CreateWorkflowAppRequest,
+  WorkflowVariable,
+  GenericToolset,
+  CanvasNode,
+  RawCanvasData,
+} from '@refly/openapi-schema';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
 import { CanvasService } from '../canvas/canvas.service';
@@ -11,6 +17,23 @@ import { Injectable } from '@nestjs/common';
 import { ShareCommonService } from '../share/share-common.service';
 import { ShareCreationService } from '../share/share-creation.service';
 import { ShareNotFoundError } from '@refly/errors';
+import { ToolService } from '../tool/tool.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { initEmptyCanvasState } from '@refly/canvas-common';
+
+/**
+ * Structure of shared workflow app data
+ */
+interface SharedWorkflowAppData {
+  appId: string;
+  title: string;
+  description?: string;
+  query?: string;
+  variables: WorkflowVariable[];
+  canvasData: RawCanvasData;
+  createdAt: string;
+  updatedAt: string;
+}
 
 @Injectable()
 export class WorkflowAppService {
@@ -23,6 +46,8 @@ export class WorkflowAppService {
     private readonly workflowService: WorkflowService,
     private readonly shareCommonService: ShareCommonService,
     private readonly shareCreationService: ShareCreationService,
+    private readonly toolService: ToolService,
+    private readonly canvasSyncService: CanvasSyncService,
   ) {}
 
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
@@ -134,24 +159,104 @@ export class WorkflowAppService {
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
+    const shareRecord = await this.prisma.shareRecord.findFirst({
+      where: { shareId, deletedAt: null },
+    });
+
+    if (!shareRecord) {
+      throw new ShareNotFoundError('Share record not found');
+    }
+
     const workflowApp = await this.prisma.workflowApp.findFirst({
       where: { shareId, deletedAt: null },
     });
 
-    if (!workflowApp?.canvasId) {
-      throw new ShareNotFoundError();
+    this.logger.log(`Executing workflow app via shareId: ${shareId} for user: ${user.uid}`);
+
+    const shareDataRaw = await this.shareCommonService.getSharedData(shareRecord.storageKey);
+    if (!shareDataRaw) {
+      throw new ShareNotFoundError('Workflow app data not found');
     }
+
+    let canvasData: RawCanvasData;
+
+    if (shareDataRaw.canvasData) {
+      const shareData = shareDataRaw as SharedWorkflowAppData;
+      canvasData = shareData.canvasData;
+    } else if (shareDataRaw.nodes && shareDataRaw.edges) {
+      canvasData = shareDataRaw as RawCanvasData;
+    } else {
+      throw new ShareNotFoundError('Canvas data not found in workflow app storage');
+    }
+
+    const { nodes = [], edges = [] } = canvasData;
+
+    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
+
+    const updatedNodes: CanvasNode[] = nodes.map((node) => {
+      if (node.type === 'skillResponse' && node.data?.metadata?.selectedToolsets) {
+        const selectedToolsets = node.data.metadata.selectedToolsets as GenericToolset[];
+        node.data.metadata.selectedToolsets = selectedToolsets.map((toolset) => {
+          return replaceToolsetMap[toolset.id] || toolset;
+        });
+      }
+      return node;
+    });
+
+    const tempCanvasId = genCanvasID();
+    const state = initEmptyCanvasState();
+
+    await this.canvasService.createCanvasWithState(
+      user,
+      {
+        canvasId: tempCanvasId,
+        title: `${canvasData.title} (Execution)`,
+        variables: variables || canvasData.variables || [],
+      },
+      state,
+    );
+
+    state.nodes = updatedNodes;
+    state.edges = edges;
+    await this.canvasSyncService.saveState(tempCanvasId, state);
 
     const newCanvasId = genCanvasID();
 
-    // Note: Internal workflow execution still uses appId for tracking purposes
-    return this.workflowService.initializeWorkflowExecution(
-      user,
-      workflowApp.canvasId,
-      newCanvasId,
-      variables,
-      { appId: workflowApp.appId }, // Keep appId for internal workflow tracking
-    );
+    try {
+      const executionId = await this.workflowService.initializeWorkflowExecution(
+        user,
+        tempCanvasId,
+        newCanvasId,
+        variables,
+        { appId: workflowApp?.appId },
+      );
+
+      this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);
+      return executionId;
+    } finally {
+      this.cleanupTempCanvas(user, tempCanvasId).catch((error) => {
+        this.logger.warn(
+          `Failed to cleanup temporary canvas ${tempCanvasId}: ${error?.message || error}`,
+        );
+      });
+    }
+  }
+
+  /**
+   * Clean up temporary canvas created for workflow execution
+   */
+  private async cleanupTempCanvas(user: User, canvasId: string): Promise<void> {
+    try {
+      await this.prisma.canvas.update({
+        where: { canvasId, uid: user.uid },
+        data: { deletedAt: new Date() },
+      });
+      this.logger.log(`Cleaned up temporary canvas: ${canvasId}`);
+    } catch (error) {
+      this.logger.error(
+        `Error cleaning up temporary canvas ${canvasId}: ${error?.message || error}`,
+      );
+    }
   }
 
   async listWorkflowApps(user: User, query: { canvasId: string }) {

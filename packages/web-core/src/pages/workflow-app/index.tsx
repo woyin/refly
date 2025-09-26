@@ -252,9 +252,9 @@ const WorkflowAppPage: React.FC = () => {
             </div>
 
             {/* Tools Dependency Form */}
-            {workflowApp?.canvasData?.canvasId && (
+            {workflowApp?.canvasData && (
               <div className="mb-6 sm:mb-8">
-                <ToolsDependencyChecker canvasId={workflowApp.canvasData.canvasId} />
+                <ToolsDependencyChecker canvasData={workflowApp.canvasData} />
               </div>
             )}
 
