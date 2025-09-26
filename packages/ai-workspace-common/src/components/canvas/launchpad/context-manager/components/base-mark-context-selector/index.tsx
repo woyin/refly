@@ -6,7 +6,6 @@ import classNames from 'classnames';
 import { Command } from 'cmdk';
 
 import { Home } from './home';
-import { getContextItemIcon } from '../../utils/icon';
 import { CanvasNodeType } from '@refly/openapi-schema';
 import { ReloadOutlined } from '@ant-design/icons';
 import { IContextItem } from '@refly/common-types';
@@ -156,7 +155,6 @@ export const BaseMarkContextSelector = (props: BaseMarkContextSelectorProps) => 
     return processedNodes.map((item) => ({
       data: { ...item, title: item?.title || t(`canvas.nodeTypes.${item?.type}`) },
       type: item?.type as CanvasNodeType,
-      icon: getContextItemIcon(item.type as any, { width: 12, height: 12 }),
       isSelected: selectedItems?.some((selected) => selected?.entityId === item?.entityId),
       onItemClick: (item: IContextItem) => {
         onSelect?.(item);

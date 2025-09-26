@@ -397,8 +397,11 @@ export const purgeContextItems = (items: IContextItem[]): IContextItem[] => {
     return [];
   }
   return items.map((item) => {
-    // Skip media items
-    if (['image', 'video', 'audio'].includes(item.type as string)) {
+    if (
+      ['image', 'video', 'audio', 'resource', 'document', 'codeArtifact'].includes(
+        item.type as string,
+      )
+    ) {
       return item;
     }
     return {
