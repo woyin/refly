@@ -1,4 +1,4 @@
-import { Tooltip, Button, Skeleton, message } from 'antd';
+import { Tooltip, Button, Skeleton } from 'antd';
 import { SideRight } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
@@ -73,17 +73,6 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
     },
     [canvasId, initializeWorkflow, refetchWorkflowVariables],
   );
-
-  const _onCopyShareLink = useCallback(async () => {
-    try {
-      // Copy current browser URL to clipboard
-      await navigator.clipboard.writeText(window.location.href);
-      message.success(t('canvas.workflow.run.shareLinkCopied') || 'Share link copied to clipboard');
-    } catch (error) {
-      console.error('Failed to copy share link:', error);
-      message.error(t('canvas.workflow.run.shareLinkCopyFailed') || 'Failed to copy share link');
-    }
-  }, [t]);
 
   return (
     <div className="flex flex-col w-full h-[calc(100vh-16px)] bg-refly-bg-content-z2 rounded-xl border-solid border border-refly-Card-Border shadow-refly-m">
