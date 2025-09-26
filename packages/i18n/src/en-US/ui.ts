@@ -876,7 +876,7 @@ const translations = {
     publishTemplate: 'Publish as Template',
     publish: 'Publish',
     publishTemplateTooltip: 'Publish canvas as template',
-    latestPublishedApp: 'Latest Published App',
+    latestPublishedApp: 'Latest Published Workflow',
     linkShare: 'Link Share',
     updateCanvasPermissionSuccess: 'Update canvas permission successfully',
     copyLinkSuccess: 'Share link copied to clipboard!',

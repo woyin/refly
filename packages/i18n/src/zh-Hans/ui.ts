@@ -864,7 +864,7 @@ const translations = {
     publishTemplate: '发布为模版',
     publish: '发布',
     publishTemplateTooltip: '将画布发布为模板',
-    latestPublishedApp: '最新发布的应用',
+    latestPublishedApp: '最新发布的工作流',
     linkShare: '链接分享',
     updateCanvasPermissionSuccess: '更新画布权限成功',
     copyLinkSuccess: '分享链接已复制到剪贴板！',
