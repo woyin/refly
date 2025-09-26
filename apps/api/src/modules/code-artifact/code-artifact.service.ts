@@ -71,7 +71,7 @@ export class CodeArtifactService {
           const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
             where: {
               nodeId: { in: childNodeIds },
-              status: 'waiting',
+              // status: 'waiting',
               nodeType: 'codeArtifact',
             },
             orderBy: {
