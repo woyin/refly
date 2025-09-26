@@ -5,7 +5,7 @@ import {
   VIDEO_FILE_EXTENSIONS,
   FILE_SIZE_LIMITS,
 } from './constants';
-import type { VariableResourceType } from '@refly-packages/ai-workspace-common/requests/types.gen';
+import type { VariableResourceType } from '@refly/openapi-schema';
 
 export const getFileExtension = (filename: string): string => {
   const lastDotIndex = filename.lastIndexOf('.');

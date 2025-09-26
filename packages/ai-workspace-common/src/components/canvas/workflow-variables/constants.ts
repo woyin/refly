@@ -2,29 +2,10 @@ import { VariableResourceType } from '@refly/openapi-schema';
 
 export const MAX_OPTIONS = 20;
 
-export const DOCUMENT_FILE_EXTENSIONS = [
-  'txt',
-  'md',
-  'mdx',
-  'markdown',
-  'pdf',
-  'html',
-  'xlsx',
-  'xls',
-  'doc',
-  'docx',
-  'csv',
-  'eml',
-  'msg',
-  'pptx',
-  'ppt',
-  'xml',
-  'epub',
-];
-
-export const IMAGE_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-export const AUDIO_FILE_EXTENSIONS = ['mp3', 'm4a', 'wav', 'amr', 'mpga'];
-export const VIDEO_FILE_EXTENSIONS = ['mp4', 'mov', 'mpeg', 'webm'];
+export const DOCUMENT_FILE_EXTENSIONS = ['txt', 'md', 'markdown', 'pdf', 'html', 'docx', 'epub'];
+export const IMAGE_FILE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'tiff', 'bmp', 'webp', 'svg'];
+export const AUDIO_FILE_EXTENSIONS = ['mp3', 'm4a', 'wav', 'mpga', 'ogg', 'flac', 'aac'];
+export const VIDEO_FILE_EXTENSIONS = ['mp4', 'mov', 'webm', 'avi', 'mkv', 'flv', 'wmv'];
 
 export const ACCEPT_FILE_EXTENSIONS = [
   ...DOCUMENT_FILE_EXTENSIONS,
