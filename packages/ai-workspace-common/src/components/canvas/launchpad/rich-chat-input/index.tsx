@@ -209,7 +209,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             resourceMeta: resource.data as ResourceMeta | undefined,
             storageKey: resource.storageKey,
             rawFileKey: resource.rawFileKey,
-            downloadURL: resource.downloadURL,
+            [`${resource.resourceType}Url`]: resource.downloadURL,
           },
         })) ?? [];
 
@@ -312,6 +312,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
                 storageKey: resourceValue.storageKey,
                 resourceType: resourceValue.fileType,
                 resourceMeta: resource?.data,
+                [`${resourceValue.fileType}Url`]: resource?.downloadURL,
               },
             };
 

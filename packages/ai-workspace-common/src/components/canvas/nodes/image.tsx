@@ -338,14 +338,27 @@ export const ImageNode = memo(
         <NodeExecutionOverlay status={executionStatus} />
 
         <div
-          className="w-full relative z-1 rounded-2xl overflow-hidden flex items-center justify-center"
+          className={cn(
+            'relative z-1 rounded-2xl overflow-hidden flex items-center justify-center',
+            {
+              'w-full': !isPreview,
+              'max-w-64 max-h-64': isPreview,
+            },
+          )}
           style={{ cursor: isPreview || readonly ? 'default' : 'pointer' }}
           onClick={handleImageClick}
         >
           {/* Node execution status badge */}
           <NodeExecutionStatus status={executionStatus} />
 
-          <img src={imageUrl} alt={data.title || 'Image'} className="w-full h-full object-cover" />
+          <img
+            src={imageUrl}
+            alt={data.title || 'Image'}
+            className={cn('w-full h-full', {
+              'object-cover': !isPreview,
+              'object-contain max-w-64 max-h-64': isPreview,
+            })}
+          />
         </div>
       </div>
     );
