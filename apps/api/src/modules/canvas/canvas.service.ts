@@ -77,6 +77,12 @@ export class CanvasService {
         uid: user.uid,
         deletedAt: null,
         projectId: projectId || null,
+        // Exclude temporary canvases created for workflow execution
+        NOT: {
+          title: {
+            endsWith: ' (Execution)',
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' },
       skip: (page - 1) * pageSize,
