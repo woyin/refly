@@ -274,7 +274,7 @@ const WorkflowAppPage: React.FC = () => {
                   </div>
 
                   {/* Content Area */}
-                  <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm min-h-[200px]">
+                  <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border min-h-[200px]">
                     {activeTab === 'products' ? (
                       <WorkflowAppProducts products={products || []} />
                     ) : activeTab === 'runLogs' ? (
