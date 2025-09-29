@@ -5,13 +5,11 @@ import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
   Background,
-  MiniMap,
   ReactFlowProvider,
   useReactFlow,
   Node,
   Edge,
   useStore,
-  useStoreApi,
 } from '@xyflow/react';
 import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
@@ -49,7 +47,6 @@ import { useEdgeOperations } from '@refly-packages/ai-workspace-common/hooks/can
 import { MultiSelectionMenus } from './multi-selection-menu';
 import { CustomEdge } from './edges/custom-edge';
 import NotFoundOverlay from './NotFoundOverlay';
-import { NODE_MINI_MAP_COLORS } from './nodes/shared/colors';
 import { useDragToCreateNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-create-node';
 import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-drop-paste';
 
@@ -115,65 +112,6 @@ interface ContextMenuState {
 
 // Add new memoized components
 const MemoizedBackground = memo(Background);
-const MemoizedMiniMap = memo(MiniMap);
-
-const MiniMapNode = (props: any) => {
-  const { x, y, width, height, style, className, id: nodeId } = props;
-  const nodes = useStoreApi().getState().nodes;
-  const node = nodes.find((n) => n.id === nodeId);
-
-  const getMiniMapNodeColor = useCallback((node: Node) => {
-    if (node.type === 'memo') {
-      const data = node.data as any;
-      return data?.metadata?.bgColor ?? '#FFFEE7';
-    }
-    if (node.type === 'group') {
-      return 'transparent';
-    }
-
-    return NODE_MINI_MAP_COLORS[node.type as CanvasNodeType] ?? '#6172F3';
-  }, []);
-
-  const getMiniMapNodeStrokeColor = useCallback((node: Node) => {
-    return node.type === 'group' ? '#363434' : 'transparent';
-  }, []);
-
-  if (!node || node.type !== 'image' || !(node.data as any)?.metadata?.imageUrl) {
-    return (
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={12}
-        ry={12}
-        style={{
-          fill: node ? getMiniMapNodeColor(node) : '#6172F3',
-          stroke: node ? getMiniMapNodeStrokeColor(node) : 'transparent',
-          strokeWidth: 10,
-          opacity: 0.5,
-          strokeDasharray: node?.type === 'group' ? '10,10' : 'none',
-        }}
-      />
-    );
-  }
-
-  return (
-    <image
-      href={(node.data as any)?.metadata?.imageUrl}
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      className={`minimap-node-image ${className || ''}`}
-      style={{
-        ...style,
-        objectFit: 'cover',
-        borderRadius: '12px',
-      }}
-    />
-  );
-};
 
 const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
@@ -859,30 +797,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const memoizedNodes = useMemo(() => nodes, [nodes]);
   const memoizedEdges = useMemo(() => edges, [edges]);
 
-  // Memoize MiniMap styles
-  const miniMapStyles = useMemo(
-    () => ({
-      border: '1px solid rgba(16, 24, 40, 0.0784)',
-      boxShadow: '0px 4px 6px 0px rgba(16, 24, 40, 0.03)',
-    }),
-    [],
-  );
-
-  // Memoize the Background and MiniMap components
+  // Memoize the Background component
   const memoizedBackground = useMemo(() => <MemoizedBackground />, []);
-  const memoizedMiniMap = useMemo(
-    () => (
-      <MemoizedMiniMap
-        position="bottom-left"
-        style={miniMapStyles}
-        className="bg-white/80 dark:bg-gray-900/80 w-[140px] h-[92px] !mb-2 !ml-2 rounded-lg shadow-refly-m p-2 [&>svg]:w-full [&>svg]:h-full"
-        zoomable={false}
-        pannable={false}
-        nodeComponent={MiniMapNode}
-      />
-    ),
-    [miniMapStyles],
-  );
 
   // Memoize the node types configuration
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
@@ -1310,7 +1226,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             {nodes?.length === 0 && canvasInitialized && <EmptyGuide canvasId={canvasId} />}
 
             {memoizedBackground}
-            {memoizedMiniMap}
             <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
 
             {/* Custom selection box */}
