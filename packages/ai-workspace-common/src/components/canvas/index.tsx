@@ -10,6 +10,7 @@ import {
   Node,
   Edge,
   useStore,
+  SelectionMode,
 } from '@xyflow/react';
 import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
@@ -1179,6 +1180,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           <DropOverlay />
           <ReactFlow
             {...flowConfig}
+            selectionMode={SelectionMode.Partial}
             className="bg-refly-bg-canvas"
             snapToGrid={true}
             snapGrid={[GRID_SIZE, GRID_SIZE]}
