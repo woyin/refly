@@ -16,8 +16,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
 import { nodeTypes } from './nodes';
 import { TopToolbar } from './top-toolbar';
-import { ContextMenu } from './context-menu';
-import { NodeContextMenu } from './node-context-menu';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
@@ -37,7 +35,7 @@ import {
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
-import { MenuPopper } from './menu-popper';
+import { UnifiedContextMenu } from './unified-context-menu';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import {
   EditorPerformanceProvider,
@@ -53,7 +51,6 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 
 import '@xyflow/react/dist/style.css';
 import './index.scss';
-import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
 import {
   useGetPilotSessionDetail,
   useUpdateSettings,
@@ -103,7 +100,7 @@ const SessionContainerClassName = `
 interface ContextMenuState {
   open: boolean;
   position: { x: number; y: number };
-  type: 'canvas' | 'node' | 'selection';
+  type: 'canvas' | 'node' | 'selection' | 'doubleClick';
   nodeId?: string;
   nodeType?: CanvasNodeType;
   isSelection?: boolean;
@@ -287,8 +284,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [defaultEdgeOptions],
   );
 
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
 
@@ -430,24 +425,33 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         setSelectedEdgeId(null);
       }
 
-      if (readonly) return;
-
+      // Handle double click detection
       const currentTime = new Date().getTime();
       const timeDiff = currentTime - lastClickTime;
 
-      if (timeDiff < 300) {
+      if (timeDiff < 300 && !readonly) {
         const flowPosition = reactFlowInstance.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
         });
 
-        setMenuPosition(flowPosition);
-        setMenuOpen(true);
+        setContextMenu({
+          open: true,
+          position: flowPosition,
+          type: 'doubleClick',
+        });
       }
 
       setLastClickTime(currentTime);
     },
-    [lastClickTime, setOperatingNodeId, reactFlowInstance, selectedEdgeId, cleanupTemporaryEdges],
+    [
+      lastClickTime,
+      setOperatingNodeId,
+      reactFlowInstance,
+      selectedEdgeId,
+      cleanupTemporaryEdges,
+      readonly,
+    ],
   );
 
   // Add mouse and touch event listeners
@@ -641,6 +645,47 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       setContextMenuOpenedCanvasId(contextMenu.open ? (contextMenu.nodeId ?? null) : null);
     }
   }, [contextMenu, setContextMenuOpenedCanvasId]);
+
+  // Global menu close logic
+  useEffect(() => {
+    const isInsideMenu = (target: HTMLElement) => {
+      return (
+        target.closest('[data-unified-menu]') ||
+        target.closest('.canvas-search-list') ||
+        target.closest('.menu-popper')
+      );
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      if (contextMenu.open) {
+        // Check if click is inside any menu
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    const handleGlobalMouseDown = (event: MouseEvent) => {
+      if (contextMenu.open && event.button === 0) {
+        // Left mouse button - check if click is inside menu before closing
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    if (contextMenu.open) {
+      document.addEventListener('click', handleGlobalClick);
+      document.addEventListener('mousedown', handleGlobalMouseDown);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      document.removeEventListener('mousedown', handleGlobalMouseDown);
+    };
+  }, [contextMenu.open]);
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent) => {
@@ -1007,12 +1052,12 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   // Add listener for opening node context menu
   useEffect(() => {
     const handleOpenContextMenu = (event: any) => {
-      // 从事件名称中提取nodeId
+      // Extract nodeId from event name
       const nodeId = event.nodeId;
 
-      // 检查事件是否包含必要的信息
+      // Check if event contains necessary information
       if (event?.nodeType) {
-        // 构造一个合成的React鼠标事件
+        // Create a synthetic React mouse event
         const syntheticEvent = {
           ...event.originalEvent,
           clientX: event.x,
@@ -1021,7 +1066,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           stopPropagation: () => {},
         } as React.MouseEvent;
 
-        // 构造一个简化的节点对象，包含必要的属性
+        // Create a simplified node object with necessary properties
         const node = {
           id: nodeId,
           type: event.nodeType as CanvasNodeType,
@@ -1029,7 +1074,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           position: { x: event.x, y: event.y },
         } as unknown as CanvasNode<any>;
 
-        // 调用onNodeContextMenu处理上下文菜单
+        // Call onNodeContextMenu to handle context menu
         onNodeContextMenu(syntheticEvent, node, {
           source: event.source,
           dragCreateInfo: event.dragCreateInfo,
@@ -1037,11 +1082,11 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       }
     };
 
-    // 监听所有包含openContextMenu的事件
+    // Listen for all events containing openContextMenu
     nodeOperationsEmitter.on('openNodeContextMenu', handleOpenContextMenu);
 
     return () => {
-      // 清理事件监听器
+      // Clean up event listeners
       nodeOperationsEmitter.off('openNodeContextMenu', handleOpenContextMenu);
     };
   }, [onNodeContextMenu]);
@@ -1259,39 +1304,19 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           </div>
         </div>
 
-        <MenuPopper open={menuOpen} position={menuPosition} setOpen={setMenuOpen} />
-
-        {contextMenu.open && contextMenu.type === 'canvas' && (
-          <ContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            isSelection={contextMenu.isSelection}
-          />
-        )}
-
-        {contextMenu.open &&
-          contextMenu.type === 'node' &&
-          contextMenu.nodeId &&
-          contextMenu.nodeType && (
-            <NodeContextMenu
-              open={contextMenu.open}
-              position={contextMenu.position}
-              nodeId={contextMenu.nodeId}
-              nodeType={contextMenu.nodeType}
-              source={contextMenu.source}
-              dragCreateInfo={contextMenu.dragCreateInfo}
-              setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            />
-          )}
-
-        {contextMenu.open && contextMenu.type === 'selection' && (
-          <SelectionContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-          />
-        )}
+        <UnifiedContextMenu
+          open={contextMenu.open}
+          position={contextMenu.position}
+          menuType={contextMenu.type}
+          context={{
+            nodeId: contextMenu.nodeId,
+            nodeType: contextMenu.nodeType,
+            source: contextMenu.source,
+            dragCreateInfo: contextMenu.dragCreateInfo,
+            isSelection: contextMenu.isSelection,
+          }}
+          setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
+        />
 
         {selectedNodes.length > 0 && <MultiSelectionMenus />}
       </div>
