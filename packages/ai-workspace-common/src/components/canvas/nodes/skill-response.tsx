@@ -835,7 +835,7 @@ export const SkillResponseNode = memo(
                   onClick={() => handleRerun()}
                 >
                   <IconError className="h-4 w-4 text-red-500" />
-                  <span className="text-xs text-red-500 max-w-48 truncate">
+                  <span className="text-xs text-red-500 w-full truncate">
                     {errMsg || t('canvas.skillResponse.executionFailed')}
                   </span>
                 </div>
@@ -844,7 +844,7 @@ export const SkillResponseNode = memo(
               {(status === 'waiting' || status === 'executing') && (
                 <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
                   <IconLoading className="h-3 w-3 animate-spin text-green-500" />
-                  <span className="text-xs text-gray-500 max-w-48 truncate">
+                  <span className="text-xs text-gray-500 w-full truncate">
                     {log ? (
                       <>
                         <span className="text-green-500 font-medium">{`${logTitle} `}</span>
