@@ -44,6 +44,20 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
   const isCreditInsufficient =
     error instanceof ModelUsageQuotaExceeded && creditBalance <= 0 && isBalanceSuccess;
 
+  if (isCreditInsufficient) {
+    return (
+      <ErrorNotice
+        errorType="creditInsufficient"
+        membershipLevel={displayName}
+        onUpgradeClick={handleSubscriptionClick}
+        trackingContext="skill_invoke"
+        className="mt-2"
+      />
+    );
+  }
+
+  console.log('failureType', failureType, error, errCode);
+
   // Handle execution failures - map FailureType to ErrorNoticeType
   if (failureType) {
     const errorNoticeType = (() => {
@@ -63,18 +77,6 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
       <ErrorNotice
         errorType={errorNoticeType}
         onRetryClick={handleRetry}
-        trackingContext="skill_invoke"
-        className="mt-2"
-      />
-    );
-  }
-
-  if (isCreditInsufficient) {
-    return (
-      <ErrorNotice
-        errorType="creditInsufficient"
-        membershipLevel={displayName}
-        onUpgradeClick={handleSubscriptionClick}
         trackingContext="skill_invoke"
         className="mt-2"
       />

@@ -1436,9 +1436,9 @@ const translations = {
         networkError: 'If the problem persists, please check your internet connection or VPN',
       },
       creditInsufficient: {
-        title: 'Execution Failed',
+        title: 'Insufficient Credits',
         description:
-          "You are currently {{membershipLevel}}, and your credits are insufficient. Upgrade your plan to continue using Refly's full features.",
+          "Your current subscription plan is {{membershipLevel}}, and your credits are insufficient. Upgrade your plan to continue using Refly's full features.",
         upgradeButton: 'Upgrade Now',
       },
       modelCallFailure: {

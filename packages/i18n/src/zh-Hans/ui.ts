@@ -1417,9 +1417,9 @@ const translations = {
         networkError: '如果问题持续存在，请检查您的网络连接或 VPN',
       },
       creditInsufficient: {
-        title: '执行失败',
+        title: '积分不足',
         description:
-          '您当前为 {{membershipLevel}}，积分已不足。升级套餐即可继续使用 Refly 的完整功能。',
+          '您当前订阅方案为 {{membershipLevel}}，积分已不足。升级套餐即可继续使用 Refly 的完整功能。',
         upgradeButton: '立即升级',
       },
       modelCallFailure: {
