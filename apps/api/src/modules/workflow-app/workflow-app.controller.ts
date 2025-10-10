@@ -1,4 +1,13 @@
-import { Controller, Post, Body, UseGuards, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { User as UserModel } from '../../generated/client';
@@ -10,6 +19,7 @@ import {
   ExecuteWorkflowAppRequest,
   ExecuteWorkflowAppResponse,
   ListWorkflowAppsResponse,
+  ListOrder,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 
@@ -56,9 +66,19 @@ export class WorkflowAppController {
   @Get('list')
   async listWorkflowApps(
     @LoginedUser() user: UserModel,
-    @Query() query: { canvasId: string },
+    @Query('canvasId') canvasId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
+    @Query('order', new DefaultValuePipe('creationDesc')) order: ListOrder,
+    @Query('keyword') keyword: string,
   ): Promise<ListWorkflowAppsResponse> {
-    const workflowApps = await this.workflowAppService.listWorkflowApps(user, query);
+    const workflowApps = await this.workflowAppService.listWorkflowApps(user, {
+      canvasId,
+      page,
+      pageSize,
+      order,
+      keyword,
+    });
     return buildSuccessResponse(workflowApps);
   }
 }

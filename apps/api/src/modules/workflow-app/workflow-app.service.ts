@@ -1,10 +1,11 @@
-import { User } from '../../generated/client';
+import { Prisma, User } from '../../generated/client';
 import {
   CreateWorkflowAppRequest,
   WorkflowVariable,
   GenericToolset,
   CanvasNode,
   RawCanvasData,
+  ListWorkflowAppsData,
 } from '@refly/openapi-schema';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
@@ -236,20 +237,45 @@ export class WorkflowAppService {
     }
   }
 
-  async listWorkflowApps(user: User, query: { canvasId: string }) {
-    const whereClause: any = {
+  async listWorkflowApps(user: User, query: ListWorkflowAppsData['query']) {
+    const { canvasId, page = 1, pageSize = 10, order = 'creationDesc', keyword } = query;
+
+    const whereClause: Prisma.WorkflowAppWhereInput = {
       uid: user.uid,
       deletedAt: null,
     };
 
-    if (query.canvasId) {
-      whereClause.canvasId = query.canvasId;
+    if (canvasId) {
+      whereClause.canvasId = canvasId;
+    }
+
+    // Add keyword search functionality
+    if (keyword?.trim()) {
+      const searchKeyword = keyword.trim();
+      whereClause.OR = [
+        { title: { contains: searchKeyword, mode: 'insensitive' } },
+        { description: { contains: searchKeyword, mode: 'insensitive' } },
+        { query: { contains: searchKeyword, mode: 'insensitive' } },
+      ];
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
+    // Determine order by field and direction
+    let orderBy: any = { updatedAt: 'desc' };
+    if (order === 'creationAsc') {
+      orderBy = { createdAt: 'asc' };
+    } else if (order === 'creationDesc') {
+      orderBy = { createdAt: 'desc' };
     }
 
     const workflowApps = await this.prisma.workflowApp.findMany({
       where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      take: 1, // Only get the latest one
+      orderBy,
+      skip,
+      take,
     });
 
     return workflowApps.map(workflowAppPO2DTO).filter(Boolean);

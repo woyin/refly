@@ -7531,6 +7531,22 @@ export type ListWorkflowAppsData = {
      * Canvas ID to filter by
      */
     canvasId?: string;
+    /**
+     * Search keyword
+     */
+    keyword?: string;
+    /**
+     * Order
+     */
+    order?: ListOrder;
+    /**
+     * Page number
+     */
+    page?: number;
+    /**
+     * Page size
+     */
+    pageSize?: number;
   };
 };
 

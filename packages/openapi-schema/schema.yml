@@ -2757,10 +2757,32 @@ paths:
       description: List workflow apps for a user, optionally filtered by canvasId
       operationId: listWorkflowApps
       parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: number
+            default: 1
+        - name: pageSize
+          in: query
+          description: Page size
+          schema:
+            type: number
+            default: 10
         - name: canvasId
           in: query
           description: Canvas ID to filter by
           required: false
+          schema:
+            type: string
+        - name: order
+          in: query
+          description: Order
+          schema:
+            $ref: '#/components/schemas/ListOrder'
+        - name: keyword
+          in: query
+          description: Search keyword
           schema:
             type: string
       responses:
