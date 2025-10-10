@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, memo, useState } from 'react';
+import { useEffect, useCallback, useMemo, memo, useState, useRef } from 'react';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
@@ -16,7 +16,8 @@ import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.sv
 import './index.scss';
 import { WorkflowActionDropdown } from '@refly-packages/ai-workspace-common/components/workflow-list/workflowActionDropdown';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { ShareRecord, ShareUser } from '@refly/openapi-schema';
+import { ListOrder, ShareRecord, ShareUser } from '@refly/openapi-schema';
+import { TbSortDescending, TbSortAscending } from 'react-icons/tb';
 
 // Helper function to get mock data for demonstration
 const getMockData = () => {
@@ -29,24 +30,50 @@ const getMockData = () => {
 const WorkflowList = memo(() => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const [searchValue, setSearchValue] = useState('');
   const language = i18n.languages?.[0];
+  const [searchValue, setSearchValue] = useState('');
+  const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const [orderType, setOrderType] = useState<ListOrder>('creationDesc');
 
   const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas({});
 
   const { setDataList, loadMore, reload, dataList, hasMore, isRequesting } = useFetchDataList({
     fetchData: async (queryPayload) => {
       const res = await getClient().listCanvases({
-        query: queryPayload,
+        query: {
+          ...queryPayload,
+          order: orderType,
+          keyword: debouncedSearchValue?.trim() || undefined,
+        },
       });
       return res?.data ?? { success: true, data: [] };
     },
     pageSize: 20,
+    dependencies: [orderType, debouncedSearchValue],
   });
 
+  // Debounce search value changes
   useEffect(() => {
-    reload();
-  }, []);
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchValue(searchValue);
+    }, 300); // 300ms debounce delay
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [searchValue]);
+
+  const handleOrderType = useCallback(() => {
+    setOrderType(orderType === 'creationAsc' ? 'creationDesc' : 'creationAsc');
+  }, [orderType]);
 
   const afterDelete = useCallback(
     (canvas: Canvas) => {
@@ -66,7 +93,6 @@ const WorkflowList = memo(() => {
 
   const handleSearch = useCallback((value: string) => {
     setSearchValue(value);
-    // Implement search logic here
   }, []);
 
   const handleEdit = useCallback(
@@ -219,7 +245,9 @@ const WorkflowList = memo(() => {
     <div className="h-full flex items-center justify-center">
       <Empty
         description={
-          <div className="text-refly-text-2 leading-5 text-sm">{t('workflowList.noWorkflows')}</div>
+          <div className="text-refly-text-2 leading-5 text-sm">
+            {searchValue ? t('workflowList.noSearchResults') : t('workflowList.noWorkflows')}
+          </div>
         }
         image={EmptyImage}
         imageStyle={{ width: 180, height: 180 }}
@@ -247,6 +275,16 @@ const WorkflowList = memo(() => {
             className="max-w-md"
             allowClear
           />
+          <Button
+            className="flex-shrink-0 w-8 h-8 p-0 flex items-center justify-center"
+            onClick={handleOrderType}
+          >
+            {orderType === 'creationAsc' ? (
+              <TbSortAscending size={20} color="var(--refly-text-0)" />
+            ) : (
+              <TbSortDescending size={20} color="var(--refly-text-0)" />
+            )}
+          </Button>
 
           <Button type="primary" onClick={handleCreateWorkflow} loading={createCanvasLoading}>
             {t('workflowList.createWorkflow')}

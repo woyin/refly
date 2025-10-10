@@ -3757,6 +3757,7 @@ const translations = {
     createWorkflow: '创建工作流',
     creatYourWorkflow: '创建你的工作流',
     noWorkflows: '暂无工作流',
+    noSearchResults: '没有找到相关工作流',
     searchWorkflows: '搜索工作流',
     shared: '共享',
     personal: '个人',
@@ -3773,6 +3774,7 @@ const translations = {
     noApps: '暂无 app',
     unpublish: '取消发布',
     view: '详情',
+    noSearchResults: '没有找到相关 app',
   },
 };
 

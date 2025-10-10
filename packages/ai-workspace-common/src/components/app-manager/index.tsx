@@ -13,11 +13,13 @@ import {
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { AppCard } from './app-card';
 import './index.scss';
+import { TbSortAscending, TbSortDescending } from 'react-icons/tb';
+import { ListOrder } from '@refly/openapi-schema';
 
 export const AppManager = () => {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState('');
-  const [orderType, setOrderType] = useState<'asc' | 'desc'>('asc');
+  const [orderType, setOrderType] = useState<ListOrder>('creationDesc');
 
   const { setDataList, loadMore, reload, dataList, hasMore, isRequesting } = useFetchDataList({
     fetchData: async (queryPayload) => {
@@ -35,7 +37,7 @@ export const AppManager = () => {
   }, []);
 
   const handleOrderType = useCallback(() => {
-    setOrderType(orderType === 'asc' ? 'desc' : 'asc');
+    setOrderType(orderType === 'creationAsc' ? 'creationDesc' : 'creationAsc');
   }, [orderType]);
 
   const appCards = useMemo(() => {
@@ -56,7 +58,9 @@ export const AppManager = () => {
     <div className="h-full flex items-center justify-center">
       <Empty
         description={
-          <div className="text-refly-text-2 leading-5 text-sm">{t('workflowList.noApps')}</div>
+          <div className="text-refly-text-2 leading-5 text-sm">
+            {searchValue ? t('appManager.noSearchResults') : t('appManager.noApps')}
+          </div>
         }
         image={EmptyImage}
         imageStyle={{ width: 180, height: 180 }}
@@ -81,8 +85,15 @@ export const AppManager = () => {
             allowClear
           />
 
-          <Button type="primary" onClick={handleOrderType}>
-            倒序还是逆序
+          <Button
+            className="flex-shrink-0 w-8 h-8 p-0 flex items-center justify-center"
+            onClick={handleOrderType}
+          >
+            {orderType === 'creationAsc' ? (
+              <TbSortAscending size={20} color="var(--refly-text-0)" />
+            ) : (
+              <TbSortDescending size={20} color="var(--refly-text-0)" />
+            )}
           </Button>
         </div>
       </div>

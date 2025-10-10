@@ -3722,6 +3722,7 @@ const translations = {
     createWorkflow: 'Create Workflow',
     creatYourWorkflow: 'Create your workflow',
     noWorkflows: 'No workflows',
+    noSearchResults: 'No search results',
     searchWorkflows: 'Search workflows',
     shared: 'Shared',
     personal: 'Personal',
@@ -3738,6 +3739,7 @@ const translations = {
     noApps: 'No apps',
     unpublish: 'Unpublish',
     view: 'View',
+    noSearchResults: 'No search results',
   },
 };
 
