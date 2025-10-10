@@ -313,17 +313,22 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     });
   }, [reactFlowInstance]);
 
+  // Cache canvas container reference for better performance
+  const canvasContainerRef = useRef<HTMLElement | null>(null);
+
   // Custom selection handlers
   const handleSelectionStart = useCallback(
     (event: React.MouseEvent | React.TouchEvent, isRightClick = false) => {
       if (readonly) return;
 
-      // Check for right click or two-finger + Shift touch
+      // Check for right click, Shift + left click, or two-finger + Shift touch
       const isRightButton = isRightClick || (event as React.MouseEvent).button === 2;
+      const isShiftLeftClick =
+        (event as React.MouseEvent).button === 0 && (event as React.MouseEvent).shiftKey;
       const isTwoFingerWithShift =
         (event as React.TouchEvent).touches?.length === 2 && (event as React.TouchEvent).shiftKey;
 
-      if (!isRightButton && !isTwoFingerWithShift) return;
+      if (!isRightButton && !isShiftLeftClick && !isTwoFingerWithShift) return;
 
       event.preventDefault();
       event.stopPropagation();
@@ -331,10 +336,28 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
 
+      // Check if the click is within the canvas viewport bounds
+      const canvasContainer =
+        canvasContainerRef.current || (document.querySelector('.react-flow') as HTMLElement);
+      if (canvasContainer) {
+        canvasContainerRef.current = canvasContainer;
+        const rect = canvasContainer.getBoundingClientRect();
+        const isWithinCanvas =
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom;
+
+        if (!isWithinCanvas) return;
+      }
+
       const flowPosition = reactFlowInstance.screenToFlowPosition({
         x: clientX,
         y: clientY,
       });
+
+      // Validate that the converted position is reasonable
+      if (Number.isNaN(flowPosition.x) || Number.isNaN(flowPosition.y)) return;
 
       setIsSelecting(true);
       setSelectionStart(flowPosition);
@@ -357,10 +380,26 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
       const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
 
+      // Check if the move is within the canvas viewport bounds
+      const canvasContainer = canvasContainerRef.current;
+      if (canvasContainer) {
+        const rect = canvasContainer.getBoundingClientRect();
+        const isWithinCanvas =
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom;
+
+        if (!isWithinCanvas) return;
+      }
+
       const flowPosition = reactFlowInstance.screenToFlowPosition({
         x: clientX,
         y: clientY,
       });
+
+      // Validate that the converted position is reasonable
+      if (Number.isNaN(flowPosition.x) || Number.isNaN(flowPosition.y)) return;
 
       if (selectionStart) {
         setSelectionBox({
@@ -389,12 +428,13 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         const nodeHeight = node.height || 100; // Default node height
 
         // Check if node intersects with selection box (supports partial selection)
-        return (
+        const intersects =
           nodeX < selectionBox.x + selectionBox.width &&
           nodeX + nodeWidth > selectionBox.x &&
           nodeY < selectionBox.y + selectionBox.height &&
-          nodeY + nodeHeight > selectionBox.y
-        );
+          nodeY + nodeHeight > selectionBox.y;
+
+        return intersects;
       });
 
       // Select nodes
@@ -454,16 +494,30 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     ],
   );
 
-  // Add mouse and touch event listeners
+  // Add mouse and touch event listeners to canvas container only
   useEffect(() => {
+    const canvasContainer = document.querySelector('.react-flow') as HTMLElement;
+    if (!canvasContainer) return;
+
+    // Cache the container reference
+    canvasContainerRef.current = canvasContainer;
+
     const handleMouseDown = (event: MouseEvent) => {
-      if (event.button === 2) {
-        // Right click
-        handleSelectionStart(event as any, true);
+      // Check if click is inside canvas container
+      if (!canvasContainer.contains(event.target as HTMLElement)) return;
+
+      // Support both right click and Shift + left click for selection
+      const isRightButton = event.button === 2;
+      const isShiftLeftClick = event.button === 0 && event.shiftKey;
+
+      if (isRightButton || isShiftLeftClick) {
+        handleSelectionStart(event as any, isRightButton);
       }
     };
 
     const handleMouseMove = (event: MouseEvent) => {
+      // Only handle move events if we're currently selecting
+      if (!isSelecting) return;
       handleSelectionMove(event as any);
     };
 
@@ -472,6 +526,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
+      // Check if touch is inside canvas container
+      if (!canvasContainer.contains(event.target as HTMLElement)) return;
+
       if (event.touches.length === 2 && event.shiftKey) {
         // Two-finger + Shift touch
         handleSelectionStart(event as any);
@@ -488,23 +545,44 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       handleSelectionEnd();
     };
 
-    // Add event listeners
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
+    // Global event listeners to ensure state cleanup when mouse/touch leaves canvas
+    const handleGlobalMouseUp = () => {
+      if (isSelecting) {
+        handleSelectionEnd();
+      }
+    };
+
+    const handleGlobalTouchEnd = () => {
+      if (isSelecting) {
+        handleSelectionEnd();
+      }
+    };
+
+    // Add event listeners to canvas container only
+    canvasContainer.addEventListener('mousedown', handleMouseDown);
+    canvasContainer.addEventListener('mousemove', handleMouseMove);
+    canvasContainer.addEventListener('mouseup', handleMouseUp);
+    canvasContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvasContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvasContainer.addEventListener('touchend', handleTouchEnd);
+
+    // Add global event listeners for cleanup
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+    document.addEventListener('touchend', handleGlobalTouchEnd);
 
     return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
+      canvasContainer.removeEventListener('mousedown', handleMouseDown);
+      canvasContainer.removeEventListener('mousemove', handleMouseMove);
+      canvasContainer.removeEventListener('mouseup', handleMouseUp);
+      canvasContainer.removeEventListener('touchstart', handleTouchStart);
+      canvasContainer.removeEventListener('touchmove', handleTouchMove);
+      canvasContainer.removeEventListener('touchend', handleTouchEnd);
+
+      // Remove global event listeners
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
     };
-  }, [handleSelectionStart, handleSelectionMove, handleSelectionEnd]);
+  }, [handleSelectionStart, handleSelectionMove, handleSelectionEnd, isSelecting]);
 
   // Add scroll position state and handler
   const [showLeftIndicator, setShowLeftIndicator] = useState(false);
