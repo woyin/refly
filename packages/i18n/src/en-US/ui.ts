@@ -3447,6 +3447,7 @@ const translations = {
       disabled: 'Expired',
       usageType: {
         model_call: 'Model Call',
+        tool_call: 'Tool Call',
         media_generation: 'Media Generation',
         embedding: 'Embedding',
         reranking: 'Reranking',

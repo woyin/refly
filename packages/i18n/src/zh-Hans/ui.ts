@@ -45,6 +45,7 @@ const translations = {
       disabled: '已过期',
       usageType: {
         model_call: '模型调用',
+        tool_call: '工具调用',
         media_generation: '媒体生成',
         embedding: '向量嵌入',
         reranking: '重排序',

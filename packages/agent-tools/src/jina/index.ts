@@ -91,6 +91,7 @@ export class JinaRead extends AgentBaseTool<JinaToolParams> {
         status: 'success',
         data: response.data,
         summary: `Successfully read the content of ${input.url}`,
+        creditCost: 10,
       };
     } catch (error) {
       return {
