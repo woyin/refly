@@ -8,6 +8,7 @@ import cn from 'classnames';
 import { DocInline, ArrowRight } from 'refly-icons';
 import { RecentWorkflow } from './recent-workflow';
 import { useListCanvasTemplateCategories } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 
 const ModuleContainer = ({
   title,
@@ -43,6 +44,8 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   }));
   const canvases = canvasList?.slice(0, 4);
 
+  const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas({});
+
   const { data } = useListCanvasTemplateCategories({}, undefined, {
     enabled: true,
   });
@@ -60,8 +63,8 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   }, [setCanvasTemplateModalVisible]);
 
   const handleNewWorkflow = useCallback(() => {
-    console.log('handleNewWorkflow');
-  }, []);
+    debouncedCreateCanvas();
+  }, [debouncedCreateCanvas]);
 
   return (
     <div
@@ -87,20 +90,21 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       </div>
 
       <ModuleContainer title={t('frontPage.newWorkflow.title')} className="mt-[120px]">
-        <div
-          className="w-fit flex items-center gap-2  border-[0.5px] border-solid border-refly-Card-Border rounded-xl p-3 cursor-pointer hover:bg-refly-fill-hover transition-colors"
+        <Button
+          className="w-fit h-fit flex items-center gap-2  border-[0.5px] border-solid border-refly-Card-Border rounded-xl p-3 cursor-pointer bg-transparent hover:bg-refly-fill-hover transition-colors"
           onClick={handleNewWorkflow}
+          loading={createCanvasLoading}
         >
           <DocInline size={42} color="var(--refly-primary-default)" />
-          <div className="flex flex-col gap-1">
-            <div className="text-base leading-[26px] font-semibold text-refly-text-0">
+          <div className="flex flex-col gap-1 w-[184px]">
+            <div className="text-left text-base leading-[26px] font-semibold text-refly-text-0">
               {t('frontPage.newWorkflow.buttonText')}
             </div>
-            <div className="text-xs text-refly-text-3 leading-4">
+            <div className="text-left text-xs text-refly-text-3 leading-4">
               {t('frontPage.newWorkflow.buttonDescription')}
             </div>
           </div>
-        </div>
+        </Button>
       </ModuleContainer>
 
       {canvases?.length > 0 && (

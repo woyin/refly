@@ -825,12 +825,12 @@ const translations = {
     guide: {
       title: '5分钟上手',
       description: '教程学会如何构建一个AI 驱动的工作流',
-      view: '去查看',
+      view: '去了解',
     },
     newWorkflow: {
       title: '新建',
       buttonText: '新建工作流',
-      buttonDescription: '从空白或模板新建工作流',
+      buttonDescription: '新建空白工作流',
     },
     recentWorkflows: {
       title: '近期工作流',
@@ -3760,6 +3760,12 @@ const translations = {
     searchWorkflows: '搜索工作流',
     shared: '共享',
     personal: '个人',
+    share: '分享',
+    unshare: '取消分享',
+    shareSuccess: '工作流 {{title}} 分享成功！链接已复制到剪贴板。',
+    shareFailed: '分享工作流 {{title}} 失败',
+    unshareSuccess: '{{title}} 已取消分享',
+    unshareFailed: '取消分享 {{title}} 失败',
   },
 };
 

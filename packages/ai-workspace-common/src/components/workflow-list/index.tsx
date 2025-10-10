@@ -15,6 +15,8 @@ import { Search } from 'refly-icons';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import './index.scss';
 import { WorkflowActionDropdown } from '@refly-packages/ai-workspace-common/components/workflow-list/workflowActionDropdown';
+import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
+import { ShareRecord, ShareUser } from '@refly/openapi-schema';
 
 // Helper function to get mock data for demonstration
 const getMockData = () => {
@@ -29,6 +31,8 @@ const WorkflowList = memo(() => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const language = i18n.languages?.[0];
+
+  const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas({});
 
   const { setDataList, loadMore, reload, dataList, hasMore, isRequesting } = useFetchDataList({
     fetchData: async (queryPayload) => {
@@ -51,10 +55,14 @@ const WorkflowList = memo(() => {
     [dataList, setDataList],
   );
 
+  const afterShare = useCallback(() => {
+    // Refresh the data list to update share status
+    reload();
+  }, [reload]);
+
   const handleCreateWorkflow = useCallback(() => {
-    // Handle create workflow
-    console.log('Create workflow clicked');
-  }, []);
+    debouncedCreateCanvas();
+  }, [debouncedCreateCanvas]);
 
   const handleSearch = useCallback((value: string) => {
     setSearchValue(value);
@@ -106,11 +114,11 @@ const WorkflowList = memo(() => {
       },
       {
         title: t('workflowList.status'),
-        dataIndex: 'status',
-        key: 'status',
+        dataIndex: 'shareRecord',
+        key: 'shareRecord',
         width: 120,
-        render: () => {
-          const { isShared } = getMockData();
+        render: (shareRecord: ShareRecord) => {
+          const isShared = shareRecord?.shareId;
           return (
             <Tag color={isShared ? 'default' : 'default'} className="text-xs">
               {isShared ? t('workflowList.shared') : t('workflowList.personal')}
@@ -143,12 +151,13 @@ const WorkflowList = memo(() => {
         dataIndex: 'owner',
         key: 'owner',
         width: 150,
-        render: () => {
-          const { ownerName } = getMockData();
+        render: (owner: ShareUser) => {
+          const ownerName = owner?.name || t('common.untitled');
+          const ownerAvatar = owner?.avatar;
           return (
             <Space size="small">
-              <Avatar size={20} className="bg-gray-300 dark:bg-gray-600">
-                {ownerName.charAt(0).toUpperCase()}
+              <Avatar size={20} className="bg-gray-300 dark:bg-gray-600" src={ownerAvatar}>
+                {!ownerAvatar && ownerName.charAt(0).toUpperCase()}
               </Avatar>
               <span className="text-sm text-gray-600 dark:text-gray-400">{ownerName}</span>
             </Space>
@@ -192,6 +201,7 @@ const WorkflowList = memo(() => {
                 workflow={record}
                 onDeleteSuccess={afterDelete}
                 onRenameSuccess={reload}
+                onShareSuccess={afterShare}
               >
                 <Button type="text" size="small" className="!text-refly-primary-default">
                   {t('common.more')}
@@ -214,7 +224,7 @@ const WorkflowList = memo(() => {
         image={EmptyImage}
         imageStyle={{ width: 180, height: 180 }}
       >
-        <Button type="primary" onClick={handleCreateWorkflow}>
+        <Button type="primary" onClick={handleCreateWorkflow} loading={createCanvasLoading}>
           {t('workflowList.creatYourWorkflow')}
         </Button>
       </Empty>
@@ -238,7 +248,7 @@ const WorkflowList = memo(() => {
             allowClear
           />
 
-          <Button type="primary" onClick={handleCreateWorkflow}>
+          <Button type="primary" onClick={handleCreateWorkflow} loading={createCanvasLoading}>
             {t('workflowList.createWorkflow')}
           </Button>
         </div>

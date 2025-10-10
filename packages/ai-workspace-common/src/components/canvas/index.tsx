@@ -1331,6 +1331,10 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     } else {
       setCurrentCanvasId(null);
     }
+
+    return () => {
+      setCurrentCanvasId(null);
+    };
   }, [canvasId, setCurrentCanvasId]);
 
   // Handle panel resize

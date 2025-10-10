@@ -16,14 +16,18 @@ export const useRouteCollapse = () => {
     const currentPath = location.pathname;
 
     // Routes that should have sidebar expanded (collapse = false)
-    const expandedRoutes = ['/app-manager', '/workflow-list', '/canvas/empty'];
+    const expandedRoutes = ['/app-manager', '/workflow-list', '/canvas/empty', '/home'];
 
     // Check if current route matches any of the expanded routes
     const shouldExpand = expandedRoutes.some((route) => {
+      if (route === '/home') {
+        return currentPath === '/';
+      }
       if (route === '/canvas/empty') {
         // Exact match for /canvas/empty
         return currentPath === '/canvas/empty';
       }
+
       // For other routes, check if path starts with the route
       return currentPath.startsWith(route);
     });

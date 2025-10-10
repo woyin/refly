@@ -842,7 +842,7 @@ const translations = {
     newWorkflow: {
       title: 'New',
       buttonText: 'New Workflow',
-      buttonDescription: 'Create a new workflow from scratch or use a template',
+      buttonDescription: 'Create a new workflow',
     },
     recentWorkflows: {
       title: 'Recent Workflows',
@@ -3725,6 +3725,12 @@ const translations = {
     searchWorkflows: 'Search workflows',
     shared: 'Shared',
     personal: 'Personal',
+    share: 'Share',
+    unshare: 'Unshare',
+    shareSuccess: 'Workflow {{title}} shared successfully! Link copied to clipboard.',
+    shareFailed: 'Failed to share workflow {{title}}',
+    unshareSuccess: '{{title}} has been unshared, only you can view it',
+    unshareFailed: 'Failed to unshare workflow {{title}}',
   },
 };
 

@@ -62,7 +62,7 @@ const SiderSectionHeader = ({
     >
       <div className="flex items-center gap-2">
         {icon}
-        <span className="font-normal">{title}</span>
+        <span className={cn(isActive ? 'font-semibold' : 'font-normal')}>{title}</span>
       </div>
       {actionIcon && onActionClick && (
         <Button
@@ -168,7 +168,7 @@ const SettingItem = () => {
 
                   <div
                     onClick={handleSubscriptionClick}
-                    className="text-[color:var(--primary---refly-primary-default,#0E9F77)] text-xs font-semibold leading-4 whitespace-nowrap"
+                    className="text-refly-primary-default text-xs font-semibold leading-4 whitespace-nowrap"
                   >
                     {t('common.upgrade')}
                   </div>
@@ -211,14 +211,26 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
 
   const canvasId = location.pathname.split('/').pop();
 
-  // Check if current route matches /canvas/empty
-  const isCanvasEmpty = !!useMatch('/canvas/empty');
   const { debouncedCreateCanvas } = useCreateCanvas({
     projectId: null,
     afterCreateSuccess: () => {
       setShowLibraryModal(true);
     },
   });
+
+  const getActiveKey = useCallback(() => {
+    const path = location.pathname;
+    if (path.startsWith('/canvas/empty')) {
+      return 'home';
+    }
+    if (path.startsWith('/workflow-list')) {
+      return 'canvas';
+    }
+    if (path.startsWith('/app-manager')) {
+      return 'appManager';
+    }
+    return 'home';
+  }, [location.pathname]);
 
   // Menu items configuration
   const menuItems = useMemo(
@@ -227,21 +239,25 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
         icon: <File key="home" style={{ fontSize: 20 }} />,
         title: t('loggedHomePage.siderMenu.home'),
         onActionClick: () => navigate('/'),
+        key: 'home',
       },
       {
         icon: <Flow key="canvas" style={{ fontSize: 20 }} />,
         title: t('loggedHomePage.siderMenu.canvas'),
         onActionClick: () => navigate('/workflow-list'),
+        key: 'canvas',
       },
       {
         icon: <Project key="appManager" style={{ fontSize: 20 }} />,
         title: t('loggedHomePage.siderMenu.appManager'),
         onActionClick: () => navigate('/app-manager'),
+        key: 'appManager',
       },
       {
         icon: <KnowledgeBase key="library" style={{ fontSize: 20 }} />,
         title: t('loggedHomePage.siderMenu.library'),
         onActionClick: () => setShowLibraryModal(true),
+        key: 'library',
       },
     ],
     [t, navigate, setShowLibraryModal],
@@ -327,7 +343,7 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
               icon={item.icon}
               title={item.title}
               onActionClick={item.onActionClick}
-              isActive={index === 0 && isCanvasEmpty} // First item (home) is active when on /canvas/empty
+              isActive={item.key === getActiveKey()} // First item (home) is active when on /canvas/empty
             />
           ))}
 
