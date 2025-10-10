@@ -65,6 +65,10 @@ export const BuiltinToolsetDefinition: ToolsetDefinition = {
 interface BuiltinToolParams {
   user: User;
   reflyService: ReflyService;
+  /**
+   * Whether the toolset is global. When true, callers may deduct credits after success.
+   */
+  isGlobal?: boolean;
 }
 
 export class BuiltinLibrarySearch extends AgentBaseTool<BuiltinToolParams> {

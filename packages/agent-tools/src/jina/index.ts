@@ -60,6 +60,10 @@ export const JinaToolsetDefinition: ToolsetDefinition = {
 
 interface JinaToolParams extends ToolParams {
   apiKey: string;
+  /**
+   * Whether the toolset is global. Used by tools to decide credit calculation strategies.
+   */
+  isGlobal?: boolean;
 }
 
 export class JinaRead extends AgentBaseTool<JinaToolParams> {
@@ -91,6 +95,9 @@ export class JinaRead extends AgentBaseTool<JinaToolParams> {
         status: 'success',
         data: response.data,
         summary: `Successfully read the content of ${input.url}`,
+        // Placeholder: creditCost should be calculated by the tool logic.
+        // For now, return 0 by default.
+        creditCost: 0,
       };
     } catch (error) {
       return {
@@ -139,6 +146,9 @@ export class JinaSerp extends AgentBaseTool<JinaToolParams> {
         status: 'success',
         data: response.data,
         summary: `Successfully searched the web for ${input.query}`,
+        // Placeholder: creditCost should be calculated by the tool logic.
+        // For now, return 0 by default.
+        creditCost: 0,
       };
     } catch (error) {
       return {
