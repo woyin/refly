@@ -1,4 +1,5 @@
 import { CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
+import { GenericToolset, ShareRecord, ShareUser } from '@refly/openapi-schema';
 
 // Project directory types
 export interface SourceObject {
@@ -26,6 +27,9 @@ export interface SiderData {
   type: 'canvas' | 'document' | 'resource' | 'project';
   description?: string;
   coverUrl?: string;
+  owner?: ShareUser;
+  usedToolsets?: Array<GenericToolset>;
+  shareRecord?: ShareRecord;
 }
 
 export enum SettingsModalActiveTab {

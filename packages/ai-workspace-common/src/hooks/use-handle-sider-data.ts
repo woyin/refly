@@ -52,6 +52,9 @@ export const useHandleSiderData = (initData?: boolean) => {
       name: canvas.title,
       updatedAt: canvas.updatedAt,
       type: 'canvas' as const,
+      owner: canvas.owner,
+      usedToolsets: canvas.usedToolsets,
+      shareRecord: canvas.shareRecord,
     }));
     updateCanvasList(formattedCanvases);
     return formattedCanvases;

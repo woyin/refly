@@ -9,7 +9,10 @@ import { IoPersonOutline } from 'react-icons/io5';
 import { Avatar, Button, Typography, Tag } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useCanvasTemplateModal } from '@refly/stores';
-
+import { cn } from '@refly/utils/cn';
+import { time } from '@refly-packages/ai-workspace-common/utils/time';
+import { WiTime3 } from 'react-icons/wi';
+import { LOCALE } from '@refly/common-types';
 export const TemplateCard = ({
   template,
   className,
@@ -19,8 +22,8 @@ export const TemplateCard = ({
   className?: string;
   showUser?: boolean;
 }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const language = i18n.languages?.[0];
   const { setVisible: setModalVisible } = useCanvasTemplateModal((state) => ({
     setVisible: state.setVisible,
   }));
@@ -29,7 +32,7 @@ export const TemplateCard = ({
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
-
+  const navigate = useNavigate();
   const handlePreview = (e: React.MouseEvent<HTMLDivElement>) => {
     logEvent('home::template_preview', null, {
       templateId: template.templateId,
@@ -61,7 +64,7 @@ export const TemplateCard = ({
 
   return (
     <div
-      className={`${className} m-2 flex flex-col group relative bg-refly-bg-content-z2 rounded-xl overflow-hidden cursor-pointer border-[0.5px] border-solid border-refly-Card-Border hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 ease-in-out h-[245px]`}
+      className={`${className} m-2 flex flex-col group relative bg-refly-bg-content-z2 rounded-xl overflow-hidden cursor-pointer border-[0.5px] border-solid border-refly-Card-Border hover:shadow-lg transition-all duration-200 ease-in-out h-[245px]`}
     >
       {template?.featured && (
         <Tag color="green" className="absolute top-2 right-0 z-10 shadow-sm">
@@ -76,24 +79,39 @@ export const TemplateCard = ({
         />
       </div>
 
-      <div className="p-4 flex-1 flex flex-col gap-1">
+      <div className="p-4 flex-1 flex flex-col justify-between gap-1">
         <div className="text-sm font-medium truncate">
           {template?.title || t('common.untitled')}
         </div>
 
-        {showUser ? (
-          <div className="flex items-center gap-1">
-            <Avatar
-              className="flex-shrink-0"
-              size={18}
-              src={template.shareUser?.avatar}
-              icon={!template.shareUser?.avatar && <IoPersonOutline />}
-            />
-            <div className="truncate text-xs text-refly-text-1">
-              {`@${template.shareUser?.name}`}
+        <div
+          className={cn(
+            'flex items-center justify-between gap-2',
+            showUser ? 'justify-between' : 'justify-end',
+          )}
+        >
+          {showUser ? (
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <Avatar
+                className="flex-shrink-0"
+                size={18}
+                src={template.shareUser?.avatar}
+                icon={!template.shareUser?.avatar && <IoPersonOutline />}
+              />
+              <div className="truncate text-xs text-refly-text-2">
+                {`@${template.shareUser?.name}`}
+              </div>
             </div>
+          ) : null}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <WiTime3 className="w-4 h-4 text-refly-text-2" />
+            <span className="text-refly-text-2 text-xs leading-4 whitespace-nowrap">
+              {time(template.updatedAt, language as LOCALE)
+                ?.utc()
+                ?.fromNow()}
+            </span>
           </div>
-        ) : null}
+        </div>
       </div>
 
       {/* Hover overlay that slides up from bottom */}

@@ -3317,7 +3317,7 @@ const translations = {
     templateDescription: '描述',
     templateDescriptionPlaceholder: '请输入模板描述',
     createSuccess: '模板创建成功, 请在模板库中查看',
-    preview: '预览',
+    preview: '体验',
     use: '制作同款',
     duplicateCanvas: 'Remix 工作流',
     canvasTitle: '工作流名称',
@@ -3766,6 +3766,13 @@ const translations = {
     shareFailed: '分享工作流 {{title}} 失败',
     unshareSuccess: '{{title}} 已取消分享',
     unshareFailed: '取消分享 {{title}} 失败',
+  },
+  appManager: {
+    title: '发布管理',
+    searchApps: '搜索 app',
+    noApps: '暂无 app',
+    unpublish: '取消发布',
+    view: '详情',
   },
 };
 

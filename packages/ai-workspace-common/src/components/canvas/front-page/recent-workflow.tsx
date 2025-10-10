@@ -5,6 +5,8 @@ import { WiTime3 } from 'react-icons/wi';
 import { HoverCard } from './hover-card';
 import { useNavigate } from 'react-router-dom';
 import { SiderData } from '@refly/stores';
+import { Avatar } from 'antd';
+import { AiOutlineUser } from 'react-icons/ai';
 
 export const RecentWorkflow = ({ canvases }: { canvases: SiderData[] }) => {
   const { i18n } = useTranslation();
@@ -32,8 +34,13 @@ export const RecentWorkflow = ({ canvases }: { canvases: SiderData[] }) => {
             </div>
 
             <div className="flex items-center gap-2 justify-between">
-              <div className="text-xs leading-4 text-refly-text-3 line-clamp-1">用户名占位</div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <Avatar size={18} src={canvas.owner?.avatar} icon={<AiOutlineUser />} />
+                <div className="text-xs leading-4 text-refly-text-3 truncate">
+                  {`@${canvas.owner?.name}`}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <WiTime3 className="w-4 h-4 text-refly-text-2" />
                 <span className="text-refly-text-2 text-xs leading-4 whitespace-nowrap">
                   {time(canvas.updatedAt, language as LOCALE)

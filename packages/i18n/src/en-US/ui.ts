@@ -3575,7 +3575,7 @@ const translations = {
     templateDescription: 'Description',
     templateDescriptionPlaceholder: 'Please enter template description',
     createSuccess: 'Template created successfully, please view in template library',
-    preview: 'Preview',
+    preview: 'Experience',
     use: 'Make the Same',
     duplicateCanvas: 'Remix Workflow',
     canvasTitle: 'Workflow Name',
@@ -3731,6 +3731,13 @@ const translations = {
     shareFailed: 'Failed to share workflow {{title}}',
     unshareSuccess: '{{title}} has been unshared, only you can view it',
     unshareFailed: 'Failed to unshare workflow {{title}}',
+  },
+  appManager: {
+    title: 'App Manager',
+    searchApps: 'Search apps',
+    noApps: 'No apps',
+    unpublish: 'Unpublish',
+    view: 'View',
   },
 };
 
