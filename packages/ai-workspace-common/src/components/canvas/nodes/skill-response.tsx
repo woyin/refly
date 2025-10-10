@@ -802,7 +802,15 @@ export const SkillResponseNode = memo(
 
         <div
           style={nodeStyle}
-          className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
+          className={cn(
+            'h-full flex flex-col relative z-1 p-4 box-border',
+            getNodeCommonStyles({ selected, isHovered }),
+            'flex max-h-60 flex-col items-start gap-2 self-stretch px-4 py-3 rounded-2xl border-solid',
+            // Apply error styles only when there's an error
+            status === 'failed'
+              ? 'border border-[color:var(--func-danger---refly-func-danger-default,#F93920)] [background:var(--bg---refly-bg-content-z2,#FFF)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)]'
+              : 'border border-gray-200 [background:var(--bg---refly-bg-content-z2,#FFF)]',
+          )}
         >
           {/* Node execution status badge */}
           <NodeExecutionStatus status={executionStatus} />
@@ -816,7 +824,7 @@ export const SkillResponseNode = memo(
             updateTitle={onTitleChange}
           />
 
-          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
+          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2 w-full'}>
             <div className="flex flex-col gap-3">
               {status === 'failed' && (
                 <div
