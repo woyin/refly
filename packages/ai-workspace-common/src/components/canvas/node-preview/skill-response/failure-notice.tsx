@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ActionResult, ActionStatus } from '@refly/openapi-schema';
+import { ActionResult } from '@refly/openapi-schema';
 import { logEvent } from '@refly/telemetry-web';
 import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { useUserMembership } from '@refly-packages/ai-workspace-common/hooks/use-user-membership';
@@ -12,7 +12,6 @@ import { classifyExecutionError } from '@refly-packages/ai-workspace-common/util
 interface FailureNoticeProps {
   result: ActionResult;
   handleRetry: () => void;
-  status: ActionStatus;
 }
 
 export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
@@ -37,10 +36,6 @@ export const FailureNotice = ({ result, handleRetry }: FailureNoticeProps) => {
     },
     [setSubscribeModalVisible],
   );
-
-  if (status !== 'failed') {
-    return null;
-  }
 
   // Check if this is a classifiable execution error
   const failureType = classifyExecutionError(error, errCode);

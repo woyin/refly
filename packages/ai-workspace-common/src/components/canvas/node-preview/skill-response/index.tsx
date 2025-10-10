@@ -345,8 +345,8 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
                   />
                 </>
               )}
-              {result?.status === 'failed' && (
-                <FailureNotice status={result?.status} result={result} handleRetry={handleRetry} />
+              {result?.status === 'failed' && !loading && (
+                <FailureNotice result={result} handleRetry={handleRetry} />
               )}
             </div>
           </Spin>
