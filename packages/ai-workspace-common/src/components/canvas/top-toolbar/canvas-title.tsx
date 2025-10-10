@@ -26,7 +26,7 @@ export const CanvasTitle = memo(
     return (
       <>
         <div
-          className="py-1 px-1.5 group flex items-center gap-2 text-sm font-semibold cursor-pointer"
+          className="py-1 px-1.5 group flex items-center gap-2 text-sm font-semibold hover:bg-refly-tertiary-hover rounded-lg cursor-pointer"
           data-cy="canvas-title-edit"
         >
           <Tooltip
