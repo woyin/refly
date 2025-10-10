@@ -6464,6 +6464,10 @@ export type GetCollabTokenError = unknown;
 export type ListCanvasesData = {
   query?: {
     /**
+     * Search keyword
+     */
+    keyword?: string;
+    /**
      * Order
      */
     order?: ListOrder;

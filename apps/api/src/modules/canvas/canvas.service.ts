@@ -70,16 +70,31 @@ export class CanvasService {
   ) {}
 
   async listCanvases(user: User, param: ListCanvasesData['query']): Promise<CanvasDetailModel[]> {
-    const { page = 1, pageSize = 10, projectId } = param;
+    const { page = 1, pageSize = 10, projectId, order = 'creationDesc', keyword } = param;
+
+    // Build orderBy based on order parameter
+    const orderBy =
+      order === 'creationAsc' ? { createdAt: 'asc' as const } : { createdAt: 'desc' as const };
+
+    // Build where clause with keyword search
+    const where: Prisma.CanvasWhereInput = {
+      uid: user.uid,
+      deletedAt: null,
+      projectId: projectId || null,
+      visibility: true,
+    };
+
+    // Add keyword search if provided
+    if (keyword?.trim()) {
+      where.title = {
+        contains: keyword.trim(),
+        mode: 'insensitive',
+      };
+    }
 
     const canvases = await this.prisma.canvas.findMany({
-      where: {
-        uid: user.uid,
-        deletedAt: null,
-        projectId: projectId || null,
-        visibility: true,
-      },
-      orderBy: { updatedAt: 'desc' },
+      where,
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     });

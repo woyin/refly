@@ -699,6 +699,11 @@ paths:
           description: Order
           schema:
             $ref: '#/components/schemas/ListOrder'
+        - name: keyword
+          in: query
+          description: Search keyword
+          schema:
+            type: string
       responses:
         '200':
           description: Successful operation
