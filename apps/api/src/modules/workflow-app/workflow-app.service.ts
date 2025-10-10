@@ -13,7 +13,6 @@ import { CanvasService } from '../canvas/canvas.service';
 import { MiscService } from '../misc/misc.service';
 import { genCanvasID, genWorkflowAppID } from '@refly/utils';
 import { WorkflowService } from '../workflow/workflow.service';
-import { workflowAppPO2DTO } from './workflow-app.dto';
 import { Injectable } from '@nestjs/common';
 import { ShareCommonService } from '../share/share-common.service';
 import { ShareCreationService } from '../share/share-creation.service';
@@ -153,7 +152,7 @@ export class WorkflowAppService {
       where: { uid: user.uid },
     });
 
-    return workflowAppPO2DTO({ ...workflowApp, owner: userPo });
+    return { ...workflowApp, owner: userPo };
   }
 
   async getWorkflowAppDetail(user: User, appId: string) {
@@ -174,7 +173,7 @@ export class WorkflowAppService {
       where: { uid: user.uid },
     });
 
-    return workflowAppPO2DTO({ ...workflowApp, owner: userPo });
+    return { ...workflowApp, owner: userPo };
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
@@ -240,19 +239,16 @@ export class WorkflowAppService {
     state.edges = edges;
     await this.canvasSyncService.saveState(executionCanvasId, state);
 
-    try {
-      const executionId = await this.workflowService.initializeWorkflowExecution(
-        user,
-        executionCanvasId,
-        executionCanvasId, // Use the same canvas ID to avoid creating a second canvas
-        variables,
-        { appId: workflowApp?.appId },
-      );
+    const executionId = await this.workflowService.initializeWorkflowExecution(
+      user,
+      executionCanvasId,
+      executionCanvasId, // Use the same canvas ID to avoid creating a second canvas
+      variables,
+      { appId: workflowApp?.appId },
+    );
 
-      this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);
-      return executionId;
-    } finally {
-    }
+    this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);
+    return executionId;
   }
 
   async listWorkflowApps(user: User, query: ListWorkflowAppsData['query']) {
@@ -305,8 +301,6 @@ export class WorkflowAppService {
       where: { uid: user.uid },
     });
 
-    return workflowApps
-      .map((workflowApp) => workflowAppPO2DTO({ ...workflowApp, owner: userPo }))
-      .filter(Boolean);
+    return workflowApps.map((workflowApp) => ({ ...workflowApp, owner: userPo }));
   }
 }

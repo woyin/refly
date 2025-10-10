@@ -22,6 +22,7 @@ import {
   ListOrder,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
+import { workflowAppPO2DTO } from './workflow-app.dto';
 
 @Controller('v1/workflow-app')
 export class WorkflowAppController {
@@ -34,7 +35,7 @@ export class WorkflowAppController {
     @Body() request: CreateWorkflowAppRequest,
   ): Promise<CreateWorkflowAppResponse> {
     const workflowApp = await this.workflowAppService.createWorkflowApp(user, request);
-    return buildSuccessResponse(workflowApp);
+    return buildSuccessResponse(workflowAppPO2DTO(workflowApp));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -44,7 +45,7 @@ export class WorkflowAppController {
     @Query('appId') appId: string,
   ): Promise<GetWorkflowAppDetailResponse> {
     const workflowApp = await this.workflowAppService.getWorkflowAppDetail(user, appId);
-    return buildSuccessResponse(workflowApp);
+    return buildSuccessResponse(workflowAppPO2DTO(workflowApp));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -79,6 +80,6 @@ export class WorkflowAppController {
       order,
       keyword,
     });
-    return buildSuccessResponse(workflowApps);
+    return buildSuccessResponse(workflowApps.map(workflowAppPO2DTO).filter(Boolean));
   }
 }
