@@ -1,5 +1,4 @@
 import { StructuredTool } from '@langchain/core/tools';
-import type { User } from '@refly/openapi-schema';
 import { ReflyService } from './builtin/interface';
 
 export interface ToolCallResult {
@@ -19,11 +18,6 @@ export interface ToolCallResult {
    * Summary of the tool call result, should be human readable
    */
   summary?: string;
-  /**
-   * Optional credit cost calculated by the tool implementation.
-   * When provided and positive, callers may charge credits accordingly.
-   */
-  creditCost?: number;
 }
 
 /**
@@ -180,13 +174,4 @@ export abstract class AgentBaseToolset<TParams = unknown> {
  */
 export interface BaseToolParams {
   reflyService?: ReflyService;
-  /**
-   * The invoking user. Tools may use it for contextual logic.
-   */
-  user?: User;
-  /**
-   * Whether the toolset is a global toolset. If true and the tool call succeeds,
-   * callers may perform credit deduction using the reported creditCost.
-   */
-  isGlobal?: boolean;
 }

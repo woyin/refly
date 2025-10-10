@@ -1,4 +1,4 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools';
 import { PrismaService } from '../common/prisma.service';
@@ -32,10 +32,6 @@ import {
   SkillEngine,
 } from '@refly/skill-template';
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../utils/const';
-import type { SyncToolCreditUsageJobData } from '../credit/credit.dto';
 
 @Injectable()
 export class ToolService {
@@ -46,9 +42,6 @@ export class ToolService {
     private readonly encryptionService: EncryptionService,
     private readonly configService: ConfigService,
     private readonly mcpServerService: McpServerService,
-    @Optional()
-    @InjectQueue(QUEUE_SYNC_TOOL_CREDIT_USAGE)
-    private readonly toolCreditQueue?: Queue<SyncToolCreditUsageJobData>,
   ) {}
 
   get toolsetInventory(): Record<
@@ -763,39 +756,21 @@ export class ToolService {
 
     return BuiltinToolsetDefinition.tools
       ?.map((tool) => toolsetInstance.getToolInstance(tool.name))
-      .map((tool) => {
-        const toolName = tool.name;
-        const toolsetName = 'Builtin';
-        const isGlobal = false;
-        return new DynamicStructuredTool({
-          name: `${BuiltinToolsetDefinition.key}_${toolName}`,
-          description: tool.description,
-          schema: tool.schema,
-          func: async (input) => {
-            const result = (await tool.invoke(input)) as any;
-            const status = result?.status ?? 'success';
-            const creditCost = Number(result?.creditCost ?? 0);
-            if (status !== 'error' && isGlobal && (creditCost ?? 0) > 0 && this.toolCreditQueue) {
-              const job: SyncToolCreditUsageJobData = {
-                uid: user.uid,
-                resultId: undefined,
-                creditCost,
-                timestamp: new Date(),
-                toolsetName,
-                toolName,
-              };
-              await this.toolCreditQueue.add(`tool_credit:${user.uid}:${toolName}`, job);
-            }
-            return result;
-          },
-          metadata: {
-            name: toolName,
-            type: 'regular',
-            toolsetKey: 'builtin',
-            toolsetName,
-          },
-        });
-      });
+      .map(
+        (tool) =>
+          new DynamicStructuredTool({
+            name: `${BuiltinToolsetDefinition.key}_${tool.name}`,
+            description: tool.description,
+            schema: tool.schema,
+            func: tool.invoke.bind(tool),
+            metadata: {
+              name: tool.name,
+              type: 'regular',
+              toolsetKey: 'builtin',
+              toolsetName: 'Builtin',
+            },
+          }),
+      );
   }
 
   /**
@@ -833,44 +808,25 @@ export class ToolService {
         ...authData,
         reflyService: engine.service,
         user,
-        isGlobal: Boolean(t.isGlobal ?? false),
       });
 
       return toolset.definition.tools
         ?.map((tool) => toolsetInstance.getToolInstance(tool.name))
-        .map((tool) => {
-          const toolName = tool.name;
-          const toolsetName = t.name ?? t.key;
-          const isGlobal = Boolean(t.isGlobal ?? false);
-          return new DynamicStructuredTool({
-            name: `${toolset.definition.key}_${toolName}`,
-            description: tool.description,
-            schema: tool.schema,
-            func: async (input) => {
-              const result = (await tool.invoke(input)) as any;
-              const status = result?.status ?? 'success';
-              const creditCost = Number(result?.creditCost ?? 0);
-              if (status !== 'error' && isGlobal && (creditCost ?? 0) > 0 && this.toolCreditQueue) {
-                const job: SyncToolCreditUsageJobData = {
-                  uid: user.uid,
-                  resultId: undefined,
-                  creditCost,
-                  timestamp: new Date(),
-                  toolsetName,
-                  toolName,
-                };
-                await this.toolCreditQueue.add(`tool_credit:${user.uid}:${toolName}`, job);
-              }
-              return result;
-            },
-            metadata: {
-              name: toolName,
-              type: 'regular',
-              toolsetKey: t.key,
-              toolsetName,
-            },
-          });
-        });
+        .map(
+          (tool) =>
+            new DynamicStructuredTool({
+              name: `${toolset.definition.key}_${tool.name}`,
+              description: tool.description,
+              schema: tool.schema,
+              func: tool.invoke.bind(tool),
+              metadata: {
+                name: tool.name,
+                type: 'regular',
+                toolsetKey: t.key,
+                toolsetName: t.name,
+              },
+            }),
+        );
     });
 
     return tools;
