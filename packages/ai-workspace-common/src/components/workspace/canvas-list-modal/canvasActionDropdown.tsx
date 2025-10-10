@@ -4,14 +4,16 @@ import {
   IconPlayOutline,
   IconRemove,
 } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { More, Delete, Copy, Edit } from 'refly-icons';
+import { More, Delete, Copy, Edit, File } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import { useCanvasOperationStoreShallow } from '@refly/stores';
 import './index.scss';
+import { useNavigate } from 'react-router-dom';
 
 interface CanvasActionDropdown {
   canvasId: string;
   canvasName: string;
+  canBackHome?: boolean;
   btnSize?: 'small' | 'large';
   updateShowStatus?: (canvasId: string | null) => void;
   afterDelete?: () => void;
@@ -26,6 +28,7 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
   const {
     canvasId,
     canvasName,
+    canBackHome = false,
     btnSize = 'small',
     updateShowStatus,
     handleUseCanvas,
@@ -35,7 +38,7 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
   } = props;
   const [popupVisible, setPopupVisible] = useState(false);
   const { t } = useTranslation();
-
+  const navigate = useNavigate();
   const { openRenameModal, openDeleteModal, openDuplicateModal } = useCanvasOperationStoreShallow(
     (state) => ({
       openRenameModal: state.openRenameModal,
@@ -45,6 +48,27 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
   );
 
   const items: MenuProps['items'] = [
+    ...(canBackHome
+      ? ([
+          {
+            label: (
+              <div
+                className="flex items-center gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPopupVisible(false);
+                  navigate('/');
+                }}
+              >
+                <File size={18} />
+                {t('canvas.toolbar.backHome')}
+              </div>
+            ),
+            key: 'backHome',
+          },
+          { type: 'divider' },
+        ] as MenuProps['items'])
+      : []),
     handleUseCanvas && {
       label: (
         <div

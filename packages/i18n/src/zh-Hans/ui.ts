@@ -1280,6 +1280,7 @@ const translations = {
         mouse: '已切换为鼠标模式',
         touchpad: '已切换为触控板模式',
       },
+      backHome: '返回工作台',
     },
     workflow: {
       variables: {
@@ -2030,7 +2031,7 @@ const translations = {
       },
     },
     siderMenu: {
-      home: '首页',
+      home: '工作台',
       canvas: '工作流',
       appManager: '发布管理',
       contactUs: '联系我们',

@@ -103,8 +103,13 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
               owner={shareData?.owner}
             />
           ) : (
-            <CanvasActionDropdown canvasId={canvasId} canvasName={canvasTitle} offset={[0, 4]}>
-              <div className="flex items-center gap-2">
+            <CanvasActionDropdown
+              canvasId={canvasId}
+              canvasName={canvasTitle}
+              offset={[0, 4]}
+              canBackHome
+            >
+              <div className="flex items-center gap-2 hover:bg-refly-tertiary-hover rounded-lg px-1 cursor-pointer">
                 <Logo
                   textProps={{ show: false }}
                   logoProps={{ show: true, className: '!w-5 !h-5' }}
