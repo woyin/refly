@@ -5922,6 +5922,10 @@ export type WorkflowApp = {
    */
   description?: string;
   /**
+   * Workflow app owner
+   */
+  owner?: ShareUser;
+  /**
    * Canvas ID
    */
   canvasId: string;

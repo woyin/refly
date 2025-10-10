@@ -8401,6 +8401,10 @@ export const WorkflowAppSchema = {
       type: 'string',
       description: 'Workflow app description',
     },
+    owner: {
+      description: 'Workflow app owner',
+      $ref: '#/components/schemas/ShareUser',
+    },
     canvasId: {
       type: 'string',
       description: 'Canvas ID',

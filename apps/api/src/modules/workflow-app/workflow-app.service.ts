@@ -144,7 +144,16 @@ export class WorkflowAppService {
       where: { appId, uid: user.uid, deletedAt: null },
     });
 
-    return workflowAppPO2DTO(workflowApp);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return workflowAppPO2DTO({ ...workflowApp, owner: userPo });
   }
 
   async getWorkflowAppDetail(user: User, appId: string) {
@@ -156,7 +165,16 @@ export class WorkflowAppService {
       throw new ShareNotFoundError();
     }
 
-    return workflowAppPO2DTO(workflowApp);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return workflowAppPO2DTO({ ...workflowApp, owner: userPo });
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
@@ -278,6 +296,17 @@ export class WorkflowAppService {
       take,
     });
 
-    return workflowApps.map(workflowAppPO2DTO).filter(Boolean);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return workflowApps
+      .map((workflowApp) => workflowAppPO2DTO({ ...workflowApp, owner: userPo }))
+      .filter(Boolean);
   }
 }
