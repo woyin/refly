@@ -91,6 +91,20 @@ const selectionStyles = `
     background: rgba(0, 150, 143, 0.03) !important;
     border: 0.5px solid #0E9F77 !important;
   }
+  
+  /* Prevent text selection outside canvas during drag */
+  .react-flow__pane.selecting {
+    user-select: none;
+  }
+  
+  .react-flow__pane.selecting * {
+    user-select: none !important;
+  }
+  
+  /* Ensure canvas selection works properly */
+  .react-flow__pane {
+    user-select: auto;
+  }
 `;
 
 const SessionContainerClassName = `
@@ -287,15 +301,94 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
 
-  // Custom selection state
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
-  const [selectionBox, setSelectionBox] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  // Handle selection state to prevent text selection outside canvas
+  useEffect(() => {
+    let isDragging = false;
+    let dragStartTime = 0;
+    let hasStartedDrag = false;
+
+    const resetDragState = () => {
+      if (isDragging || hasStartedDrag) {
+        isDragging = false;
+        hasStartedDrag = false;
+        // Re-enable text selection
+        document.body.style.userSelect = '';
+      }
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.button !== 0) return;
+
+      // Check if clicking on interactive elements (don't start selection)
+      const target = event.target as HTMLElement;
+      const isInteractiveElement = target.closest(
+        'input, textarea, [contenteditable="true"], [role="textbox"], .chat-composer, .rich-input, [data-cy="chat-input"], [data-cy="rich-chat-input"], .ProseMirror',
+      );
+
+      if (isInteractiveElement) return;
+
+      isDragging = false;
+      hasStartedDrag = false;
+      dragStartTime = Date.now();
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.buttons !== 1) return;
+
+      // Check if we've moved enough to consider it a drag
+      const timeSinceStart = Date.now() - dragStartTime;
+      const hasMovedEnough = timeSinceStart > 10;
+
+      if (!isDragging && hasMovedEnough && !hasStartedDrag) {
+        isDragging = true;
+        hasStartedDrag = true;
+        // Temporarily disable text selection on the document
+        document.body.style.userSelect = 'none';
+      }
+    };
+
+    const handleMouseUp = () => {
+      resetDragState();
+    };
+
+    const handleMouseLeave = () => {
+      resetDragState();
+    };
+
+    // Global mouse up handler to ensure state reset
+    const handleGlobalMouseUp = () => {
+      resetDragState();
+    };
+
+    // Listen for ReactFlow selection events
+    const canvasContainer = document.querySelector('.react-flow');
+    if (canvasContainer) {
+      canvasContainer.addEventListener('mousedown', handleMouseDown);
+      canvasContainer.addEventListener('mousemove', handleMouseMove);
+      canvasContainer.addEventListener('mouseup', handleMouseUp);
+      canvasContainer.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // Add global event listeners for cleanup
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      if (canvasContainer) {
+        canvasContainer.removeEventListener('mousedown', handleMouseDown);
+        canvasContainer.removeEventListener('mousemove', handleMouseMove);
+        canvasContainer.removeEventListener('mouseup', handleMouseUp);
+        canvasContainer.removeEventListener('mouseleave', handleMouseLeave);
+      }
+
+      // Remove global event listeners
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+
+      // Ensure text selection is re-enabled on cleanup
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   const { onConnectEnd: temporaryEdgeOnConnectEnd, onConnectStart: temporaryEdgeOnConnectStart } =
     useDragToCreateNode();
@@ -312,145 +405,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       return edges.filter((edge) => !isTemporaryNode(edge.source) && !isTemporaryNode(edge.target));
     });
   }, [reactFlowInstance]);
-
-  // Cache canvas container reference for better performance
-  const canvasContainerRef = useRef<HTMLElement | null>(null);
-
-  // Custom selection handlers
-  const handleSelectionStart = useCallback(
-    (event: React.MouseEvent | React.TouchEvent, isRightClick = false) => {
-      if (readonly) return;
-
-      // Check for right click, Shift + left click, or two-finger + Shift touch
-      const isRightButton = isRightClick || (event as React.MouseEvent).button === 2;
-      const isShiftLeftClick =
-        (event as React.MouseEvent).button === 0 && (event as React.MouseEvent).shiftKey;
-      const isTwoFingerWithShift =
-        (event as React.TouchEvent).touches?.length === 2 && (event as React.TouchEvent).shiftKey;
-
-      if (!isRightButton && !isShiftLeftClick && !isTwoFingerWithShift) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-
-      // Check if the click is within the canvas viewport bounds
-      const canvasContainer =
-        canvasContainerRef.current || (document.querySelector('.react-flow') as HTMLElement);
-      if (canvasContainer) {
-        canvasContainerRef.current = canvasContainer;
-        const rect = canvasContainer.getBoundingClientRect();
-        const isWithinCanvas =
-          clientX >= rect.left &&
-          clientX <= rect.right &&
-          clientY >= rect.top &&
-          clientY <= rect.bottom;
-
-        if (!isWithinCanvas) return;
-      }
-
-      const flowPosition = reactFlowInstance.screenToFlowPosition({
-        x: clientX,
-        y: clientY,
-      });
-
-      // Validate that the converted position is reasonable
-      if (Number.isNaN(flowPosition.x) || Number.isNaN(flowPosition.y)) return;
-
-      setIsSelecting(true);
-      setSelectionStart(flowPosition);
-      setSelectionBox({
-        x: flowPosition.x,
-        y: flowPosition.y,
-        width: 0,
-        height: 0,
-      });
-    },
-    [readonly, reactFlowInstance],
-  );
-
-  const handleSelectionMove = useCallback(
-    (event: React.MouseEvent | React.TouchEvent) => {
-      if (!isSelecting || readonly) return;
-
-      event.preventDefault();
-
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-
-      // Check if the move is within the canvas viewport bounds
-      const canvasContainer = canvasContainerRef.current;
-      if (canvasContainer) {
-        const rect = canvasContainer.getBoundingClientRect();
-        const isWithinCanvas =
-          clientX >= rect.left &&
-          clientX <= rect.right &&
-          clientY >= rect.top &&
-          clientY <= rect.bottom;
-
-        if (!isWithinCanvas) return;
-      }
-
-      const flowPosition = reactFlowInstance.screenToFlowPosition({
-        x: clientX,
-        y: clientY,
-      });
-
-      // Validate that the converted position is reasonable
-      if (Number.isNaN(flowPosition.x) || Number.isNaN(flowPosition.y)) return;
-
-      if (selectionStart) {
-        setSelectionBox({
-          x: Math.min(selectionStart.x, flowPosition.x),
-          y: Math.min(selectionStart.y, flowPosition.y),
-          width: Math.abs(flowPosition.x - selectionStart.x),
-          height: Math.abs(flowPosition.y - selectionStart.y),
-        });
-      }
-    },
-    [isSelecting, readonly, selectionStart, reactFlowInstance],
-  );
-
-  const handleSelectionEnd = useCallback(() => {
-    if (!isSelecting || readonly) return;
-
-    setIsSelecting(false);
-
-    if (selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
-      // Get nodes within selection area
-      const nodes = reactFlowInstance.getNodes();
-      const selectedNodes = nodes.filter((node) => {
-        const nodeX = node.position.x;
-        const nodeY = node.position.y;
-        const nodeWidth = node.width || 200; // Default node width
-        const nodeHeight = node.height || 100; // Default node height
-
-        // Check if node intersects with selection box (supports partial selection)
-        const intersects =
-          nodeX < selectionBox.x + selectionBox.width &&
-          nodeX + nodeWidth > selectionBox.x &&
-          nodeY < selectionBox.y + selectionBox.height &&
-          nodeY + nodeHeight > selectionBox.y;
-
-        return intersects;
-      });
-
-      // Select nodes
-      if (selectedNodes.length > 0) {
-        reactFlowInstance.setNodes((nodes) =>
-          nodes.map((node) => ({
-            ...node,
-            selected: selectedNodes.some((selected) => selected.id === node.id),
-          })),
-        );
-      }
-    }
-
-    setSelectionStart(null);
-    setSelectionBox(null);
-  }, [isSelecting, readonly, selectionBox, reactFlowInstance]);
 
   const handlePanelClick = useCallback(
     (event: React.MouseEvent) => {
@@ -493,96 +447,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       readonly,
     ],
   );
-
-  // Add mouse and touch event listeners to canvas container only
-  useEffect(() => {
-    const canvasContainer = document.querySelector('.react-flow') as HTMLElement;
-    if (!canvasContainer) return;
-
-    // Cache the container reference
-    canvasContainerRef.current = canvasContainer;
-
-    const handleMouseDown = (event: MouseEvent) => {
-      // Check if click is inside canvas container
-      if (!canvasContainer.contains(event.target as HTMLElement)) return;
-
-      // Support both right click and Shift + left click for selection
-      const isRightButton = event.button === 2;
-      const isShiftLeftClick = event.button === 0 && event.shiftKey;
-
-      if (isRightButton || isShiftLeftClick) {
-        handleSelectionStart(event as any, isRightButton);
-      }
-    };
-
-    const handleMouseMove = (event: MouseEvent) => {
-      // Only handle move events if we're currently selecting
-      if (!isSelecting) return;
-      handleSelectionMove(event as any);
-    };
-
-    const handleMouseUp = () => {
-      handleSelectionEnd();
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      // Check if touch is inside canvas container
-      if (!canvasContainer.contains(event.target as HTMLElement)) return;
-
-      if (event.touches.length === 2 && event.shiftKey) {
-        // Two-finger + Shift touch
-        handleSelectionStart(event as any);
-      }
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (event.touches.length === 2 && event.shiftKey) {
-        handleSelectionMove(event as any);
-      }
-    };
-
-    const handleTouchEnd = () => {
-      handleSelectionEnd();
-    };
-
-    // Global event listeners to ensure state cleanup when mouse/touch leaves canvas
-    const handleGlobalMouseUp = () => {
-      if (isSelecting) {
-        handleSelectionEnd();
-      }
-    };
-
-    const handleGlobalTouchEnd = () => {
-      if (isSelecting) {
-        handleSelectionEnd();
-      }
-    };
-
-    // Add event listeners to canvas container only
-    canvasContainer.addEventListener('mousedown', handleMouseDown);
-    canvasContainer.addEventListener('mousemove', handleMouseMove);
-    canvasContainer.addEventListener('mouseup', handleMouseUp);
-    canvasContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvasContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvasContainer.addEventListener('touchend', handleTouchEnd);
-
-    // Add global event listeners for cleanup
-    document.addEventListener('mouseup', handleGlobalMouseUp);
-    document.addEventListener('touchend', handleGlobalTouchEnd);
-
-    return () => {
-      canvasContainer.removeEventListener('mousedown', handleMouseDown);
-      canvasContainer.removeEventListener('mousemove', handleMouseMove);
-      canvasContainer.removeEventListener('mouseup', handleMouseUp);
-      canvasContainer.removeEventListener('touchstart', handleTouchStart);
-      canvasContainer.removeEventListener('touchmove', handleTouchMove);
-      canvasContainer.removeEventListener('touchend', handleTouchEnd);
-
-      // Remove global event listeners
-      document.removeEventListener('mouseup', handleGlobalMouseUp);
-      document.removeEventListener('touchend', handleGlobalTouchEnd);
-    };
-  }, [handleSelectionStart, handleSelectionMove, handleSelectionEnd, isSelecting]);
 
   // Add scroll position state and handler
   const [showLeftIndicator, setShowLeftIndicator] = useState(false);
@@ -1315,9 +1179,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             zoomOnScroll={true} // Enable scroll zooming
             zoomOnPinch={true} // Enable touchpad two-finger pinch zoom
             zoomOnDoubleClick={false}
-            // Disable default selection behavior, use custom implementation
-            selectNodesOnDrag={false}
-            selectionOnDrag={false}
+            // Enable default selection behavior
+            selectNodesOnDrag={true}
+            selectionOnDrag={true}
             nodeTypes={memoizedNodeTypes}
             nodes={memoizedNodes}
             edges={memoizedEdges}
@@ -1352,19 +1216,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
             {memoizedBackground}
             <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
-
-            {/* Custom selection box */}
-            {isSelecting && selectionBox && (
-              <div
-                className="absolute pointer-events-none border-2 border-blue-500 bg-blue-100 bg-opacity-20 z-50"
-                style={{
-                  left: selectionBox.x,
-                  top: selectionBox.y,
-                  width: selectionBox.width,
-                  height: selectionBox.height,
-                }}
-              />
-            )}
           </ReactFlow>
         </div>
 

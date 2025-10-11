@@ -7,6 +7,12 @@ const translations = {
     cancelAnytime: '随时可取消。订阅即表示您同意 Refly 的',
     privacy: '隐私政策',
     terms: '使用条款',
+    planType: {
+      free: '免费用户',
+      starter: 'Starter 用户',
+      maker: 'Maker 用户',
+      enterprise: '企业用户',
+    },
     earlyBirdsWelcome: {
       title: '致最早的同行者',
       subtitle: '积分系统上线的第一天，我们最想感谢的，就是你。',
@@ -1410,6 +1416,33 @@ const translations = {
         defaultTitle: '技能执行失败',
         description: '[{{errCode}}] {{errMsg}} 原始错误: {{rawError}}',
         networkError: '如果问题持续存在，请检查您的网络连接或 VPN',
+      },
+      creditInsufficient: {
+        title: '积分不足',
+        description:
+          '您当前订阅方案为 {{membershipLevel}}，积分已不足。升级套餐即可继续使用 Refly 的完整功能。',
+        upgradeButton: '立即升级',
+      },
+      modelCallFailure: {
+        title: '执行失败',
+        description: '模型调用失败，请稍后重试或更换模型。',
+        retryButton: '重试',
+      },
+      toolCallFailure: {
+        title: '执行失败',
+        description: '工具调用异常，请稍后重试或更换工具。',
+        retryButton: '重试',
+      },
+      multimodalFailure: {
+        title: '执行失败',
+        description: '生成失败，请稍后重试或更换模型。',
+        retryButton: '重试',
+      },
+      workflowFailure: {
+        title: '执行失败',
+        description: 'workflow 执行中断，请稍后重试或检查节点配置。',
+        retryButton: '重试该节点',
+        checkButton: '检查该节点',
       },
     },
     chatHistory: {

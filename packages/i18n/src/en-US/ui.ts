@@ -1435,6 +1435,34 @@ const translations = {
         description: '[{{errCode}}] {{errMsg}} Original error: {{rawError}}',
         networkError: 'If the problem persists, please check your internet connection or VPN',
       },
+      creditInsufficient: {
+        title: 'Insufficient Credits',
+        description:
+          "Your current subscription plan is {{membershipLevel}}, and your credits are insufficient. Upgrade your plan to continue using Refly's full features.",
+        upgradeButton: 'Upgrade Now',
+      },
+      modelCallFailure: {
+        title: 'Execution Failed',
+        description: 'Model call failed, please try again later or switch to another model.',
+        retryButton: 'Retry',
+      },
+      toolCallFailure: {
+        title: 'Execution Failed',
+        description: 'Tool call exception, please try again later or switch to another tool.',
+        retryButton: 'Retry',
+      },
+      multimodalFailure: {
+        title: 'Execution Failed',
+        description: 'Generation failed, please try again later or switch to another model.',
+        retryButton: 'Retry',
+      },
+      workflowFailure: {
+        title: 'Execution Failed',
+        description:
+          'Workflow execution interrupted, please try again later or check node configuration.',
+        retryButton: 'Retry Node',
+        checkButton: 'Check Node',
+      },
     },
     chatHistory: {
       alreadyAdded: 'Already added to chat history',
@@ -2487,6 +2515,12 @@ const translations = {
       },
     },
     subscription: {
+      planType: {
+        free: 'Free User',
+        starter: 'Starter User',
+        maker: 'Maker User',
+        enterprise: 'Enterprise User',
+      },
       mostPopular: 'Most Popular',
       getStarted: 'Get Started',
       subscribeNow: 'Subscribe Now',
