@@ -49,7 +49,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
-
   const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
     showWorkflowRun: state.showWorkflowRun,
     setShowWorkflowRun: state.setShowWorkflowRun,
@@ -105,7 +104,7 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
           ) : (
             <div className="flex items-center gap-2">
               <Tooltip
-                title={t('canvas.toolbar.backHome')}
+                title={t(isLogin ? 'canvas.toolbar.backWorkspace' : 'canvas.toolbar.backHome')}
                 arrow={false}
                 align={{ offset: [20, -8] }}
               >

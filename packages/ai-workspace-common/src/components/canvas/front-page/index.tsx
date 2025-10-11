@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from 'antd';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
@@ -49,10 +49,13 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const { data } = useListCanvasTemplateCategories({}, undefined, {
     enabled: true,
   });
-  const templateCategories = data?.data ?? [];
+  const templateCategories = [
+    { categoryId: '', labelDict: { en: 'All', 'zh-CN': '全部' } },
+    ...(data?.data ?? []),
+  ];
 
   const templateLanguage = i18n.language;
-  const templateCategoryId = templateCategories[0]?.categoryId ?? '';
+  const [templateCategoryId, setTemplateCategoryId] = useState('');
 
   const { setVisible: setCanvasTemplateModalVisible } = useCanvasTemplateModalShallow((state) => ({
     setVisible: state.setVisible,
@@ -65,6 +68,13 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const handleNewWorkflow = useCallback(() => {
     debouncedCreateCanvas();
   }, [debouncedCreateCanvas]);
+
+  const handleTemplateCategoryClick = useCallback(
+    (categoryId: string) => {
+      setTemplateCategoryId(categoryId);
+    },
+    [setTemplateCategoryId],
+  );
 
   return (
     <div
@@ -118,20 +128,33 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
           title={t('frontPage.template.title')}
           handleTitleClick={handleViewAllTemplates}
         >
-          <div className="flex items-center gap-2">
-            {templateCategories.map((category) => (
-              <div key={category.categoryId} className="text-xs text-refly-text-3 leading-4">
-                {category.labelDict[templateLanguage]}
-              </div>
-            ))}
-          </div>
+          {templateCategories.length > 1 && (
+            <div className="flex items-center gap-2">
+              {templateCategories.map((category) => (
+                <div
+                  key={category.categoryId}
+                  className={cn(
+                    'px-3 py-1.5 text-sm text-refly-text-0 leading-5 cursor-pointer rounded-[40px] hover:bg-refly-tertiary-hover',
+                    {
+                      '!bg-refly-primary-default text-white font-semibold':
+                        category.categoryId === templateCategoryId,
+                    },
+                  )}
+                  onClick={() => handleTemplateCategoryClick(category.categoryId)}
+                >
+                  {category.labelDict[templateLanguage]}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex-1">
             <TemplateList
               source="front-page"
               scrollableTargetId="front-page-scrollable-div"
               language={templateLanguage}
               categoryId={templateCategoryId}
-              className="!bg-transparent !px-0"
+              className="!bg-transparent !px-0 !pt-0 -ml-2 -mt-2"
             />
           </div>
         </ModuleContainer>

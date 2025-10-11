@@ -10,7 +10,6 @@ import { useTranslation } from 'react-i18next';
 import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-fetch-data-list';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useCanvasTemplateModal } from '@refly/stores';
-import { useDebouncedCallback } from 'use-debounce';
 import { TemplateCard } from './template-card';
 
 import cn from 'classnames';
@@ -42,32 +41,21 @@ export const TemplateList = ({
         query: {
           language,
           categoryId: categoryId === 'my-templates' ? undefined : categoryId,
-          scope: categoryId === 'my-templates' ? 'private' : 'private',
+          scope: categoryId === 'my-templates' ? 'private' : 'public',
+          searchQuery,
           ...queryPayload,
         },
       });
       return res?.data ?? { success: true, data: [] };
     },
     pageSize: 12,
+    dependencies: [language, categoryId, searchQuery],
   });
-
-  useEffect(() => {
-    if (!visible && source === 'template-library') return;
-    reload();
-  }, [language, categoryId]);
 
   useEffect(() => {
     if (source === 'front-page') return;
     visible ? reload() : setDataList([]);
   }, [visible]);
-
-  const debounced = useDebouncedCallback(() => {
-    reload();
-  }, 300);
-
-  useEffect(() => {
-    debounced();
-  }, [searchQuery]);
 
   const templateCards = useMemo(() => {
     return dataList?.map((item) => <TemplateCard key={item.templateId} template={item} />);

@@ -40,9 +40,10 @@ export const TemplateCard = ({
     });
 
     e.stopPropagation();
-    if (template.shareId) {
+    if (template.appId) {
       setModalVisible(false);
-      navigate(`/preview/canvas/${template.shareId}`);
+      navigate(`/app/${template.appId}`);
+      return;
     }
   };
 
@@ -135,9 +136,12 @@ export const TemplateCard = ({
             <Button loading={duplicating} type="primary" className="flex-1" onClick={handleUse}>
               {t('template.use')}
             </Button>
-            <Button type="default" className="w-20" onClick={handlePreview}>
-              {t('template.preview')}
-            </Button>
+
+            {template.appId && (
+              <Button type="default" className="w-20" onClick={handlePreview}>
+                {t('template.preview')}
+              </Button>
+            )}
           </div>
         </div>
       </div>

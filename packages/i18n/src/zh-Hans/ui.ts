@@ -1286,7 +1286,8 @@ const translations = {
         mouse: '已切换为鼠标模式',
         touchpad: '已切换为触控板模式',
       },
-      backHome: '回到工作台',
+      backWorkspace: '回到工作台',
+      backHome: '回到首页',
     },
     workflow: {
       variables: {
