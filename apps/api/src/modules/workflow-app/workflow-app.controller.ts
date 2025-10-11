@@ -20,6 +20,8 @@ import {
   ExecuteWorkflowAppResponse,
   ListWorkflowAppsResponse,
   ListOrder,
+  BaseResponse,
+  DeleteWorkflowAppRequest,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
 import { workflowAppPO2DTO } from './workflow-app.dto';
@@ -81,5 +83,15 @@ export class WorkflowAppController {
       keyword,
     });
     return buildSuccessResponse(workflowApps.map(workflowAppPO2DTO).filter(Boolean));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('delete')
+  async deleteWorkflowApp(
+    @LoginedUser() user: UserModel,
+    @Body() request: DeleteWorkflowAppRequest,
+  ): Promise<BaseResponse> {
+    await this.workflowAppService.deleteWorkflowApp(user, request.appId);
+    return buildSuccessResponse();
   }
 }

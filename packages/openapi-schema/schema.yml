@@ -2708,6 +2708,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateWorkflowAppResponse'
+  /workflow-app/delete:
+    post:
+      tags:
+        - app
+      summary: Delete workflow app
+      description: Delete a workflow app
+      operationId: deleteWorkflowApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteWorkflowAppRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /workflow-app/detail:
     get:
       tags:
@@ -9540,6 +9560,14 @@ components:
           description: Workflow app variables
           items:
             $ref: '#/components/schemas/WorkflowVariable'
+    DeleteWorkflowAppRequest:
+      type: object
+      required:
+        - appId
+      properties:
+        appId:
+          type: string
+          description: Workflow app ID
     WorkflowApp:
       type: object
       required:

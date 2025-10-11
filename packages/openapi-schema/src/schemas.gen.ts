@@ -1030,6 +1030,10 @@ export const CanvasTemplateSchema = {
       type: 'boolean',
       description: 'Whether this canvas template is featured',
     },
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',
@@ -8377,6 +8381,17 @@ export const CreateWorkflowAppRequestSchema = {
       items: {
         $ref: '#/components/schemas/WorkflowVariable',
       },
+    },
+  },
+} as const;
+
+export const DeleteWorkflowAppRequestSchema = {
+  type: 'object',
+  required: ['appId'],
+  properties: {
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
     },
   },
 } as const;

@@ -682,6 +682,10 @@ export type CanvasTemplate = {
    */
   featured?: boolean;
   /**
+   * Workflow app ID
+   */
+  appId?: string;
+  /**
    * Canvas template creation time
    */
   createdAt: string;
@@ -5904,6 +5908,13 @@ export type CreateWorkflowAppRequest = {
   variables: Array<WorkflowVariable>;
 };
 
+export type DeleteWorkflowAppRequest = {
+  /**
+   * Workflow app ID
+   */
+  appId: string;
+};
+
 export type WorkflowApp = {
   /**
    * Workflow app ID
@@ -7507,6 +7518,14 @@ export type CreateWorkflowAppData = {
 export type CreateWorkflowAppResponse2 = CreateWorkflowAppResponse;
 
 export type CreateWorkflowAppError = unknown;
+
+export type DeleteWorkflowAppData = {
+  body: DeleteWorkflowAppRequest;
+};
+
+export type DeleteWorkflowAppResponse = BaseResponse;
+
+export type DeleteWorkflowAppError = unknown;
 
 export type GetWorkflowAppDetailData = {
   query: {

@@ -16,7 +16,7 @@ import { WorkflowService } from '../workflow/workflow.service';
 import { Injectable } from '@nestjs/common';
 import { ShareCommonService } from '../share/share-common.service';
 import { ShareCreationService } from '../share/share-creation.service';
-import { ShareNotFoundError } from '@refly/errors';
+import { ShareNotFoundError, WorkflowAppNotFoundError } from '@refly/errors';
 import { ToolService } from '../tool/tool.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { initEmptyCanvasState } from '@refly/canvas-common';
@@ -302,5 +302,23 @@ export class WorkflowAppService {
     });
 
     return workflowApps.map((workflowApp) => ({ ...workflowApp, owner: userPo }));
+  }
+
+  async deleteWorkflowApp(user: User, appId: string) {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { appId, uid: user.uid, deletedAt: null },
+    });
+
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
+    // Mark the workflow app as deleted
+    await this.prisma.workflowApp.update({
+      where: { appId },
+      data: { deletedAt: new Date() },
+    });
+
+    this.logger.log(`Deleted workflow app: ${appId} for user: ${user.uid}`);
   }
 }
