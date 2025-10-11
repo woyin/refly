@@ -4282,6 +4282,9 @@ components:
         featured:
           type: boolean
           description: Whether this canvas template is featured
+        appId:
+          type: string
+          description: Workflow app ID
         createdAt:
           type: string
           format: date-time

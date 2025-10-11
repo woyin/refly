@@ -515,6 +515,8 @@ model CanvasTemplate {
   originCanvasId String                  @default("") @map("origin_canvas_id")
   /// Category id
   categoryId     String?                 @map("category_id")
+  /// Workflow app id
+  appId          String?                 @map("app_id")
   /// Share id
   shareId        String                  @default("") @map("share_id")
   /// Version
