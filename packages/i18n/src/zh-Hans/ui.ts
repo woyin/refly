@@ -626,6 +626,12 @@ const translations = {
         title: '联系我们',
         community: '社区',
         mail: '邮箱',
+        joinGroup: '加入用户交流群',
+        scanToJoinWechatGroup: '扫码加入微信交流群',
+        discordGroup: 'Discord 交流群',
+        joinDiscordGroup: '加入交流群',
+        followReflyUpdates: '关注 Refly 动态',
+        reflyTwitterAccount: 'Refly官方账号',
       },
       platforms: {
         title: '平台',
@@ -3775,6 +3781,8 @@ const translations = {
     unpublish: '取消发布',
     view: '详情',
     noSearchResults: '没有找到相关 app',
+    unpublishSuccess: '{{title}} 取消发布成功',
+    unpublishFailed: '{{title}} 取消发布失败',
   },
 };
 

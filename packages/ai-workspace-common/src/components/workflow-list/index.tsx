@@ -124,7 +124,7 @@ const WorkflowList = memo(() => {
         fixed: 'left' as const,
         render: (text: string, _record: Canvas) => (
           <Typography.Text
-            className="ml-4 text-base text-refly-text-0 cursor-pointer hover:text-refly-text-1"
+            className="text-base text-refly-text-0 cursor-pointer hover:text-refly-text-1"
             ellipsis={{ tooltip: true }}
           >
             {text || t('common.untitled')}

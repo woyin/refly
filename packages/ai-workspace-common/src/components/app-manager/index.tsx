@@ -15,26 +15,41 @@ import { AppCard } from './app-card';
 import './index.scss';
 import { TbSortAscending, TbSortDescending } from 'react-icons/tb';
 import { ListOrder } from '@refly/openapi-schema';
+import { useDebouncedCallback } from 'use-debounce';
 
 export const AppManager = () => {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState('');
+  const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
   const [orderType, setOrderType] = useState<ListOrder>('creationDesc');
 
   const { setDataList, loadMore, reload, dataList, hasMore, isRequesting } = useFetchDataList({
     fetchData: async (queryPayload) => {
       const res = await getClient().listWorkflowApps({
-        query: queryPayload,
+        query: {
+          ...queryPayload,
+          order: orderType,
+          keyword: debouncedSearchValue?.trim() || undefined,
+        },
       });
       return res?.data ?? { success: true, data: [] };
     },
     pageSize: 20,
+    dependencies: [orderType, debouncedSearchValue],
   });
 
-  const handleSearch = useCallback((value: string) => {
-    setSearchValue(value);
-    // Implement search logic here
-  }, []);
+  // Debounce search value changes
+  const debouncedSetSearchValue = useDebouncedCallback((value: string) => {
+    setDebouncedSearchValue(value);
+  }, 300);
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      setSearchValue(value);
+      debouncedSetSearchValue(value);
+    },
+    [debouncedSetSearchValue],
+  );
 
   const handleOrderType = useCallback(() => {
     setOrderType(orderType === 'creationAsc' ? 'creationDesc' : 'creationAsc');
@@ -115,7 +130,7 @@ export const AppManager = () => {
                 endMessage={<EndMessage />}
                 scrollableTarget="workflowAppScrollableDiv"
               >
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {appCards}
                 </div>
               </InfiniteScroll>

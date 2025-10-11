@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useCallback } from 'react';
+import { useMemo, useEffect, useCallback, useState } from 'react';
 import { Avatar, Button, Divider, Layout } from 'antd';
 import {
   useLocation,
@@ -23,6 +23,7 @@ import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/us
 import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { Account, File, Project, Flow, KnowledgeBase, Subscription, Contact } from 'refly-icons';
+import { ContactUsPopover } from '@refly-packages/ai-workspace-common/components/contact-us-popover';
 
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
@@ -58,7 +59,7 @@ const SiderSectionHeader = ({
         'w-full h-[42px] p-2 flex items-center justify-between text-refly-text-0 group select-none rounded-xl cursor-pointer',
         isActive ? 'bg-refly-tertiary-hover' : 'hover:bg-refly-tertiary-hover',
       )}
-      onClick={!actionIcon && onActionClick ? onActionClick : undefined}
+      onClick={!actionIcon ? onActionClick : undefined}
     >
       <div className="flex items-center gap-2">
         {icon}
@@ -205,6 +206,8 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
 
   useHandleSiderData(true);
 
+  const [openContactUs, setOpenContactUs] = useState(false);
+
   const { t } = useTranslation();
 
   const location = useLocation();
@@ -268,10 +271,11 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
       {
         icon: <Contact key="contactUs" style={{ fontSize: 20 }} />,
         title: t('loggedHomePage.siderMenu.contactUs'),
-        onActionClick: () => setShowLibraryModal(true),
+        key: 'contactUs',
+        onActionClick: undefined,
       },
     ],
-    [t, setShowLibraryModal],
+    [t],
   );
 
   // Handle library modal opening from URL parameter
@@ -350,14 +354,33 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
           <Divider className="m-0 border-refly-Card-Border" />
 
           {/* Bottom menu items */}
-          {bottomMenuItems.map((item, index) => (
-            <SiderSectionHeader
-              key={`bottom-${index}`}
-              icon={item.icon}
-              title={item.title}
-              onActionClick={item.onActionClick}
-            />
-          ))}
+          {bottomMenuItems.map((item, index) => {
+            if (item.key === 'contactUs') {
+              return (
+                <ContactUsPopover
+                  key={`bottom-${index}`}
+                  open={openContactUs}
+                  setOpen={setOpenContactUs}
+                >
+                  <SiderSectionHeader
+                    icon={item.icon}
+                    title={item.title}
+                    onActionClick={item.onActionClick}
+                    isActive={openContactUs}
+                  />
+                </ContactUsPopover>
+              );
+            }
+            return (
+              <SiderSectionHeader
+                key={`bottom-${index}`}
+                icon={item.icon}
+                title={item.title}
+                onActionClick={item.onActionClick}
+                isActive={item.key === getActiveKey()}
+              />
+            );
+          })}
         </div>
 
         {!!userProfile?.uid && (

@@ -687,6 +687,12 @@ const translations = {
         title: 'Contact Us',
         community: 'Community',
         mail: 'Email',
+        joinGroup: 'Join User Community',
+        scanToJoinWechatGroup: 'Scan to Join WeChat Group',
+        discordGroup: 'Discord Community',
+        joinDiscordGroup: 'Join Community',
+        followReflyUpdates: 'Follow Refly Updates',
+        reflyTwitterAccount: 'Official Account',
       },
       platforms: {
         title: 'Platforms',
@@ -3740,6 +3746,8 @@ const translations = {
     unpublish: 'Unpublish',
     view: 'View',
     noSearchResults: 'No search results',
+    unpublishSuccess: '{{title}} unpublish successfully',
+    unpublishFailed: '{{title}} unpublish failed',
   },
 };
 

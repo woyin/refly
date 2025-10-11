@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Popover, Tooltip } from 'antd';
+import { Popover } from 'antd';
 import type { PopoverProps } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@refly-packages/ai-workspace-common/utils/cn';
@@ -8,7 +8,7 @@ import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canv
 
 interface ToolsetPopoverProps {
   toolsets: GenericToolset[];
-  trigger?: React.ReactNode;
+  children?: React.ReactNode;
   placement?: PopoverProps['placement'];
   align?: { offset: [number, number] };
 }
@@ -19,11 +19,11 @@ interface ToolsetPopoverProps {
  */
 export const ToolsetPopover: React.FC<ToolsetPopoverProps> = ({
   toolsets,
-  trigger,
+  children,
   placement = 'bottomLeft',
   align = { offset: [0, 8] },
 }) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const currentLanguage = (i18n.language || 'en') as 'en' | 'zh';
   const [open, setOpen] = useState(false);
 
@@ -85,14 +85,6 @@ export const ToolsetPopover: React.FC<ToolsetPopoverProps> = ({
     );
   }, [toolsets, currentLanguage]);
 
-  const defaultTrigger = (
-    <Tooltip title={t('common.more')}>
-      <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-md bg-refly-tertiary-default hover:bg-refly-tertiary-hover text-refly-text-2 text-xs cursor-pointer">
-        +{toolsets.length - 5}
-      </div>
-    </Tooltip>
-  );
-
   return (
     <Popover
       open={open}
@@ -108,7 +100,7 @@ export const ToolsetPopover: React.FC<ToolsetPopoverProps> = ({
         </div>
       }
     >
-      {trigger || defaultTrigger}
+      {children}
     </Popover>
   );
 };
