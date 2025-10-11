@@ -53,7 +53,10 @@ import {
   ActionAborted,
   DuplicationNotAllowedError,
 } from '@refly/errors';
-import { FailureType } from '../components/common/execution-failure-notice';
+/**
+ * Types of execution failures that can be classified
+ */
+export type FailureType = 'modelCall' | 'toolCall' | 'multimodal' | 'workflow';
 
 /**
  * Classify error types based on error instances and error codes
