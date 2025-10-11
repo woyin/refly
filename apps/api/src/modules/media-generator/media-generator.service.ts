@@ -177,8 +177,8 @@ export class MediaGeneratorService {
       );
       const defaultConfig = await this.getUserDefaultMediaModel(user, mediaType);
       if (defaultConfig) {
-        finalModel = finalModel ?? defaultConfig.model;
-        finalProviderItemId = finalProviderItemId ?? defaultConfig.providerItemId;
+        finalModel = defaultConfig.model;
+        finalProviderItemId = defaultConfig.providerItemId;
         this.logger.log(
           `Using default ${mediaType} model: ${finalModel} with providerItemId: ${finalProviderItemId}`,
         );

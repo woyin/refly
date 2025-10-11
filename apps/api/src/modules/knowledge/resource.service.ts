@@ -146,7 +146,7 @@ export class ResourceService {
 
     const resourceDetail = { ...resource, content, downloadURL, publicURL: undefined };
 
-    if (genPublicUrl) {
+    if (genPublicUrl && resource.rawFileKey) {
       resourceDetail.publicURL = await this.miscService.generateTempPublicURL(resource.rawFileKey);
     }
 
