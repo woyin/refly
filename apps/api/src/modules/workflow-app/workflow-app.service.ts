@@ -161,7 +161,7 @@ export class WorkflowAppService {
     });
 
     if (!workflowApp) {
-      throw new ShareNotFoundError();
+      throw new WorkflowAppNotFoundError();
     }
 
     const userPo = await this.prisma.user.findUnique({

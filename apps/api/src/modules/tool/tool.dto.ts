@@ -16,6 +16,29 @@ export const toolsetPO2DTO = (toolset: ToolsetPO): ToolsetInstance => {
   };
 };
 
+export const populateToolsetsWithDefinition = (toolsets: GenericToolset[]): GenericToolset[] => {
+  const populateSingleToolset = (toolset: GenericToolset): GenericToolset => {
+    if (!toolset.toolset?.key) {
+      return toolset;
+    }
+
+    const inventoryItem = toolsetInventory[toolset.toolset.key];
+    return {
+      ...toolset,
+      toolset: {
+        ...toolset.toolset,
+        definition: inventoryItem?.definition,
+      },
+    };
+  };
+
+  if (Array.isArray(toolsets)) {
+    return toolsets.map(populateSingleToolset);
+  }
+
+  return [];
+};
+
 export const toolsetPo2GenericToolset = (toolset: ToolsetPO): GenericToolset => ({
   type: 'regular',
   id: toolset.toolsetId,
