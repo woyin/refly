@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Button } from 'antd';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
 import { canvasTemplateEnabled } from '@refly/ui-kit';
-import { useCanvasTemplateModalShallow, useSiderStoreShallow } from '@refly/stores';
+import { useSiderStoreShallow } from '@refly/stores';
 import cn from 'classnames';
 import { DocInline, ArrowRight } from 'refly-icons';
 import { RecentWorkflow } from './recent-workflow';
 import { useListCanvasTemplateCategories } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
+import { useNavigate } from 'react-router-dom';
 
 const ModuleContainer = ({
   title,
@@ -38,6 +39,7 @@ const ModuleContainer = ({
 
 export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   console.log('projectId', projectId);
   const { canvasList } = useSiderStoreShallow((state) => ({
     canvasList: state.canvasList,
@@ -57,14 +59,6 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
   const templateLanguage = i18n.language;
   const [templateCategoryId, setTemplateCategoryId] = useState('');
 
-  const { setVisible: setCanvasTemplateModalVisible } = useCanvasTemplateModalShallow((state) => ({
-    setVisible: state.setVisible,
-  }));
-
-  const handleViewAllTemplates = useCallback(() => {
-    setCanvasTemplateModalVisible(true);
-  }, [setCanvasTemplateModalVisible]);
-
   const handleNewWorkflow = useCallback(() => {
     debouncedCreateCanvas();
   }, [debouncedCreateCanvas]);
@@ -76,6 +70,14 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
     [setTemplateCategoryId],
   );
 
+  const handleViewGuide = useCallback(() => {
+    window.open('https://docs.refly.ai', '_blank');
+  }, []);
+
+  const handleViewAllWorkflows = useCallback(() => {
+    navigate('/workflow-list');
+  }, []);
+
   return (
     <div
       className={cn(
@@ -83,25 +85,21 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       )}
       id="front-page-scrollable-div"
     >
-      <div
-        className="p-4 rounded-xl flex items-center gap-6"
-        style={{
-          background:
-            'linear-gradient(124deg, rgba(31, 201, 150, 0.10) 0%, rgba(69, 190, 255, 0.06) 24.85%), var(--bg-refly-bg-body-z0, #FFF)',
-        }}
-      >
+      <div className="p-4 rounded-xl flex items-center gap-6 bg-gradient-tools-open bg-refly-bg-body-z0 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:via-cyan-500/15 dark:to-blue-500/10 dark:bg-refly-bg-body-z0">
         <div className="text-xl leading-7">
           <span className="text-refly-primary-default font-[800] mr-2">
             {t('frontPage.guide.title')}
           </span>
           <span className="text-refly-text-0">{t('frontPage.guide.description')}</span>
         </div>
-        <Button type="primary">{t('frontPage.guide.view')}</Button>
+        <Button type="primary" onClick={handleViewGuide}>
+          {t('frontPage.guide.view')}
+        </Button>
       </div>
 
       <ModuleContainer title={t('frontPage.newWorkflow.title')} className="mt-[120px]">
         <Button
-          className="w-fit h-fit flex items-center gap-2  border-[0.5px] border-solid border-refly-Card-Border rounded-xl p-3 cursor-pointer bg-transparent hover:bg-refly-fill-hover transition-colors"
+          className="w-fit h-fit flex items-center gap-2  border-[1px] border-solid border-refly-Card-Border rounded-xl p-3 cursor-pointer bg-transparent hover:bg-refly-fill-hover transition-colors"
           onClick={handleNewWorkflow}
           loading={createCanvasLoading}
         >
@@ -118,16 +116,16 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
       </ModuleContainer>
 
       {canvases?.length > 0 && (
-        <ModuleContainer title={t('frontPage.recentWorkflows.title')}>
+        <ModuleContainer
+          title={t('frontPage.recentWorkflows.title')}
+          handleTitleClick={handleViewAllWorkflows}
+        >
           <RecentWorkflow canvases={canvases} />
         </ModuleContainer>
       )}
 
       {canvasTemplateEnabled && (
-        <ModuleContainer
-          title={t('frontPage.template.title')}
-          handleTitleClick={handleViewAllTemplates}
-        >
+        <ModuleContainer title={t('frontPage.template.title')}>
           {templateCategories.length > 1 && (
             <div className="flex items-center gap-2">
               {templateCategories.map((category) => (

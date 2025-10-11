@@ -284,7 +284,7 @@ const WorkflowList = memo(() => {
       {/* Content */}
       <div className="flex-1 overflow-hidden pb-6">
         {dataList.length > 0 ? (
-          <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col px-4">
             <Table
               columns={columns}
               dataSource={dataList}
