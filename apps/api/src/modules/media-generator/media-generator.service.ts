@@ -277,11 +277,19 @@ export class MediaGeneratorService {
       };
 
       // Start media generation asynchronously
-      this.executeGenerate(user, result, finalRequest, mediaNodeExecution?.entityId).catch(
-        (error) => {
-          this.logger.error(`Media generation failed for ${resultId}:`, error);
-        },
-      );
+      const mediaGenerateResult = await this.executeGenerate(
+        user,
+        result,
+        finalRequest,
+        mediaNodeExecution?.entityId,
+      ).catch((error) => {
+        this.logger.error(`Media generation failed for ${resultId}:`, error);
+        return {
+          success: false,
+          errMsg: error instanceof Error ? error.message : 'Unknown error',
+          originalResult: null,
+        };
+      });
 
       // If wait is true, execute synchronously and return result
       if (wait) {
@@ -321,6 +329,7 @@ export class MediaGeneratorService {
             resultId,
             outputUrl: result.outputUrl,
             storageKey: result.storageKey,
+            originalResult: mediaGenerateResult?.originalResult,
           };
         } catch (error) {
           this.logger.error(`Synchronous media generation failed for ${resultId}:`, error);
@@ -334,6 +343,7 @@ export class MediaGeneratorService {
       return {
         success: true,
         resultId,
+        originalResult: mediaGenerateResult?.originalResult,
       };
     } catch (error) {
       this.logger.error('Media generation initialization failed:', error);
@@ -355,7 +365,7 @@ export class MediaGeneratorService {
     result: ActionResult,
     request: MediaGenerateRequest,
     mediaId?: string,
-  ): Promise<void> {
+  ): Promise<MediaGenerateResponse> {
     const { mediaType, provider } = request;
     const { pk, resultId, parentResultId, title, targetType, targetId } = result;
     try {
@@ -397,6 +407,8 @@ export class MediaGeneratorService {
       // Generate media based on provider type
       const providerKey = provider;
 
+      let originalResult = null;
+
       if (providerKey === 'replicate') {
         // Use Replicate provider
         const replicate = new Replicate({
@@ -415,7 +427,7 @@ export class MediaGeneratorService {
           credentials: mediaProvider?.apiKey,
         });
 
-        const result = await fal.subscribe(request.model, {
+        originalResult = await fal.subscribe(request.model, {
           input: input,
           logs: false,
           onQueueUpdate: (update) => {
@@ -425,7 +437,7 @@ export class MediaGeneratorService {
           },
         });
 
-        url = this.getUrlFromFalResult(result);
+        url = this.getUrlFromFalResult(originalResult);
       } else {
         throw new Error(`Unsupported provider: ${providerKey}`);
       }
@@ -492,6 +504,14 @@ export class MediaGeneratorService {
           mediaCreditUsage,
         );
       }
+
+      return {
+        success: true,
+        resultId,
+        outputUrl: uploadResult.url,
+        storageKey: uploadResult.storageKey,
+        originalResult: originalResult,
+      };
     } catch (error) {
       this.logger.error(`Media generation failed for ${resultId}: ${error.stack}`);
 

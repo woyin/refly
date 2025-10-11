@@ -22,6 +22,16 @@ export interface ChatCompletionRequest {
   presence_penalty?: number;
   frequency_penalty?: number;
   repetition_penalty?: number;
+  web_search_options?: {
+    search_domain_filter?: string[];
+    search_recency_filter?: 'hour' | 'day' | 'week' | 'month' | 'year';
+  };
+  response_format?: {
+    type: 'text' | 'json_schema';
+    json_schema?: {
+      schema: Record<string, any>;
+    };
+  };
 }
 
 export interface SearchResult {
@@ -30,6 +40,17 @@ export interface SearchResult {
   date?: string | null;
   last_updated?: string | null;
   snippet?: string;
+}
+
+export interface SearchRequest {
+  query: string[];
+}
+
+export interface SearchResponse {
+  results: Array<{
+    query: string;
+    results: SearchResult[];
+  }>;
 }
 
 export interface ChatCompletionUsage {
@@ -124,6 +145,13 @@ export class PerplexityClient {
 
   async chatCompletions(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
     return this.request<ChatCompletionResponse>('/chat/completions', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async search(request: SearchRequest): Promise<SearchResponse> {
+    return this.request<SearchResponse>('/search', {
       method: 'POST',
       body: JSON.stringify(request),
     });

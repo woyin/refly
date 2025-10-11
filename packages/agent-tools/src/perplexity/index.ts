@@ -20,9 +20,16 @@ export const PerplexityToolsetDefinition: ToolsetDefinition = {
     {
       name: 'chat_completions',
       descriptionDict: {
-        en: 'Generate responses using Perplexity AI models with real-time web search capabilities. Supports various models including sonar, sonar-pro, reasoning models, and sonar-deep-research for exhaustive research across hundreds of sources with expert-level insights and detailed report generation.',
+        en: 'Generate responses using Perplexity AI models with real-time web search capabilities. Supports various models including sonar, sonar-pro, reasoning models, and sonar-deep-research for exhaustive research across hundreds of sources with expert-level insights and detailed report generation. Now supports web search options and structured JSON output.',
         'zh-CN':
-          '使用 Perplexity AI 模型生成响应，具有实时网络搜索功能。支持各种模型，包括 sonar、sonar-pro、推理模型和 sonar-deep-research，可进行数百个来源的全面研究，提供专家级洞察和详细报告生成。',
+          '使用 Perplexity AI 模型生成响应，具有实时网络搜索功能。支持各种模型，包括 sonar、sonar-pro、推理模型和 sonar-deep-research，可进行数百个来源的全面研究，提供专家级洞察和详细报告生成。现在支持网页搜索选项和结构化 JSON 输出。',
+      },
+    },
+    {
+      name: 'search',
+      descriptionDict: {
+        en: 'Perform simple web search queries using Perplexity AI. Returns search results for multiple queries in a structured format.',
+        'zh-CN': '使用 Perplexity AI 执行简单的网页搜索查询。以结构化格式返回多个查询的搜索结果。',
       },
     },
   ],
@@ -76,61 +83,105 @@ export class PerplexityChatCompletions extends AgentBaseTool<PerplexityToolParam
   name = 'chat_completions';
   toolsetKey = PerplexityToolsetDefinition.key;
 
-  schema = z.object({
-    model: z
-      .enum(['sonar', 'sonar-pro', 'sonar-reasoning', 'sonar-reasoning-pro', 'sonar-deep-research'])
-      .describe('The model to use for generating responses')
-      .default('sonar'),
-    messages: z
-      .array(
-        z.object({
-          role: z.enum(['system', 'user', 'assistant']).describe('The role of the message sender'),
-          content: z.string().describe('The content of the message'),
-        }),
-      )
-      .describe('A list of messages comprising the conversation so far'),
-    max_tokens: z
-      .number()
-      .describe('The maximum number of tokens that the model can process in a single response')
-      .optional(),
-    temperature: z
-      .number()
-      .describe('Controls randomness in the response generation (0.0 to 2.0)')
-      .min(0)
-      .max(2)
-      .optional(),
-    top_p: z
-      .number()
-      .describe('Controls diversity via nucleus sampling (0.0 to 1.0)')
-      .min(0)
-      .max(1)
-      .optional(),
-    top_k: z
-      .number()
-      .describe('Controls the number of top tokens to consider for sampling')
-      .optional(),
-    presence_penalty: z
-      .number()
-      .describe('Penalizes new tokens based on whether they appear in the text so far')
-      .min(-2)
-      .max(2)
-      .optional(),
-    frequency_penalty: z
-      .number()
-      .describe('Penalizes new tokens based on their existing frequency in the text')
-      .min(-2)
-      .max(2)
-      .optional(),
-    repetition_penalty: z
-      .number()
-      .describe('Penalizes repetition of tokens in the response')
-      .min(0)
-      .max(2)
-      .optional(),
-  });
+  schema = z
+    .object({
+      model: z
+        .enum([
+          'sonar',
+          'sonar-pro',
+          'sonar-reasoning',
+          'sonar-reasoning-pro',
+          'sonar-deep-research',
+        ])
+        .describe('The model to use for generating responses')
+        .default('sonar'),
+      messages: z
+        .array(
+          z.object({
+            role: z
+              .enum(['system', 'user', 'assistant'])
+              .describe('The role of the message sender'),
+            content: z.string().describe('The content of the message'),
+          }),
+        )
+        .describe('A list of messages comprising the conversation so far'),
+      max_tokens: z
+        .number()
+        .describe('The maximum number of tokens that the model can process in a single response')
+        .optional(),
+      temperature: z
+        .number()
+        .describe('Controls randomness in the response generation (0.0 to 2.0)')
+        .min(0)
+        .max(2)
+        .optional(),
+      top_p: z
+        .number()
+        .describe('Controls diversity via nucleus sampling (0.0 to 1.0)')
+        .min(0)
+        .max(1)
+        .optional(),
+      top_k: z
+        .number()
+        .describe('Controls the number of top tokens to consider for sampling')
+        .optional(),
+      presence_penalty: z
+        .number()
+        .describe('Penalizes new tokens based on whether they appear in the text so far')
+        .min(-2)
+        .max(2)
+        .optional(),
+      frequency_penalty: z
+        .number()
+        .describe('Penalizes new tokens based on their existing frequency in the text')
+        .min(-2)
+        .max(2)
+        .optional(),
+      repetition_penalty: z
+        .number()
+        .describe('Penalizes repetition of tokens in the response')
+        .min(0)
+        .max(2)
+        .optional(),
+      web_search_options: z
+        .object({
+          search_domain_filter: z
+            .array(z.string())
+            .describe('Filter search results to specific domains')
+            .optional(),
+          search_recency_filter: z
+            .enum(['hour', 'day', 'week', 'month', 'year'])
+            .describe('Filter search results by recency')
+            .optional(),
+        })
+        .describe('Options for web search functionality')
+        .optional(),
+      response_format: z
+        .object({
+          type: z
+            .enum(['text', 'json_schema'])
+            .describe('The format of the response')
+            .default('text'),
+          json_schema: z
+            .object({
+              schema: z.record(z.any()).describe('JSON schema for structured output'),
+            })
+            .describe('Schema definition for JSON structured output')
+            .optional(),
+        })
+        .describe('Format specification for the response')
+        .optional(),
+    })
+    .refine(
+      (data) => !(data.presence_penalty !== undefined && data.frequency_penalty !== undefined),
+      {
+        message: 'Cannot set both presence_penalty and frequency_penalty. Choose one or neither.',
+        path: ['presence_penalty', 'frequency_penalty'],
+      },
+    );
 
   description =
-    'Generate responses using Perplexity AI models with real-time web search capabilities. Supports various models including sonar, sonar-pro, reasoning models, and sonar-deep-research for exhaustive research across hundreds of sources with expert-level insights and detailed report generation.';
+    'Generate responses using Perplexity AI models with real-time web search capabilities. Supports various models including sonar, sonar-pro, reasoning models, and sonar-deep-research for exhaustive research across hundreds of sources with expert-level insights and detailed report generation. Note: presence_penalty and frequency_penalty cannot be set simultaneously - choose one or neither.';
 
   protected params: PerplexityToolParams;
 
@@ -146,7 +197,7 @@ export class PerplexityChatCompletions extends AgentBaseTool<PerplexityToolParam
         baseUrl: this.params.baseUrl,
       });
 
-      const response = await client.chatCompletions({
+      const request: any = {
         model: input.model,
         messages: input.messages as ChatCompletionMessage[],
         max_tokens: input.max_tokens,
@@ -156,7 +207,17 @@ export class PerplexityChatCompletions extends AgentBaseTool<PerplexityToolParam
         presence_penalty: input.presence_penalty,
         frequency_penalty: input.frequency_penalty,
         repetition_penalty: input.repetition_penalty,
-      });
+      };
+
+      if (input.web_search_options) {
+        request.web_search_options = input.web_search_options;
+      }
+
+      if (input.response_format) {
+        request.response_format = input.response_format;
+      }
+
+      const response = await client.chatCompletions(request);
 
       // Extract the response content from the first choice
       const content = response.choices?.[0]?.message?.content ?? '';
@@ -186,14 +247,16 @@ export class PerplexityChatCompletions extends AgentBaseTool<PerplexityToolParam
         summaryParts.push(`(${response.usage.num_search_queries} search queries performed)`);
       }
 
-      if (response.usage?.cost?.total_cost) {
-        summaryParts.push(`(cost: $${response.usage.cost.total_cost.toFixed(4)})`);
-      }
+      // Calculate credit cost based on total_cost * 140, minimum 1, round up decimals
+      const creditCost = response.usage?.cost?.total_cost
+        ? Math.ceil(Math.max(response.usage.cost.total_cost * 140, 1))
+        : 1;
 
       return {
         status: 'success',
         data: result,
         summary: summaryParts.join(' '),
+        creditCost,
       };
     } catch (error) {
       return {
@@ -208,9 +271,63 @@ export class PerplexityChatCompletions extends AgentBaseTool<PerplexityToolParam
   }
 }
 
+export class PerplexitySearch extends AgentBaseTool<PerplexityToolParams> {
+  name = 'search';
+  toolsetKey = PerplexityToolsetDefinition.key;
+
+  schema = z.object({
+    query: z.array(z.string()).describe('An array of search queries to perform').min(1).max(10),
+  });
+
+  description =
+    'Perform simple web search queries using Perplexity AI. Returns search results for multiple queries in a structured format.';
+
+  protected params: PerplexityToolParams;
+
+  constructor(params: PerplexityToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      const client = new PerplexityClient({
+        apiKey: this.params.apiKey,
+        baseUrl: this.params.baseUrl,
+      });
+
+      const response = await client.search({
+        query: input.query,
+      });
+
+      const totalResults =
+        response.results?.reduce((sum, result) => sum + (result.results?.length ?? 0), 0) ?? 0;
+
+      return {
+        status: 'success',
+        data: {
+          searchResults: response.results,
+          totalQueries: input.query.length,
+          totalResults,
+        },
+        summary: `Successfully performed ${input.query.length} search queries and found ${totalResults} results`,
+        creditCost: 1,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error performing search',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while performing search',
+      };
+    }
+  }
+}
+
 export class PerplexityToolset extends AgentBaseToolset<PerplexityToolParams> {
   toolsetKey = PerplexityToolsetDefinition.key;
   tools = [
     PerplexityChatCompletions,
+    PerplexitySearch,
   ] satisfies readonly AgentToolConstructor<PerplexityToolParams>[];
 }
