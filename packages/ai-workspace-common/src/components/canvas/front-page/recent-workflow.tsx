@@ -7,9 +7,10 @@ import { useNavigate } from 'react-router-dom';
 import { SiderData } from '@refly/stores';
 import { Avatar } from 'antd';
 import { AiOutlineUser } from 'react-icons/ai';
+import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 
 export const RecentWorkflow = ({ canvases }: { canvases: SiderData[] }) => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const language = i18n.languages?.[0];
   const navigate = useNavigate();
 
@@ -28,9 +29,11 @@ export const RecentWorkflow = ({ canvases }: { canvases: SiderData[] }) => {
           <div className="h-[120px] flex flex-col justify-between p-4 border-[1px] border-solid border-refly-Card-Border rounded-xl bg-refly-bg-content-z2 hover:shadow-refly-m transition-shadow cursor-pointer">
             <div>
               <div className="text-sm leading-5 font-semibold text-refly-text-0 line-clamp-1">
-                {canvas.name}
+                {canvas.name || t('common.untitled')}
               </div>
-              <div className="mt-2 text-refly-text-2">tools占位</div>
+              <div className="mt-2">
+                <UsedToolsets toolsets={canvas.usedToolsets} />
+              </div>
             </div>
 
             <div className="flex items-center gap-2 justify-between">
@@ -43,7 +46,7 @@ export const RecentWorkflow = ({ canvases }: { canvases: SiderData[] }) => {
               <div className="flex items-center gap-1 flex-shrink-0">
                 <WiTime3 className="w-4 h-4 text-refly-text-2" />
                 <span className="text-refly-text-2 text-xs leading-4 whitespace-nowrap">
-                  {time(canvas.updatedAt, language as LOCALE)
+                  {time(canvas.createdAt, language as LOCALE)
                     ?.utc()
                     ?.fromNow()}
                 </span>

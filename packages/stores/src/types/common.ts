@@ -23,6 +23,7 @@ export enum MessageIntentSource {
 export interface SiderData {
   id: string;
   name: string;
+  createdAt: string;
   updatedAt: string;
   type: 'canvas' | 'document' | 'resource' | 'project';
   description?: string;

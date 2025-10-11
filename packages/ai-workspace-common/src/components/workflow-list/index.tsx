@@ -5,7 +5,7 @@ import { useNavigate } from '@refly-packages/ai-workspace-common/utils/router';
 
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
-import { Canvas } from '@refly/openapi-schema';
+import { Canvas, GenericToolset } from '@refly/openapi-schema';
 import { Empty, Typography, Button, Input, Avatar, Tag, Table, Space } from 'antd';
 import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
@@ -18,14 +18,7 @@ import { WorkflowActionDropdown } from '@refly-packages/ai-workspace-common/comp
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { ListOrder, ShareRecord, ShareUser } from '@refly/openapi-schema';
 import { TbSortDescending, TbSortAscending } from 'react-icons/tb';
-
-// Helper function to get mock data for demonstration
-const getMockData = () => {
-  const isShared = Math.random() > 0.5;
-  const ownerName = 'Tylor swift';
-  const tags = ['+5'];
-  return { isShared, ownerName, tags };
-};
+import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 
 const WorkflowList = memo(() => {
   const { t, i18n } = useTranslation();
@@ -142,7 +135,8 @@ const WorkflowList = memo(() => {
         title: t('workflowList.status'),
         dataIndex: 'shareRecord',
         key: 'shareRecord',
-        width: 120,
+        width: 100,
+        align: 'center' as const,
         render: (shareRecord: ShareRecord) => {
           const isShared = shareRecord?.shareId;
           return (
@@ -154,21 +148,14 @@ const WorkflowList = memo(() => {
       },
       {
         title: t('workflowList.tools'),
-        dataIndex: 'tools',
-        key: 'tools',
-        width: 120,
-        render: () => {
-          const { tags } = getMockData();
+        dataIndex: 'usedToolsets',
+        key: 'usedToolsets',
+        width: 140,
+        render: (usedToolsets: GenericToolset[]) => {
           return (
-            <Space size="small">
-              <div className="w-6 h-6 bg-gradient-to-r from-red-400 to-green-400 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">W</span>
-              </div>
-              <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">N</span>
-              </div>
-              <Tag className="text-xs">{tags[0]}</Tag>
-            </Space>
+            <div className="flex items-center justify-center">
+              <UsedToolsets toolsets={usedToolsets} />
+            </div>
           );
         },
       },
@@ -177,6 +164,7 @@ const WorkflowList = memo(() => {
         dataIndex: 'owner',
         key: 'owner',
         width: 150,
+        align: 'center' as const,
         render: (owner: ShareUser) => {
           const ownerName = owner?.name || t('common.untitled');
           const ownerAvatar = owner?.avatar;
@@ -194,12 +182,13 @@ const WorkflowList = memo(() => {
         title: t('workflowList.lastModified'),
         dataIndex: 'updatedAt',
         key: 'updatedAt',
+        align: 'center' as const,
         width: 120,
         render: (updatedAt: string) => (
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {time(updatedAt, language as LOCALE)
               .utc()
-              .format('YYYY-MM-DD')}
+              .fromNow()}
           </span>
         ),
       },
@@ -211,7 +200,7 @@ const WorkflowList = memo(() => {
         fixed: 'right' as const,
         render: (_, record: Canvas) => {
           return (
-            <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center justify-center flex-shrink-0">
               <Button
                 type="text"
                 size="small"
@@ -304,10 +293,14 @@ const WorkflowList = memo(() => {
               scroll={{ y: 'calc(100vh - 144px)' }}
               className="workflow-table flex-1"
               size="middle"
-              showHeader={true}
-              onRow={() => ({
+              showHeader={false}
+              onRow={(record: Canvas) => ({
                 className:
                   'cursor-pointer hover:!bg-refly-tertiary-hover transition-colors duration-200',
+
+                onClick: () => {
+                  handleEdit(record);
+                },
               })}
               style={{
                 backgroundColor: 'transparent',

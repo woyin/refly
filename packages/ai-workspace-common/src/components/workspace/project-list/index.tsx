@@ -328,6 +328,7 @@ const ProjectList = ({
         id: project.projectId,
         name: project.name,
         description: project.description,
+        createdAt: project.createdAt ?? '',
         updatedAt: project.updatedAt ?? '',
         coverUrl: project.coverUrl,
         type: 'project' as const,

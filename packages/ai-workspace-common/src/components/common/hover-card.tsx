@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useState, useCallback } from 'react';
 import cn from 'classnames';
 
 interface HoverCardContainerProps {
@@ -11,11 +11,45 @@ export const HoverCardContainer = memo(
   ({ children, actionContent, className }: HoverCardContainerProps) => {
     const [isHovered, setIsHovered] = useState(false);
 
+    const handleMouseEnter = useCallback(() => {
+      setIsHovered(true);
+    }, []);
+
+    const handleMouseLeave = useCallback(() => {
+      setIsHovered(false);
+    }, []);
+
+    const handleMouseOver = useCallback((e: React.MouseEvent) => {
+      // Check if the mouse is over a child element that should prevent hover actions
+      const target = e.target as HTMLElement;
+      const isOverExcludedElement = target.closest('.prevent-hover-action');
+
+      if (isOverExcludedElement) {
+        setIsHovered(false);
+      } else {
+        setIsHovered(true);
+      }
+    }, []);
+
+    const handleFocus = useCallback((e: React.FocusEvent) => {
+      // Check if focus is on a child element that should prevent hover actions
+      const target = e.target as HTMLElement;
+      const isOverExcludedElement = target.closest('.prevent-hover-action');
+
+      if (isOverExcludedElement) {
+        setIsHovered(false);
+      } else {
+        setIsHovered(true);
+      }
+    }, []);
+
     return (
       <div
         className={cn('relative group overflow-hidden hover:shadow-refly-m', className)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseOver={handleMouseOver}
+        onFocus={handleFocus}
       >
         {children}
 

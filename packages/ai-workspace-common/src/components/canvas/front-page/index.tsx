@@ -100,7 +100,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
             <div className="text-left text-base leading-[26px] font-semibold text-refly-text-0">
               {t('frontPage.newWorkflow.buttonText')}
             </div>
-            <div className="text-left text-xs text-refly-text-3 leading-4">
+            <div className="text-left text-xs text-refly-text-3 leading-4 font-normal">
               {t('frontPage.newWorkflow.buttonDescription')}
             </div>
           </div>

@@ -50,6 +50,7 @@ export const useHandleSiderData = (initData?: boolean) => {
     const formattedCanvases = canvases.map((canvas) => ({
       id: canvas.canvasId,
       name: canvas.title,
+      createdAt: canvas.createdAt,
       updatedAt: canvas.updatedAt,
       type: 'canvas' as const,
       owner: canvas.owner,
@@ -86,6 +87,7 @@ export const useHandleSiderData = (initData?: boolean) => {
       id: project.projectId,
       name: project.name,
       description: project.description,
+      createdAt: project.createdAt ?? '',
       updatedAt: project.updatedAt ?? '',
       coverUrl: project.coverUrl,
       type: 'project' as const,
