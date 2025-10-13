@@ -7,11 +7,7 @@ const CanvasPage = () => {
 
   return (
     <div className="w-full h-full">
-      {canvasId && canvasId !== 'empty' ? (
-        <Canvas canvasId={canvasId} />
-      ) : (
-        <FrontPage projectId={null} />
-      )}
+      {canvasId && canvasId !== 'empty' ? <Canvas canvasId={canvasId} /> : <FrontPage />}
     </div>
   );
 };

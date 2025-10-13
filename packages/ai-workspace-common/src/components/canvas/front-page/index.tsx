@@ -37,10 +37,9 @@ const ModuleContainer = ({
   );
 };
 
-export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
+export const FrontPage = memo(() => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  console.log('projectId', projectId);
   const { canvasList } = useSiderStoreShallow((state) => ({
     canvasList: state.canvasList,
   }));

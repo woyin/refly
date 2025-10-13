@@ -2,7 +2,7 @@ import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sid
 import { useSiderStoreShallow } from '@refly/stores';
 import { FrontPage } from '@refly-packages/ai-workspace-common/components/canvas/front-page';
 
-export const NoCanvas = ({ projectId }: { projectId: string }) => {
+export const NoCanvas = () => {
   const { collapse } = useSiderStoreShallow((state) => ({
     collapse: state.collapse,
   }));
@@ -11,7 +11,7 @@ export const NoCanvas = ({ projectId }: { projectId: string }) => {
       {collapse && (
         <SiderPopover align={{ offset: [8, -48] }} childrenClassName="absolute top-6 left-6 z-10" />
       )}
-      <FrontPage projectId={projectId} />
+      <FrontPage />
     </div>
   );
 };
