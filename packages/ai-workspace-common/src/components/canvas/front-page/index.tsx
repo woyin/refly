@@ -84,7 +84,7 @@ export const FrontPage = memo(() => {
       )}
       id="front-page-scrollable-div"
     >
-      <div className="p-4 rounded-xl flex items-center gap-6 bg-gradient-tools-open bg-refly-bg-body-z0 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:via-cyan-500/15 dark:to-blue-500/10 dark:bg-refly-bg-body-z0">
+      <div className="p-4 rounded-xl flex flex-wrap items-center gap-6 bg-gradient-tools-open bg-refly-bg-body-z0 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:via-cyan-500/15 dark:to-blue-500/10 dark:bg-refly-bg-body-z0">
         <div className="text-xl leading-7">
           <span className="text-refly-primary-default font-[800] mr-2">
             {t('frontPage.guide.title')}
