@@ -16,8 +16,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
 import { nodeTypes } from './nodes';
 import { TopToolbar } from './top-toolbar';
-import { ContextMenu } from './context-menu';
-import { NodeContextMenu } from './node-context-menu';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
@@ -37,7 +35,7 @@ import {
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
-import { MenuPopper } from './menu-popper';
+import { UnifiedContextMenu } from './unified-context-menu';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import {
   EditorPerformanceProvider,
@@ -53,7 +51,6 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 
 import '@xyflow/react/dist/style.css';
 import './index.scss';
-import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
 import {
   useGetPilotSessionDetail,
   useUpdateSettings,
@@ -94,6 +91,20 @@ const selectionStyles = `
     background: rgba(0, 150, 143, 0.03) !important;
     border: 0.5px solid #0E9F77 !important;
   }
+  
+  /* Prevent text selection outside canvas during drag */
+  .react-flow__pane.selecting {
+    user-select: none;
+  }
+  
+  .react-flow__pane.selecting * {
+    user-select: none !important;
+  }
+  
+  /* Ensure canvas selection works properly */
+  .react-flow__pane {
+    user-select: auto;
+  }
 `;
 
 const SessionContainerClassName = `
@@ -103,7 +114,7 @@ const SessionContainerClassName = `
 interface ContextMenuState {
   open: boolean;
   position: { x: number; y: number };
-  type: 'canvas' | 'node' | 'selection';
+  type: 'canvas' | 'node' | 'selection' | 'doubleClick';
   nodeId?: string;
   nodeType?: CanvasNodeType;
   isSelection?: boolean;
@@ -287,20 +298,97 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [defaultEdgeOptions],
   );
 
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
 
-  // Custom selection state
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
-  const [selectionBox, setSelectionBox] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  // Handle selection state to prevent text selection outside canvas
+  useEffect(() => {
+    let isDragging = false;
+    let dragStartTime = 0;
+    let hasStartedDrag = false;
+
+    const resetDragState = () => {
+      if (isDragging || hasStartedDrag) {
+        isDragging = false;
+        hasStartedDrag = false;
+        // Re-enable text selection
+        document.body.style.userSelect = '';
+      }
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.button !== 0) return;
+
+      // Check if clicking on interactive elements (don't start selection)
+      const target = event.target as HTMLElement;
+      const isInteractiveElement = target.closest(
+        'input, textarea, [contenteditable="true"], [role="textbox"], .chat-composer, .rich-input, [data-cy="chat-input"], [data-cy="rich-chat-input"], .ProseMirror',
+      );
+
+      if (isInteractiveElement) return;
+
+      isDragging = false;
+      hasStartedDrag = false;
+      dragStartTime = Date.now();
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.buttons !== 1) return;
+
+      // Check if we've moved enough to consider it a drag
+      const timeSinceStart = Date.now() - dragStartTime;
+      const hasMovedEnough = timeSinceStart > 10;
+
+      if (!isDragging && hasMovedEnough && !hasStartedDrag) {
+        isDragging = true;
+        hasStartedDrag = true;
+        // Temporarily disable text selection on the document
+        document.body.style.userSelect = 'none';
+      }
+    };
+
+    const handleMouseUp = () => {
+      resetDragState();
+    };
+
+    const handleMouseLeave = () => {
+      resetDragState();
+    };
+
+    // Global mouse up handler to ensure state reset
+    const handleGlobalMouseUp = () => {
+      resetDragState();
+    };
+
+    // Listen for ReactFlow selection events
+    const canvasContainer = document.querySelector('.react-flow');
+    if (canvasContainer) {
+      canvasContainer.addEventListener('mousedown', handleMouseDown);
+      canvasContainer.addEventListener('mousemove', handleMouseMove);
+      canvasContainer.addEventListener('mouseup', handleMouseUp);
+      canvasContainer.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // Add global event listeners for cleanup
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      if (canvasContainer) {
+        canvasContainer.removeEventListener('mousedown', handleMouseDown);
+        canvasContainer.removeEventListener('mousemove', handleMouseMove);
+        canvasContainer.removeEventListener('mouseup', handleMouseUp);
+        canvasContainer.removeEventListener('mouseleave', handleMouseLeave);
+      }
+
+      // Remove global event listeners
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+
+      // Ensure text selection is re-enabled on cleanup
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   const { onConnectEnd: temporaryEdgeOnConnectEnd, onConnectStart: temporaryEdgeOnConnectStart } =
     useDragToCreateNode();
@@ -318,105 +406,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     });
   }, [reactFlowInstance]);
 
-  // Custom selection handlers
-  const handleSelectionStart = useCallback(
-    (event: React.MouseEvent | React.TouchEvent, isRightClick = false) => {
-      if (readonly) return;
-
-      // Check for right click or two-finger + Shift touch
-      const isRightButton = isRightClick || (event as React.MouseEvent).button === 2;
-      const isTwoFingerWithShift =
-        (event as React.TouchEvent).touches?.length === 2 && (event as React.TouchEvent).shiftKey;
-
-      if (!isRightButton && !isTwoFingerWithShift) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-
-      const flowPosition = reactFlowInstance.screenToFlowPosition({
-        x: clientX,
-        y: clientY,
-      });
-
-      setIsSelecting(true);
-      setSelectionStart(flowPosition);
-      setSelectionBox({
-        x: flowPosition.x,
-        y: flowPosition.y,
-        width: 0,
-        height: 0,
-      });
-    },
-    [readonly, reactFlowInstance],
-  );
-
-  const handleSelectionMove = useCallback(
-    (event: React.MouseEvent | React.TouchEvent) => {
-      if (!isSelecting || readonly) return;
-
-      event.preventDefault();
-
-      const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY;
-
-      const flowPosition = reactFlowInstance.screenToFlowPosition({
-        x: clientX,
-        y: clientY,
-      });
-
-      if (selectionStart) {
-        setSelectionBox({
-          x: Math.min(selectionStart.x, flowPosition.x),
-          y: Math.min(selectionStart.y, flowPosition.y),
-          width: Math.abs(flowPosition.x - selectionStart.x),
-          height: Math.abs(flowPosition.y - selectionStart.y),
-        });
-      }
-    },
-    [isSelecting, readonly, selectionStart, reactFlowInstance],
-  );
-
-  const handleSelectionEnd = useCallback(() => {
-    if (!isSelecting || readonly) return;
-
-    setIsSelecting(false);
-
-    if (selectionBox && selectionBox.width > 5 && selectionBox.height > 5) {
-      // Get nodes within selection area
-      const nodes = reactFlowInstance.getNodes();
-      const selectedNodes = nodes.filter((node) => {
-        const nodeX = node.position.x;
-        const nodeY = node.position.y;
-        const nodeWidth = node.width || 200; // Default node width
-        const nodeHeight = node.height || 100; // Default node height
-
-        // Check if node intersects with selection box (supports partial selection)
-        return (
-          nodeX < selectionBox.x + selectionBox.width &&
-          nodeX + nodeWidth > selectionBox.x &&
-          nodeY < selectionBox.y + selectionBox.height &&
-          nodeY + nodeHeight > selectionBox.y
-        );
-      });
-
-      // Select nodes
-      if (selectedNodes.length > 0) {
-        reactFlowInstance.setNodes((nodes) =>
-          nodes.map((node) => ({
-            ...node,
-            selected: selectedNodes.some((selected) => selected.id === node.id),
-          })),
-        );
-      }
-    }
-
-    setSelectionStart(null);
-    setSelectionBox(null);
-  }, [isSelecting, readonly, selectionBox, reactFlowInstance]);
-
   const handlePanelClick = useCallback(
     (event: React.MouseEvent) => {
       setOperatingNodeId(null);
@@ -430,77 +419,34 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         setSelectedEdgeId(null);
       }
 
-      if (readonly) return;
-
+      // Handle double click detection
       const currentTime = new Date().getTime();
       const timeDiff = currentTime - lastClickTime;
 
-      if (timeDiff < 300) {
+      if (timeDiff < 300 && !readonly) {
         const flowPosition = reactFlowInstance.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
         });
 
-        setMenuPosition(flowPosition);
-        setMenuOpen(true);
+        setContextMenu({
+          open: true,
+          position: flowPosition,
+          type: 'doubleClick',
+        });
       }
 
       setLastClickTime(currentTime);
     },
-    [lastClickTime, setOperatingNodeId, reactFlowInstance, selectedEdgeId, cleanupTemporaryEdges],
+    [
+      lastClickTime,
+      setOperatingNodeId,
+      reactFlowInstance,
+      selectedEdgeId,
+      cleanupTemporaryEdges,
+      readonly,
+    ],
   );
-
-  // Add mouse and touch event listeners
-  useEffect(() => {
-    const handleMouseDown = (event: MouseEvent) => {
-      if (event.button === 2) {
-        // Right click
-        handleSelectionStart(event as any, true);
-      }
-    };
-
-    const handleMouseMove = (event: MouseEvent) => {
-      handleSelectionMove(event as any);
-    };
-
-    const handleMouseUp = () => {
-      handleSelectionEnd();
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length === 2 && event.shiftKey) {
-        // Two-finger + Shift touch
-        handleSelectionStart(event as any);
-      }
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (event.touches.length === 2 && event.shiftKey) {
-        handleSelectionMove(event as any);
-      }
-    };
-
-    const handleTouchEnd = () => {
-      handleSelectionEnd();
-    };
-
-    // Add event listeners
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleSelectionStart, handleSelectionMove, handleSelectionEnd]);
 
   // Add scroll position state and handler
   const [showLeftIndicator, setShowLeftIndicator] = useState(false);
@@ -641,6 +587,47 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       setContextMenuOpenedCanvasId(contextMenu.open ? (contextMenu.nodeId ?? null) : null);
     }
   }, [contextMenu, setContextMenuOpenedCanvasId]);
+
+  // Global menu close logic
+  useEffect(() => {
+    const isInsideMenu = (target: HTMLElement) => {
+      return (
+        target.closest('[data-unified-menu]') ||
+        target.closest('.canvas-search-list') ||
+        target.closest('.menu-popper')
+      );
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      if (contextMenu.open) {
+        // Check if click is inside any menu
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    const handleGlobalMouseDown = (event: MouseEvent) => {
+      if (contextMenu.open && event.button === 0) {
+        // Left mouse button - check if click is inside menu before closing
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    if (contextMenu.open) {
+      document.addEventListener('click', handleGlobalClick);
+      document.addEventListener('mousedown', handleGlobalMouseDown);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      document.removeEventListener('mousedown', handleGlobalMouseDown);
+    };
+  }, [contextMenu.open]);
 
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent) => {
@@ -1007,12 +994,12 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   // Add listener for opening node context menu
   useEffect(() => {
     const handleOpenContextMenu = (event: any) => {
-      // 从事件名称中提取nodeId
+      // Extract nodeId from event name
       const nodeId = event.nodeId;
 
-      // 检查事件是否包含必要的信息
+      // Check if event contains necessary information
       if (event?.nodeType) {
-        // 构造一个合成的React鼠标事件
+        // Create a synthetic React mouse event
         const syntheticEvent = {
           ...event.originalEvent,
           clientX: event.x,
@@ -1021,7 +1008,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           stopPropagation: () => {},
         } as React.MouseEvent;
 
-        // 构造一个简化的节点对象，包含必要的属性
+        // Create a simplified node object with necessary properties
         const node = {
           id: nodeId,
           type: event.nodeType as CanvasNodeType,
@@ -1029,7 +1016,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           position: { x: event.x, y: event.y },
         } as unknown as CanvasNode<any>;
 
-        // 调用onNodeContextMenu处理上下文菜单
+        // Call onNodeContextMenu to handle context menu
         onNodeContextMenu(syntheticEvent, node, {
           source: event.source,
           dragCreateInfo: event.dragCreateInfo,
@@ -1037,11 +1024,11 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       }
     };
 
-    // 监听所有包含openContextMenu的事件
+    // Listen for all events containing openContextMenu
     nodeOperationsEmitter.on('openNodeContextMenu', handleOpenContextMenu);
 
     return () => {
-      // 清理事件监听器
+      // Clean up event listeners
       nodeOperationsEmitter.off('openNodeContextMenu', handleOpenContextMenu);
     };
   }, [onNodeContextMenu]);
@@ -1192,9 +1179,9 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             zoomOnScroll={true} // Enable scroll zooming
             zoomOnPinch={true} // Enable touchpad two-finger pinch zoom
             zoomOnDoubleClick={false}
-            // Disable default selection behavior, use custom implementation
-            selectNodesOnDrag={false}
-            selectionOnDrag={false}
+            // Enable default selection behavior
+            selectNodesOnDrag={true}
+            selectionOnDrag={true}
             nodeTypes={memoizedNodeTypes}
             nodes={memoizedNodes}
             edges={memoizedEdges}
@@ -1229,19 +1216,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
 
             {memoizedBackground}
             <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
-
-            {/* Custom selection box */}
-            {isSelecting && selectionBox && (
-              <div
-                className="absolute pointer-events-none border-2 border-blue-500 bg-blue-100 bg-opacity-20 z-50"
-                style={{
-                  left: selectionBox.x,
-                  top: selectionBox.y,
-                  width: selectionBox.width,
-                  height: selectionBox.height,
-                }}
-              />
-            )}
           </ReactFlow>
         </div>
 
@@ -1259,39 +1233,19 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           </div>
         </div>
 
-        <MenuPopper open={menuOpen} position={menuPosition} setOpen={setMenuOpen} />
-
-        {contextMenu.open && contextMenu.type === 'canvas' && (
-          <ContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            isSelection={contextMenu.isSelection}
-          />
-        )}
-
-        {contextMenu.open &&
-          contextMenu.type === 'node' &&
-          contextMenu.nodeId &&
-          contextMenu.nodeType && (
-            <NodeContextMenu
-              open={contextMenu.open}
-              position={contextMenu.position}
-              nodeId={contextMenu.nodeId}
-              nodeType={contextMenu.nodeType}
-              source={contextMenu.source}
-              dragCreateInfo={contextMenu.dragCreateInfo}
-              setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            />
-          )}
-
-        {contextMenu.open && contextMenu.type === 'selection' && (
-          <SelectionContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-          />
-        )}
+        <UnifiedContextMenu
+          open={contextMenu.open}
+          position={contextMenu.position}
+          menuType={contextMenu.type}
+          context={{
+            nodeId: contextMenu.nodeId,
+            nodeType: contextMenu.nodeType,
+            source: contextMenu.source,
+            dragCreateInfo: contextMenu.dragCreateInfo,
+            isSelection: contextMenu.isSelection,
+          }}
+          setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
+        />
 
         {selectedNodes.length > 0 && <MultiSelectionMenus />}
       </div>

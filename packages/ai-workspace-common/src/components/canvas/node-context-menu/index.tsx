@@ -74,8 +74,8 @@ export const NodeContextMenu: FC<NodeContextMenuProps> = ({
         top: `${reactFlowInstance.flowToScreenPosition(position).y}px`,
       }}
       onClick={(e) => {
+        // Only stop propagation, don't prevent default to allow button clicks
         e.stopPropagation();
-        e.preventDefault();
       }}
     >
       {source === 'handle' ? (

@@ -221,13 +221,13 @@ export class WorkflowAppService {
       return node;
     });
 
-    const executionCanvasId = genCanvasID();
+    const tempCanvasId = genCanvasID();
     const state = initEmptyCanvasState();
 
     await this.canvasService.createCanvasWithState(
       user,
       {
-        canvasId: executionCanvasId,
+        canvasId: tempCanvasId,
         title: `${canvasData.title} (Execution)`,
         variables: variables || canvasData.variables || [],
         visibility: false,
@@ -237,12 +237,14 @@ export class WorkflowAppService {
 
     state.nodes = updatedNodes;
     state.edges = edges;
-    await this.canvasSyncService.saveState(executionCanvasId, state);
+    await this.canvasSyncService.saveState(tempCanvasId, state);
+
+    const newCanvasId = genCanvasID();
 
     const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
-      executionCanvasId,
-      executionCanvasId, // Use the same canvas ID to avoid creating a second canvas
+      tempCanvasId,
+      newCanvasId,
       variables,
       { appId: workflowApp?.appId },
     );
