@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useMemo } from 'react';
 import { Empty } from 'antd';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import {
   Spinner,
@@ -11,6 +10,7 @@ import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useCanvasTemplateModal } from '@refly/stores';
 import { TemplateCard } from './template-card';
+import { TemplateCardSkeleton } from './template-card-skeleton';
 
 import cn from 'classnames';
 
@@ -21,6 +21,7 @@ interface TemplateListProps {
   searchQuery?: string;
   scrollableTargetId: string;
   className?: string;
+  gridCols?: string;
 }
 
 export const TemplateList = ({
@@ -30,7 +31,10 @@ export const TemplateList = ({
   searchQuery,
   scrollableTargetId,
   className,
+  gridCols,
 }: TemplateListProps) => {
+  const gridClassName =
+    gridCols || 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2';
   const { t } = useTranslation();
   const { visible } = useCanvasTemplateModal((state) => ({
     visible: state.visible,
@@ -48,7 +52,7 @@ export const TemplateList = ({
       });
       return res?.data ?? { success: true, data: [] };
     },
-    pageSize: 12,
+    pageSize: 20,
     dependencies: [language, categoryId, searchQuery],
   });
 
@@ -79,8 +83,10 @@ export const TemplateList = ({
       className={cn('w-full h-full overflow-y-auto bg-gray-100 p-4 dark:bg-gray-700', className)}
     >
       {isRequesting && dataList.length === 0 ? (
-        <div className="h-full w-full flex items-center justify-center">
-          <Spin />
+        <div className={cn('grid', gridClassName)}>
+          {Array.from({ length: 20 }).map((_, index) => (
+            <TemplateCardSkeleton key={index} />
+          ))}
         </div>
       ) : dataList.length > 0 ? (
         <div
@@ -95,9 +101,7 @@ export const TemplateList = ({
             endMessage={<EndMessage />}
             scrollableTarget={scrollableTargetId}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2">
-              {templateCards}
-            </div>
+            <div className={cn('grid', gridClassName)}>{templateCards}</div>
           </InfiniteScroll>
         </div>
       ) : (
