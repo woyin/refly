@@ -68,7 +68,7 @@ export const TemplateList = ({
   }, [isRequesting, hasMore, loadMore]);
 
   const emptyState = (
-    <div className="h-full flex items-center justify-center">
+    <div className="mt-8 h-full flex items-center justify-center">
       <Empty description={t('template.emptyList')} />
     </div>
   );
