@@ -149,7 +149,7 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
             </Button>
 
             {template.appId && (
-              <Button type="default" className="min-w-[20] px-2" onClick={handlePreview}>
+              <Button type="default" className="min-w-20 px-2" onClick={handlePreview}>
                 {t('template.preview')}
               </Button>
             )}

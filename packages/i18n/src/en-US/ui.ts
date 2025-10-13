@@ -1308,7 +1308,7 @@ const translations = {
         touchpad: 'Switched to touchpad mode',
       },
       backHome: 'Back Home',
-      backWorkspace: 'Back Workspace',
+      backDashboard: 'Back to Dashboard',
     },
     workflow: {
       variables: {
@@ -2098,9 +2098,9 @@ const translations = {
       },
     },
     siderMenu: {
-      home: 'Home',
-      canvas: 'Workflow',
-      appManager: 'App Manager',
+      home: 'Dashboard',
+      canvas: 'My Workflows',
+      appManager: 'My Templates',
       contactUs: 'Contact Us',
       addToChrome: 'Install Browser Extension',
       canvasTitle: 'Canvas',
@@ -3617,7 +3617,7 @@ const translations = {
     templateDescription: 'Description',
     templateDescriptionPlaceholder: 'Please enter template description',
     createSuccess: 'Template created successfully, please view in template library',
-    preview: 'Experience',
+    preview: 'Try it',
     use: 'Make the Same',
     duplicateCanvas: 'Remix Workflow',
     canvasTitle: 'Workflow Name',
@@ -3776,9 +3776,9 @@ const translations = {
     unshareFailed: 'Failed to unshare workflow {{title}}',
   },
   appManager: {
-    title: 'App Manager',
-    searchApps: 'Search apps',
-    noApps: 'No apps',
+    title: 'My Templates',
+    searchApps: 'Search templates',
+    noApps: 'No templates',
     unpublish: 'Unpublish',
     view: 'View',
     noSearchResults: 'No search results',

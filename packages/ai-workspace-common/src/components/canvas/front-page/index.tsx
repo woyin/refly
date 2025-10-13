@@ -84,7 +84,7 @@ export const FrontPage = memo(() => {
       )}
       id="front-page-scrollable-div"
     >
-      <div className="p-4 rounded-xl flex items-center gap-6 bg-gradient-tools-open bg-refly-bg-body-z0 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:via-cyan-500/15 dark:to-blue-500/10 dark:bg-refly-bg-body-z0">
+      <div className="p-4 rounded-xl flex flex-wrap items-center gap-6 bg-gradient-tools-open bg-refly-bg-body-z0 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:via-cyan-500/15 dark:to-blue-500/10 dark:bg-refly-bg-body-z0">
         <div className="text-xl leading-7">
           <span className="text-refly-primary-default font-[800] mr-2">
             {t('frontPage.guide.title')}
@@ -126,12 +126,12 @@ export const FrontPage = memo(() => {
       {canvasTemplateEnabled && (
         <ModuleContainer title={t('frontPage.template.title')}>
           {templateCategories.length > 1 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {templateCategories.map((category) => (
                 <div
                   key={category.categoryId}
                   className={cn(
-                    'px-3 py-1.5 text-sm text-refly-text-0 leading-5 cursor-pointer rounded-[40px] hover:bg-refly-tertiary-hover',
+                    'flex-shrink-0 whitespace-nowrap px-3 py-1.5 text-sm text-refly-text-0 leading-5 cursor-pointer rounded-[40px] hover:bg-refly-tertiary-hover',
                     {
                       '!bg-refly-primary-default text-white font-semibold':
                         category.categoryId === templateCategoryId,
