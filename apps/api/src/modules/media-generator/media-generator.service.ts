@@ -3,21 +3,14 @@ import {
   User,
   MediaGenerateRequest,
   MediaGenerateResponse,
-  CreditBilling,
   //MediaGenerationModelConfig,
   EntityType,
   CanvasNodeType,
   CanvasNode,
 } from '@refly/openapi-schema';
 
-import { ModelUsageQuotaExceeded /*ProviderItemNotFoundError*/ } from '@refly/errors';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { QUEUE_SYNC_MEDIA_CREDIT_USAGE } from '../../utils/const';
-import { SyncMediaCreditUsageJobData } from '../subscription/subscription.dto';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
 import { PromptProcessorService } from './prompt-processor.service';
 import { genActionResultID, genMediaID, safeParseJSON } from '@refly/utils';
@@ -44,12 +37,9 @@ export class MediaGeneratorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
-    private readonly credit: CreditService,
     private readonly providerService: ProviderService,
     private readonly canvasSyncService: CanvasSyncService,
     private readonly promptProcessor: PromptProcessorService,
-    @InjectQueue(QUEUE_SYNC_MEDIA_CREDIT_USAGE)
-    private readonly mediaCreditUsageReportQueue: Queue<SyncMediaCreditUsageJobData>,
   ) {}
 
   /**
@@ -384,20 +374,6 @@ export class MediaGeneratorService {
         providerKey: provider,
       });
 
-      const creditBilling: CreditBilling = {
-        unitCost: request.unitCost,
-        unit: 'product',
-        minCharge: request.unitCost,
-      };
-
-      if (creditBilling) {
-        const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
-        this.logger.log('creditUsageResult', creditUsageResult);
-        if (!creditUsageResult.canUse) {
-          throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
-        }
-      }
-
       const input = request.input;
 
       this.logger.log(`input: ${JSON.stringify(input)}`);
@@ -485,23 +461,6 @@ export class MediaGeneratorService {
           },
           [{ type: 'skillResponse', entityId: parentResultId }],
           { autoLayout: true },
-        );
-      }
-
-      if (this.mediaCreditUsageReportQueue && creditBilling) {
-        const basicUsageData = {
-          uid: user.uid,
-          resultId,
-        };
-        const mediaCreditUsage: SyncMediaCreditUsageJobData = {
-          ...basicUsageData,
-          creditBilling,
-          timestamp: new Date(),
-        };
-
-        await this.mediaCreditUsageReportQueue.add(
-          `media_credit_usage_report:${resultId}`,
-          mediaCreditUsage,
         );
       }
 
