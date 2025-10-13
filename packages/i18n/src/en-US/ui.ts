@@ -1308,7 +1308,7 @@ const translations = {
         touchpad: 'Switched to touchpad mode',
       },
       backHome: 'Back Home',
-      backWorkspace: 'Back Workspace',
+      backWorkspace: 'Back to Workspace',
     },
     workflow: {
       variables: {
