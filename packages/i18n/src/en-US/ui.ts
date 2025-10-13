@@ -2099,7 +2099,7 @@ const translations = {
     },
     siderMenu: {
       home: 'Dashboard',
-      canvas: 'My Workflow',
+      canvas: 'My Workflows',
       appManager: 'My Templates',
       contactUs: 'Contact Us',
       addToChrome: 'Install Browser Extension',
