@@ -41,9 +41,9 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
       });
 
       e.stopPropagation();
-      if (template.appId) {
+      if (template.shareId) {
         setModalVisible(false);
-        navigate(`/app/${template.appId}`);
+        navigate(`/app/${template.shareId}`);
         return;
       }
     },
@@ -148,7 +148,7 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
               {t('template.use')}
             </Button>
 
-            {template.appId && (
+            {template.shareId && (
               <Button type="default" className="min-w-20 px-2" onClick={handlePreview}>
                 {t('template.preview')}
               </Button>
