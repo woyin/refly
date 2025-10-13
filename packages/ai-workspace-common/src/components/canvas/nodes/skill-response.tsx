@@ -165,7 +165,7 @@ const NodeFooter = memo(
     language: string;
   }) => {
     return (
-      <div className="flex-shrink-0 mt-2 flex flex-wrap justify-between items-center text-[10px] text-gray-400 relative z-20 gap-1 dark:text-gray-500">
+      <div className="flex-shrink-0 mt-2 flex flex-wrap justify-between items-center text-[10px] text-gray-400 relative z-20 gap-1 dark:text-gray-500 w-full">
         <div className="flex flex-wrap items-center gap-1 max-w-[70%]">
           {model && (
             <div className="flex items-center gap-1 overflow-hidden">
