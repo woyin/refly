@@ -139,12 +139,17 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
 
           {/* Action buttons section */}
           <div className="flex items-center justify-between gap-3 mt-3">
-            <Button loading={duplicating} type="primary" className="flex-1" onClick={handleUse}>
+            <Button
+              loading={duplicating}
+              type="primary"
+              className="flex-1 px-2"
+              onClick={handleUse}
+            >
               {t('template.use')}
             </Button>
 
             {template.appId && (
-              <Button type="default" className="w-20" onClick={handlePreview}>
+              <Button type="default" className="min-w-[20] px-2" onClick={handlePreview}>
                 {t('template.preview')}
               </Button>
             )}
