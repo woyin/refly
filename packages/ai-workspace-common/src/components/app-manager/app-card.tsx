@@ -35,7 +35,7 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
   };
 
   const handleView = () => {
-    navigate(`/app/${data.appId}`);
+    navigate(`/app/${data.shareId}`);
   };
 
   const actionContent = (
