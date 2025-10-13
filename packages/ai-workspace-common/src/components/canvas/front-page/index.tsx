@@ -5,7 +5,7 @@ import { TemplateList } from '@refly-packages/ai-workspace-common/components/can
 import { canvasTemplateEnabled } from '@refly/ui-kit';
 import { useSiderStoreShallow } from '@refly/stores';
 import cn from 'classnames';
-import { DocInline, ArrowRight } from 'refly-icons';
+import { DocAdd, ArrowRight } from 'refly-icons';
 import { RecentWorkflow } from './recent-workflow';
 import { useListCanvasTemplateCategories } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
@@ -103,7 +103,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
           onClick={handleNewWorkflow}
           loading={createCanvasLoading}
         >
-          <DocInline size={42} color="var(--refly-primary-default)" />
+          <DocAdd size={42} color="var(--refly-primary-default)" />
           <div className="flex flex-col gap-1 w-[184px]">
             <div className="text-left text-base leading-[26px] font-semibold text-refly-text-0">
               {t('frontPage.newWorkflow.buttonText')}

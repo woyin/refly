@@ -11,13 +11,12 @@ import { EndMessage } from '@refly-packages/ai-workspace-common/components/works
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-fetch-data-list';
 import { LOCALE } from '@refly/common-types';
-import { Search } from 'refly-icons';
+import { Search, Sort, SortAsc } from 'refly-icons';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import './index.scss';
 import { WorkflowActionDropdown } from '@refly-packages/ai-workspace-common/components/workflow-list/workflowActionDropdown';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { ListOrder, ShareRecord, ShareUser } from '@refly/openapi-schema';
-import { TbSortDescending, TbSortAscending } from 'react-icons/tb';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 
 const WorkflowList = memo(() => {
@@ -269,9 +268,9 @@ const WorkflowList = memo(() => {
             onClick={handleOrderType}
           >
             {orderType === 'creationAsc' ? (
-              <TbSortAscending size={20} color="var(--refly-text-0)" />
+              <SortAsc size={20} color="var(--refly-text-0)" />
             ) : (
-              <TbSortDescending size={20} color="var(--refly-text-0)" />
+              <Sort size={20} color="var(--refly-text-0)" />
             )}
           </Button>
 

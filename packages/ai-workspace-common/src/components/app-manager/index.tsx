@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Input, Button, Empty } from 'antd';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
-import { Search } from 'refly-icons';
+import { Search, Sort, SortAsc } from 'refly-icons';
 import {
   EndMessage,
   Spinner,
@@ -13,7 +13,6 @@ import {
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { AppCard } from './app-card';
 import './index.scss';
-import { TbSortAscending, TbSortDescending } from 'react-icons/tb';
 import { ListOrder } from '@refly/openapi-schema';
 import { useDebouncedCallback } from 'use-debounce';
 
@@ -105,9 +104,9 @@ export const AppManager = () => {
             onClick={handleOrderType}
           >
             {orderType === 'creationAsc' ? (
-              <TbSortAscending size={20} color="var(--refly-text-0)" />
+              <SortAsc size={20} color="var(--refly-text-0)" />
             ) : (
-              <TbSortDescending size={20} color="var(--refly-text-0)" />
+              <Sort size={20} color="var(--refly-text-0)" />
             )}
           </Button>
         </div>
