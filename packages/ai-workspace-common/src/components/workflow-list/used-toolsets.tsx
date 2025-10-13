@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { GenericToolset } from '@refly/openapi-schema';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
 import { ToolsetPopover } from './toolset-popover';
 
 const MAX_TOOLSETS = 4;
 
-export const UsedToolsets = ({ toolsets }: { toolsets: GenericToolset[] }) => {
+export const UsedToolsets = memo(({ toolsets }: { toolsets: GenericToolset[] }) => {
   if (!toolsets || toolsets?.length === 0) {
     return null;
   }
@@ -16,7 +17,7 @@ export const UsedToolsets = ({ toolsets }: { toolsets: GenericToolset[] }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {toolsets.slice(0, MAX_TOOLSETS).map((toolset) => (
-          <div key={toolset.toolset?.toolsetId} className="rounded-md overflow-hidden">
+          <div key={toolset.id} className="rounded-md overflow-hidden">
             <ToolsetIcon
               toolset={toolset}
               isBuiltin={toolset.id === 'builtin'}
@@ -33,4 +34,6 @@ export const UsedToolsets = ({ toolsets }: { toolsets: GenericToolset[] }) => {
       </div>
     </ToolsetPopover>
   );
-};
+});
+
+UsedToolsets.displayName = 'UsedToolsets';

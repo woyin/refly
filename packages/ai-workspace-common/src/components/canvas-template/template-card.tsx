@@ -1,5 +1,4 @@
-import { useUserStoreShallow } from '@refly/stores';
-import { useAuthStoreShallow } from '@refly/stores';
+import { useUserStoreShallow, useAuthStoreShallow } from '@refly/stores';
 import { logEvent } from '@refly/telemetry-web';
 import { useNavigate } from 'react-router-dom';
 import { useDuplicateCanvas } from '@refly-packages/ai-workspace-common/hooks/use-duplicate-canvas';
@@ -13,15 +12,15 @@ import { cn } from '@refly/utils/cn';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { WiTime3 } from 'react-icons/wi';
 import { LOCALE } from '@refly/common-types';
-export const TemplateCard = ({
-  template,
-  className,
-  showUser = true,
-}: {
+import { useCallback } from 'react';
+
+interface TemplateCardProps {
   template: CanvasTemplate;
   className?: string;
   showUser?: boolean;
-}) => {
+}
+
+export const TemplateCard = ({ template, className, showUser = true }: TemplateCardProps) => {
   const { t, i18n } = useTranslation();
   const language = i18n.languages?.[0];
   const { setVisible: setModalVisible } = useCanvasTemplateModal((state) => ({
@@ -33,35 +32,42 @@ export const TemplateCard = ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
   const navigate = useNavigate();
-  const handlePreview = (e: React.MouseEvent<HTMLDivElement>) => {
-    logEvent('home::template_preview', null, {
-      templateId: template.templateId,
-      templateName: template.title,
-    });
 
-    e.stopPropagation();
-    if (template.appId) {
-      setModalVisible(false);
-      navigate(`/app/${template.appId}`);
-      return;
-    }
-  };
+  const handlePreview = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      logEvent('home::template_preview', null, {
+        templateId: template.templateId,
+        templateName: template.title,
+      });
 
-  const handleUse = (e: React.MouseEvent<HTMLDivElement>) => {
-    logEvent('home::template_use', null, {
-      templateId: template.templateId,
-      templateName: template.title,
-    });
+      e.stopPropagation();
+      if (template.appId) {
+        setModalVisible(false);
+        navigate(`/app/${template.appId}`);
+        return;
+      }
+    },
+    [template, navigate, setModalVisible],
+  );
 
-    e.stopPropagation();
-    if (!isLogin) {
-      setLoginModalOpen(true);
-      return;
-    }
-    if (template.shareId) {
-      duplicateCanvas(template.shareId, template.templateId);
-    }
-  };
+  const handleUse = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      logEvent('home::template_use', null, {
+        templateId: template.templateId,
+        templateName: template.title,
+      });
+
+      e.stopPropagation();
+      if (!isLogin) {
+        setLoginModalOpen(true);
+        return;
+      }
+      if (template.shareId) {
+        duplicateCanvas(template.shareId, template.templateId);
+      }
+    },
+    [template, duplicateCanvas, isLogin, setLoginModalOpen],
+  );
 
   return (
     <div
@@ -82,7 +88,7 @@ export const TemplateCard = ({
 
       <div className="p-4 flex-1 flex flex-col justify-between gap-1">
         <div className="text-sm font-medium truncate">
-          {template?.title || t('common.untitled')}
+          {template?.title ?? t('common.untitled')}
         </div>
 
         <div
@@ -121,13 +127,13 @@ export const TemplateCard = ({
           {/* Title and description section */}
           <div className="flex-1 flex flex-col gap-1">
             <div className="text-sm font-semibold text-refly-text-0 truncate">
-              {template?.title || t('common.untitled')}
+              {template?.title ?? t('common.untitled')}
             </div>
             <Typography.Paragraph
               className="text-refly-text-2 text-xs !m-0"
               ellipsis={{ tooltip: true, rows: 4 }}
             >
-              {template.description || t('template.noDescription')}
+              {template.description ?? t('template.noDescription')}
             </Typography.Paragraph>
           </div>
 

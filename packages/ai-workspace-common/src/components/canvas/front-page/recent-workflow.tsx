@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
@@ -9,14 +10,18 @@ import { Avatar } from 'antd';
 import { AiOutlineUser } from 'react-icons/ai';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
 
-export const RecentWorkflow = ({ canvases }: { canvases: SiderData[] }) => {
+export const RecentWorkflow = memo(({ canvases }: { canvases: SiderData[] }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.languages?.[0];
   const navigate = useNavigate();
 
-  const handleEditCanvas = (canvasId: string) => {
-    navigate(`/canvas/${canvasId}`);
-  };
+  const handleEditCanvas = useCallback(
+    (canvasId: string) => {
+      navigate(`/canvas/${canvasId}`);
+    },
+    [navigate],
+  );
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {canvases?.map((canvas) => (
@@ -57,4 +62,6 @@ export const RecentWorkflow = ({ canvases }: { canvases: SiderData[] }) => {
       ))}
     </div>
   );
-};
+});
+
+RecentWorkflow.displayName = 'RecentWorkflow';

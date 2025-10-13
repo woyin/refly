@@ -140,7 +140,7 @@ export const FrontPage = memo(({ projectId }: { projectId: string | null }) => {
                   )}
                   onClick={() => handleTemplateCategoryClick(category.categoryId)}
                 >
-                  {category.labelDict[templateLanguage]}
+                  {category.labelDict?.[templateLanguage]}
                 </div>
               ))}
             </div>
