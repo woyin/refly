@@ -90,13 +90,20 @@ export class ToolService {
       },
     };
     const { isGlobal, enabled } = param ?? {};
+
+    // Build where condition dynamically
+    const whereCondition: any = {
+      uninstalled: false,
+      deletedAt: null,
+      OR:
+        isGlobal !== undefined
+          ? [{ isGlobal }, { uid: user.uid }]
+          : [{ isGlobal: true }, { uid: user.uid }],
+      ...(enabled !== undefined && { enabled }),
+    };
+
     const toolsets = await this.prisma.toolset.findMany({
-      where: {
-        OR: [{ isGlobal }, { uid: user.uid }],
-        enabled,
-        uninstalled: false,
-        deletedAt: null,
-      },
+      where: whereCondition,
     });
     return [builtinToolset, ...toolsets.map(toolsetPo2GenericToolset)];
   }
