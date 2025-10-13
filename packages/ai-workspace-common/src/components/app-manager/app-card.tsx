@@ -65,7 +65,7 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
             <div className="flex items-center gap-1 flex-shrink-0">
               <WiTime3 className="w-4 h-4 text-refly-text-2" />
               <span className="whitespace-nowrap">
-                {time(data.updatedAt, language as LOCALE)
+                {time(data.createdAt, language as LOCALE)
                   ?.utc()
                   ?.fromNow()}
               </span>

@@ -179,13 +179,13 @@ const WorkflowList = memo(() => {
       },
       {
         title: t('workflowList.lastModified'),
-        dataIndex: 'updatedAt',
-        key: 'updatedAt',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
         align: 'center' as const,
         width: 120,
-        render: (updatedAt: string) => (
+        render: (createdAt: string) => (
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {time(updatedAt, language as LOCALE)
+            {time(createdAt, language as LOCALE)
               .utc()
               .fromNow()}
           </span>
