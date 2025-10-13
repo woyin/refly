@@ -78,29 +78,31 @@ export const TemplateList = ({
       id={source === 'front-page' ? scrollableTargetId : undefined}
       className={cn('w-full h-full overflow-y-auto bg-gray-100 p-4 dark:bg-gray-700', className)}
     >
-      <Spin className="spin" spinning={isRequesting && dataList.length === 0}>
-        {dataList.length > 0 ? (
-          <div
-            id={source === 'template-library' ? scrollableTargetId : undefined}
-            className="w-full h-full overflow-y-auto"
+      {isRequesting && dataList.length === 0 ? (
+        <div className="h-full w-full flex items-center justify-center">
+          <Spin />
+        </div>
+      ) : dataList.length > 0 ? (
+        <div
+          id={source === 'template-library' ? scrollableTargetId : undefined}
+          className="w-full h-full overflow-y-auto"
+        >
+          <InfiniteScroll
+            dataLength={dataList.length}
+            next={handleLoadMore}
+            hasMore={hasMore}
+            loader={<Spinner />}
+            endMessage={<EndMessage />}
+            scrollableTarget={scrollableTargetId}
           >
-            <InfiniteScroll
-              dataLength={dataList.length}
-              next={handleLoadMore}
-              hasMore={hasMore}
-              loader={<Spinner />}
-              endMessage={<EndMessage />}
-              scrollableTarget={scrollableTargetId}
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2">
-                {templateCards}
-              </div>
-            </InfiniteScroll>
-          </div>
-        ) : (
-          !isRequesting && emptyState
-        )}
-      </Spin>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2">
+              {templateCards}
+            </div>
+          </InfiniteScroll>
+        </div>
+      ) : (
+        emptyState
+      )}
     </div>
   );
 };

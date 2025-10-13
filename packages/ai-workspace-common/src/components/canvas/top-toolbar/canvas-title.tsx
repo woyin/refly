@@ -84,7 +84,7 @@ export const ReadonlyCanvasTitle = memo(
         data-cy="canvas-title-readonly"
       >
         <Tooltip
-          title={t(isLogin ? 'canvas.toolbar.backWorkspace' : 'canvas.toolbar.backHome')}
+          title={t(isLogin ? 'canvas.toolbar.backDashboard' : 'canvas.toolbar.backHome')}
           arrow={false}
           align={{ offset: [20, -8] }}
         >
