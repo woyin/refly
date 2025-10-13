@@ -28,7 +28,7 @@ import { Prisma } from '../../generated/client';
 import { genCanvasID, genTransactionId, safeParseJSON } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
-import { AutoNameCanvasJobData, DeleteCanvasJobData } from './canvas.dto';
+import { AutoNameCanvasJobData, CanvasDetailModel, DeleteCanvasJobData } from './canvas.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { ResourceService } from '../knowledge/resource.service';
 import { DocumentService } from '../knowledge/document.service';
@@ -69,23 +69,70 @@ export class CanvasService {
     private postDeleteCanvasQueue?: Queue<DeleteCanvasJobData>,
   ) {}
 
-  async listCanvases(user: User, param: ListCanvasesData['query']) {
-    const { page = 1, pageSize = 10, projectId } = param;
+  async listCanvases(user: User, param: ListCanvasesData['query']): Promise<CanvasDetailModel[]> {
+    const { page = 1, pageSize = 10, projectId, order = 'creationDesc', keyword } = param;
+
+    // Build orderBy based on order parameter
+    const orderBy =
+      order === 'creationAsc' ? { createdAt: 'asc' as const } : { createdAt: 'desc' as const };
+
+    // Build where clause with keyword search
+    const where: Prisma.CanvasWhereInput = {
+      uid: user.uid,
+      deletedAt: null,
+      projectId: projectId || null,
+      visibility: true,
+    };
+
+    // Add keyword search if provided
+    if (keyword?.trim()) {
+      where.title = {
+        contains: keyword.trim(),
+        mode: 'insensitive',
+      };
+    }
 
     const canvases = await this.prisma.canvas.findMany({
-      where: {
-        uid: user.uid,
-        deletedAt: null,
-        projectId: projectId || null,
-        visibility: true,
-      },
-      orderBy: { updatedAt: 'desc' },
+      where,
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
 
+    // Get owner information (all canvases belong to the same user)
+    const owner = await this.prisma.user.findUnique({
+      select: {
+        uid: true,
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    // Get share records for all canvases in one query
+    const canvasIds = canvases.map((canvas) => canvas.canvasId);
+    const shareRecords = await this.prisma.shareRecord.findMany({
+      where: {
+        entityId: { in: canvasIds },
+        entityType: 'canvas',
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Create a map of canvasId to shareRecord (taking the most recent one)
+    const shareRecordMap = new Map<string, (typeof shareRecords)[0]>();
+    for (const record of shareRecords) {
+      if (!shareRecordMap.has(record.entityId)) {
+        shareRecordMap.set(record.entityId, record);
+      }
+    }
+
     return canvases.map((canvas) => ({
       ...canvas,
+      owner,
+      shareRecord: shareRecordMap.get(canvas.canvasId) || null,
       minimapUrl: canvas.minimapStorageKey
         ? this.miscService.generateFileURL({ storageKey: canvas.minimapStorageKey })
         : undefined,

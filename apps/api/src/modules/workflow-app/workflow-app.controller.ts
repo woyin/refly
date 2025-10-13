@@ -1,4 +1,13 @@
-import { Controller, Post, Body, UseGuards, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { LoginedUser } from '../../utils/decorators/user.decorator';
 import { User as UserModel } from '../../generated/client';
@@ -10,8 +19,12 @@ import {
   ExecuteWorkflowAppRequest,
   ExecuteWorkflowAppResponse,
   ListWorkflowAppsResponse,
+  ListOrder,
+  BaseResponse,
+  DeleteWorkflowAppRequest,
 } from '@refly/openapi-schema';
 import { buildSuccessResponse } from '../../utils';
+import { workflowAppPO2DTO } from './workflow-app.dto';
 
 @Controller('v1/workflow-app')
 export class WorkflowAppController {
@@ -24,7 +37,7 @@ export class WorkflowAppController {
     @Body() request: CreateWorkflowAppRequest,
   ): Promise<CreateWorkflowAppResponse> {
     const workflowApp = await this.workflowAppService.createWorkflowApp(user, request);
-    return buildSuccessResponse(workflowApp);
+    return buildSuccessResponse(workflowAppPO2DTO(workflowApp));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -34,7 +47,7 @@ export class WorkflowAppController {
     @Query('appId') appId: string,
   ): Promise<GetWorkflowAppDetailResponse> {
     const workflowApp = await this.workflowAppService.getWorkflowAppDetail(user, appId);
-    return buildSuccessResponse(workflowApp);
+    return buildSuccessResponse(workflowAppPO2DTO(workflowApp));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -56,9 +69,29 @@ export class WorkflowAppController {
   @Get('list')
   async listWorkflowApps(
     @LoginedUser() user: UserModel,
-    @Query() query: { canvasId: string },
+    @Query('canvasId') canvasId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
+    @Query('order', new DefaultValuePipe('creationDesc')) order: ListOrder,
+    @Query('keyword') keyword: string,
   ): Promise<ListWorkflowAppsResponse> {
-    const workflowApps = await this.workflowAppService.listWorkflowApps(user, query);
-    return buildSuccessResponse(workflowApps);
+    const workflowApps = await this.workflowAppService.listWorkflowApps(user, {
+      canvasId,
+      page,
+      pageSize,
+      order,
+      keyword,
+    });
+    return buildSuccessResponse(workflowApps.map(workflowAppPO2DTO).filter(Boolean));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('delete')
+  async deleteWorkflowApp(
+    @LoginedUser() user: UserModel,
+    @Body() request: DeleteWorkflowAppRequest,
+  ): Promise<BaseResponse> {
+    await this.workflowAppService.deleteWorkflowApp(user, request.appId);
+    return buildSuccessResponse();
   }
 }

@@ -17,6 +17,7 @@ import {
   listResources,
   listSkillInstances,
   listSkillTriggers,
+  listWorkflowApps,
 } from '../requests/services.gen';
 import {
   GetCreditRechargeData,
@@ -47,6 +48,8 @@ import {
   ListSkillInstancesError,
   ListSkillTriggersData,
   ListSkillTriggersError,
+  ListWorkflowAppsData,
+  ListWorkflowAppsError,
 } from '../requests/types.gen';
 import * as Common from './common';
 export const useListPagesInfinite = <
@@ -337,6 +340,31 @@ export const useListPilotSessionsInfinite = <
     queryKey: Common.UseListPilotSessionsKeyFn(clientOptions, queryKey),
     queryFn: ({ pageParam }) =>
       listPilotSessions({
+        ...clientOptions,
+        query: { ...clientOptions.query, page: pageParam as number },
+      }).then((response) => response.data as TData) as TData,
+    initialPageParam: '1',
+    getNextPageParam: (response) =>
+      (
+        response as {
+          nextPage: number;
+        }
+      ).nextPage,
+    ...options,
+  });
+export const useListWorkflowAppsInfinite = <
+  TData = InfiniteData<Common.ListWorkflowAppsDefaultResponse>,
+  TError = ListWorkflowAppsError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<ListWorkflowAppsData, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseInfiniteQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useInfiniteQuery({
+    queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions, queryKey),
+    queryFn: ({ pageParam }) =>
+      listWorkflowApps({
         ...clientOptions,
         query: { ...clientOptions.query, page: pageParam as number },
       }).then((response) => response.data as TData) as TData,

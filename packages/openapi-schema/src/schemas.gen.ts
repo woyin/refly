@@ -922,6 +922,22 @@ export const CanvasSchema = {
       description: 'Canvas status',
       $ref: '#/components/schemas/CanvasStatus',
     },
+    owner: {
+      description: 'Canvas owner',
+      $ref: '#/components/schemas/ShareUser',
+    },
+    shareRecord: {
+      description: 'Canvas share record',
+      $ref: '#/components/schemas/ShareRecord',
+    },
+    usedToolsets: {
+      type: 'array',
+      description: 'Used toolsets in the canvas',
+      items: {
+        type: 'object',
+        $ref: '#/components/schemas/GenericToolset',
+      },
+    },
     minimapUrl: {
       type: 'string',
       description: 'Minimap URL',
@@ -1013,6 +1029,10 @@ export const CanvasTemplateSchema = {
     featured: {
       type: 'boolean',
       description: 'Whether this canvas template is featured',
+    },
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
     },
     createdAt: {
       type: 'string',
@@ -8369,6 +8389,17 @@ export const CreateWorkflowAppRequestSchema = {
   },
 } as const;
 
+export const DeleteWorkflowAppRequestSchema = {
+  type: 'object',
+  required: ['appId'],
+  properties: {
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
+    },
+  },
+} as const;
+
 export const WorkflowAppSchema = {
   type: 'object',
   required: ['appId', 'canvasId', 'variables'],
@@ -8388,6 +8419,10 @@ export const WorkflowAppSchema = {
     description: {
       type: 'string',
       description: 'Workflow app description',
+    },
+    owner: {
+      description: 'Workflow app owner',
+      $ref: '#/components/schemas/ShareUser',
     },
     canvasId: {
       type: 'string',

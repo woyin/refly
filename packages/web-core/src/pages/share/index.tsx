@@ -10,7 +10,7 @@ const ShareCanvasPage = () => {
   }));
 
   return (
-    <div className={cn('w-full h-full p-2', { 'p-0': collapse })}>
+    <div className={cn('w-full h-full p-2', { '!p-0': collapse })}>
       <Canvas canvasId={canvasId} readonly />
     </div>
   );

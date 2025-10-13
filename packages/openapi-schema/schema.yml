@@ -699,6 +699,11 @@ paths:
           description: Order
           schema:
             $ref: '#/components/schemas/ListOrder'
+        - name: keyword
+          in: query
+          description: Search keyword
+          schema:
+            type: string
       responses:
         '200':
           description: Successful operation
@@ -2708,6 +2713,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateWorkflowAppResponse'
+  /workflow-app/delete:
+    post:
+      tags:
+        - app
+      summary: Delete workflow app
+      description: Delete a workflow app
+      operationId: deleteWorkflowApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteWorkflowAppRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /workflow-app/detail:
     get:
       tags:
@@ -2757,10 +2782,32 @@ paths:
       description: List workflow apps for a user, optionally filtered by canvasId
       operationId: listWorkflowApps
       parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: number
+            default: 1
+        - name: pageSize
+          in: query
+          description: Page size
+          schema:
+            type: number
+            default: 10
         - name: canvasId
           in: query
           description: Canvas ID to filter by
           required: false
+          schema:
+            type: string
+        - name: order
+          in: query
+          description: Order
+          schema:
+            $ref: '#/components/schemas/ListOrder'
+        - name: keyword
+          in: query
+          description: Search keyword
           schema:
             type: string
       responses:
@@ -4170,6 +4217,18 @@ components:
           type: string
           description: Canvas status
           $ref: '#/components/schemas/CanvasStatus'
+        owner:
+          description: Canvas owner
+          $ref: '#/components/schemas/ShareUser'
+        shareRecord:
+          description: Canvas share record
+          $ref: '#/components/schemas/ShareRecord'
+        usedToolsets:
+          type: array
+          description: Used toolsets in the canvas
+          items:
+            type: object
+            $ref: '#/components/schemas/GenericToolset'
         minimapUrl:
           type: string
           description: Minimap URL
@@ -4248,6 +4307,9 @@ components:
         featured:
           type: boolean
           description: Whether this canvas template is featured
+        appId:
+          type: string
+          description: Workflow app ID
         createdAt:
           type: string
           format: date-time
@@ -9506,6 +9568,14 @@ components:
           description: Workflow app variables
           items:
             $ref: '#/components/schemas/WorkflowVariable'
+    DeleteWorkflowAppRequest:
+      type: object
+      required:
+        - appId
+      properties:
+        appId:
+          type: string
+          description: Workflow app ID
     WorkflowApp:
       type: object
       required:
@@ -9525,6 +9595,9 @@ components:
         description:
           type: string
           description: Workflow app description
+        owner:
+          description: Workflow app owner
+          $ref: '#/components/schemas/ShareUser'
         canvasId:
           type: string
           description: Canvas ID

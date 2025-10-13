@@ -592,6 +592,18 @@ export type Canvas = {
    */
   status?: CanvasStatus;
   /**
+   * Canvas owner
+   */
+  owner?: ShareUser;
+  /**
+   * Canvas share record
+   */
+  shareRecord?: ShareRecord;
+  /**
+   * Used toolsets in the canvas
+   */
+  usedToolsets?: Array<GenericToolset>;
+  /**
    * Minimap URL
    */
   minimapUrl?: string;
@@ -669,6 +681,10 @@ export type CanvasTemplate = {
    * Whether this canvas template is featured
    */
   featured?: boolean;
+  /**
+   * Workflow app ID
+   */
+  appId?: string;
   /**
    * Canvas template creation time
    */
@@ -5896,6 +5912,13 @@ export type CreateWorkflowAppRequest = {
   variables: Array<WorkflowVariable>;
 };
 
+export type DeleteWorkflowAppRequest = {
+  /**
+   * Workflow app ID
+   */
+  appId: string;
+};
+
 export type WorkflowApp = {
   /**
    * Workflow app ID
@@ -5913,6 +5936,10 @@ export type WorkflowApp = {
    * Workflow app description
    */
   description?: string;
+  /**
+   * Workflow app owner
+   */
+  owner?: ShareUser;
   /**
    * Canvas ID
    */
@@ -6455,6 +6482,10 @@ export type GetCollabTokenError = unknown;
 
 export type ListCanvasesData = {
   query?: {
+    /**
+     * Search keyword
+     */
+    keyword?: string;
     /**
      * Order
      */
@@ -7496,6 +7527,14 @@ export type CreateWorkflowAppResponse2 = CreateWorkflowAppResponse;
 
 export type CreateWorkflowAppError = unknown;
 
+export type DeleteWorkflowAppData = {
+  body: DeleteWorkflowAppRequest;
+};
+
+export type DeleteWorkflowAppResponse = BaseResponse;
+
+export type DeleteWorkflowAppError = unknown;
+
 export type GetWorkflowAppDetailData = {
   query: {
     /**
@@ -7523,6 +7562,22 @@ export type ListWorkflowAppsData = {
      * Canvas ID to filter by
      */
     canvasId?: string;
+    /**
+     * Search keyword
+     */
+    keyword?: string;
+    /**
+     * Order
+     */
+    order?: ListOrder;
+    /**
+     * Page number
+     */
+    page?: number;
+    /**
+     * Page size
+     */
+    pageSize?: number;
   };
 };
 

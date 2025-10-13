@@ -90,14 +90,14 @@ const TemplateCategoryList = ({
 
   return (
     <div className="h-full w-[40%] max-w-[200px] overflow-y-auto p-4 box-border flex-shrink-0 flex flex-col gap-1">
-      <div
+      {/* <div
         className={categoryStyle(currentCategory === 'my-templates')}
         onClick={() => setCurrentCategory('my-templates')}
       >
         {t('template.myTemplates')}
       </div>
 
-      <Divider className="my-1" />
+      <Divider className="my-1" /> */}
 
       <div className={categoryStyle(currentCategory === '')} onClick={() => setCurrentCategory('')}>
         {t('template.allTemplates')}
@@ -124,7 +124,7 @@ export const CanvasTemplateModal = () => {
     setVisible: state.setVisible,
   }));
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentCategory, setCurrentCategory] = useState('my-templates');
+  const [currentCategory, setCurrentCategory] = useState('');
   const { i18n } = useTranslation();
   const currentUiLocale = i18n.language as Language;
   const [language, setLanguage] = useState(currentUiLocale);

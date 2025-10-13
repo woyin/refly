@@ -35,7 +35,6 @@ export const CanvasActionDropdown = memo((props: CanvasActionDropdown) => {
   } = props;
   const [popupVisible, setPopupVisible] = useState(false);
   const { t } = useTranslation();
-
   const { openRenameModal, openDeleteModal, openDuplicateModal } = useCanvasOperationStoreShallow(
     (state) => ({
       openRenameModal: state.openRenameModal,

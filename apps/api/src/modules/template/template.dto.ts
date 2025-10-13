@@ -16,6 +16,7 @@ export function canvasTemplatePO2DTO(
       'templateId',
       'categoryId',
       'shareId',
+      'appId',
       'templateId',
       'shareUser',
       'description',

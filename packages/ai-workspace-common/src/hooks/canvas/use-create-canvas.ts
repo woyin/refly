@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
-import { useSiderStore } from '@refly/stores';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { DATA_NUM } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 import { logEvent } from '@refly/telemetry-web';
+import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 
 interface CreateCanvasOptions {
   isPilotActivated?: boolean;
@@ -18,6 +17,8 @@ export const useCreateCanvas = ({
 }: { source?: string; projectId?: string; afterCreateSuccess?: () => void } = {}) => {
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+  const { getCanvasList } = useHandleSiderData();
+
   const createCanvas = async (canvasTitle: string) => {
     setIsCreating(true);
     const { data, error } = await getClient().createCanvas({
@@ -37,24 +38,13 @@ export const useCreateCanvas = ({
 
   const debouncedCreateCanvas = useDebouncedCallback(
     async (source?: string, options?: CreateCanvasOptions) => {
-      const { canvasList, setCanvasList } = useSiderStore.getState();
       const canvasTitle = '';
       const canvasId = await createCanvas(canvasTitle);
       if (!canvasId) {
         return;
       }
 
-      setCanvasList(
-        [
-          {
-            id: canvasId,
-            name: canvasTitle,
-            updatedAt: new Date().toJSON(),
-            type: 'canvas' as const,
-          },
-          ...canvasList,
-        ].slice(0, DATA_NUM),
-      );
+      getCanvasList();
 
       // Build the query string with source and pilot flag if needed
       const queryParams = new URLSearchParams();

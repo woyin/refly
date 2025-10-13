@@ -52,6 +52,7 @@ import {
   deleteSkillInstance,
   deleteSkillTrigger,
   deleteToolset,
+  deleteWorkflowApp,
   duplicateCanvas,
   duplicateShare,
   emailLogin,
@@ -1162,6 +1163,12 @@ export type CreateWorkflowAppMutationResult = Awaited<ReturnType<typeof createWo
 export const useCreateWorkflowAppKey = 'CreateWorkflowApp';
 export const UseCreateWorkflowAppKeyFn = (mutationKey?: Array<unknown>) => [
   useCreateWorkflowAppKey,
+  ...(mutationKey ?? []),
+];
+export type DeleteWorkflowAppMutationResult = Awaited<ReturnType<typeof deleteWorkflowApp>>;
+export const useDeleteWorkflowAppKey = 'DeleteWorkflowApp';
+export const UseDeleteWorkflowAppKeyFn = (mutationKey?: Array<unknown>) => [
+  useDeleteWorkflowAppKey,
   ...(mutationKey ?? []),
 ];
 export type ExecuteWorkflowAppMutationResult = Awaited<ReturnType<typeof executeWorkflowApp>>;

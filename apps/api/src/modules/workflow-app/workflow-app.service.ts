@@ -1,10 +1,11 @@
-import { User } from '../../generated/client';
+import { Prisma, User } from '../../generated/client';
 import {
   CreateWorkflowAppRequest,
   WorkflowVariable,
   GenericToolset,
   CanvasNode,
   RawCanvasData,
+  ListWorkflowAppsData,
 } from '@refly/openapi-schema';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service';
@@ -12,11 +13,10 @@ import { CanvasService } from '../canvas/canvas.service';
 import { MiscService } from '../misc/misc.service';
 import { genCanvasID, genWorkflowAppID } from '@refly/utils';
 import { WorkflowService } from '../workflow/workflow.service';
-import { workflowAppPO2DTO } from './workflow-app.dto';
 import { Injectable } from '@nestjs/common';
 import { ShareCommonService } from '../share/share-common.service';
 import { ShareCreationService } from '../share/share-creation.service';
-import { ShareNotFoundError } from '@refly/errors';
+import { ShareNotFoundError, WorkflowAppNotFoundError } from '@refly/errors';
 import { ToolService } from '../tool/tool.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { initEmptyCanvasState } from '@refly/canvas-common';
@@ -143,7 +143,16 @@ export class WorkflowAppService {
       where: { appId, uid: user.uid, deletedAt: null },
     });
 
-    return workflowAppPO2DTO(workflowApp);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return { ...workflowApp, owner: userPo };
   }
 
   async getWorkflowAppDetail(user: User, appId: string) {
@@ -152,10 +161,19 @@ export class WorkflowAppService {
     });
 
     if (!workflowApp) {
-      throw new ShareNotFoundError();
+      throw new WorkflowAppNotFoundError();
     }
 
-    return workflowAppPO2DTO(workflowApp);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return { ...workflowApp, owner: userPo };
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
@@ -223,37 +241,86 @@ export class WorkflowAppService {
 
     const newCanvasId = genCanvasID();
 
-    try {
-      const executionId = await this.workflowService.initializeWorkflowExecution(
-        user,
-        tempCanvasId,
-        newCanvasId,
-        variables,
-        { appId: workflowApp?.appId },
-      );
+    const executionId = await this.workflowService.initializeWorkflowExecution(
+      user,
+      tempCanvasId,
+      newCanvasId,
+      variables,
+      { appId: workflowApp?.appId },
+    );
 
-      this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);
-      return executionId;
-    } finally {
-    }
+    this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);
+    return executionId;
   }
 
-  async listWorkflowApps(user: User, query: { canvasId: string }) {
-    const whereClause: any = {
+  async listWorkflowApps(user: User, query: ListWorkflowAppsData['query']) {
+    const { canvasId, page = 1, pageSize = 10, order = 'creationDesc', keyword } = query;
+
+    const whereClause: Prisma.WorkflowAppWhereInput = {
       uid: user.uid,
       deletedAt: null,
     };
 
-    if (query.canvasId) {
-      whereClause.canvasId = query.canvasId;
+    if (canvasId) {
+      whereClause.canvasId = canvasId;
+    }
+
+    // Add keyword search functionality
+    if (keyword?.trim()) {
+      const searchKeyword = keyword.trim();
+      whereClause.OR = [
+        { title: { contains: searchKeyword, mode: 'insensitive' } },
+        { description: { contains: searchKeyword, mode: 'insensitive' } },
+        { query: { contains: searchKeyword, mode: 'insensitive' } },
+      ];
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
+    // Determine order by field and direction
+    let orderBy: any = { updatedAt: 'desc' };
+    if (order === 'creationAsc') {
+      orderBy = { createdAt: 'asc' };
+    } else if (order === 'creationDesc') {
+      orderBy = { createdAt: 'desc' };
     }
 
     const workflowApps = await this.prisma.workflowApp.findMany({
       where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      take: 1, // Only get the latest one
+      orderBy,
+      skip,
+      take,
     });
 
-    return workflowApps.map(workflowAppPO2DTO).filter(Boolean);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return workflowApps.map((workflowApp) => ({ ...workflowApp, owner: userPo }));
+  }
+
+  async deleteWorkflowApp(user: User, appId: string) {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { appId, uid: user.uid, deletedAt: null },
+    });
+
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
+    // Mark the workflow app as deleted
+    await this.prisma.workflowApp.update({
+      where: { appId },
+      data: { deletedAt: new Date() },
+    });
+
+    this.logger.log(`Deleted workflow app: ${appId} for user: ${user.uid}`);
   }
 }
