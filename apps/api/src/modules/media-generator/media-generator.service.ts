@@ -3,22 +3,14 @@ import {
   User,
   MediaGenerateRequest,
   MediaGenerateResponse,
-  CreditBilling,
   EntityType,
   CanvasNodeType,
   CanvasNode,
 } from '@refly/openapi-schema';
 
-import { ModelUsageQuotaExceeded } from '@refly/errors';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { QUEUE_SYNC_MEDIA_CREDIT_USAGE } from '../../utils/const';
-import { SyncMediaCreditUsageJobData } from '../subscription/subscription.dto';
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
-import { CreditService } from '../credit/credit.service';
 import { ProviderService } from '../provider/provider.service';
-import { PromptProcessorService } from './prompt-processor.service';
 import { genActionResultID, genMediaID, safeParseJSON } from '@refly/utils';
 import { fal } from '@fal-ai/client';
 import Replicate from 'replicate';
@@ -42,12 +34,8 @@ export class MediaGeneratorService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly miscService: MiscService,
-    private readonly credit: CreditService,
     private readonly providerService: ProviderService,
     private readonly canvasSyncService: CanvasSyncService,
-    private readonly promptProcessor: PromptProcessorService,
-    @InjectQueue(QUEUE_SYNC_MEDIA_CREDIT_USAGE)
-    private readonly mediaCreditUsageReportQueue: Queue<SyncMediaCreditUsageJobData>,
   ) {}
 
   /**
@@ -242,6 +230,7 @@ export class MediaGeneratorService {
         }
       }
     }
+
     const resultId = request.resultId || genActionResultID();
 
     // Creating an ActionResult Record
@@ -273,12 +262,16 @@ export class MediaGeneratorService {
       providerItemId: finalProviderItemId,
     };
 
-    // Start media generation asynchronously
-    this.executeGenerate(user, result, finalRequest, mediaNodeExecution?.entityId).catch(
-      (error) => {
-        this.logger.error(`Media generation failed for ${resultId}:`, error);
-      },
-    );
+    // Start media generation asynchronously and capture promise for optional return
+    const mediaGeneratePromise = this.executeGenerate(
+      user,
+      result,
+      finalRequest,
+      mediaNodeExecution?.entityId,
+    ).catch((error) => {
+      this.logger.error(`Media generation failed for ${resultId}:`, error);
+      return null;
+    });
 
     // If wait is true, execute synchronously and return result
     if (wait) {
@@ -312,11 +305,14 @@ export class MediaGeneratorService {
         });
       }
 
+      const mediaGenerateResult = await mediaGeneratePromise;
+
       return {
         success: true,
         resultId,
         outputUrl: result.outputUrl,
         storageKey: result.storageKey,
+        originalResult: mediaGenerateResult?.originalResult,
       };
     }
 
@@ -337,7 +333,7 @@ export class MediaGeneratorService {
     result: ActionResult,
     request: MediaGenerateRequest,
     mediaId?: string,
-  ): Promise<void> {
+  ): Promise<MediaGenerateResponse> {
     const { mediaType, provider } = request;
     const { pk, resultId, parentResultId, title, targetType, targetId } = result;
     try {
@@ -356,20 +352,6 @@ export class MediaGeneratorService {
         providerKey: provider,
       });
 
-      const creditBilling: CreditBilling = {
-        unitCost: request.unitCost,
-        unit: 'product',
-        minCharge: request.unitCost,
-      };
-
-      if (creditBilling) {
-        const creditUsageResult = await this.credit.checkRequestCreditUsage(user, creditBilling);
-        this.logger.log('creditUsageResult', creditUsageResult);
-        if (!creditUsageResult.canUse) {
-          throw new ModelUsageQuotaExceeded(`credit not available: ${creditUsageResult.message}`);
-        }
-      }
-
       const input = request.input;
 
       this.logger.log(`input: ${JSON.stringify(input)}`);
@@ -378,6 +360,8 @@ export class MediaGeneratorService {
 
       // Generate media based on provider type
       const providerKey = provider;
+
+      let originalResult = null;
 
       if (providerKey === 'replicate') {
         // Use Replicate provider
@@ -397,7 +381,7 @@ export class MediaGeneratorService {
           credentials: mediaProvider?.apiKey,
         });
 
-        const result = await fal.subscribe(request.model, {
+        originalResult = await fal.subscribe(request.model, {
           input: input,
           logs: false,
           onQueueUpdate: (update) => {
@@ -407,7 +391,7 @@ export class MediaGeneratorService {
           },
         });
 
-        url = this.getUrlFromFalResult(result);
+        url = this.getUrlFromFalResult(originalResult);
       } else {
         throw new Error(`Unsupported provider: ${providerKey}`);
       }
@@ -458,22 +442,13 @@ export class MediaGeneratorService {
         );
       }
 
-      if (this.mediaCreditUsageReportQueue && creditBilling) {
-        const basicUsageData = {
-          uid: user.uid,
-          resultId,
-        };
-        const mediaCreditUsage: SyncMediaCreditUsageJobData = {
-          ...basicUsageData,
-          creditBilling,
-          timestamp: new Date(),
-        };
-
-        await this.mediaCreditUsageReportQueue.add(
-          `media_credit_usage_report:${resultId}`,
-          mediaCreditUsage,
-        );
-      }
+      return {
+        success: true,
+        resultId,
+        outputUrl: uploadResult.url,
+        storageKey: uploadResult.storageKey,
+        originalResult: originalResult,
+      };
     } catch (error) {
       this.logger.error(`Media generation failed for ${resultId}: ${error.stack}`);
 
@@ -486,85 +461,6 @@ export class MediaGeneratorService {
         },
       });
     }
-  }
-
-  private async buildInputObject(
-    user: User,
-    request: MediaGenerateRequest,
-    supportedLanguages: string[],
-  ): Promise<Record<string, any>> {
-    if (
-      !request?.inputParameters ||
-      (Array.isArray(request.inputParameters) && request.inputParameters.length === 0)
-    ) {
-      const languageDetection = await this.promptProcessor.detectLanguage(request?.prompt);
-      // Check if supportedLanguages is empty or undefined for backward compatibility
-      const shouldTranslate =
-        !languageDetection.isEnglish &&
-        Array.isArray(supportedLanguages) &&
-        supportedLanguages.length > 0 &&
-        !supportedLanguages.includes(languageDetection.language);
-
-      if (shouldTranslate) {
-        const translatedPrompt = await this.promptProcessor.translateToEnglish(
-          request?.prompt,
-          languageDetection.language,
-        );
-        request.prompt = translatedPrompt.translatedPrompt;
-      }
-      return {
-        prompt: request?.prompt ?? '', // Base field
-      };
-    }
-
-    const input: Record<string, any> = {};
-    if (Array.isArray(request?.inputParameters)) {
-      for (const param of request.inputParameters) {
-        if (param?.name && param?.value !== undefined) {
-          // Skip empty values (empty string or empty array)
-          if (param.value === '' || (Array.isArray(param.value) && param.value.length === 0)) {
-            continue;
-          }
-
-          // Handle URL type parameters by converting storage keys to external URLs
-          if (param.type === 'url') {
-            if (Array.isArray(param.value)) {
-              // Handle array of storage keys
-              const urls = await this.miscService.generateImageUrls(user, param.value as string[]);
-              input[param.name] = urls;
-            } else {
-              // Handle single storage key
-              const urls = await this.miscService.generateImageUrls(user, [param.value as string]);
-              input[param.name] = urls?.[0] ?? '';
-            }
-          } else if (param.type === 'text') {
-            const languageDetection = await this.promptProcessor.detectLanguage(
-              param.value as string,
-            );
-            // Check if supportedLanguages is empty or undefined for backward compatibility
-            const shouldTranslate =
-              !languageDetection.isEnglish &&
-              Array.isArray(supportedLanguages) &&
-              supportedLanguages.length > 0 &&
-              !supportedLanguages.includes(languageDetection.language);
-
-            if (!shouldTranslate) {
-              input[param.name] = param.value;
-            } else {
-              const translatedPrompt = await this.promptProcessor.translateToEnglish(
-                param.value as string,
-                languageDetection.language,
-              );
-              input[param.name] = translatedPrompt.translatedPrompt;
-            }
-          } else {
-            input[param.name] = param.value;
-          }
-        }
-      }
-    }
-
-    return input;
   }
 
   private getUrlFromReplicateOutput(output: any): string {

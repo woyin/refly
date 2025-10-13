@@ -115,15 +115,37 @@ export class VibeVoiceGenerateAudio extends AgentBaseTool<FalAudioParams> {
         model: 'fal-ai/vibevoice/7b',
         provider: 'fal',
         input,
-        unitCost: 140,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on duration
+      let creditCost = 140; // fallback to default unit cost
+      if (
+        result?.originalResult &&
+        typeof result.originalResult === 'object' &&
+        'data' in result.originalResult &&
+        result.originalResult.data &&
+        typeof result.originalResult.data === 'object' &&
+        'duration' in result.originalResult.data &&
+        typeof result.originalResult.data.duration === 'number'
+      ) {
+        const duration = result.originalResult.data.duration;
+        // Round up to nearest 15 seconds
+        const roundedSeconds = Math.ceil(duration / 15) * 15;
+        // Convert to minutes
+        const minutes = roundedSeconds / 60;
+        // $0.04 per minute
+        const usdCost = minutes * 0.04;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated audio with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -203,15 +225,27 @@ export class ElevenLabsDialogueGenerateAudio extends AgentBaseTool<FalAudioParam
         model: 'fal-ai/elevenlabs/text-to-dialogue/eleven-v3',
         provider: 'fal',
         input,
-        unitCost: 70,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on character count
+      let creditCost = 70; // fallback to default unit cost
+      if (input?.inputs && Array.isArray(input.inputs)) {
+        const totalCharacters = input.inputs.reduce((sum, item) => {
+          return sum + (item.text?.length ?? 0);
+        }, 0);
+        // $0.1 per 1000 characters
+        const usdCost = (totalCharacters / 1000) * 0.1;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated audio with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -332,15 +366,25 @@ export class MinimaxSpeechGenerateAudio extends AgentBaseTool<FalAudioParams> {
         model: 'fal-ai/minimax/preview/speech-2.5-turbo',
         provider: 'fal',
         input,
-        unitCost: 35,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on character count
+      let creditCost = 35; // fallback to default unit cost
+      if (input?.text) {
+        const totalCharacters = input.text.length;
+        // $0.06 per 1000 characters
+        const usdCost = (totalCharacters / 1000) * 0.06;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated audio with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {

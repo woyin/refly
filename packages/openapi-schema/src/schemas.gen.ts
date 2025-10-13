@@ -5672,6 +5672,10 @@ export const MediaGenerateResponseSchema = {
           type: 'string',
           description: 'Media generation output storage key (only available when `wait` is true)',
         },
+        originalResult: {
+          type: 'object',
+          description: 'Media generation original result from provider',
+        },
       },
     },
   ],

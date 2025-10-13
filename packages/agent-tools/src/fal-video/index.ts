@@ -160,15 +160,48 @@ export class SeedanceGenerateVideo extends AgentBaseTool<FalVideoParams> {
         model: 'fal-ai/bytedance/seedance/v1/pro/text-to-video',
         provider: 'fal',
         input,
-        unitCost: 62,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on resolution and duration
+      let creditCost = 62; // fallback to default unit cost
+      if (input?.resolution && input?.duration) {
+        const resolution = input.resolution;
+        const duration = Number.parseInt(input.duration);
+
+        // Define resolution dimensions and FPS
+        const resolutionMap: Record<string, { width: number; height: number }> = {
+          '480p': { width: 854, height: 480 },
+          '720p': { width: 1280, height: 720 },
+          '1080p': { width: 1920, height: 1080 },
+        };
+
+        const FPS = 30; // Assuming 30 FPS
+
+        if (resolution === '1080p' && duration === 5) {
+          // Special case: 1080p 5 second video costs roughly $0.62
+          const usdCost = 0.62;
+          // Convert to credits (USD * 140)
+          creditCost = Math.ceil(usdCost * 140);
+        } else {
+          // For other resolutions: 1 million video tokens costs $2.5
+          // tokens(video) = (height x width x FPS x duration) / 1024
+          const dims = resolutionMap[resolution];
+          if (dims) {
+            const tokens = (dims.height * dims.width * FPS * duration) / 1024;
+            const usdCost = (tokens / 1000000) * 2.5;
+            // Convert to credits (USD * 140)
+            creditCost = Math.ceil(usdCost * 140);
+          }
+        }
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -234,15 +267,48 @@ export class SeedanceRefrenceVideo extends AgentBaseTool<FalVideoParams> {
           ...input,
           image_url,
         },
-        unitCost: 62,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on resolution and duration
+      let creditCost = 62; // fallback to default unit cost
+      if (input?.resolution && input?.duration) {
+        const resolution = input.resolution;
+        const duration = Number.parseInt(input.duration);
+
+        // Define resolution dimensions and FPS
+        const resolutionMap: Record<string, { width: number; height: number }> = {
+          '480p': { width: 854, height: 480 },
+          '720p': { width: 1280, height: 720 },
+          '1080p': { width: 1920, height: 1080 },
+        };
+
+        const FPS = 30; // Assuming 30 FPS
+
+        if (resolution === '1080p' && duration === 5) {
+          // Special case: 1080p 5 second video costs roughly $0.62
+          const usdCost = 0.62;
+          // Convert to credits (USD * 140)
+          creditCost = Math.ceil(usdCost * 140);
+        } else {
+          // For other resolutions: 1 million video tokens costs $2.5
+          // tokens(video) = (height x width x FPS x duration) / 1024
+          const dims = resolutionMap[resolution];
+          if (dims) {
+            const tokens = (dims.height * dims.width * FPS * duration) / 1024;
+            const usdCost = (tokens / 1000000) * 2.5;
+            // Convert to credits (USD * 140)
+            creditCost = Math.ceil(usdCost * 140);
+          }
+        }
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -319,7 +385,6 @@ export class Veo3GenerateVideo extends AgentBaseTool<FalVideoParams> {
         model: 'fal-ai/veo3',
         provider: 'fal',
         input,
-        unitCost: 840,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -328,6 +393,7 @@ export class Veo3GenerateVideo extends AgentBaseTool<FalVideoParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost: 840,
       };
     } catch (error) {
       return {
@@ -404,7 +470,6 @@ export class Veo3FastGenerateVideo extends AgentBaseTool<FalVideoParams> {
         model: 'fal-ai/veo3/fast',
         provider: 'fal',
         input,
-        unitCost: 448,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -413,6 +478,7 @@ export class Veo3FastGenerateVideo extends AgentBaseTool<FalVideoParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost: 448,
       };
     } catch (error) {
       return {
@@ -476,7 +542,6 @@ export class Veo3RefrenceVideo extends AgentBaseTool<FalVideoParams> {
           ...input,
           image_url,
         },
-        unitCost: 840,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -485,6 +550,7 @@ export class Veo3RefrenceVideo extends AgentBaseTool<FalVideoParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost: 840,
       };
     } catch (error) {
       return {
@@ -533,7 +599,6 @@ export class Veo3FastRefrenceVideo extends AgentBaseTool<FalVideoParams> {
           ...input,
           image_url,
         },
-        unitCost: 448,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -542,6 +607,7 @@ export class Veo3FastRefrenceVideo extends AgentBaseTool<FalVideoParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost: 448,
       };
     } catch (error) {
       return {
@@ -606,15 +672,27 @@ export class KlingGenerateVideo extends AgentBaseTool<FalVideoParams> {
         model: 'fal-ai/kling-video/v2.1/master/text-to-video',
         provider: 'fal',
         input,
-        unitCost: 140,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on duration
+      let creditCost = 140; // fallback to default unit cost
+      if (input?.duration) {
+        const duration = Number.parseInt(input.duration);
+        // For 5s video: $1.40, for every additional second: $0.28
+        const baseCost = 1.4; // $1.40 for 5 seconds
+        const additionalCostPerSecond = 0.28; // $0.28 per additional second
+        const usdCost = baseCost + Math.max(0, duration - 5) * additionalCostPerSecond;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -678,15 +756,27 @@ export class KlingRefrenceVideo extends AgentBaseTool<FalVideoParams> {
           ...input,
           image_url,
         },
-        unitCost: 140,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on duration
+      let creditCost = 140; // fallback to default unit cost
+      if (input?.duration) {
+        const duration = Number.parseInt(input.duration);
+        // For 5s video: $1.40, for every additional second: $0.28
+        const baseCost = 1.4; // $1.40 for 5 seconds
+        const additionalCostPerSecond = 0.28; // $0.28 per additional second
+        const usdCost = baseCost + Math.max(0, duration - 5) * additionalCostPerSecond;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -743,15 +833,32 @@ export class WanGenerateVideo extends AgentBaseTool<FalVideoParams> {
         model: 'fal-ai/wan/v2.2-a14b/text-to-video',
         provider: 'fal',
         input,
-        unitCost: 40,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on resolution
+      let creditCost = 40; // fallback to default unit cost
+      if (input?.resolution) {
+        const resolution = input.resolution;
+        // Wan videos are 5 seconds: $0.08/s for 720p, $0.06/s for 580p, $0.04/s for 480p
+        const costPerSecond: Record<string, number> = {
+          '720p': 0.08,
+          '580p': 0.06,
+          '480p': 0.04,
+          auto: 0.04, // default to 480p price for auto
+        };
+
+        const usdCost = 5 * (costPerSecond[resolution] || 0.04); // 5 seconds
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -818,15 +925,32 @@ export class WanRefrenceVideo extends AgentBaseTool<FalVideoParams> {
         model: 'fal-ai/wan/v2.2-a14b/image-to-video',
         provider: 'fal',
         input: inputObject,
-        unitCost: 40,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on resolution
+      let creditCost = 40; // fallback to default unit cost
+      if (input?.resolution) {
+        const resolution = input.resolution;
+        // Wan videos are 5 seconds: $0.08/s for 720p, $0.06/s for 580p, $0.04/s for 480p
+        const costPerSecond: Record<string, number> = {
+          '720p': 0.08,
+          '580p': 0.06,
+          '480p': 0.04,
+          auto: 0.04, // default to 480p price for auto
+        };
+
+        const usdCost = 5 * (costPerSecond[resolution] || 0.04); // 5 seconds
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -872,7 +996,6 @@ export class WanEditVideo extends AgentBaseTool<FalVideoParams> {
         model: 'fal-ai/wan/v2.2-a14b/video-to-video',
         provider: 'fal',
         input,
-        unitCost: 40,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -881,6 +1004,7 @@ export class WanEditVideo extends AgentBaseTool<FalVideoParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated video with URL: ${result?.outputUrl}`,
+        creditCost: 40,
       };
     } catch (error) {
       return {

@@ -87,10 +87,16 @@ export class JinaRead extends AgentBaseTool<JinaToolParams> {
     try {
       const client = new JinaClient({ apiKey: this.params.apiKey });
       const response = await client.read(input.url, input.returnFormat);
+
+      // Calculate credit cost based on tokens used: 7 credits per million tokens, minimum 1 credit
+      const tokens = response.data?.usage?.tokens ?? 0;
+      const creditCost = Math.max(1, Math.ceil((tokens / 1_000_000) * 7));
+
       return {
         status: 'success',
         data: response.data,
         summary: `Successfully read the content of ${input.url}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -111,7 +117,9 @@ export class JinaSerp extends AgentBaseTool<JinaToolParams> {
     query: z.string().describe('The query to search for'),
     readFullContent: z
       .boolean()
-      .describe('Whether to read the full content of the search results')
+      .describe(
+        'Whether to read the full content of the search results, default is false, try to choose false if possible',
+      )
       .default(false),
     site: z.string().describe('The site to search for').optional(),
     offset: z.number().describe('The offset to search for').default(1),
@@ -135,10 +143,22 @@ export class JinaSerp extends AgentBaseTool<JinaToolParams> {
         input.site,
         input.offset,
       );
+
+      // Calculate total tokens from all search results and determine credit cost
+      // Each search result has usage.tokens, sum them all up
+      const totalTokens =
+        response.data?.reduce((sum: number, result: any) => {
+          return sum + (result?.usage?.tokens ?? 0);
+        }, 0) ?? 0;
+
+      // Calculate credit cost based on tokens used: 7 credits per million tokens, minimum 1 credit
+      const creditCost = Math.max(1, Math.ceil((totalTokens / 1_000_000) * 7));
+
       return {
         status: 'success',
         data: response.data,
         summary: `Successfully searched the web for ${input.query}`,
+        creditCost,
       };
     } catch (error) {
       return {

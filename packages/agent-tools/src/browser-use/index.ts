@@ -71,6 +71,24 @@ interface BrowserUseToolParams extends ToolParams {
   baseUrl?: string;
 }
 
+// Model pricing per step in USD
+const MODEL_PRICING: Record<string, number> = {
+  'gpt-4.1': 0.025,
+  'gpt-4.1-mini': 0.0075,
+  'o4-mini': 0.02,
+  o3: 0.01,
+  'gemini-2.5-flash': 0.0075,
+  'gemini-2.5-pro': 0.025,
+  'claude-sonnet-4-20250514': 0.03,
+  'gpt-4o': 0.025, // Default fallback pricing
+  'gpt-4o-mini': 0.0075, // Default fallback pricing
+  'llama-4-maverick-17b-128e-instruct': 0.01,
+  'claude-3-7-sonnet-20250219': 0.03,
+};
+
+const TASK_INITIALIZATION_COST = 0.01; // USD
+const CREDITS_PER_USD = 140; // Credit conversion rate
+
 export class BrowserUseCreateTask extends AgentBaseTool<BrowserUseToolParams> {
   name = 'create_task';
   toolsetKey = BrowserUseToolsetDefinition.key;
@@ -157,126 +175,110 @@ export class BrowserUseCreateTask extends AgentBaseTool<BrowserUseToolParams> {
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
-      // Dynamic import to avoid issues if package is not available
-      const { BrowserUseClient } = await import('browser-use-sdk');
+      const apiBase = `${this.params.baseUrl ?? 'https://api.browser-use.com'}/api/v1`;
 
-      const client = new BrowserUseClient({
-        apiKey: this.params.apiKey,
-        baseUrl: this.params.baseUrl,
-      });
-
-      let sessionId = input.sessionId;
-
-      // Create session if profileId or proxyCountryCode is provided but no sessionId
-      if ((input.profileId || input.proxyCountryCode) && !sessionId) {
-        const sessionOptions: any = {};
-        if (input.profileId) {
-          sessionOptions.profileId = input.profileId;
-        }
-        if (input.proxyCountryCode) {
-          sessionOptions.proxyCountryCode = input.proxyCountryCode as any;
-        }
-
-        const session = await client.sessions.createSession(sessionOptions);
-        sessionId = session.id;
-      }
-
-      // Prepare task options
-      const taskOptions: any = {
-        task: input.task,
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${this.params.apiKey}`,
+        'Content-Type': 'application/json',
       };
 
-      // Add optional parameters
+      // Build request payload for /run-task (minimal fields per v1 docs)
+      const payload: Record<string, any> = { task: input.task };
+
       if (input.structuredOutput) {
-        // Convert Zod schema to JSON schema string
+        // Convert Zod schema to JSON schema string as structured_output_json
         const { zodToJsonSchema } = await import('zod-to-json-schema');
         const jsonSchema = zodToJsonSchema(input.structuredOutput);
-        taskOptions.structuredOutput = JSON.stringify(jsonSchema);
+        payload.structured_output_json = JSON.stringify(jsonSchema);
       }
 
-      if (sessionId) {
-        taskOptions.sessionId = sessionId;
+      const runResponse = await fetch(`${apiBase}/run-task`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!runResponse.ok) {
+        let errorData: any = {};
+        try {
+          errorData = await runResponse.json();
+        } catch {}
+        throw new Error(
+          errorData?.error ?? `HTTP ${runResponse.status}: ${runResponse.statusText}`,
+        );
       }
 
-      if (input.startUrl) {
-        taskOptions.startUrl = input.startUrl;
+      const runJson: any = await runResponse.json();
+      const taskId: string | undefined = runJson?.id ?? runJson?.task_id ?? runJson?.taskId;
+      if (!taskId) {
+        throw new Error('Missing task id in run-task response');
       }
 
-      if (input.maxSteps !== undefined) {
-        taskOptions.maxSteps = input.maxSteps;
-      }
+      // Poll task details until completion
+      const pollIntervalMs = 2000;
+      const maxWaitMs = 300000; // 5 minutes safety cap
+      const deadline = Date.now() + maxWaitMs;
 
-      if (input.allowedDomains?.length) {
-        taskOptions.allowedDomains = input.allowedDomains;
-      }
-
-      if (input.secrets) {
-        taskOptions.secrets = input.secrets;
-      }
-
-      if (input.metadata) {
-        taskOptions.metadata = input.metadata;
-      }
-
-      if (input.highlightElements !== undefined) {
-        taskOptions.highlightElements = input.highlightElements;
-      }
-
-      if (input.flashMode !== undefined) {
-        taskOptions.flashMode = input.flashMode;
-      }
-
-      if (input.thinking !== undefined) {
-        taskOptions.thinking = input.thinking;
-      }
-
-      if (input.vision !== undefined) {
-        taskOptions.vision = input.vision;
-      }
-
-      if (input.systemPromptExtension) {
-        taskOptions.systemPromptExtension = input.systemPromptExtension;
-      }
-
-      if (input.llm) {
-        taskOptions.llm = input.llm;
-      }
-
-      // Create and execute the task
-      const task = await client.tasks.createTask(taskOptions);
-      const result = await task.complete();
-
-      // Prepare the response
-      const responseData: any = {
-        output: result.output,
-        fullResult: result,
+      let finalDetails: any | undefined;
+      // Helper to fetch task details
+      const fetchDetails = async (): Promise<any> => {
+        const resp = await fetch(`${apiBase}/task/${taskId}`, { headers });
+        if (!resp.ok) {
+          let err: any = {};
+          try {
+            err = await resp.json();
+          } catch {}
+          throw new Error(err?.error ?? `HTTP ${resp.status}: ${resp.statusText}`);
+        }
+        return resp.json();
       };
 
-      // Add parsed result if structuredOutput was provided and result has parsed data
-      if (input.structuredOutput && result.parsed) {
-        responseData.parsed = result.parsed;
+      for (;;) {
+        const details = await fetchDetails();
+        const status = details?.status ?? '';
+        if (status === 'finished' || status === 'failed' || status === 'stopped') {
+          finalDetails = details;
+          break;
+        }
+        if (Date.now() > deadline) {
+          throw new Error('Timeout while waiting for task to finish');
+        }
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
       }
 
-      // Add session info if available
-      if (result.sessionId) {
-        responseData.sessionId = result.sessionId;
+      const resultObj = finalDetails ?? {};
+      const responseData: any = {
+        output: resultObj?.output ?? null,
+        fullResult: resultObj,
+      };
+
+      if (input.structuredOutput && resultObj?.parsed) {
+        responseData.parsed = resultObj.parsed;
       }
 
-      // Generate summary
+      if (resultObj?.sessionId) {
+        responseData.sessionId = resultObj.sessionId;
+      }
+
+      // Calculate credit cost
+      const steps = resultObj?.steps ?? [];
+      const modelUsed = input.llm ?? 'gpt-4o'; // Default fallback model
+      const stepCostPerUnit = MODEL_PRICING[modelUsed] ?? MODEL_PRICING['gpt-4o'];
+      const initializationCost = TASK_INITIALIZATION_COST;
+      const stepsCost = steps.length * stepCostPerUnit;
+      const totalCostUSD = initializationCost + stepsCost;
+      const creditCost = Math.ceil(totalCostUSD * CREDITS_PER_USD); // Round up to nearest integer
+
       const summaryParts = ['Successfully executed browser automation task'];
-
-      if (result.parsed) {
+      if (resultObj?.parsed) {
         summaryParts.push('with structured result');
       }
-
       if (input.proxyCountryCode) {
         summaryParts.push(`using proxy from ${input.proxyCountryCode.toUpperCase()}`);
       }
-
       if (input.flashMode) {
         summaryParts.push('(flash mode enabled)');
       }
-
       if (input.llm) {
         summaryParts.push(`using ${input.llm} model`);
       }
@@ -285,6 +287,7 @@ export class BrowserUseCreateTask extends AgentBaseTool<BrowserUseToolParams> {
         status: 'success',
         data: responseData,
         summary: summaryParts.join(' '),
+        creditCost,
       };
     } catch (error) {
       return {

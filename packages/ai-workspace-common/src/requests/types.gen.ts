@@ -4029,6 +4029,12 @@ export type MediaGenerateResponse = BaseResponse & {
    * Media generation output storage key (only available when `wait` is true)
    */
   storageKey?: string;
+  /**
+   * Media generation original result from provider
+   */
+  originalResult?: {
+    [key: string]: unknown;
+  };
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';

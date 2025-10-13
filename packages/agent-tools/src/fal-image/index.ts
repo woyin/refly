@@ -104,7 +104,6 @@ export class SeedreamGenerateImage extends AgentBaseTool<FalImageParams> {
         model: 'fal-ai/bytedance/seedream/v4/text-to-image',
         provider: 'fal',
         input,
-        unitCost: 5,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -113,6 +112,7 @@ export class SeedreamGenerateImage extends AgentBaseTool<FalImageParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated image with URL: ${result?.outputUrl}`,
+        creditCost: 5,
       };
     } catch (error) {
       return {
@@ -175,7 +175,6 @@ export class SeedreamEditImage extends AgentBaseTool<FalImageParams> {
           ...input,
           image_urls,
         },
-        unitCost: 6,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -184,6 +183,7 @@ export class SeedreamEditImage extends AgentBaseTool<FalImageParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated image with URL: ${result?.outputUrl}`,
+        creditCost: 5,
       };
     } catch (error) {
       return {
@@ -231,7 +231,6 @@ export class NanoBananaEditImage extends AgentBaseTool<FalImageParams> {
           ...input,
           image_urls,
         },
-        unitCost: 6,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -240,6 +239,7 @@ export class NanoBananaEditImage extends AgentBaseTool<FalImageParams> {
         status: 'success',
         data: result,
         summary: `Successfully edited image with URL: ${result?.outputUrl}`,
+        creditCost: 6,
       };
     } catch (error) {
       return {
@@ -282,7 +282,6 @@ export class NanoBananaGenerateImage extends AgentBaseTool<FalImageParams> {
         model: 'fal-ai/nano-banana',
         provider: 'fal',
         input,
-        unitCost: 6,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -291,6 +290,7 @@ export class NanoBananaGenerateImage extends AgentBaseTool<FalImageParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated image with URL: ${result?.outputUrl}`,
+        creditCost: 6,
       };
     } catch (error) {
       return {
