@@ -30,7 +30,7 @@ export const ContactUsPopover: React.FC<ContactUsPopoverProps> = ({ children, op
   };
 
   const handleTwitterClick = () => {
-    window.open('https://twitter.com/refly_ai', '_blank');
+    window.open('https://twitter.com/reflyai', '_blank');
   };
 
   const content = (

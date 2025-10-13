@@ -3617,7 +3617,7 @@ const translations = {
     templateDescription: 'Description',
     templateDescriptionPlaceholder: 'Please enter template description',
     createSuccess: 'Template created successfully, please view in template library',
-    preview: 'Experience',
+    preview: 'Try it',
     use: 'Make the Same',
     duplicateCanvas: 'Remix Workflow',
     canvasTitle: 'Workflow Name',
