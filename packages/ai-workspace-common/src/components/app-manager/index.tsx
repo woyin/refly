@@ -3,7 +3,6 @@ import { useFetchDataList } from '@refly-packages/ai-workspace-common/hooks/use-
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useTranslation } from 'react-i18next';
 import { Input, Button, Empty } from 'antd';
-import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { Search, Sort, SortAsc } from 'refly-icons';
 import {
@@ -15,6 +14,7 @@ import { AppCard } from './app-card';
 import './index.scss';
 import { ListOrder } from '@refly/openapi-schema';
 import { useDebouncedCallback } from 'use-debounce';
+import { TemplateCardSkeleton } from '../canvas-template/template-card-skeleton';
 
 export const AppManager = () => {
   const { t } = useTranslation();
@@ -115,8 +115,10 @@ export const AppManager = () => {
       {/* Content */}
       <div className="flex-1 overflow-hidden pb-6 px-4">
         {isRequesting && dataList.length === 0 ? (
-          <div className="h-full w-full flex items-center justify-center">
-            <Spin />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 20 }).map((_, index) => (
+              <TemplateCardSkeleton key={index} className="!m-0" />
+            ))}
           </div>
         ) : (
           <div id="workflowAppScrollableDiv" className="w-full h-full overflow-y-auto">
