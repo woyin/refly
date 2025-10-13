@@ -12,7 +12,6 @@ import {
 import { PrismaService } from '../common/prisma.service';
 import { MiscService } from '../misc/misc.service';
 import { ProviderService } from '../provider/provider.service';
-import { PromptProcessorService } from './prompt-processor.service';
 import { genActionResultID, genMediaID, safeParseJSON } from '@refly/utils';
 import { fal } from '@fal-ai/client';
 import Replicate from 'replicate';
@@ -39,7 +38,6 @@ export class MediaGeneratorService {
     private readonly miscService: MiscService,
     private readonly providerService: ProviderService,
     private readonly canvasSyncService: CanvasSyncService,
-    private readonly promptProcessor: PromptProcessorService,
   ) {}
 
   /**
@@ -483,85 +481,6 @@ export class MediaGeneratorService {
         },
       });
     }
-  }
-
-  private async buildInputObject(
-    user: User,
-    request: MediaGenerateRequest,
-    supportedLanguages: string[],
-  ): Promise<Record<string, any>> {
-    if (
-      !request?.inputParameters ||
-      (Array.isArray(request.inputParameters) && request.inputParameters.length === 0)
-    ) {
-      const languageDetection = await this.promptProcessor.detectLanguage(request?.prompt);
-      // Check if supportedLanguages is empty or undefined for backward compatibility
-      const shouldTranslate =
-        !languageDetection.isEnglish &&
-        Array.isArray(supportedLanguages) &&
-        supportedLanguages.length > 0 &&
-        !supportedLanguages.includes(languageDetection.language);
-
-      if (shouldTranslate) {
-        const translatedPrompt = await this.promptProcessor.translateToEnglish(
-          request?.prompt,
-          languageDetection.language,
-        );
-        request.prompt = translatedPrompt.translatedPrompt;
-      }
-      return {
-        prompt: request?.prompt ?? '', // Base field
-      };
-    }
-
-    const input: Record<string, any> = {};
-    if (Array.isArray(request?.inputParameters)) {
-      for (const param of request.inputParameters) {
-        if (param?.name && param?.value !== undefined) {
-          // Skip empty values (empty string or empty array)
-          if (param.value === '' || (Array.isArray(param.value) && param.value.length === 0)) {
-            continue;
-          }
-
-          // Handle URL type parameters by converting storage keys to external URLs
-          if (param.type === 'url') {
-            if (Array.isArray(param.value)) {
-              // Handle array of storage keys
-              const urls = await this.miscService.generateImageUrls(user, param.value as string[]);
-              input[param.name] = urls;
-            } else {
-              // Handle single storage key
-              const urls = await this.miscService.generateImageUrls(user, [param.value as string]);
-              input[param.name] = urls?.[0] ?? '';
-            }
-          } else if (param.type === 'text') {
-            const languageDetection = await this.promptProcessor.detectLanguage(
-              param.value as string,
-            );
-            // Check if supportedLanguages is empty or undefined for backward compatibility
-            const shouldTranslate =
-              !languageDetection.isEnglish &&
-              Array.isArray(supportedLanguages) &&
-              supportedLanguages.length > 0 &&
-              !supportedLanguages.includes(languageDetection.language);
-
-            if (!shouldTranslate) {
-              input[param.name] = param.value;
-            } else {
-              const translatedPrompt = await this.promptProcessor.translateToEnglish(
-                param.value as string,
-                languageDetection.language,
-              );
-              input[param.name] = translatedPrompt.translatedPrompt;
-            }
-          } else {
-            input[param.name] = param.value;
-          }
-        }
-      }
-    }
-
-    return input;
   }
 
   private getUrlFromReplicateOutput(output: any): string {
