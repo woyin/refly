@@ -1,11 +1,13 @@
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { genImageID, genUniqueId } from '@refly/utils';
+import { genUniqueId } from '@refly/utils';
 import { useMemo } from 'react';
-import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
-import { CanvasNodeData, ImageNodeMeta } from '@refly/canvas-common';
 import { useImageUploadStore, type UploadProgress } from '@refly/stores';
+import { UpsertResourceRequest } from '@refly/openapi-schema';
+import { message } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 export const useUploadImage = () => {
+  const { t } = useTranslation();
   const { startUpload, updateProgress, setUploadSuccess, setUploadError } = useImageUploadStore();
 
   const uploadImage = async (image: File, canvasId: string, uploadId?: string) => {
@@ -25,7 +27,7 @@ export const useUploadImage = () => {
     return response?.data;
   };
 
-  const handleUploadImage = async (imageFile: File, canvasId: string) => {
+  const handleUploadImage = async (imageFile: File, canvasId: string, projectId?: string) => {
     const uploadFile: UploadProgress = {
       id: genUniqueId(),
       fileName: imageFile.name,
@@ -40,34 +42,39 @@ export const useUploadImage = () => {
       const { data, success } = result ?? {};
 
       if (success && data) {
-        const nodeData = {
-          title: imageFile.name,
-          entityId: genImageID(),
-          metadata: {
-            imageUrl: data.url,
+        const batchCreateResourceData: UpsertResourceRequest[] = [
+          {
+            projectId,
+            resourceType: 'image',
+            title: imageFile.name,
+            canvasId,
             storageKey: data.storageKey,
-          } as ImageNodeMeta,
-        };
-
-        await new Promise<void>((resolve) => {
-          const timeoutId = setTimeout(resolve, 1000);
-          nodeOperationsEmitter.emit('addNode', {
-            node: { type: 'image', data: nodeData },
-            shouldPreview: false,
-            needSetCenter: true,
-            positionCallback: () => {
-              clearTimeout(timeoutId);
-              resolve();
+            data: {
+              url: data.url,
+              title: imageFile.name,
             },
-          });
+          },
+        ];
+
+        const { data: createResult } = await getClient().batchCreateResource({
+          body: batchCreateResourceData,
         });
 
-        // Mark upload as successful - only after node is successfully created
+        if (!createResult?.success) {
+          if (uploadId) {
+            setUploadError(uploadId, 'Failed to create resource');
+          }
+          message.error(t('common.saveFailed'));
+          return null;
+        }
+
+        // Mark upload as successful
         if (uploadId) {
           setUploadSuccess(uploadId);
         }
 
-        return nodeData;
+        message.success(t('common.putSuccess'));
+        return createResult.data?.[0] || null;
       } else {
         // Mark upload as failed - uploadImage returned success: false or no data
         if (uploadId) {
@@ -80,6 +87,7 @@ export const useUploadImage = () => {
       if (uploadId) {
         setUploadError(uploadId, error instanceof Error ? error.message : 'Upload failed');
       }
+      message.error(t('common.saveFailed'));
       return null;
     }
   };
@@ -87,7 +95,8 @@ export const useUploadImage = () => {
   const handleUploadMultipleImages = async (
     imageFiles: File[],
     canvasId: string,
-  ): Promise<CanvasNodeData<ImageNodeMeta>[]> => {
+    projectId?: string,
+  ): Promise<any[]> => {
     // Start upload tracking for all files
     const uploadFiles: UploadProgress[] = imageFiles.map((file) => ({
       id: genUniqueId(),
@@ -97,10 +106,10 @@ export const useUploadImage = () => {
     }));
     startUpload(uploadFiles);
 
-    // Store the reference position for node placement
-    let referencePosition: { x: number; y: number } | null = null;
-    const nodesData = [];
+    const uploadResults = [];
+    const batchCreateResourceData: UpsertResourceRequest[] = [];
 
+    // First, upload all images
     for (let i = 0; i < imageFiles.length; i++) {
       const imageFile = imageFiles[i];
       const uploadId = uploadFiles[i]?.id;
@@ -110,46 +119,18 @@ export const useUploadImage = () => {
         const { data, success } = result ?? {};
 
         if (success && data) {
-          const nodeData: CanvasNodeData<ImageNodeMeta> = {
-            title: imageFile.name ?? '',
-            entityId: genImageID(),
-            metadata: {
-              imageUrl: data.url,
-              storageKey: data.storageKey,
+          uploadResults.push({ file: imageFile, uploadData: data, uploadId });
+          batchCreateResourceData.push({
+            projectId,
+            resourceType: 'image',
+            title: imageFile.name,
+            canvasId,
+            storageKey: data.storageKey,
+            data: {
+              url: data.url,
+              title: imageFile.name,
             },
-          };
-
-          await new Promise<void>((resolve) => {
-            // Use the event emitter to add nodes with proper spacing
-            nodeOperationsEmitter.emit('addNode', {
-              node: {
-                type: 'image',
-                data: nodeData,
-                position: referencePosition
-                  ? {
-                      x: referencePosition.x,
-                      y: referencePosition.y + 150, // Add vertical spacing between nodes
-                    }
-                  : undefined,
-              },
-              shouldPreview: false,
-              needSetCenter: i === imageFiles.length - 1,
-              positionCallback: (newPosition) => {
-                referencePosition = newPosition;
-                resolve();
-              },
-            });
-
-            // Add a timeout in case the callback doesn't fire
-            setTimeout(() => resolve(), 100);
           });
-
-          nodesData.push(nodeData);
-
-          // Mark upload as successful - only after node is successfully created
-          if (uploadId) {
-            setUploadSuccess(uploadId);
-          }
         } else {
           // Mark upload as failed - uploadImage returned success: false or no data
           if (uploadId) {
@@ -164,7 +145,45 @@ export const useUploadImage = () => {
       }
     }
 
-    return nodesData;
+    // If we have successful uploads, create resources in batch
+    if (batchCreateResourceData.length > 0) {
+      try {
+        const { data: createResult } = await getClient().batchCreateResource({
+          body: batchCreateResourceData,
+        });
+
+        if (createResult?.success && createResult.data) {
+          // Mark all successful uploads as completed
+          for (const { uploadId } of uploadResults) {
+            if (uploadId) {
+              setUploadSuccess(uploadId);
+            }
+          }
+          message.success(t('common.putSuccess'));
+          return createResult.data;
+        } else {
+          // Mark all uploads as failed since resource creation failed
+          for (const { uploadId } of uploadResults) {
+            if (uploadId) {
+              setUploadError(uploadId, 'Failed to create resources');
+            }
+          }
+          message.error(t('common.saveFailed'));
+          return [];
+        }
+      } catch (_error) {
+        // Mark all uploads as failed
+        for (const { uploadId } of uploadResults) {
+          if (uploadId) {
+            setUploadError(uploadId, 'Failed to create resources');
+          }
+        }
+        message.error(t('common.saveFailed'));
+        return [];
+      }
+    }
+
+    return [];
   };
 
   return useMemo(

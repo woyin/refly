@@ -22,12 +22,12 @@ export const FalAudioToolsetDefinition: ToolsetDefinition = {
   key: 'fal_audio',
   domain: 'https://fal.ai/',
   labelDict: {
-    en: 'Generate Audio with FAL',
-    'zh-CN': '使用 FAL 生成音频',
+    en: 'Audio Generation',
+    'zh-CN': '音频生成',
   },
   descriptionDict: {
-    en: 'Generate audio content with FAL.',
-    'zh-CN': '使用 FAL 生成音频内容。',
+    en: 'Generate high-quality speech and voiceover, support VibeVoice、ElevenLabs Dialogue、MiniMax Speech model.',
+    'zh-CN': '生成高质量语音与配音，支持 VibeVoice、ElevenLabs Dialogue、MiniMax Speech 模型。',
   },
   tools: [
     {
@@ -62,7 +62,7 @@ export class VibeVoiceGenerateAudio extends AgentBaseTool<FalAudioParams> {
     script: z
       .string()
       .describe(
-        "The script to convert to speech up to 25 minutes. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues. supports up to four speakers at once, match the speakers and speaker's language. example: \"Speaker 0: VibeVoice is now available on Fal. Isn't that right, Carter?\nSpeaker 1: That's right Frank, and it supports up to four speakers at once. Try it now!\"",
+        "The script to convert to speech up to 25 minutes. You can use it to generate a whole podcast without splitting it into segments. Can be formatted with 'Speaker X:' prefixes for multi-speaker dialogues. supports up to four speakers at once, match the speakers and speaker's language. example: \"Speaker 0: VibeVoice is now available on Fal. Isn't that right, Carter?\nSpeaker 1: That's right Frank, and it supports up to four speakers at once. Try it now!\"",
       ),
     speakers: z
       .array(
@@ -92,7 +92,8 @@ export class VibeVoiceGenerateAudio extends AgentBaseTool<FalAudioParams> {
       .default(1.3),
   });
 
-  description = "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.";
+  description =
+    "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.You can use it to generate a whole podcast without splitting it into segments.";
 
   protected params: FalAudioParams;
 
@@ -114,15 +115,37 @@ export class VibeVoiceGenerateAudio extends AgentBaseTool<FalAudioParams> {
         model: 'fal-ai/vibevoice/7b',
         provider: 'fal',
         input,
-        unitCost: 140,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on duration
+      let creditCost = 140; // fallback to default unit cost
+      if (
+        result?.originalResult &&
+        typeof result.originalResult === 'object' &&
+        'data' in result.originalResult &&
+        result.originalResult.data &&
+        typeof result.originalResult.data === 'object' &&
+        'duration' in result.originalResult.data &&
+        typeof result.originalResult.data.duration === 'number'
+      ) {
+        const duration = result.originalResult.data.duration;
+        // Round up to nearest 15 seconds
+        const roundedSeconds = Math.ceil(duration / 15) * 15;
+        // Convert to minutes
+        const minutes = roundedSeconds / 60;
+        // $0.04 per minute
+        const usdCost = minutes * 0.04;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated audio with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -179,7 +202,8 @@ export class ElevenLabsDialogueGenerateAudio extends AgentBaseTool<FalAudioParam
       ),
   });
 
-  description = 'Generate realistic audio dialogues using Eleven-v3 from ElevenLabs.';
+  description =
+    'Generate realistic audio dialogues using Eleven-v3 from ElevenLabs. You can use it to generate a whole podcast without splitting it into segments.';
 
   protected params: FalAudioParams;
 
@@ -201,15 +225,27 @@ export class ElevenLabsDialogueGenerateAudio extends AgentBaseTool<FalAudioParam
         model: 'fal-ai/elevenlabs/text-to-dialogue/eleven-v3',
         provider: 'fal',
         input,
-        unitCost: 70,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on character count
+      let creditCost = 70; // fallback to default unit cost
+      if (input?.inputs && Array.isArray(input.inputs)) {
+        const totalCharacters = input.inputs.reduce((sum, item) => {
+          return sum + (item.text?.length ?? 0);
+        }, 0);
+        // $0.1 per 1000 characters
+        const usdCost = (totalCharacters / 1000) * 0.1;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated audio with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {
@@ -307,7 +343,8 @@ export class MinimaxSpeechGenerateAudio extends AgentBaseTool<FalAudioParams> {
       .default('auto'),
   });
 
-  description = "Generate long, expressive multi-voice speech using Microsoft's powerful TTS.";
+  description =
+    "Generate long, expressive multi-voice speech using Microsoft's powerful TTS. You can use it to generate a whole podcast without splitting it into segments.";
 
   protected params: FalAudioParams;
 
@@ -329,15 +366,25 @@ export class MinimaxSpeechGenerateAudio extends AgentBaseTool<FalAudioParams> {
         model: 'fal-ai/minimax/preview/speech-2.5-turbo',
         provider: 'fal',
         input,
-        unitCost: 35,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
+
+      // Calculate dynamic credit cost based on character count
+      let creditCost = 35; // fallback to default unit cost
+      if (input?.text) {
+        const totalCharacters = input.text.length;
+        // $0.06 per 1000 characters
+        const usdCost = (totalCharacters / 1000) * 0.06;
+        // Convert to credits (USD * 140)
+        creditCost = Math.ceil(usdCost * 140);
+      }
 
       return {
         status: 'success',
         data: result,
         summary: `Successfully generated audio with URL: ${result?.outputUrl}`,
+        creditCost,
       };
     } catch (error) {
       return {

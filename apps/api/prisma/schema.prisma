@@ -453,12 +453,16 @@ model Canvas {
   stateStorageKey   String?        @map("state_storage_key")
   /// Minimap storage key
   minimapStorageKey String?        @map("minimap_storage_key")
+  /// Used toolsets (JSON array of `GenericToolset`)
+  usedToolsets      String?        @map("used_toolsets")
   /// Whether this canvas is readonly
   readOnly          Boolean        @default(false) @map("read_only")
   /// Whether this canvas is public
   isPublic          Boolean        @default(false) @map("is_public")
   /// Canvas status
   status            String         @default("ready") @map("status")
+  /// Whether this canvas is visible in lists
+  visibility        Boolean        @default(true) @map("visibility")
   /// Create timestamp
   createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -476,6 +480,7 @@ model Canvas {
   workflow          String?        @map("workflow")
 
   @@index([uid, updatedAt])
+  @@index([uid, visibility, updatedAt])
   @@map("canvases")
 }
 
@@ -510,6 +515,8 @@ model CanvasTemplate {
   originCanvasId String                  @default("") @map("origin_canvas_id")
   /// Category id
   categoryId     String?                 @map("category_id")
+  /// Workflow app id
+  appId          String?                 @map("app_id")
   /// Share id
   shareId        String                  @default("") @map("share_id")
   /// Version

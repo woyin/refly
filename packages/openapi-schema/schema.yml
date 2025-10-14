@@ -699,6 +699,11 @@ paths:
           description: Order
           schema:
             $ref: '#/components/schemas/ListOrder'
+        - name: keyword
+          in: query
+          description: Search keyword
+          schema:
+            type: string
       responses:
         '200':
           description: Successful operation
@@ -1222,6 +1227,11 @@ paths:
           schema:
             type: string
             example: r-g30e1b80b5g1itbemc0g5jj3
+        - name: genPublicUrl
+          in: query
+          description: Whether to generate public URL for the resource
+          schema:
+            type: boolean
       responses:
         '200':
           description: successful operation
@@ -2703,6 +2713,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateWorkflowAppResponse'
+  /workflow-app/delete:
+    post:
+      tags:
+        - app
+      summary: Delete workflow app
+      description: Delete a workflow app
+      operationId: deleteWorkflowApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteWorkflowAppRequest'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
   /workflow-app/detail:
     get:
       tags:
@@ -2752,23 +2782,34 @@ paths:
       description: List workflow apps for a user, optionally filtered by canvasId
       operationId: listWorkflowApps
       parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: number
+            default: 1
+        - name: pageSize
+          in: query
+          description: Page size
+          schema:
+            type: number
+            default: 10
         - name: canvasId
           in: query
           description: Canvas ID to filter by
           required: false
           schema:
             type: string
-        - name: categoryTags
+        - name: order
           in: query
-          description: Category tags to filter by
-          required: false
+          description: Order
           schema:
-            type: array
-            items:
-              type: string
-              enum: [education, business, creative, sales, life]
-          style: form
-          explode: false
+            $ref: '#/components/schemas/ListOrder'
+        - name: keyword
+          in: query
+          description: Search keyword
+          schema:
+            type: string
       responses:
         '200':
           description: successful operation
@@ -4190,6 +4231,18 @@ components:
           type: string
           description: Canvas status
           $ref: '#/components/schemas/CanvasStatus'
+        owner:
+          description: Canvas owner
+          $ref: '#/components/schemas/ShareUser'
+        shareRecord:
+          description: Canvas share record
+          $ref: '#/components/schemas/ShareRecord'
+        usedToolsets:
+          type: array
+          description: Used toolsets in the canvas
+          items:
+            type: object
+            $ref: '#/components/schemas/GenericToolset'
         minimapUrl:
           type: string
           description: Minimap URL
@@ -4268,6 +4321,9 @@ components:
         featured:
           type: boolean
           description: Whether this canvas template is featured
+        appId:
+          type: string
+          description: Workflow app ID
         createdAt:
           type: string
           format: date-time
@@ -4299,6 +4355,10 @@ components:
         - weblink
         - text
         - file
+        - document
+        - image
+        - video
+        - audio
     IndexError:
       type: object
       description: Error message for resource indexing
@@ -4339,6 +4399,9 @@ components:
         indexError:
           description: Error message for resource indexing
           $ref: '#/components/schemas/IndexError'
+        storageKey:
+          type: string
+          description: Resource storage key
         storageSize:
           type: string
           description: Resource storage size (in bytes)
@@ -4348,7 +4411,6 @@ components:
         rawFileKey:
           type: string
           description: Raw file storage key (used to download the file)
-          deprecated: true
         canvasId:
           type: string
           description: Canvas ID to bind with
@@ -4369,6 +4431,9 @@ components:
         downloadURL:
           type: string
           description: Download URL for this resource (for file type only)
+        publicURL:
+          type: string
+          description: Publicly accessible URL for this resource (file type only)
     Document:
       type: object
       required:
@@ -6066,6 +6131,10 @@ components:
           description: Workflow variables
           items:
             $ref: '#/components/schemas/WorkflowVariable'
+        visibility:
+          type: boolean
+          description: Whether this canvas is visible in lists
+          default: true
     UpsertCanvasResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -7593,6 +7662,9 @@ components:
             storageKey:
               type: string
               description: Media generation output storage key (only available when `wait` is true)
+            originalResult:
+              type: object
+              description: Media generation original result from provider
 
     PilotStepStatus:
       type: string
@@ -9524,6 +9596,14 @@ components:
             type: string
             enum: [education, business, creative, sales, life]
           default: [education]
+    DeleteWorkflowAppRequest:
+      type: object
+      required:
+        - appId
+      properties:
+        appId:
+          type: string
+          description: Workflow app ID
     WorkflowApp:
       type: object
       required:
@@ -9543,6 +9623,9 @@ components:
         description:
           type: string
           description: Workflow app description
+        owner:
+          description: Workflow app owner
+          $ref: '#/components/schemas/ShareUser'
         canvasId:
           type: string
           description: Canvas ID
@@ -9672,11 +9755,14 @@ components:
           type: string
           description: Resource name
         fileType:
-          type: string
           description: Resource file type
+          $ref: '#/components/schemas/VariableResourceType'
         storageKey:
           type: string
           description: Resource storage key
+        entityId:
+          type: string
+          description: Resource ID
     VariableValue:
       type: object
       required:
@@ -9730,12 +9816,6 @@ components:
           type: string
           description: Variable updated at
           example: "2021-01-01T00:00:00.000Z"
-        source:
-          type: string
-          description: Variable source
-          enum:
-            - startNode
-            - resourceLibrary
         variableType:
           type: string
           description: Variable type

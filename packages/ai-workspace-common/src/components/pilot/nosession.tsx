@@ -11,18 +11,18 @@ import { logEvent } from '@refly/telemetry-web';
 import { useTranslation } from 'react-i18next';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
 import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
-import { genActionResultID } from '@refly/utils/id';
+import { genActionResultID, processQueryWithMentions } from '@refly/utils';
 import {
   CreatePilotSessionRequest,
   GenericToolset,
-  CanvasNodeType,
   ModelCapabilities,
 } from '@refly/openapi-schema';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { ChatComposer } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-composer';
 import type { IContextItem } from '@refly/common-types';
-import { CanvasNodeFilter } from '@refly/canvas-common';
+import { CanvasNodeFilter, convertContextItemsToNodeFilters } from '@refly/canvas-common';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
+import { useGetWorkflowVariables } from '@refly-packages/ai-workspace-common/queries/queries';
 
 /**
  * NoSession
@@ -78,6 +78,12 @@ export const NoSession = memo(
       [setQuery, canvasId],
     );
 
+    const { data: workflowVariables } = useGetWorkflowVariables({
+      query: {
+        canvasId,
+      },
+    });
+
     const handleCreatePilotSession = useCallback(
       async (param: CreatePilotSessionRequest) => {
         setIsExecuting(true);
@@ -120,24 +126,7 @@ export const NoSession = memo(
       setIsExecuting(true);
 
       if (chatMode === 'ask' && canvasId) {
-        const connecTo: CanvasNodeFilter[] = contextItems.map((item) => {
-          const isTextSelection = [
-            'documentSelection',
-            'resourceSelection',
-            'skillResponseSelection',
-            'extensionWeblinkSelection',
-            'documentCursorSelection',
-            'documentBeforeCursorSelection',
-            'documentAfterCursorSelection',
-          ].includes(item.type);
-          return {
-            type: isTextSelection
-              ? item?.selection?.sourceEntityType
-              : (item.type as CanvasNodeType),
-            entityId: isTextSelection ? item?.selection?.sourceEntityId : item.entityId,
-            handleType: 'source',
-          };
-        });
+        const connectTo: CanvasNodeFilter[] = convertContextItemsToNodeFilters(contextItems);
         const isMediaGeneration = skillSelectedModel?.category === 'mediaGeneration';
         if (isMediaGeneration) {
           // Handle media generation using existing media generation flow
@@ -170,10 +159,17 @@ export const NoSession = memo(
           return;
         }
 
+        // Process query with workflow variables
+        const variables = workflowVariables?.data ?? [];
+        const { processedQuery } = processQueryWithMentions(query, {
+          replaceVars: true,
+          variables,
+        });
+
         const resultId = genActionResultID();
         invokeAction(
           {
-            query,
+            query: processedQuery,
             resultId,
             selectedToolsets,
             selectedSkill: undefined,
@@ -191,10 +187,11 @@ export const NoSession = memo(
           {
             type: 'skillResponse',
             data: {
-              title: query,
+              title: processedQuery,
               entityId: resultId,
               metadata: {
                 status: 'executing',
+                contextItems,
                 selectedToolsets,
                 selectedSkill: undefined,
                 modelInfo: skillSelectedModel,
@@ -206,7 +203,7 @@ export const NoSession = memo(
               },
             },
           },
-          connecTo,
+          connectTo,
           true,
           true,
         );
@@ -236,6 +233,7 @@ export const NoSession = memo(
       selectedToolsets,
       contextItems,
       setIsExecuting,
+      workflowVariables,
     ]);
 
     return (

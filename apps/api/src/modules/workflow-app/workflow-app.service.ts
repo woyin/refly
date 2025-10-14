@@ -1,7 +1,10 @@
-import { User } from '../../generated/client';
+import { Prisma, User } from '../../generated/client';
 import {
   CreateWorkflowAppRequest,
   WorkflowVariable,
+  GenericToolset,
+  CanvasNode,
+  RawCanvasData,
   ListWorkflowAppsData,
 } from '@refly/openapi-schema';
 import { Logger } from '@nestjs/common';
@@ -10,11 +13,27 @@ import { CanvasService } from '../canvas/canvas.service';
 import { MiscService } from '../misc/misc.service';
 import { genCanvasID, genWorkflowAppID } from '@refly/utils';
 import { WorkflowService } from '../workflow/workflow.service';
-import { workflowAppPO2DTO } from './workflow-app.dto';
 import { Injectable } from '@nestjs/common';
 import { ShareCommonService } from '../share/share-common.service';
 import { ShareCreationService } from '../share/share-creation.service';
-import { ShareNotFoundError } from '@refly/errors';
+import { ShareNotFoundError, WorkflowAppNotFoundError } from '@refly/errors';
+import { ToolService } from '../tool/tool.service';
+import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { initEmptyCanvasState } from '@refly/canvas-common';
+
+/**
+ * Structure of shared workflow app data
+ */
+interface SharedWorkflowAppData {
+  appId: string;
+  title: string;
+  description?: string;
+  query?: string;
+  variables: WorkflowVariable[];
+  canvasData: RawCanvasData;
+  createdAt: string;
+  updatedAt: string;
+}
 
 @Injectable()
 export class WorkflowAppService {
@@ -27,6 +46,8 @@ export class WorkflowAppService {
     private readonly workflowService: WorkflowService,
     private readonly shareCommonService: ShareCommonService,
     private readonly shareCreationService: ShareCreationService,
+    private readonly toolService: ToolService,
+    private readonly canvasSyncService: CanvasSyncService,
   ) {}
 
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
@@ -131,7 +152,16 @@ export class WorkflowAppService {
       where: { appId, uid: user.uid, deletedAt: null },
     });
 
-    return workflowAppPO2DTO(workflowApp);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return { ...workflowApp, owner: userPo };
   }
 
   async getWorkflowAppDetail(user: User, appId: string) {
@@ -140,38 +170,102 @@ export class WorkflowAppService {
     });
 
     if (!workflowApp) {
-      throw new ShareNotFoundError();
+      throw new WorkflowAppNotFoundError();
     }
 
-    return workflowAppPO2DTO(workflowApp);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return { ...workflowApp, owner: userPo };
   }
 
   async executeWorkflowApp(user: User, shareId: string, variables: WorkflowVariable[]) {
+    const shareRecord = await this.prisma.shareRecord.findFirst({
+      where: { shareId, deletedAt: null },
+    });
+
+    if (!shareRecord) {
+      throw new ShareNotFoundError('Share record not found');
+    }
+
     const workflowApp = await this.prisma.workflowApp.findFirst({
       where: { shareId, deletedAt: null },
     });
 
-    if (!workflowApp?.canvasId) {
-      throw new ShareNotFoundError();
+    this.logger.log(`Executing workflow app via shareId: ${shareId} for user: ${user.uid}`);
+
+    const shareDataRaw = await this.shareCommonService.getSharedData(shareRecord.storageKey);
+    if (!shareDataRaw) {
+      throw new ShareNotFoundError('Workflow app data not found');
     }
+
+    let canvasData: RawCanvasData;
+
+    if (shareDataRaw.canvasData) {
+      const shareData = shareDataRaw as SharedWorkflowAppData;
+      canvasData = shareData.canvasData;
+    } else if (shareDataRaw.nodes && shareDataRaw.edges) {
+      canvasData = shareDataRaw as RawCanvasData;
+    } else {
+      throw new ShareNotFoundError('Canvas data not found in workflow app storage');
+    }
+
+    const { nodes = [], edges = [] } = canvasData;
+
+    const { replaceToolsetMap } = await this.toolService.importToolsetsFromNodes(user, nodes);
+
+    const updatedNodes: CanvasNode[] = nodes.map((node) => {
+      if (node.type === 'skillResponse' && node.data?.metadata?.selectedToolsets) {
+        const selectedToolsets = node.data.metadata.selectedToolsets as GenericToolset[];
+        node.data.metadata.selectedToolsets = selectedToolsets.map((toolset) => {
+          return replaceToolsetMap[toolset.id] || toolset;
+        });
+      }
+      return node;
+    });
+
+    const tempCanvasId = genCanvasID();
+    const state = initEmptyCanvasState();
+
+    await this.canvasService.createCanvasWithState(
+      user,
+      {
+        canvasId: tempCanvasId,
+        title: `${canvasData.title} (Execution)`,
+        variables: variables || canvasData.variables || [],
+        visibility: false,
+      },
+      state,
+    );
+
+    state.nodes = updatedNodes;
+    state.edges = edges;
+    await this.canvasSyncService.saveState(tempCanvasId, state);
 
     const newCanvasId = genCanvasID();
 
-    // Note: Internal workflow execution still uses appId for tracking purposes
-    return this.workflowService.initializeWorkflowExecution(
+    const executionId = await this.workflowService.initializeWorkflowExecution(
       user,
-      workflowApp.canvasId,
+      tempCanvasId,
       newCanvasId,
       variables,
-      { appId: workflowApp.appId }, // Keep appId for internal workflow tracking
+      { appId: workflowApp?.appId },
     );
+
+    this.logger.log(`Started workflow execution: ${executionId} for shareId: ${shareId}`);
+    return executionId;
   }
 
-  async listWorkflowApps(user: User, query: ListWorkflowAppsData) {
-    const { canvasId } = query.query ?? {};
-    const categoryTags = (query.query as any)?.categoryTags;
+  async listWorkflowApps(user: User, query: ListWorkflowAppsData['query']) {
+    const { canvasId, page = 1, pageSize = 10, order = 'creationDesc', keyword } = query;
 
-    const whereClause: any = {
+    const whereClause: Prisma.WorkflowAppWhereInput = {
       uid: user.uid,
       deletedAt: null,
     };
@@ -180,21 +274,63 @@ export class WorkflowAppService {
       whereClause.canvasId = canvasId;
     }
 
-    // Filter by category tags if provided
-    if (categoryTags && categoryTags.length > 0) {
-      const validCategoryTags = this.validateCategoryTags(categoryTags);
-      whereClause.categoryTags = {
-        contains: JSON.stringify(validCategoryTags[0]), // Simple contains check for now
-      };
+    // Add keyword search functionality
+    if (keyword?.trim()) {
+      const searchKeyword = keyword.trim();
+      whereClause.OR = [
+        { title: { contains: searchKeyword, mode: 'insensitive' } },
+        { description: { contains: searchKeyword, mode: 'insensitive' } },
+        { query: { contains: searchKeyword, mode: 'insensitive' } },
+      ];
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * pageSize;
+    const take = pageSize;
+
+    // Determine order by field and direction
+    let orderBy: any = { updatedAt: 'desc' };
+    if (order === 'creationAsc') {
+      orderBy = { createdAt: 'asc' };
+    } else if (order === 'creationDesc') {
+      orderBy = { createdAt: 'desc' };
     }
 
     const workflowApps = await this.prisma.workflowApp.findMany({
       where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      take: 1, // Only get the latest one
+      orderBy,
+      skip,
+      take,
     });
 
-    return workflowApps.map(workflowAppPO2DTO).filter(Boolean);
+    const userPo = await this.prisma.user.findUnique({
+      select: {
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    return workflowApps.map((workflowApp) => ({ ...workflowApp, owner: userPo }));
+  }
+
+  async deleteWorkflowApp(user: User, appId: string) {
+    const workflowApp = await this.prisma.workflowApp.findFirst({
+      where: { appId, uid: user.uid, deletedAt: null },
+    });
+
+    if (!workflowApp) {
+      throw new WorkflowAppNotFoundError();
+    }
+
+    // Mark the workflow app as deleted
+    await this.prisma.workflowApp.update({
+      where: { appId },
+      data: { deletedAt: new Date() },
+    });
+
+    this.logger.log(`Deleted workflow app: ${appId} for user: ${user.uid}`);
   }
 
   async getWorkflowAppCategories() {

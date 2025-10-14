@@ -19,7 +19,7 @@ export const Project = ({ projectId }: { projectId: string }) => {
   }, [canvasId, projectId, navigate]);
 
   if (!canvasId || canvasId === 'empty') {
-    return <NoCanvas projectId={projectId} />;
+    return <NoCanvas />;
   }
 
   return <Canvas canvasId={canvasId} />;

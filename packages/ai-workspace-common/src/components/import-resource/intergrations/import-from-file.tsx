@@ -6,13 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
 import type { RcFile } from 'antd/es/upload/interface';
 import { genResourceID } from '@refly/utils/id';
+import { getFileType } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/utils';
+import { ACCEPT_FILE_EXTENSIONS } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/constants';
 
 const { Dragger } = Upload;
-
-const ALLOWED_FILE_EXTENSIONS = ['.pdf', '.docx', '.rtf', '.txt', '.md', '.html', '.epub'];
-const ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.tiff', '.bmp'];
-const ALLOWED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.flv', '.wmv'];
-const ALLOWED_AUDIO_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.ogg', '.flac', '.aac'];
 
 interface ImportFromFileProps {
   canvasId: string;
@@ -70,12 +67,7 @@ export const ImportFromFile = ({ canvasId }: ImportFromFileProps) => {
   const props: UploadProps = {
     name: 'file',
     multiple: true,
-    accept: [
-      ...ALLOWED_FILE_EXTENSIONS,
-      ...ALLOWED_IMAGE_EXTENSIONS,
-      ...ALLOWED_VIDEO_EXTENSIONS,
-      ...ALLOWED_AUDIO_EXTENSIONS,
-    ].join(','),
+    accept: ACCEPT_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(','),
     fileList: [],
     beforeUpload: async (file: File) => {
       if (uploadLimit > 0 && file.size > maxFileSizeBytes) {
@@ -85,14 +77,7 @@ export const ImportFromFile = ({ canvasId }: ImportFromFileProps) => {
 
       const tempUid = genResourceID();
       const fileExtension = getFileExtension(file.name);
-
-      const fileType = ALLOWED_IMAGE_EXTENSIONS.includes(`.${fileExtension}`)
-        ? 'image'
-        : ALLOWED_VIDEO_EXTENSIONS.includes(`.${fileExtension}`)
-          ? 'video'
-          : ALLOWED_AUDIO_EXTENSIONS.includes(`.${fileExtension}`)
-            ? 'audio'
-            : 'file';
+      const fileType = getFileType(file.name);
 
       // Add file to waiting list with pending status
       addToWaitingList({
@@ -189,14 +174,7 @@ export const ImportFromFile = ({ canvasId }: ImportFromFileProps) => {
 
   const genUploadHint = () => {
     let hint = t('resource.import.supportedFiles', {
-      formats: [
-        ...ALLOWED_FILE_EXTENSIONS,
-        ...ALLOWED_IMAGE_EXTENSIONS,
-        ...ALLOWED_VIDEO_EXTENSIONS,
-        ...ALLOWED_AUDIO_EXTENSIONS,
-      ]
-        .map((ext) => ext.slice(1).toUpperCase())
-        .join(', '),
+      formats: ACCEPT_FILE_EXTENSIONS.map((ext) => ext.toUpperCase()).join(', '),
     });
     if (uploadLimit > 0) {
       hint += `. ${t('resource.import.fileUploadLimit', { size: maxFileSize })}`;

@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Avatar, Button, Divider, Layout, Skeleton } from 'antd';
+import { useMemo, useEffect, useCallback, useState } from 'react';
+import { Avatar, Button, Divider, Layout } from 'antd';
 import {
   useLocation,
   useMatch,
@@ -7,12 +7,6 @@ import {
   useSearchParams,
 } from '@refly-packages/ai-workspace-common/utils/router';
 
-import { IconCanvas } from '@refly-packages/ai-workspace-common/components/common/icon';
-import {
-  Project as IconProject,
-  KnowledgeBase as IconKnowledgeBase,
-  Subscription,
-} from 'refly-icons';
 import cn from 'classnames';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { useSubscriptionStoreShallow, useUserStoreShallow } from '@refly/stores';
@@ -26,10 +20,10 @@ import { SettingsGuideModal } from '@refly-packages/ai-workspace-common/componen
 import { StorageExceededModal } from '@refly-packages/ai-workspace-common/components/subscription/storage-exceeded-modal';
 // hooks
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
-import { SettingsModalActiveTab, SiderData, useSiderStoreShallow } from '@refly/stores';
+import { SettingsModalActiveTab, useSiderStoreShallow } from '@refly/stores';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
-import { CanvasActionDropdown } from '@refly-packages/ai-workspace-common/components/workspace/canvas-list-modal/canvasActionDropdown';
-import { SideLeft, SideRight, Account } from 'refly-icons';
+import { Account, File, Project, Flow, KnowledgeBase, Subscription, Contact } from 'refly-icons';
+import { ContactUsPopover } from '@refly-packages/ai-workspace-common/components/contact-us-popover';
 
 import { useKnowledgeBaseStoreShallow } from '@refly/stores';
 import { subscriptionEnabled } from '@refly/ui-kit';
@@ -38,10 +32,10 @@ import { SiderLoggedOut } from './sider-logged-out';
 
 import './layout.scss';
 import { ProjectDirectory } from '../project/project-directory';
-import { NewCanvasButton } from './new-canvas-button';
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { useSubscriptionUsage } from '@refly-packages/ai-workspace-common/hooks/use-subscription-usage';
-import { logEvent } from '@refly/telemetry-web';
+
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 
 const Sider = Layout.Sider;
 
@@ -51,20 +45,25 @@ const SiderSectionHeader = ({
   title,
   onActionClick,
   actionIcon,
+  isActive = false,
 }: {
   icon: React.ReactNode;
   title: string;
   onActionClick?: () => void;
   actionIcon?: React.ReactNode;
+  isActive?: boolean;
 }) => {
   return (
     <div
-      className="h-12 flex items-center justify-between w-full text-refly-text-0 group select-none px-2 py-2 hover:bg-refly-tertiary-hover rounded-lg cursor-pointer"
-      onClick={!actionIcon && onActionClick ? onActionClick : undefined}
+      className={cn(
+        'w-full h-[42px] p-2 flex items-center justify-between text-refly-text-0 group select-none rounded-xl cursor-pointer',
+        isActive ? 'bg-refly-tertiary-hover' : 'hover:bg-refly-tertiary-hover',
+      )}
+      onClick={!actionIcon ? onActionClick : undefined}
     >
       <div className="flex items-center gap-2">
         {icon}
-        <span className="font-normal">{title}</span>
+        <span className={cn(isActive ? 'font-semibold' : 'font-normal')}>{title}</span>
       </div>
       {actionIcon && onActionClick && (
         <Button
@@ -83,47 +82,16 @@ const SiderSectionHeader = ({
 };
 
 export const SiderLogo = (props: {
-  source: 'sider' | 'popover';
   navigate?: (path: string) => void;
-  collapse: boolean;
-  setCollapse: (collapse: boolean) => void;
 }) => {
-  const { source, navigate, collapse, setCollapse } = props;
+  const { navigate } = props;
 
   return (
-    <div className={cn('flex items-center mb-6 gap-2', source === 'sider' && 'justify-between')}>
-      {source === 'popover' && (
-        <Button
-          type="text"
-          icon={
-            collapse ? (
-              <SideRight size={20} className="text-refly-text-0" />
-            ) : (
-              <SideLeft size={20} className="text-refly-text-0" />
-            )
-          }
-          onClick={() => setCollapse(!collapse)}
-        />
-      )}
-
+    <div className={cn('flex items-center mb-6 gap-2 justify-between')}>
       <div className="flex items-center gap-2">
         <Logo onClick={() => navigate?.('/')} />
         <GithubStar />
       </div>
-
-      {source === 'sider' && (
-        <Button
-          type="text"
-          icon={
-            collapse ? (
-              <SideRight size={20} className="text-refly-text-0" />
-            ) : (
-              <SideLeft size={20} className="text-refly-text-0" />
-            )
-          }
-          onClick={() => setCollapse(!collapse)}
-        />
-      )}
     </div>
   );
 };
@@ -173,7 +141,7 @@ const SettingItem = () => {
           >
             <Avatar
               size={36}
-              src={userProfile?.avatar}
+              src={userProfile?.avatar || defaultAvatar}
               icon={<Account />}
               className="flex-shrink-0"
             />
@@ -201,7 +169,7 @@ const SettingItem = () => {
 
                   <div
                     onClick={handleSubscriptionClick}
-                    className="text-[color:var(--primary---refly-primary-default,#0E9F77)] text-xs font-semibold leading-4 whitespace-nowrap"
+                    className="text-refly-primary-default text-xs font-semibold leading-4 whitespace-nowrap"
                   >
                     {t('common.upgrade')}
                   </div>
@@ -213,68 +181,6 @@ const SettingItem = () => {
       </SiderMenuSettingList>
     </div>
   );
-};
-
-export const CanvasListItem = ({ canvas }: { canvas: SiderData }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [showCanvasIdActionDropdown, setShowCanvasIdActionDropdown] = useState<string | null>(null);
-
-  const location = useLocation();
-  const selectedKey = useMemo(() => getSelectedKey(location.pathname), [location.pathname]);
-
-  const handleUpdateShowStatus = useCallback((canvasId: string | null) => {
-    setShowCanvasIdActionDropdown(canvasId);
-  }, []);
-
-  return (
-    <div
-      key={canvas.id}
-      className={cn(
-        'group relative my-1 px-3 rounded-lg text-sm leading-8 text-refly-text-0 hover:bg-refly-tertiary-hover',
-        {
-          'font-semibold bg-refly-tertiary-hover': selectedKey === canvas.id,
-        },
-      )}
-      onClick={() => {
-        logEvent('canvas::select_existing_canvas', Date.now(), {
-          canvas_id: canvas.id,
-        });
-        navigate(`/canvas/${canvas.id}`);
-      }}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 cursor-pointer">
-          <IconCanvas />
-          <div className="w-32 truncate">{canvas?.name || t('common.untitled')}</div>
-        </div>
-
-        <div
-          className={cn(
-            'flex items-center transition-opacity duration-200',
-            showCanvasIdActionDropdown === canvas.id
-              ? 'opacity-100'
-              : 'opacity-0 group-hover:opacity-100',
-          )}
-        >
-          <CanvasActionDropdown
-            btnSize="small"
-            canvasId={canvas.id}
-            canvasName={canvas.name}
-            updateShowStatus={handleUpdateShowStatus}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const getSelectedKey = (pathname: string) => {
-  if (pathname.startsWith('/canvas')) {
-    const arr = pathname?.split('?')[0]?.split('/');
-    return arr[arr.length - 1] ?? '';
-  }
-  return '';
 };
 
 const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
@@ -289,38 +195,88 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
     userProfile: state.userProfile,
   }));
 
-  const {
-    collapse,
-    canvasList,
-    setCollapse,
-    setShowSettingModal,
-    setShowLibraryModal,
-    setShowCanvasListModal,
-    setSettingsModalActiveTab,
-  } = useSiderStoreShallow((state) => ({
-    collapse: state.collapse,
-    canvasList: state.canvasList,
-    setCollapse: state.setCollapse,
-    setShowSettingModal: state.setShowSettingModal,
-    setShowLibraryModal: state.setShowLibraryModal,
-    showLibraryModal: state.showLibraryModal,
-    setShowCanvasListModal: state.setShowCanvasListModal,
-    setSettingsModalActiveTab: state.setSettingsModalActiveTab,
-  }));
+  const { collapse, setShowSettingModal, setShowLibraryModal, setSettingsModalActiveTab } =
+    useSiderStoreShallow((state) => ({
+      collapse: state.collapse,
+      setShowSettingModal: state.setShowSettingModal,
+      setShowLibraryModal: state.setShowLibraryModal,
+      showLibraryModal: state.showLibraryModal,
+      setSettingsModalActiveTab: state.setSettingsModalActiveTab,
+    }));
 
-  const { isLoadingCanvas } = useHandleSiderData(true);
+  useHandleSiderData(true);
+
+  const [openContactUs, setOpenContactUs] = useState(false);
 
   const { t } = useTranslation();
 
   const location = useLocation();
 
   const canvasId = location.pathname.split('/').pop();
+
   const { debouncedCreateCanvas } = useCreateCanvas({
     projectId: null,
     afterCreateSuccess: () => {
       setShowLibraryModal(true);
     },
   });
+
+  const getActiveKey = useCallback(() => {
+    const path = location.pathname;
+    if (path.startsWith('/canvas/empty')) {
+      return 'home';
+    }
+    if (path.startsWith('/workflow-list')) {
+      return 'canvas';
+    }
+    if (path.startsWith('/app-manager')) {
+      return 'appManager';
+    }
+    return 'home';
+  }, [location.pathname]);
+
+  // Menu items configuration
+  const menuItems = useMemo(
+    () => [
+      {
+        icon: <File key="home" style={{ fontSize: 20 }} />,
+        title: t('loggedHomePage.siderMenu.home'),
+        onActionClick: () => navigate('/'),
+        key: 'home',
+      },
+      {
+        icon: <Flow key="canvas" style={{ fontSize: 20 }} />,
+        title: t('loggedHomePage.siderMenu.canvas'),
+        onActionClick: () => navigate('/workflow-list'),
+        key: 'canvas',
+      },
+      {
+        icon: <Project key="appManager" style={{ fontSize: 20 }} />,
+        title: t('loggedHomePage.siderMenu.appManager'),
+        onActionClick: () => navigate('/app-manager'),
+        key: 'appManager',
+      },
+      {
+        icon: <KnowledgeBase key="library" style={{ fontSize: 20 }} />,
+        title: t('loggedHomePage.siderMenu.library'),
+        onActionClick: () => setShowLibraryModal(true),
+        key: 'library',
+      },
+    ],
+    [t, navigate, setShowLibraryModal],
+  );
+
+  const bottomMenuItems = useMemo(
+    () => [
+      {
+        icon: <Contact key="contactUs" style={{ fontSize: 20 }} />,
+        title: t('loggedHomePage.siderMenu.contactUs'),
+        key: 'contactUs',
+        onActionClick: undefined,
+      },
+    ],
+    [t],
+  );
 
   // Handle library modal opening from URL parameter
   useEffect(() => {
@@ -378,61 +334,53 @@ const SiderLoggedIn = (props: { source: 'sider' | 'popover' }) => {
           : 'h-[calc(100vh-16px)] rounded-lg border-r border-solid border-[1px] border-refly-Card-Border bg-refly-bg-Glass-content backdrop-blur-md shadow-[0_6px_60px_0px_rgba(0,0,0,0.08)]',
       )}
     >
-      <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pt-6">
+      <div className="flex h-full flex-col gap-3 overflow-hidden p-4 pr-2 pt-6">
         <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-          <SiderLogo
-            source={source}
-            navigate={(path) => navigate(path)}
-            collapse={collapse}
-            setCollapse={setCollapse}
-          />
+          <SiderLogo navigate={(path) => navigate(path)} />
 
-          <SearchQuickOpenBtn />
+          <SearchQuickOpenBtn className="mb-1" />
 
-          <NewCanvasButton />
+          {/* Main menu items */}
+          {menuItems.map((item, index) => (
+            <SiderSectionHeader
+              key={index}
+              icon={item.icon}
+              title={item.title}
+              onActionClick={item.onActionClick}
+              isActive={item.key === getActiveKey()} // First item (home) is active when on /canvas/empty
+            />
+          ))}
 
-          {/* Library section */}
-          <SiderSectionHeader
-            icon={<IconKnowledgeBase key="library" style={{ fontSize: 20 }} />}
-            title={t('loggedHomePage.siderMenu.library')}
-            onActionClick={() => setShowLibraryModal(true)}
-          />
           <Divider className="m-0 border-refly-Card-Border" />
 
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Canvas section with flexible height */}
-            <div className="flex-1 flex flex-col min-h-0">
+          {/* Bottom menu items */}
+          {bottomMenuItems.map((item, index) => {
+            if (item.key === 'contactUs') {
+              return (
+                <ContactUsPopover
+                  key={`bottom-${index}`}
+                  open={openContactUs}
+                  setOpen={setOpenContactUs}
+                >
+                  <SiderSectionHeader
+                    icon={item.icon}
+                    title={item.title}
+                    onActionClick={item.onActionClick}
+                    isActive={openContactUs}
+                  />
+                </ContactUsPopover>
+              );
+            }
+            return (
               <SiderSectionHeader
-                icon={<IconProject key="canvas" style={{ fontSize: 20 }} />}
-                title={t('loggedHomePage.siderMenu.canvas')}
-                onActionClick={() => setShowCanvasListModal(true)}
+                key={`bottom-${index}`}
+                icon={item.icon}
+                title={item.title}
+                onActionClick={item.onActionClick}
+                isActive={item.key === getActiveKey()}
               />
-
-              <div className="rounded-md flex-1 min-h-20">
-                <div className="h-full overflow-y-auto pl-2 py-1">
-                  {isLoadingCanvas ? (
-                    <Skeleton
-                      key="skeleton-1"
-                      active
-                      title={false}
-                      paragraph={{ rows: 3 }}
-                      className="px-[12px] w-[200px]"
-                    />
-                  ) : canvasList?.length > 0 ? (
-                    <div className="space-y-1">
-                      {canvasList.map((canvas) => (
-                        <CanvasListItem key={canvas.id} canvas={canvas} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-gray-400 text-sm px-2 py-4 text-center">
-                      {t('common.noData')}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         {!!userProfile?.uid && (

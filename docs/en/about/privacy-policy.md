@@ -1,13 +1,13 @@
 ---
 title: Privacy Policy
-description: Refly AI Content Creation Engine Privacy Policy
+description: Refly AI Workflow Engine Privacy Policy
 ---
 
 # Privacy Policy
 
-> Effective Date: January 16, 2025
+> Effective Date: September 26, 2025
 
-At ReflyAI, we are committed to protecting your privacy and security. This Privacy Policy describes the types of information we may collect from you when you use our AI Content Creation Engine (the "Service"), and our practices for collecting, using, maintaining, protecting, and disclosing that information. This policy complies with international privacy protection standards, including the European Union General Data Protection Regulation (GDPR) and the California Consumer Privacy Act (CCPA).
+At ReflyAI, we are committed to protecting your privacy and security. This Privacy Policy describes the types of information we may collect from you when you use our AI Content Creation Engine (the "Service"), and our practices for collecting, using, maintaining, protecting, and disclosing that information. This policy complies with international privacy protection standards, including the European Union General Data Protection Regulation (GDPR), the California Consumer Privacy Act (CCPA), and the Google API Services User Data Policy.
 
 ## Legal Basis (Applicable to EU Users)
 
@@ -18,11 +18,18 @@ Our legal bases for processing your personal data include:
 - Our legitimate interests
 - Your consent
 
-## Information We Collect
+## Information We Collect (Data Accessed)
+
+### Google User Data (only when explicitly authorized by you)
+
+- **Basic Account Information**: Google email address, user ID  
+- **File Content and Metadata**: Limited to Google Drive/Docs/Sheets files you authorize  
+- **Calendar Event Information**: Title, time, description (only when authorized)  
+- **Gmail Metadata**: Sender, recipient, subject, and message body (only when authorized)  
 
 ### Information You Provide to Us
 
-- **Account Information**: Basic information when creating an account, including name, email address, and password.
+- **Account Information**: Basic details when creating an account, including name, email address, and password.
 - **Content Creation Data**: Prompts, topics, preferences, and other information you input when using our AI creation service.
 - **User-Generated Content**: Content created through our service and its associated metadata.
 - **Feedback and Interactions**: Your feedback on generated content, editing history, and usage preferences.
@@ -49,6 +56,50 @@ You can control cookie usage through your browser settings.
 - **Payment Processing**: All payments are processed through secure third-party payment processors; we do not store complete payment card information.
 - **Billing Records**: We retain necessary billing records as required by law.
 
+## Data Usage
+
+We use collected data to:
+
+- Provide and improve our services (content creation, file generation, collaboration)
+- Authenticate and maintain your account
+- Personalize features and recommendations
+- Process billing and payments
+- Debug and improve AI model performance
+- Comply with legal obligations
+- Detect, prevent, and address fraud, abuse, and security issues
+
+> **We do not use Google user data for advertising or remarketing purposes.**
+
+## Data Sharing
+
+We share your data only under limited circumstances:
+
+- **Third-Party Service Providers**: Payment processors, cloud storage providers, and similar partners, only to the extent necessary to provide our Service.
+- **Legal Obligations**: When required by law, regulation, or governmental authority.
+- **User Consent**: When you explicitly authorize us to share specific data.
+
+> **We do not sell Google user data.**
+
+## Data Storage & Protection
+
+- **Storage Locations**: Data may be stored on secure servers operated by us or by third-party providers, in the U.S., EU, or other compliant jurisdictions.
+- **Security Measures**:
+  - Encryption of data in transit and at rest (TLS/HTTPS, AES-256)
+  - Strict access controls and authentication
+  - Regular security audits and monitoring
+  - Employee security and compliance training
+
+## Data Retention & Deletion
+
+We retain your personal data only for as long as necessary:
+
+- Account-related data: Duration of account existence
+- Generated content: 30 days after deletion or account termination
+- Payment records: As required by law (typically 7 years)
+- **Google user data**: Cached only temporarily during task execution and not stored long-term
+
+**User Deletion Requests**: You may request deletion of your data at any time by contacting [privacy@refly.ai](mailto:privacy@refly.ai). Requests will be processed within 30 days.
+
 ## Your Data Rights
 
 Based on your location's applicable laws, you have the following rights:
@@ -60,14 +111,6 @@ Based on your location's applicable laws, you have the following rights:
 - **Right to Object**: Object to the processing of your personal data
 - **Right to Withdraw Consent**: Withdraw previous consent at any time
 - **Right to Complain**: File a complaint with supervisory authorities
-
-## Data Retention
-
-We retain your personal data only for as long as necessary:
-
-- Account-related data: Duration of account existence
-- Generated content: 30 days after deletion or account termination
-- Payment records: As required by law (typically 7 years)
 
 ## International Data Transfers
 
@@ -97,7 +140,7 @@ We commit to:
 
 ## Children's Privacy
 
-Our service is not directed at children under 13. We will promptly delete any inadvertently collected children's data.
+Our Service is not directed at children under 13. We will promptly delete any inadvertently collected children's data.
 
 ## Privacy Policy Updates
 

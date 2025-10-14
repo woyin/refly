@@ -1,7 +1,7 @@
 import { ActionResult, CanvasNodeType, MediaType, SkillContext } from '@refly/openapi-schema';
 import { IContextItem } from '@refly/common-types';
 import { Node, Edge } from '@xyflow/react';
-import { genUniqueId, getClientOrigin, omit } from '@refly/utils';
+import { genUniqueId, getClientOrigin, omit, safeParseJSON } from '@refly/utils';
 import { CanvasNodeFilter } from './types';
 
 export const convertResultContextToItems = (
@@ -105,6 +105,11 @@ export const convertContextItemsToNodeFilters = (items: IContextItem[]): CanvasN
   const uniqueItems = new Map<string, CanvasNodeFilter>();
 
   for (const item of items ?? []) {
+    // resources are no longer present in canvas
+    if (item.type === 'resource') {
+      continue;
+    }
+
     const type = item.selection?.sourceEntityType ?? (item.type as CanvasNodeType);
     const entityId = item.selection?.sourceEntityId ?? item.entityId;
 
@@ -392,8 +397,11 @@ export const purgeContextItems = (items: IContextItem[]): IContextItem[] => {
     return [];
   }
   return items.map((item) => {
-    // Skip media items
-    if (['image', 'video', 'audio'].includes(item.type as string)) {
+    if (
+      ['image', 'video', 'audio', 'resource', 'document', 'codeArtifact'].includes(
+        item.type as string,
+      )
+    ) {
       return item;
     }
     return {
@@ -403,4 +411,33 @@ export const purgeContextItems = (items: IContextItem[]): IContextItem[] => {
       },
     };
   });
+};
+
+export const purgeContextForActionResult = (context: SkillContext) => {
+  // remove actual content from context to save storage
+  const contextCopy: SkillContext = safeParseJSON(JSON.stringify(context ?? {}));
+  if (contextCopy.resources) {
+    for (const { resource } of contextCopy.resources) {
+      if (resource) {
+        resource.content = '';
+      }
+    }
+  }
+  if (contextCopy.documents) {
+    for (const { document } of contextCopy.documents) {
+      if (document) {
+        document.content = '';
+      }
+    }
+  }
+
+  if (contextCopy.codeArtifacts) {
+    for (const { codeArtifact } of contextCopy.codeArtifacts) {
+      if (codeArtifact) {
+        codeArtifact.content = '';
+      }
+    }
+  }
+
+  return contextCopy;
 };

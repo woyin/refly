@@ -5,20 +5,17 @@ import { useTranslation } from 'react-i18next';
 import {
   ReactFlow,
   Background,
-  MiniMap,
   ReactFlowProvider,
   useReactFlow,
   Node,
   Edge,
   useStore,
-  useStoreApi,
+  SelectionMode,
 } from '@xyflow/react';
 import { useShallow } from 'zustand/react/shallow';
 import { CanvasNode } from '@refly/canvas-common';
 import { nodeTypes } from './nodes';
 import { TopToolbar } from './top-toolbar';
-import { ContextMenu } from './context-menu';
-import { NodeContextMenu } from './node-context-menu';
 import { useNodeOperations } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-operations';
 import { useNodeSelection } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-selection';
 import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
@@ -38,7 +35,7 @@ import {
 } from '@refly/stores';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
-import { MenuPopper } from './menu-popper';
+import { UnifiedContextMenu } from './unified-context-menu';
 import { useNodePreviewControl } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-preview-control';
 import {
   EditorPerformanceProvider,
@@ -49,13 +46,11 @@ import { useEdgeOperations } from '@refly-packages/ai-workspace-common/hooks/can
 import { MultiSelectionMenus } from './multi-selection-menu';
 import { CustomEdge } from './edges/custom-edge';
 import NotFoundOverlay from './NotFoundOverlay';
-import { NODE_MINI_MAP_COLORS } from './nodes/shared/colors';
 import { useDragToCreateNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-create-node';
 import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canvas/use-drag-drop-paste';
 
 import '@xyflow/react/dist/style.css';
 import './index.scss';
-import { SelectionContextMenu } from '@refly-packages/ai-workspace-common/components/canvas/selection-context-menu';
 import {
   useGetPilotSessionDetail,
   useUpdateSettings,
@@ -96,6 +91,20 @@ const selectionStyles = `
     background: rgba(0, 150, 143, 0.03) !important;
     border: 0.5px solid #0E9F77 !important;
   }
+  
+  /* Prevent text selection outside canvas during drag */
+  .react-flow__pane.selecting {
+    user-select: none;
+  }
+  
+  .react-flow__pane.selecting * {
+    user-select: none !important;
+  }
+  
+  /* Ensure canvas selection works properly */
+  .react-flow__pane {
+    user-select: auto;
+  }
 `;
 
 const SessionContainerClassName = `
@@ -105,7 +114,7 @@ const SessionContainerClassName = `
 interface ContextMenuState {
   open: boolean;
   position: { x: number; y: number };
-  type: 'canvas' | 'node' | 'selection';
+  type: 'canvas' | 'node' | 'selection' | 'doubleClick';
   nodeId?: string;
   nodeType?: CanvasNodeType;
   isSelection?: boolean;
@@ -115,65 +124,6 @@ interface ContextMenuState {
 
 // Add new memoized components
 const MemoizedBackground = memo(Background);
-const MemoizedMiniMap = memo(MiniMap);
-
-const MiniMapNode = (props: any) => {
-  const { x, y, width, height, style, className, id: nodeId } = props;
-  const nodes = useStoreApi().getState().nodes;
-  const node = nodes.find((n) => n.id === nodeId);
-
-  const getMiniMapNodeColor = useCallback((node: Node) => {
-    if (node.type === 'memo') {
-      const data = node.data as any;
-      return data?.metadata?.bgColor ?? '#FFFEE7';
-    }
-    if (node.type === 'group') {
-      return 'transparent';
-    }
-
-    return NODE_MINI_MAP_COLORS[node.type as CanvasNodeType] ?? '#6172F3';
-  }, []);
-
-  const getMiniMapNodeStrokeColor = useCallback((node: Node) => {
-    return node.type === 'group' ? '#363434' : 'transparent';
-  }, []);
-
-  if (!node || node.type !== 'image' || !(node.data as any)?.metadata?.imageUrl) {
-    return (
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={12}
-        ry={12}
-        style={{
-          fill: node ? getMiniMapNodeColor(node) : '#6172F3',
-          stroke: node ? getMiniMapNodeStrokeColor(node) : 'transparent',
-          strokeWidth: 10,
-          opacity: 0.5,
-          strokeDasharray: node?.type === 'group' ? '10,10' : 'none',
-        }}
-      />
-    );
-  }
-
-  return (
-    <image
-      href={(node.data as any)?.metadata?.imageUrl}
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      className={`minimap-node-image ${className || ''}`}
-      style={{
-        ...style,
-        objectFit: 'cover',
-        borderRadius: '12px',
-      }}
-    />
-  );
-};
 
 const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const { t } = useTranslation();
@@ -348,10 +298,97 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [defaultEdgeOptions],
   );
 
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  const [menuOpen, setMenuOpen] = useState(false);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
+
+  // Handle selection state to prevent text selection outside canvas
+  useEffect(() => {
+    let isDragging = false;
+    let dragStartTime = 0;
+    let hasStartedDrag = false;
+
+    const resetDragState = () => {
+      if (isDragging || hasStartedDrag) {
+        isDragging = false;
+        hasStartedDrag = false;
+        // Re-enable text selection
+        document.body.style.userSelect = '';
+      }
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.button !== 0) return;
+
+      // Check if clicking on interactive elements (don't start selection)
+      const target = event.target as HTMLElement;
+      const isInteractiveElement = target.closest(
+        'input, textarea, [contenteditable="true"], [role="textbox"], .chat-composer, .rich-input, [data-cy="chat-input"], [data-cy="rich-chat-input"], .ProseMirror',
+      );
+
+      if (isInteractiveElement) return;
+
+      isDragging = false;
+      hasStartedDrag = false;
+      dragStartTime = Date.now();
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      // Only handle left mouse button
+      if (event.buttons !== 1) return;
+
+      // Check if we've moved enough to consider it a drag
+      const timeSinceStart = Date.now() - dragStartTime;
+      const hasMovedEnough = timeSinceStart > 10;
+
+      if (!isDragging && hasMovedEnough && !hasStartedDrag) {
+        isDragging = true;
+        hasStartedDrag = true;
+        // Temporarily disable text selection on the document
+        document.body.style.userSelect = 'none';
+      }
+    };
+
+    const handleMouseUp = () => {
+      resetDragState();
+    };
+
+    const handleMouseLeave = () => {
+      resetDragState();
+    };
+
+    // Global mouse up handler to ensure state reset
+    const handleGlobalMouseUp = () => {
+      resetDragState();
+    };
+
+    // Listen for ReactFlow selection events
+    const canvasContainer = document.querySelector('.react-flow');
+    if (canvasContainer) {
+      canvasContainer.addEventListener('mousedown', handleMouseDown);
+      canvasContainer.addEventListener('mousemove', handleMouseMove);
+      canvasContainer.addEventListener('mouseup', handleMouseUp);
+      canvasContainer.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // Add global event listeners for cleanup
+    document.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      if (canvasContainer) {
+        canvasContainer.removeEventListener('mousedown', handleMouseDown);
+        canvasContainer.removeEventListener('mousemove', handleMouseMove);
+        canvasContainer.removeEventListener('mouseup', handleMouseUp);
+        canvasContainer.removeEventListener('mouseleave', handleMouseLeave);
+      }
+
+      // Remove global event listeners
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+
+      // Ensure text selection is re-enabled on cleanup
+      document.body.style.userSelect = '';
+    };
+  }, []);
 
   const { onConnectEnd: temporaryEdgeOnConnectEnd, onConnectStart: temporaryEdgeOnConnectStart } =
     useDragToCreateNode();
@@ -382,24 +419,33 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         setSelectedEdgeId(null);
       }
 
-      if (readonly) return;
-
+      // Handle double click detection
       const currentTime = new Date().getTime();
       const timeDiff = currentTime - lastClickTime;
 
-      if (timeDiff < 300) {
+      if (timeDiff < 300 && !readonly) {
         const flowPosition = reactFlowInstance.screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
         });
 
-        setMenuPosition(flowPosition);
-        setMenuOpen(true);
+        setContextMenu({
+          open: true,
+          position: flowPosition,
+          type: 'doubleClick',
+        });
       }
 
       setLastClickTime(currentTime);
     },
-    [lastClickTime, setOperatingNodeId, reactFlowInstance, selectedEdgeId, cleanupTemporaryEdges],
+    [
+      lastClickTime,
+      setOperatingNodeId,
+      reactFlowInstance,
+      selectedEdgeId,
+      cleanupTemporaryEdges,
+      readonly,
+    ],
   );
 
   // Add scroll position state and handler
@@ -542,6 +588,47 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     }
   }, [contextMenu, setContextMenuOpenedCanvasId]);
 
+  // Global menu close logic
+  useEffect(() => {
+    const isInsideMenu = (target: HTMLElement) => {
+      return (
+        target.closest('[data-unified-menu]') ||
+        target.closest('.canvas-search-list') ||
+        target.closest('.menu-popper')
+      );
+    };
+
+    const handleGlobalClick = (event: MouseEvent) => {
+      if (contextMenu.open) {
+        // Check if click is inside any menu
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    const handleGlobalMouseDown = (event: MouseEvent) => {
+      if (contextMenu.open && event.button === 0) {
+        // Left mouse button - check if click is inside menu before closing
+        const target = event.target as HTMLElement;
+        if (!isInsideMenu(target)) {
+          setContextMenu((prev) => ({ ...prev, open: false }));
+        }
+      }
+    };
+
+    if (contextMenu.open) {
+      document.addEventListener('click', handleGlobalClick);
+      document.addEventListener('mousedown', handleGlobalMouseDown);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      document.removeEventListener('mousedown', handleGlobalMouseDown);
+    };
+  }, [contextMenu.open]);
+
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
@@ -647,7 +734,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         return;
       }
 
-      const { operatingNodeId } = useCanvasStore.getState();
       setContextMenu((prev) => ({ ...prev, open: false }));
 
       if (event.metaKey || event.shiftKey) {
@@ -699,30 +785,8 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   const memoizedNodes = useMemo(() => nodes, [nodes]);
   const memoizedEdges = useMemo(() => edges, [edges]);
 
-  // Memoize MiniMap styles
-  const miniMapStyles = useMemo(
-    () => ({
-      border: '1px solid rgba(16, 24, 40, 0.0784)',
-      boxShadow: '0px 4px 6px 0px rgba(16, 24, 40, 0.03)',
-    }),
-    [],
-  );
-
-  // Memoize the Background and MiniMap components
+  // Memoize the Background component
   const memoizedBackground = useMemo(() => <MemoizedBackground />, []);
-  const memoizedMiniMap = useMemo(
-    () => (
-      <MemoizedMiniMap
-        position="bottom-left"
-        style={miniMapStyles}
-        className="bg-white/80 dark:bg-gray-900/80 w-[140px] h-[92px] !mb-2 !ml-2 rounded-lg shadow-refly-m p-2 [&>svg]:w-full [&>svg]:h-full"
-        zoomable={false}
-        pannable={false}
-        nodeComponent={MiniMapNode}
-      />
-    ),
-    [miniMapStyles],
-  );
 
   // Memoize the node types configuration
   const memoizedNodeTypes = useMemo(() => nodeTypes, []);
@@ -831,7 +895,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [],
   );
 
-  // Update handleKeyDown to handle edge deletion
+  // Handle keyboard shortcuts for edge deletion and zoom
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       // Skip all keyboard handling in readonly mode
@@ -862,6 +926,17 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
         }
       }
 
+      // Handle zoom shortcuts (Cmd/Ctrl + +/-)
+      if (isModKey && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        reactFlowInstance.zoomIn();
+      }
+
+      if (isModKey && e.key === '-') {
+        e.preventDefault();
+        reactFlowInstance.zoomOut();
+      }
+
       // Handle edge deletion
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEdgeId) {
         e.preventDefault();
@@ -873,7 +948,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [selectedEdgeId, reactFlowInstance, undo, redo, readonly],
   );
 
-  // Add edge click handler for delete button
+  // Handle edge click for delete button
   const handleEdgeClick = useCallback(
     (event: React.MouseEvent, edge: Edge) => {
       // Check if click is on delete button
@@ -894,7 +969,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
     [reactFlowInstance],
   );
 
-  // Update useEffect for keyboard events
+  // Add keyboard event listener
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -919,12 +994,12 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   // Add listener for opening node context menu
   useEffect(() => {
     const handleOpenContextMenu = (event: any) => {
-      // 从事件名称中提取nodeId
+      // Extract nodeId from event name
       const nodeId = event.nodeId;
 
-      // 检查事件是否包含必要的信息
+      // Check if event contains necessary information
       if (event?.nodeType) {
-        // 构造一个合成的React鼠标事件
+        // Create a synthetic React mouse event
         const syntheticEvent = {
           ...event.originalEvent,
           clientX: event.x,
@@ -933,7 +1008,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           stopPropagation: () => {},
         } as React.MouseEvent;
 
-        // 构造一个简化的节点对象，包含必要的属性
+        // Create a simplified node object with necessary properties
         const node = {
           id: nodeId,
           type: event.nodeType as CanvasNodeType,
@@ -941,7 +1016,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           position: { x: event.x, y: event.y },
         } as unknown as CanvasNode<any>;
 
-        // 调用onNodeContextMenu处理上下文菜单
+        // Call onNodeContextMenu to handle context menu
         onNodeContextMenu(syntheticEvent, node, {
           source: event.source,
           dragCreateInfo: event.dragCreateInfo,
@@ -949,11 +1024,11 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
       }
     };
 
-    // 监听所有包含openContextMenu的事件
+    // Listen for all events containing openContextMenu
     nodeOperationsEmitter.on('openNodeContextMenu', handleOpenContextMenu);
 
     return () => {
-      // 清理事件监听器
+      // Clean up event listeners
       nodeOperationsEmitter.off('openNodeContextMenu', handleOpenContextMenu);
     };
   }, [onNodeContextMenu]);
@@ -1092,17 +1167,21 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           <DropOverlay />
           <ReactFlow
             {...flowConfig}
+            selectionMode={SelectionMode.Partial}
             className="bg-refly-bg-canvas"
             snapToGrid={true}
             snapGrid={[GRID_SIZE, GRID_SIZE]}
             edgeTypes={edgeTypes}
-            panOnScroll={interactionMode === 'touchpad'}
-            panOnDrag={interactionMode === 'mouse'}
-            zoomOnScroll={interactionMode === 'mouse'}
-            zoomOnPinch={interactionMode === 'touchpad'}
+            // Unified mouse and touchpad gesture configuration
+            panOnScroll={true} // Enable scroll panning
+            panOnScrollSpeed={0.5} // Adjust scroll speed
+            panOnDrag={true} // Enable mouse left-click and touchpad single-finger drag
+            zoomOnScroll={true} // Enable scroll zooming
+            zoomOnPinch={true} // Enable touchpad two-finger pinch zoom
             zoomOnDoubleClick={false}
-            selectNodesOnDrag={!operatingNodeId && interactionMode === 'mouse' && !readonly}
-            selectionOnDrag={!operatingNodeId && interactionMode === 'touchpad' && !readonly}
+            // Enable default selection behavior
+            selectNodesOnDrag={true}
+            selectionOnDrag={true}
             nodeTypes={memoizedNodeTypes}
             nodes={memoizedNodes}
             edges={memoizedEdges}
@@ -1136,7 +1215,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
             {nodes?.length === 0 && canvasInitialized && <EmptyGuide canvasId={canvasId} />}
 
             {memoizedBackground}
-            {memoizedMiniMap}
             <HelperLines horizontal={helperLineHorizontal} vertical={helperLineVertical} />
           </ReactFlow>
         </div>
@@ -1155,39 +1233,19 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           </div>
         </div>
 
-        <MenuPopper open={menuOpen} position={menuPosition} setOpen={setMenuOpen} />
-
-        {contextMenu.open && contextMenu.type === 'canvas' && (
-          <ContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            isSelection={contextMenu.isSelection}
-          />
-        )}
-
-        {contextMenu.open &&
-          contextMenu.type === 'node' &&
-          contextMenu.nodeId &&
-          contextMenu.nodeType && (
-            <NodeContextMenu
-              open={contextMenu.open}
-              position={contextMenu.position}
-              nodeId={contextMenu.nodeId}
-              nodeType={contextMenu.nodeType}
-              source={contextMenu.source}
-              dragCreateInfo={contextMenu.dragCreateInfo}
-              setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-            />
-          )}
-
-        {contextMenu.open && contextMenu.type === 'selection' && (
-          <SelectionContextMenu
-            open={contextMenu.open}
-            position={contextMenu.position}
-            setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
-          />
-        )}
+        <UnifiedContextMenu
+          open={contextMenu.open}
+          position={contextMenu.position}
+          menuType={contextMenu.type}
+          context={{
+            nodeId: contextMenu.nodeId,
+            nodeType: contextMenu.nodeType,
+            source: contextMenu.source,
+            dragCreateInfo: contextMenu.dragCreateInfo,
+            isSelection: contextMenu.isSelection,
+          }}
+          setOpen={(open) => setContextMenu((prev) => ({ ...prev, open }))}
+        />
 
         {selectedNodes.length > 0 && <MultiSelectionMenus />}
       </div>
@@ -1227,6 +1285,10 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
     } else {
       setCurrentCanvasId(null);
     }
+
+    return () => {
+      setCurrentCanvasId(null);
+    };
   }, [canvasId, setCurrentCanvasId]);
 
   // Handle panel resize

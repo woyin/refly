@@ -24,12 +24,12 @@ export const FalImageToolsetDefinition: ToolsetDefinition = {
   key: 'fal_image',
   domain: 'https://fal.ai/',
   labelDict: {
-    en: 'Generate Image with FAL',
-    'zh-CN': '使用 FAL 生成图像',
+    en: 'Image Generation',
+    'zh-CN': '图像生成',
   },
   descriptionDict: {
-    en: 'Generate image content with FAL.',
-    'zh-CN': '使用 FAL 生成图像内容。',
+    en: 'Generate or edit image, support Seedream（generate/edit）、Nano Banana（generate/edit） model.',
+    'zh-CN': '生成或编辑图像，支持 Seedream（生成/编辑）、Nano Banana（生成/编辑） 模型。',
   },
   tools: [
     {
@@ -46,6 +46,20 @@ export const FalImageToolsetDefinition: ToolsetDefinition = {
         'zh-CN': '使用 Seedream 编辑图像内容。',
       },
     },
+    {
+      name: 'nano_banana_edit_image',
+      descriptionDict: {
+        en: 'Edit image content with Nano Banana.',
+        'zh-CN': '使用 Nano Banana 编辑图像内容。',
+      },
+    },
+    {
+      name: 'nano_banana_generate_image',
+      descriptionDict: {
+        en: 'Generate image content with Nano Banana.',
+        'zh-CN': '使用 Nano Banana 生成图像内容。',
+      },
+    },
   ],
 };
 
@@ -54,7 +68,7 @@ export class SeedreamGenerateImage extends AgentBaseTool<FalImageParams> {
   toolsetKey = FalImageToolsetDefinition.key;
 
   schema = z.object({
-    prompt: z.string().describe('The prompt to generate image.accept chinese and english.'),
+    prompt: z.string().describe('The prompt to generate image, accept chinese and english.'),
     image_size: z
       .enum([
         'square',
@@ -90,7 +104,6 @@ export class SeedreamGenerateImage extends AgentBaseTool<FalImageParams> {
         model: 'fal-ai/bytedance/seedream/v4/text-to-image',
         provider: 'fal',
         input,
-        unitCost: 5,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -99,6 +112,7 @@ export class SeedreamGenerateImage extends AgentBaseTool<FalImageParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated image with URL: ${result?.outputUrl}`,
+        creditCost: 5,
       };
     } catch (error) {
       return {
@@ -116,7 +130,7 @@ export class SeedreamEditImage extends AgentBaseTool<FalImageParams> {
   toolsetKey = FalImageToolsetDefinition.key;
 
   schema = z.object({
-    prompt: z.string().describe('The prompt to generate image.accept chinese and english.'),
+    prompt: z.string().describe('The prompt to generate image, accept chinese and english.'),
     image_size: z
       .enum([
         'square',
@@ -161,7 +175,6 @@ export class SeedreamEditImage extends AgentBaseTool<FalImageParams> {
           ...input,
           image_urls,
         },
-        unitCost: 6,
         wait: true,
         parentResultId: config.configurable?.resultId,
       });
@@ -170,6 +183,114 @@ export class SeedreamEditImage extends AgentBaseTool<FalImageParams> {
         status: 'success',
         data: result,
         summary: `Successfully generated image with URL: ${result?.outputUrl}`,
+        creditCost: 5,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error generating image',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while generating image',
+      };
+    }
+  }
+}
+
+export class NanoBananaEditImage extends AgentBaseTool<FalImageParams> {
+  name = 'nano_banana_edit_image';
+  toolsetKey = FalImageToolsetDefinition.key;
+
+  schema = z.object({
+    prompt: z.string().describe('The prompt to edit image, accept only english.'),
+    image_urls: z.array(z.string()).describe('List of URLs of input images for editing.'),
+  });
+
+  description = "Google's state-of-the-art image generation and editing model";
+
+  protected params: FalImageParams;
+
+  constructor(params: FalImageParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _: any,
+    config: RunnableConfig,
+  ): Promise<ToolCallResult> {
+    try {
+      const { reflyService, user } = this.params;
+      const image_urls = await reflyService.batchProcessURL(input.image_urls);
+      const result = await reflyService.generateMedia(user, {
+        mediaType: 'image',
+        prompt: input.prompt,
+        model: 'fal-ai/nano-banana/edit',
+        provider: 'fal',
+        input: {
+          ...input,
+          image_urls,
+        },
+        wait: true,
+        parentResultId: config.configurable?.resultId,
+      });
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully edited image with URL: ${result?.outputUrl}`,
+        creditCost: 6,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Error editing image',
+        summary:
+          error instanceof Error ? error.message : 'Unknown error occurred while editing image',
+      };
+    }
+  }
+}
+
+export class NanoBananaGenerateImage extends AgentBaseTool<FalImageParams> {
+  name = 'nano_banana_generate_image';
+  toolsetKey = FalImageToolsetDefinition.key;
+
+  schema = z.object({
+    prompt: z.string().describe('The prompt to generate image, accept only english.'),
+  });
+
+  description = "Google's state-of-the-art image generation and editing model";
+
+  protected params: FalImageParams;
+
+  constructor(params: FalImageParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(
+    input: z.infer<typeof this.schema>,
+    _: any,
+    config: RunnableConfig,
+  ): Promise<ToolCallResult> {
+    try {
+      const { reflyService, user } = this.params;
+      const result = await reflyService.generateMedia(user, {
+        mediaType: 'image',
+        prompt: input.prompt,
+        model: 'fal-ai/nano-banana',
+        provider: 'fal',
+        input,
+        wait: true,
+        parentResultId: config.configurable?.resultId,
+      });
+
+      return {
+        status: 'success',
+        data: result,
+        summary: `Successfully generated image with URL: ${result?.outputUrl}`,
+        creditCost: 6,
       };
     } catch (error) {
       return {
@@ -187,5 +308,7 @@ export class FalImageToolset extends AgentBaseToolset<FalImageParams> {
   tools = [
     SeedreamGenerateImage,
     SeedreamEditImage,
+    NanoBananaEditImage,
+    NanoBananaGenerateImage,
   ] satisfies readonly AgentToolConstructor<FalImageParams>[];
 }

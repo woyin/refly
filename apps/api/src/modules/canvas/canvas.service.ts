@@ -20,12 +20,15 @@ import {
   User,
   SkillContext,
   ActionResult,
+  WorkflowVariable,
+  ResourceType,
+  VariableValue,
 } from '@refly/openapi-schema';
 import { Prisma } from '../../generated/client';
 import { genCanvasID, genTransactionId, safeParseJSON } from '@refly/utils';
 import { DeleteKnowledgeEntityJobData } from '../knowledge/knowledge.dto';
 import { QUEUE_DELETE_KNOWLEDGE_ENTITY, QUEUE_POST_DELETE_CANVAS } from '../../utils/const';
-import { AutoNameCanvasJobData, DeleteCanvasJobData } from './canvas.dto';
+import { AutoNameCanvasJobData, CanvasDetailModel, DeleteCanvasJobData } from './canvas.dto';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { ResourceService } from '../knowledge/resource.service';
 import { DocumentService } from '../knowledge/document.service';
@@ -66,22 +69,70 @@ export class CanvasService {
     private postDeleteCanvasQueue?: Queue<DeleteCanvasJobData>,
   ) {}
 
-  async listCanvases(user: User, param: ListCanvasesData['query']) {
-    const { page = 1, pageSize = 10, projectId } = param;
+  async listCanvases(user: User, param: ListCanvasesData['query']): Promise<CanvasDetailModel[]> {
+    const { page = 1, pageSize = 10, projectId, order = 'creationDesc', keyword } = param;
+
+    // Build orderBy based on order parameter
+    const orderBy =
+      order === 'creationAsc' ? { createdAt: 'asc' as const } : { createdAt: 'desc' as const };
+
+    // Build where clause with keyword search
+    const where: Prisma.CanvasWhereInput = {
+      uid: user.uid,
+      deletedAt: null,
+      projectId: projectId || null,
+      visibility: true,
+    };
+
+    // Add keyword search if provided
+    if (keyword?.trim()) {
+      where.title = {
+        contains: keyword.trim(),
+        mode: 'insensitive',
+      };
+    }
 
     const canvases = await this.prisma.canvas.findMany({
-      where: {
-        uid: user.uid,
-        deletedAt: null,
-        projectId: projectId || null,
-      },
-      orderBy: { updatedAt: 'desc' },
+      where,
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
 
+    // Get owner information (all canvases belong to the same user)
+    const owner = await this.prisma.user.findUnique({
+      select: {
+        uid: true,
+        name: true,
+        nickname: true,
+        avatar: true,
+      },
+      where: { uid: user.uid },
+    });
+
+    // Get share records for all canvases in one query
+    const canvasIds = canvases.map((canvas) => canvas.canvasId);
+    const shareRecords = await this.prisma.shareRecord.findMany({
+      where: {
+        entityId: { in: canvasIds },
+        entityType: 'canvas',
+        deletedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Create a map of canvasId to shareRecord (taking the most recent one)
+    const shareRecordMap = new Map<string, (typeof shareRecords)[0]>();
+    for (const record of shareRecords) {
+      if (!shareRecordMap.has(record.entityId)) {
+        shareRecordMap.set(record.entityId, record);
+      }
+    }
+
     return canvases.map((canvas) => ({
       ...canvas,
+      owner,
+      shareRecord: shareRecordMap.get(canvas.canvasId) || null,
       minimapUrl: canvas.minimapStorageKey
         ? this.miscService.generateFileURL({ storageKey: canvas.minimapStorageKey })
         : undefined,
@@ -347,6 +398,8 @@ export class CanvasService {
     const { canvasId } = param;
     const stateStorageKey = await this.canvasSyncService.saveState(canvasId, state);
 
+    param.variables = await this.processResourceVariables(user, canvasId, param.variables);
+
     const [canvas] = await this.prisma.$transaction([
       this.prisma.canvas.create({
         data: {
@@ -356,6 +409,7 @@ export class CanvasService {
           projectId: param.projectId,
           version: state.version,
           workflow: JSON.stringify({ variables: param.variables }),
+          visibility: param.visibility ?? true,
         },
       }),
       this.prisma.canvasVersion.create({
@@ -963,5 +1017,194 @@ export class CanvasService {
       this.logger.error(`Error exporting canvas ${canvasId}: ${error?.message}`);
       throw new ParamsError('Failed to export canvas data');
     }
+  }
+
+  /**
+   * Process resource variables for workflow execution
+   * @param user - The user processing the variables
+   * @param variables - The workflow variables to process
+   * @param canvasId - The target canvas ID
+   * @returns Processed variables with updated resource information
+   */
+  private async processResourceVariables(
+    user: User,
+    canvasId: string,
+    variables: WorkflowVariable[],
+  ): Promise<WorkflowVariable[]> {
+    if (!Array.isArray(variables)) return [];
+
+    const processedVariables = await Promise.all(
+      variables.map(async (variable) => {
+        const processedValues = await Promise.all(
+          variable.value.map(async (value) => {
+            if (value.type === 'resource' && value.resource) {
+              return await this.processResourceValue(user, canvasId, value);
+            }
+            return value;
+          }),
+        );
+        return {
+          ...variable,
+          value: processedValues,
+        };
+      }),
+    );
+
+    return processedVariables;
+  }
+
+  /**
+   * Process a single resource variable value
+   * @param user - The user processing the resource
+   * @param value - The resource variable value
+   * @param canvasId - The target canvas ID
+   * @returns Processed resource variable value
+   */
+  private async processResourceValue(
+    user: User,
+    canvasId: string,
+    value: VariableValue,
+  ): Promise<VariableValue> {
+    this.logger.log(`Processing resource value for canvas ${canvasId}: ${JSON.stringify(value)}`);
+
+    const { resource } = value;
+    if (!resource) return value;
+
+    const { storageKey } = resource;
+    if (!storageKey) {
+      this.logger.warn('Resource variable missing storageKey; skipping processing');
+      return value;
+    }
+
+    // Check if static file already exists with entity_id and entity_type
+    const resourceFile = await this.prisma.staticFile.findFirst({
+      where: { storageKey, deletedAt: null },
+    });
+
+    if (resourceFile?.entityId && resourceFile?.entityType === 'resource') {
+      // Resource already exists, read it
+      this.logger.log(
+        `Resource already exists for storageKey: ${storageKey}, entityId: ${resourceFile.entityId}`,
+      );
+      return value;
+    }
+
+    if (!resource.entityId) {
+      // New upload - create new resource
+      const newResource = await this.resourceService.createResource(user, {
+        title: resource.name,
+        resourceType: resource.fileType as ResourceType,
+        canvasId,
+        storageKey,
+      });
+
+      // Update static file with new entity information
+      if (resourceFile) {
+        await this.prisma.staticFile.update({
+          where: { pk: resourceFile.pk },
+          data: {
+            entityId: newResource.resourceId,
+            entityType: 'resource',
+          },
+        });
+      }
+
+      // Update the variable value with new entityId
+      return {
+        ...value,
+        resource: {
+          ...resource,
+          entityId: newResource.resourceId,
+        },
+      };
+    }
+
+    // Find existing resource - update old resource
+    const existingResource = await this.prisma.resource.findUnique({
+      where: { resourceId: resource.entityId },
+    });
+
+    if (!existingResource) {
+      this.logger.warn(`Existing resource not found: ${resource.entityId}`);
+      return value;
+    }
+
+    // Update existing resource with new storage key
+    await this.resourceService.updateResource(
+      user,
+      {
+        title: resource.name,
+        resourceType: existingResource.resourceType as ResourceType,
+        canvasId,
+        storageKey,
+        resourceId: existingResource.resourceId,
+      },
+      { waitFor: 'parse_completed' }, // we must wait for the resource to be parsed
+    );
+
+    // Update static file with new entity information
+    if (resourceFile) {
+      await this.prisma.staticFile.update({
+        where: { pk: resourceFile.pk },
+        data: {
+          entityId: existingResource.resourceId,
+          entityType: 'resource',
+        },
+      });
+    }
+
+    return value;
+  }
+
+  /**
+   * Get workflow variables from Canvas DB field
+   * @param user - The user
+   * @param param - The get workflow variables request
+   * @returns The workflow variables
+   */
+  async getWorkflowVariables(user: User, param: { canvasId: string }): Promise<WorkflowVariable[]> {
+    const { canvasId } = param;
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { workflow: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    if (!canvas) return [];
+    try {
+      const workflow = canvas.workflow ? JSON.parse(canvas.workflow) : undefined;
+      return workflow?.variables ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Update workflow variables in Canvas DB field
+   * @param user - The user
+   * @param param - The update workflow variables request
+   * @returns The updated workflow variables
+   */
+  async updateWorkflowVariables(
+    user: User,
+    param: { canvasId: string; variables: WorkflowVariable[] },
+  ): Promise<WorkflowVariable[]> {
+    const { canvasId, variables } = param;
+    const canvas = await this.prisma.canvas.findUnique({
+      select: { workflow: true },
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    let workflowObj: { variables: WorkflowVariable[] } = { variables: [] };
+    if (canvas?.workflow) {
+      try {
+        workflowObj = JSON.parse(canvas.workflow) ?? {};
+      } catch {}
+    }
+
+    workflowObj.variables = await this.processResourceVariables(user, canvasId, variables);
+
+    await this.prisma.canvas.update({
+      where: { canvasId, uid: user.uid, deletedAt: null },
+      data: { workflow: JSON.stringify(workflowObj) },
+    });
+    return workflowObj.variables;
   }
 }

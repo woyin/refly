@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button, Modal, Form, Input, Checkbox, message } from 'antd';
-import { Close, List, Text1 } from 'refly-icons';
+import { Attachment, Close, List, Text1 } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -13,12 +13,14 @@ import { OptionTypeForm } from './option-type-form';
 import { useFileUpload } from './hooks/use-file-upload';
 import { useOptionsManagement } from './hooks/use-options-management';
 import { useFormData } from './hooks/use-form-data';
-import { getFileExtension } from './utils';
+import { getFileType } from './utils';
 import type { CreateVariablesModalProps, VariableFormData } from './types';
 import type { WorkflowVariable, VariableValue } from '@refly/openapi-schema';
 import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import './index.scss';
 import { RESOURCE_TYPE } from './constants';
+import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks/use-get-project-canvasId';
+import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 
 export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.memo(
   ({ visible, onCancel, defaultValue, variableType: initialVariableType, mode }) => {
@@ -32,6 +34,13 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
     const { workflowVariables, refetchWorkflowVariables } = workflow;
     const [isSaving, setIsSaving] = useState(false);
     const { handleVariableView } = useVariableView(canvasId);
+    const { projectId } = useGetProjectCanvasId();
+    const { refetch: refetchResources } = useListResources({
+      query: {
+        canvasId,
+        projectId,
+      },
+    });
 
     const variableTypeOptions = useMemo(() => {
       return [
@@ -40,11 +49,11 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           value: 'string',
           icon: <Text1 size={16} />,
         },
-        // {
-        //   label: t('canvas.workflow.variables.variableTypeOptions.resource'),
-        //   value: 'resource',
-        //   icon: <Attachment size={16} />,
-        // },
+        {
+          label: t('canvas.workflow.variables.variableTypeOptions.resource'),
+          value: 'resource',
+          icon: <Attachment size={16} />,
+        },
         {
           label: t('canvas.workflow.variables.variableTypeOptions.option'),
           value: 'option',
@@ -118,8 +127,8 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
 
             // Set file list for resource type
             if (defaultValue.value?.length) {
-              const files: UploadFile[] = defaultValue.value.map((value, index) => ({
-                uid: `file-${index}`,
+              const files: UploadFile[] = defaultValue.value.map((value) => ({
+                uid: value.resource?.entityId,
                 name: value.resource?.name || '',
                 status: 'done',
                 url: value.resource?.storageKey || '', // Use storageKey from resource
@@ -127,10 +136,17 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               setFileList(files);
             }
           } else if (defaultValue.variableType === 'option') {
+            // Extract the selected value from the VariableValue array
+            const selectedValue =
+              defaultValue.value && defaultValue.value.length > 0
+                ? defaultValue.value[0].text || ''
+                : '';
+
             const newOptionFormData = {
               ...optionFormData,
               name: defaultValue.name || '',
               value: defaultValue.value || [],
+              selectedValue: selectedValue,
               description: defaultValue.description || '',
               required: defaultValue.required ?? true,
               isSingle: defaultValue.isSingle ?? true,
@@ -218,7 +234,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
             resource: {
               name: file.name || '',
               storageKey: file.url || '', // Use url field to store storageKey
-              fileType: getFileExtension(file.name) || 'file', // Store file extension
+              fileType: getFileType(file.name),
             },
           }));
 
@@ -235,7 +251,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
 
     const handleFileUpload = useCallback(
       async (file: File) => {
-        console.log('file', file);
         const result = await uploadFile(file, fileList);
         if (result && typeof result === 'object' && 'storageKey' in result) {
           // Add file to list with storageKey
@@ -354,16 +369,40 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
             resource: {
               name: file.name || '',
               storageKey: file.url || '',
-              fileType: getFileExtension(file.name) || 'file',
+              fileType: getFileType(file.name),
+              ...(defaultValue?.value
+                ? {
+                    entityId: defaultValue.value.find((v) => v.resource?.storageKey === file.url)
+                      ?.resource?.entityId,
+                  }
+                : {}),
             },
           }));
-        } else if (variableType === 'option' && options.length > 0 && options[0]) {
-          finalValue = [
-            {
-              type: 'text',
-              text: options[0] || '',
-            },
-          ];
+        } else if (variableType === 'option') {
+          // Get the selected value from the form
+          const selectedValue = (values as any).selectedValue;
+          if (
+            selectedValue &&
+            (Array.isArray(selectedValue) ? selectedValue.length > 0 : selectedValue)
+          ) {
+            const textValue = Array.isArray(selectedValue) ? selectedValue[0] : selectedValue;
+            finalValue = [
+              {
+                type: 'text',
+                text: textValue,
+              },
+            ];
+          }
+        } else {
+          finalValue = [];
+        }
+
+        // Check if final value is empty and show error message
+        if (!finalValue || finalValue.length === 0) {
+          message.error(
+            t('canvas.workflow.variables.valueRequired') || 'Variable value is required',
+          );
+          return;
         }
 
         const variable: WorkflowVariable = {
@@ -371,7 +410,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
           name: values.name,
           value: finalValue,
           description: values.description,
-          source: 'startNode',
           variableType: variableType as 'string' | 'option' | 'resource',
           required: values.required,
           ...(variableType === 'resource' && {
@@ -391,6 +429,10 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
         if (success) {
           refetchWorkflowVariables();
           onCancel(false);
+
+          if (variableType === 'resource') {
+            refetchResources();
+          }
         }
       } catch (error) {
         console.error('Form validation failed:', error);
@@ -404,7 +446,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       saveVariable,
       refetchWorkflowVariables,
       options,
-      getFileExtension,
       workflowVariables,
       defaultValue,
     ]);

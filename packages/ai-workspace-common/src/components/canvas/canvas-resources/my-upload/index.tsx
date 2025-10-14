@@ -1,15 +1,19 @@
 import { memo, useCallback, useMemo } from 'react';
 import { message } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { CanvasNode } from '@refly/canvas-common';
 import { useActiveNode, useCanvasResourcesPanelStoreShallow } from '@refly/stores';
-import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 import { MyUploadItem } from './my-upload-item';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { Resource } from '@refly/openapi-schema';
 
-export const MyUploadList = memo(() => {
+interface MyUploadListProps {
+  resources: Resource[];
+}
+
+export const MyUploadList = memo((props: MyUploadListProps) => {
+  const { resources } = props;
+
   const { t } = useTranslation();
-  const { nodes } = useRealtimeCanvasData();
   const { canvasId } = useCanvasContext();
   const { setParentType, searchKeyword } = useCanvasResourcesPanelStoreShallow((state) => ({
     setParentType: state.setParentType,
@@ -17,29 +21,26 @@ export const MyUploadList = memo(() => {
   }));
   const { activeNode, setActiveNode } = useActiveNode(canvasId);
 
-  // Filter nodes by resource type
-  const resourceNodes = useMemo(() => {
-    if (!nodes?.length) {
+  // Filter resources by search keyword
+  const filteredResources = useMemo(() => {
+    if (!resources?.length) {
       return [];
     }
 
-    let filteredNodes = nodes.filter(
-      (node) =>
-        node.type === 'resource' || (node.type === 'image' && !node.data?.metadata?.resultId),
-    );
+    let filtered = resources;
     if (searchKeyword?.trim()) {
       const keyword = searchKeyword.toLowerCase().trim();
-      filteredNodes = filteredNodes.filter((node) => {
-        const title = node.data?.title?.toLowerCase() ?? '';
+      filtered = filtered.filter((resource) => {
+        const title = resource.title?.toLowerCase() ?? '';
         return title.includes(keyword);
       });
     }
 
-    return filteredNodes;
-  }, [nodes, searchKeyword]);
+    return filtered;
+  }, [resources, searchKeyword]);
 
-  const handleNodeSelect = useCallback(
-    (node: CanvasNode, beforeParsed: boolean) => {
+  const handleResourceSelect = useCallback(
+    (resource: Resource, beforeParsed: boolean) => {
       if (beforeParsed) {
         message.error(
           t('resource.wait_parse_tip', {
@@ -49,12 +50,27 @@ export const MyUploadList = memo(() => {
         return;
       }
       setParentType('myUpload');
-      setActiveNode(node);
+      // Create a node-like object for setActiveNode
+      const nodeLike = {
+        id: resource.resourceId,
+        type: 'resource' as const,
+        position: { x: 0, y: 0 }, // Default position
+        data: {
+          title: resource.title,
+          entityId: resource.resourceId,
+          metadata: {
+            ...resource.data,
+            indexStatus: resource.indexStatus,
+            resourceType: resource.resourceType,
+          },
+        },
+      };
+      setActiveNode(nodeLike);
     },
-    [setParentType, setActiveNode],
+    [setParentType, setActiveNode, t],
   );
 
-  if (!resourceNodes?.length) {
+  if (!filteredResources?.length) {
     return (
       <div className="h-full w-full flex items-center justify-center text-refly-text-2 text-sm leading-5">
         {searchKeyword?.trim()
@@ -67,12 +83,12 @@ export const MyUploadList = memo(() => {
   return (
     <div className="overflow-y-auto h-full">
       <div className="h-full flex flex-col gap-2">
-        {resourceNodes?.map((node: CanvasNode) => (
+        {filteredResources?.map((resource: Resource) => (
           <MyUploadItem
-            key={node.id}
-            node={node}
-            isActive={activeNode?.id === node.id}
-            onSelect={handleNodeSelect}
+            key={resource.resourceId}
+            resource={resource}
+            isActive={activeNode?.id === resource.resourceId}
+            onSelect={handleResourceSelect}
           />
         ))}
       </div>

@@ -2,15 +2,16 @@ import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-s
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select, Form, Typography } from 'antd';
 import { Play, Copy } from 'refly-icons';
+import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useFileUpload } from '../workflow-variables';
 import { ResourceUpload } from './resource-upload';
-import { getFileExtension } from '../workflow-variables/utils';
 import cn from 'classnames';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { useNavigate } from 'react-router-dom';
+import { getFileType } from '../workflow-variables/utils';
 
 const RequiredTagText = () => {
   const { t } = useTranslation();
@@ -58,27 +59,41 @@ interface WorkflowRunFormProps {
   workflowVariables: WorkflowVariable[];
   onSubmitVariables: (variables: WorkflowVariable[]) => Promise<void>;
   onCopyWorkflow?: () => void;
+  onCopyShareLink?: () => void;
   loading: boolean;
   executionId?: string | null;
   workflowStatus?: WorkflowExecutionStatus | null;
   isPolling?: boolean;
   pollingError?: any;
+  isRunning?: boolean;
+  onRunningChange?: (isRunning: boolean) => void;
+  className?: string;
 }
 
 export const WorkflowRunForm = ({
   workflowVariables,
   onSubmitVariables,
   onCopyWorkflow,
+  onCopyShareLink,
   loading,
   isPolling,
+  isRunning: externalIsRunning,
+  onRunningChange,
+  className,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
   const navigate = useNavigate();
 
-  const [isRunning, setIsRunning] = useState(false);
+  const [internalIsRunning, setInternalIsRunning] = useState(false);
+
+  // Use external isRunning if provided, otherwise use internal state
+  const isRunning = externalIsRunning ?? internalIsRunning;
   const [form] = Form.useForm();
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
+
+  // Check if form should be disabled
+  const isFormDisabled = loading || isRunning || isPolling;
 
   // File upload hook
   const {
@@ -119,7 +134,13 @@ export const WorkflowRunForm = ({
       if (variable.variableType === 'string') {
         formValues[variable.name] = variable.value?.[0]?.text ?? '';
       } else if (variable.variableType === 'option') {
-        formValues[variable.name] = variable.value.map((v) => v.text);
+        // Handle both array and single value cases
+        const valueArray = Array.isArray(variable.value)
+          ? variable.value
+          : variable.value
+            ? [variable.value]
+            : [];
+        formValues[variable.name] = valueArray.map((v) => v.text);
       } else if (variable.variableType === 'resource') {
         // Convert resource values to UploadFile format
         const fileList: UploadFile[] =
@@ -146,22 +167,33 @@ export const WorkflowRunForm = ({
           value: [{ type: 'text', text: value }],
         });
       } else if (variable.variableType === 'option') {
+        // Handle both array and single value cases
+        const valueArray = Array.isArray(value) ? value : value ? [value] : [];
         newVariables.push({
           ...variable,
-          value: value.map((v) => ({ type: 'text', text: v })),
+          value: valueArray.map((v) => ({ type: 'text', text: v })),
         });
       } else if (variable.variableType === 'resource') {
-        newVariables.push({
-          ...variable,
-          value: value.map((v) => ({
-            type: 'resource',
-            resource: {
-              name: v.name,
-              storageKey: v.url,
-              fileType: getFileExtension(v.name),
-            },
-          })),
-        });
+        const v = Array.isArray(value) ? value[0] : undefined;
+        console.log('v', v);
+        const entityId = variable?.value?.[0]?.resource?.entityId;
+
+        if (v && entityId) {
+          newVariables.push({
+            ...variable,
+            value: [
+              {
+                type: 'resource',
+                resource: {
+                  name: v.name,
+                  storageKey: v.url,
+                  fileType: getFileType(v.name),
+                  entityId,
+                },
+              },
+            ],
+          });
+        }
       }
     }
     return newVariables;
@@ -264,7 +296,13 @@ export const WorkflowRunForm = ({
 
       // If validation passes, proceed with running
       const newVariables = convertFormValueToVariable();
-      setIsRunning(true);
+
+      // Set running state - use external callback if provided, otherwise use internal state
+      if (onRunningChange) {
+        onRunningChange(true);
+      } else {
+        setInternalIsRunning(true);
+      }
 
       await onSubmitVariables(newVariables);
     } catch (error) {
@@ -319,8 +357,13 @@ export const WorkflowRunForm = ({
           }
         }
       }
-    } finally {
-      setIsRunning(false);
+
+      // Reset running state on validation error
+      if (onRunningChange) {
+        onRunningChange(false);
+      } else {
+        setInternalIsRunning(false);
+      }
     }
   };
 
@@ -351,6 +394,7 @@ export const WorkflowRunForm = ({
             value={value}
             onChange={(e) => handleValueChange(name, e.target.value)}
             data-field-name={name}
+            disabled={isFormDisabled}
           />
         </Form.Item>
       );
@@ -370,12 +414,13 @@ export const WorkflowRunForm = ({
         >
           <Select
             variant="filled"
-            placeholder="请选择"
+            placeholder={t('canvas.workflow.variables.selectPlaceholder')}
             mode={isSingle ? undefined : 'multiple'}
             value={value}
             onChange={(val) => handleValueChange(name, val)}
             options={options?.map((opt) => ({ label: opt, value: opt })) ?? []}
             data-field-name={name}
+            disabled={isFormDisabled}
           />
         </Form.Item>
       );
@@ -399,7 +444,7 @@ export const WorkflowRunForm = ({
             onRemove={(file) => handleFileRemove(file, name)}
             onRefresh={() => handleRefreshFile(name)}
             resourceTypes={resourceTypes}
-            disabled={uploading}
+            disabled={uploading || isFormDisabled}
             maxCount={1}
             data-field-name={name}
           />
@@ -411,55 +456,68 @@ export const WorkflowRunForm = ({
   };
 
   return (
-    <div className="w-full max-h-[500px] sm:max-h-[600px] flex flex-col bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm">
-      <div className="p-3 sm:p-4 flex-1 overflow-y-auto max-h-[350px] sm:max-h-[450px]">
-        {/* Workflow variables form */}
-        {workflowVariables.length > 0 ? (
-          <Form
-            form={form}
-            layout="vertical"
-            className="space-y-3 sm:space-y-4"
-            initialValues={variableValues}
-          >
-            {workflowVariables.map((variable) => renderFormField(variable))}
-          </Form>
-        ) : (
-          <EmptyContent />
-        )}
-      </div>
-
-      <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
-        <div className="flex gap-2">
-          <Button
-            className={cn(
-              'flex-1 h-9 sm:h-10 text-sm sm:text-base',
-              (!isFormValid || isPolling) &&
-                'bg-refly-bg-control-z0 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
+    <div className={cn('w-full h-full gap-3 flex flex-col', className)}>
+      {
+        <>
+          <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
+            {/* Show loading state when loading */}
+            {workflowVariables.length > 0 ? (
+              <Form
+                form={form}
+                layout="vertical"
+                className="space-y-3 sm:space-y-4"
+                initialValues={variableValues}
+              >
+                {workflowVariables.map((variable) => renderFormField(variable))}
+              </Form>
+            ) : loading ? null : (
+              <EmptyContent />
             )}
-            type="primary"
-            icon={<Play size={14} className="sm:w-4 sm:h-4" />}
-            onClick={handleRun}
-            loading={loading || isRunning || isPolling}
-            disabled={loading || isRunning || isPolling}
-          >
-            {isPolling
-              ? t('canvas.workflow.run.executing') || 'Executing...'
-              : t('canvas.workflow.run.run') || 'Run'}
-          </Button>
+          </div>
+          <div className="p-3 sm:p-4 border-t border-refly-Card-Border bg-refly-bg-control-z0 rounded-b-lg">
+            <div className="flex gap-2">
+              <Button
+                className={cn(
+                  'flex-1 h-9 sm:h-10 text-sm sm:text-base',
+                  (!isFormValid || isPolling) &&
+                    'bg-refly-bg-control-z1 hover:!bg-refly-tertiary-hover !text-refly-text-3 font-semibold',
+                )}
+                type="primary"
+                icon={<Play size={14} className="sm:w-4 sm:h-4" />}
+                onClick={handleRun}
+                loading={loading || isRunning || isPolling}
+                disabled={loading || isRunning || isPolling}
+              >
+                {isPolling
+                  ? t('canvas.workflow.run.executing') || 'Executing...'
+                  : t('canvas.workflow.run.run') || 'Run'}
+              </Button>
 
-          {onCopyWorkflow && (
-            <Button
-              className="h-9 sm:h-10 text-sm sm:text-base"
-              type="default"
-              icon={<Copy size={14} className="sm:w-4 sm:h-4" />}
-              onClick={onCopyWorkflow}
-              disabled={loading || isRunning || isPolling}
-            >
-              {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
-            </Button>
-          )}
-        </div>
-      </div>
+              {onCopyWorkflow && (
+                <Button
+                  className="h-9 sm:h-10 text-sm sm:text-base"
+                  type="default"
+                  icon={<Copy size={14} className="sm:w-4 sm:h-4" />}
+                  onClick={onCopyWorkflow}
+                >
+                  {t('canvas.workflow.run.copyWorkflow') || 'Copy Workflow'}
+                </Button>
+              )}
+
+              {onCopyShareLink && (
+                <Button
+                  className="h-9 sm:h-10 text-sm sm:text-base"
+                  type="default"
+                  icon={<IconShare size={14} className="sm:w-4 sm:h-4" />}
+                  onClick={onCopyShareLink}
+                >
+                  {t('canvas.workflow.run.copyShareLink') || 'Copy Share Link'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </>
+      }
     </div>
   );
 };

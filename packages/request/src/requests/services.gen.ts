@@ -330,6 +330,9 @@ import type {
   CreateWorkflowAppData,
   CreateWorkflowAppError,
   CreateWorkflowAppResponse2,
+  DeleteWorkflowAppData,
+  DeleteWorkflowAppError,
+  DeleteWorkflowAppResponse,
   GetWorkflowAppDetailData,
   GetWorkflowAppDetailError,
   GetWorkflowAppDetailResponse2,
@@ -2196,6 +2199,23 @@ export const createWorkflowApp = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow-app/new',
+  });
+};
+
+/**
+ * Delete workflow app
+ * Delete a workflow app
+ */
+export const deleteWorkflowApp = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteWorkflowAppData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    DeleteWorkflowAppResponse,
+    DeleteWorkflowAppError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/delete',
   });
 };
 

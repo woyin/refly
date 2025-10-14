@@ -7,6 +7,8 @@ import {
   CodeArtifactNode,
   WebsiteNode,
   SkillResponseNode,
+  VideoNode,
+  AudioNode,
 } from '@refly-packages/ai-workspace-common/components/canvas/nodes';
 import {
   DocumentNodeProps,
@@ -18,7 +20,9 @@ import {
   WebsiteNodeProps,
 } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/types';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-data';
+import { useGetResourceDetail } from '@refly-packages/ai-workspace-common/queries';
 import { IContextItem } from '@refly/common-types';
+import { deepmerge } from '@refly/utils';
 import { ChatHistoryPreview } from './components/chat-history-preview';
 import { SelectionPreview } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/context-manager/components/selection-preview';
 
@@ -26,6 +30,13 @@ export const ContextPreview = memo(
   ({ item }: { item: IContextItem }) => {
     const { nodes } = useCanvasData();
     const node = nodes.find((node) => node.data?.entityId === item?.entityId);
+
+    // Fetch remote resource detail for resource type items
+    const resourceId = item?.entityId ?? '';
+    const { data: resourceResult } = useGetResourceDetail({ query: { resourceId } }, undefined, {
+      enabled: item?.type === 'resource' && !!resourceId,
+    });
+    const remoteResourceData = resourceResult?.data;
 
     const commonProps = {
       isPreview: true,
@@ -43,8 +54,43 @@ export const ContextPreview = memo(
     switch (item?.type) {
       case 'document':
         return <DocumentNode {...(commonProps as DocumentNodeProps)} />;
-      case 'resource':
-        return <ResourceNode {...(commonProps as ResourceNodeProps)} />;
+      case 'resource': {
+        const resourceProps = {
+          ...commonProps,
+          data: deepmerge(commonProps.data, remoteResourceData || {}),
+        };
+        if (item.metadata?.resourceType === 'image') {
+          const imageProps = deepmerge(resourceProps, {
+            data: {
+              metadata: {
+                imageUrl: item.metadata?.imageUrl,
+              },
+            },
+          });
+          return <ImageNode {...(imageProps as ImageNodeProps)} />;
+        }
+        if (item.metadata?.resourceType === 'video') {
+          const videoProps = deepmerge(resourceProps, {
+            data: {
+              metadata: {
+                videoUrl: item.metadata?.videoUrl,
+              },
+            },
+          });
+          return <VideoNode {...(videoProps as any)} />;
+        }
+        if (item.metadata?.resourceType === 'audio') {
+          const audioProps = deepmerge(resourceProps, {
+            data: {
+              metadata: {
+                audioUrl: item.metadata?.audioUrl,
+              },
+            },
+          });
+          return <AudioNode {...(audioProps as any)} />;
+        }
+        return <ResourceNode {...(resourceProps as ResourceNodeProps)} />;
+      }
       case 'skillResponse':
         if (item.metadata?.withHistory) {
           return <ChatHistoryPreview item={item} />;

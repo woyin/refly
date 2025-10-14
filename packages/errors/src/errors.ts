@@ -304,6 +304,14 @@ export class WorkflowExecutionNotFoundError extends BaseError {
   };
 }
 
+export class WorkflowAppNotFoundError extends BaseError {
+  code = 'E1022';
+  messageDict = {
+    en: 'Workflow app not found, please refresh',
+    'zh-CN': '工作流 App 不存在，请刷新重试',
+  };
+}
+
 export class StorageQuotaExceeded extends BaseError {
   code = 'E2001';
   messageDict = {
@@ -424,6 +432,7 @@ const errorMap = {
   E1019: ProviderMisconfigurationError,
   E1020: ToolsetNotFoundError,
   E1021: WorkflowExecutionNotFoundError,
+  E1022: WorkflowAppNotFoundError,
   E2001: StorageQuotaExceeded,
   E2002: ModelUsageQuotaExceeded,
   E2003: ModelNotSupportedError,

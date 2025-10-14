@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { DynamicStructuredTool, type StructuredToolInterface } from '@langchain/core/tools';
 import { PrismaService } from '../common/prisma.service';
@@ -32,6 +34,8 @@ import {
   SkillEngine,
 } from '@refly/skill-template';
 import { extractToolsetsWithNodes } from '@refly/canvas-common';
+import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../utils/const';
+import { SyncToolCreditUsageJobData } from '../credit/credit.dto';
 
 @Injectable()
 export class ToolService {
@@ -42,6 +46,9 @@ export class ToolService {
     private readonly encryptionService: EncryptionService,
     private readonly configService: ConfigService,
     private readonly mcpServerService: McpServerService,
+    @Optional()
+    @InjectQueue(QUEUE_SYNC_TOOL_CREDIT_USAGE)
+    private readonly toolCreditUsageQueue?: Queue<SyncToolCreditUsageJobData>,
   ) {}
 
   get toolsetInventory(): Record<
@@ -83,13 +90,20 @@ export class ToolService {
       },
     };
     const { isGlobal, enabled } = param ?? {};
+
+    // Build where condition dynamically
+    const whereCondition: any = {
+      uninstalled: false,
+      deletedAt: null,
+      OR:
+        isGlobal !== undefined
+          ? [{ isGlobal }, { uid: user.uid }]
+          : [{ isGlobal: true }, { uid: user.uid }],
+      ...(enabled !== undefined && { enabled }),
+    };
+
     const toolsets = await this.prisma.toolset.findMany({
-      where: {
-        OR: [{ isGlobal }, { uid: user.uid }],
-        enabled,
-        uninstalled: false,
-        deletedAt: null,
-      },
+      where: whereCondition,
     });
     return [builtinToolset, ...toolsets.map(toolsetPo2GenericToolset)];
   }
@@ -808,6 +822,7 @@ export class ToolService {
         ...authData,
         reflyService: engine.service,
         user,
+        isGlobalToolset: t?.isGlobal ?? false,
       });
 
       return toolset.definition.tools
@@ -818,7 +833,30 @@ export class ToolService {
               name: `${toolset.definition.key}_${tool.name}`,
               description: tool.description,
               schema: tool.schema,
-              func: tool.invoke.bind(tool),
+              func: async (input) => {
+                const result = await tool.invoke(input);
+                const isGlobal = t?.isGlobal ?? false;
+                const creditCost = (result as any)?.creditCost ?? 0;
+                if (
+                  isGlobal &&
+                  result?.status !== 'error' &&
+                  creditCost > 0 &&
+                  this.toolCreditUsageQueue
+                ) {
+                  const jobData: SyncToolCreditUsageJobData = {
+                    uid: user.uid,
+                    creditCost,
+                    timestamp: new Date(),
+                    toolsetName: t?.name ?? (toolset.definition.labelDict?.en as string) ?? t?.key,
+                    toolName: tool.name,
+                  };
+                  await this.toolCreditUsageQueue.add(
+                    `tool_credit_usage:${user.uid}:${toolset.definition.key}:${tool.name}`,
+                    jobData,
+                  );
+                }
+                return result;
+              },
               metadata: {
                 name: tool.name,
                 type: 'regular',

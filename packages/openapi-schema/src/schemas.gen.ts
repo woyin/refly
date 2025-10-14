@@ -922,6 +922,22 @@ export const CanvasSchema = {
       description: 'Canvas status',
       $ref: '#/components/schemas/CanvasStatus',
     },
+    owner: {
+      description: 'Canvas owner',
+      $ref: '#/components/schemas/ShareUser',
+    },
+    shareRecord: {
+      description: 'Canvas share record',
+      $ref: '#/components/schemas/ShareRecord',
+    },
+    usedToolsets: {
+      type: 'array',
+      description: 'Used toolsets in the canvas',
+      items: {
+        type: 'object',
+        $ref: '#/components/schemas/GenericToolset',
+      },
+    },
     minimapUrl: {
       type: 'string',
       description: 'Minimap URL',
@@ -1014,6 +1030,10 @@ export const CanvasTemplateSchema = {
       type: 'boolean',
       description: 'Whether this canvas template is featured',
     },
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',
@@ -1052,7 +1072,7 @@ export const ResourceMetaSchema = {
 export const ResourceTypeSchema = {
   type: 'string',
   description: 'Resource type',
-  enum: ['weblink', 'text', 'file'],
+  enum: ['weblink', 'text', 'file', 'document', 'image', 'video', 'audio'],
 } as const;
 
 export const IndexErrorSchema = {
@@ -1101,6 +1121,10 @@ export const ResourceSchema = {
       description: 'Error message for resource indexing',
       $ref: '#/components/schemas/IndexError',
     },
+    storageKey: {
+      type: 'string',
+      description: 'Resource storage key',
+    },
     storageSize: {
       type: 'string',
       description: 'Resource storage size (in bytes)',
@@ -1112,7 +1136,6 @@ export const ResourceSchema = {
     rawFileKey: {
       type: 'string',
       description: 'Raw file storage key (used to download the file)',
-      deprecated: true,
     },
     canvasId: {
       type: 'string',
@@ -1139,6 +1162,10 @@ export const ResourceSchema = {
     downloadURL: {
       type: 'string',
       description: 'Download URL for this resource (for file type only)',
+    },
+    publicURL: {
+      type: 'string',
+      description: 'Publicly accessible URL for this resource (file type only)',
     },
   },
 } as const;
@@ -3366,6 +3393,11 @@ export const UpsertCanvasRequestSchema = {
       items: {
         $ref: '#/components/schemas/WorkflowVariable',
       },
+    },
+    visibility: {
+      type: 'boolean',
+      description: 'Whether this canvas is visible in lists',
+      default: true,
     },
   },
 } as const;
@@ -5639,6 +5671,10 @@ export const MediaGenerateResponseSchema = {
         storageKey: {
           type: 'string',
           description: 'Media generation output storage key (only available when `wait` is true)',
+        },
+        originalResult: {
+          type: 'object',
+          description: 'Media generation original result from provider',
         },
       },
     },
@@ -8357,6 +8393,17 @@ export const CreateWorkflowAppRequestSchema = {
   },
 } as const;
 
+export const DeleteWorkflowAppRequestSchema = {
+  type: 'object',
+  required: ['appId'],
+  properties: {
+    appId: {
+      type: 'string',
+      description: 'Workflow app ID',
+    },
+  },
+} as const;
+
 export const WorkflowAppSchema = {
   type: 'object',
   required: ['appId', 'canvasId', 'variables'],
@@ -8376,6 +8423,10 @@ export const WorkflowAppSchema = {
     description: {
       type: 'string',
       description: 'Workflow app description',
+    },
+    owner: {
+      description: 'Workflow app owner',
+      $ref: '#/components/schemas/ShareUser',
     },
     canvasId: {
       type: 'string',
@@ -8516,12 +8567,16 @@ export const ResourceValueSchema = {
       description: 'Resource name',
     },
     fileType: {
-      type: 'string',
       description: 'Resource file type',
+      $ref: '#/components/schemas/VariableResourceType',
     },
     storageKey: {
       type: 'string',
       description: 'Resource storage key',
+    },
+    entityId: {
+      type: 'string',
+      description: 'Resource ID',
     },
   },
 } as const;
@@ -8585,11 +8640,6 @@ export const WorkflowVariableSchema = {
       type: 'string',
       description: 'Variable updated at',
       example: '2021-01-01T00:00:00.000Z',
-    },
-    source: {
-      type: 'string',
-      description: 'Variable source',
-      enum: ['startNode', 'resourceLibrary'],
     },
     variableType: {
       type: 'string',

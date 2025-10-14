@@ -1,10 +1,9 @@
 import { FC, memo } from 'react';
-import { useMatch } from 'react-router-dom';
-import { Button, Divider, message } from 'antd';
-import { useCanvasResourcesPanelStoreShallow, useSiderStoreShallow } from '@refly/stores';
+import { useMatch, useNavigate } from 'react-router-dom';
+import { Button, Divider, message, Tooltip } from 'antd';
+import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
 import { LOCALE } from '@refly/common-types';
-import { SiderPopover } from '@refly-packages/ai-workspace-common/components/sider/popover';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { Helmet } from 'react-helmet';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
@@ -22,6 +21,7 @@ import { CanvasLayoutControls } from '@refly-packages/ai-workspace-common/compon
 import { TooltipButton } from './buttons';
 import { ToolsDependency } from '../tools-dependency';
 import cn from 'classnames';
+import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 
 const buttonClass = '!p-0 h-[30px] w-[30px] flex items-center justify-center ';
 
@@ -42,16 +42,13 @@ const ToolContainer = memo(({ children }: { children: React.ReactNode }) => {
 export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMode }) => {
   const { i18n, t } = useTranslation();
   const language = i18n.language as LOCALE;
-  const { collapse } = useSiderStoreShallow((state) => ({
-    collapse: state.collapse,
-  }));
+  const navigate = useNavigate();
   const { isLogin } = useUserStoreShallow((state) => ({
     isLogin: state.isLogin,
   }));
   const { setLoginModalOpen } = useAuthStoreShallow((state) => ({
     setLoginModalOpen: state.setLoginModalOpen,
   }));
-
   const { showWorkflowRun, setShowWorkflowRun } = useCanvasResourcesPanelStoreShallow((state) => ({
     showWorkflowRun: state.showWorkflowRun,
     setShowWorkflowRun: state.setShowWorkflowRun,
@@ -98,12 +95,6 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
 
       <div className="absolute h-16 p-2 top-0 left-0 right-0 box-border flex justify-between items-center bg-transparent">
         <ToolContainer>
-          {collapse && (
-            <>
-              <SiderPopover align={{ offset: [8, -8] }} showBrand={false} />
-              <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
-            </>
-          )}
           {readonly ? (
             <ReadonlyCanvasTitle
               canvasTitle={canvasTitle}
@@ -111,14 +102,32 @@ export const TopToolbar: FC<TopToolbarProps> = memo(({ canvasId, mode, changeMod
               owner={shareData?.owner}
             />
           ) : (
-            <CanvasActionDropdown canvasId={canvasId} canvasName={canvasTitle} offset={[0, 4]}>
-              <CanvasTitle
-                canvasTitle={canvasTitle}
-                canvasLoading={loading || !canvasInitialized}
-                language={language}
-                syncFailureCount={syncFailureCount}
-              />
-            </CanvasActionDropdown>
+            <div className="flex items-center gap-2">
+              <Tooltip
+                title={t(isLogin ? 'canvas.toolbar.backDashboard' : 'canvas.toolbar.backHome')}
+                arrow={false}
+                align={{ offset: [20, -8] }}
+              >
+                <div
+                  className="flex-shrink-0 flex items-center justify-center h-8 w-8 hover:bg-refly-tertiary-hover rounded-lg cursor-pointer"
+                  onClick={() => navigate('/')}
+                >
+                  <Logo
+                    textProps={{ show: false }}
+                    logoProps={{ show: true, className: '!w-5 !h-5' }}
+                  />
+                </div>
+              </Tooltip>
+              <Divider type="vertical" className="m-0 h-5 bg-refly-Card-Border" />
+              <CanvasActionDropdown canvasId={canvasId} canvasName={canvasTitle} offset={[0, 4]}>
+                <CanvasTitle
+                  canvasTitle={canvasTitle}
+                  canvasLoading={loading || !canvasInitialized}
+                  language={language}
+                  syncFailureCount={syncFailureCount}
+                />
+              </CanvasActionDropdown>
+            </div>
           )}
         </ToolContainer>
 

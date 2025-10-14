@@ -14,5 +14,7 @@ export * from './notion';
 export * from './fal-audio';
 export * from './fal-image';
 export * from './fal-video';
+export * from './perplexity';
+export * from './browser-use';
 
 export type { ReflyService } from './builtin/interface';

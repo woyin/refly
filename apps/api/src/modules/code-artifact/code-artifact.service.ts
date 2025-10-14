@@ -5,6 +5,7 @@ import {
   ListCodeArtifactsData,
   UpsertCodeArtifactRequest,
   User,
+  CanvasNode,
 } from '@refly/openapi-schema';
 import { streamToString } from '../../utils';
 import {
@@ -70,7 +71,7 @@ export class CodeArtifactService {
           const docNodeExecution = await this.prisma.workflowNodeExecution.findFirst({
             where: {
               nodeId: { in: childNodeIds },
-              status: 'waiting',
+              // status: 'waiting',
               nodeType: 'codeArtifact',
             },
             orderBy: {
@@ -79,6 +80,24 @@ export class CodeArtifactService {
           });
           if (docNodeExecution) {
             param.artifactId = docNodeExecution.entityId;
+            const nodeData: CanvasNode = safeParseJSON(docNodeExecution.nodeData);
+            await this.prisma.workflowNodeExecution.update({
+              where: {
+                nodeExecutionId: docNodeExecution.nodeExecutionId,
+              },
+              data: {
+                title: title,
+                entityId: param.artifactId,
+                nodeData: JSON.stringify({
+                  ...nodeData,
+                  data: {
+                    ...nodeData.data,
+                    title: title,
+                    entityId: param.artifactId,
+                  },
+                }),
+              },
+            });
           }
         }
       }
@@ -133,6 +152,7 @@ export class CodeArtifactService {
             entityId: codeArtifact.artifactId,
             metadata: {
               status: 'finish',
+              parentResultId: param.resultId,
             },
             // Use the first 10 lines of content for preview
             contentPreview: (content?.split(/\r?\n/) ?? []).slice(0, 10).join('\n'),

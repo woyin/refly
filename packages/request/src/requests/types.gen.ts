@@ -592,6 +592,18 @@ export type Canvas = {
    */
   status?: CanvasStatus;
   /**
+   * Canvas owner
+   */
+  owner?: ShareUser;
+  /**
+   * Canvas share record
+   */
+  shareRecord?: ShareRecord;
+  /**
+   * Used toolsets in the canvas
+   */
+  usedToolsets?: Array<GenericToolset>;
+  /**
    * Minimap URL
    */
   minimapUrl?: string;
@@ -670,6 +682,10 @@ export type CanvasTemplate = {
    */
   featured?: boolean;
   /**
+   * Workflow app ID
+   */
+  appId?: string;
+  /**
    * Canvas template creation time
    */
   createdAt: string;
@@ -700,7 +716,7 @@ export type ResourceMeta = {
 /**
  * Resource type
  */
-export type ResourceType = 'weblink' | 'text' | 'file';
+export type ResourceType = 'weblink' | 'text' | 'file' | 'document' | 'image' | 'video' | 'audio';
 
 /**
  * Error message for resource indexing
@@ -749,6 +765,10 @@ export type Resource = {
    */
   indexError?: IndexError;
   /**
+   * Resource storage key
+   */
+  storageKey?: string;
+  /**
    * Resource storage size (in bytes)
    */
   storageSize?: string;
@@ -758,7 +778,6 @@ export type Resource = {
   vectorSize?: string;
   /**
    * Raw file storage key (used to download the file)
-   * @deprecated
    */
   rawFileKey?: string;
   /**
@@ -785,6 +804,10 @@ export type Resource = {
    * Download URL for this resource (for file type only)
    */
   downloadURL?: string;
+  /**
+   * Publicly accessible URL for this resource (file type only)
+   */
+  publicURL?: string;
 };
 
 export type Document = {
@@ -2527,6 +2550,10 @@ export type UpsertCanvasRequest = {
    * Workflow variables
    */
   variables?: Array<WorkflowVariable>;
+  /**
+   * Whether this canvas is visible in lists
+   */
+  visibility?: boolean;
 };
 
 export type UpsertCanvasResponse = BaseResponse & {
@@ -4002,6 +4029,12 @@ export type MediaGenerateResponse = BaseResponse & {
    * Media generation output storage key (only available when `wait` is true)
    */
   storageKey?: string;
+  /**
+   * Media generation original result from provider
+   */
+  originalResult?: {
+    [key: string]: unknown;
+  };
 };
 
 export type PilotStepStatus = 'init' | 'executing' | 'finish' | 'failed';
@@ -5885,6 +5918,13 @@ export type CreateWorkflowAppRequest = {
   variables: Array<WorkflowVariable>;
 };
 
+export type DeleteWorkflowAppRequest = {
+  /**
+   * Workflow app ID
+   */
+  appId: string;
+};
+
 export type WorkflowApp = {
   /**
    * Workflow app ID
@@ -5902,6 +5942,10 @@ export type WorkflowApp = {
    * Workflow app description
    */
   description?: string;
+  /**
+   * Workflow app owner
+   */
+  owner?: ShareUser;
   /**
    * Canvas ID
    */
@@ -5971,11 +6015,15 @@ export type ResourceValue = {
   /**
    * Resource file type
    */
-  fileType: string;
+  fileType: VariableResourceType;
   /**
    * Resource storage key
    */
   storageKey: string;
+  /**
+   * Resource ID
+   */
+  entityId?: string;
 };
 
 export type VariableValue = {
@@ -6024,10 +6072,6 @@ export type WorkflowVariable = {
    */
   updatedAt?: string;
   /**
-   * Variable source
-   */
-  source?: 'startNode' | 'resourceLibrary';
-  /**
    * Variable type
    */
   variableType?: 'string' | 'option' | 'resource';
@@ -6048,11 +6092,6 @@ export type WorkflowVariable = {
    */
   resourceTypes?: Array<VariableResourceType>;
 };
-
-/**
- * Variable source
- */
-export type source2 = 'startNode' | 'resourceLibrary';
 
 /**
  * Variable type
@@ -6450,6 +6489,10 @@ export type GetCollabTokenError = unknown;
 export type ListCanvasesData = {
   query?: {
     /**
+     * Search keyword
+     */
+    keyword?: string;
+    /**
      * Order
      */
     order?: ListOrder;
@@ -6730,6 +6773,10 @@ export type ListResourcesError = unknown;
 
 export type GetResourceDetailData = {
   query: {
+    /**
+     * Whether to generate public URL for the resource
+     */
+    genPublicUrl?: boolean;
     /**
      * Resource ID to retrieve
      */
@@ -7486,6 +7533,14 @@ export type CreateWorkflowAppResponse2 = CreateWorkflowAppResponse;
 
 export type CreateWorkflowAppError = unknown;
 
+export type DeleteWorkflowAppData = {
+  body: DeleteWorkflowAppRequest;
+};
+
+export type DeleteWorkflowAppResponse = BaseResponse;
+
+export type DeleteWorkflowAppError = unknown;
+
 export type GetWorkflowAppDetailData = {
   query: {
     /**
@@ -7513,6 +7568,22 @@ export type ListWorkflowAppsData = {
      * Canvas ID to filter by
      */
     canvasId?: string;
+    /**
+     * Search keyword
+     */
+    keyword?: string;
+    /**
+     * Order
+     */
+    order?: ListOrder;
+    /**
+     * Page number
+     */
+    page?: number;
+    /**
+     * Page size
+     */
+    pageSize?: number;
   };
 };
 

@@ -568,8 +568,19 @@ export class SkillInvokerService {
               // Update result content and forward stream events to client
 
               const { name, type, toolsetKey, toolsetName } = event.metadata ?? {};
+              // Skip non-tool user-visible helpers like commonQnA, and ensure toolsetKey exists
+              if (!toolsetKey) {
+                break;
+              }
+
               const codeBlockWrapper = (content: string) =>
                 `\n\n\`\`\`tool_use\n${content}\`\`\`\n\n`;
+
+              const toolMsg: any = event.data.output;
+              const resultStr =
+                typeof toolMsg?.content === 'string'
+                  ? (toolMsg.content as string)
+                  : JSON.stringify(toolMsg?.content ?? '');
 
               const content = event.data?.output
                 ? codeBlockWrapper(`
@@ -582,7 +593,7 @@ export class SkillInvokerService {
 ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
 </arguments>
 <result>
-${event.data?.output ? JSON.stringify(event.data.output) : ''}
+${resultStr}
 </result>
 </tool_use>
 `)

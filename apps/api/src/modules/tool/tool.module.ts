@@ -9,6 +9,11 @@ import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { CollabModule } from '../collab/collab.module';
 import { ProviderModule } from '../provider/provider.module';
 import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
+import { QUEUE_SYNC_TOOL_CREDIT_USAGE } from '../../utils/const';
+import { isDesktop } from '../../utils/runtime';
+import { SyncToolCreditUsageProcessor } from '../credit/credit.processor';
+import { BullModule } from '@nestjs/bullmq';
+import { CreditModule } from '../credit/credit.module';
 
 @Module({
   imports: [
@@ -19,9 +24,11 @@ import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
     KnowledgeModule,
     CanvasSyncModule,
     ProviderModule,
+    CreditModule,
+    ...(isDesktop() ? [] : [BullModule.registerQueue({ name: QUEUE_SYNC_TOOL_CREDIT_USAGE })]),
   ],
   controllers: [ToolController],
-  providers: [ToolService, InternalToolService],
+  providers: [ToolService, InternalToolService, SyncToolCreditUsageProcessor],
   exports: [ToolService, InternalToolService],
 })
 export class ToolModule {}

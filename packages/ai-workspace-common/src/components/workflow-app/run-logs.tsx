@@ -90,7 +90,10 @@ const NodeExecutionResult = ({ nodeExecution }: { nodeExecution: WorkflowNodeExe
   const { result, loading } = useActionResult(nodeExecution);
 
   // Only show result for skillResponse nodes that are finished
-  if (nodeExecution.nodeType !== 'skillResponse' || nodeExecution.status !== 'finish') {
+  if (
+    nodeExecution.nodeType !== 'skillResponse' ||
+    (nodeExecution.status !== 'finish' && nodeExecution.status !== 'failed')
+  ) {
     return null;
   }
 

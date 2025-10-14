@@ -53,6 +53,7 @@ import {
   deleteSkillInstance,
   deleteSkillTrigger,
   deleteToolset,
+  deleteWorkflowApp,
   duplicateCanvas,
   duplicateShare,
   emailLogin,
@@ -251,6 +252,8 @@ import {
   DeleteSkillTriggerError,
   DeleteToolsetData,
   DeleteToolsetError,
+  DeleteWorkflowAppData,
+  DeleteWorkflowAppError,
   DuplicateCanvasData,
   DuplicateCanvasError,
   DuplicateShareData,
@@ -2459,6 +2462,23 @@ export const useCreateWorkflowApp = <
   useMutation<TData, TError, Options<CreateWorkflowAppData, true>, TContext>({
     mutationKey: Common.UseCreateWorkflowAppKeyFn(mutationKey),
     mutationFn: (clientOptions) => createWorkflowApp(clientOptions) as unknown as Promise<TData>,
+    ...options,
+  });
+export const useDeleteWorkflowApp = <
+  TData = Common.DeleteWorkflowAppMutationResult,
+  TError = DeleteWorkflowAppError,
+  TQueryKey extends Array<unknown> = unknown[],
+  TContext = unknown,
+>(
+  mutationKey?: TQueryKey,
+  options?: Omit<
+    UseMutationOptions<TData, TError, Options<DeleteWorkflowAppData, true>, TContext>,
+    'mutationKey' | 'mutationFn'
+  >,
+) =>
+  useMutation<TData, TError, Options<DeleteWorkflowAppData, true>, TContext>({
+    mutationKey: Common.UseDeleteWorkflowAppKeyFn(mutationKey),
+    mutationFn: (clientOptions) => deleteWorkflowApp(clientOptions) as unknown as Promise<TData>,
     ...options,
   });
 export const useExecuteWorkflowApp = <

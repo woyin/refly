@@ -34,6 +34,8 @@ import {
   ExportCanvasResponse,
   WorkflowVariable,
   GetCanvasDataResponse,
+  ListOrder,
+  ListCanvasResponse,
 } from '@refly/openapi-schema';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -52,8 +54,16 @@ export class CanvasController {
     @Query('projectId') projectId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
-  ) {
-    const canvases = await this.canvasService.listCanvases(user, { page, pageSize, projectId });
+    @Query('order', new DefaultValuePipe('creationDesc')) order: ListOrder,
+    @Query('keyword') keyword: string,
+  ): Promise<ListCanvasResponse> {
+    const canvases = await this.canvasService.listCanvases(user, {
+      page,
+      pageSize,
+      projectId,
+      order,
+      keyword,
+    });
     return buildSuccessResponse(canvases.map(canvasPO2DTO));
   }
 
@@ -207,7 +217,7 @@ export class CanvasController {
   @UseGuards(JwtAuthGuard)
   @Get('workflow/variables')
   async getWorkflowVariables(@LoginedUser() user: User, @Query('canvasId') canvasId: string) {
-    const variables = await this.canvasSyncService.getWorkflowVariables(user, { canvasId });
+    const variables = await this.canvasService.getWorkflowVariables(user, { canvasId });
     return buildSuccessResponse(variables);
   }
 
@@ -217,7 +227,7 @@ export class CanvasController {
     @LoginedUser() user: User,
     @Body() body: { canvasId: string; variables: WorkflowVariable[] },
   ) {
-    const variables = await this.canvasSyncService.updateWorkflowVariables(user, body);
+    const variables = await this.canvasService.updateWorkflowVariables(user, body);
     return buildSuccessResponse(variables);
   }
 }

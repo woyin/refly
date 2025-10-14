@@ -665,7 +665,8 @@ export const SkillResponseNode = memo(
     );
 
     const handleCloneAskAI = useCallback(async () => {
-      const { contextItems, modelInfo, selectedSkill, tplConfig } = data?.metadata || {};
+      const { contextItems, modelInfo, selectedSkill, tplConfig, structuredData } =
+        data?.metadata || {};
       const currentSkill = actionMeta || selectedSkill;
 
       // Create new skill node with context, similar to group node implementation
@@ -683,7 +684,7 @@ export const SkillResponseNode = memo(
             entityId: genSkillID(),
             metadata: {
               contextItems,
-              query: title,
+              query: structuredData?.query || title,
               modelInfo,
               selectedSkill: currentSkill,
               tplConfig,
@@ -802,7 +803,15 @@ export const SkillResponseNode = memo(
 
         <div
           style={nodeStyle}
-          className={`h-full flex flex-col relative z-1 p-4 box-border ${getNodeCommonStyles({ selected, isHovered })}`}
+          className={cn(
+            'h-full flex flex-col relative z-1 p-4 box-border',
+            getNodeCommonStyles({ selected, isHovered }),
+            'flex max-h-60 flex-col items-start gap-2 self-stretch px-4 py-3 rounded-2xl border-solid',
+            // Apply error styles only when there's an error
+            status === 'failed'
+              ? 'border border-[color:var(--func-danger---refly-func-danger-default,#F93920)] [background:var(--bg---refly-bg-content-z2,#FFF)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)]'
+              : 'border border-gray-200 [background:var(--bg---refly-bg-content-z2,#FFF)]',
+          )}
         >
           {/* Node execution status badge */}
           <NodeExecutionStatus status={executionStatus} />
@@ -816,7 +825,7 @@ export const SkillResponseNode = memo(
             updateTitle={onTitleChange}
           />
 
-          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2'}>
+          <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2 w-full'}>
             <div className="flex flex-col gap-3">
               {status === 'failed' && (
                 <div
@@ -827,7 +836,7 @@ export const SkillResponseNode = memo(
                   onClick={() => handleRerun()}
                 >
                   <IconError className="h-4 w-4 text-red-500" />
-                  <span className="text-xs text-red-500 max-w-48 truncate">
+                  <span className="text-xs text-red-500 w-full truncate">
                     {errMsg || t('canvas.skillResponse.executionFailed')}
                   </span>
                 </div>
@@ -836,7 +845,7 @@ export const SkillResponseNode = memo(
               {(status === 'waiting' || status === 'executing') && (
                 <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2 dark:bg-gray-800">
                   <IconLoading className="h-3 w-3 animate-spin text-green-500" />
-                  <span className="text-xs text-gray-500 max-w-48 truncate">
+                  <span className="text-xs text-gray-500 w-full truncate">
                     {log ? (
                       <>
                         <span className="text-green-500 font-medium">{`${logTitle} `}</span>

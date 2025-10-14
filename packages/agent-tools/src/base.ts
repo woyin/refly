@@ -18,6 +18,10 @@ export interface ToolCallResult {
    * Summary of the tool call result, should be human readable
    */
   summary?: string;
+  /**
+   * Credit cost calculated by the tool call. Optional and tool-specific.
+   */
+  creditCost?: number;
 }
 
 /**
@@ -174,4 +178,8 @@ export abstract class AgentBaseToolset<TParams = unknown> {
  */
 export interface BaseToolParams {
   reflyService?: ReflyService;
+  /**
+   * Whether the parent toolset is global; used for post-call credit deduction.
+   */
+  isGlobalToolset?: boolean;
 }

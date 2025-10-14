@@ -747,7 +747,6 @@ export class VariableExtractionService {
             value,
             description: v.description || `Extracted variable ${index + 1}`,
             variableType: v.variableType || 'string',
-            source: (v.source as 'startNode' | 'resourceLibrary') || 'startNode',
           };
         },
       );
@@ -773,7 +772,6 @@ export class VariableExtractionService {
             value: canvasVar?.value ?? [{ type: 'text' as const, text: '' }],
             description: canvasVar?.description ?? `Reused variable: ${rv.reusedVariableName}`,
             variableType: canvasVar?.variableType ?? 'string',
-            source: 'startNode' as const, // Use valid source type
           };
         });
 
@@ -823,7 +821,7 @@ export class VariableExtractionService {
       );
 
       // Get current canvas state to retrieve workflow variables
-      const currentVariables = await this.canvasSyncService.getWorkflowVariables(user, {
+      const currentVariables = await this.canvasService.getWorkflowVariables(user, {
         canvasId,
       });
 
@@ -861,8 +859,8 @@ export class VariableExtractionService {
 
       // Only update if there are actual changes
       if (hasChanges) {
-        // Use CanvasSyncService to update workflow variables in canvas
-        await this.canvasSyncService.updateWorkflowVariables(user, {
+        // Use CanvasService to update workflow variables in canvas
+        await this.canvasService.updateWorkflowVariables(user, {
           canvasId,
           variables: mergedVariables,
         });
@@ -1073,7 +1071,7 @@ export class VariableExtractionService {
   private async getCanvasVariables(user: User, canvasId: string): Promise<WorkflowVariable[]> {
     try {
       // Get workflow variables from Canvas service
-      const variables = await this.canvasSyncService.getWorkflowVariables(user, {
+      const variables = await this.canvasService.getWorkflowVariables(user, {
         canvasId,
       });
 
@@ -1456,7 +1454,6 @@ export class VariableExtractionService {
             value,
             description: v.description || `Variable ${v.name}`,
             variableType: (v.variableType as 'string' | 'resource' | 'option') || 'string',
-            source: 'startNode' as const, // Use valid source type
           };
         },
       );

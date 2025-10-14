@@ -38,6 +38,7 @@ import { REFRESH_TOKEN_COOKIE } from '@refly/utils';
 import { accountPO2DTO } from './auth.dto';
 import { TwitterOauthGuard } from './guard/twitter-oauth.guard';
 import { NotionOauthGuard } from './guard/notion-oauth.guard';
+import 'express-session';
 
 @Controller('v1/auth')
 export class AuthController {
@@ -147,7 +148,6 @@ export class AuthController {
     // TwitterOauthGuard handles OAuth flow automatically
     // UID is stored in session by the guard's canActivate method
   }
-
   @Get('notion')
   async notion(
     @Query('uid') uid: string,

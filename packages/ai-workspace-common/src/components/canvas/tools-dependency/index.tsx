@@ -6,7 +6,7 @@ import {
   useListTools,
   useGetCanvasData,
 } from '@refly-packages/ai-workspace-common/queries/queries';
-import { GenericToolset } from '@refly/openapi-schema';
+import { GenericToolset, RawCanvasData } from '@refly/openapi-schema';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import React from 'react';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
@@ -284,6 +284,7 @@ const ToolsDependencyContent = React.memo(
     isLogin,
     totalCount,
     showReferencedNodesDisplay = true,
+    isLoading = false,
   }: {
     uninstalledCount: number;
     handleClose: () => void;
@@ -298,6 +299,7 @@ const ToolsDependencyContent = React.memo(
     isLogin: boolean;
     totalCount: number;
     showReferencedNodesDisplay?: boolean;
+    isLoading?: boolean;
   }) => {
     const { t, i18n } = useTranslation();
     const currentLanguage = i18n.language;
@@ -333,7 +335,7 @@ const ToolsDependencyContent = React.memo(
           <Button type="text" icon={<Close size={20} />} onClick={handleClose} />
         </div>
 
-        {totalCount > 0 ? (
+        {isLoading ? null : totalCount > 0 ? (
           <>
             <div className="flex flex-col gap-3">
               <Input
@@ -438,10 +440,11 @@ const ToolsDependencyContent = React.memo(
 );
 
 interface ToolsDependencyProps {
-  canvasId: string;
+  canvasId?: string;
+  canvasData?: RawCanvasData;
 }
 
-export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
+export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependencyProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -450,21 +453,25 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
     isLogin: state.isLogin,
   }));
 
-  const { data: canvasResponse } = useGetCanvasData({ query: { canvasId } }, [], {
-    enabled: !!canvasId,
-    refetchOnWindowFocus: false,
-  });
+  const { data: canvasResponse, isLoading: canvasLoading } = useGetCanvasData(
+    { query: { canvasId } },
+    [],
+    {
+      enabled: !canvasData && !!canvasId,
+      refetchOnWindowFocus: false,
+    },
+  );
 
-  const nodes = canvasResponse?.data?.nodes || [];
+  const nodes = canvasData?.nodes || canvasResponse?.data?.nodes || [];
 
-  const { data } = useListTools({ query: { enabled: true } }, [], {
+  const { data, isLoading: toolsLoading } = useListTools({ query: { enabled: true } }, [], {
     enabled: isLogin,
     refetchOnWindowFocus: false,
   });
 
   const installedToolsets = data?.data ?? [];
 
-  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
+  const [_, setSelectedToolsets] = useState<GenericToolset[]>([]);
 
   // Set initial selected toolsets when installedToolsets data is loaded
   useEffect(() => {
@@ -543,6 +550,8 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
 
   const currentTools = categorizedTools[activeTab as keyof typeof categorizedTools] || [];
 
+  const currentToolsinInstalled = categorizedTools.installed || [];
+
   const uninstalledCount = useMemo(() => {
     if (!isLogin) return 0;
     if (!toolsetsWithNodes.length) return 0;
@@ -586,8 +595,8 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
         className={cn(
           'gap-0 h-7 w-auto flex items-center justify-center hover:bg-refly-tertiary-hover',
           {
-            '!w-7': !selectedToolsets?.length,
-            'bg-refly-bg-control-z0': selectedToolsets?.length,
+            '!w-7': !currentToolsinInstalled?.length,
+            'bg-refly-bg-control-z0': currentToolsinInstalled?.length,
             'bg-refly-fill-active': open,
           },
         )}
@@ -595,14 +604,14 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
         size="small"
         icon={<Mcp size={20} className="flex items-center" />}
       >
-        {selectedToolsets?.length > 0 && (
+        {currentToolsinInstalled?.length > 0 && (
           <div className="ml-1.5 flex items-center">
-            {selectedToolsets.slice(0, 3).map((toolset) => {
+            {currentToolsinInstalled.slice(0, 3).map((toolset) => {
               return (
                 <ToolsetIcon
-                  key={toolset.id}
-                  toolset={toolset}
-                  isBuiltin={toolset.id === 'builtin'}
+                  key={toolset.toolset.id}
+                  toolset={toolset.toolset}
+                  isBuiltin={toolset.toolset.id === 'builtin'}
                   config={{
                     size: 14,
                     className:
@@ -612,9 +621,9 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
                 />
               );
             })}
-            {selectedToolsets.length > 3 && (
+            {currentToolsinInstalled.length > 3 && (
               <div className="min-w-[18px] h-[18px] p-0.5 box-border flex items-center justify-center rounded-full bg-refly-bg-body-z0 shadow-refly-s text-refly-text-1 text-[10px]">
-                +{selectedToolsets.length - 3}
+                +{currentToolsinInstalled.length - 3}
               </div>
             )}
           </div>
@@ -623,7 +632,7 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
     </Tooltip>
   );
 
-  return (
+  return canvasLoading || toolsLoading ? null : (
     <Popover
       className="tools-in-canvas"
       open={open}
@@ -652,6 +661,7 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
           totalCount={toolsetsWithNodes.length}
           setOpen={setOpen}
           showReferencedNodesDisplay={false}
+          isLoading={canvasLoading || toolsLoading}
         />
       }
       arrow={false}
@@ -671,7 +681,7 @@ export const ToolsDependencyChecker = ({ canvasId }: ToolsDependencyProps) => {
   );
 };
 
-export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
+export const ToolsDependency = ({ canvasId, canvasData }: ToolsDependencyProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -680,14 +690,18 @@ export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
     isLogin: state.isLogin,
   }));
 
-  const { data: canvasResponse } = useGetCanvasData({ query: { canvasId } }, [], {
-    enabled: !!canvasId,
-    refetchOnWindowFocus: false,
-  });
+  const { data: canvasResponse, isLoading: canvasLoading } = useGetCanvasData(
+    { query: { canvasId } },
+    [],
+    {
+      enabled: !canvasData && !!canvasId,
+      refetchOnWindowFocus: false,
+    },
+  );
 
-  const nodes = canvasResponse?.data?.nodes || [];
+  const nodes = canvasData?.nodes || canvasResponse?.data?.nodes || [];
 
-  const { data } = useListTools({ query: { enabled: true } }, [], {
+  const { data, isLoading: toolsLoading } = useListTools({ query: { enabled: true } }, [], {
     enabled: isLogin,
     refetchOnWindowFocus: false,
   });
@@ -796,6 +810,11 @@ export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
     setActiveTab('all');
   }, []);
 
+  // Only show the tools dependency button if there are uninstalled tools
+  if (uninstalledCount === 0) {
+    return null;
+  }
+
   return (
     <Popover
       className="tools-in-canvas"
@@ -824,6 +843,7 @@ export const ToolsDependency = ({ canvasId }: ToolsDependencyProps) => {
           installedToolsets={installedToolsets}
           totalCount={toolsetsWithNodes.length}
           setOpen={setOpen}
+          isLoading={canvasLoading || toolsLoading}
         />
       }
       arrow={false}

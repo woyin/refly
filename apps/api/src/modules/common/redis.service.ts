@@ -28,6 +28,31 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         username: configService.get('redis.username'),
         password: configService.get('redis.password'),
       });
+
+      // Add event listeners for debugging
+      this.client.on('connect', () => {
+        this.logger.log('Redis client connected');
+      });
+
+      this.client.on('ready', () => {
+        this.logger.log('Redis client ready');
+      });
+
+      this.client.on('error', (err) => {
+        this.logger.error(`Redis client error: ${err.message}`, err.stack);
+      });
+
+      this.client.on('close', () => {
+        this.logger.warn('Redis client connection closed');
+      });
+
+      this.client.on('reconnecting', (delay) => {
+        this.logger.warn(`Redis client reconnecting in ${delay}ms`);
+      });
+
+      this.client.on('end', () => {
+        this.logger.warn('Redis client connection ended');
+      });
     } else {
       this.logger.log('Skip redis initialization in desktop mode');
       this.initInMemoryCleanup();
@@ -82,7 +107,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async setex(key: string, seconds: number, value: string) {
     if (this.client) {
-      await this.client.setex(key, seconds, value);
+      try {
+        await this.client.setex(key, seconds, value);
+      } catch (error) {
+        this.logger.error(`Redis SETEX failed: key=${key}, error=${error}`);
+        throw error;
+      }
       return;
     }
 
@@ -93,7 +123,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async get(key: string) {
     if (this.client) {
-      return this.client.get(key);
+      try {
+        return await this.client.get(key);
+      } catch (error) {
+        this.logger.error(`Redis GET failed: key=${key}, error=${error}`);
+        throw error;
+      }
     }
 
     // In-memory implementation
@@ -112,7 +147,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async incr(key: string): Promise<number> {
     if (this.client) {
-      return this.client.incr(key);
+      try {
+        return await this.client.incr(key);
+      } catch (error) {
+        this.logger.error(`Redis INCR failed: key=${key}, error=${error}`);
+        throw error;
+      }
     }
 
     // In-memory implementation

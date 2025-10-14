@@ -149,7 +149,7 @@ export const TwitterToolsetDefinition: ToolsetDefinition = {
     {
       type: 'oauth',
       provider: 'twitter',
-      scope: [],
+      scope: ['tweet.read', 'tweet.write', 'users.read'],
     },
   ],
   configItems: [],

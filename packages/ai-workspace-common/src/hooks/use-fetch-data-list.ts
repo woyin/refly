@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export const useFetchDataList = <T = any>({
   fetchData,
   pageSize = 10,
+  dependencies = [],
 }: {
   fetchData: (payload: { pageSize: number; page: number }) => Promise<{
     success: boolean;
     data?: T[];
   }>;
   pageSize?: number;
+  dependencies?: any[];
 }) => {
   // fetch
   const [dataList, setDataList] = useState<T[]>([]);
@@ -76,6 +78,24 @@ export const useFetchDataList = <T = any>({
     setHasMore(true);
     setIsRequesting(false);
   };
+
+  // Track previous dependencies to detect changes
+  const prevDependenciesRef = useRef<any[]>([]);
+
+  // Effect to reload data when dependencies change
+  useEffect(() => {
+    // Check if dependencies have changed
+    const hasDependenciesChanged = dependencies.some(
+      (dep, index) => dep !== prevDependenciesRef.current[index],
+    );
+
+    if (hasDependenciesChanged && dependencies.length > 0) {
+      // Reset state and reload data
+      resetState();
+      reload();
+      prevDependenciesRef.current = [...dependencies];
+    }
+  }, dependencies);
 
   return {
     hasMore,

@@ -55,6 +55,8 @@ import { OSS_INTERNAL, ObjectStorageService } from '../common/object-storage';
 import { ProviderService } from '../provider/provider.service';
 import { PostDeleteKnowledgeEntityJobData } from './knowledge.dto';
 
+const MEDIA_RESOURCE_TYPES: ResourceType[] = ['image', 'video', 'audio'];
+
 @Injectable()
 export class ResourceService {
   private logger = new Logger(ResourceService.name);
@@ -114,7 +116,7 @@ export class ResourceService {
   }
 
   async getResourceDetail(user: User, param: GetResourceDetailData['query']) {
-    const { resourceId } = param;
+    const { resourceId, genPublicUrl } = param;
 
     if (!resourceId) {
       throw new ParamsError('Resource ID is required');
@@ -142,7 +144,13 @@ export class ResourceService {
       storageKey: resource.rawFileKey,
     });
 
-    return { ...resource, content, downloadURL };
+    const resourceDetail = { ...resource, content, downloadURL, publicURL: undefined };
+
+    if (genPublicUrl && resource.rawFileKey) {
+      resourceDetail.publicURL = await this.miscService.generateTempPublicURL(resource.rawFileKey);
+    }
+
+    return resourceDetail;
   }
 
   async prepareResource(user: User, param: UpsertResourceRequest): Promise<ResourcePrepareResult> {
@@ -163,7 +171,7 @@ export class ResourceService {
         throw new ParamsError('URL is required for weblink resource');
       }
       identifier = normalizeUrl(param.data.url, { stripHash: true });
-    } else if (resourceType === 'file') {
+    } else if (resourceType === 'file' || resourceType === 'document') {
       if (!param.storageKey) {
         throw new ParamsError('storageKey is required for file resource');
       }
@@ -184,6 +192,27 @@ export class ResourceService {
 
       sha.update(staticFileBuf);
       identifier = `file://${sha.digest('hex')}`;
+    } else if (MEDIA_RESOURCE_TYPES.includes(resourceType)) {
+      if (!param.storageKey) {
+        throw new ParamsError('storageKey is required for media resource');
+      }
+      staticFile = await this.prisma.staticFile.findFirst({
+        where: {
+          storageKey: param.storageKey,
+          uid: user.uid,
+          deletedAt: null,
+        },
+      });
+      if (!staticFile) {
+        throw new ParamsError(`static file ${param.storageKey} not found`);
+      }
+      const sha = crypto.createHash('sha256');
+      const fileStream = await this.oss.getObject(staticFile.storageKey);
+
+      staticFileBuf = await streamToBuffer(fileStream);
+
+      sha.update(staticFileBuf);
+      identifier = `media://${sha.digest('hex')}`;
     } else {
       throw new ParamsError('Invalid resource type');
     }
@@ -210,6 +239,18 @@ export class ResourceService {
         metadata: {
           ...param.data,
           url: identifier,
+        },
+      };
+    }
+
+    if (MEDIA_RESOURCE_TYPES.includes(resourceType)) {
+      return {
+        identifier,
+        indexStatus: 'finish', // Media resources don't need parsing or indexing
+        staticFile,
+        metadata: {
+          ...param.data,
+          contentType: staticFile.contentType,
         },
       };
     }
@@ -503,6 +544,12 @@ export class ResourceService {
       return resource;
     }
 
+    // Skip parsing for media resources
+    if (MEDIA_RESOURCE_TYPES.includes(resource.resourceType as ResourceType)) {
+      this.logger.log(`Resource ${resource.resourceId} is a media resource, skip parsing`);
+      return resource;
+    }
+
     const { resourceId, resourceType, rawFileKey, meta } = resource;
     const { url, contentType } = JSON.parse(meta) as ResourceMeta;
 
@@ -710,7 +757,11 @@ export class ResourceService {
     return resource;
   }
 
-  async updateResource(user: User, param: UpsertResourceRequest) {
+  async updateResource(
+    user: User,
+    param: UpsertResourceRequest,
+    options?: { waitFor: 'parse_completed' | 'completed' },
+  ) {
     const resource = await this.prisma.resource.findFirst({
       where: { resourceId: param.resourceId, uid: user.uid },
     });
@@ -718,14 +769,36 @@ export class ResourceService {
       throw new ResourceNotFoundError(`resource ${param.resourceId} not found`);
     }
 
-    const updates: Prisma.ResourceUpdateInput = pick(param, ['title']);
-    if (param.data) {
-      updates.meta = JSON.stringify(param.data);
+    // Use prepareResource to determine updated resource fields
+    const {
+      identifier,
+      indexStatus,
+      contentPreview,
+      storageKey,
+      storageSize,
+      staticFile,
+      metadata,
+    } = await this.prepareResource(user, param);
+
+    const updates: Prisma.ResourceUpdateInput = {
+      title: param.title,
+      identifier,
+      indexStatus,
+      contentPreview,
+      storageKey,
+      storageSize,
+      rawFileKey: staticFile?.storageKey,
+    };
+
+    // If identifier is the same, we don't need to reindex
+    if (resource.identifier === identifier) {
+      updates.indexStatus = undefined;
     }
 
-    if (!resource.storageKey) {
-      resource.storageKey = `resources/${resource.resourceId}.txt`;
-      updates.storageKey = resource.storageKey;
+    // Merge metadata with existing data if provided
+    if (metadata || param.data) {
+      const existingMeta = JSON.parse(resource.meta || '{}');
+      updates.meta = JSON.stringify({ ...existingMeta, ...metadata, ...param.data });
     }
 
     if (param.projectId !== undefined) {
@@ -736,15 +809,28 @@ export class ResourceService {
       }
     }
 
-    if (param.content) {
-      await this.oss.putObject(resource.storageKey, param.content);
-      updates.storageSize = (await this.oss.statObject(resource.storageKey)).size;
+    if (param.canvasId !== undefined) {
+      if (param.canvasId) {
+        updates.canvas = { connect: { canvasId: param.canvasId } };
+      } else {
+        updates.canvas = { disconnect: true };
+      }
     }
+
+    this.logger.log(`update resource ${param.resourceId} with updates: ${JSON.stringify(updates)}`);
 
     const updatedResource = await this.prisma.resource.update({
       where: { resourceId: param.resourceId, uid: user.uid },
       data: updates,
     });
+
+    // Update static file entity reference for file resources
+    if (staticFile) {
+      await this.prisma.staticFile.update({
+        where: { pk: staticFile.pk },
+        data: { entityId: resource.resourceId, entityType: 'resource' },
+      });
+    }
 
     // Update projectId for vector store
     if (param.projectId !== undefined) {
@@ -761,6 +847,25 @@ export class ResourceService {
       updatedAt: updatedResource.updatedAt.toJSON(),
       ...pick(updatedResource, ['title', 'uid', 'projectId']),
     });
+
+    // Send to processing queue if resource needs parsing or indexing
+    if (
+      updatedResource.indexStatus === 'wait_parse' ||
+      updatedResource.indexStatus === 'wait_index'
+    ) {
+      await this.queue?.add('finalizeResource', {
+        resourceId: updatedResource.resourceId,
+        uid: user.uid,
+      });
+
+      // Handle polling if waitFor option is specified
+      if (options?.waitFor) {
+        this.logger.log(
+          `poll resource ${updatedResource.resourceId}, wait for: ${options.waitFor}`,
+        );
+        await this.pollResourceProcessing(updatedResource.resourceId, user.uid, options.waitFor);
+      }
+    }
 
     return updatedResource;
   }
@@ -795,6 +900,62 @@ export class ResourceService {
       entityId: resourceId,
       entityType: 'resource',
     });
+  }
+
+  /**
+   * Poll resource processing status until completion
+   * @param resourceId Resource ID to poll
+   * @param uid User ID
+   * @param waitFor Wait condition ('parse_completed' or 'completed')
+   */
+  private async pollResourceProcessing(
+    resourceId: string,
+    uid: string,
+    waitFor: 'parse_completed' | 'completed',
+  ): Promise<void> {
+    const pollInterval = 1000; // 1 second
+    const maxPollTime = 300000; // 5 minutes
+    const startTime = Date.now();
+
+    this.logger.log(`Starting polling for resource ${resourceId}, waitFor: ${waitFor}`);
+
+    while (Date.now() - startTime < maxPollTime) {
+      // Wait for polling interval
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+      // Check resource status
+      const resource = await this.prisma.resource.findFirst({
+        where: { resourceId, uid },
+        select: { indexStatus: true },
+      });
+
+      if (!resource) {
+        throw new Error(`Resource ${resourceId} not found during polling`);
+      }
+
+      const { indexStatus } = resource;
+
+      // Define target statuses based on waitFor option
+      const targetStatuses: string[] = [];
+      if (waitFor === 'parse_completed') {
+        targetStatuses.push('wait_index', 'finish', 'parse_failed', 'index_failed');
+      } else if (waitFor === 'completed') {
+        targetStatuses.push('finish', 'parse_failed', 'index_failed');
+      }
+
+      // Check if we've reached a target status
+      if (targetStatuses.includes(indexStatus)) {
+        this.logger.log(`Resource ${resourceId} reached target status: ${indexStatus}`);
+        return;
+      }
+
+      // Continue polling if still processing
+      this.logger.debug(`Resource ${resourceId} status: ${indexStatus}, continuing to poll...`);
+    }
+
+    // Timeout reached
+    this.logger.warn(`Polling timeout reached for resource ${resourceId}`);
+    throw new Error(`Resource processing polling timeout for resource ${resourceId}`);
   }
 
   async postDeleteResource(user: User, resourceId: string) {

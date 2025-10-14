@@ -13,6 +13,7 @@ export interface CreateVariablesModalProps {
 export interface VariableFormData {
   name: string;
   value: VariableValue[];
+  selectedValue?: string | string[];
   description?: string;
   required: boolean;
   isSingle?: boolean;

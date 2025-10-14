@@ -7,8 +7,15 @@ export const StringTypeForm: React.FC = React.memo(() => {
 
   return (
     <Form.Item
+      required
       label={t('canvas.workflow.variables.value') || 'Variable Value'}
       name={['value', 0, 'text']}
+      rules={[
+        {
+          required: true,
+          message: t('canvas.workflow.variables.valueRequired') || 'Variable value is required',
+        },
+      ]}
     >
       <Input
         placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}

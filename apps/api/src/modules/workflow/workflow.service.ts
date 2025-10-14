@@ -88,17 +88,20 @@ export class WorkflowService {
     const isNewCanvas = targetCanvasId !== sourceCanvasId;
 
     // Use variables from request if provided, otherwise use variables from canvas
-    const finalVariables = variables ?? safeParseJSON(canvas.workflow).variables ?? [];
+    let finalVariables: WorkflowVariable[] =
+      variables ?? safeParseJSON(canvas.workflow)?.variables ?? [];
 
     // Note: Canvas creation is now handled on the frontend to avoid version conflicts
     if (isNewCanvas) {
-      await this.canvasService.createCanvas(user, {
+      const newCanvas = await this.canvasService.createCanvas(user, {
         canvasId: targetCanvasId,
         title: canvas?.title,
         variables: finalVariables,
+        visibility: false, // Workflow execution result canvas should not be visible
       });
+      finalVariables = safeParseJSON(newCanvas.workflow)?.variables ?? [];
     } else {
-      await this.canvasSyncService.updateWorkflowVariables(user, {
+      finalVariables = await this.canvasService.updateWorkflowVariables(user, {
         canvasId: targetCanvasId,
         variables: finalVariables,
       });

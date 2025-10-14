@@ -8,6 +8,7 @@ import {
   SyncMediaCreditUsageJobData,
   SyncBatchTokenCreditUsageJobData,
   ModelUsageDetail,
+  SyncToolCreditUsageJobData,
 } from './credit.dto';
 import {
   genCreditUsageId,
@@ -454,6 +455,45 @@ export class CreditService {
       return Boolean(overridePlan?.isEarlyBird);
     }
     return false;
+  }
+
+  async syncToolCreditUsage(data: SyncToolCreditUsageJobData) {
+    const { uid, creditCost, timestamp, resultId, toolsetName, toolName } = data;
+
+    // Find user
+    const user = await this.prisma.user.findUnique({ where: { uid } });
+    if (!user) {
+      throw new Error(`No user found for uid ${uid}`);
+    }
+
+    // If no credit cost, just create usage record
+    if (creditCost <= 0) {
+      await this.prisma.creditUsage.create({
+        data: {
+          uid,
+          usageId: genCreditUsageId(),
+          actionResultId: resultId,
+          usageType: 'tool_call',
+          amount: 0,
+          createdAt: timestamp,
+          modelUsageDetails: JSON.stringify([
+            {
+              toolsetName,
+              toolName,
+            },
+          ]),
+        },
+      });
+      return;
+    }
+
+    // Use the extracted method to handle credit deduction
+    await this.deductCreditsAndCreateUsage(uid, creditCost, {
+      usageId: genCreditUsageId(),
+      actionResultId: resultId,
+      usageType: 'tool_call',
+      createdAt: timestamp,
+    });
   }
 
   async syncMediaCreditUsage(data: SyncMediaCreditUsageJobData) {

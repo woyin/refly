@@ -17,7 +17,6 @@ export {
   VIDEO_FILE_EXTENSIONS,
   ACCEPT_FILE_EXTENSIONS,
   FILE_SIZE_LIMITS,
-  MIME_TYPE_VALIDATION,
 } from './constants';
 
 // Export utilities
