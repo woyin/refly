@@ -27,6 +27,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppCategories,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
@@ -415,6 +416,14 @@ export const ensureUseListWorkflowAppsData = (
   queryClient.ensureQueryData({
     queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions),
     queryFn: () => listWorkflowApps({ ...clientOptions }).then((response) => response.data),
+  });
+export const ensureUseGetWorkflowAppCategoriesData = (
+  queryClient: QueryClient,
+  clientOptions: Options<unknown, true> = {},
+) =>
+  queryClient.ensureQueryData({
+    queryKey: Common.UseGetWorkflowAppCategoriesKeyFn(clientOptions),
+    queryFn: () => getWorkflowAppCategories({ ...clientOptions }).then((response) => response.data),
   });
 export const ensureUseGetSettingsData = (
   queryClient: QueryClient,
