@@ -220,7 +220,7 @@ export class WorkflowAppService {
     const oldVariables = variables || canvasData.variables || [];
 
     // variables without resource entity ids (to be generated in createCanvasWithState)
-    const processedOldVariables = this.processVariablesForResource(oldVariables);
+    const processedOldVariables = await this.processVariablesForResource(user, oldVariables);
 
     const tempCanvasId = genCanvasID();
     const state = initEmptyCanvasState();
@@ -383,15 +383,53 @@ export class WorkflowAppService {
   /**
    * Process workflow variables to remove entityId field from resource values
    */
-  private processVariablesForResource(variables: WorkflowVariable[]): WorkflowVariable[] {
+  private async processVariablesForResource(
+    user: User,
+    variables: WorkflowVariable[],
+  ): Promise<WorkflowVariable[]> {
+    const resourceStorageKeys = variables
+      .flatMap((variable) => variable.value.map((val) => val.resource?.storageKey))
+      .filter(Boolean);
+
+    const staticFiles = await this.prisma.staticFile.findMany({
+      select: {
+        storageKey: true,
+        entityId: true,
+        entityType: true,
+      },
+      where: {
+        storageKey: { in: resourceStorageKeys },
+      },
+    });
+
+    // If the file is already owned by existing entity, it needs to be duplicated
+    const needDuplicateFiles = staticFiles.filter((file) => file.entityId && file.entityType);
+    const duplicatedFiles = await Promise.all(
+      needDuplicateFiles.map(async (file) => [
+        file.storageKey, // source storage key
+        (
+          await this.miscService.duplicateFile(user, {
+            sourceFile: file,
+          })
+        ).storageKey, // target storage key
+      ]),
+    );
+    const duplicatedFilesMap = new Map<string, string>(
+      duplicatedFiles.map((file) => [file[0], file[1]]),
+    );
+
     return variables.map((variable) => ({
       ...variable,
       value: variable.value?.map((val) => {
         if (val.resource) {
-          const { entityId, ...resourceWithoutEntityId } = val.resource;
+          const { name, fileType, storageKey } = val.resource;
           return {
             ...val,
-            resource: resourceWithoutEntityId,
+            resource: {
+              name,
+              fileType,
+              storageKey: duplicatedFilesMap.get(storageKey) ?? storageKey,
+            },
           };
         }
         return val;
