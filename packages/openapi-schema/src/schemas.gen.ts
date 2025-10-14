@@ -1034,6 +1034,10 @@ export const CanvasTemplateSchema = {
       type: 'string',
       description: 'Workflow app ID',
     },
+    coverUrl: {
+      type: 'string',
+      description: 'Canvas template cover image URL',
+    },
     createdAt: {
       type: 'string',
       format: 'date-time',

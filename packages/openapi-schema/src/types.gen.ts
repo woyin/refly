@@ -686,6 +686,10 @@ export type CanvasTemplate = {
    */
   appId?: string;
   /**
+   * Canvas template cover image URL
+   */
+  coverUrl?: string;
+  /**
    * Canvas template creation time
    */
   createdAt: string;
