@@ -18,6 +18,7 @@ import { WorkflowActionDropdown } from '@refly-packages/ai-workspace-common/comp
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { ListOrder, ShareRecord, ShareUser } from '@refly/openapi-schema';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
+import { AiOutlineUser } from 'react-icons/ai';
 
 const WorkflowList = memo(() => {
   const { t, i18n } = useTranslation();
@@ -166,13 +167,19 @@ const WorkflowList = memo(() => {
         align: 'center' as const,
         render: (owner: ShareUser) => {
           const ownerName = owner?.name || t('common.untitled');
+          const ownerNickname = owner?.nickname;
           const ownerAvatar = owner?.avatar;
           return (
             <Space size="small">
-              <Avatar size={20} className="bg-gray-300 dark:bg-gray-600" src={ownerAvatar}>
-                {!ownerAvatar && ownerName.charAt(0).toUpperCase()}
-              </Avatar>
-              <span className="text-sm text-gray-600 dark:text-gray-400">{ownerName}</span>
+              <Avatar
+                size={20}
+                className="bg-gray-300 dark:bg-gray-600"
+                src={ownerAvatar}
+                icon={!ownerAvatar && <AiOutlineUser />}
+              />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {ownerNickname ? ownerNickname : ownerName}
+              </span>
             </Space>
           );
         },

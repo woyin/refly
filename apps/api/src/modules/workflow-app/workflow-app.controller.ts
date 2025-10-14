@@ -94,4 +94,10 @@ export class WorkflowAppController {
     await this.workflowAppService.deleteWorkflowApp(user, request.appId);
     return buildSuccessResponse();
   }
+
+  @Get('categories')
+  async getWorkflowAppCategories(): Promise<any> {
+    const categories = await this.workflowAppService.getWorkflowAppCategories();
+    return buildSuccessResponse(categories);
+  }
 }

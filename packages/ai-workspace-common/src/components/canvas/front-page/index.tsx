@@ -91,7 +91,7 @@ export const FrontPage = memo(() => {
           </span>
           <span className="text-refly-text-0">{t('frontPage.guide.description')}</span>
         </div>
-        <Button type="primary" onClick={handleViewGuide}>
+        <Button type="primary" onClick={handleViewGuide} className="font-semibold">
           {t('frontPage.guide.view')}
         </Button>
       </div>

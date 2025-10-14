@@ -305,6 +305,13 @@ export const WorkflowRunForm = ({
       }
 
       await onSubmitVariables(newVariables);
+
+      // Reset running state on validation error
+      if (onRunningChange) {
+        onRunningChange(false);
+      } else {
+        setInternalIsRunning(false);
+      }
     } catch (error) {
       // Form validation failed, scroll to first error
       if (error?.errorFields && error.errorFields.length > 0) {

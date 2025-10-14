@@ -121,6 +121,8 @@ const WorkflowAppPage: React.FC = () => {
       }
 
       try {
+        setIsRunning(true);
+
         const { data, error } = await getClient().executeWorkflowApp({
           body: {
             shareId: shareId,
@@ -249,7 +251,6 @@ const WorkflowAppPage: React.FC = () => {
                         onCopyWorkflow={handleCopyWorkflow}
                         onCopyShareLink={handleCopyShareLink}
                         isRunning={isRunning}
-                        onRunningChange={setIsRunning}
                         className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm"
                       />
                     }

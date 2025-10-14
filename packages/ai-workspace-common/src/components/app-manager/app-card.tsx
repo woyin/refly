@@ -60,7 +60,9 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
           <div className="flex items-center gap-2 text-xs text-refly-text-2">
             <div className="flex items-center gap-1 flex-1 min-w-0">
               <Avatar size={18} src={data.owner?.avatar} icon={<AiOutlineUser />} />
-              <span className="truncate">{data.owner?.name}</span>
+              <span className="truncate">
+                {data.owner?.nickname ? data.owner?.nickname : `@${data.owner?.name}`}
+              </span>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <WiTime3 className="w-4 h-4 text-refly-text-2" />

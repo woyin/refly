@@ -83,6 +83,7 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
+  getWorkflowAppCategories,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
@@ -307,6 +308,7 @@ import {
   GetSettingsError,
   GetSubscriptionPlansError,
   GetSubscriptionUsageError,
+  GetWorkflowAppCategoriesError,
   GetWorkflowAppDetailData,
   GetWorkflowAppDetailError,
   GetWorkflowDetailData,
@@ -1036,6 +1038,23 @@ export const useListWorkflowApps = <
     queryKey: Common.UseListWorkflowAppsKeyFn(clientOptions, queryKey),
     queryFn: () =>
       listWorkflowApps({ ...clientOptions }).then((response) => response.data as TData) as TData,
+    ...options,
+  });
+export const useGetWorkflowAppCategories = <
+  TData = Common.GetWorkflowAppCategoriesDefaultResponse,
+  TError = GetWorkflowAppCategoriesError,
+  TQueryKey extends Array<unknown> = unknown[],
+>(
+  clientOptions: Options<unknown, true> = {},
+  queryKey?: TQueryKey,
+  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+) =>
+  useQuery<TData, TError>({
+    queryKey: Common.UseGetWorkflowAppCategoriesKeyFn(clientOptions, queryKey),
+    queryFn: () =>
+      getWorkflowAppCategories({ ...clientOptions }).then(
+        (response) => response.data as TData,
+      ) as TData,
     ...options,
   });
 export const useGetSettings = <
