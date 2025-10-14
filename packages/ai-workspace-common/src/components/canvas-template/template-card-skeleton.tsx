@@ -11,16 +11,7 @@ export const TemplateCardSkeleton: React.FC<TemplateCardSkeletonProps> = memo(({
       className={`${className} m-2 flex flex-col group relative bg-refly-bg-content-z2 rounded-xl overflow-hidden border-[0.5px] border-solid border-refly-Card-Border h-[245px]`}
     >
       {/* Image skeleton */}
-      <div className="h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-        <Skeleton.Image
-          active
-          style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: '0px',
-          }}
-        />
-      </div>
+      <div className="h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center" />
 
       <div className="p-4 flex-1 flex flex-col justify-between gap-1">
         <Skeleton.Input
