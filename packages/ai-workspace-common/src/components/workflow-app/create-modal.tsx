@@ -8,6 +8,7 @@ import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { Checked } from 'refly-icons';
 import type { UploadFile, UploadProps } from 'antd/es/upload/interface';
+import { logEvent } from '@refly/telemetry-web';
 
 interface CreateWorkflowAppModalProps {
   title: string;
@@ -260,6 +261,10 @@ export const CreateWorkflowAppModal = ({
   };
 
   const onSubmit = async () => {
+    logEvent('publish_template', Date.now(), {
+      canvas_id: canvasId,
+    });
+
     try {
       const values = await form.validateFields();
       await createWorkflowApp(values);
