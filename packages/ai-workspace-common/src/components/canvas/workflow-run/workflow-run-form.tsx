@@ -175,10 +175,9 @@ export const WorkflowRunForm = ({
         });
       } else if (variable.variableType === 'resource') {
         const v = Array.isArray(value) ? value[0] : undefined;
-        console.log('v', v);
         const entityId = variable?.value?.[0]?.resource?.entityId;
 
-        if (v && entityId) {
+        if (v) {
           newVariables.push({
             ...variable,
             value: [
@@ -188,7 +187,7 @@ export const WorkflowRunForm = ({
                   name: v.name,
                   storageKey: v.url,
                   fileType: getFileType(v.name),
-                  entityId,
+                  ...(entityId && { entityId }),
                 },
               },
             ],
@@ -296,6 +295,7 @@ export const WorkflowRunForm = ({
 
       // If validation passes, proceed with running
       const newVariables = convertFormValueToVariable();
+      console.log('newVariables', newVariables);
 
       // Set running state - use external callback if provided, otherwise use internal state
       if (onRunningChange) {
@@ -305,6 +305,13 @@ export const WorkflowRunForm = ({
       }
 
       await onSubmitVariables(newVariables);
+
+      // Reset running state on validation error
+      if (onRunningChange) {
+        onRunningChange(false);
+      } else {
+        setInternalIsRunning(false);
+      }
     } catch (error) {
       // Form validation failed, scroll to first error
       if (error?.errorFields && error.errorFields.length > 0) {

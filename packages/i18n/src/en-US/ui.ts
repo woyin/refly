@@ -1316,6 +1316,8 @@ const translations = {
         tooltip: 'Workflow Variables',
         addTitle: 'Add Variable',
         editTitle: 'Edit Variable',
+        addVariableTitle: 'Add {{type}} Variable',
+        editVariableTitle: 'Edit {{type}} Variable',
         name: 'Variable Name',
         value: 'Variable Value',
         description: 'Description (Optional)',

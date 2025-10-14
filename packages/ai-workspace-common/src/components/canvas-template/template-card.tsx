@@ -105,7 +105,9 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
                 icon={!template.shareUser?.avatar && <IoPersonOutline />}
               />
               <div className="truncate text-xs text-refly-text-2">
-                {`@${template.shareUser?.name}`}
+                {template.shareUser?.nickname
+                  ? template.shareUser?.nickname
+                  : `@${template.shareUser?.name}`}
               </div>
             </div>
           ) : null}

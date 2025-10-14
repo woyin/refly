@@ -45,7 +45,7 @@ export const RecentWorkflow = memo(({ canvases }: { canvases: SiderData[] }) => 
               <div className="flex items-center gap-1 flex-1 min-w-0">
                 <Avatar size={18} src={canvas.owner?.avatar} icon={<AiOutlineUser />} />
                 <div className="text-xs leading-4 text-refly-text-3 truncate">
-                  {`@${canvas.owner?.name}`}
+                  {canvas.owner?.nickname ? canvas.owner?.nickname : `@${canvas.owner?.name}`}
                 </div>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">

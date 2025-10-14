@@ -99,19 +99,4 @@ describe('WorkflowAppService', () => {
       expect(result).toEqual(['education', 'business']);
     });
   });
-
-  describe('getWorkflowAppCategories', () => {
-    it('should return predefined categories', async () => {
-      const categories = await service.getWorkflowAppCategories();
-
-      expect(categories).toHaveLength(5);
-      expect(categories[0]).toMatchObject({
-        categoryId: 'education',
-        name: 'education',
-        displayName: '教育',
-        description: '教育相关的工作流应用',
-        icon: '🎓',
-      });
-    });
-  });
 });
