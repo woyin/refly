@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, message, Modal, Upload, Select, Image } from 'antd';
+import { Button, Form, Input, message, Modal, Upload, Image } from 'antd';
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -83,15 +83,6 @@ const SuccessMessage = memo(({ shareId, onClose }: SuccessMessageProps) => {
 
 SuccessMessage.displayName = 'SuccessMessage';
 
-// Predefined categories
-const CATEGORY_OPTIONS = [
-  { label: '🎓 教育', value: 'education' },
-  { label: '💼 商业', value: 'business' },
-  { label: '🎨 创意', value: 'creative' },
-  { label: '💰 销售', value: 'sales' },
-  { label: '🏠 生活', value: 'life' },
-];
-
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 export const CreateWorkflowAppModal = ({
@@ -115,9 +106,6 @@ export const CreateWorkflowAppModal = ({
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewImage, setPreviewImage] = useState<string>('');
   const [previewTitle, setPreviewTitle] = useState<string>('');
-
-  // Category tags state
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['education']);
 
   const { workflow } = useCanvasContext();
   const { workflowVariables } = workflow ?? {};
@@ -234,7 +222,6 @@ export const CreateWorkflowAppModal = ({
           query: '', // TODO: support query edit
           variables: workflowVariables ?? [],
           coverStorageKey,
-          categoryTags: selectedCategories,
         } as any,
       });
 
@@ -283,7 +270,6 @@ export const CreateWorkflowAppModal = ({
       });
       setCoverFileList([]);
       setCoverStorageKey('');
-      setSelectedCategories(['education']);
       // Reset preview state
       setPreviewVisible(false);
       setPreviewImage('');
@@ -392,29 +378,6 @@ export const CreateWorkflowAppModal = ({
                   {t('workflowApp.coverImageHint')}
                 </div>
               </div>
-            </div>
-
-            {/* Category Tags */}
-            <div className="flex flex-col gap-2 mt-5">
-              <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">
-                {t('workflowApp.categoryTags')}
-              </div>
-              <Select
-                mode="multiple"
-                placeholder={t('workflowApp.selectCategories')}
-                value={selectedCategories}
-                onChange={setSelectedCategories}
-                options={CATEGORY_OPTIONS}
-                maxTagCount={3}
-                className="h-8 rounded-lg border-0 bg-refly-bg-control-z0"
-                size="middle"
-                style={{
-                  // Custom styles for category select
-                  backgroundColor: 'var(--refly-bg-control-z0)',
-                  borderRadius: '8px',
-                }}
-              />
-              <div className="text-xs text-refly-text-2">{t('workflowApp.categoryTagsHint')}</div>
             </div>
           </div>
         </Form>

@@ -58,7 +58,6 @@ export class WorkflowAppService {
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
     const { canvasId, title, query, variables, description } = body;
     const coverStorageKey = (body as any).coverStorageKey;
-    const categoryTags = (body as any).categoryTags;
 
     const existingWorkflowApp = await this.prisma.workflowApp.findFirst({
       where: { canvasId, uid: user.uid, deletedAt: null },
@@ -95,9 +94,6 @@ export class WorkflowAppService {
       visibility: 'public',
     });
 
-    // Validate category tags
-    const validCategoryTags = this.validateCategoryTags(categoryTags ?? ['education']);
-
     if (existingWorkflowApp) {
       await this.prisma.workflowApp.update({
         where: { appId },
@@ -108,7 +104,6 @@ export class WorkflowAppService {
           description,
           storageKey,
           coverStorageKey: coverStorageKey as any,
-          categoryTags: JSON.stringify(validCategoryTags) as any,
           updatedAt: new Date(),
         },
       });
@@ -124,7 +119,6 @@ export class WorkflowAppService {
           canvasId,
           storageKey,
           coverStorageKey: coverStorageKey as any,
-          categoryTags: JSON.stringify(validCategoryTags) as any,
         },
       });
     }
@@ -487,59 +481,5 @@ export class WorkflowAppService {
     }
 
     return entityIdMap;
-  }
-
-  async getWorkflowAppCategories() {
-    // Return predefined categories
-    return [
-      {
-        categoryId: 'education',
-        name: 'education',
-        displayName: '教育',
-        description: '教育相关的工作流应用',
-        icon: '🎓',
-      },
-      {
-        categoryId: 'business',
-        name: 'business',
-        displayName: '商业',
-        description: '商业相关的工作流应用',
-        icon: '💼',
-      },
-      {
-        categoryId: 'creative',
-        name: 'creative',
-        displayName: '创意',
-        description: '创意相关的工作流应用',
-        icon: '🎨',
-      },
-      {
-        categoryId: 'sales',
-        name: 'sales',
-        displayName: '销售',
-        description: '销售相关的工作流应用',
-        icon: '💰',
-      },
-      {
-        categoryId: 'life',
-        name: 'life',
-        displayName: '生活',
-        description: '生活相关的工作流应用',
-        icon: '🏠',
-      },
-    ];
-  }
-
-  private validateCategoryTags(tags: string[]): string[] {
-    const validTags = ['education', 'business', 'creative', 'sales', 'life'];
-    const filteredTags = tags.filter((tag) => validTags.includes(tag));
-
-    // Ensure at least one tag and default to education if none valid
-    if (filteredTags.length === 0) {
-      return ['education'];
-    }
-
-    // Remove duplicates and limit to 3 tags
-    return [...new Set(filteredTags)].slice(0, 3);
   }
 }
