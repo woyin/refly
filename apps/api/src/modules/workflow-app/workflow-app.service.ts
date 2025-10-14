@@ -437,6 +437,14 @@ export class WorkflowAppService {
     }));
   }
 
+  /**
+   * Build a map from old resource entityIds to new resource entityIds.
+   * Matches resources between old and new variables by variableId and maps their entityIds.
+   *
+   * @param oldVariables - Variables with original resource entityIds
+   * @param newVariables - Variables with newly generated resource entityIds
+   * @returns Map from old entityId to new entityId
+   */
   private buildEntityIdMap(
     oldVariables: WorkflowVariable[],
     newVariables: WorkflowVariable[],
@@ -455,7 +463,7 @@ export class WorkflowAppService {
       if (!newVar) continue;
 
       // For each resource value in the old variable
-      for (const oldValue of oldVar.value) {
+      for (const oldValue of oldVar.value ?? []) {
         if (oldValue.type === 'resource' && oldValue.resource?.entityId) {
           const oldEntityId = oldValue.resource.entityId;
 
