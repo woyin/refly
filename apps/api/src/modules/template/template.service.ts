@@ -60,12 +60,12 @@ export class TemplateService {
       appIds.length > 0
         ? await this.prisma.workflowApp.findMany({
             where: { appId: { in: appIds }, deletedAt: null },
-            select: { appId: true, coverStorageKey: true },
+            select: { appId: true, coverStorageKey: true, shareId: true },
           })
         : [];
 
     // Create a map for quick lookup
-    const workflowAppMap = new Map(workflowApps.map((app) => [app.appId, app.coverStorageKey]));
+    const workflowAppMap = new Map(workflowApps.map((app) => [app.appId, app]));
 
     // Convert cover storage keys to accessible image URLs
     const templatesWithCoverUrls = await Promise.all(
@@ -73,13 +73,16 @@ export class TemplateService {
         let coverUrl: string | undefined = '';
 
         // Get coverStorageKey from associated WorkflowApp
+        let appShareId: string | undefined;
         if (template.appId) {
-          const coverStorageKey = workflowAppMap.get(template.appId);
-          if (coverStorageKey) {
+          const workflowApp = workflowAppMap.get(template.appId);
+          appShareId = workflowApp?.shareId;
+
+          if (workflowApp?.coverStorageKey) {
             try {
               // Generate a public URL for the cover image using WorkflowApp's coverStorageKey
               coverUrl = this.miscService.generateFileURL({
-                storageKey: coverStorageKey,
+                storageKey: workflowApp.coverStorageKey,
                 visibility: 'public',
               });
             } catch (error) {
@@ -93,6 +96,7 @@ export class TemplateService {
         return {
           ...template,
           coverUrl,
+          appShareId,
         };
       }),
     );

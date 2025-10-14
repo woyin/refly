@@ -40,9 +40,9 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
       });
 
       e.stopPropagation();
-      if (template.shareId) {
+      if (template.appShareId) {
         setModalVisible(false);
-        navigate(`/app/${template.shareId}`);
+        navigate(`/app/${template.appShareId}`);
         return;
       }
     },
