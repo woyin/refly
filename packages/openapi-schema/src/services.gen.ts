@@ -342,6 +342,8 @@ import type {
   ListWorkflowAppsData,
   ListWorkflowAppsError,
   ListWorkflowAppsResponse2,
+  GetWorkflowAppCategoriesError,
+  GetWorkflowAppCategoriesResponse2,
   GetSettingsError,
   GetSettingsResponse,
   UpdateSettingsData,
@@ -2267,6 +2269,23 @@ export const listWorkflowApps = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: '/workflow-app/list',
+  });
+};
+
+/**
+ * Get workflow app categories
+ * Get available category tags for workflow apps
+ */
+export const getWorkflowAppCategories = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    GetWorkflowAppCategoriesResponse2,
+    GetWorkflowAppCategoriesError,
+    ThrowOnError
+  >({
+    ...options,
+    url: '/workflow-app/categories',
   });
 };
 

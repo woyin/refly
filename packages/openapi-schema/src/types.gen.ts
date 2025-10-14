@@ -686,6 +686,14 @@ export type CanvasTemplate = {
    */
   appId?: string;
   /**
+   * Canvas template cover image URL
+   */
+  coverUrl?: string;
+  /**
+   * Associated workflow app share ID
+   */
+  appShareId?: string;
+  /**
    * Canvas template creation time
    */
   createdAt: string;
@@ -5916,6 +5924,14 @@ export type CreateWorkflowAppRequest = {
    * Workflow app variables
    */
   variables: Array<WorkflowVariable>;
+  /**
+   * Cover image storage key
+   */
+  coverStorageKey: string;
+  /**
+   * Category tags for the workflow app
+   */
+  categoryTags?: Array<'education' | 'business' | 'creative' | 'sales' | 'life'>;
 };
 
 export type DeleteWorkflowAppRequest = {
@@ -5958,6 +5974,14 @@ export type WorkflowApp = {
    * Workflow app variables
    */
   variables: Array<WorkflowVariable>;
+  /**
+   * Cover image URL
+   */
+  coverUrl?: string;
+  /**
+   * Category tags for the workflow app
+   */
+  categoryTags?: Array<'education' | 'business' | 'creative' | 'sales' | 'life'>;
   /**
    * Workflow app creation timestamp
    */
@@ -6003,6 +6027,36 @@ export type ExecuteWorkflowAppResult = {
 
 export type ExecuteWorkflowAppResponse = BaseResponse & {
   data?: ExecuteWorkflowAppResult;
+};
+
+export type WorkflowAppCategory = {
+  /**
+   * Category ID
+   */
+  categoryId: string;
+  /**
+   * Category name
+   */
+  name: string;
+  /**
+   * Category display name
+   */
+  displayName: string;
+  /**
+   * Category description
+   */
+  description?: string;
+  /**
+   * Category icon
+   */
+  icon?: string;
+};
+
+export type GetWorkflowAppCategoriesResponse = BaseResponse & {
+  /**
+   * List of workflow app categories
+   */
+  data?: Array<WorkflowAppCategory>;
 };
 
 export type ValueType = 'text' | 'resource';
@@ -7590,6 +7644,10 @@ export type ListWorkflowAppsData = {
 export type ListWorkflowAppsResponse2 = ListWorkflowAppsResponse;
 
 export type ListWorkflowAppsError = unknown;
+
+export type GetWorkflowAppCategoriesResponse2 = GetWorkflowAppCategoriesResponse;
+
+export type GetWorkflowAppCategoriesError = unknown;
 
 export type GetSettingsResponse = GetUserSettingsResponse;
 
