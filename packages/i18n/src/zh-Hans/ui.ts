@@ -1302,6 +1302,8 @@ const translations = {
         tooltip: '工作流变量',
         addTitle: '新建变量',
         editTitle: '编辑变量',
+        addVariableTitle: '新建{{type}}变量',
+        editVariableTitle: '编辑{{type}}变量',
         name: '变量名称',
         value: '变量值',
         description: '描述（可选）',
