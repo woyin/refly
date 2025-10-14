@@ -690,6 +690,10 @@ export type CanvasTemplate = {
    */
   coverUrl?: string;
   /**
+   * Associated workflow app share ID
+   */
+  appShareId?: string;
+  /**
    * Canvas template creation time
    */
   createdAt: string;
