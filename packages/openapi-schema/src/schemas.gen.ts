@@ -8402,15 +8402,6 @@ export const CreateWorkflowAppRequestSchema = {
       type: 'string',
       description: 'Cover image storage key',
     },
-    categoryTags: {
-      type: 'array',
-      description: 'Category tags for the workflow app',
-      items: {
-        type: 'string',
-        enum: ['education', 'business', 'creative', 'sales', 'life'],
-      },
-      default: ['education'],
-    },
   },
 } as const;
 
@@ -8467,14 +8458,6 @@ export const WorkflowAppSchema = {
     coverUrl: {
       type: 'string',
       description: 'Cover image URL',
-    },
-    categoryTags: {
-      type: 'array',
-      description: 'Category tags for the workflow app',
-      items: {
-        type: 'string',
-        enum: ['education', 'business', 'creative', 'sales', 'life'],
-      },
     },
     createdAt: {
       type: 'string',
@@ -8580,53 +8563,6 @@ export const ExecuteWorkflowAppResponseSchema = {
       properties: {
         data: {
           $ref: '#/components/schemas/ExecuteWorkflowAppResult',
-        },
-      },
-    },
-  ],
-} as const;
-
-export const WorkflowAppCategorySchema = {
-  type: 'object',
-  required: ['categoryId', 'name', 'displayName'],
-  properties: {
-    categoryId: {
-      type: 'string',
-      description: 'Category ID',
-    },
-    name: {
-      type: 'string',
-      description: 'Category name',
-    },
-    displayName: {
-      type: 'string',
-      description: 'Category display name',
-    },
-    description: {
-      type: 'string',
-      description: 'Category description',
-    },
-    icon: {
-      type: 'string',
-      description: 'Category icon',
-    },
-  },
-} as const;
-
-export const GetWorkflowAppCategoriesResponseSchema = {
-  allOf: [
-    {
-      $ref: '#/components/schemas/BaseResponse',
-    },
-    {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'array',
-          description: 'List of workflow app categories',
-          items: {
-            $ref: '#/components/schemas/WorkflowAppCategory',
-          },
         },
       },
     },

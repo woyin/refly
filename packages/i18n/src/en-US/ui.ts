@@ -3648,9 +3648,6 @@ const translations = {
     invalidImageType: 'Invalid image type, please upload JPG, PNG, or WebP format',
     imageTooLarge: 'Image size exceeds 5MB, please upload a smaller image',
     coverImageRequired: 'Cover image is required',
-    categoryTags: 'Category Tags',
-    selectCategories: 'Select categories',
-    categoryTagsHint: 'Choose up to 3 categories to help users discover your app',
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',

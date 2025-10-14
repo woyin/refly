@@ -30,7 +30,6 @@ export function workflowAppPO2DTO(
     coverUrl: (app as any).coverStorageKey
       ? generateCoverUrl((app as any).coverStorageKey)
       : undefined,
-    categoryTags: safeParseJSON((app as any).categoryTags) ?? ['education'],
     createdAt: app.createdAt?.toISOString(),
     updatedAt: app.updatedAt?.toISOString(),
   } as any;

@@ -799,8 +799,6 @@ model WorkflowApp {
   shareId         String?   @map("share_id")
   /// Cover image storage key
   coverStorageKey String?   @map("cover_storage_key")
-  /// Category tags (JSON array of strings)
-  categoryTags    String?   @map("category_tags")
   /// Create timestamp
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   /// Update timestamp
@@ -810,7 +808,6 @@ model WorkflowApp {
 
   @@index([canvasId, deletedAt])
   @@index([shareId])
-  @@index([categoryTags])
   @@map("workflow_apps")
 }
 

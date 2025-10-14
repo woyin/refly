@@ -83,7 +83,6 @@ import {
   getSettings,
   getSubscriptionPlans,
   getSubscriptionUsage,
-  getWorkflowAppCategories,
   getWorkflowAppDetail,
   getWorkflowDetail,
   getWorkflowVariables,
@@ -578,18 +577,6 @@ export const UseListWorkflowAppsKeyFn = (
   clientOptions: Options<unknown, true> = {},
   queryKey?: Array<unknown>,
 ) => [useListWorkflowAppsKey, ...(queryKey ?? [clientOptions])];
-export type GetWorkflowAppCategoriesDefaultResponse = Awaited<
-  ReturnType<typeof getWorkflowAppCategories>
->['data'];
-export type GetWorkflowAppCategoriesQueryResult<
-  TData = GetWorkflowAppCategoriesDefaultResponse,
-  TError = unknown,
-> = UseQueryResult<TData, TError>;
-export const useGetWorkflowAppCategoriesKey = 'GetWorkflowAppCategories';
-export const UseGetWorkflowAppCategoriesKeyFn = (
-  clientOptions: Options<unknown, true> = {},
-  queryKey?: Array<unknown>,
-) => [useGetWorkflowAppCategoriesKey, ...(queryKey ?? [clientOptions])];
 export type GetSettingsDefaultResponse = Awaited<ReturnType<typeof getSettings>>['data'];
 export type GetSettingsQueryResult<
   TData = GetSettingsDefaultResponse,

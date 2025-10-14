@@ -3389,9 +3389,6 @@ const translations = {
     invalidImageType: '图片格式不正确，请上传 JPG、PNG 或 WebP 格式的图片',
     imageTooLarge: '图片大小超过 5MB，请上传更小的图片',
     coverImageRequired: '封面图片为必填项',
-    categoryTags: '分类标签',
-    selectCategories: '选择分类',
-    categoryTagsHint: '选择最多 3 个分类，帮助用户发现你的应用',
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',
