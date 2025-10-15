@@ -7,6 +7,16 @@
     box-shadow: none;
   }
 }
+html, body {
+  /* Prevent any page-level scrollbars which cause layout jitters */
+  overflow-x: hidden;
+}
+
+.content-layout {
+  /* Ensure inner content does not trigger accidental horizontal scroll */
+  min-width: 0;
+  min-height: 0;
+}
 
 .ant-form-item-explain-error {
   font-size: 12px;
