@@ -125,15 +125,62 @@ export const ImageNode = memo(
 
       nodeActionEmitter.emit(createNodeEventName(id, 'download.started'));
 
-      const triggerDownload = (href: string) => {
+      // Build a safe filename preserving extension and avoiding illegal characters
+      const sanitizeFileName = (name: string): string => {
+        return (name || 'image')
+          .replace(/[\\/:*?"<>|]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      };
+
+      const getExtFromContentType = (contentType?: string | null): string => {
+        const ct = (contentType ?? '').toLowerCase();
+        if (!ct) return '';
+        if (ct.includes('image/jpeg') || ct.includes('image/jpg')) return 'jpg';
+        if (ct.includes('image/png')) return 'png';
+        if (ct.includes('image/webp')) return 'webp';
+        if (ct.includes('image/gif')) return 'gif';
+        if (ct.includes('image/svg')) return 'svg';
+        if (ct.includes('image/bmp')) return 'bmp';
+        if (ct.includes('image/tiff')) return 'tiff';
+        return '';
+      };
+
+      const getExtFromUrl = (u: string): string => {
+        try {
+          const { pathname } = new URL(u);
+          const file = pathname.split('/').pop() ?? '';
+          const m = file.match(/\.([a-zA-Z0-9]{1,8})$/);
+          return (m?.[1] ?? '').toLowerCase();
+        } catch {
+          return '';
+        }
+      };
+
+      const buildSafeFileName = (base: string, extHint?: string): string => {
+        const MAX_BASE_LEN = 250; // keep filename manageable
+        const sanitizedBase = sanitizeFileName(base);
+        const ext = (extHint ?? '').replace(/^\./, '').toLowerCase();
+        const hasExt = !!ext && new RegExp(`\\.${ext}$`, 'i').test(sanitizedBase);
+        const truncatedBase =
+          sanitizedBase.length > MAX_BASE_LEN
+            ? sanitizedBase.slice(0, MAX_BASE_LEN)
+            : sanitizedBase;
+        return hasExt ? truncatedBase : `${truncatedBase}${ext ? `.${ext}` : ''}`;
+      };
+
+      const triggerDownload = (href: string, fileName?: string) => {
         const link = document.createElement('a');
         link.href = href;
-        link.download = data?.title ?? 'image';
+        link.download = fileName ?? sanitizeFileName(data?.title ?? 'image');
         link.target = '_blank';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
       };
+
+      let completedEmitted = false;
+      const baseTitle = data?.title ?? 'image';
 
       try {
         const url = new URL(imageUrl);
@@ -147,22 +194,37 @@ export const ImageNode = memo(
           throw new Error(`Download failed: ${response?.status ?? 'unknown'}`);
         }
 
+        const contentType = response.headers?.get?.('content-type') ?? '';
+        const inferredExt = getExtFromContentType(contentType) || getExtFromUrl(imageUrl) || '';
+        const fileName = buildSafeFileName(baseTitle, inferredExt || 'png');
+
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
-        triggerDownload(objectUrl);
+        triggerDownload(objectUrl, fileName);
         URL.revokeObjectURL(objectUrl);
         nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
           success: true,
-          fileName: data?.title ?? 'image',
+          fileName,
         });
+        completedEmitted = true;
       } catch (error) {
         console.error('Download failed:', error);
-        // Fallback to original method if fetch fails
-        triggerDownload(imageUrl);
+        // Fallback to original method if fetch fails (may ignore filename on cross-origin)
+        const fallbackExt = getExtFromUrl(imageUrl) || 'png';
+        const fallbackName = buildSafeFileName(baseTitle, fallbackExt);
+        triggerDownload(imageUrl, fallbackName);
         nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
           success: true,
-          fileName: data?.title ?? 'image',
+          fileName: fallbackName,
         });
+        completedEmitted = true;
+      } finally {
+        if (!completedEmitted) {
+          nodeActionEmitter.emit(createNodeEventName(id, 'download.completed'), {
+            success: false,
+            fileName: baseTitle,
+          });
+        }
       }
     }, [imageUrl, data?.title, id]);
 
