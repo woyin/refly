@@ -13,8 +13,8 @@ import { BiSolidEdit } from 'react-icons/bi';
 import { ContentHeader } from '../contentHeader';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
 
-// Compress image utilities to ensure avatar file size under 2MB
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+// Compress image utilities to ensure avatar file size under 5MB
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
 const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
