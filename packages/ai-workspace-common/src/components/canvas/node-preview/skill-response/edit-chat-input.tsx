@@ -185,7 +185,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
       document.removeEventListener('focusin', handleOutsideInteraction, true);
       document.removeEventListener('keydown', handleOutsideInteraction, true);
     };
-  }, [enabled]);
+  }, [enabled, setEditMode]);
 
   const handleSendMessage = useCallback(() => {
     const finalProjectId = getFinalProjectId();

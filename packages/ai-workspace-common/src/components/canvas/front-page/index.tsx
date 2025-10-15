@@ -84,7 +84,7 @@ export const FrontPage = memo(() => {
 
   useEffect(() => {
     getCanvasList();
-  }, [getCanvasList]);
+  }, []);
 
   return (
     <div
