@@ -285,7 +285,9 @@ export const prepareNodeExecutions = (params: {
       nodeExecution.processedQuery = node?.data.title;
       nodeExecution.resultHistory = resultHistory;
     } else if (['document', 'codeArtifact', 'image', 'video', 'audio'].includes(node.type)) {
-      nodeExecution.status = 'waiting';
+      // Set status based on whether the node is in the subtree (computed with original ids)
+      const status = subtreeNodes.has(node.id) ? 'waiting' : 'finish';
+      nodeExecution.status = status;
     }
 
     nodeExecutions.push(nodeExecution);
