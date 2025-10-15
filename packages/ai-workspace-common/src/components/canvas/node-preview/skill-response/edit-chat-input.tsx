@@ -168,8 +168,18 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
       // Ignore interactions inside model selector dropdown or tool selector popover
       const inModelSelectorOverlay = !!targetEl?.closest?.('.model-selector-overlay');
       const inToolSelectorPopover = !!targetEl?.closest?.('.tool-selector-popover');
+      const inContextSelectorPopover = !!targetEl?.closest?.('.context-select-popover');
+      const inMentionList = !!targetEl?.closest?.('.mention-list-popover');
+      const inContextPreviewPopover = !!targetEl?.closest?.('.context-preview-popover');
 
-      if (!withinEditArea && !inModelSelectorOverlay && !inToolSelectorPopover) {
+      if (
+        !withinEditArea &&
+        !inModelSelectorOverlay &&
+        !inToolSelectorPopover &&
+        !inContextSelectorPopover &&
+        !inMentionList &&
+        !inContextPreviewPopover
+      ) {
         setEditMode(false);
       }
     };
@@ -177,12 +187,10 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     // Use capture phase to ensure we get the event even if propagation is stopped in children
     const options: AddEventListenerOptions | boolean = true;
     document.addEventListener('pointerdown', handleOutsideInteraction, options);
-    document.addEventListener('focusin', handleOutsideInteraction, true);
     document.addEventListener('keydown', handleOutsideInteraction, true);
 
     return () => {
       document.removeEventListener('pointerdown', handleOutsideInteraction, options);
-      document.removeEventListener('focusin', handleOutsideInteraction, true);
       document.removeEventListener('keydown', handleOutsideInteraction, true);
     };
   }, [enabled, setEditMode]);

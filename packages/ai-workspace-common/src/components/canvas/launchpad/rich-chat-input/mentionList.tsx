@@ -753,7 +753,7 @@ export const MentionList = ({
   };
 
   return (
-    <div className={cn('relative flex w-106', mentionVirtalAlign)}>
+    <div className={cn('relative flex w-106 mention-list-popover', mentionVirtalAlign)}>
       {query ? (
         renderUnifiedList()
       ) : (
