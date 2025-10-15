@@ -46,6 +46,15 @@ import { IContextItem } from '@refly/common-types';
 @Injectable()
 export class CanvasSyncService {
   private logger = new Logger(CanvasSyncService.name);
+  // In-flight singleflight map to deduplicate concurrent storage reads per canvas version
+  private inflightStateLoads: Map<string, Promise<CanvasState>> = new Map();
+  // Cache TTL for canvas state in seconds
+  private readonly STATE_CACHE_TTL_SECONDS = 10 * 60; // 10 minutes
+
+  // Build redis key for canvas state
+  private getRedisStateKey(canvasId: string, version: string) {
+    return `canvas-state:${canvasId}:${version}`;
+  }
 
   constructor(
     private prisma: PrismaService,
@@ -98,7 +107,18 @@ export class CanvasSyncService {
 
     state.version ||= genCanvasVersionId();
     const stateStorageKey = `canvas-state/${canvasId}/${state.version}`;
+    // Persist to object storage for durability
     await this.oss.putObject(stateStorageKey, JSON.stringify(state));
+    // Write-through cache to Redis for strong read-after-write consistency
+    try {
+      const cacheKey = this.getRedisStateKey(canvasId, state.version);
+      await this.redis.setex(cacheKey, this.STATE_CACHE_TTL_SECONDS, JSON.stringify(state));
+    } catch (err) {
+      // Best-effort cache population; do not fail the request on cache errors
+      this.logger.warn(
+        `[saveState] failed to set redis cache for canvas ${canvasId} version ${state.version}: ${err?.message}`,
+      );
+    }
 
     // Extract toolsets from canvas nodes and update canvas usedToolsets if changed
     const { nodes } = getCanvasDataFromState(state);
@@ -219,13 +239,45 @@ export class CanvasSyncService {
       throw new CanvasVersionNotFoundError();
     }
 
-    const stream = await this.oss.getObject(canvasVersion.stateStorageKey);
-    if (!stream) {
-      throw new Error('Canvas state not found');
-    }
-    const stateStr = await streamToString(stream);
+    const versionToRead = version ?? canvas.version;
+    const cacheKey = this.getRedisStateKey(canvasId, versionToRead);
 
-    return JSON.parse(stateStr);
+    // 1) Try Redis cache first
+    try {
+      const cached = await this.redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (err) {
+      // Cache read failure should not block fallback path
+      this.logger.warn(`[getState] redis get failed for key ${cacheKey}: ${err?.message}`);
+    }
+
+    // 2) Singleflight fallback to object storage, then populate Redis
+    const sfKey = cacheKey;
+    let inflight = this.inflightStateLoads.get(sfKey);
+    if (!inflight) {
+      inflight = (async () => {
+        const stream = await this.oss.getObject(canvasVersion.stateStorageKey);
+        if (!stream) {
+          throw new Error('Canvas state not found');
+        }
+        const stateStr = await streamToString(stream);
+        const parsed: CanvasState = JSON.parse(stateStr);
+        // Populate cache best-effort
+        try {
+          await this.redis.setex(sfKey, this.STATE_CACHE_TTL_SECONDS, stateStr);
+        } catch (err) {
+          this.logger.warn(`[getState] failed to set redis cache for ${sfKey}: ${err?.message}`);
+        }
+        return parsed;
+      })().finally(() => {
+        this.inflightStateLoads.delete(sfKey);
+      });
+      this.inflightStateLoads.set(sfKey, inflight);
+    }
+
+    return inflight;
   }
 
   /**

@@ -108,7 +108,6 @@ export const applyCanvasTransaction = (
               connectTo: [{ type: 'skillResponse', entityId: parentResultId }],
               autoLayout: true,
             });
-            console.log('parentEdges', parentEdges);
             newEdges.push(...parentEdges);
           }
           newNodes.push(nodeToAdd);
