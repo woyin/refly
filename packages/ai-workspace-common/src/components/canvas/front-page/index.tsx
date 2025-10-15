@@ -74,7 +74,7 @@ export const FrontPage = memo(() => {
   );
 
   const handleViewGuide = useCallback(() => {
-    window.open('https://docs.refly.ai', '_blank');
+    window.open('https://reflydoc.notion.site/how-to-use-refly', '_blank');
   }, []);
 
   const handleViewAllWorkflows = useCallback(() => {
