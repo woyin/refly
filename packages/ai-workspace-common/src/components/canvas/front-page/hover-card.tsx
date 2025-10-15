@@ -11,15 +11,20 @@ interface HoverCardProps {
   children: React.ReactNode;
   onEdit?: (canvasId: string) => void;
   className?: string;
+  onClick?: () => void;
 }
 
 export const HoverCard = memo(
-  ({ canvasId, canvasName, children, onEdit, className }: HoverCardProps) => {
+  ({ canvasId, canvasName, children, onEdit, className, onClick }: HoverCardProps) => {
     const { t } = useTranslation();
 
     const handleEdit = useCallback(() => {
       onEdit?.(canvasId);
     }, [canvasId, onEdit]);
+
+    const handleClick = useCallback(() => {
+      onClick?.();
+    }, [onClick]);
 
     const actionContent = useMemo(
       () => (
@@ -44,7 +49,7 @@ export const HoverCard = memo(
     );
 
     return (
-      <HoverCardContainer actionContent={actionContent} className={className}>
+      <HoverCardContainer actionContent={actionContent} className={className} onClick={handleClick}>
         {children}
       </HoverCardContainer>
     );

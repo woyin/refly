@@ -16,7 +16,8 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
   const navigate = useNavigate();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleUnpublish = async () => {
+  const handleUnpublish = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isDeleting) return;
     setIsDeleting(true);
     try {
@@ -38,19 +39,29 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
     navigate(`/app/${data.shareId}`);
   };
 
+  const handleViewButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleView();
+  };
+
   const actionContent = (
     <>
-      <Button type="primary" onClick={handleView} className="flex-1">
+      <Button type="primary" onClick={(e) => handleViewButtonClick(e)} className="flex-1">
         {t('appManager.view')}
       </Button>
-      <Button type="default" onClick={handleUnpublish} className="flex-1" loading={isDeleting}>
+      <Button
+        type="default"
+        onClick={(e) => handleUnpublish(e)}
+        className="flex-1"
+        loading={isDeleting}
+      >
         {t('appManager.unpublish')}
       </Button>
     </>
   );
 
   return (
-    <HoverCardContainer actionContent={actionContent}>
+    <HoverCardContainer actionContent={actionContent} onClick={handleView}>
       <div className="flex flex-col justify-between border-[1px] border-solid border-refly-Card-Border rounded-xl bg-refly-bg-content-z2 hover:shadow-refly-m cursor-pointer overflow-hidden">
         <div className="h-40 bg-gray-100 dark:bg-gray-700 flex items-center justify-center" />
         <div className="p-4 flex-1 flex flex-col gap-2">

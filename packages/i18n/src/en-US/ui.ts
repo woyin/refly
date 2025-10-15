@@ -3782,6 +3782,7 @@ const translations = {
     shareFailed: 'Failed to share workflow {{title}}',
     unshareSuccess: '{{title}} has been unshared, only you can view it',
     unshareFailed: 'Failed to unshare workflow {{title}}',
+    usedToolsetsTitle: 'Workflow Tools',
   },
   appManager: {
     title: 'My Templates',

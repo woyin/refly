@@ -3816,6 +3816,7 @@ const translations = {
     shareFailed: '分享工作流 {{title}} 失败',
     unshareSuccess: '{{title}} 已取消分享',
     unshareFailed: '取消分享 {{title}} 失败',
+    usedToolsetsTitle: '工作流工具',
   },
   appManager: {
     title: '我的模版',

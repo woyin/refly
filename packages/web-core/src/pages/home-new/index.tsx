@@ -8,6 +8,7 @@ import { useAuthStoreShallow } from '@refly/stores';
 import { canvasTemplateEnabled } from '@refly/ui-kit';
 import Header from '../../components/landing-page-partials/Header';
 import { useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
 
 import cn from 'classnames';
 import { Title } from '@refly-packages/ai-workspace-common/components/canvas/front-page/title';
@@ -62,6 +63,10 @@ const UnsignedFrontPage = memo(() => {
           'linear-gradient(124deg,rgba(31,201,150,0.1) 0%,rgba(69,190,255,0.06) 24.85%),var(--refly-bg-body-z0)',
       }}
     >
+      <Helmet>
+        <title>Refly.AI | The Open-Source Agentic Workspace for Human-AI Collaboration</title>
+      </Helmet>
+
       <Header />
 
       <div className="w-full h-full pt-2 overflow-y-auto" id="front-page-scrollable-div">

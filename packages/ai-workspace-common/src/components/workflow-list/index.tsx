@@ -153,7 +153,7 @@ const WorkflowList = memo(() => {
         width: 140,
         render: (usedToolsets: GenericToolset[]) => {
           return (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
               <UsedToolsets toolsets={usedToolsets} />
             </div>
           );
