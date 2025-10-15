@@ -41,6 +41,7 @@ import { StaticFile } from '../../generated/client';
 import { PandocParser } from '../knowledge/parsers/pandoc.parser';
 import pLimit from 'p-limit';
 import { isDesktop } from '../../utils/runtime';
+import { RedisService } from '../common/redis.service';
 
 @Injectable()
 export class MiscService implements OnModuleInit {
@@ -49,6 +50,7 @@ export class MiscService implements OnModuleInit {
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
+    private redisService: RedisService,
     @Inject(OSS_EXTERNAL) private externalOss: ObjectStorageService,
     @Inject(OSS_INTERNAL) private internalOss: ObjectStorageService,
     @Optional() @InjectQueue(QUEUE_IMAGE_PROCESSING) private imageQueue?: Queue<FileObject>,
@@ -1044,5 +1046,72 @@ export class MiscService implements OnModuleInit {
     }
 
     return updatedContent;
+  }
+
+  /**
+   * Get favicon for a domain with Redis caching
+   * @param domain - The domain to get favicon for
+   * @returns Buffer containing the favicon data and content type
+   */
+  async getFavicon(domain: string): Promise<{ data: Buffer; contentType: string }> {
+    // Validate domain parameter
+    if (!domain || typeof domain !== 'string') {
+      throw new ParamsError('Domain parameter is required and must be a string');
+    }
+
+    // Basic domain validation
+    const domainRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(domain)) {
+      throw new ParamsError('Invalid domain format');
+    }
+
+    const cacheKey = `favicon:${domain}`;
+    const CACHE_TTL = 24 * 60 * 60; // 24 hours in seconds
+
+    try {
+      // Try to get from cache first
+      const cachedFavicon = await this.redisService.get(cacheKey);
+      if (cachedFavicon) {
+        this.logger.log(`Returning cached favicon for domain: ${domain}`);
+        // Parse cached data (stored as base64 string)
+        const buffer = Buffer.from(cachedFavicon, 'base64');
+        return {
+          data: buffer,
+          contentType: 'image/x-icon', // Default content type for cached favicons
+        };
+      }
+
+      // Fetch from Google favicon service
+      const faviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+      this.logger.log(`Fetching favicon from Google for domain: ${domain}`);
+
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(faviconUrl, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch favicon: ${response.status} ${response.statusText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const contentType = response.headers.get('content-type') || 'image/x-icon';
+
+      // Cache the favicon data as base64
+      const base64Data = buffer.toString('base64');
+      await this.redisService.setex(cacheKey, CACHE_TTL, base64Data);
+
+      this.logger.log(`Successfully fetched and cached favicon for domain: ${domain}`);
+      return { data: buffer, contentType };
+    } catch (error) {
+      this.logger.error(`Failed to get favicon for domain ${domain}:`, error);
+      throw new Error(`Unable to retrieve favicon for domain: ${domain}`);
+    }
   }
 }
