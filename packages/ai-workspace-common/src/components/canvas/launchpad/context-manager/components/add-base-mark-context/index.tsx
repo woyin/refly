@@ -52,6 +52,7 @@ export const AddBaseMarkContext = ({ contextItems, setContextItems }: AddBaseMar
         styles={{ body: { padding: 0, boxShadow: 'none' } }}
         open={popoverVisible}
         onOpenChange={handleVisibleChange}
+        overlayClassName="context-select-popover"
         content={
           <BaseMarkContextSelector
             onClose={handleClose}
