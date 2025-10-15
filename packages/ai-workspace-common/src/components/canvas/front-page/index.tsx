@@ -54,6 +54,7 @@ export const FrontPage = memo(() => {
   const { data } = useListCanvasTemplateCategories({}, undefined, {
     enabled: true,
   });
+  const showTemplateCategories = false;
   const templateCategories = [
     { categoryId: '', labelDict: { en: 'All', 'zh-CN': '全部' } },
     ...(data?.data ?? []),
@@ -136,7 +137,7 @@ export const FrontPage = memo(() => {
 
       {canvasTemplateEnabled && (
         <ModuleContainer title={t('frontPage.template.title')}>
-          {templateCategories.length > 1 && (
+          {showTemplateCategories && templateCategories.length > 1 && (
             <div className="flex items-center gap-2 flex-wrap">
               {templateCategories.map((category) => (
                 <div
