@@ -18,6 +18,7 @@ import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/comp
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { logEvent } from '@refly/telemetry-web';
+import { Helmet } from 'react-helmet';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -231,6 +232,10 @@ const WorkflowAppPage: React.FC = () => {
     <ReactFlowProvider>
       <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>
         <div className="min-h-screen bg-refly-bg-body-z0">
+          <Helmet>
+            <title>{workflowApp?.title ?? ''}</title>
+          </Helmet>
+
           {/* Header */}
           <div className="bg-refly-bg-float-z3 border-b border-refly-Card-Border">
             <div className="mx-auto px-4 sm:px-6 lg:px-8">

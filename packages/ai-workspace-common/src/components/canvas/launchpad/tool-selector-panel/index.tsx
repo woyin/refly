@@ -287,6 +287,7 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
       align={align}
       trigger="click"
       arrow={false}
+      overlayClassName="tool-selector-popover"
       styles={{ body: { padding: 0 } }}
       content={
         <div className="w-[340px] h-[320px] border-[1px] border-solid border-refly-Card-Border rounded-lg bg-refly-bg-content-z2 shadow-[0_8px_40px_0px_rgba(0,0,0,0.08)]">

@@ -60,6 +60,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   const { getEdges, getNodes, deleteElements, addEdges } = useReactFlow();
   const [editQuery, setEditQueryState] = useState<string>(query);
 
+  const editAreaRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     setEditQueryState(query ?? '');
   }, [query]);
@@ -151,6 +153,39 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   useEffect(() => {
     setEditRuntimeConfig(runtimeConfig);
   }, [runtimeConfig]);
+
+  // Close edit mode on any outside interaction when editMode is enabled
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const handleOutsideInteraction = (event: Event) => {
+      const targetNode = (event?.target as Node) ?? null;
+      const targetEl = (targetNode as Element) ?? null;
+      const withinEditArea = editAreaRef.current?.contains(targetNode ?? (null as unknown as Node));
+
+      // Ignore interactions inside model selector dropdown or tool selector popover
+      const inModelSelectorOverlay = !!targetEl?.closest?.('.model-selector-overlay');
+      const inToolSelectorPopover = !!targetEl?.closest?.('.tool-selector-popover');
+
+      if (!withinEditArea && !inModelSelectorOverlay && !inToolSelectorPopover) {
+        setEditMode(false);
+      }
+    };
+
+    // Use capture phase to ensure we get the event even if propagation is stopped in children
+    const options: AddEventListenerOptions | boolean = true;
+    document.addEventListener('pointerdown', handleOutsideInteraction, options);
+    document.addEventListener('focusin', handleOutsideInteraction, true);
+    document.addEventListener('keydown', handleOutsideInteraction, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsideInteraction, options);
+      document.removeEventListener('focusin', handleOutsideInteraction, true);
+      document.removeEventListener('keydown', handleOutsideInteraction, true);
+    };
+  }, [enabled]);
 
   const handleSendMessage = useCallback(() => {
     const finalProjectId = getFinalProjectId();
@@ -325,6 +360,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
       onClick={(e) => {
         e.stopPropagation();
       }}
+      ref={editAreaRef}
     >
       <ChatComposer
         ref={textareaRef}

@@ -34,15 +34,15 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
 
   const handlePreview = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      e.stopPropagation();
       logEvent('home::template_preview', null, {
         templateId: template.templateId,
         templateName: template.title,
       });
 
-      e.stopPropagation();
-      if (template.appShareId) {
+      if (template.shareId) {
         setModalVisible(false);
-        navigate(`/app/${template.appShareId}`);
+        navigate(`/app/${template.shareId}`);
         return;
       }
     },
@@ -51,12 +51,12 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
 
   const handleUse = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      e.stopPropagation();
       logEvent('home::template_use', null, {
         templateId: template.templateId,
         templateName: template.title,
       });
 
-      e.stopPropagation();
       if (!isLogin) {
         setLoginModalOpen(true);
         return;
@@ -71,6 +71,7 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
   return (
     <div
       className={`${className} m-2 flex flex-col group relative bg-refly-bg-content-z2 rounded-xl overflow-hidden cursor-pointer border-[0.5px] border-solid border-refly-Card-Border hover:shadow-lg transition-all duration-200 ease-in-out h-[245px]`}
+      onClick={handlePreview}
     >
       {template?.featured && (
         <Tag color="green" className="absolute top-2 right-0 z-10 shadow-sm">

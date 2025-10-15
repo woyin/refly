@@ -17,7 +17,6 @@ import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { SelectedSkillHeader } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/selected-skill-header';
 import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
 import {
   createNodeEventName,
@@ -60,16 +59,12 @@ const NODE_SIDE_CONFIG = { width: NODE_WIDTH, height: 'auto', maxHeight: 214 };
 export const NodeHeader = memo(
   ({
     query,
-    skillName,
-    skill,
     disabled,
     showIcon,
     updateTitle,
     source,
   }: {
     query: string;
-    skillName?: string;
-    skill?: any;
     disabled: boolean;
     showIcon?: boolean;
     updateTitle: (title: string) => void;
@@ -104,45 +99,38 @@ export const NodeHeader = memo(
     );
 
     return (
-      <>
-        <div
-          data-cy="skill-response-node-header"
-          className={`flex-shrink-0 ${source === 'skillResponsePreview' ? 'mb-0' : 'mb-3'}`}
-        >
-          <div className="flex items-center gap-2">
-            {showIcon && <NodeIcon type="skillResponse" />}
-            {isEditing ? (
-              <Input
-                ref={inputRef}
-                className={`${
-                  source === 'skillResponsePreview' ? 'text-lg' : ''
-                } !border-transparent rounded-md font-bold focus:!bg-refly-tertiary-hover px-0.5 py-0 !bg-refly-tertiary-hover !text-refly-text-0`}
-                value={editTitle}
-                data-cy="skill-response-node-header-input"
-                onBlur={handleBlur}
-                onChange={handleChange}
-              />
-            ) : (
-              <div
-                className={`flex-1 rounded-md h-6 px-0.5 box-border font-bold leading-6 truncate block hover:bg-refly-tertiary-hover ${
-                  source === 'skillResponsePreview' ? 'text-lg' : 'text-sm'
-                }`}
-                title={editTitle}
-                onClick={() => {
-                  !disabled && setIsEditing(true);
-                }}
-              >
-                {editTitle || t('common.untitled')}
-              </div>
-            )}
-          </div>
+      <div
+        data-cy="skill-response-node-header"
+        className={`flex-shrink-0 w-full ${source === 'skillResponsePreview' ? 'mb-0' : 'mb-3'}`}
+      >
+        <div className="flex items-center gap-2">
+          {showIcon && <NodeIcon type="skillResponse" />}
+          {isEditing ? (
+            <Input
+              ref={inputRef}
+              className={`${
+                source === 'skillResponsePreview' ? 'text-lg' : ''
+              } !border-transparent rounded-md font-bold focus:!bg-refly-tertiary-hover px-0.5 py-0 !bg-refly-tertiary-hover !text-refly-text-0`}
+              value={editTitle}
+              data-cy="skill-response-node-header-input"
+              onBlur={handleBlur}
+              onChange={handleChange}
+            />
+          ) : (
+            <div
+              className={`flex-1 rounded-md h-6 px-0.5 box-border font-bold leading-6 truncate block hover:bg-refly-tertiary-hover ${
+                source === 'skillResponsePreview' ? 'text-lg' : 'text-sm'
+              }`}
+              title={editTitle}
+              onClick={() => {
+                !disabled && setIsEditing(true);
+              }}
+            >
+              {editTitle || t('common.untitled')}
+            </div>
+          )}
         </div>
-        {skillName && skillName !== 'commonQnA' && (
-          <div className="flex-shrink-0 mb-2">
-            <SelectedSkillHeader readonly skill={skill} className="rounded-md" />
-          </div>
-        )}
-      </>
+      </div>
     );
   },
 );
@@ -347,7 +335,6 @@ export const SkillResponseNode = memo(
       name: currentSkill?.name || 'commonQnA',
       icon: currentSkill?.icon,
     };
-    const skillName = currentSkill?.name || 'commonQnA';
     const model = modelInfo?.label;
 
     // Get query and response content from result
@@ -818,21 +805,14 @@ export const SkillResponseNode = memo(
             'flex max-h-60 flex-col items-start gap-2 self-stretch px-4 py-3 rounded-2xl border-solid',
             // Apply error styles only when there's an error
             status === 'failed'
-              ? 'border border-[color:var(--func-danger---refly-func-danger-default,#F93920)] [background:var(--bg---refly-bg-content-z2,#FFF)] shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)]'
-              : 'border border-gray-200 [background:var(--bg---refly-bg-content-z2,#FFF)]',
+              ? 'border border-refly-func-danger-default bg-refly-bg-content-z2 shadow-[0_2px_20px_4px_rgba(0,0,0,0.04)]'
+              : 'border border-gray-200 bg-refly-bg-content-z2',
           )}
         >
           {/* Node execution status badge */}
           <NodeExecutionStatus status={executionStatus} />
 
-          <NodeHeader
-            showIcon
-            disabled={readonly}
-            query={query}
-            skillName={skillName}
-            skill={skill}
-            updateTitle={onTitleChange}
-          />
+          <NodeHeader showIcon disabled={readonly} query={query} updateTitle={onTitleChange} />
 
           <div className={'relative flex-grow overflow-y-auto pr-2 -mr-2 w-full'}>
             <div className="flex flex-col gap-3">

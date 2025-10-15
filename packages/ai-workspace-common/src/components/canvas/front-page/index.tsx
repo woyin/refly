@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from 'antd';
 import { TemplateList } from '@refly-packages/ai-workspace-common/components/canvas-template/template-list';
@@ -10,6 +10,8 @@ import { RecentWorkflow } from './recent-workflow';
 import { useListCanvasTemplateCategories } from '@refly-packages/ai-workspace-common/queries/queries';
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet';
+import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
 
 const ModuleContainer = ({
   title,
@@ -40,6 +42,8 @@ const ModuleContainer = ({
 export const FrontPage = memo(() => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { getCanvasList } = useHandleSiderData();
+
   const { canvasList } = useSiderStoreShallow((state) => ({
     canvasList: state.canvasList,
   }));
@@ -50,6 +54,7 @@ export const FrontPage = memo(() => {
   const { data } = useListCanvasTemplateCategories({}, undefined, {
     enabled: true,
   });
+  const showTemplateCategories = false;
   const templateCategories = [
     { categoryId: '', labelDict: { en: 'All', 'zh-CN': '全部' } },
     ...(data?.data ?? []),
@@ -70,12 +75,16 @@ export const FrontPage = memo(() => {
   );
 
   const handleViewGuide = useCallback(() => {
-    window.open('https://docs.refly.ai', '_blank');
+    window.open('https://reflydoc.notion.site/how-to-use-refly', '_blank');
   }, []);
 
   const handleViewAllWorkflows = useCallback(() => {
     navigate('/workflow-list');
   }, []);
+
+  useEffect(() => {
+    getCanvasList();
+  }, [getCanvasList]);
 
   return (
     <div
@@ -84,6 +93,9 @@ export const FrontPage = memo(() => {
       )}
       id="front-page-scrollable-div"
     >
+      <Helmet>
+        <title>{t('loggedHomePage.siderMenu.home')}</title>
+      </Helmet>
       <div className="p-4 rounded-xl flex flex-wrap items-center gap-6 bg-gradient-tools-open bg-refly-bg-body-z0 dark:bg-gradient-to-br dark:from-emerald-500/20 dark:via-cyan-500/15 dark:to-blue-500/10 dark:bg-refly-bg-body-z0">
         <div className="text-xl leading-7">
           <span className="text-refly-primary-default font-[800] mr-2">
@@ -125,7 +137,7 @@ export const FrontPage = memo(() => {
 
       {canvasTemplateEnabled && (
         <ModuleContainer title={t('frontPage.template.title')}>
-          {templateCategories.length > 1 && (
+          {showTemplateCategories && templateCategories.length > 1 && (
             <div className="flex items-center gap-2 flex-wrap">
               {templateCategories.map((category) => (
                 <div

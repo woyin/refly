@@ -5,11 +5,16 @@ interface HoverCardContainerProps {
   children: React.ReactNode;
   actionContent: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
 export const HoverCardContainer = memo(
-  ({ children, actionContent, className }: HoverCardContainerProps) => {
+  ({ children, actionContent, className, onClick }: HoverCardContainerProps) => {
     const [isHovered, setIsHovered] = useState(false);
+
+    const handleClick = useCallback(() => {
+      onClick?.();
+    }, [onClick]);
 
     const handleMouseEnter = useCallback(() => {
       setIsHovered(true);
@@ -50,6 +55,7 @@ export const HoverCardContainer = memo(
         onMouseLeave={handleMouseLeave}
         onMouseOver={handleMouseOver}
         onFocus={handleFocus}
+        onClick={handleClick}
       >
         {children}
 

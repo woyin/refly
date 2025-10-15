@@ -24,7 +24,7 @@ export const ToolsetPopover = memo(
     placement = 'bottomLeft',
     align = { offset: [0, 8] },
   }: ToolsetPopoverProps) => {
-    const { i18n } = useTranslation();
+    const { i18n, t } = useTranslation();
     const currentLanguage = (i18n.language || 'en') as 'en' | 'zh';
     const [open, setOpen] = useState(false);
 
@@ -38,7 +38,7 @@ export const ToolsetPopover = memo(
       }
 
       return (
-        <div className="flex flex-col gap-1.5 p-2">
+        <div className="flex flex-col p-2 pt-0">
           {toolsets.map((toolset) => {
             const description =
               toolset?.type === 'mcp'
@@ -56,7 +56,7 @@ export const ToolsetPopover = memo(
               <div
                 key={toolset.id}
                 className={cn(
-                  'flex items-center gap-3 p-2 rounded-lg hover:bg-refly-tertiary-hover',
+                  'flex items-center gap-3 p-3 rounded-lg hover:bg-refly-tertiary-hover',
                   'cursor-pointer transition-all duration-200',
                 )}
               >
@@ -96,8 +96,11 @@ export const ToolsetPopover = memo(
         arrow={false}
         styles={{ body: { padding: 0 } }}
         content={
-          <div className="w-[350px] max-h-[320px] overflow-y-auto border-[1px] border-solid border-refly-Card-Border rounded-lg bg-refly-bg-content-z2 shadow-refly-m prevent-hover-action">
-            {renderContent()}
+          <div className="border-[1px] border-solid border-refly-Card-Border rounded-lg bg-refly-bg-content-z2 shadow-refly-m prevent-hover-action">
+            <div className="px-5 pt-3 text-xs text-refly-text-1 font-normal">
+              {t('workflowList.usedToolsetsTitle')}
+            </div>
+            <div className="w-[350px] max-h-[320px] overflow-y-auto">{renderContent()}</div>
           </div>
         }
       >
