@@ -155,12 +155,12 @@ export const AccountSetting = () => {
       try {
         const compressed = await compressImage(file, MAX_AVATAR_BYTES);
         if (compressed.size > MAX_AVATAR_BYTES) {
-          message.error(t('settings.account.imageSizeLimited', { size: 2 }));
+          message.error(t('settings.account.imageSizeLimited', { size: 5 }));
           return Upload.LIST_IGNORE;
         }
         fileToUpload = compressed;
       } catch (_e) {
-        message.error(t('settings.account.imageSizeLimited', { size: 2 }));
+        message.error(t('settings.account.imageSizeLimited', { size: 5 }));
         return Upload.LIST_IGNORE;
       }
     }

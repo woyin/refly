@@ -1,7 +1,6 @@
 import { useMemo, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, message, Tooltip } from 'antd';
-import { Data } from 'refly-icons';
 import { ModelIcon } from '@lobehub/icons';
 import { ActionResult, ActionStep, ModelInfo, Source } from '@refly/openapi-schema';
 import { CheckCircleOutlined, CopyOutlined, ImportOutlined } from '@ant-design/icons';
@@ -187,56 +186,50 @@ const ActionContainerComponent = ({ result, step, nodeId }: ActionContainerProps
         />
       )}
 
-      <div className="flex items-center justify-between p-3 rounded-b-xl">
+      <div className="w-full flex gap-2 items-center justify-between p-3 rounded-b-xl">
         {tokenUsage && (
-          <div className="flex flex-row text-gray-500 text-sm gap-3">
-            <div className="flex items-center gap-1">
-              <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
+          <div className="flex flex-1 items-center gap-1 min-w-0">
+            <ModelIcon size={16} model={tokenUsage?.modelName} type="color" />
+            <div className="flex-1 truncate text-gray-500 text-sm">
               {tokenUsage?.modelLabel || providerItem?.name}
-            </div>
-            <div className="flex items-center gap-1">
-              <Data size={16} />
-              {tokenUsage?.inputTokens + tokenUsage?.outputTokens}
             </div>
           </div>
         )}
         {!isPending && step?.content && (
-          <div className="flex flex-row justify-between items-center text-sm">
-            <div className="-ml-1 text-sm flex flex-row items-center gap-1">
-              {!readonly && !isShareMode && step.content && (
-                <Tooltip title={t('copilot.message.copy')}>
+          <div className="flex-shrink-0 flex items-center gap-1">
+            {!readonly && !isShareMode && step.content && (
+              <Tooltip title={t('copilot.message.copy')}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<CopyOutlined style={{ fontSize: 14 }} />}
+                  className={buttonClassName}
+                  onClick={() => handleCopyToClipboard(step.content ?? '')}
+                />
+              </Tooltip>
+            )}
+            {!readonly &&
+              !isShareMode &&
+              editorActionList.map((item) => (
+                <Tooltip key={item.key} title={t(`copilot.message.${item.key}`)}>
                   <Button
-                    type="text"
+                    key={item.key}
                     size="small"
-                    icon={<CopyOutlined style={{ fontSize: 14 }} />}
+                    type="text"
                     className={buttonClassName}
-                    onClick={() => handleCopyToClipboard(step.content ?? '')}
+                    icon={item.icon}
+                    disabled={!item.enabled}
+                    loading={isCreating}
+                    onClick={() => {
+                      const parsedText = parseMarkdownCitationsAndCanvasTags(
+                        step.content ?? '',
+                        sources,
+                      );
+                      handleEditorOperation(item.key as EditorOperation, parsedText || '');
+                    }}
                   />
                 </Tooltip>
-              )}
-              {!readonly &&
-                !isShareMode &&
-                editorActionList.map((item) => (
-                  <Tooltip key={item.key} title={t(`copilot.message.${item.key}`)}>
-                    <Button
-                      key={item.key}
-                      size="small"
-                      type="text"
-                      className={buttonClassName}
-                      icon={item.icon}
-                      disabled={!item.enabled}
-                      loading={isCreating}
-                      onClick={() => {
-                        const parsedText = parseMarkdownCitationsAndCanvasTags(
-                          step.content ?? '',
-                          sources,
-                        );
-                        handleEditorOperation(item.key as EditorOperation, parsedText || '');
-                      }}
-                    />
-                  </Tooltip>
-                ))}
-            </div>
+              ))}
           </div>
         )}
       </div>

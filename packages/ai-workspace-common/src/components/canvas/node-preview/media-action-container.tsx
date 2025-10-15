@@ -98,14 +98,12 @@ const MediaActionContainerComponent = ({
         nodeId={nodeId}
       />
 
-      <div className="w-full flex items-center justify-between px-3 pt-3 rounded-b-xl">
-        {modelInfo ? (
-          <div className="flex items-center text-refly-text-1 text-xs gap-0.5 pb-3">
-            <ModelIcon size={16} model={modelInfo.name} type="color" />
-            <div className="flex items-center gap-1">{modelInfo.label}</div>
-          </div>
-        ) : null}
-      </div>
+      {modelInfo ? (
+        <div className="w-full px-3 pt-3 rounded-b-xl flex items-center text-refly-text-1 text-xs gap-1 pb-3">
+          <ModelIcon size={16} model={modelInfo.name} type="color" />
+          <div className="flex-1 truncate">{modelInfo.label}</div>
+        </div>
+      ) : null}
     </div>
   );
 };
