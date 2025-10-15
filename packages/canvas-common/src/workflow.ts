@@ -250,8 +250,8 @@ export const prepareNodeExecutions = (params: {
       title: node.data?.editedTitle ?? node.data?.title ?? '',
       status,
       connectTo,
-      parentNodeIds: parents,
-      childNodeIds: children,
+      parentNodeIds: [...new Set(parents)], // Remove duplicates
+      childNodeIds: [...new Set(children)], // Remove duplicates
     };
 
     if (node.type === 'skillResponse') {
