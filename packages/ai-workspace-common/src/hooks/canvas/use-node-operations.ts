@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { applyNodeChanges, NodeChange, useStoreApi } from '@xyflow/react';
 import { useCanvasStoreShallow, useContextPanelStoreShallow } from '@refly/stores';
 import { useCanvasId } from '@refly-packages/ai-workspace-common/hooks/canvas/use-canvas-id';
-import { useUploadMinimap } from '@refly-packages/ai-workspace-common/hooks/use-upload-minimap';
 import { truncateContent, MAX_CONTENT_PREVIEW_LENGTH } from '../../utils/content';
 import { getHelperLines } from '../../components/canvas/common/helper-line/util';
 import { CanvasNode } from '@refly/canvas-common';
@@ -22,7 +21,6 @@ export const useNodeOperations = () => {
   const { removeContextItem } = useContextPanelStoreShallow((state) => ({
     removeContextItem: state.removeContextItem,
   }));
-  const { debouncedHandleUpdateCanvasMiniMap } = useUploadMinimap(canvasId);
   const { syncCanvasData } = useCanvasContext();
 
   // Add helper line states
@@ -152,7 +150,6 @@ export const useNodeOperations = () => {
           : applyNodeChanges(changesToApply, mutableNodes);
 
         updateNodesWithSync(updatedNodes);
-        debouncedHandleUpdateCanvasMiniMap();
 
         return updatedNodes;
       }
@@ -167,7 +164,6 @@ export const useNodeOperations = () => {
         : applyNodeChanges(changes, mutableNodes);
 
       updateNodesWithSync(updatedNodes);
-      debouncedHandleUpdateCanvasMiniMap();
 
       return updatedNodes;
     },
@@ -177,7 +173,6 @@ export const useNodeOperations = () => {
       removeContextItem,
       removeNodePreview,
       customApplyNodeChanges,
-      debouncedHandleUpdateCanvasMiniMap,
       // Use deletedNodesEmitter event emitter to track deleted nodes
     ],
   );
