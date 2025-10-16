@@ -16,6 +16,7 @@ import { useUserStoreShallow } from '@refly/stores';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { PasteCleanupExtension } from './paste-extension';
 import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import type { IContextItem } from '@refly/common-types';
 import type { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
@@ -404,8 +405,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Create all extensions array
     const extensions = useMemo(
-      () => [StarterKit, mentionExtension, placeholderExtension],
-      [mentionExtension, placeholderExtension],
+      () => [StarterKit, mentionExtension, placeholderExtension, PasteCleanupExtension],
+      [mentionExtension, placeholderExtension, PasteCleanupExtension],
     );
 
     const editor = useEditor(
