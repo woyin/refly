@@ -12,6 +12,7 @@ import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { logEvent } from '@refly/telemetry-web';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useCanvasStoreShallow } from '@refly/stores';
+import { useSkillResponseLoadingStatus } from '@refly-packages/ai-workspace-common/hooks/canvas/use-skill-response-loading-status';
 
 type ShareAccess = 'off' | 'anyone';
 
@@ -277,7 +278,10 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     return { total, executing, finished, failed, waiting };
   }, [nodeExecutions]);
 
-  const toolbarLoading = executionStats.executing > 0 || executionStats.waiting > 0;
+  const { isLoading: skillResponseLoading } = useSkillResponseLoadingStatus(canvasId);
+
+  const toolbarLoading =
+    executionStats.executing > 0 || executionStats.waiting > 0 || skillResponseLoading;
 
   // Memoize content to prevent unnecessary re-renders
   const content = useMemo(
