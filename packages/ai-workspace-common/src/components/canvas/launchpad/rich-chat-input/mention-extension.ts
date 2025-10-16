@@ -234,6 +234,7 @@ export const createMentionExtension = ({
     },
     suggestion: {
       char: '@',
+      allowedPrefixes: null,
       command: handleCommand,
       items: () => {
         // Require explicit user interaction before providing items
