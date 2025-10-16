@@ -41,8 +41,7 @@ export const mentionStyles = `
     float: left;
     color: var(--refly-text-3, #9ca3af);
     pointer-events: none;
-    height: 0;
-    line-height: 20px;
+    line-height: 26px;
     font-size: 15px;
   }
   

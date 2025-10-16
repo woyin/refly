@@ -94,8 +94,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
   const getOriginalQuery = useCallback(async (): Promise<string> => {
     // First try to get from store
     const actionResult = resultMap[resultId];
-    if (actionResult?.input?.query) {
-      return actionResult.input.query;
+    if (actionResult?.input?.originalQuery) {
+      return actionResult.input.originalQuery;
     }
 
     // Fallback to API call if not in store
@@ -104,8 +104,8 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         query: { resultId },
       });
 
-      if (!error && data?.success && data?.data?.input?.query) {
-        return data.data.input.query;
+      if (!error && data?.success && data?.data?.input?.originalQuery) {
+        return data.data.input.originalQuery;
       }
     } catch (error) {
       console.error('Failed to fetch action result:', error);

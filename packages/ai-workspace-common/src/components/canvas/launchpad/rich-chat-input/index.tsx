@@ -700,6 +700,9 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       if (currentText !== nextText) {
         // Convert handlebars variables back to mention nodes for rendering
         const nodes = buildNodesFromContent(nextText);
+        // Preserve full selection range to avoid collapsing selection
+        const prevFrom = editor.state?.selection?.from ?? null;
+        const prevTo = editor.state?.selection?.to ?? null;
         if (nodes.length > 0) {
           const jsonDoc = {
             type: 'doc',
@@ -710,23 +713,19 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             ],
           } as any;
-          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
-          if (prevSelection !== null) {
-            const size = editor?.state?.doc?.content?.size ?? 0;
-            const clamped = Math.min(prevSelection, size);
-            editor.commands.setTextSelection(clamped);
-          }
         } else {
-          const prevSelection = editor.state?.selection?.anchor ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(nextText);
-          if (prevSelection !== null) {
-            const size = editor?.state?.doc?.content?.size ?? 0;
-            const clamped = Math.min(prevSelection, size);
-            editor.commands.setTextSelection(clamped);
-          }
+        }
+
+        // Restore selection range if available
+        if (prevFrom !== null && prevTo !== null) {
+          const size = editor?.state?.doc?.content?.size ?? 0;
+          const clampedFrom = Math.max(0, Math.min(prevFrom, size));
+          const clampedTo = Math.max(0, Math.min(prevTo, size));
+          editor.commands.setTextSelection({ from: clampedFrom, to: clampedTo });
         }
       }
     }, [query, editor, buildNodesFromContent, serializeDocToTokens]);
@@ -767,13 +766,18 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             ],
           } as any;
-          const prevSelection = editor.state?.selection?.anchor ?? null;
+
+          // Preserve full selection range
+          const prevFrom = editor.state?.selection?.from ?? null;
+          const prevTo = editor.state?.selection?.to ?? null;
           internalUpdateRef.current = true;
           editor.commands.setContent(jsonDoc);
-          if (prevSelection !== null) {
+
+          if (prevFrom !== null && prevTo !== null) {
             const size = editor?.state?.doc?.content?.size ?? 0;
-            const clamped = Math.min(prevSelection, size);
-            editor.commands.setTextSelection(clamped);
+            const clampedFrom = Math.max(0, Math.min(prevFrom, size));
+            const clampedTo = Math.max(0, Math.min(prevTo, size));
+            editor.commands.setTextSelection({ from: clampedFrom, to: clampedTo });
           }
         }
       }
