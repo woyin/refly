@@ -276,7 +276,7 @@ export class SkillInvokerService {
     if (input.images?.length > 0 && (data.providerItem?.config as any)?.capabilities?.vision) {
       input.images = await this.miscService.generateImageUrls(user, input.images);
     } else {
-      input.images = undefined;
+      input.images = [];
     }
 
     if (tier) {
