@@ -389,21 +389,26 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
           <div className="text-sm text-refly-text-0 leading-5 font-semibold flex-1 truncate">
             {t('shareContent.publishTemplate')}
           </div>
-          <Button
-            disabled={toolbarLoading}
-            loading={toolbarLoading}
-            type="primary"
-            size="small"
-            className="w-[104px] h-[32px]"
-            onClick={() => {
-              logEvent('canvas::canvas_publish_template', Date.now(), {
-                canvas_id: canvasId,
-              });
-              handlePublishToCommunity();
-            }}
+          <Tooltip
+            title={toolbarLoading ? t('shareContent.waitForAgentsToFinish') : undefined}
+            placement="top"
           >
-            {t('shareContent.publish')}
-          </Button>
+            <Button
+              disabled={toolbarLoading}
+              loading={toolbarLoading}
+              type="primary"
+              size="small"
+              className="w-[104px] h-[32px]"
+              onClick={() => {
+                logEvent('canvas::canvas_publish_template', Date.now(), {
+                  canvas_id: canvasId,
+                });
+                handlePublishToCommunity();
+              }}
+            >
+              {t('shareContent.publish')}
+            </Button>
+          </Tooltip>
         </div>
       </div>
     ),
