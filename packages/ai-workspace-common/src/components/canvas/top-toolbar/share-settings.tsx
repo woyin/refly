@@ -11,6 +11,7 @@ import { useListShares, useListWorkflowApps } from '@refly-packages/ai-workspace
 import { getShareLink } from '@refly-packages/ai-workspace-common/utils/share';
 import { logEvent } from '@refly/telemetry-web';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { useCanvasStoreShallow } from '@refly/stores';
 
 type ShareAccess = 'off' | 'anyone';
 
@@ -262,6 +263,22 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     [updateCanvasPermission, copyLink, canvasId],
   );
 
+  const { nodeExecutions } = useCanvasStoreShallow((state) => ({
+    nodeExecutions: state.canvasNodeExecutions[canvasId] ?? [],
+  }));
+
+  const executionStats = useMemo(() => {
+    const total = nodeExecutions.length;
+    const executing = nodeExecutions.filter((n) => n.status === 'executing').length;
+    const finished = nodeExecutions.filter((n) => n.status === 'finish').length;
+    const failed = nodeExecutions.filter((n) => n.status === 'failed').length;
+    const waiting = nodeExecutions.filter((n) => n.status === 'waiting').length;
+
+    return { total, executing, finished, failed, waiting };
+  }, [nodeExecutions]);
+
+  const toolbarLoading = executionStats.executing > 0 || executionStats.waiting > 0;
+
   // Memoize content to prevent unnecessary re-renders
   const content = useMemo(
     () => (
@@ -369,6 +386,8 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
             {t('shareContent.publishTemplate')}
           </div>
           <Button
+            disabled={toolbarLoading}
+            loading={toolbarLoading}
             type="primary"
             size="small"
             className="w-[104px] h-[32px]"
@@ -400,6 +419,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
       latestWorkflowApp,
       workflowAppLink,
       copyWorkflowAppLink,
+      toolbarLoading,
     ],
   );
 
