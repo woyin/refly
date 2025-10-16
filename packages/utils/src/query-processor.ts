@@ -107,6 +107,11 @@ export function processQueryWithMentions(
       return name ?? '';
     }
 
+    if (type === 'step' || type === 'tool') {
+      // Replace step and tool mentions with the name
+      return name ?? '';
+    }
+
     if (type === 'var' && !replaceVars) {
       // When replaceVars is falsy, replace var mentions with @name format
       return `@${name}`;
