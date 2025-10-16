@@ -119,7 +119,7 @@ export const ReadonlyCanvasTitle = memo(
                   className="text-gray-500 font-light text-sm"
                   ellipsis={{ tooltip: true }}
                 >
-                  {`@${owner.name}`}
+                  {owner.nickname ? owner.nickname : `@${owner.name}`}
                 </Typography.Text>
               </>
             )}
