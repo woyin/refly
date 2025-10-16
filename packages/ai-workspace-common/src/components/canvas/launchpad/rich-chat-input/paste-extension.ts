@@ -123,17 +123,24 @@ function cleanHtmlContent(html: string): string {
     span.parentNode?.replaceChild(textNode, span);
   }
 
-  // Process paragraph structure: include common block-level nodes
-  const paragraphs = tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, blockquote');
+  // Process paragraph structure: include common block-level nodes.
+  // Important: do NOT include 'div' here to avoid double collecting when clipboard HTML
+  // wraps <p> in a container <div>. Selecting both the parent <div> and the child <p>
+  // causes duplicated lines when we later flatten to paragraphs.
+  const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, li, blockquote';
+  const paragraphs = tempDiv.querySelectorAll(BLOCK_SELECTOR);
   const processedParagraphs: string[] = [];
 
   // If there are explicit paragraph tags, preserve them
   if (paragraphs.length > 0) {
     for (const element of paragraphs) {
+      // Guard: skip nested matches to ensure we only process the innermost block nodes.
+      // This prevents duplications when there are nested structures (e.g., <li><p>..</p></li>).
+      const parentBlock = element.parentElement?.closest(BLOCK_SELECTOR);
+      if (parentBlock) continue;
       const tag = element.tagName.toLowerCase();
       if (
         tag === 'p' ||
-        tag === 'div' ||
         tag === 'li' ||
         tag === 'blockquote' ||
         tag === 'h1' ||
@@ -143,9 +150,11 @@ function cleanHtmlContent(html: string): string {
         tag === 'h5' ||
         tag === 'h6'
       ) {
-        const htmlContent = element.innerHTML?.trim();
-        if (htmlContent) {
-          processedParagraphs.push(htmlContent);
+        // Use innerHTML only for <p>; for other blocks use plain text to avoid
+        // wrapping nested block tags which may create empty lines.
+        const content = tag === 'p' ? element.innerHTML?.trim() : element.textContent?.trim();
+        if (content) {
+          processedParagraphs.push(content);
         }
       }
     }
