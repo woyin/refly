@@ -86,6 +86,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     },
     ref,
   ) => {
+    console.log('query', JSON.stringify(query));
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -177,6 +178,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Helper function to insert mention into editor
     const insertMention = useCallback((editor: any, range: any, attrs: any) => {
+      console.log('insertMention', range, attrs);
       editor
         .chain()
         .focus()
@@ -195,6 +197,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     const handleCommand = useCallback(
       ({ editor, range, props }: { editor: any; range: any; props: MentionItem }) => {
+        console.log('handleCommand', range, props);
         const item = props;
 
         // For step and result records, add to context instead of inserting text
@@ -203,24 +206,24 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           item.source === 'resultRecord' ||
           item.source === 'myUpload'
         ) {
-          if (setContextItems && item.entityId) {
+          if (setContextItems && (item.entityId || item.nodeId)) {
             const contextItem = createContextItemFromMentionItem(item);
             addToContextItems(contextItem);
-
-            const url =
-              item.metadata?.imageUrl || item.metadata?.videoUrl || item.metadata?.audioUrl;
-
-            insertMention(editor, range, {
-              id: item.entityId || item.nodeId || item.name,
-              label: item.name,
-              source: item.source,
-              variableType: item.variableType || item.source,
-              url: url,
-              resourceType: item.metadata?.resourceType,
-              resourceMeta: item.metadata?.resourceMeta,
-              entityId: item.entityId || item.nodeId,
-            });
           }
+
+          const mediaUrl =
+            item.metadata?.imageUrl || item.metadata?.videoUrl || item.metadata?.audioUrl;
+
+          insertMention(editor, range, {
+            id: item.entityId || item.nodeId || item.variableId || item.name,
+            label: item.name,
+            source: item.source,
+            variableType: item.variableType || item.source,
+            url: mediaUrl,
+            resourceType: item.metadata?.resourceType,
+            resourceMeta: item.metadata?.resourceMeta,
+            entityId: item.entityId || item.nodeId || item.variableId || item.name,
+          });
         } else if (item.source === 'toolsets' || item.source === 'tools') {
           // Add toolset to selected toolsets
           if (setSelectedToolsets && item.toolsetId && item.toolset) {
@@ -373,6 +376,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       },
       [placeholder],
     );
+    // console.log('editor json', JSON.stringify(editor?.getJSON(), null, 2));
 
     // Expose focus method through ref
     useImperativeHandle(
