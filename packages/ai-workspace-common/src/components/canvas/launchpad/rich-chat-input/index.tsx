@@ -406,7 +406,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     // Create all extensions array
     const extensions = useMemo(
       () => [StarterKit, mentionExtension, placeholderExtension, PasteCleanupExtension],
-      [mentionExtension, placeholderExtension],
+      [mentionExtension, placeholderExtension, PasteCleanupExtension],
     );
 
     const editor = useEditor(

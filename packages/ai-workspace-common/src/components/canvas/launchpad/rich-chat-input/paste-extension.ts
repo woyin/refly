@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model';
 
 // Extension to handle paste events and remove unwanted HTML tags
 export const PasteCleanupExtension = Extension.create({
@@ -19,45 +20,41 @@ export const PasteCleanupExtension = Extension.create({
 
             // Get HTML content from clipboard first
             const htmlData = clipboardData.getData('text/html');
-            let textToInsert = '';
+            const { state, dispatch } = view;
 
             if (htmlData) {
-              // Clean the HTML content by removing unwanted tags
+              // Clean the HTML content by removing unwanted tags while preserving paragraph structure
               const cleanedHtml = cleanHtmlContent(htmlData);
 
-              // If the content was modified, use cleaned content
-              if (cleanedHtml !== htmlData) {
-                event.preventDefault();
+              // Always prevent default and use cleaned content to ensure consistent behavior
+              event.preventDefault();
 
-                // Create a temporary div to parse the cleaned HTML
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = cleanedHtml;
-                textToInsert = tempDiv.textContent || tempDiv.innerText || '';
-              } else {
-                // No modification needed, let default behavior handle it
-                return false;
-              }
+              // Parse cleaned HTML into a Slice and insert to preserve paragraph structure
+              const container = document.createElement('div');
+              container.innerHTML = cleanedHtml;
+              const parser = ProseMirrorDOMParser.fromSchema(state.schema);
+              const slice = parser.parseSlice(container);
+              dispatch(state.tr.replaceSelection(slice));
+              return true;
             } else {
               // No HTML data, get plain text
               const plainText = clipboardData.getData('text/plain');
+
               if (plainText) {
-                // For plain text, we can insert it directly
-                textToInsert = plainText;
+                // Convert markdown-like text into plain paragraphs (strip styles)
+                const paragraphHtml = stripMarkdownToParagraphHtml(plainText);
                 event.preventDefault();
+
+                const container = document.createElement('div');
+                container.innerHTML = paragraphHtml;
+                const parser = ProseMirrorDOMParser.fromSchema(state.schema);
+                const slice = parser.parseSlice(container);
+                dispatch(state.tr.replaceSelection(slice));
+                return true;
               } else {
                 return false;
               }
             }
-
-            // Insert the cleaned text content
-            if (textToInsert.trim()) {
-              const { state, dispatch } = view;
-              const tr = state.tr.replaceSelectionWith(state.schema.text(textToInsert));
-              dispatch(tr);
-              return true;
-            }
-
-            return false;
           },
         },
       }),
@@ -65,13 +62,22 @@ export const PasteCleanupExtension = Extension.create({
   },
 });
 
-// Function to clean HTML content by removing unwanted tags
+// Function to clean HTML content by removing unwanted tags while preserving paragraph structure
 function cleanHtmlContent(html: string): string {
   // Create a temporary div to parse the HTML
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = html;
 
-  // Remove unwanted tags while preserving text content
+  // Remove dangerous or irrelevant tags entirely
+  const removeAll = (selector: string) => {
+    const nodes = tempDiv.querySelectorAll(selector);
+    for (const n of nodes) {
+      n.parentNode?.removeChild(n);
+    }
+  };
+  removeAll('script, style, meta, link');
+
+  // Remove unwanted tags while preserving text content and paragraph structure
   const unwantedTags = [
     'strong',
     'b',
@@ -87,7 +93,6 @@ function cleanHtmlContent(html: string): string {
     'small',
     'sub',
     'sup',
-    'blockquote',
   ];
 
   for (const tagName of unwantedTags) {
@@ -99,9 +104,130 @@ function cleanHtmlContent(html: string): string {
     }
   }
 
-  // Remove any remaining HTML tags, keeping only text content
-  const cleanText = tempDiv.textContent || tempDiv.innerText || '';
+  // Unwrap all span except mention spans; drop heavy inline styles
+  const spans = tempDiv.querySelectorAll('span');
+  for (const span of spans) {
+    const isMention =
+      span.classList?.contains('mention') || span.getAttribute('data-mention') != null;
 
-  // Return the cleaned text wrapped in a simple paragraph
-  return `<p>${cleanText}</p>`;
+    if (isMention) {
+      // Ensure canonical attributes for robustness
+      span.classList.add('mention');
+      if (!span.getAttribute('data-mention')) span.setAttribute('data-mention', 'true');
+      // Keep all existing attributes for mention tags
+      continue;
+    }
+
+    // For non-mention spans, replace with plain text
+    const textNode = document.createTextNode(span.textContent || '');
+    span.parentNode?.replaceChild(textNode, span);
+  }
+
+  // Process paragraph structure: include common block-level nodes
+  const paragraphs = tempDiv.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, blockquote');
+  const processedParagraphs: string[] = [];
+
+  // If there are explicit paragraph tags, preserve them
+  if (paragraphs.length > 0) {
+    for (const element of paragraphs) {
+      const tag = element.tagName.toLowerCase();
+      if (
+        tag === 'p' ||
+        tag === 'div' ||
+        tag === 'li' ||
+        tag === 'blockquote' ||
+        tag === 'h1' ||
+        tag === 'h2' ||
+        tag === 'h3' ||
+        tag === 'h4' ||
+        tag === 'h5' ||
+        tag === 'h6'
+      ) {
+        const htmlContent = element.innerHTML?.trim();
+        if (htmlContent) {
+          processedParagraphs.push(htmlContent);
+        }
+      }
+    }
+  } else {
+    // No explicit paragraph structure, check for line breaks in text content
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    const lines = textContent.split(/\r?\n/);
+
+    // If there are multiple lines, treat each as a paragraph
+    if (lines.length > 1) {
+      processedParagraphs.push(...lines.filter((line) => line.trim()));
+    } else {
+      // Single line, wrap in paragraph
+      processedParagraphs.push(textContent);
+    }
+  }
+
+  // If no paragraphs were found, use the original text content
+  if (processedParagraphs.length === 0) {
+    const textFallback = tempDiv.textContent || tempDiv.innerText || '';
+    processedParagraphs.push(textFallback);
+  }
+
+  // Join paragraphs with proper HTML structure
+  return processedParagraphs.map((p) => `<p>${p}</p>`).join('');
+}
+
+// Function to strip common markdown formatting and return paragraph HTML
+function stripMarkdownToParagraphHtml(text: string): string {
+  if (!text) {
+    return '<p></p>';
+  }
+
+  let normalized = text;
+
+  // Normalize Windows/Mac line endings
+  normalized = normalized.replace(/\r\n?/g, '\n');
+
+  // Remove fenced code block markers ```lang ... ``` while preserving content
+  normalized = normalized.replace(/```[\s\S]*?```/g, (match) => {
+    // Drop the backticks but keep inner content and newlines
+    return match.replace(/```/g, '');
+  });
+
+  // Remove inline code backticks
+  normalized = normalized.replace(/`([^`]+)`/g, '$1');
+
+  // Remove emphasis markers: **bold**, __bold__, *em*, _em_
+  normalized = normalized.replace(/\*\*([^*]+)\*\*/g, '$1');
+  normalized = normalized.replace(/__([^_]+)__/g, '$1');
+  normalized = normalized.replace(/\*([^*]+)\*/g, '$1');
+  normalized = normalized.replace(/_([^_]+)_/g, '$1');
+
+  // Remove strikethrough ~~text~~
+  normalized = normalized.replace(/~~([^~]+)~~/g, '$1');
+
+  // Remove heading markers ######, ##### ... #
+  normalized = normalized.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+
+  // Remove blockquote markers '>'
+  normalized = normalized.replace(/^\s{0,3}>\s?/gm, '');
+
+  // Simplify links: [text](url) -> text
+  normalized = normalized.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+
+  // Simplify images: ![alt](url) -> alt
+  normalized = normalized.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1');
+
+  // Remove list markers while keeping content
+  normalized = normalized.replace(/^\s*[-*+]\s+/gm, '');
+  normalized = normalized.replace(/^\s*\d+\.\s+/gm, '');
+
+  // Split paragraphs by two or more newlines
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  if (!paragraphs?.length) {
+    // Fallback: treat single-line as one paragraph
+    return `<p>${normalized.trim()}</p>`;
+  }
+
+  return paragraphs.map((p) => `<p>${p}</p>`).join('');
 }
