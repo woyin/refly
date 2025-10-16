@@ -81,8 +81,6 @@ function cleanHtmlContent(html: string): string {
   const unwantedTags = [
     'strong',
     'b',
-    'code',
-    'pre',
     'em',
     'i',
     'u',
@@ -123,58 +121,59 @@ function cleanHtmlContent(html: string): string {
     span.parentNode?.replaceChild(textNode, span);
   }
 
-  // Process paragraph structure: include common block-level nodes.
-  // Important: do NOT include 'div' here to avoid double collecting when clipboard HTML
-  // wraps <p> in a container <div>. Selecting both the parent <div> and the child <p>
-  // causes duplicated lines when we later flatten to paragraphs.
-  const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, li, blockquote';
-  const paragraphs = tempDiv.querySelectorAll(BLOCK_SELECTOR);
+  // Process paragraph structure using leaf block-level nodes to avoid duplicates from nesting
+  const blockSelector = 'p, div, h1, h2, h3, h4, h5, h6, li, blockquote, pre';
+  const blockNodes = tempDiv.querySelectorAll(blockSelector);
   const processedParagraphs: string[] = [];
 
-  // If there are explicit paragraph tags, preserve them
-  if (paragraphs.length > 0) {
-    for (const element of paragraphs) {
-      // Guard: skip nested matches to ensure we only process the innermost block nodes.
-      // This prevents duplications when there are nested structures (e.g., <li><p>..</p></li>).
-      const parentBlock = element.parentElement?.closest(BLOCK_SELECTOR);
-      if (parentBlock) continue;
-      const tag = element.tagName.toLowerCase();
-      if (
-        tag === 'p' ||
-        tag === 'li' ||
-        tag === 'blockquote' ||
-        tag === 'h1' ||
-        tag === 'h2' ||
-        tag === 'h3' ||
-        tag === 'h4' ||
-        tag === 'h5' ||
-        tag === 'h6'
-      ) {
-        // Use innerHTML only for <p>; for other blocks use plain text to avoid
-        // wrapping nested block tags which may create empty lines.
-        const content = tag === 'p' ? element.innerHTML?.trim() : element.textContent?.trim();
-        if (content) {
-          processedParagraphs.push(content);
+  const isNonEmptyHtml = (html: string): boolean => {
+    const text = html
+      .replace(/<br\s*\/?>(\n)?/gi, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/<[^>]*>/g, '')
+      .trim();
+    return text.length > 0;
+  };
+
+  if (blockNodes.length > 0) {
+    const leafBlocks = Array.from(blockNodes).filter((el) => !el.querySelector(blockSelector));
+    for (const element of leafBlocks) {
+      const tag = element.tagName?.toLowerCase?.() ?? '';
+      if (tag === 'pre') {
+        // Preserve code lines by splitting into plain paragraphs
+        const codeText = element.textContent ?? '';
+        const lines = codeText.split(/\r?\n/).map((l) => l.trim());
+        for (const line of lines) {
+          if (line.length > 0) {
+            processedParagraphs.push(line);
+          }
         }
+        continue;
+      }
+
+      const htmlContent = (element as HTMLElement).innerHTML?.trim() ?? '';
+      if (isNonEmptyHtml(htmlContent)) {
+        processedParagraphs.push(htmlContent);
       }
     }
-  } else {
-    // No explicit paragraph structure, check for line breaks in text content
-    const textContent = tempDiv.textContent || tempDiv.innerText || '';
-    const lines = textContent.split(/\r?\n/);
+  }
 
-    // If there are multiple lines, treat each as a paragraph
+  // Fallback: if no leaf blocks produced output, use raw text split by lines
+  if (processedParagraphs.length === 0) {
+    const textContent = tempDiv.textContent ?? tempDiv.innerText ?? '';
+    const lines = textContent.split(/\r?\n/);
     if (lines.length > 1) {
-      processedParagraphs.push(...lines.filter((line) => line.trim()));
+      processedParagraphs.push(
+        ...lines.map((line) => line.trim()).filter((line) => line.length > 0),
+      );
     } else {
-      // Single line, wrap in paragraph
       processedParagraphs.push(textContent);
     }
   }
 
   // If no paragraphs were found, use the original text content
   if (processedParagraphs.length === 0) {
-    const textFallback = tempDiv.textContent || tempDiv.innerText || '';
+    const textFallback = tempDiv.textContent ?? tempDiv.innerText ?? '';
     processedParagraphs.push(textFallback);
   }
 
