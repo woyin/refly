@@ -70,7 +70,21 @@ export const serializeDocToTokens = (doc: any): string => {
         const type = mentionItemSourceToType[source as MentionItemSource] ?? 'var';
         const safeId = String(id ?? '').trim();
         const safeName = String(label ?? '').trim();
-        return safeName ? `@{type=${type},id=${safeId || safeName},name=${safeName}}` : '';
+
+        // For tool type, include toolsetName if available
+        let tokenString = `@{type=${type},id=${safeId || safeName},name=${safeName}`;
+        if (type === 'tool') {
+          const toolset = node.attrs?.toolset;
+          const toolsetKey = String(
+            toolset?.toolset?.definition?.key ?? toolset?.name ?? '',
+          ).trim();
+          if (toolsetKey) {
+            tokenString += `,toolsetKey=${toolsetKey}`;
+          }
+        }
+        tokenString += '}';
+
+        return safeName ? tokenString : '';
       }
       if (nodeName === 'hardBreak') {
         return '\n';
@@ -318,12 +332,15 @@ export const buildNodesFromContent = (
             source = meta?.source ?? 'resultRecord';
             variableType = meta?.variableType ?? 'resource';
             toolInfo = meta;
+          } else if (tokenType === 'toolset') {
+            source = 'toolsets';
+            const meta = findToolMeta(tokenId, tokenName);
+            variableType = meta?.variableType ?? 'toolset';
+            toolInfo = meta;
           } else if (tokenType === 'tool') {
             source = 'tools';
             const meta = findToolMeta(tokenId, tokenName);
-            variableType = meta?.variableType ?? 'toolset';
-
-            // Store complete tool information for icon rendering
+            variableType = meta?.variableType ?? 'tool';
             toolInfo = meta;
           }
 
@@ -335,7 +352,7 @@ export const buildNodesFromContent = (
               variableType,
               source,
               entityId: tokenId || undefined,
-              ...(source === 'tools' && toolInfo
+              ...((source === 'tools' || source === 'toolsets') && toolInfo
                 ? {
                     toolset: toolInfo.toolset,
                     toolsetId: toolInfo.toolsetId,

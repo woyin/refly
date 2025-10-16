@@ -218,7 +218,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               entityId: item.entityId || item.nodeId,
             });
           }
-        } else if (item.source === 'tools') {
+        } else if (item.source === 'toolsets' || item.source === 'tools') {
           // Add toolset to selected toolsets
           if (setSelectedToolsets && item.toolsetId && item.toolset) {
             addToSelectedToolsets(item.toolset);

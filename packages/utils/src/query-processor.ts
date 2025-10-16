@@ -107,8 +107,8 @@ export function processQueryWithMentions(
       return name ?? '';
     }
 
-    if (type === 'step' || type === 'tool') {
-      // Replace step and tool mentions with the name
+    if (type === 'step' || type === 'toolset' || type === 'tool') {
+      // Replace step, toolset and tool mentions with the name
       return name ?? '';
     }
 

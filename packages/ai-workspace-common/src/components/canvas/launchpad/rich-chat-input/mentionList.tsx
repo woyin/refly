@@ -21,7 +21,6 @@ import { cn, genVariableID } from '@refly/utils';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { logEvent } from '@refly/telemetry-web';
-import { useListTools } from '@refly-packages/ai-workspace-common/queries';
 import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
 import { type MentionItemSource } from './const';
 
@@ -78,16 +77,6 @@ export const MentionList = ({
   const [isAddingVariable, setIsAddingVariable] = useState(false);
 
   const { handleVariableView } = useVariableView(canvasId);
-
-  // Fetch tools
-  const { data: toolsData, isLoading: isLoadingTools } = useListTools(
-    { query: { enabled: true } },
-    [],
-    {
-      refetchOnWindowFocus: false,
-    },
-  );
-  const toolsets = toolsData?.data || [];
 
   const handleAddVariable = useCallback(async () => {
     const isDuplicate = workflowVariables.some((variable) => variable.name === query);
@@ -271,24 +260,14 @@ export const MentionList = ({
     [t],
   );
 
-  // Create tool items from toolsets
-  const toolItems = useMemo(() => {
-    return toolsets.map((toolset) => ({
-      name: toolset.name,
-      description: toolset.toolset?.name || toolset.mcpServer?.name || toolset.name,
-      source: 'tools' as const,
-      variableType: 'toolset',
-      toolset,
-      toolsetId: toolset.id,
-    }));
-  }, [toolsets]);
-
   // Group items by source and create canvas-based items
   const groupedItems = useMemo(() => {
     const variableItems = items.filter((item) => item.source === 'variables');
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
     const stepRecordItems = items.filter((item) => item.source === 'stepRecord');
     const resultRecordItems = items.filter((item) => item.source === 'resultRecord');
+    const toolsetItems = items.filter((item) => item.source === 'toolsets');
+    const toolItems = items.filter((item) => item.source === 'tools');
 
     // Running record combines step records and result records
     const runningRecordItems = [...stepRecordItems, ...resultRecordItems];
@@ -298,9 +277,11 @@ export const MentionList = ({
       variables: filterItems(variableItems, query) || [],
       resourceLibrary: filterItems(myUploadItems, query) || [],
       runningRecord: filterItems(runningRecordItems, query) || [],
-      tools: filterItems(toolItems, query) || [],
+      toolsets: filterItems(toolsetItems, query) || [],
+      // Only show individual tools if user has typed a query
+      ...(query ? { tools: filterItems(toolItems, query) || [] } : {}),
     };
-  }, [items, filterItems, query, toolItems]);
+  }, [items, filterItems, query]);
 
   // When there's a query, create grouped items with headers
   const queryModeItems = useMemo(() => {
@@ -356,14 +337,19 @@ export const MentionList = ({
       );
     }
 
-    // Add tools group
-    if (groupedItems.tools.length > 0) {
+    // Add toolsets group
+    if (groupedItems.toolsets.length > 0 || groupedItems.tools.length > 0) {
       items.push({
         type: 'header',
         label: t('canvas.richChatInput.tools'),
-        source: 'tools' as const,
+        source: 'toolsets' as const,
       });
       items.push(
+        ...groupedItems.toolsets.map((item) => ({
+          ...item,
+          categoryLabel: t('canvas.richChatInput.tools'),
+          type: 'item' as const,
+        })),
         ...groupedItems.tools.map((item) => ({
           ...item,
           categoryLabel: t('canvas.richChatInput.tools'),
@@ -447,7 +433,7 @@ export const MentionList = ({
       return groupedItems.runningRecord ?? [];
     }
     if (hoveredCategory === 'tools') {
-      return groupedItems.tools ?? [];
+      return groupedItems.toolsets ?? [];
     }
     return [];
   }, [hoveredCategory, groupedItems]);
@@ -578,7 +564,7 @@ export const MentionList = ({
         if (source === 'variables') return 'variables';
         if (source === 'myUpload') return 'resourceLibrary';
         if (source === 'stepRecord' || source === 'resultRecord') return 'runningRecord';
-        if (source === 'tools') return 'tools';
+        if (source === 'toolsets' || source === 'tools') return 'toolsets';
         return source;
       };
 
@@ -623,7 +609,7 @@ export const MentionList = ({
               </div>
               <div className="flex">{getStartNodeIcon(item.variableType)}</div>
             </>
-          ) : item.source === 'tools' ? (
+          ) : item.source === 'toolsets' || item.source === 'tools' ? (
             <>
               <ToolsetIcon
                 toolset={item.toolset}
@@ -942,13 +928,9 @@ export const MentionList = ({
 
             {hoveredCategory === 'tools' && (
               <div className="flex-1 w-full">
-                {isLoadingTools ? (
-                  <div className="px-4 py-8 text-center text-refly-text-2 text-sm">
-                    {t('canvas.richChatInput.loadingTools')}
-                  </div>
-                ) : groupedItems.tools?.length > 0 ? (
+                {groupedItems.toolsets?.length > 0 ? (
                   <div className="flex flex-col gap-1">
-                    {groupedItems.tools.map((item, idx) =>
+                    {groupedItems.toolsets.map((item, idx) =>
                       renderListItem(
                         item,
                         idx,

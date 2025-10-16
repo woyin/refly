@@ -32,7 +32,7 @@ const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) =>
       resourceMeta: nodeAttrs.resourceMeta,
       className: '!w-3.5 !h-3.5',
     });
-  } else if (source === 'tools') {
+  } else if (source === 'toolsets' || source === 'tools') {
     return React.createElement(ToolsetIcon, {
       toolset: nodeAttrs.toolset,
       isBuiltin: nodeAttrs.toolset?.builtin,

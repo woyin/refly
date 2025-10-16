@@ -11,7 +11,9 @@ import {
 } from '@refly-packages/ai-workspace-common/queries/queries';
 
 export const useListMentionItems = (): MentionItem[] => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.languages?.[0] || 'en';
+
   const { nodes } = useCanvasData();
   const { canvasId, workflow } = useCanvasContext();
   const { projectId } = useGetProjectCanvasId();
@@ -48,7 +50,6 @@ export const useListMentionItems = (): MentionItem[] => {
           name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
           description: t('canvas.richChatInput.stepRecord'),
           source: 'stepRecord' as const,
-          variableType: node.type, // Use actual node type
           entityId: node.data?.entityId || '',
           nodeId: node.id,
         })) ?? [];
@@ -65,7 +66,6 @@ export const useListMentionItems = (): MentionItem[] => {
           name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
           description: t('canvas.richChatInput.resultRecord'),
           source: 'resultRecord' as const,
-          variableType: node.type, // Use actual node type
           entityId: node.data?.entityId,
           nodeId: node.id,
           metadata: {
@@ -94,21 +94,33 @@ export const useListMentionItems = (): MentionItem[] => {
         },
       })) ?? [];
 
-    // Get tool items from toolsets
-    const toolItems: MentionItem[] = toolsets.map((toolset) => ({
+    // Get toolset items from toolsets
+    const toolsetItems: MentionItem[] = toolsets.map((toolset) => ({
       name: toolset.name,
       description: toolset.toolset?.name || toolset.mcpServer?.name || toolset.name,
-      source: 'tools' as const,
-      variableType: 'toolset',
+      source: 'toolsets' as const,
       toolset,
       toolsetId: toolset.id,
     }));
+
+    // Get tool items from toolsets
+    const toolItems: MentionItem[] = toolsets.flatMap(
+      (toolset) =>
+        toolset.toolset?.definition?.tools?.map((tool) => ({
+          name: tool.name,
+          description: (tool.descriptionDict?.[currentLanguage] as string) || toolset.name,
+          source: 'tools' as const,
+          toolset,
+          toolsetId: toolset.id,
+        })) ?? [],
+    );
 
     return [
       ...variableItems,
       ...stepRecordItems,
       ...resultRecordItems,
       ...myUploadItems,
+      ...toolsetItems,
       ...toolItems,
     ];
   }, [workflowVariables, nodes, resources, toolsets, t]);

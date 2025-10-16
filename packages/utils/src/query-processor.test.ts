@@ -119,6 +119,17 @@ describe('processQueryWithMentions', () => {
       expect(result.resourceVars).toEqual([]);
     });
 
+    it('should handle toolset type mentions', () => {
+      const query = '@{type=toolset,id=toolset-1,name=calculatorToolset}';
+      const result = processQueryWithMentions(query, {
+        replaceVars: true,
+        variables: [],
+      });
+      expect(result.processedQuery).toBe('calculatorToolset');
+      expect(result.updatedQuery).toBe('@{type=toolset,id=toolset-1,name=calculatorToolset}');
+      expect(result.resourceVars).toEqual([]);
+    });
+
     it('should handle tool type mentions', () => {
       const query = '@{type=tool,id=tool-1,name=calculatorTool}';
       const result = processQueryWithMentions(query, {
