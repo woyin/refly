@@ -1814,6 +1814,7 @@ const translations = {
       importFromExtension: 'Import from Extension',
     },
     richChatInput: {
+      actions: 'Actions',
       variables: 'Variables',
       resourceLibrary: 'Resource Hub',
       myUploads: 'Uploads',

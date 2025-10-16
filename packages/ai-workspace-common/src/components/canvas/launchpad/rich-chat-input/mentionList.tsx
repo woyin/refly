@@ -308,22 +308,6 @@ export const MentionList = ({
 
     const items = [];
 
-    // Check if there's a matching item in startNode with the same name as query
-    const hasMatchingStartNodeItem =
-      groupedItems.variables?.some((item) => item.name === query) ?? false;
-
-    // If there's a query and no matching startNode item, add create variable button at the top
-    if (query && !hasMatchingStartNodeItem) {
-      items.push({
-        type: 'item' as const,
-        name: query,
-        source: 'variables' as const,
-        variableType: 'string',
-        variableId: 'create-variable',
-        categoryLabel: t('canvas.richChatInput.createVariable', { variableName: query }),
-      });
-    }
-
     // Add startNode group
     if (groupedItems.variables.length > 0) {
       items.push({
@@ -386,6 +370,32 @@ export const MentionList = ({
           type: 'item' as const,
         })),
       );
+    }
+
+    // Add actions
+    const actions = [];
+
+    // If there's a query and no matching variable found, add create variable button at the top
+    const hasMatchingVariableItem =
+      groupedItems.variables?.some((item) => item.name === query) ?? false;
+    if (query && !hasMatchingVariableItem) {
+      actions.push({
+        type: 'item' as const,
+        name: query,
+        source: 'variables' as const,
+        variableType: 'string',
+        variableId: 'create-variable',
+        categoryLabel: t('canvas.richChatInput.createVariable', { variableName: query }),
+      });
+    }
+
+    if (actions.length > 0) {
+      items.push({
+        type: 'header',
+        label: t('canvas.richChatInput.actions'),
+        source: 'actions' as const,
+      });
+      items.push(...actions);
     }
 
     return items;
@@ -813,7 +823,7 @@ export const MentionList = ({
               return (
                 <div
                   key={`header-${item.source}-${idx}`}
-                  className="px-2 py-1 text-xs font-semibold text-refly-text-3"
+                  className="px-2 text-xs font-semibold text-refly-text-3"
                 >
                   {item.label}
                 </div>

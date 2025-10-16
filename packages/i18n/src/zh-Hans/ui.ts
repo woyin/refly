@@ -1784,6 +1784,7 @@ const translations = {
       importFromExtension: '插件剪存',
     },
     richChatInput: {
+      actions: '操作',
       variables: '变量',
       resourceLibrary: '资源库',
       myUploads: '我的上传',
