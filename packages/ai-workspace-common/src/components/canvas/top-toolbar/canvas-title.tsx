@@ -9,6 +9,7 @@ import { AiOutlineUser } from 'react-icons/ai';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { useNavigate } from 'react-router-dom';
 import { useUserStoreShallow } from '@refly/stores';
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 
 export const CanvasTitle = memo(
   ({
@@ -110,7 +111,7 @@ export const ReadonlyCanvasTitle = memo(
               <>
                 <Divider type="vertical" className="h-6 mx-1" />
                 <Avatar
-                  src={owner.avatar}
+                  src={owner.avatar || defaultAvatar}
                   size={18}
                   shape="circle"
                   icon={!owner.avatar ? <AiOutlineUser /> : undefined}
