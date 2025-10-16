@@ -209,6 +209,8 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
           setContextItems={setContextItems}
           placeholder={defaultPlaceholder}
           mentionPosition={mentionPosition}
+          selectedToolsets={selectedToolsets}
+          setSelectedToolsets={onSelectedToolsetsChange}
         />
       ) : (
         <ChatInput

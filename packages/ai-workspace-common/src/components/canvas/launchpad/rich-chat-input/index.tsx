@@ -17,7 +17,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import type { IContextItem } from '@refly/common-types';
-import type { CanvasNodeType } from '@refly/openapi-schema';
+import type { CanvasNodeType, GenericToolset } from '@refly/openapi-schema';
 import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
 import { useStore } from '@xyflow/react';
 import { useShallow } from 'zustand/react/shallow';
@@ -52,6 +52,9 @@ interface RichChatInputProps {
 
   setContextItems?: (items: IContextItem[]) => void;
 
+  selectedToolsets?: GenericToolset[];
+  setSelectedToolsets?: (items: GenericToolset[]) => void;
+
   onUploadImage?: (file: File) => Promise<void>;
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
   onFocus?: () => void;
@@ -73,6 +76,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       onFocus,
       contextItems = [],
       setContextItems,
+      selectedToolsets = [],
+      setSelectedToolsets,
       placeholder,
       mentionPosition = 'bottom-start',
     },
@@ -122,6 +127,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       contextItemsRef.current = contextItems;
     }, [contextItems]);
 
+    // Use ref to store latest selectedToolsets to avoid performance issues
+    const selectedToolsetsRef = useRef(selectedToolsets);
+
+    // Update ref when selectedToolsets changes
+    useEffect(() => {
+      selectedToolsetsRef.current = selectedToolsets;
+    }, [selectedToolsets]);
+
     // Use ref to track previous canvas data to avoid infinite loops
     const prevCanvasDataRef = useRef({ canvasId: '', allItemsLength: 0 });
 
@@ -140,6 +153,23 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         }
       },
       [setContextItems],
+    );
+
+    // Helper function to add toolset to selected toolsets
+    const addToSelectedToolsets = useCallback(
+      (toolsetItem: GenericToolset) => {
+        if (!setSelectedToolsets) return;
+
+        const currentSelectedToolsets = selectedToolsetsRef.current || [];
+        const isAlreadySelected = currentSelectedToolsets.some(
+          (selectedItem) => selectedItem.id === toolsetItem.id,
+        );
+
+        if (!isAlreadySelected) {
+          setSelectedToolsets([...currentSelectedToolsets, toolsetItem]);
+        }
+      },
+      [setSelectedToolsets],
     );
 
     // Helper function to insert mention into editor
@@ -189,6 +219,11 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             });
           }
         } else if (item.source === 'tools') {
+          // Add toolset to selected toolsets
+          if (setSelectedToolsets && item.toolsetId && item.toolset) {
+            addToSelectedToolsets(item.toolset);
+          }
+
           // Insert a tool mention with toolset metadata stored in node attrs
           insertMention(editor, range, {
             id: item.toolsetId || item.name,
@@ -246,7 +281,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           });
         }
       },
-      [addToContextItems, insertMention, resources],
+      [addToContextItems, addToSelectedToolsets, insertMention, resources],
     );
 
     // Create mention extension with custom suggestion
