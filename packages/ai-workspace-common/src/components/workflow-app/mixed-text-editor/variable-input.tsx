@@ -4,6 +4,7 @@ import { VariableInputProps } from './types';
 const VariableInput: React.FC<VariableInputProps> = memo(
   ({ id, value, placeholder, onChange, disabled = false }) => {
     const [isFocused, setIsFocused] = useState(false);
+    const isEmpty = !value || value.trim() === '';
 
     const handleChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,7 +57,12 @@ const VariableInput: React.FC<VariableInputProps> = memo(
         style={{
           borderWidth: '0.5px',
           borderStyle: 'dashed',
-          borderColor: isFocused ? 'rgba(14,159,119,0.6)' : 'rgba(14,159,119,0.3)',
+          borderColor: isFocused
+            ? 'rgba(14,159,119,0.6)'
+            : isEmpty
+              ? 'rgba(14,159,119,0.2)'
+              : 'rgba(14,159,119,0.3)',
+          backgroundColor: isFocused ? '#F0FFF8' : isEmpty ? '#CDFFF1' : '#EBFFF9',
           borderRadius: '8px',
           padding: '4px 8px',
           height: '26px',
@@ -66,7 +72,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
             'PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           fontSize: '16px',
           lineHeight: '1.625em',
-          color: '#1C1F23',
+          color: '#0E9F77', // 绿色字体
         }}
       />
     );

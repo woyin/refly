@@ -15,6 +15,7 @@ const FileInput: React.FC<FileInputProps> = memo(
   ({ value, placeholder, onChange, disabled = false, accept = '*' }) => {
     const [isHovered, setIsHovered] = useState(false);
     const fileName = value?.name || '';
+    const isEmpty = !fileName || fileName.trim() === '';
 
     const handleFileChange = useCallback(
       (file: File) => {
@@ -65,7 +66,12 @@ const FileInput: React.FC<FileInputProps> = memo(
           style={{
             borderWidth: '0.5px',
             borderStyle: 'dashed',
-            borderColor: isHovered ? 'rgba(14,159,119,0.4)' : 'rgba(14,159,119,0.3)',
+            borderColor: isHovered
+              ? 'rgba(14,159,119,0.4)'
+              : isEmpty
+                ? 'rgba(14,159,119,0.2)'
+                : 'rgba(14,159,119,0.3)',
+            backgroundColor: isHovered ? '#F0FFF8' : isEmpty ? '#CDFFF1' : '#EBFFF9',
             borderRadius: '8px',
             padding: '4px 8px',
             height: '26px',
@@ -73,7 +79,7 @@ const FileInput: React.FC<FileInputProps> = memo(
               'PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontSize: '16px',
             lineHeight: '1.625em',
-            color: '#1C1F23',
+            color: '#0E9F77', // 绿色字体
           }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}

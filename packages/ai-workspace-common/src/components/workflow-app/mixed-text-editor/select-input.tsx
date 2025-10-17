@@ -14,6 +14,7 @@ const SelectInput: React.FC<SelectInputProps> = memo(
     const [isOpen, setIsOpen] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const selectRef = useRef<HTMLDivElement>(null);
+    const isEmpty = !value || value.trim() === '';
 
     const handleClick = useCallback(() => {
       if (!disabled) {
@@ -69,7 +70,13 @@ const SelectInput: React.FC<SelectInputProps> = memo(
           style={{
             borderWidth: '0.5px',
             borderStyle: 'dashed',
-            borderColor: isFocused || isOpen ? 'rgba(14,159,119,0.6)' : 'rgba(14,159,119,0.3)',
+            borderColor:
+              isFocused || isOpen
+                ? 'rgba(14,159,119,0.6)'
+                : isEmpty
+                  ? 'rgba(14,159,119,0.2)'
+                  : 'rgba(14,159,119,0.3)',
+            backgroundColor: isFocused || isOpen ? '#F0FFF8' : isEmpty ? '#CDFFF1' : '#EBFFF9',
             borderRadius: '8px',
             padding: '4px 8px',
             height: '26px',
@@ -77,7 +84,7 @@ const SelectInput: React.FC<SelectInputProps> = memo(
               'PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontSize: '16px',
             lineHeight: '1.625em',
-            color: '#1C1F23',
+            color: '#0E9F77', // 绿色字体
           }}
           onClick={handleClick}
           onFocus={handleFocus}
