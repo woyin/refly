@@ -38,11 +38,13 @@ export const HoverCard = memo(
             {t('frontPage.recentWorkflows.edit')}
           </Button>
 
-          <CanvasActionDropdown canvasId={canvasId} canvasName={canvasName} btnSize="small">
-            <Button className="flex items-center w-20 h-8 px-3 rounded-lg">
-              {t('frontPage.recentWorkflows.more')}
-            </Button>
-          </CanvasActionDropdown>
+          <div onClick={(e) => e.stopPropagation()}>
+            <CanvasActionDropdown canvasId={canvasId} canvasName={canvasName} btnSize="small">
+              <Button className="flex items-center w-20 h-8 px-3 rounded-lg">
+                {t('frontPage.recentWorkflows.more')}
+              </Button>
+            </CanvasActionDropdown>
+          </div>
         </>
       ),
       [canvasId, canvasName, handleEdit, t],
