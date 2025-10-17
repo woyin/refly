@@ -85,11 +85,18 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                   ...variable,
                   value: [{ type: 'resource' as const, resource: value }],
                 };
-              } else {
-                // Handle text/option values
+              } else if (variable.variableType === 'option') {
+                // Handle option values - ensure it's always an array
+                const optionValue = Array.isArray(value) ? value : value ? [value] : [];
                 return {
                   ...variable,
-                  value: [{ type: 'text' as const, text: value }],
+                  value: optionValue.map((v) => ({ type: 'text' as const, text: v })),
+                };
+              } else {
+                // Handle text values
+                return {
+                  ...variable,
+                  value: [{ type: 'text' as const, text: value || '' }],
                 };
               }
             }
