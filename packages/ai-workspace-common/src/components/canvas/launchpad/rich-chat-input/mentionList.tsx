@@ -10,6 +10,7 @@ import {
   ValueType,
   VariableValue,
   WorkflowVariable,
+  GenericToolset,
 } from '@refly/openapi-schema';
 import { ArrowRight, X } from 'refly-icons';
 import { getStartNodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
@@ -20,17 +21,21 @@ import { cn, genVariableID } from '@refly/utils';
 import { Spin } from '@refly-packages/ai-workspace-common/components/common/spin';
 import { useVariableView } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import { logEvent } from '@refly/telemetry-web';
+import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
+import { type MentionItemSource } from './const';
 
 export interface MentionItem {
   name: string;
   description: string;
-  source: 'variables' | 'resourceLibrary' | 'stepRecord' | 'resultRecord' | 'myUpload';
-  variableType: string;
+  source: MentionItemSource;
+  variableType?: string;
   variableId?: string;
   variableValue?: VariableValue[];
   entityId?: string;
   nodeId?: string;
   categoryLabel?: string;
+  toolset?: GenericToolset;
+  toolsetId?: string;
   metadata?: {
     imageUrl?: string | undefined;
     videoUrl?: string | undefined;
@@ -243,6 +248,14 @@ export const MentionList = ({
           setHoveredCategory('runningRecord');
         },
       },
+      {
+        key: 'tools',
+        name: t('canvas.richChatInput.tools'),
+        source: 'tools' as const,
+        onMouseEnter: () => {
+          setHoveredCategory('tools');
+        },
+      },
     ],
     [t],
   );
@@ -253,6 +266,8 @@ export const MentionList = ({
     const myUploadItems = items.filter((item) => item.source === 'myUpload');
     const stepRecordItems = items.filter((item) => item.source === 'stepRecord');
     const resultRecordItems = items.filter((item) => item.source === 'resultRecord');
+    const toolsetItems = items.filter((item) => item.source === 'toolsets');
+    const toolItems = items.filter((item) => item.source === 'tools');
 
     // Running record combines step records and result records
     const runningRecordItems = [...stepRecordItems, ...resultRecordItems];
@@ -262,6 +277,9 @@ export const MentionList = ({
       variables: filterItems(variableItems, query) || [],
       resourceLibrary: filterItems(myUploadItems, query) || [],
       runningRecord: filterItems(runningRecordItems, query) || [],
+      toolsets: filterItems(toolsetItems, query) || [],
+      // Only show individual tools if user has typed a query
+      ...(query ? { tools: filterItems(toolItems, query) || [] } : {}),
     };
   }, [items, filterItems, query]);
 
@@ -270,22 +288,6 @@ export const MentionList = ({
     if (!query) return [];
 
     const items = [];
-
-    // Check if there's a matching item in startNode with the same name as query
-    const hasMatchingStartNodeItem =
-      groupedItems.variables?.some((item) => item.name === query) ?? false;
-
-    // If there's a query and no matching startNode item, add create variable button at the top
-    if (query && !hasMatchingStartNodeItem) {
-      items.push({
-        type: 'item' as const,
-        name: query,
-        source: 'variables' as const,
-        variableType: 'string',
-        variableId: 'create-variable',
-        categoryLabel: t('canvas.richChatInput.createVariable', { variableName: query }),
-      });
-    }
 
     // Add startNode group
     if (groupedItems.variables.length > 0) {
@@ -333,6 +335,53 @@ export const MentionList = ({
           type: 'item' as const,
         })),
       );
+    }
+
+    // Add toolsets group
+    if (groupedItems.toolsets.length > 0 || groupedItems.tools.length > 0) {
+      items.push({
+        type: 'header',
+        label: t('canvas.richChatInput.tools'),
+        source: 'toolsets' as const,
+      });
+      items.push(
+        ...groupedItems.toolsets.map((item) => ({
+          ...item,
+          categoryLabel: t('canvas.richChatInput.tools'),
+          type: 'item' as const,
+        })),
+        ...groupedItems.tools.map((item) => ({
+          ...item,
+          categoryLabel: t('canvas.richChatInput.tools'),
+          type: 'item' as const,
+        })),
+      );
+    }
+
+    // Add actions
+    const actions = [];
+
+    // If there's a query and no matching variable found, add create variable button at the top
+    const hasMatchingVariableItem =
+      groupedItems.variables?.some((item) => item.name === query) ?? false;
+    if (query && !hasMatchingVariableItem) {
+      actions.push({
+        type: 'item' as const,
+        name: query,
+        source: 'variables' as const,
+        variableType: 'string',
+        variableId: 'create-variable',
+        categoryLabel: t('canvas.richChatInput.createVariable', { variableName: query }),
+      });
+    }
+
+    if (actions.length > 0) {
+      items.push({
+        type: 'header',
+        label: t('canvas.richChatInput.actions'),
+        source: 'actions' as const,
+      });
+      items.push(...actions);
     }
 
     return items;
@@ -383,6 +432,9 @@ export const MentionList = ({
     if (hoveredCategory === 'runningRecord') {
       return groupedItems.runningRecord ?? [];
     }
+    if (hoveredCategory === 'tools') {
+      return groupedItems.toolsets ?? [];
+    }
     return [];
   }, [hoveredCategory, groupedItems]);
 
@@ -417,6 +469,8 @@ export const MentionList = ({
       idx = 1;
     } else if (hoveredCategory === 'runningRecord') {
       idx = 2;
+    } else if (hoveredCategory === 'tools') {
+      idx = 3;
     }
     setFirstLevelIndex(idx);
     // Reset second-level index when category changes
@@ -448,7 +502,7 @@ export const MentionList = ({
   // Configuration for different categories
   const categoryConfigs = useMemo(
     () => ({
-      startNode: {
+      variables: {
         emptyStateKey: 'noVariables',
       },
       resourceLibrary: {
@@ -480,6 +534,9 @@ export const MentionList = ({
         },
         emptyStateKey: 'noRunningRecords',
       },
+      tools: {
+        emptyStateKey: 'noTools',
+      },
     }),
     [],
   );
@@ -507,6 +564,7 @@ export const MentionList = ({
         if (source === 'variables') return 'variables';
         if (source === 'myUpload') return 'resourceLibrary';
         if (source === 'stepRecord' || source === 'resultRecord') return 'runningRecord';
+        if (source === 'toolsets' || source === 'tools') return 'toolsets';
         return source;
       };
 
@@ -550,6 +608,24 @@ export const MentionList = ({
                 )}
               </div>
               <div className="flex">{getStartNodeIcon(item.variableType)}</div>
+            </>
+          ) : item.source === 'toolsets' || item.source === 'tools' ? (
+            <>
+              <ToolsetIcon
+                toolset={item.toolset}
+                isBuiltin={item.toolset?.builtin}
+                config={{
+                  size: 16,
+                  className: 'flex-shrink-0',
+                  builtinClassName: '!w-4 !h-4',
+                }}
+              />
+              <div className="flex-1 text-sm text-refly-text-0 leading-5 truncate">{item.name}</div>
+              {item.toolset?.uninstalled && (
+                <div className="text-xs text-refly-text-2 px-1.5 py-0.5 rounded bg-refly-fill-hover">
+                  {t('canvas.toolsDepencency.uninstalled')}
+                </div>
+              )}
             </>
           ) : (
             <>
@@ -733,7 +809,7 @@ export const MentionList = ({
               return (
                 <div
                   key={`header-${item.source}-${idx}`}
-                  className="px-2 py-1 text-xs font-semibold text-refly-text-3"
+                  className="px-2 text-xs font-semibold text-refly-text-3"
                 >
                   {item.label}
                 </div>
@@ -846,6 +922,24 @@ export const MentionList = ({
                   </div>
                 ) : (
                   renderEmptyState(categoryConfigs.runningRecord.emptyStateKey)
+                )}
+              </div>
+            )}
+
+            {hoveredCategory === 'tools' && (
+              <div className="flex-1 w-full">
+                {groupedItems.toolsets?.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {groupedItems.toolsets.map((item, idx) =>
+                      renderListItem(
+                        item,
+                        idx,
+                        focusLevel === 'second' && secondLevelIndex === idx,
+                      ),
+                    )}
+                  </div>
+                ) : (
+                  renderEmptyState(categoryConfigs.tools.emptyStateKey)
                 )}
               </div>
             )}

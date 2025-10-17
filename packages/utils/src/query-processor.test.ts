@@ -108,16 +108,49 @@ describe('processQueryWithMentions', () => {
       expect(result.resourceVars).toEqual([mockResourceVariable]);
     });
 
+    it('should handle step type mentions', () => {
+      const query = '@{type=step,id=step-1,name=dataAnalysisStep}';
+      const result = processQueryWithMentions(query, {
+        replaceVars: true,
+        variables: [],
+      });
+      expect(result.processedQuery).toBe('dataAnalysisStep');
+      expect(result.updatedQuery).toBe('@{type=step,id=step-1,name=dataAnalysisStep}');
+      expect(result.resourceVars).toEqual([]);
+    });
+
+    it('should handle toolset type mentions', () => {
+      const query = '@{type=toolset,id=toolset-1,name=calculatorToolset}';
+      const result = processQueryWithMentions(query, {
+        replaceVars: true,
+        variables: [],
+      });
+      expect(result.processedQuery).toBe('calculatorToolset');
+      expect(result.updatedQuery).toBe('@{type=toolset,id=toolset-1,name=calculatorToolset}');
+      expect(result.resourceVars).toEqual([]);
+    });
+
+    it('should handle tool type mentions', () => {
+      const query = '@{type=tool,id=tool-1,name=calculatorTool}';
+      const result = processQueryWithMentions(query, {
+        replaceVars: true,
+        variables: [],
+      });
+      expect(result.processedQuery).toBe('calculatorTool');
+      expect(result.updatedQuery).toBe('@{type=tool,id=tool-1,name=calculatorTool}');
+      expect(result.resourceVars).toEqual([]);
+    });
+
     it('should handle multiple mentions', () => {
       const query =
-        '@{type=var,id=var-1,name=testVar} and @{type=resource,id=resource-1,name=resourceVar}';
+        '@{type=var,id=var-1,name=testVar} and @{type=resource,id=resource-1,name=resourceVar} and @{type=step,id=step-1,name=dataStep} @{type=tool,id=tool-1,name=calcTool}';
       const result = processQueryWithMentions(query, {
         replaceVars: true,
         variables: [mockWorkflowVariable, mockResourceVariable],
       });
-      expect(result.processedQuery).toBe('hello world and resourceVar');
+      expect(result.processedQuery).toBe('hello world and resourceVar and dataStep calcTool');
       expect(result.updatedQuery).toBe(
-        '@{type=var,id=var-1,name=testVar} and @{type=resource,id=resource-1,name=resourceVar}',
+        '@{type=var,id=var-1,name=testVar} and @{type=resource,id=resource-1,name=resourceVar} and @{type=step,id=step-1,name=dataStep} @{type=tool,id=tool-1,name=calcTool}',
       );
       expect(result.resourceVars).toEqual([mockResourceVariable]);
     });

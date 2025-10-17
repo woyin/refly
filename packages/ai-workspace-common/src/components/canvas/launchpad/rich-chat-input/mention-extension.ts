@@ -8,6 +8,7 @@ import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/
 import type { CanvasNodeType } from '@refly/openapi-schema';
 import { MentionList } from './mentionList';
 import type { MentionItem } from './mentionList';
+import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
 
 // Helper function to render NodeIcon consistently
 const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) => {
@@ -30,6 +31,13 @@ const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) =>
       resourceType: nodeAttrs.resourceType,
       resourceMeta: nodeAttrs.resourceMeta,
       className: '!w-3.5 !h-3.5',
+    });
+  } else if (source === 'toolsets' || source === 'tools') {
+    return React.createElement(ToolsetIcon, {
+      toolset: nodeAttrs.toolset,
+      isBuiltin: nodeAttrs.toolset?.builtin,
+      disableInventoryLookup: true,
+      config: { size: 14, className: 'flex-shrink-0', builtinClassName: '!w-3.5 !h-3.5' },
     });
   } else {
     const nodeType = variableType || 'document';
@@ -119,6 +127,37 @@ const CustomMention = Mention.extend({
           };
         },
       },
+      toolsetId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-toolset-id'),
+        renderHTML: (attributes) => {
+          if (!attributes.toolsetId) {
+            return {};
+          }
+          return {
+            'data-toolset-id': attributes.toolsetId,
+          };
+        },
+      },
+      toolset: {
+        default: null,
+        parseHTML: (element) => {
+          try {
+            const raw = element.getAttribute('data-toolset');
+            return raw ? JSON.parse(raw) : null;
+          } catch {
+            return null;
+          }
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.toolset) {
+            return {};
+          }
+          return {
+            'data-toolset': JSON.stringify(attributes.toolset),
+          };
+        },
+      },
     };
   },
   addNodeView() {
@@ -195,6 +234,7 @@ export const createMentionExtension = ({
     },
     suggestion: {
       char: '@',
+      allowedPrefixes: null,
       command: handleCommand,
       items: () => {
         // Require explicit user interaction before providing items

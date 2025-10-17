@@ -1184,8 +1184,7 @@ const translations = {
     launchpad: {
       placeholder: 'Describe needs...',
       chatInputPlaceholder: 'Enter task description, Agent will generate reusable workflows',
-      commonChatInputPlaceholder:
-        'Enter task description, press @ to select variables, resources, etc.',
+      commonChatInputPlaceholder: 'Enter task, press @ to select variables, resources, tools, etc.',
     },
     contextMenu: {
       createGroup: 'Create Group',
@@ -1816,6 +1815,7 @@ const translations = {
       importFromExtension: 'Import from Extension',
     },
     richChatInput: {
+      actions: 'Actions',
       variables: 'Variables',
       resourceLibrary: 'Resource Hub',
       myUploads: 'Uploads',
@@ -1836,6 +1836,10 @@ const translations = {
       runningRecord: 'Running Record',
       noRunningRecords: 'No running records',
       createVariable: 'Create variable "{{variableName}}"',
+      tools: 'Tools',
+      noTools: 'No tools',
+      loadingTools: 'Loading tools...',
+      builtin: 'Built-in',
     },
     toolsDepencency: {
       title: 'Tool Dependencies',
