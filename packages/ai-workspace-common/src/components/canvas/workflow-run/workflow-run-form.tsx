@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { UploadFile } from 'antd/es/upload/interface';
 import { useFileUpload } from '../workflow-variables';
 import { ResourceUpload } from './resource-upload';
+import { MixedTextEditor } from '@refly-packages/ai-workspace-common/components/workflow-app/mixed-text-editor';
 import cn from 'classnames';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
@@ -68,6 +69,7 @@ interface WorkflowRunFormProps {
   isRunning?: boolean;
   onRunningChange?: (isRunning: boolean) => void;
   className?: string;
+  templateContent?: string;
 }
 
 export const WorkflowRunForm = ({
@@ -80,6 +82,7 @@ export const WorkflowRunForm = ({
   isRunning: externalIsRunning,
   onRunningChange,
   className,
+  templateContent,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
@@ -91,6 +94,7 @@ export const WorkflowRunForm = ({
   const isRunning = externalIsRunning ?? internalIsRunning;
   const [form] = Form.useForm();
   const [variableValues, setVariableValues] = useState<Record<string, any>>({});
+  const [templateVariables, setTemplateVariables] = useState<WorkflowVariable[]>([]);
 
   // Check if form should be disabled
   const isFormDisabled = loading || isRunning || isPolling;
@@ -206,6 +210,11 @@ export const WorkflowRunForm = ({
     }));
   };
 
+  // Handle template variable changes
+  const handleTemplateVariableChange = useCallback((variables: WorkflowVariable[]) => {
+    setTemplateVariables(variables);
+  }, []);
+
   // Handle file upload for resource type variables
   const handleFileUpload = useCallback(
     async (file: File, variableName: string) => {
@@ -276,6 +285,29 @@ export const WorkflowRunForm = ({
     form.setFieldsValue(newValues);
   }, [workflowVariables, form]);
 
+  // Initialize template variables when templateContent changes
+  useEffect(() => {
+    if (templateContent) {
+      // Extract variables from template content
+      const variableRegex = /\{\{([^}]+)\}\}/g;
+      const templateVariableNames = new Set<string>();
+      let match: RegExpExecArray | null;
+
+      match = variableRegex.exec(templateContent);
+      while (match !== null) {
+        templateVariableNames.add(match[1].trim());
+        match = variableRegex.exec(templateContent);
+      }
+
+      // Filter workflowVariables to only include those mentioned in template
+      const relevantVariables = workflowVariables.filter((variable) =>
+        templateVariableNames.has(variable.name),
+      );
+
+      setTemplateVariables(relevantVariables);
+    }
+  }, [templateContent, workflowVariables]);
+
   const handleRun = async () => {
     if (loading || isRunning) {
       return;
@@ -295,6 +327,28 @@ export const WorkflowRunForm = ({
 
       // If validation passes, proceed with running
       const newVariables = convertFormValueToVariable();
+
+      // Add template variables to the variables if templateContent exists
+      if (templateContent && templateVariables.length > 0) {
+        // Create a special variable for template content with variables
+        const templateVariable: WorkflowVariable = {
+          variableId: 'template_content',
+          name: 'template_content',
+          required: true,
+          variableType: 'string',
+          value: [
+            {
+              type: 'text',
+              text: templateContent.replace(/\{\{([^}]+)\}\}/g, (match, variableName) => {
+                const variable = templateVariables.find((v) => v.name === variableName.trim());
+                return variable?.value?.[0]?.text || match;
+              }),
+            },
+          ],
+        };
+        newVariables.push(templateVariable);
+      }
+
       console.log('newVariables', newVariables);
 
       // Set running state - use external callback if provided, otherwise use internal state
@@ -468,7 +522,28 @@ export const WorkflowRunForm = ({
         <>
           <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
             {/* Show loading state when loading */}
-            {workflowVariables.length > 0 ? (
+            {templateContent ? (
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg border border-refly-Card-Border shadow-sm p-4">
+                  <MixedTextEditor
+                    templateContent={templateContent}
+                    variables={templateVariables.length > 0 ? templateVariables : workflowVariables}
+                    onVariablesChange={handleTemplateVariableChange}
+                    disabled={isFormDisabled}
+                  />
+                </div>
+                {workflowVariables.length > 0 && (
+                  <Form
+                    form={form}
+                    layout="vertical"
+                    className="space-y-3 sm:space-y-4"
+                    initialValues={variableValues}
+                  >
+                    {workflowVariables.map((variable) => renderFormField(variable))}
+                  </Form>
+                )}
+              </div>
+            ) : workflowVariables.length > 0 ? (
               <Form
                 form={form}
                 layout="vertical"
