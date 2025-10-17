@@ -5,7 +5,7 @@ import {
   CanvasTransaction,
   CanvasData,
 } from '@refly/openapi-schema';
-import { genCanvasVersionId, genStartID, genNodeID, deepmerge } from '@refly/utils';
+import { genCanvasVersionId, genStartID, genNodeID, genSkillID, deepmerge } from '@refly/utils';
 import { deduplicateNodes, deduplicateEdges, prepareAddNode } from './utils';
 import { MAX_STATE_TX_COUNT, MAX_VERSION_AGE } from './constants';
 
@@ -23,9 +23,22 @@ export const initEmptyCanvasState = (): CanvasState => {
     dragging: false,
   };
 
+  // Create a skill node positioned horizontally to the right of the start node
+  const skillNode: CanvasNode = {
+    id: genNodeID(),
+    type: 'skill',
+    position: { x: 400, y: 0 },
+    data: {
+      title: 'Skill',
+      entityId: genSkillID(),
+    },
+    selected: false,
+    dragging: false,
+  };
+
   return {
     version: genCanvasVersionId(),
-    nodes: [startNode],
+    nodes: [startNode, skillNode],
     edges: [],
     transactions: [],
     history: [],

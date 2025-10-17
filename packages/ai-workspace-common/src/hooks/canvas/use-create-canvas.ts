@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { logEvent } from '@refly/telemetry-web';
 import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/use-handle-sider-data';
+import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 
 interface CreateCanvasOptions {
   isPilotActivated?: boolean;
@@ -18,6 +19,12 @@ export const useCreateCanvas = ({
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
   const { getCanvasList } = useHandleSiderData();
+  const { setSidePanelVisible, setShowLeftOverview, setWideScreenVisible } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
+      setSidePanelVisible: state.setSidePanelVisible,
+      setShowLeftOverview: state.setShowLeftOverview,
+      setWideScreenVisible: state.setWideScreenVisible,
+    }));
 
   const createCanvas = async (canvasTitle: string) => {
     setIsCreating(true);
@@ -36,6 +43,12 @@ export const useCreateCanvas = ({
     return data?.data?.canvasId;
   };
 
+  const handleCloseResourcesPanel = useCallback(() => {
+    setSidePanelVisible(false);
+    setShowLeftOverview(false);
+    setWideScreenVisible(false);
+  }, [setSidePanelVisible, setShowLeftOverview, setWideScreenVisible]);
+
   const debouncedCreateCanvas = useDebouncedCallback(
     async (source?: string, options?: CreateCanvasOptions) => {
       const canvasTitle = '';
@@ -43,6 +56,8 @@ export const useCreateCanvas = ({
       if (!canvasId) {
         return;
       }
+
+      handleCloseResourcesPanel();
 
       getCanvasList();
 
