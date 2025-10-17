@@ -123,7 +123,7 @@ export const useListMentionItems = (): MentionItem[] => {
       ...toolsetItems,
       ...toolItems,
     ];
-  }, [workflowVariables, nodes, resources, toolsets, t]);
+  }, [workflowVariables, nodes, resources, toolsets, t, currentLanguage]);
 
   return allItems;
 };
