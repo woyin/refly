@@ -530,6 +530,7 @@ export const WorkflowRunForm = ({
                     variables={templateVariables.length > 0 ? templateVariables : workflowVariables}
                     onVariablesChange={handleTemplateVariableChange}
                     disabled={isFormDisabled}
+                    originalVariables={workflowVariables}
                   />
                 </div>
                 {workflowVariables.length > 0 && (

@@ -4,6 +4,7 @@ import VariableInput from './variable-input';
 import FileInput from './file-input';
 import SelectInput from './select-input';
 import { WorkflowVariable } from '@refly/openapi-schema';
+import { useTranslation } from 'react-i18next';
 
 const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
   ({
@@ -12,7 +13,9 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
     onVariablesChange,
     className = '',
     disabled = false,
+    originalVariables = [] as WorkflowVariable[],
   }) => {
+    const { t } = useTranslation();
     // Parse template content to extract variables and text segments
     const segments = useMemo((): TextSegment[] => {
       const segments: TextSegment[] = [];
@@ -35,12 +38,25 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
         const variable = variables.find((v) => v.name === variableName);
         const currentValue = variable?.value?.[0]?.text || '';
 
+        // Determine state: compare current value with original value
+        const isEmpty = !currentValue || currentValue.trim() === '';
+
+        // Find original value for comparison
+        const originalVariable = originalVariables.find((v) => v.name === variableName);
+        const originalValue = originalVariable?.value?.[0]?.text || '';
+
+        const isDefaultValue = !isEmpty && currentValue === originalValue;
+        const isModified = !isEmpty && currentValue !== originalValue;
+
         segments.push({
           type: 'variable',
           content: currentValue,
           id: variableName,
-          placeholder: `请输入${variableName}`,
+          placeholder:
+            t('canvas.workflow.variables.inputPlaceholder') || `Please enter ${variableName}`,
           variable,
+          isDefaultValue,
+          isModified,
         });
 
         lastIndex = match.index + match[0].length;
@@ -117,6 +133,8 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                       value: option,
                     })) || []
                   }
+                  isDefaultValue={segment.isDefaultValue}
+                  isModified={segment.isModified}
                 />
               );
             }
@@ -149,6 +167,8 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                   onChange={(value) => handleVariableChange(segment.id || '', value)}
                   disabled={disabled}
                   accept={acceptTypes}
+                  isDefaultValue={segment.isDefaultValue}
+                  isModified={segment.isModified}
                 />
               );
             }
@@ -161,6 +181,8 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                 placeholder={segment.placeholder}
                 onChange={(value) => handleVariableChange(segment.id || '', value)}
                 disabled={disabled}
+                isDefaultValue={segment.isDefaultValue}
+                isModified={segment.isModified}
               />
             );
           })}
