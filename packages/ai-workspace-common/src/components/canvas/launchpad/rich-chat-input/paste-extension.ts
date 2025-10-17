@@ -1,241 +1,211 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model';
+import { Fragment, Slice } from '@tiptap/pm/model';
 
-// Extension to handle paste events and remove unwanted HTML tags
+// Helper types from ProseMirror model
+import type { Node as PMNode, Schema } from '@tiptap/pm/model';
+
+// Extension to handle paste events: keep plain text and structure, preserve mention nodes
 export const PasteCleanupExtension = Extension.create({
   name: 'pasteCleanup',
 
   addProseMirrorPlugins() {
+    const key = new PluginKey('pasteCleanup');
+
+    // Detect if clipboard contains image items
+    const clipboardHasImage = (event: ClipboardEvent): boolean => {
+      const items = event?.clipboardData?.items ?? null;
+      if (!items || items.length === 0) return false;
+      for (const item of Array.from(items)) {
+        if ((item?.type ?? '').startsWith('image/')) return true;
+      }
+      return false;
+    };
+
+    // Check whether a fragment contains any mention nodes
+    const fragmentHasMention = (fragment: Fragment): boolean => {
+      let found = false;
+      const childCount = fragment.childCount;
+      for (let i = 0; i < childCount; i += 1) {
+        const child = fragment.child(i) as PMNode;
+        if (child.type?.name === 'mention') {
+          found = true;
+          break;
+        }
+        const hasChildren = (child?.content?.childCount ?? 0) > 0;
+        if (hasChildren) {
+          if (fragmentHasMention(child.content)) {
+            found = true;
+            break;
+          }
+        }
+      }
+      return found;
+    };
+
+    // Build a Slice from plain text, preserving paragraphs and line breaks
+    const buildSliceFromPlainText = (text: string, schema: Schema): Slice => {
+      const paragraphType = schema?.nodes?.paragraph;
+      const hardBreakType = schema?.nodes?.hardBreak;
+
+      const paragraphs: PMNode[] = [];
+      const rawParagraphs = (text ?? '').replace(/\r\n?/g, '\n').split('\n\n');
+
+      for (let pi = 0; pi < rawParagraphs.length; pi += 1) {
+        const paraText = rawParagraphs[pi] ?? '';
+        const parts = paraText.split('\n');
+        const inlineNodes: PMNode[] = [];
+
+        for (let i = 0; i < parts.length; i += 1) {
+          const part = parts[i] ?? '';
+          if (part) {
+            inlineNodes.push(schema.text(part));
+          }
+          if (i < parts.length - 1) {
+            if (hardBreakType) inlineNodes.push(hardBreakType.create());
+          }
+        }
+
+        // Allow empty paragraph to represent blank line between paragraphs
+        const paragraphNode = paragraphType.create(null, Fragment.from(inlineNodes));
+        paragraphs.push(paragraphNode);
+      }
+
+      const content = Fragment.from(paragraphs);
+      return new Slice(content, 0, 0);
+    };
+
+    // Flatten a node's inline content to plain inline nodes, preserving mention nodes
+    const flattenInlineFromNode = (node: PMNode, schema: Schema): PMNode[] => {
+      const mentionType = schema?.nodes?.mention;
+      const hardBreakType = schema?.nodes?.hardBreak;
+      const out: PMNode[] = [];
+
+      const content = node.content;
+      const count = content?.childCount ?? 0;
+      for (let i = 0; i < count; i += 1) {
+        const child = content.child(i) as PMNode;
+        if (child.type?.name === 'mention' && mentionType) {
+          // Preserve mention node with original attributes
+          out.push(mentionType.create(child.attrs));
+          continue;
+        }
+        if (child.type?.name === 'hardBreak' && hardBreakType) {
+          out.push(hardBreakType.create());
+          continue;
+        }
+        if (child.isText) {
+          const value = child.text ?? '';
+          if (!value) continue;
+          // Split by newline and interleave hardBreaks
+          const segments = value.split('\n');
+          for (let j = 0; j < segments.length; j += 1) {
+            const seg = segments[j] ?? '';
+            if (seg) out.push(schema.text(seg));
+            if (j < segments.length - 1 && hardBreakType) {
+              out.push(hardBreakType.create());
+            }
+          }
+          continue;
+        }
+
+        // Recurse into nested content (e.g., links or inline wrappers)
+        const hasChildren = (child.content?.childCount ?? 0) > 0;
+        if (hasChildren) {
+          const nested = flattenInlineFromNode(child as PMNode, schema);
+          out.push(...nested);
+        }
+      }
+
+      return out;
+    };
+
+    // Build a Slice from a Fragment by flattening to paragraphs of plain inline nodes
+    const buildSliceFromFragment = (fragment: Fragment, schema: Schema): Slice => {
+      const paragraphType = schema?.nodes?.paragraph;
+      const paragraphs: PMNode[] = [];
+
+      const pushParagraphFromNode = (node: PMNode) => {
+        // For block nodes, create a paragraph out of their inline/text content
+        const inlineNodes = flattenInlineFromNode(node, schema);
+        const paragraphNode = paragraphType.create(null, Fragment.from(inlineNodes));
+        paragraphs.push(paragraphNode);
+      };
+
+      const traverse = (frag: Fragment) => {
+        const childCount = frag.childCount;
+        for (let i = 0; i < childCount; i += 1) {
+          const pmNode = frag.child(i) as PMNode;
+          if (pmNode.isBlock) {
+            // If this block has block children, traverse deeper; otherwise, push as paragraph
+            const hasNestedBlocks = (() => {
+              const content = pmNode.content;
+              const cnt = content?.childCount ?? 0;
+              for (let k = 0; k < cnt; k += 1) {
+                const n = content.child(k) as PMNode;
+                if (n.isBlock) return true;
+              }
+              return false;
+            })();
+
+            if (hasNestedBlocks) {
+              traverse(pmNode.content);
+            } else {
+              pushParagraphFromNode(pmNode);
+            }
+          } else if ((pmNode.content?.childCount ?? 0) > 0) {
+            // Non-block wrapper with content
+            traverse(pmNode.content);
+          } else if (pmNode.isText) {
+            // Text at root: wrap into a paragraph
+            const paragraphNode = schema.nodes.paragraph.create(
+              null,
+              Fragment.fromArray([schema.text(pmNode.text ?? '')]),
+            );
+            paragraphs.push(paragraphNode);
+          }
+        }
+      };
+
+      traverse(fragment);
+
+      // Ensure at least one paragraph
+      if (paragraphs.length === 0) {
+        paragraphs.push(schema.nodes.paragraph.create());
+      }
+
+      const content = Fragment.from(paragraphs);
+      return new Slice(content, 0, 0);
+    };
+
     return [
       new Plugin({
-        key: new PluginKey('pasteCleanup'),
+        key,
         props: {
-          handlePaste: (view, event) => {
-            // Get the clipboard data
-            const clipboardData = event.clipboardData;
-            if (!clipboardData) {
+          handlePaste(view, event, slice) {
+            // Allow image pastes to bubble so external handler can process uploads
+            if (clipboardHasImage(event)) {
               return false;
             }
 
-            // Get HTML content from clipboard first
-            const htmlData = clipboardData.getData('text/html');
-            const { state, dispatch } = view;
+            const schema = view?.state?.schema as Schema;
+            const hasMention = fragmentHasMention(slice?.content ?? Fragment.empty);
 
-            if (htmlData) {
-              // Clean the HTML content by removing unwanted tags while preserving paragraph structure
-              const cleanedHtml = cleanHtmlContent(htmlData);
-
-              // Always prevent default and use cleaned content to ensure consistent behavior
-              event.preventDefault();
-
-              // Parse cleaned HTML into a Slice and insert to preserve paragraph structure
-              const container = document.createElement('div');
-              container.innerHTML = cleanedHtml;
-              const parser = ProseMirrorDOMParser.fromSchema(state.schema);
-              const slice = parser.parseSlice(container);
-              dispatch(state.tr.replaceSelection(slice));
-              return true;
+            let newSlice: Slice;
+            if (hasMention) {
+              newSlice = buildSliceFromFragment(slice.content, schema);
             } else {
-              // No HTML data, get plain text
-              const plainText = clipboardData.getData('text/plain');
-
-              if (plainText) {
-                // Convert markdown-like text into plain paragraphs (strip styles)
-                const paragraphHtml = stripMarkdownToParagraphHtml(plainText);
-                event.preventDefault();
-
-                const container = document.createElement('div');
-                container.innerHTML = paragraphHtml;
-                const parser = ProseMirrorDOMParser.fromSchema(state.schema);
-                const slice = parser.parseSlice(container);
-                dispatch(state.tr.replaceSelection(slice));
-                return true;
-              } else {
-                return false;
-              }
+              const text = event?.clipboardData?.getData('text/plain') ?? '';
+              newSlice = buildSliceFromPlainText(text, schema);
             }
+
+            event.preventDefault();
+            const tr = view.state.tr.replaceSelection(newSlice).scrollIntoView();
+            view.dispatch(tr);
+            return true;
           },
         },
       }),
     ];
   },
 });
-
-// Function to clean HTML content by removing unwanted tags while preserving paragraph structure
-function cleanHtmlContent(html: string): string {
-  // Create a temporary div to parse the HTML
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = html;
-
-  // Remove dangerous or irrelevant tags entirely
-  const removeAll = (selector: string) => {
-    const nodes = tempDiv.querySelectorAll(selector);
-    for (const n of nodes) {
-      n.parentNode?.removeChild(n);
-    }
-  };
-  removeAll('script, style, meta, link');
-
-  // Remove unwanted tags while preserving text content and paragraph structure
-  const unwantedTags = [
-    'strong',
-    'b',
-    'em',
-    'i',
-    'u',
-    's',
-    'strike',
-    'del',
-    'mark',
-    'small',
-    'sub',
-    'sup',
-  ];
-
-  for (const tagName of unwantedTags) {
-    const elements = tempDiv.querySelectorAll(tagName);
-    for (const element of elements) {
-      // Replace the element with its text content
-      const textNode = document.createTextNode(element.textContent || '');
-      element.parentNode?.replaceChild(textNode, element);
-    }
-  }
-
-  // Unwrap all span except mention spans; drop heavy inline styles
-  const spans = tempDiv.querySelectorAll('span');
-  for (const span of spans) {
-    const isMention =
-      span.classList?.contains('mention') || span.getAttribute('data-mention') != null;
-
-    if (isMention) {
-      // Ensure canonical attributes for robustness
-      span.classList.add('mention');
-      if (!span.getAttribute('data-mention')) span.setAttribute('data-mention', 'true');
-      // Keep all existing attributes for mention tags
-      continue;
-    }
-
-    // For non-mention spans, replace with plain text
-    const textNode = document.createTextNode(span.textContent || '');
-    span.parentNode?.replaceChild(textNode, span);
-  }
-
-  // Process paragraph structure using leaf block-level nodes to avoid duplicates from nesting
-  const blockSelector = 'p, div, h1, h2, h3, h4, h5, h6, li, blockquote, pre';
-  const blockNodes = tempDiv.querySelectorAll(blockSelector);
-  const processedParagraphs: string[] = [];
-
-  const isNonEmptyHtml = (html: string): boolean => {
-    const text = html
-      .replace(/<br\s*\/?>(\n)?/gi, '')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/<[^>]*>/g, '')
-      .trim();
-    return text.length > 0;
-  };
-
-  if (blockNodes.length > 0) {
-    const leafBlocks = Array.from(blockNodes).filter((el) => !el.querySelector(blockSelector));
-    for (const element of leafBlocks) {
-      const tag = element.tagName?.toLowerCase?.() ?? '';
-      if (tag === 'pre') {
-        // Preserve code lines by splitting into plain paragraphs
-        const codeText = element.textContent ?? '';
-        const lines = codeText.split(/\r?\n/).map((l) => l.trim());
-        for (const line of lines) {
-          if (line.length > 0) {
-            processedParagraphs.push(line);
-          }
-        }
-        continue;
-      }
-
-      const htmlContent = (element as HTMLElement).innerHTML?.trim() ?? '';
-      if (isNonEmptyHtml(htmlContent)) {
-        processedParagraphs.push(htmlContent);
-      }
-    }
-  }
-
-  // Fallback: if no leaf blocks produced output, use raw text split by lines
-  if (processedParagraphs.length === 0) {
-    const textContent = tempDiv.textContent ?? tempDiv.innerText ?? '';
-    const lines = textContent.split(/\r?\n/);
-    if (lines.length > 1) {
-      processedParagraphs.push(
-        ...lines.map((line) => line.trim()).filter((line) => line.length > 0),
-      );
-    } else {
-      processedParagraphs.push(textContent);
-    }
-  }
-
-  // If no paragraphs were found, use the original text content
-  if (processedParagraphs.length === 0) {
-    const textFallback = tempDiv.textContent ?? tempDiv.innerText ?? '';
-    processedParagraphs.push(textFallback);
-  }
-
-  // Join paragraphs with proper HTML structure
-  return processedParagraphs.map((p) => `<p>${p}</p>`).join('');
-}
-
-// Function to strip common markdown formatting and return paragraph HTML
-function stripMarkdownToParagraphHtml(text: string): string {
-  if (!text) {
-    return '<p></p>';
-  }
-
-  let normalized = text;
-
-  // Normalize Windows/Mac line endings
-  normalized = normalized.replace(/\r\n?/g, '\n');
-
-  // Remove fenced code block markers ```lang ... ``` while preserving content
-  normalized = normalized.replace(/```[\s\S]*?```/g, (match) => {
-    // Drop the backticks but keep inner content and newlines
-    return match.replace(/```/g, '');
-  });
-
-  // Remove inline code backticks
-  normalized = normalized.replace(/`([^`]+)`/g, '$1');
-
-  // Remove emphasis markers: **bold**, __bold__, *em*, _em_
-  normalized = normalized.replace(/\*\*([^*]+)\*\*/g, '$1');
-  normalized = normalized.replace(/__([^_]+)__/g, '$1');
-  normalized = normalized.replace(/\*([^*]+)\*/g, '$1');
-  normalized = normalized.replace(/_([^_]+)_/g, '$1');
-
-  // Remove strikethrough ~~text~~
-  normalized = normalized.replace(/~~([^~]+)~~/g, '$1');
-
-  // Remove heading markers ######, ##### ... #
-  normalized = normalized.replace(/^\s{0,3}#{1,6}\s+/gm, '');
-
-  // Remove blockquote markers '>'
-  normalized = normalized.replace(/^\s{0,3}>\s?/gm, '');
-
-  // Simplify links: [text](url) -> text
-  normalized = normalized.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
-
-  // Simplify images: ![alt](url) -> alt
-  normalized = normalized.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '$1');
-
-  // Remove list markers while keeping content
-  normalized = normalized.replace(/^\s*[-*+]\s+/gm, '');
-  normalized = normalized.replace(/^\s*\d+\.\s+/gm, '');
-
-  // Split paragraphs by two or more newlines
-  const paragraphs = normalized
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
-
-  if (!paragraphs?.length) {
-    // Fallback: treat single-line as one paragraph
-    return `<p>${normalized.trim()}</p>`;
-  }
-
-  return paragraphs.map((p) => `<p>${p}</p>`).join('');
-}
