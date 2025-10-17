@@ -209,10 +209,10 @@ export const CreateWorkflowAppModal = ({
 
     try {
       // Validate cover image is uploaded
-      if (!coverStorageKey) {
-        message.error(t('workflowApp.coverImageRequired'));
-        return;
-      }
+      // if (!coverStorageKey) {
+      //   message.error(t('workflowApp.coverImageRequired'));
+      //   return;
+      // }
 
       const { data } = await getClient().createWorkflowApp({
         body: {
@@ -346,7 +346,6 @@ export const CreateWorkflowAppModal = ({
             <div className="flex flex-col gap-2 mt-5">
               <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">
                 {t('workflowApp.coverImage')}
-                <span className="text-refly-func-danger-default ml-1">*</span>
               </div>
               <div className="w-full">
                 <Upload
