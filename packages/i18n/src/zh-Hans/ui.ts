@@ -1176,7 +1176,7 @@ const translations = {
     launchpad: {
       placeholder: '描述你的需求...',
       chatInputPlaceholder: '输入任务描述，Agent 将生成可复用的工作流',
-      commonChatInputPlaceholder: '输入任务描述，@ 可以快速选择变量/资源',
+      commonChatInputPlaceholder: '输入任务，@ 可以快速选择变量/资源/工具等',
     },
     contextMenu: {
       createGroup: '创建分组',
@@ -1785,6 +1785,7 @@ const translations = {
       importFromExtension: '插件剪存',
     },
     richChatInput: {
+      actions: '操作',
       variables: '变量',
       resourceLibrary: '资源库',
       myUploads: '我的上传',
@@ -1805,6 +1806,10 @@ const translations = {
       runningRecord: '运行记录',
       noRunningRecords: '暂无运行记录',
       createVariable: '创建变量 “{{variableName}}”',
+      tools: '工具',
+      noTools: '暂无工具',
+      loadingTools: '加载工具中...',
+      builtin: '内置',
     },
     toolsDepencency: {
       title: '工具依赖',

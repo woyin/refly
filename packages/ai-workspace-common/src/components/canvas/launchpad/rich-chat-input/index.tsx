@@ -17,9 +17,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { PasteCleanupExtension } from './paste-extension';
-import { useCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas';
 import type { IContextItem } from '@refly/common-types';
-import type { CanvasNodeType, ResourceType, ResourceMeta } from '@refly/openapi-schema';
+import type { CanvasNodeType, GenericToolset } from '@refly/openapi-schema';
 import { mentionStyles } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/mention-style';
 import { useStore } from '@xyflow/react';
 import { useShallow } from 'zustand/react/shallow';
@@ -32,6 +31,12 @@ import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks
 import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { type MentionItem } from './mentionList';
 import { createMentionExtension } from './mention-extension';
+import {
+  serializeDocToTokens,
+  buildNodesFromContent,
+  createContextItemFromMentionItem,
+} from './utils';
+import { useListMentionItems } from './hooks/use-list-mention-items';
 
 interface RichChatInputProps {
   readonly: boolean;
@@ -48,6 +53,9 @@ interface RichChatInputProps {
 
   setContextItems?: (items: IContextItem[]) => void;
 
+  selectedToolsets?: GenericToolset[];
+  setSelectedToolsets?: (items: GenericToolset[]) => void;
+
   onUploadImage?: (file: File) => Promise<void>;
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
   onFocus?: () => void;
@@ -56,54 +64,6 @@ interface RichChatInputProps {
 export interface RichChatInputRef {
   focus: () => void;
 }
-
-// Helper function to create context item from mention item
-const createContextItem = (item: MentionItem): IContextItem => {
-  return {
-    entityId: item.entityId,
-    title: item.name,
-    type: (() => {
-      if (item.source === 'stepRecord') {
-        return 'skillResponse' as CanvasNodeType;
-      } else if (item.source === 'resultRecord') {
-        const validCanvasNodeTypes: CanvasNodeType[] = [
-          'document',
-          'codeArtifact',
-          'website',
-          'resource',
-          'skill',
-          'tool',
-          'skillResponse',
-          'toolResponse',
-          'memo',
-          'group',
-          'image',
-          'video',
-          'audio',
-          'mediaSkill',
-          'mediaSkillResponse',
-          'start',
-        ];
-
-        if (validCanvasNodeTypes.includes(item.variableType as CanvasNodeType)) {
-          return item.variableType as CanvasNodeType;
-        }
-        return 'resource' as CanvasNodeType;
-      } else if (item.source === 'myUpload') {
-        return 'resource' as CanvasNodeType;
-      }
-
-      return 'resource' as CanvasNodeType;
-    })(),
-
-    metadata: {
-      nodeId: item.nodeId,
-      source: item.source,
-      variableType: item.variableType,
-      ...item.metadata,
-    },
-  };
-};
 
 const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
   (
@@ -117,6 +77,8 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       onFocus,
       contextItems = [],
       setContextItems,
+      selectedToolsets = [],
+      setSelectedToolsets,
       placeholder,
       mentionPosition = 'bottom-start',
     },
@@ -126,7 +88,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const isLogin = useUserStoreShallow((state) => state.isLogin);
-    const { nodes } = useCanvasData();
     const { canvasId, workflow } = useCanvasContext();
     const { projectId } = useGetProjectCanvasId();
     const { data: resourcesData } = useListResources({
@@ -150,72 +111,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const popupInstanceRef = useRef<any>(null);
 
     // Get all available items including canvas nodes with fallback data
-    const allItems: MentionItem[] = useMemo(() => {
-      const variableItems = workflowVariables.map((variable) => ({
-        name: variable.name,
-        description: variable.description || '',
-        source: 'variables' as const,
-        variableType: variable.variableType || 'string',
-        variableId: variable.variableId || '',
-        variableValue: variable.value,
-      }));
-
-      // Get skillResponse nodes for step records
-      const stepRecordItems: MentionItem[] =
-        nodes
-          ?.filter((node) => node.type === 'skillResponse')
-          ?.map((node) => ({
-            name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
-            description: t('canvas.richChatInput.stepRecord'),
-            source: 'stepRecord' as const,
-            variableType: node.type, // Use actual node type
-            entityId: node.data?.entityId || '',
-            nodeId: node.id,
-          })) ?? [];
-
-      // Get result record nodes - same logic as ResultList component
-      const resultRecordItems: MentionItem[] =
-        nodes
-          ?.filter(
-            (node) =>
-              ['document', 'codeArtifact', 'website', 'video', 'audio'].includes(node.type) ||
-              (node.type === 'image' && !!node.data?.metadata?.resultId),
-          )
-          ?.map((node) => ({
-            name: node.data?.title ?? t('canvas.richChatInput.untitledResult'),
-            description: t('canvas.richChatInput.resultRecord'),
-            source: 'resultRecord' as const,
-            variableType: node.type, // Use actual node type
-            entityId: node.data?.entityId,
-            nodeId: node.id,
-            metadata: {
-              imageUrl: node.data?.metadata?.imageUrl,
-              resourceType: node.data?.metadata?.resourceType as ResourceType | undefined,
-              resourceMeta: node.data?.metadata?.resourceMeta as ResourceMeta | undefined,
-            },
-          })) ?? [];
-
-      // Get my upload items from API resources data
-      const myUploadItems: MentionItem[] =
-        resources?.map((resource) => ({
-          name: resource.title ?? t('canvas.richChatInput.untitledUpload'),
-          description: t('canvas.richChatInput.myUpload'),
-          source: 'myUpload' as const,
-          variableType: resource.resourceType || 'resource',
-          entityId: resource.resourceId,
-          nodeId: resource.resourceId,
-          metadata: {
-            imageUrl: resource.data?.url as string | undefined,
-            resourceType: resource.resourceType as ResourceType | undefined,
-            resourceMeta: resource.data as ResourceMeta | undefined,
-            storageKey: resource.storageKey,
-            rawFileKey: resource.rawFileKey,
-            [`${resource.resourceType}Url`]: resource.downloadURL,
-          },
-        })) ?? [];
-
-      return [...variableItems, ...stepRecordItems, ...resultRecordItems, ...myUploadItems];
-    }, [workflowVariables, nodes, resources]);
+    const allItems = useListMentionItems();
 
     // Keep latest items in a ref so Mention suggestion always sees fresh data
     const allItemsRef = useRef<MentionItem[]>(allItems);
@@ -231,6 +127,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     useEffect(() => {
       contextItemsRef.current = contextItems;
     }, [contextItems]);
+
+    // Use ref to store latest selectedToolsets to avoid performance issues
+    const selectedToolsetsRef = useRef(selectedToolsets);
+
+    // Update ref when selectedToolsets changes
+    useEffect(() => {
+      selectedToolsetsRef.current = selectedToolsets;
+    }, [selectedToolsets]);
 
     // Use ref to track previous canvas data to avoid infinite loops
     const prevCanvasDataRef = useRef({ canvasId: '', allItemsLength: 0 });
@@ -250,6 +154,23 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
         }
       },
       [setContextItems],
+    );
+
+    // Helper function to add toolset to selected toolsets
+    const addToSelectedToolsets = useCallback(
+      (toolsetItem: GenericToolset) => {
+        if (!setSelectedToolsets) return;
+
+        const currentSelectedToolsets = selectedToolsetsRef.current || [];
+        const isAlreadySelected = currentSelectedToolsets.some(
+          (selectedItem) => selectedItem.id === toolsetItem.id,
+        );
+
+        if (!isAlreadySelected) {
+          setSelectedToolsets([...currentSelectedToolsets, toolsetItem]);
+        }
+      },
+      [setSelectedToolsets],
     );
 
     // Helper function to insert mention into editor
@@ -281,7 +202,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           item.source === 'myUpload'
         ) {
           if (setContextItems && item.entityId) {
-            const contextItem = createContextItem(item);
+            const contextItem = createContextItemFromMentionItem(item);
             addToContextItems(contextItem);
 
             const url =
@@ -298,6 +219,22 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               entityId: item.entityId || item.nodeId,
             });
           }
+        } else if (item.source === 'toolsets' || item.source === 'tools') {
+          // Add toolset to selected toolsets
+          if (setSelectedToolsets && item.toolsetId && item.toolset) {
+            addToSelectedToolsets(item.toolset);
+          }
+
+          // Insert a tool mention with toolset metadata stored in node attrs
+          insertMention(editor, range, {
+            id: item.toolsetId || item.name,
+            label: item.name,
+            source: item.source,
+            variableType: 'tool',
+            entityId: item.toolsetId || item.name,
+            toolset: item.toolset,
+            toolsetId: item.toolsetId,
+          });
         } else if (item.variableType === 'resource') {
           // For resource type variables, find the corresponding resource data and add to context
           if (item.variableValue?.length && item.variableValue[0]?.resource) {
@@ -345,7 +282,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           });
         }
       },
-      [addToContextItems, insertMention, resources],
+      [addToContextItems, addToSelectedToolsets, insertMention, resources],
     );
 
     // Create mention extension with custom suggestion
@@ -448,233 +385,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       [editor, readonly],
     );
 
-    // Serializer: convert current doc with mentions into @{...} tokens for state/query
-    const serializeDocToTokens = useCallback((doc: any): string => {
-      try {
-        if (!doc) return '';
-        const text = doc.textBetween(0, doc.content.size, '\n', (node: any) => {
-          const nodeName = node?.type?.name ?? '';
-          if (nodeName === 'mention') {
-            const label = node?.attrs?.label ?? node?.attrs?.id ?? '';
-            const id = node?.attrs?.id ?? '';
-            const source = node?.attrs?.source ?? '';
-            const type =
-              source === 'variables'
-                ? 'var'
-                : source === 'stepRecord'
-                  ? 'step'
-                  : source === 'resultRecord' ||
-                      source === 'myUpload' ||
-                      source === 'resourceLibrary'
-                    ? 'resource'
-                    : 'var';
-            const safeId = String(id ?? '').trim();
-            const safeName = String(label ?? '').trim();
-            return safeName ? `@{type=${type},id=${safeId || safeName},name=${safeName}}` : '';
-          }
-          if (nodeName === 'hardBreak') {
-            return '\n';
-          }
-          return '';
-        });
-        return text ?? '';
-      } catch {
-        return '';
-      }
-    }, []);
-
-    // Build tiptap JSON content from a string with @variableName format
-    const buildNodesFromContent = useCallback(
-      (content: string) => {
-        const nodes: any[] = [];
-        if (!content) return nodes;
-
-        // Normalize input to avoid generating unexpected extra blank lines
-        // - Unify EOL to \n
-        // - Remove trailing whitespace before newlines
-        // - Collapse 3+ consecutive newlines to exactly 2 (represents a single empty line)
-        // - Trim leading and trailing newlines
-        const normalizeContent = (input: string): string => {
-          let s = input?.replace(/\r\n?/g, '\n') ?? '';
-          s = s.replace(/[ \t]+\n/g, '\n');
-          s = s.replace(/\n{3,}/g, '\n\n');
-          s = s.replace(/^\n+/, '').replace(/\n+$/, '');
-          return s;
-        };
-
-        const normalized = normalizeContent(content);
-
-        const findVarMetaByName = (name: string) => {
-          // Priority 1: Look in allItems first (includes canvas-based items and workflow variables)
-          const foundFromAll = (allItems || []).find((it: any) => it?.name === name);
-          if (foundFromAll) {
-            return {
-              variableType: foundFromAll?.variableType ?? 'string',
-              entityId: foundFromAll?.entityId ?? foundFromAll?.variableId ?? foundFromAll?.nodeId,
-              source: foundFromAll?.source,
-            };
-          }
-
-          // Priority 2: Look in variables prop (most reliable for startNode)
-          const foundInVariables = (workflowVariables || []).find((v: any) => v?.name === name);
-          if (foundInVariables) {
-            return {
-              variableType: foundInVariables?.variableType ?? 'string',
-              entityId: foundInVariables?.variableId,
-              source: 'variables',
-            };
-          }
-
-          // Fallback: Default to variables with string type
-          return {
-            variableType: 'string',
-            source: 'variables',
-          };
-        };
-
-        const findMetaById = (id: string) => {
-          if (!id) return null as any;
-          const foundFromAll = (allItems || []).find((it: any) => {
-            const vid = it?.variableId ?? '';
-            const eid = it?.entityId ?? '';
-            const nid = it?.nodeId ?? '';
-            return vid === id || eid === id || nid === id;
-          });
-          if (foundFromAll) {
-            return {
-              variableType: foundFromAll?.variableType ?? 'string',
-              source: foundFromAll?.source,
-            };
-          }
-          return null as any;
-        };
-
-        // Prepare name list sorted by length desc to prefer the longest match
-        const allNames = Array.from(
-          new Set((allItems || []).map((it: any) => it?.name).filter(Boolean)),
-        ) as string[];
-        allNames.sort((a, b) => (b?.length ?? 0) - (a?.length ?? 0));
-
-        let i = 0;
-        let textBuffer = '';
-        while (i < normalized.length) {
-          const ch = normalized[i];
-
-          // Preserve newlines by mapping to hardBreak nodes
-          if (ch === '\n') {
-            if (textBuffer) {
-              nodes.push({ type: 'text', text: textBuffer });
-              textBuffer = '';
-            }
-            nodes.push({ type: 'hardBreak' });
-            i += 1;
-            continue;
-          }
-
-          if (ch === '@') {
-            // Try new rich token: @{type=...,id=...,name=...}
-            if (normalized[i + 1] === '{') {
-              const closeIdx = normalized.indexOf('}', i + 2);
-              if (closeIdx !== -1) {
-                const inside = normalized.slice(i + 2, closeIdx);
-                // Parse key=value pairs separated by comma, allow spaces
-                const pairs = inside.split(',').map((s) => s.trim());
-                const map: Record<string, string> = {};
-                for (const p of pairs) {
-                  const eq = p.indexOf('=');
-                  if (eq > 0) {
-                    const k = p.slice(0, eq).trim();
-                    const v = p.slice(eq + 1).trim();
-                    map[k] = v;
-                  }
-                }
-                const tokenType = map.type || 'var';
-                const tokenId = map.id || '';
-                const tokenName = map.name || '';
-
-                if (textBuffer) {
-                  nodes.push({ type: 'text', text: textBuffer });
-                  textBuffer = '';
-                }
-
-                // Map type to source and variableType
-                let source = 'variables';
-                let variableType = 'string';
-                if (tokenType === 'var') {
-                  source = 'variables';
-                  const meta = findMetaById(tokenId) || findVarMetaByName(tokenName);
-                  variableType = meta?.variableType ?? 'string';
-                } else if (tokenType === 'step') {
-                  source = 'stepRecord';
-                  variableType = 'skillResponse';
-                } else if (tokenType === 'resource') {
-                  source = 'resultRecord';
-                  const meta = findMetaById(tokenId) || findVarMetaByName(tokenName);
-                  variableType = meta?.variableType ?? 'resource';
-                }
-
-                nodes.push({
-                  type: 'mention',
-                  attrs: {
-                    id: tokenId || tokenName,
-                    label: tokenName || tokenId,
-                    variableType,
-                    source,
-                    entityId: tokenId || undefined,
-                  },
-                });
-                i = closeIdx + 1;
-                continue;
-              }
-            }
-
-            // Fallback: legacy @name syntax
-            let matchedName: string | null = null;
-            for (const name of allNames) {
-              const candidate = normalized.slice(i + 1, i + 1 + name.length);
-              if (candidate === name) {
-                const nextChar = normalized[i + 1 + name.length] ?? '';
-                if (nextChar === ' ' || nextChar === '\n' || nextChar === '' || nextChar === '\t') {
-                  matchedName = name;
-                  break;
-                }
-              }
-            }
-
-            if (matchedName) {
-              if (textBuffer) {
-                nodes.push({ type: 'text', text: textBuffer });
-                textBuffer = '';
-              }
-              const meta = findVarMetaByName(matchedName);
-              nodes.push({
-                type: 'mention',
-                attrs: {
-                  id: meta?.entityId || matchedName,
-                  label: matchedName,
-                  variableType: meta?.variableType ?? 'string',
-                  source: meta?.source ?? 'variables',
-                  entityId: meta?.entityId,
-                },
-              });
-              i = i + 1 + matchedName.length;
-              continue;
-            }
-          }
-          // Default: accumulate as plain text
-          textBuffer += ch;
-          i += 1;
-        }
-
-        if (textBuffer) {
-          nodes.push({ type: 'text', text: textBuffer });
-        }
-
-        return nodes;
-      },
-      [workflowVariables, allItems],
-    );
-
     // Enhanced handleSendMessage that converts mentions to Handlebars
     const handleSendMessageWithHandlebars = useCallback(() => {
       if (editor) {
@@ -700,7 +410,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       const nextText = query ?? '';
       if (currentText !== nextText) {
         // Convert handlebars variables back to mention nodes for rendering
-        const nodes = buildNodesFromContent(nextText);
+        const nodes = buildNodesFromContent(nextText, workflowVariables, allItems);
         // Preserve full selection range to avoid collapsing selection
         const prevFrom = editor.state?.selection?.from ?? null;
         const prevTo = editor.state?.selection?.to ?? null;
@@ -729,7 +439,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           editor.commands.setTextSelection({ from: clampedFrom, to: clampedTo });
         }
       }
-    }, [query, editor, buildNodesFromContent, serializeDocToTokens]);
+    }, [query, editor, workflowVariables, allItems]);
 
     // Additional effect to re-render content when canvas data becomes available
     useEffect(() => {
@@ -756,7 +466,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
       if (hasCanvasData) {
         // Try to re-render with current data
-        const nodes = buildNodesFromContent(query);
+        const nodes = buildNodesFromContent(query, workflowVariables, allItems);
         if (nodes.length > 0) {
           const jsonDoc = {
             type: 'doc',
@@ -782,7 +492,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           }
         }
       }
-    }, [canvasId, editor, query, buildNodesFromContent, allItems]);
+    }, [canvasId, editor, query, workflowVariables, allItems]);
 
     const isCursorAfterAtToken = useCallback((state: any): boolean => {
       try {
