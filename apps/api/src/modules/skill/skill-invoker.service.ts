@@ -273,8 +273,10 @@ export class SkillInvokerService {
       `invoke skill with input: ${JSON.stringify(input)}, resultId: ${resultId}, version: ${version}`,
     );
 
-    if (input.images?.length > 0) {
+    if (input.images?.length > 0 && (data.providerItem?.config as any)?.capabilities?.vision) {
       input.images = await this.miscService.generateImageUrls(user, input.images);
+    } else {
+      input.images = [];
     }
 
     if (tier) {

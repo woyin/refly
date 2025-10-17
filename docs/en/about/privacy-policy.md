@@ -1,157 +1,226 @@
 ---
 title: Privacy Policy
-description: Refly AI Workflow Engine Privacy Policy
+description: Refly AI Workflow Engine Privacy Policy (Restricted Scopes & Limited Use Compliant)
 ---
 
-# Privacy Policy
+# Refly AI Privacy Policy 
 
-> Effective Date: September 26, 2025
+> Effective Date: September 26, 2025  
+> Last Updated: October 16, 2025 (Updated for Google Workspace Restricted Scopes Review)
 
-At ReflyAI, we are committed to protecting your privacy and security. This Privacy Policy describes the types of information we may collect from you when you use our AI Content Creation Engine (the "Service"), and our practices for collecting, using, maintaining, protecting, and disclosing that information. This policy complies with international privacy protection standards, including the European Union General Data Protection Regulation (GDPR), the California Consumer Privacy Act (CCPA), and the Google API Services User Data Policy.
+Refly.AI (“we”, “our”, “us”) is committed to protecting your privacy and security.  
+This Privacy Policy explains how we collect, use, store, share, and protect your information when you use our AI workflow and content creation engine (“Service”).  
+This policy complies with **GDPR**, **CCPA/CPRA**, and the **Google API Services User Data Policy** (including Limited Use requirements).
 
-## Legal Basis (Applicable to EU Users)
+---
 
-Our legal bases for processing your personal data include:
+## 1. Legal Basis (For EU/UK Users)  
 
-- Performance of our contract with you
-- Compliance with legal obligations
-- Our legitimate interests
-- Your consent
+We process personal data based on:  
+- Performance of a contract  
+- Compliance with legal obligations  
+- Legitimate interests (e.g., service security and abuse prevention)  
+- Your consent (for optional integrations)
 
-## Information We Collect (Data Accessed)
+---
 
-### Google User Data (only when explicitly authorized by you)
+## 2. Information We Collect (Data Accessed)  
 
-- **Basic Account Information**: Google email address, user ID  
-- **File Content and Metadata**: Limited to Google Drive/Docs/Sheets files you authorize  
-- **Calendar Event Information**: Title, time, description (only when authorized)  
-- **Gmail Metadata**: Sender, recipient, subject, and message body (only when authorized)  
+### (1) Google User Data (Accessed only with explicit authorization)  
 
-### Information You Provide to Us
+We only access data within the scopes you explicitly grant through OAuth.  
+We use these data strictly for user-visible, intended functions.  
 
-- **Account Information**: Basic details when creating an account, including name, email address, and password.
-- **Content Creation Data**: Prompts, topics, preferences, and other information you input when using our AI creation service.
-- **User-Generated Content**: Content created through our service and its associated metadata.
-- **Feedback and Interactions**: Your feedback on generated content, editing history, and usage preferences.
+| Scope Example | Purpose | Persistently Stored | Retention Limit |
+|---|---|---|---|
+| `https://www.googleapis.com/auth/drive.file` | Read/write user-selected Drive files | No (temporary cache only) | Cleared when task ends (≤24h) |
+| `https://www.googleapis.com/auth/documents.readonly` | Read Docs for summarization or formatting | No | ≤24h |
+| `https://www.googleapis.com/auth/spreadsheets.readonly` | Read Sheets for structured data parsing | No | ≤24h |
+| `https://www.googleapis.com/auth/gmail.readonly` | Read user-selected Gmail messages for summarization | No (no message bodies stored) | ≤24h |
+| `https://www.googleapis.com/auth/calendar.readonly` | Read Calendar events for scheduling tasks | No | ≤24h |
 
-### Information We Automatically Collect
+> We **do not** access your entire Drive or Gmail.  
+> We **do not** store or index Google user data in databases, logs, or embeddings.  
+> Only minimal **technical metadata** (e.g., success/failure flags, error codes) may be logged.
 
-- **Usage Data**: Service usage statistics including access times, duration of use, and feature usage frequency.
-- **Technical Data**: Device information (IP address, device type, operating system, browser type), performance data, and error reports.
-- **AI Model Interaction Data**: Technical data generated from interactions with our AI models, used to improve service quality.
+---
 
-### Cookies and Tracking Technologies
+### (2) Information You Provide  
 
-We use cookies and similar technologies to:
+- **Account Info**: Name, email (passwords encrypted)  
+- **Workflow Data**: Prompts, templates, variables, execution records  
+- **User-Generated Content**: Text, images, documents, code, or web pages you create  
+- **Feedback & Interaction**: Ratings, edits, preferences  
 
-- Maintain your login status
-- Remember your preferences
-- Analyze service usage
-- Provide personalized experiences
+---
 
-You can control cookie usage through your browser settings.
+### (3) Automatically Collected Information  
 
-### Payment Information
+- Usage data: timestamps, feature usage frequency  
+- Technical data: device type, OS, browser, IP, performance logs  
+- Error & diagnostic data (for reliability, not content inspection)
 
-- **Payment Processing**: All payments are processed through secure third-party payment processors; we do not store complete payment card information.
-- **Billing Records**: We retain necessary billing records as required by law.
+---
 
-## Data Usage
+### (4) Cookies & Local Storage  
 
-We use collected data to:
+Used to maintain login, remember preferences, and analyze usage.  
+You may disable cookies via your browser, but some features may be affected.
 
-- Provide and improve our services (content creation, file generation, collaboration)
-- Authenticate and maintain your account
-- Personalize features and recommendations
-- Process billing and payments
-- Debug and improve AI model performance
-- Comply with legal obligations
-- Detect, prevent, and address fraud, abuse, and security issues
+---
 
-> **We do not use Google user data for advertising or remarketing purposes.**
+### (5) Payment Information  
 
-## Data Sharing
+Payments are processed by secure third-party processors (e.g., Stripe).  
+We do not store complete credit card details.
 
-We share your data only under limited circumstances:
+---
 
-- **Third-Party Service Providers**: Payment processors, cloud storage providers, and similar partners, only to the extent necessary to provide our Service.
-- **Legal Obligations**: When required by law, regulation, or governmental authority.
-- **User Consent**: When you explicitly authorize us to share specific data.
+## 3. Google User Data Usage (Restricted Scopes & Limited Use)  
 
-> **We do not sell Google user data.**
+To comply with Google’s **Limited Use** policy, we affirm:
 
-## Data Storage & Protection
+- **No Training / Fine-tuning / Improvement**  
+  Google user data (including derived data or embeddings) is **never** used to train, fine-tune, or improve:  
+  - Refly’s own AI/ML models, or  
+  - Any third-party general-purpose models (e.g., Jina, Perplexity, OpenAI, Anthropic).
 
-- **Storage Locations**: Data may be stored on secure servers operated by us or by third-party providers, in the U.S., EU, or other compliant jurisdictions.
-- **Security Measures**:
-  - Encryption of data in transit and at rest (TLS/HTTPS, AES-256)
-  - Strict access controls and authentication
-  - Regular security audits and monitoring
-  - Employee security and compliance training
+- **Task Execution Only**  
+  Data is processed only to fulfill user-initiated tasks (e.g., summarize a selected doc).  
+  Temporary caches are deleted immediately after task completion (≤24h).
 
-## Data Retention & Deletion
+- **No Improper Transfer or Sharing**  
+  Google user data is never shared with third parties except as required by law or explicit consent.
 
-We retain your personal data only for as long as necessary:
+- **Human Access Restriction**  
+  Data is processed automatically; limited human access occurs only for security, compliance, or debugging, under strict audit.
 
-- Account-related data: Duration of account existence
-- Generated content: 30 days after deletion or account termination
-- Payment records: As required by law (typically 7 years)
-- **Google user data**: Cached only temporarily during task execution and not stored long-term
+- **No Ads or Profiling**  
+  Google user data is not used for ads, remarketing, or profiling; we do not sell or rent it.
 
-**User Deletion Requests**: You may request deletion of your data at any time by contacting [privacy@refly.ai](mailto:privacy@refly.ai). Requests will be processed within 30 days.
+---
 
-## Your Data Rights
+## 4. AI Models & Third-Party Services Compliance  
 
-Based on your location's applicable laws, you have the following rights:
+- Refly’s AI features operate on non-Google data (user input or public data).  
+- Google user data is **never** used for model training or improvement.
 
-- **Right to Access**: Obtain a copy of your personal data we hold
-- **Right to Rectification**: Correct inaccurate personal data
-- **Right to Erasure**: Request deletion of your personal data
-- **Right to Data Portability**: Receive your data in a structured format
-- **Right to Object**: Object to the processing of your personal data
-- **Right to Withdraw Consent**: Withdraw previous consent at any time
-- **Right to Complain**: File a complaint with supervisory authorities
 
-## International Data Transfers
+### Third-Party AI Integrations
 
-We may process your data globally. We ensure:
+- Only non-Google data required for task completion may be sent.  
+- **No Google Workspace data** (Docs, Drive, Gmail, etc.) is ever transmitted.  
+- Governed by their respective privacy policies:  
+  - [Jina Privacy Policy](https://jina.ai/privacy)  
+  - [Perplexity Privacy Policy](https://www.perplexity.ai/privacy)
 
-- Implementation of appropriate data transfer mechanisms
-- Adequate data protection measures
-- Compliance with relevant data protection regulations
+---
 
-## Data Security
+## 5. Data Usage  
 
-We implement multi-layered security measures to protect your data:
+We use collected data to:  
+- Operate and maintain the Service  
+- Authenticate accounts and secure access  
+- Provide personalized workflows (based on aggregated, anonymized data)  
+- Handle billing and payments  
+- Debug performance (not inspecting Google data content)  
+- Comply with laws and regulations  
 
-- Data encryption in transit and at rest
-- Access control and authentication
-- Regular security audits
-- Employee security training
+> **Google user data is never used for ads or AI/ML training.**
 
-## AI Model and Algorithm Transparency
+---
 
-We commit to:
+## 6. Data Sharing  
 
-- Informing you about basic AI system operations
-- Clearly identifying AI-generated content
-- Maintaining algorithmic decision transparency
-- Continuously monitoring and reducing potential biases
+- **Service Providers / Subprocessors**: for hosting, CDN, analytics, notifications, or billing (no Google data content access).  
+- **Third-Party AI Tools**: only when user-initiated and containing no Google data.  
+- **Legal Compliance**: to meet lawful government or regulatory requests.  
+- **User Consent**: when explicitly authorized.
 
-## Children's Privacy
+> We do **not** sell or share Google user data for AI/ML training or marketing.  
 
-Our Service is not directed at children under 13. We will promptly delete any inadvertently collected children's data.
+---
 
-## Privacy Policy Updates
+## 7. Data Storage & Protection  
 
-We regularly update this policy to reflect legal requirements and service changes. You will be notified of significant changes.
+- Stored securely in the US, EU, or other compliant regions.  
+- Encryption: TLS/HTTPS for transit, AES-256 for rest.  
+- Access control: least privilege, MFA, audit logging.  
+- Incident Response: security incidents are reported within legal timelines.
 
-## Contact Information
+---
 
-For privacy-related inquiries:
+## 8. Data Retention & Deletion  
 
-- Email: [privacy@refly.ai](mailto:privacy@refly.ai)
-- Data Protection Officer: [dpo@refly.ai](mailto:dpo@refly.ai)
-- EU Representative (for GDPR): [eu-rep@refly.ai](mailto:eu-rep@refly.ai)
+| Data Type | Retention | Deletion |
+|---|---|---|
+| Account Data | While account active | Deleted within 30 days of closure |
+| Generated Content | User-managed | Deleted within 30 days post-deletion |
+| Billing Records | 7 years (legal requirement) | Automatic expiry |
+| Google User Data | Temporary cache only | Deleted immediately (≤24h) |
 
-For urgent privacy matters, we commit to responding within 72 hours.
+Users can delete data in-product or request via **[privacy@refly.ai](mailto:privacy@refly.ai)**.  
+
+---
+
+## 9. Your Rights  
+
+You may:  
+- Access, correct, or delete your data  
+- Restrict or object to processing  
+- Withdraw consent anytime  
+- File a complaint with your local authority  
+
+
+---
+
+## 10. International Data Transfers  
+
+We use Standard Contractual Clauses (SCCs) and encryption to protect data during international transfers.  
+
+---
+
+## 11. AI Transparency  
+
+AI-generated content is clearly labeled.  
+We disclose important influencing factors and continuously monitor bias.  
+
+---
+
+## 12. Children’s Privacy  
+
+The Service is not directed to children under 13.  
+If collected unintentionally, such data will be deleted promptly.  
+
+---
+
+## 13. Limited Use Compliance (Google Policy Alignment)  
+
+Refly complies with the **Google API Services User Data Policy (Limited Use)**:
+
+1. No ads, remarketing, or profiling using Google data  
+2. No sale, rental, or transfer of Google data for unrelated purposes  
+3. No training, fine-tuning, or improving any (including third-party) AI/ML models using Google data  
+4. No human access unless with explicit consent or for security/compliance  
+5. Cached Google data deleted immediately after task completion (≤24h)
+
+> Policy Reference: [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy)
+
+---
+
+## 14. Policy Updates  
+
+We may update this Policy for legal, product, or operational reasons.  
+
+---
+
+## 15. Contact  
+
+- Privacy Inquiries: [privacy@refly.ai](mailto:privacy@refly.ai)  
+- Data Protection Officer: [dpo@refly.ai](mailto:dpo@refly.ai)  
+- EU Representative: [eu-rep@refly.ai](mailto:eu-rep@refly.ai)
+
+We respond to urgent privacy requests within **72 hours**.  
+
+---
+

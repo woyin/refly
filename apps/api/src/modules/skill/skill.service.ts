@@ -53,7 +53,7 @@ import {
 import { actionResultPO2DTO } from '../action/action.dto';
 import { CodeArtifactService } from '../code-artifact/code-artifact.service';
 import { ProviderService } from '../provider/provider.service';
-import { providerPO2DTO } from '../provider/provider.dto';
+import { providerPO2DTO, providerItemPO2DTO } from '../provider/provider.dto';
 import { codeArtifactPO2DTO } from '../code-artifact/code-artifact.dto';
 import { SkillInvokerService } from './skill-invoker.service';
 import { ActionService } from '../action/action.service';
@@ -637,6 +637,7 @@ export class SkillService implements OnModuleInit {
         ...providerPO2DTO(providerItem?.provider),
         apiKey: providerItem?.provider?.apiKey,
       },
+      providerItem: providerItemPO2DTO(providerItem),
     };
 
     return { data, existingResult, providerItem };
