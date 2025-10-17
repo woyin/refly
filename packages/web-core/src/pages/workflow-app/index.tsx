@@ -289,25 +289,29 @@ const WorkflowAppPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Tabs */}
-                  <div className="mb-4 sm:mb-6 flex justify-center">
-                    <Segmented
-                      className="max-w-sm sm:max-w-md mx-auto"
-                      shape="round"
-                      options={segmentedOptions}
-                      value={activeTab}
-                      onChange={(value) => setActiveTab(value)}
-                    />
-                  </div>
+                  {logs.length > 0 && (
+                    <>
+                      {/* Tabs */}
+                      <div className="mb-4 sm:mb-6 flex justify-center">
+                        <Segmented
+                          className="max-w-sm sm:max-w-md mx-auto"
+                          shape="round"
+                          options={segmentedOptions}
+                          value={activeTab}
+                          onChange={(value) => setActiveTab(value)}
+                        />
+                      </div>
 
-                  {/* Content Area */}
-                  <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border min-h-[200px]">
-                    {activeTab === 'products' ? (
-                      <WorkflowAppProducts products={products || []} />
-                    ) : activeTab === 'runLogs' ? (
-                      <WorkflowAppRunLogs nodeExecutions={logs || []} />
-                    ) : null}
-                  </div>
+                      {/* Content Area */}
+                      <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border min-h-[200px]">
+                        {activeTab === 'products' ? (
+                          <WorkflowAppProducts products={products || []} />
+                        ) : activeTab === 'runLogs' ? (
+                          <WorkflowAppRunLogs nodeExecutions={logs || []} />
+                        ) : null}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
