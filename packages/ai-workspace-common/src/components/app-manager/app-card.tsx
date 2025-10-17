@@ -5,10 +5,10 @@ import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useTranslation } from 'react-i18next';
 import { WiTime3 } from 'react-icons/wi';
-import { AiOutlineUser } from 'react-icons/ai';
 import { useNavigate } from 'react-router-dom';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { useState } from 'react';
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 
 export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () => void }) => {
   const { i18n, t } = useTranslation();
@@ -74,7 +74,7 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
 
           <div className="flex items-center gap-2 text-xs text-refly-text-2">
             <div className="flex items-center gap-1 flex-1 min-w-0">
-              <Avatar size={18} src={data.owner?.avatar} icon={<AiOutlineUser />} />
+              <Avatar size={18} src={data.owner?.avatar || defaultAvatar} />
               <span className="truncate">
                 {data.owner?.nickname ? data.owner?.nickname : `@${data.owner?.name}`}
               </span>

@@ -33,8 +33,21 @@ export const useNodeData = () => {
     [setNodes],
   );
 
+  const setNodePosition = useCallback(
+    (nodeId: string, position: { x: number; y: number }) => {
+      setNodes((nodes) =>
+        nodes.map((n) => ({
+          ...n,
+          position: n.id === nodeId ? position : n.position,
+        })),
+      );
+    },
+    [setNodes],
+  );
+
   return {
     setNodeData,
     setNodeStyle,
+    setNodePosition,
   };
 };

@@ -7,8 +7,8 @@ import { HoverCard } from './hover-card';
 import { useNavigate } from 'react-router-dom';
 import { SiderData } from '@refly/stores';
 import { Avatar } from 'antd';
-import { AiOutlineUser } from 'react-icons/ai';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 
 export const RecentWorkflow = memo(({ canvases }: { canvases: SiderData[] }) => {
   const { i18n, t } = useTranslation();
@@ -37,14 +37,14 @@ export const RecentWorkflow = memo(({ canvases }: { canvases: SiderData[] }) => 
               <div className="text-sm leading-5 font-semibold text-refly-text-0 line-clamp-1">
                 {canvas.name || t('common.untitled')}
               </div>
-              <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <div className="mt-1" onClick={(e) => e.stopPropagation()}>
                 <UsedToolsets toolsets={canvas.usedToolsets} />
               </div>
             </div>
 
             <div className="flex items-center gap-2 justify-between">
               <div className="flex items-center gap-1 flex-1 min-w-0">
-                <Avatar size={18} src={canvas.owner?.avatar} icon={<AiOutlineUser />} />
+                <Avatar size={18} src={canvas.owner?.avatar || defaultAvatar} />
                 <div className="text-xs leading-4 text-refly-text-3 truncate">
                   {canvas.owner?.nickname ? canvas.owner?.nickname : `@${canvas.owner?.name}`}
                 </div>

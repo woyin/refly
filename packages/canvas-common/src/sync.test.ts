@@ -66,6 +66,17 @@ describe('initEmptyCanvasState', () => {
         selected: false,
         dragging: false,
       },
+      {
+        type: 'skill',
+        id: expect.any(String),
+        position: { x: 400, y: 0 },
+        data: {
+          title: 'Skill',
+          entityId: expect.any(String),
+        },
+        selected: false,
+        dragging: false,
+      },
     ]);
     expect(state.edges).toEqual([]);
     expect(state.transactions).toEqual([]);
