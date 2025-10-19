@@ -6,25 +6,48 @@ import {
   EntityType,
   ModelInfo,
   ModelTier,
+  ToolCallResult,
 } from '@refly/openapi-schema';
 import {
   ActionResult as ActionResultModel,
   ActionStep as ActionStepModel,
+  ToolCallResult as ToolCallResultModel,
 } from '../../generated/client';
 import { pick, safeParseJSON } from '@refly/utils';
 
+type ActionStepDetail = ActionStepModel & {
+  toolCalls?: ToolCallResultModel[];
+};
+
 export type ActionDetail = ActionResultModel & {
-  steps?: ActionStepModel[];
+  steps?: ActionStepDetail[];
   modelInfo?: ModelInfo;
 };
 
-export function actionStepPO2DTO(step: ActionStepModel): ActionStep {
+export function actionStepPO2DTO(step: ActionStepDetail): ActionStep {
   return {
     ...pick(step, ['name', 'content', 'reasoningContent']),
     logs: safeParseJSON(step.logs || '[]'),
     artifacts: safeParseJSON(step.artifacts || '[]'),
     structuredData: safeParseJSON(step.structuredData || '{}'),
     tokenUsage: safeParseJSON(step.tokenUsage || '[]'),
+    toolCalls: step.toolCalls?.map(toolCallResultPO2DTO),
+  };
+}
+
+export function toolCallResultPO2DTO(toolCall: ToolCallResultModel): ToolCallResult {
+  return {
+    callId: toolCall.callId,
+    uid: toolCall.uid,
+    toolsetId: toolCall.toolsetId,
+    toolName: toolCall.toolName,
+    input: safeParseJSON(toolCall.input || '{}'),
+    output: safeParseJSON(toolCall.output || '{}'),
+    error: toolCall.error || '',
+    status: toolCall.status as 'executing' | 'completed' | 'failed',
+    createdAt: toolCall.createdAt.getTime(),
+    updatedAt: toolCall.updatedAt.getTime(),
+    deletedAt: toolCall.deletedAt?.getTime(),
   };
 }
 

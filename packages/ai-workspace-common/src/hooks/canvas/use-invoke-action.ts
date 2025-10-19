@@ -1,5 +1,15 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
+import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
+import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
+import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
+import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
+import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
+import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
+import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
+import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import {
+  ActionResult,
+  ActionStatus,
   ActionStep,
   ActionStepMeta,
   Artifact,
@@ -7,32 +17,26 @@ import {
   Entity,
   InvokeSkillRequest,
   SkillEvent,
-  ActionStatus,
-  ActionResult,
 } from '@refly/openapi-schema';
-import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
-import { getRuntime } from '@refly/utils/env';
-import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useActionResultStore } from '@refly/stores';
-import { aggregateTokenUsage, genActionResultID, detectActualTypeFromType } from '@refly/utils';
-import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
-import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
-import { useActionPolling } from './use-action-polling';
-import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
-import { useUpdateActionResult } from './use-update-action-result';
-import { useSubscriptionUsage } from '../use-subscription-usage';
-import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
-import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
-import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
-import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
-import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
 import { logEvent } from '@refly/telemetry-web';
+import { aggregateTokenUsage, detectActualTypeFromType, genActionResultID } from '@refly/utils';
+import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
+import { getRuntime } from '@refly/utils/env';
+import { useCallback, useEffect, useRef } from 'react';
 import {
-  useAbortAction,
+  mergeToolCallById,
+  parseToolCallFromChunk,
+} from '../../components/markdown/plugins/tool-call/toolProcessor';
+import { useSubscriptionUsage } from '../use-subscription-usage';
+import {
   globalAbortControllerRef,
-  globalIsAbortedRef,
   globalCurrentResultIdRef,
+  globalIsAbortedRef,
+  useAbortAction,
 } from './use-abort-action';
+import { useActionPolling } from './use-action-polling';
+import { useUpdateActionResult } from './use-update-action-result';
 
 export const useInvokeAction = (params?: { source?: string }) => {
   const { source } = params || {};
@@ -147,6 +151,18 @@ export const useInvokeAction = (params?: { source?: string }) => {
     return steps.map((step) => (step.name === updatedStep.name ? updatedStep : step));
   };
 
+  // Update toolCalls on a step by parsing tool_use XML in the current chunk content
+  const updateToolCallsFromXml = (
+    updatedStep: ActionStep,
+    step: ActionStepMeta | undefined,
+    content: string,
+  ): void => {
+    const parsed = parseToolCallFromChunk(content, step?.name);
+    if (!parsed) return;
+    const merged = mergeToolCallById(updatedStep.toolCalls as any, parsed as any);
+    updatedStep.toolCalls = merged as any;
+  };
+
   const onSkillStreamArtifact = (_resultId: string, artifact: Artifact, content: string) => {
     // Handle code artifact content if this is a code artifact stream
     if (artifact && artifact.type === 'codeArtifact') {
@@ -189,6 +205,9 @@ export const useInvokeAction = (params?: { source?: string }) => {
       updatedStep.reasoningContent =
         (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
     }
+
+    // Update toolCalls with tool_use XML parsed from the current chunk
+    updateToolCallsFromXml(updatedStep, step, content);
 
     const payload = {
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),

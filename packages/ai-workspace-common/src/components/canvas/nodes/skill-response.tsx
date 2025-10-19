@@ -1,53 +1,53 @@
-import { Position, useReactFlow } from '@xyflow/react';
-import { useTranslation } from 'react-i18next';
-import { Input, message } from 'antd';
-import type { InputRef } from 'antd';
+import { IconError, IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import {
+  cleanupNodeEvents,
+  createNodeEventName,
+  nodeActionEmitter,
+} from '@refly-packages/ai-workspace-common/events/nodeActions';
+import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
+import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
+import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
+import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
+import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
+import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
+import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { CanvasNode, purgeToolsets } from '@refly/canvas-common';
-import { useState, useCallback, useRef, useEffect, memo, useMemo } from 'react';
+import { LOCALE } from '@refly/common-types';
+import { CanvasNodeType } from '@refly/openapi-schema';
+import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
+import { genSkillID } from '@refly/utils/id';
+import { Position, useReactFlow } from '@xyflow/react';
+import type { InputRef } from 'antd';
+import { Input, message } from 'antd';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CustomHandle } from './shared/custom-handle';
 import { getNodeCommonStyles } from './shared/styles';
 import { SkillResponseNodeProps } from './shared/types';
-import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
-import { useNodeHoverEffect } from '@refly-packages/ai-workspace-common/hooks/canvas/use-node-hover';
-import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
-import { useInsertToDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-insert-to-document';
-import { useCreateDocument } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-document';
-import { IconError, IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
-import { time } from '@refly-packages/ai-workspace-common/utils/time';
-import { LOCALE } from '@refly/common-types';
-import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { nodeActionEmitter } from '@refly-packages/ai-workspace-common/events/nodeActions';
-import {
-  createNodeEventName,
-  cleanupNodeEvents,
-} from '@refly-packages/ai-workspace-common/events/nodeActions';
-import { CanvasNodeType } from '@refly/openapi-schema';
-import { useAddToContext } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-to-context';
-import { useAddNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-add-node';
-import { genSkillID } from '@refly/utils/id';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 
-import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
-import cn from 'classnames';
-import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
-import { truncateContent } from '@refly-packages/ai-workspace-common/utils/content';
-import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
 import { ModelIcon } from '@lobehub/icons';
-import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
-import { NodeActionButtons } from './shared/node-action-buttons';
-import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
 import { NodeDragCreateInfo } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import {
-  useNodeExecutionStatus,
+  useNodeData,
   useNodeExecutionFocus,
+  useNodeExecutionStatus,
 } from '@refly-packages/ai-workspace-common/hooks/canvas';
-import { NodeExecutionStatus } from './shared/node-execution-status';
-import { NodeExecutionOverlay } from './shared/node-execution-overlay';
-import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
+import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
+import { useGetNodeConnectFromDragCreateInfo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-connect';
+import { useSelectedNodeZIndex } from '@refly-packages/ai-workspace-common/hooks/canvas/use-selected-node-zIndex';
 import { usePilotRecovery } from '@refly-packages/ai-workspace-common/hooks/pilot/use-pilot-recovery';
+import { useSkillError } from '@refly-packages/ai-workspace-common/hooks/use-skill-error';
+import { useUpdateNodeTitle } from '@refly-packages/ai-workspace-common/hooks/use-update-node-title';
+import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries/queries';
+import { truncateContent } from '@refly-packages/ai-workspace-common/utils/content';
 import { usePilotStoreShallow } from '@refly/stores';
+import cn from 'classnames';
+import { NodeActionButtons } from './shared/node-action-buttons';
+import { NodeExecutionOverlay } from './shared/node-execution-overlay';
+import { NodeExecutionStatus } from './shared/node-execution-status';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
 import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
@@ -409,12 +409,15 @@ export const SkillResponseNode = memo(
         resetFailedState(entityId);
       }
 
+      const nextVersion = (data?.metadata?.version || 0) + 1;
+
       setNodeData(id, {
         ...data,
         contentPreview: '',
         metadata: {
           ...data?.metadata,
           status: 'waiting',
+          version: nextVersion,
         },
       });
 
@@ -425,6 +428,7 @@ export const SkillResponseNode = memo(
           selectedSkill: skill,
           contextItems: data?.metadata?.contextItems,
           selectedToolsets: purgeToolsets(data?.metadata?.selectedToolsets),
+          version: nextVersion,
         },
         {
           entityType: 'canvas',
