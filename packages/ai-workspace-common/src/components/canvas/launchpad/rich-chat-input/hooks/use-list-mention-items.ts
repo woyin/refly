@@ -125,7 +125,7 @@ export const useListMentionItems = (filterNodeId?: string): MentionItem[] => {
       ...toolsetItems,
       ...toolItems,
     ];
-  }, [workflowVariables, nodes, resources, toolsets, t, currentLanguage]);
+  }, [workflowVariables, nodes, resources, toolsets, t, currentLanguage, filterNodeId]);
 
   return allItems;
 };

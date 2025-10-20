@@ -73,7 +73,7 @@ export class CanvasService {
     const { page = 1, pageSize = 10, projectId, order = 'updationDesc', keyword } = param;
 
     // Build orderBy based on order parameter
-    let orderBy: any = { updatedAt: 'desc' as const };
+    let orderBy: Prisma.CanvasOrderByWithRelationInput = { updatedAt: 'desc' as const };
 
     switch (order) {
       case 'creationAsc':

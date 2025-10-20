@@ -3789,7 +3789,7 @@ const translations = {
     unshareFailed: 'Failed to unshare workflow {{title}}',
     usedToolsetsTitle: 'Workflow Tools',
     tableTitle: {
-      workflowName: ' Title',
+      workflowName: 'Title',
       status: 'Status',
       tools: 'Tools',
       owner: 'Owner',
