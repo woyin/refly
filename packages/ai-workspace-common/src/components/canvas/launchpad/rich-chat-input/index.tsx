@@ -386,7 +386,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     );
 
     // Enhanced handleSendMessage that converts mentions to Handlebars
-    const handleSendMessageWithHandlebars = useCallback(() => {
+    const handleSendMessageWithMentions = useCallback(() => {
       if (editor) {
         const currentContent = serializeDocToTokens(editor?.state?.doc);
         // Update the query with the serialized content before sending
@@ -558,24 +558,33 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             return;
           }
 
+          // If mention list is visible, let it handle the Enter key
+          if (isMentionListVisible) {
+            return;
+          }
+
           // Ctrl/Meta + Enter should always send the message
           if ((e.ctrlKey || e.metaKey) && (query?.trim() || !isLogin)) {
             e.preventDefault();
-            handleSendMessageWithHandlebars();
+            e.stopPropagation();
+            e.nativeEvent?.stopImmediatePropagation?.();
+            handleSendMessageWithMentions();
             return;
           }
 
           // For regular Enter key, send message if not in mention suggestion
           if (!e.shiftKey && (query?.trim() || !isLogin)) {
             e.preventDefault();
-            handleSendMessageWithHandlebars();
+            e.stopPropagation();
+            e.nativeEvent?.stopImmediatePropagation?.();
+            handleSendMessageWithMentions();
           }
         }
       },
       [
         query,
         readonly,
-        handleSendMessageWithHandlebars,
+        handleSendMessageWithMentions,
         searchStore,
         isLogin,
         isMentionListVisible,
@@ -681,7 +690,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             </div>
           )}
 
-          <div className="flex-1 min-h-0" onKeyDown={handleKeyDown} onPaste={handlePaste}>
+          <div className="flex-1 min-h-0" onKeyDownCapture={handleKeyDown} onPaste={handlePaste}>
             {editor ? (
               <EditorContent
                 editor={editor}
