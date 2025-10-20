@@ -120,7 +120,7 @@ const WorkflowList = memo(() => {
         title: t('workflowList.tableTitle.workflowName'),
         dataIndex: 'title',
         key: 'title',
-        width: 376,
+        width: 336,
         fixed: 'left' as const,
         render: (text: string, _record: Canvas) => (
           <Typography.Text
@@ -135,7 +135,7 @@ const WorkflowList = memo(() => {
         title: t('workflowList.tableTitle.status'),
         dataIndex: 'shareRecord',
         key: 'shareRecord',
-        width: 100,
+        width: 140,
         render: (shareRecord: ShareRecord) => {
           const isShared = shareRecord?.shareId;
           return (
