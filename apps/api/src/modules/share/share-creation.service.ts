@@ -1037,6 +1037,7 @@ export class ShareCreationService {
       coverUrl: workflowApp.coverStorageKey
         ? generateCoverUrl(workflowApp.coverStorageKey)
         : undefined,
+      templateContent: workflowApp.templateContent,
       query: workflowApp.query,
       variables: JSON.parse(workflowApp.variables || '[]'),
       canvasData: canvasDataWithId, // Use the extended canvas data with canvasId
