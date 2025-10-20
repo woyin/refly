@@ -110,8 +110,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}
         focus:border-[rgba(14,159,119,0.6)]
         hover:border-[rgba(14,159,119,0.4)]
-        placeholder:text-[#0E9F77]
-        placeholder:opacity-70
+        placeholder:text-[rgba(14,159,119,0.50)]
       `}
           style={{
             borderWidth: '0 0 1.5px 0',
@@ -125,12 +124,13 @@ const VariableInput: React.FC<VariableInputProps> = memo(
             width: `${inputWidth}px`,
             minWidth: '60px',
             maxWidth: '100%',
-            fontFamily:
-              'PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontFamily: 'PingFang SC',
             fontSize: '16px',
-            lineHeight: '1.625em',
+            fontStyle: 'normal',
+            fontWeight: isEmpty ? '400' : '500',
+            lineHeight: '26px',
             color: isEmpty
-              ? '#7FB3A3' // Empty value: light green font
+              ? 'red' // Empty value: light green font
               : isDefaultValue
                 ? '#0E9F77' // Default value: normal green font
                 : isModified

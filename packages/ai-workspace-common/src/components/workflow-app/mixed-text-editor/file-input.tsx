@@ -79,10 +79,11 @@ const FileInput: React.FC<FileInputProps> = memo(
             borderRadius: '0',
             padding: '4px 8px',
             height: '26px',
-            fontFamily:
-              'PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontFamily: 'PingFang SC',
             fontSize: '16px',
-            lineHeight: '1.625em',
+            fontStyle: 'normal',
+            fontWeight: isEmpty ? '400' : '500',
+            lineHeight: '26px',
             color: isEmpty
               ? '#7FB3A3' // Empty value: light green font
               : isDefaultValue
