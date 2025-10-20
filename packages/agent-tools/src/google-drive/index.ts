@@ -253,7 +253,7 @@ export const GoogleDriveToolsetDefinition: ToolsetDefinition = {
     {
       type: 'oauth',
       provider: 'google',
-      scope: ['https://www.googleapis.com/auth/drive'],
+      scope: ['https://www.googleapis.com/auth/drive.file'],
     },
   ],
   configItems: [
