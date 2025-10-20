@@ -36,7 +36,7 @@ export function workflowAppPO2DTO(
   } as any;
 }
 
-function generateCoverUrl(storageKey: string): string {
+export function generateCoverUrl(storageKey: string): string {
   // Generate public URL for cover image
   // This should match the pattern used in MiscService
   const baseUrl = process.env.STATIC_PUBLIC_ENDPOINT || 'http://localhost:5800/v1/misc/public';

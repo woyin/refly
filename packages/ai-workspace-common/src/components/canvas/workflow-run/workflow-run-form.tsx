@@ -1,8 +1,4 @@
-import type {
-  WorkflowVariable,
-  WorkflowExecutionStatus,
-  RawCanvasData,
-} from '@refly/openapi-schema';
+import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, notification } from 'antd';
 import { Play, Copy } from 'refly-icons';
@@ -48,7 +44,7 @@ interface WorkflowRunFormProps {
   onRunningChange?: (isRunning: boolean) => void;
   className?: string;
   templateContent?: string;
-  canvasData?: RawCanvasData;
+  workflowApp?: any;
 }
 
 export const WorkflowRunForm = ({
@@ -62,7 +58,7 @@ export const WorkflowRunForm = ({
   onRunningChange,
   className,
   templateContent,
-  canvasData,
+  workflowApp,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
@@ -296,6 +292,8 @@ export const WorkflowRunForm = ({
     }
   };
 
+  console.log({ workflowApp });
+
   return (
     <div className={cn('w-full h-full gap-3 flex flex-col', className)}>
       {
@@ -314,9 +312,9 @@ export const WorkflowRunForm = ({
                   />
 
                   {/* Tools Dependency Form */}
-                  {canvasData && (
+                  {workflowApp?.canvasData && (
                     <div className="mt-3 ">
-                      <ToolsDependencyChecker canvasData={canvasData} />
+                      <ToolsDependencyChecker canvasData={workflowApp?.canvasData} />
                     </div>
                   )}
                 </div>
@@ -344,7 +342,7 @@ export const WorkflowRunForm = ({
                   : t('canvas.workflow.run.run') || 'Run'}
               </Button>
 
-              {onCopyWorkflow && (
+              {onCopyWorkflow && workflowApp?.remixEnabled && (
                 <Button
                   className="h-9 sm:h-10 text-sm sm:text-base"
                   type="default"

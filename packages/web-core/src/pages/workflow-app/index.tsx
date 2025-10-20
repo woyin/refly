@@ -266,7 +266,7 @@ const WorkflowAppPage: React.FC = () => {
                   <div className="mb-6 sm:mb-8">
                     {
                       <WorkflowRunForm
-                        canvasData={workflowApp.canvasData}
+                        workflowApp={workflowApp}
                         workflowVariables={workflowVariables}
                         onSubmitVariables={onSubmit}
                         loading={isLoading}
