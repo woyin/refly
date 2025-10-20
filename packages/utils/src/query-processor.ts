@@ -11,7 +11,8 @@ export interface MentionParseResult {
 }
 
 /**
- * Process query with workflow variables using regex replacement
+ * Process query with workflow variables and mentions using regex replacement
+ * Supports mention types: var, resource, step, toolset, and tool
  * @param query - The original query string
  * @param options - Options for processing query
  * @returns Processed query string and resource variables
@@ -104,6 +105,11 @@ export function processQueryWithMentions(
       }
 
       // Replace resource mentions with the name
+      return name ?? '';
+    }
+
+    if (type === 'step' || type === 'toolset' || type === 'tool') {
+      // Replace step, toolset and tool mentions with the name
       return name ?? '';
     }
 

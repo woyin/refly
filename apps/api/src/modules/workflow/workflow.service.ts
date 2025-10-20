@@ -526,6 +526,7 @@ export class WorkflowService {
             endTime: new Date(),
           },
         });
+        await this.updateWorkflowExecutionStats(failedNodeExecution.executionId);
       }
 
       this.logger.error(`Failed to run workflow node ${nodeId}: ${error.message}`);

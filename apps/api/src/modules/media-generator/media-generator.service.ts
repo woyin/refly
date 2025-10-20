@@ -23,9 +23,9 @@ export class MediaGeneratorService {
 
   // Timeout configurations for different media types (in milliseconds)
   private readonly timeoutConfig = {
-    image: 90 * 1000, // 90 seconds for images
-    audio: 5 * 60 * 1000, // 5 minutes for audio
-    video: 10 * 60 * 1000, // 10 minutes for video
+    image: 5 * 60 * 1000, // 5 minutes for images
+    audio: 15 * 60 * 1000, // 15 minutes for audio
+    video: 15 * 60 * 1000, // 15 minutes for video
   };
 
   // Polling interval (in milliseconds)

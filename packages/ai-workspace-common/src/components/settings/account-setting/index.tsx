@@ -12,6 +12,7 @@ import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import { BiSolidEdit } from 'react-icons/bi';
 import { ContentHeader } from '../contentHeader';
 import { useLogout } from '@refly-packages/ai-workspace-common/hooks/use-logout';
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 
 // Compress image utilities to ensure avatar file size under 5MB
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
@@ -264,10 +265,10 @@ export const AccountSetting = () => {
 
   // Avatar display component
   const AvatarDisplay = useMemo(() => {
-    if (userProfile?.avatar && !avatarError) {
+    if (defaultAvatar || (userProfile?.avatar && !avatarError)) {
       return (
         <img
-          src={userProfile.avatar}
+          src={userProfile?.avatar || defaultAvatar}
           alt="avatar"
           className="w-full h-full object-cover rounded-full"
           onError={() => {
@@ -391,9 +392,9 @@ export const AccountSetting = () => {
                     </div>
                   )}
 
-                  {avatarKey && !avatarError ? (
+                  {(avatarKey && !avatarError) || defaultAvatar ? (
                     <img
-                      src={avatarUrl}
+                      src={avatarUrl || defaultAvatar}
                       alt="avatar"
                       className="w-full h-full object-cover"
                       onError={() => {

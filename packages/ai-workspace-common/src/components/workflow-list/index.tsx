@@ -18,7 +18,7 @@ import { WorkflowActionDropdown } from '@refly-packages/ai-workspace-common/comp
 import { useCreateCanvas } from '@refly-packages/ai-workspace-common/hooks/canvas/use-create-canvas';
 import { ListOrder, ShareRecord, ShareUser } from '@refly/openapi-schema';
 import { UsedToolsets } from '@refly-packages/ai-workspace-common/components/workflow-list/used-toolsets';
-import { AiOutlineUser } from 'react-icons/ai';
+import defaultAvatar from '@refly-packages/ai-workspace-common/assets/refly_default_avatar.png';
 
 const WorkflowList = memo(() => {
   const { t, i18n } = useTranslation();
@@ -174,8 +174,7 @@ const WorkflowList = memo(() => {
               <Avatar
                 size={20}
                 className="bg-gray-300 dark:bg-gray-600"
-                src={ownerAvatar}
-                icon={!ownerAvatar && <AiOutlineUser />}
+                src={ownerAvatar || defaultAvatar}
               />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {ownerNickname ? ownerNickname : ownerName}

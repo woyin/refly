@@ -14,6 +14,7 @@ import {
   SkillEvent,
   TokenUsageItem,
   User,
+  ProviderItem,
 } from '@refly/openapi-schema';
 import {
   BaseSkill,
@@ -97,6 +98,7 @@ export class SkillInvokerService {
 
   private async buildLangchainMessages(
     user: User,
+    providerItem: ProviderItem,
     result: ActionResult,
     steps: ActionStep[],
   ): Promise<BaseMessage[]> {
@@ -104,7 +106,7 @@ export class SkillInvokerService {
 
     // Only create content array if images exist
     let messageContent: string | MessageContentComplex[] = query;
-    if (result.input?.images?.length > 0) {
+    if (result.input?.images?.length > 0 && (providerItem?.config as any)?.capabilities?.vision) {
       const imageUrls = await this.miscService.generateImageUrls(user, result.input.images);
       messageContent = [
         { type: 'text', text: query },
@@ -144,6 +146,7 @@ export class SkillInvokerService {
       context,
       tplConfig,
       runtimeConfig,
+      providerItem,
       modelConfigMap,
       provider,
       resultHistory,
@@ -187,7 +190,7 @@ export class SkillInvokerService {
 
     if (resultHistory?.length > 0) {
       config.configurable.chatHistory = await Promise.all(
-        resultHistory.map((r) => this.buildLangchainMessages(user, r, r.steps)),
+        resultHistory.map((r) => this.buildLangchainMessages(user, providerItem, r, r.steps)),
       ).then((messages) => messages.flat());
     }
 
@@ -274,8 +277,10 @@ export class SkillInvokerService {
       `invoke skill with input: ${JSON.stringify(input)}, resultId: ${resultId}, version: ${version}`,
     );
 
-    if (input.images?.length > 0) {
+    if (input.images?.length > 0 && (data.providerItem?.config as any)?.capabilities?.vision) {
       input.images = await this.miscService.generateImageUrls(user, input.images);
+    } else {
+      input.images = [];
     }
 
     if (tier) {
