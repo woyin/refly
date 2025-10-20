@@ -28,7 +28,7 @@ const WorkflowList = memo(() => {
   const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
   const debounceTimeoutRef = useRef<NodeJS.Timeout>();
 
-  const [orderType, setOrderType] = useState<ListOrder>('creationDesc');
+  const [orderType, setOrderType] = useState<ListOrder>('updationDesc');
 
   const { debouncedCreateCanvas, isCreating: createCanvasLoading } = useCreateCanvas({});
 
@@ -65,7 +65,7 @@ const WorkflowList = memo(() => {
   }, [searchValue]);
 
   const handleOrderType = useCallback(() => {
-    setOrderType(orderType === 'creationAsc' ? 'creationDesc' : 'creationAsc');
+    setOrderType(orderType === 'updationAsc' ? 'updationDesc' : 'updationAsc');
   }, [orderType]);
 
   const afterDelete = useCallback(
@@ -117,10 +117,10 @@ const WorkflowList = memo(() => {
   const columns = useMemo(
     () => [
       {
-        title: t('workflowList.workflowName'),
+        title: t('workflowList.tableTitle.workflowName'),
         dataIndex: 'title',
         key: 'title',
-        width: 376,
+        width: 336,
         fixed: 'left' as const,
         render: (text: string, _record: Canvas) => (
           <Typography.Text
@@ -132,11 +132,10 @@ const WorkflowList = memo(() => {
         ),
       },
       {
-        title: t('workflowList.status'),
+        title: t('workflowList.tableTitle.status'),
         dataIndex: 'shareRecord',
         key: 'shareRecord',
-        width: 100,
-        align: 'center' as const,
+        width: 140,
         render: (shareRecord: ShareRecord) => {
           const isShared = shareRecord?.shareId;
           return (
@@ -147,24 +146,23 @@ const WorkflowList = memo(() => {
         },
       },
       {
-        title: t('workflowList.tools'),
+        title: t('workflowList.tableTitle.tools'),
         dataIndex: 'usedToolsets',
         key: 'usedToolsets',
         width: 140,
         render: (usedToolsets: GenericToolset[]) => {
           return (
-            <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
               <UsedToolsets toolsets={usedToolsets} />
             </div>
           );
         },
       },
       {
-        title: t('workflowList.owner'),
+        title: t('workflowList.tableTitle.owner'),
         dataIndex: 'owner',
         key: 'owner',
         width: 150,
-        align: 'center' as const,
         render: (owner: ShareUser) => {
           const ownerName = owner?.name || t('common.untitled');
           const ownerNickname = owner?.nickname;
@@ -184,21 +182,20 @@ const WorkflowList = memo(() => {
         },
       },
       {
-        title: t('workflowList.lastModified'),
-        dataIndex: 'createdAt',
-        key: 'createdAt',
-        align: 'center' as const,
+        title: t('workflowList.tableTitle.lastModified'),
+        dataIndex: 'updatedAt',
+        key: 'updatedAt',
         width: 120,
-        render: (createdAt: string) => (
+        render: (updatedAt: string) => (
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {time(createdAt, language as LOCALE)
+            {time(updatedAt, language as LOCALE)
               .utc()
               .fromNow()}
           </span>
         ),
       },
       {
-        title: t('common.actions'),
+        title: t('workflowList.tableTitle.actions'),
         key: 'actions',
         width: 106,
         align: 'center' as const,
@@ -273,7 +270,7 @@ const WorkflowList = memo(() => {
             className="flex-shrink-0 w-8 h-8 p-0 flex items-center justify-center"
             onClick={handleOrderType}
           >
-            {orderType === 'creationAsc' ? (
+            {orderType === 'updationAsc' ? (
               <SortAsc size={20} color="var(--refly-text-0)" />
             ) : (
               <Sort size={20} color="var(--refly-text-0)" />
@@ -295,10 +292,9 @@ const WorkflowList = memo(() => {
               dataSource={dataList}
               rowKey="canvasId"
               pagination={false}
-              scroll={{ y: 'calc(100vh - 144px)' }}
+              scroll={{ y: 'calc(100vh - 190px)' }}
               className="workflow-table flex-1"
               size="middle"
-              showHeader={false}
               onRow={(record: Canvas) => ({
                 className:
                   'cursor-pointer hover:!bg-refly-tertiary-hover transition-colors duration-200',

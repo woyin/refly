@@ -70,11 +70,27 @@ export class CanvasService {
   ) {}
 
   async listCanvases(user: User, param: ListCanvasesData['query']): Promise<CanvasDetailModel[]> {
-    const { page = 1, pageSize = 10, projectId, order = 'creationDesc', keyword } = param;
+    const { page = 1, pageSize = 10, projectId, order = 'updationDesc', keyword } = param;
 
     // Build orderBy based on order parameter
-    const orderBy =
-      order === 'creationAsc' ? { createdAt: 'asc' as const } : { createdAt: 'desc' as const };
+    let orderBy: Prisma.CanvasOrderByWithRelationInput = { updatedAt: 'desc' as const };
+
+    switch (order) {
+      case 'creationAsc':
+        orderBy = { createdAt: 'asc' as const };
+        break;
+      case 'creationDesc':
+        orderBy = { createdAt: 'desc' as const };
+        break;
+      case 'updationAsc':
+        orderBy = { updatedAt: 'asc' as const };
+        break;
+      case 'updationDesc':
+        orderBy = { updatedAt: 'desc' as const };
+        break;
+      default:
+        orderBy = { updatedAt: 'desc' as const };
+    }
 
     // Build where clause with keyword search
     const where: Prisma.CanvasWhereInput = {

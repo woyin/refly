@@ -4187,6 +4187,8 @@ components:
       enum:
         - creationAsc
         - creationDesc
+        - updationAsc
+        - updationDesc
     CanvasStatus:
       type: string
       description: Canvas status

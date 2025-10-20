@@ -59,6 +59,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
 
   const { getEdges, getNodes, deleteElements, addEdges } = useReactFlow();
   const [editQuery, setEditQueryState] = useState<string>(query);
+  const [nodeId, setNodeId] = useState<string>('');
 
   const editAreaRef = useRef<HTMLDivElement | null>(null);
 
@@ -137,9 +138,10 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
     // Find current node to get nodeId
     const nodes = getNodes();
     const currentNode = nodes.find((node) => node.data?.entityId === resultId);
-
-    // Update the query in real-time to MinIO
-    currentNode && updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
+    if (currentNode) {
+      setNodeId(currentNode.id);
+      updateNodeQuery(editQuery, resultId, currentNode.id, 'skillResponse');
+    }
   }, [resultId, editQuery, getNodes, updateNodeQuery]);
 
   useEffect(() => {
@@ -386,6 +388,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         onSelectedToolsetsChange={setSelectedToolsets}
         enableRichInput={true}
         customActions={customActions}
+        nodeId={nodeId}
       />
     </div>
   );
