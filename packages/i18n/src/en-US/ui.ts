@@ -1185,6 +1185,7 @@ const translations = {
       placeholder: 'Describe needs...',
       chatInputPlaceholder: 'Enter task description, Agent will generate reusable workflows',
       commonChatInputPlaceholder: 'Enter task, press @ to select variables, resources, tools, etc.',
+      actionIsRunning: 'Current action is running, please wait for it to complete',
     },
     contextMenu: {
       createGroup: 'Create Group',
