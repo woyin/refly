@@ -4,7 +4,7 @@ import type {
   RawCanvasData,
 } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { Button, Form } from 'antd';
+import { Button, Form, notification } from 'antd';
 import { Play, Copy } from 'refly-icons';
 import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -205,6 +205,14 @@ export const WorkflowRunForm = ({
       });
 
       if (hasInvalidValues) {
+        // Show validation error notification
+        notification.warning({
+          message: t(
+            'canvas.workflow.run.validationError',
+            'Please fill in all required fields before running the workflow',
+          ),
+          duration: 4,
+        });
         return;
       }
 

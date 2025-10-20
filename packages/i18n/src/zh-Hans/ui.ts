@@ -1387,6 +1387,7 @@ const translations = {
         completed: 'Workflow 运行完成',
         failed: 'Workflow 运行失败',
         error: 'Workflow 运行状态时出错',
+        validationError: '请填写所有必填字段后再运行工作流',
         nodeStatus: {
           waiting: '等待中',
           executing: '运行中',

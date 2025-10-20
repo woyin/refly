@@ -1401,6 +1401,7 @@ const translations = {
         completed: 'Workflow execution completed successfully',
         failed: 'Workflow execution failed',
         error: 'Error monitoring workflow execution',
+        validationError: 'Please fill in all required fields before running the workflow',
         nodeStatus: {
           waiting: 'Waiting',
           executing: 'Running',
