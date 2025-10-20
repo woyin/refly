@@ -276,7 +276,7 @@ const WorkflowAppPage: React.FC = () => {
                         onCopyShareLink={handleCopyShareLink}
                         isRunning={isRunning}
                         templateContent={workflowApp?.templateContent}
-                        className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm"
+                        className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 border border-refly-Card-Border shadow-sm"
                       />
                     )}
                   </div>

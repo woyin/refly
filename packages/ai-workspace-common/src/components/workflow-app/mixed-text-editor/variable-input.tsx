@@ -100,22 +100,22 @@ const VariableInput: React.FC<VariableInputProps> = memo(
         bg-transparent
         border-b
         border-dashed
-        border-[rgba(14,159,119,0.3)]
+        border-refly-Card-Border
         rounded-none
         outline-none
         transition-all
         duration-200
         ease-in-out
-        ${isFocused ? 'border-[rgba(14,159,119,0.6)]' : ''}
+        ${isFocused ? 'border-refly-primary-default' : ''}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}
-        focus:border-[rgba(14,159,119,0.6)]
-        hover:border-[rgba(14,159,119,0.4)]
-        placeholder:text-[rgba(14,159,119,0.50)]
+        focus:border-refly-primary-default
+        hover:border-refly-primary-hover
+        placeholder:text-refly-text-3
       `}
           style={{
             borderWidth: '0 0 1.5px 0',
             borderStyle: 'dashed',
-            borderColor: '#0E9F77',
+            borderColor: 'var(--refly-primary-default)',
 
             backgroundColor: 'transparent',
             borderRadius: '0',
@@ -130,12 +130,12 @@ const VariableInput: React.FC<VariableInputProps> = memo(
             fontWeight: isEmpty ? '400' : '500',
             lineHeight: '26px',
             color: isEmpty
-              ? 'red' // Empty value: light green font
+              ? 'var(--refly-text-2)'
               : isDefaultValue
-                ? '#0E9F77' // Default value: normal green font
+                ? 'var(--refly-primary-default)'
                 : isModified
-                  ? '#0E9F77' // Modified value: normal green font
-                  : '#0E9F77', // Green font
+                  ? 'var(--refly-primary-default)'
+                  : 'var(--refly-primary-default)',
           }}
         />
       </>

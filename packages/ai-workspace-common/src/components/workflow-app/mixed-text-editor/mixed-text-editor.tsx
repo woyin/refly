@@ -111,7 +111,7 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
     return (
       <div className={`mixed-text-editor ${className}`}>
         <div
-          className="text-base text-[#1C1F23]"
+          className="text-base text-refly-text-1"
           style={{
             fontFamily:
               'PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',

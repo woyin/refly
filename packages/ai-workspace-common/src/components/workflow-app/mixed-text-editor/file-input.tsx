@@ -64,17 +64,17 @@ const FileInput: React.FC<FileInputProps> = memo(
         <div
           className={`
             inline-flex items-center justify-between min-w-[60px] cursor-pointer
-            border-b border-dashed border-[rgba(14,159,119,0.3)] rounded-none
+            border-b border-dashed border-refly-Card-Border rounded-none
             transition-all duration-200 ease-in-out
-            ${isHovered ? 'border-[rgba(14,159,119,0.4)]' : 'border-[rgba(14,159,119,0.3)]'}
+            ${isHovered ? 'border-refly-primary-hover' : 'border-refly-Card-Border'}
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-            hover:border-[rgba(14,159,119,0.4)]
-            text-[#0E9F77]
+            hover:border-refly-primary-hover
+            text-refly-primary-default
           `}
           style={{
             borderWidth: '0 0 1.5px 0',
             borderStyle: 'dashed',
-            borderColor: '#0E9F77',
+            borderColor: 'var(--refly-primary-default)',
             backgroundColor: 'transparent',
             borderRadius: '0',
             padding: '4px 8px',
@@ -85,17 +85,17 @@ const FileInput: React.FC<FileInputProps> = memo(
             fontWeight: isEmpty ? '400' : '500',
             lineHeight: '26px',
             color: isEmpty
-              ? '#7FB3A3' // Empty value: light green font
+              ? 'var(--refly-text-2)'
               : isDefaultValue
-                ? '#0E9F77' // Default value: normal green font
+                ? 'var(--refly-primary-default)'
                 : isModified
-                  ? '#0E9F77' // Modified value: normal green font
-                  : '#0E9F77', // Green font
+                  ? 'var(--refly-primary-default)'
+                  : 'var(--refly-primary-default)',
           }}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <Attachment size={16} color="#0E9F77" />
+          <Attachment size={16} color="var(--refly-primary-default)" />
           <span className="flex-1 ml-1">
             {fileName || placeholder || t('canvas.workflow.variables.uploadPlaceholder')}
           </span>

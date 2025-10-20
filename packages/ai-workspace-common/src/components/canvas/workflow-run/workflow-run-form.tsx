@@ -295,14 +295,14 @@ export const WorkflowRunForm = ({
   console.log({ workflowApp });
 
   return (
-    <div className={cn('w-full h-full gap-3 flex flex-col', className)}>
+    <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
       {
         <>
           <div>
             {/* Show loading state when loading */}
             {templateContent ? (
               <div className="space-y-4">
-                <div className="bg-white rounded-2xl shadow-[0px_2px_20px_4px_rgba(0,0,0,0.04)] p-4">
+                <div className="bg-refly-bg-content-z2 rounded-2xl shadow-[0px_2px_20px_4px_rgba(0,0,0,0.04)] p-4">
                   <MixedTextEditor
                     templateContent={templateContent}
                     variables={templateVariables.length > 0 ? templateVariables : workflowVariables}

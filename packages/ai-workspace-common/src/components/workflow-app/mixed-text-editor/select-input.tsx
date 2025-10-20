@@ -73,17 +73,17 @@ const SelectInput: React.FC<SelectInputProps> = memo(
         <div
           className={`
               inline-flex items-center justify-between min-w-[60px] cursor-pointer
-              bg-transparent border-b border-dashed border-[rgba(14,159,119,0.3)] rounded-none
+              bg-transparent border-b border-dashed border-refly-Card-Border rounded-none
               transition-all duration-200 ease-in-out
-              ${isFocused || isOpen ? 'border-[rgba(14,159,119,0.6)]' : 'border-[rgba(14,159,119,0.3)]'}
+              ${isFocused || isOpen ? 'border-refly-primary-default' : 'border-refly-Card-Border'}
               ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-              hover:border-[rgba(14,159,119,0.4)]
-              text-[#0E9F77]
+              hover:border-refly-primary-hover
+              text-refly-primary-default
             `}
           style={{
             borderWidth: '0 0 1.5px 0',
             borderStyle: 'dashed',
-            borderColor: '#0E9F77',
+            borderColor: 'var(--refly-primary-default)',
 
             backgroundColor: 'transparent',
             borderRadius: '0',
@@ -95,12 +95,12 @@ const SelectInput: React.FC<SelectInputProps> = memo(
             fontWeight: isEmpty ? '400' : '500',
             lineHeight: '26px',
             color: isEmpty
-              ? '#7FB3A3' // Empty value: light green font
+              ? 'var(--refly-text-2)'
               : isDefaultValue
-                ? '#0E9F77' // Default value: normal green font
+                ? 'var(--refly-primary-default)'
                 : isModified
-                  ? '#0E9F77' // Modified value: normal green font
-                  : '#0E9F77', // Green font
+                  ? 'var(--refly-primary-default)'
+                  : 'var(--refly-primary-default)',
           }}
           onClick={handleClick}
           onFocus={handleFocus}
@@ -119,7 +119,7 @@ const SelectInput: React.FC<SelectInputProps> = memo(
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
-            style={{ color: '#0E9F77' }}
+            style={{ color: 'var(--refly-primary-default)' }}
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
@@ -127,11 +127,11 @@ const SelectInput: React.FC<SelectInputProps> = memo(
 
         {isOpen && !disabled && (
           <div
-            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-1 bg-refly-bg-content-z2 border border-refly-Card-Border rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
             style={{
               borderWidth: '1px',
               borderStyle: 'solid',
-              borderColor: '#e5e7eb',
+              borderColor: 'var(--refly-Card-Border)',
               borderRadius: '8px',
             }}
           >
@@ -142,8 +142,8 @@ const SelectInput: React.FC<SelectInputProps> = memo(
                   px-3 py-2 cursor-pointer transition-colors duration-150
                   ${
                     value === option.value
-                      ? 'bg-[#EBFFF9] text-[#0E9F77]'
-                      : 'hover:bg-gray-50 text-gray-700'
+                      ? 'bg-refly-primary-light text-refly-primary-default'
+                      : 'hover:bg-refly-bg-control-z1 text-refly-text-1'
                   }
                 `}
                 onClick={() => handleOptionClick(option.value)}
