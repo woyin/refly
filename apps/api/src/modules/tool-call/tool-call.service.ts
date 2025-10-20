@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import type { ActionStepMeta } from '@refly/openapi-schema';
 import type { Response } from 'express';
@@ -21,10 +22,51 @@ export enum ToolCallStatus {
 @Injectable()
 export class ToolCallService {
   private readonly logger = new Logger(ToolCallService.name);
-
-  private readonly startTimestamps = new Map<string, number>();
+  private readonly toolCallIdMap = new Map<string, string>();
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private buildToolCallKey(params: {
+    resultId: string;
+    version: number;
+    runId?: string;
+    toolsetId: string;
+    toolName: string;
+  }): string {
+    const { resultId, version, runId, toolsetId, toolName } = params;
+    if (runId) {
+      return `${resultId}:${version}:${runId}`;
+    }
+    return `${resultId}:${version}:${toolsetId}:${toolName}`;
+  }
+
+  getOrCreateToolCallId(params: {
+    resultId: string;
+    version: number;
+    toolName: string;
+    toolsetId: string;
+    runId?: string;
+  }): string {
+    const key = this.buildToolCallKey(params);
+    const existing = this.toolCallIdMap.get(key);
+    if (existing) {
+      return existing;
+    }
+    const generated = this.generateToolCallId(params);
+    this.toolCallIdMap.set(key, generated);
+    return generated;
+  }
+
+  releaseToolCallId(params: {
+    resultId: string;
+    version: number;
+    toolName: string;
+    toolsetId: string;
+    runId?: string;
+  }): void {
+    const key = this.buildToolCallKey(params);
+    this.toolCallIdMap.delete(key);
+  }
 
   // Generate tool use XML for tool call for frontend rendering and SSE streaming
   generateToolUseXML(params: {
@@ -58,6 +100,7 @@ export class ToolCallService {
     lines.push('<arguments>');
     lines.push(input ? (typeof input === 'string' ? input : JSON.stringify(input)) : '');
     lines.push('</arguments>');
+    lines.push(`<createdAt>${startTs}</createdAt>`);
 
     if (errorMsg) {
       lines.push(
@@ -76,7 +119,6 @@ export class ToolCallService {
       lines.push(`<updatedAt>${updatedTs}</updatedAt>`);
     } else {
       lines.push(`<status>${ToolCallStatus.EXECUTING}</status>`);
-      lines.push(`<createdAt>${startTs}</createdAt>`);
     }
 
     lines.push('</tool_use>');
@@ -92,17 +134,15 @@ export class ToolCallService {
       xmlContent: string;
       toolCallId: string;
       toolName?: string;
+      event_name: 'tool_call' | 'stream';
     },
   ): void {
     if (!res) {
       return;
     }
     const { resultId, step, xmlContent, toolCallId, toolName } = args;
-    console.log(
-      `[tool-call] emitToolUseStream - resultId: ${resultId}, step: ${step}, xmlContent: ${xmlContent}, toolCallId: ${toolCallId}, toolName: ${toolName}, content: ${xmlContent}`,
-    );
     writeSSEResponse(res, {
-      event: 'stream',
+      event: args.event_name,
       resultId,
       content: xmlContent,
       step,
@@ -214,6 +254,16 @@ export class ToolCallService {
     }
 
     return actionStatus;
+  }
+
+  generateToolCallId(params: {
+    resultId: string;
+    version: number;
+    toolName: string;
+    toolsetId: string;
+  }): string {
+    const prefix = `${params.resultId}:${params.version}:${params.toolsetId ?? 'toolset'}:${params.toolName ?? 'tool'}`;
+    return `${prefix}:${randomUUID()}`;
   }
 
   private async persistToolCall(

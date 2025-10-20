@@ -220,6 +220,10 @@ export const useInvokeAction = (params?: { source?: string }) => {
     onUpdateResult(resultId, payload, skillEvent);
   };
 
+  const onToolCall = (skillEvent: SkillEvent) => {
+    onSkillStream(skillEvent);
+  };
+
   const onSkillStructedData = (skillEvent: SkillEvent) => {
     const { step, resultId, structuredData = {} } = skillEvent;
     const { resultMap } = useActionResultStore.getState();
@@ -544,6 +548,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
         onStart: wrapEventHandler(onStart),
         onSkillStart: wrapEventHandler(onSkillStart),
         onSkillStream: wrapEventHandler(onSkillStream),
+        onToolCall: wrapEventHandler(onToolCall),
         onSkillLog: wrapEventHandler(onSkillLog),
         onSkillArtifact: wrapEventHandler(onSkillArtifact),
         onSkillStructedData: wrapEventHandler(onSkillStructedData),

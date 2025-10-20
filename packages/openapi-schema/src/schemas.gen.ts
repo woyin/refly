@@ -4347,6 +4347,7 @@ export const SkillEventTypeSchema = {
     'structured_data',
     'token_usage',
     'create_node',
+    'tool_call',
     'error',
   ],
 } as const;

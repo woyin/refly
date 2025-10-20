@@ -11,10 +11,10 @@ import {
   ActionStep,
   Artifact,
   CreditBilling,
+  ProviderItem,
   SkillEvent,
   TokenUsageItem,
   User,
-  ProviderItem,
 } from '@refly/openapi-schema';
 import {
   BaseSkill,
@@ -533,7 +533,6 @@ export class SkillInvokerService {
       createNetworkTimeout();
 
       // tool callId, now we use first time returned run_id as tool call id
-      let toolCallId = '';
       const startTs = Date.now();
       for await (const event of skill.streamEvents(input, {
         ...config,
@@ -562,16 +561,31 @@ export class SkillInvokerService {
           case 'on_tool_end':
           case 'on_tool_error':
           case 'on_tool_start': {
+            // Skip non-tool user-visible helpers like commonQnA, and ensure toolsetKey exists
+            const { toolsetKey } = event.metadata ?? {};
+            if (!toolsetKey) {
+              break;
+            }
             const stepName = runMeta?.step?.name;
+            const toolsetId = toolsetKey;
+            const toolName = String(event.metadata?.name ?? '');
+            const runId = event?.run_id ? String(event.run_id) : undefined;
+            const toolCallId = this.toolCallService.getOrCreateToolCallId({
+              resultId,
+              version,
+              toolName,
+              toolsetId,
+              runId,
+            });
             const buildToolUseXML = (includeResult: boolean, errorMsg: string, updatedTs: number) =>
               this.toolCallService.generateToolUseXML({
                 toolCallId,
                 includeResult,
                 errorMsg,
                 metadata: {
-                  name: event.metadata?.name,
+                  name: toolName,
                   type: event.metadata?.type as string | undefined,
-                  toolsetKey: event.metadata?.toolsetKey,
+                  toolsetKey: toolsetId,
                   toolsetName: event.metadata?.toolsetName,
                 },
                 input: event.data?.input,
@@ -588,8 +602,6 @@ export class SkillInvokerService {
                 errorMessage?: string;
               },
             ) => {
-              const toolsetId = String(event.metadata?.toolsetKey ?? '');
-              const toolName = String(event.metadata?.name ?? '');
               const input = data.input;
               const output = data.output;
               const errorMessage = String(data.errorMessage ?? '');
@@ -613,8 +625,6 @@ export class SkillInvokerService {
             };
 
             if (event.event === 'on_tool_start') {
-              toolCallId = String(event.run_id ?? '');
-              // Persist tool call result
               await persistToolCall(ToolCallStatus.EXECUTING, {
                 input: event.data?.input,
                 output: '',
@@ -628,7 +638,8 @@ export class SkillInvokerService {
                   step: runMeta?.step,
                   xmlContent,
                   toolCallId,
-                  toolName: event.metadata?.name,
+                  toolName,
+                  event_name: 'tool_call',
                 });
               }
               break;
@@ -649,9 +660,17 @@ export class SkillInvokerService {
                   step: runMeta?.step,
                   xmlContent,
                   toolCallId,
-                  toolName: event.metadata?.name,
+                  toolName,
+                  event_name: 'stream',
                 });
               }
+              this.toolCallService.releaseToolCallId({
+                resultId,
+                version,
+                toolName,
+                toolsetId,
+                runId,
+              });
               break;
             }
             if (event.event === 'on_tool_end') {
@@ -675,10 +694,18 @@ export class SkillInvokerService {
                     step: runMeta?.step,
                     xmlContent,
                     toolCallId,
-                    toolName: event.metadata?.name,
+                    toolName,
+                    event_name: 'stream',
                   });
                 }
               }
+              this.toolCallService.releaseToolCallId({
+                resultId,
+                version,
+                toolName,
+                toolsetId,
+                runId,
+              });
               break;
             }
             break;

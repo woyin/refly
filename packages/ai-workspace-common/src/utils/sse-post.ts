@@ -53,6 +53,7 @@ export const ssePost = async ({
   onSkillLog,
   onSkillStart,
   onSkillStream,
+  onToolCall,
   onSkillEnd,
   onSkillArtifact,
   onSkillStructedData,
@@ -67,6 +68,7 @@ export const ssePost = async ({
   onSkillLog: (event: SkillEvent) => void;
   onSkillStart: (event: SkillEvent) => void;
   onSkillStream: (event: SkillEvent) => void;
+  onToolCall?: (event: SkillEvent) => void;
   onSkillEnd: (event: SkillEvent) => void;
   onSkillStructedData: (event: SkillEvent) => void;
   onSkillCreateNode: (event: SkillEvent) => void;
@@ -259,6 +261,10 @@ export const ssePost = async ({
             if (message.startsWith('data: ')) {
               try {
                 const skillEvent = JSON.parse(message.substring(6)) as SkillEvent;
+                if (skillEvent.event === 'tool_call') {
+                  onToolCall?.(skillEvent);
+                  continue;
+                }
                 batchedEvents.push(skillEvent);
               } catch (err) {
                 console.log('Parse error:', {

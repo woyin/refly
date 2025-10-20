@@ -6745,6 +6745,7 @@ components:
         - structured_data
         - token_usage
         - create_node
+        - tool_call
         - error
     SkillEvent:
       type: object

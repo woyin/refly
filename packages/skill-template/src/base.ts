@@ -264,6 +264,7 @@ export interface SkillEventMap {
   structured_data: [data: SkillEvent];
   token_usage: [data: SkillEvent];
   invoke_skill: [data: SkillEvent];
+  tool_call: [data: SkillEvent];
   error: [data: SkillEvent];
 }
 
