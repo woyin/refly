@@ -1,4 +1,8 @@
-import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
+import type {
+  WorkflowVariable,
+  WorkflowExecutionStatus,
+  RawCanvasData,
+} from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
 import { Button, Form } from 'antd';
 import { Play, Copy } from 'refly-icons';
@@ -10,6 +14,7 @@ import cn from 'classnames';
 import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.svg';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { useNavigate } from 'react-router-dom';
+import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 
 const EmptyContent = () => {
   const { t } = useTranslation();
@@ -43,6 +48,7 @@ interface WorkflowRunFormProps {
   onRunningChange?: (isRunning: boolean) => void;
   className?: string;
   templateContent?: string;
+  canvasData?: RawCanvasData;
 }
 
 export const WorkflowRunForm = ({
@@ -56,6 +62,7 @@ export const WorkflowRunForm = ({
   onRunningChange,
   className,
   templateContent,
+  canvasData,
 }: WorkflowRunFormProps) => {
   const { t } = useTranslation();
   const { isLoggedRef } = useIsLogin();
@@ -285,11 +292,11 @@ export const WorkflowRunForm = ({
     <div className={cn('w-full h-full gap-3 flex flex-col', className)}>
       {
         <>
-          <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
+          <div>
             {/* Show loading state when loading */}
             {templateContent ? (
               <div className="space-y-4">
-                <div className="bg-white rounded-lg border border-refly-Card-Border shadow-sm p-4">
+                <div className="bg-white rounded-2xl shadow-[0px_2px_20px_4px_rgba(0,0,0,0.04)] p-4">
                   <MixedTextEditor
                     templateContent={templateContent}
                     variables={templateVariables.length > 0 ? templateVariables : workflowVariables}
@@ -297,6 +304,13 @@ export const WorkflowRunForm = ({
                     disabled={isFormDisabled}
                     originalVariables={workflowVariables}
                   />
+
+                  {/* Tools Dependency Form */}
+                  {canvasData && (
+                    <div className="mt-3 ">
+                      <ToolsDependencyChecker canvasData={canvasData} />
+                    </div>
+                  )}
                 </div>
               </div>
             ) : loading ? null : (

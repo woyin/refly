@@ -14,7 +14,6 @@ import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common
 import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
 import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
-import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { logEvent } from '@refly/telemetry-web';
@@ -267,6 +266,7 @@ const WorkflowAppPage: React.FC = () => {
                   <div className="mb-6 sm:mb-8">
                     {
                       <WorkflowRunForm
+                        canvasData={workflowApp.canvasData}
                         workflowVariables={workflowVariables}
                         onSubmitVariables={onSubmit}
                         loading={isLoading}
@@ -281,13 +281,6 @@ const WorkflowAppPage: React.FC = () => {
                       />
                     }
                   </div>
-
-                  {/* Tools Dependency Form */}
-                  {workflowApp?.canvasData && (
-                    <div className="mb-6 sm:mb-8">
-                      <ToolsDependencyChecker canvasData={workflowApp.canvasData} />
-                    </div>
-                  )}
 
                   {logs.length > 0 && (
                     <>
