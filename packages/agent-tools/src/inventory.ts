@@ -9,7 +9,6 @@ import { CodeInterpreterToolset, CodeInterpreterToolsetDefinition } from './code
 import { WhaleWisdomToolset, WhaleWisdomToolsetDefinition } from './whalewisdom';
 import { GoogleDocsToolset, GoogleDocsToolsetDefinition } from './google-docs';
 import { GoogleSheetsToolset, GoogleSheetsToolsetDefinition } from './google-sheets';
-import { GmailToolset, GmailToolsetDefinition } from './gmail';
 import { TwitterToolset, TwitterToolsetDefinition } from './twitter';
 import { NotionToolset, NotionToolsetDefinition } from './notion';
 import { FalAudioToolset, FalAudioToolsetDefinition } from './fal-audio';
@@ -63,10 +62,6 @@ export const toolsetInventory: Record<
   [GoogleSheetsToolsetDefinition.key]: {
     class: GoogleSheetsToolset,
     definition: GoogleSheetsToolsetDefinition,
-  },
-  [GmailToolsetDefinition.key]: {
-    class: GmailToolset,
-    definition: GmailToolsetDefinition,
   },
   [TwitterToolsetDefinition.key]: {
     class: TwitterToolset,
