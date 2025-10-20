@@ -97,45 +97,29 @@ const VariableInput: React.FC<VariableInputProps> = memo(
         py-1
         text-base
         leading-6
-        bg-[#EBFFF9]
-        border
+        bg-transparent
+        border-b
         border-dashed
         border-[rgba(14,159,119,0.3)]
-        rounded-lg
+        rounded-none
         outline-none
         transition-all
         duration-200
         ease-in-out
-        ${isFocused ? 'border-[rgba(14,159,119,0.6)] bg-[#F0FFF8]' : ''}
+        ${isFocused ? 'border-[rgba(14,159,119,0.6)]' : ''}
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}
         focus:border-[rgba(14,159,119,0.6)]
-        focus:bg-[#F0FFF8]
         hover:border-[rgba(14,159,119,0.4)]
         placeholder:text-[#0E9F77]
         placeholder:opacity-70
       `}
           style={{
-            borderWidth: '0.5px',
+            borderWidth: '0 0 1.5px 0',
             borderStyle: 'dashed',
-            borderColor: isFocused
-              ? 'rgba(14,159,119,0.6)'
-              : isEmpty
-                ? 'rgba(14,159,119,0.15)' // Empty value: lightest border
-                : isDefaultValue
-                  ? 'rgba(14,159,119,0.3)' // Default value: medium border
-                  : isModified
-                    ? 'rgba(14,159,119,0.5)' // Modified value: darkest border
-                    : 'rgba(14,159,119,0.3)',
-            backgroundColor: isFocused
-              ? '#F0FFF8'
-              : isEmpty
-                ? '#F0F9F7' // Empty value: lightest background
-                : isDefaultValue
-                  ? '#EBFFF9' // Default value: medium background
-                  : isModified
-                    ? '#EBFFF9' // Modified value: darkest background
-                    : '#EBFFF9',
-            borderRadius: '8px',
+            borderColor: '#0E9F77',
+
+            backgroundColor: 'transparent',
+            borderRadius: '0',
             padding: '4px 8px',
             height: '26px',
             width: `${inputWidth}px`,

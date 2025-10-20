@@ -64,40 +64,19 @@ const FileInput: React.FC<FileInputProps> = memo(
         <div
           className={`
             inline-flex items-center justify-between min-w-[60px] cursor-pointer
-            border border-dashed rounded-lg
+            border-b border-dashed border-[rgba(14,159,119,0.3)] rounded-none
             transition-all duration-200 ease-in-out
-            ${
-              isHovered
-                ? 'border-[rgba(14,159,119,0.4)] bg-[#F0FFF8]'
-                : 'border-[rgba(14,159,119,0.3)] bg-[#EBFFF9]'
-            }
+            ${isHovered ? 'border-[rgba(14,159,119,0.4)]' : 'border-[rgba(14,159,119,0.3)]'}
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             hover:border-[rgba(14,159,119,0.4)]
-            hover:bg-[#F0FFF8]
             text-[#0E9F77]
           `}
           style={{
-            borderWidth: '0.5px',
+            borderWidth: '0 0 1.5px 0',
             borderStyle: 'dashed',
-            borderColor: isHovered
-              ? 'rgba(14,159,119,0.4)'
-              : isEmpty
-                ? 'rgba(14,159,119,0.15)' // Empty value: lightest border
-                : isDefaultValue
-                  ? 'rgba(14,159,119,0.3)' // Default value: medium border
-                  : isModified
-                    ? 'rgba(14,159,119,0.5)' // Modified value: darkest border
-                    : 'rgba(14,159,119,0.3)',
-            backgroundColor: isHovered
-              ? '#F0FFF8'
-              : isEmpty
-                ? '#F0F9F7' // Empty value: lightest background
-                : isDefaultValue
-                  ? '#E8F5F2' // Default value: medium background
-                  : isModified
-                    ? '#EBFFF9' // Modified value: darkest background
-                    : '#EBFFF9',
-            borderRadius: '8px',
+            borderColor: '#0E9F77',
+            backgroundColor: 'transparent',
+            borderRadius: '0',
             padding: '4px 8px',
             height: '26px',
             fontFamily:
