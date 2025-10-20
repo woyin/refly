@@ -127,7 +127,10 @@ export const GoogleDocsToolsetDefinition: ToolsetDefinition = {
     {
       type: 'oauth',
       provider: 'google',
-      scope: ['https://www.googleapis.com/auth/drive.file'],
+      scope: [
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/documents',
+      ],
     },
   ],
   configItems: [
