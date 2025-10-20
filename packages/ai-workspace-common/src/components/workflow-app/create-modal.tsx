@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, message, Modal, Upload, Image } from 'antd';
+import { Button, Form, Input, message, Modal, Upload, Image, Switch, Spin } from 'antd';
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
@@ -16,6 +16,7 @@ interface CreateWorkflowAppModalProps {
   visible: boolean;
   setVisible: (visible: boolean) => void;
   onPublishSuccess?: () => void;
+  appId?: string; // Optional app ID to load existing app data
 }
 
 interface SuccessMessageProps {
@@ -91,6 +92,7 @@ export const CreateWorkflowAppModal = ({
   visible,
   setVisible,
   onPublishSuccess,
+  appId,
 }: CreateWorkflowAppModalProps) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -107,8 +109,32 @@ export const CreateWorkflowAppModal = ({
   const [previewImage, setPreviewImage] = useState<string>('');
   const [previewTitle, setPreviewTitle] = useState<string>('');
 
+  // App data loading state
+  const [appData, setAppData] = useState<any>(null);
+  const [loadingAppData, setLoadingAppData] = useState(false);
+
   const { workflow } = useCanvasContext();
   const { workflowVariables } = workflow ?? {};
+
+  // Load existing app data
+  const loadAppData = useCallback(async (appId: string) => {
+    if (!appId) return;
+
+    setLoadingAppData(true);
+    try {
+      const { data } = await getClient().getWorkflowAppDetail({
+        query: { appId },
+      });
+
+      if (data?.success && data?.data) {
+        setAppData(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to load app data:', error);
+    } finally {
+      setLoadingAppData(false);
+    }
+  }, []);
 
   // Handle cover image upload
   const uploadCoverImage = async (file: File): Promise<string> => {
@@ -202,18 +228,13 @@ export const CreateWorkflowAppModal = ({
   const createWorkflowApp = async ({
     title,
     description,
-  }: { title: string; description: string }) => {
+    remixEnabled,
+  }: { title: string; description: string; remixEnabled: boolean }) => {
     if (confirmLoading) return;
 
     setConfirmLoading(true);
 
     try {
-      // Validate cover image is uploaded
-      // if (!coverStorageKey) {
-      //   message.error(t('workflowApp.coverImageRequired'));
-      //   return;
-      // }
-
       const { data } = await getClient().createWorkflowApp({
         body: {
           title,
@@ -222,6 +243,7 @@ export const CreateWorkflowAppModal = ({
           query: '', // TODO: support query edit
           variables: workflowVariables ?? [],
           coverStorageKey,
+          remixEnabled,
         } as any,
       });
 
@@ -264,18 +286,54 @@ export const CreateWorkflowAppModal = ({
   // Reset form state when modal opens
   useEffect(() => {
     if (visible) {
-      form.setFieldsValue({
-        title,
-        description: '',
-      });
-      setCoverFileList([]);
-      setCoverStorageKey('');
+      // Load existing app data if appId is provided
+      if (appId) {
+        loadAppData(appId);
+      } else {
+        // Reset to default values when creating new app
+        form.setFieldsValue({
+          title,
+          description: '',
+          remixEnabled: false, // Default to false (remix disabled)
+        });
+        setCoverFileList([]);
+        setCoverStorageKey('');
+        setAppData(null);
+      }
+
       // Reset preview state
       setPreviewVisible(false);
       setPreviewImage('');
       setPreviewTitle('');
     }
-  }, [visible, title]);
+  }, [visible, title, appId, loadAppData]);
+
+  // Populate form with loaded app data
+  useEffect(() => {
+    if (appData && visible) {
+      form.setFieldsValue({
+        title: appData.title ?? title,
+        description: appData.description ?? '',
+        remixEnabled: appData.remixEnabled ?? false,
+      });
+
+      // Set cover image if exists
+      if (appData.coverUrl) {
+        setCoverFileList([
+          {
+            uid: '1',
+            name: 'cover.jpg',
+            status: 'done',
+            url: appData.coverUrl,
+          },
+        ]);
+        setCoverStorageKey(appData.coverUrl);
+      } else {
+        setCoverFileList([]);
+        setCoverStorageKey('');
+      }
+    }
+  }, [appData, visible, title, form]);
 
   // Upload button component
   const uploadButton = (
@@ -298,88 +356,110 @@ export const CreateWorkflowAppModal = ({
     >
       {contextHolder}
       <div className="w-full h-full pt-4 overflow-y-auto">
-        <Form form={form}>
-          <div className="flex flex-col gap-2">
-            {/* Title Field */}
+        {loadingAppData ? (
+          <div className="flex items-center justify-center py-8">
+            <Spin size="large" />
+          </div>
+        ) : (
+          <Form form={form}>
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="title-input"
-                className="text-xs font-semibold text-refly-text-0 leading-[1.33]"
-              >
-                {t('workflowApp.title')}
-                <span className="text-refly-func-danger-default ml-1">*</span>
-              </label>
-              <Form.Item
-                name="title"
-                rules={[{ required: true, message: t('common.required') }]}
-                className="mb-0"
-              >
-                <Input
-                  id="title-input"
-                  placeholder={t('workflowApp.titlePlaceholder')}
-                  className="h-8 rounded-lg border-0 bg-refly-bg-control-z0 px-3 text-sm font-normal text-refly-text-0 placeholder:text-refly-text-3 focus:bg-refly-bg-control-z0 focus:shadow-sm"
-                />
-              </Form.Item>
-            </div>
-
-            {/* Description Field */}
-            <div className="flex flex-col gap-2 mt-5">
-              <div className="flex items-center justify-between">
+              {/* Title Field */}
+              <div className="flex flex-col gap-2">
                 <label
-                  htmlFor="description-input"
+                  htmlFor="title-input"
                   className="text-xs font-semibold text-refly-text-0 leading-[1.33]"
                 >
-                  {t('workflowApp.description')}
+                  {t('workflowApp.title')}
+                  <span className="text-refly-func-danger-default ml-1">*</span>
                 </label>
-              </div>
-              <Form.Item name="description" className="mb-0">
-                <Input.TextArea
-                  id="description-input"
-                  placeholder={t('workflowApp.descriptionPlaceholder')}
-                  className="min-h-[80px] rounded-lg border-0 bg-refly-bg-control-z0 px-3 py-2 text-sm font-normal text-refly-text-0 placeholder:text-refly-text-3 focus:bg-refly-bg-control-z0 focus:shadow-sm"
-                  autoSize={{ minRows: 3, maxRows: 6 }}
-                />
-              </Form.Item>
-            </div>
-
-            {/* Cover Image Upload */}
-            <div className="flex flex-col gap-2 mt-5">
-              <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">
-                {t('workflowApp.coverImage')}
-              </div>
-              <div className="w-full">
-                <Upload
-                  customRequest={customUploadRequest}
-                  listType="picture-card"
-                  fileList={coverFileList}
-                  onChange={handleCoverUploadChange}
-                  beforeUpload={beforeUpload}
-                  onPreview={handlePreview}
-                  accept={ALLOWED_IMAGE_TYPES.join(',')}
-                  maxCount={1}
-                  showUploadList={{
-                    showPreviewIcon: true,
-                    showRemoveIcon: true,
-                    showDownloadIcon: false,
-                  }}
-                  className="cover-upload"
-                  style={
-                    {
-                      // Custom styles for cover upload
-                      '--upload-card-width': '100px',
-                      '--upload-card-height': '100px',
-                    } as React.CSSProperties
-                  }
+                <Form.Item
+                  name="title"
+                  rules={[{ required: true, message: t('common.required') }]}
+                  className="mb-0"
                 >
-                  {coverFileList.length >= 1 ? null : uploadButton}
-                </Upload>
-                <div className="text-xs text-refly-text-2 mt-1">
-                  {t('workflowApp.coverImageHint')}
+                  <Input
+                    id="title-input"
+                    placeholder={t('workflowApp.titlePlaceholder')}
+                    className="h-8 rounded-lg border-0 bg-refly-bg-control-z0 px-3 text-sm font-normal text-refly-text-0 placeholder:text-refly-text-3 focus:bg-refly-bg-control-z0 focus:shadow-sm"
+                  />
+                </Form.Item>
+              </div>
+
+              {/* Description Field */}
+              <div className="flex flex-col gap-2 mt-5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="description-input"
+                    className="text-xs font-semibold text-refly-text-0 leading-[1.33]"
+                  >
+                    {t('workflowApp.description')}
+                  </label>
+                </div>
+                <Form.Item name="description" className="mb-0">
+                  <Input.TextArea
+                    id="description-input"
+                    placeholder={t('workflowApp.descriptionPlaceholder')}
+                    className="min-h-[80px] rounded-lg border-0 bg-refly-bg-control-z0 px-3 py-2 text-sm font-normal text-refly-text-0 placeholder:text-refly-text-3 focus:bg-refly-bg-control-z0 focus:shadow-sm"
+                    autoSize={{ minRows: 3, maxRows: 6 }}
+                  />
+                </Form.Item>
+              </div>
+
+              {/* Remix Settings */}
+              <div className="flex flex-col gap-2 mt-5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="remix-enabled-switch"
+                    className="text-xs font-semibold text-refly-text-0 leading-[1.33]"
+                  >
+                    {t('workflowApp.enableRemix')}
+                  </label>
+                  <Form.Item name="remixEnabled" valuePropName="checked" className="mb-0">
+                    <Switch id="remix-enabled-switch" size="small" className="" />
+                  </Form.Item>
+                </div>
+                <div className="text-xs text-refly-text-2">{t('workflowApp.remixHint')}</div>
+              </div>
+
+              {/* Cover Image Upload */}
+              <div className="flex flex-col gap-2 mt-5">
+                <div className="text-xs font-semibold text-refly-text-0 leading-[1.33]">
+                  {t('workflowApp.coverImage')}
+                </div>
+                <div className="w-full">
+                  <Upload
+                    customRequest={customUploadRequest}
+                    listType="picture-card"
+                    fileList={coverFileList}
+                    onChange={handleCoverUploadChange}
+                    beforeUpload={beforeUpload}
+                    onPreview={handlePreview}
+                    accept={ALLOWED_IMAGE_TYPES.join(',')}
+                    maxCount={1}
+                    showUploadList={{
+                      showPreviewIcon: true,
+                      showRemoveIcon: true,
+                      showDownloadIcon: false,
+                    }}
+                    className="cover-upload"
+                    style={
+                      {
+                        // Custom styles for cover upload
+                        '--upload-card-width': '100px',
+                        '--upload-card-height': '100px',
+                      } as React.CSSProperties
+                    }
+                  >
+                    {coverFileList.length >= 1 ? null : uploadButton}
+                  </Upload>
+                  <div className="text-xs text-refly-text-2 mt-1">
+                    {t('workflowApp.coverImageHint')}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Form>
+          </Form>
+        )}
       </div>
 
       {/* Preview Modal */}

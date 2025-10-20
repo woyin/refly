@@ -3386,6 +3386,7 @@ const translations = {
     titlePlaceholder: '请输入名称',
     descriptionPlaceholder: '请输入描述',
     publish: '发布',
+    edit: '编辑应用',
     publishSuccess: '发布成功',
     alreadyPublished: '已发布',
     viewPublished: '查看已发布',
@@ -3398,6 +3399,8 @@ const translations = {
     invalidImageType: '图片格式不正确，请上传 JPG、PNG 或 WebP 格式的图片',
     imageTooLarge: '图片大小超过 5MB，请上传更小的图片',
     coverImageRequired: '封面图片为必填项',
+    enableRemix: '启用 Remix',
+    remixHint: '允许其他人Remix和修改此工作流应用',
     run: {
       completed: 'App 运行成功',
       failed: 'App 运行失败',

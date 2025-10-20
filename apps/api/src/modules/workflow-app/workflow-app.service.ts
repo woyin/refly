@@ -60,6 +60,7 @@ export class WorkflowAppService {
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
     const { canvasId, title, query, variables, description } = body;
     const coverStorageKey = (body as any).coverStorageKey;
+    const remixEnabled = (body as any).remixEnabled ?? false;
 
     const existingWorkflowApp = await this.prisma.workflowApp.findFirst({
       where: { canvasId, uid: user.uid, deletedAt: null },
@@ -123,6 +124,7 @@ export class WorkflowAppService {
           storageKey,
           coverStorageKey: coverStorageKey as any,
           templateContent,
+          remixEnabled,
           updatedAt: new Date(),
         },
       });
@@ -139,6 +141,7 @@ export class WorkflowAppService {
           storageKey,
           coverStorageKey: coverStorageKey as any,
           templateContent,
+          remixEnabled,
         },
       });
     }

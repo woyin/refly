@@ -3644,6 +3644,7 @@ const translations = {
     titlePlaceholder: 'Please enter name',
     descriptionPlaceholder: 'Please enter description',
     publish: 'Publish',
+    edit: 'Edit App',
     publishSuccess: 'Published successfully',
     alreadyPublished: 'Already Published',
     viewPublished: 'View Published',
@@ -3656,6 +3657,8 @@ const translations = {
     invalidImageType: 'Invalid image type, please upload JPG, PNG, or WebP format',
     imageTooLarge: 'Image size exceeds 5MB, please upload a smaller image',
     coverImageRequired: 'Cover image is required',
+    enableRemix: 'Enable Remix',
+    remixHint: 'Allow others to remix and modify this workflow app',
     run: {
       completed: 'App run successfully',
       failed: 'App run failed',

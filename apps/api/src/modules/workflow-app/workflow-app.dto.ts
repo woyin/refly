@@ -30,6 +30,7 @@ export function workflowAppPO2DTO(
     coverUrl: (app as any).coverStorageKey
       ? generateCoverUrl((app as any).coverStorageKey)
       : undefined,
+    remixEnabled: app.remixEnabled ?? false,
     createdAt: app.createdAt?.toISOString(),
     updatedAt: app.updatedAt?.toISOString(),
   } as any;
