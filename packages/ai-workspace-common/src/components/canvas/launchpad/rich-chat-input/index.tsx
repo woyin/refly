@@ -59,6 +59,7 @@ interface RichChatInputProps {
   onUploadImage?: (file: File) => Promise<void>;
   onUploadMultipleImages?: (files: File[]) => Promise<void>;
   onFocus?: () => void;
+  nodeId?: string;
 }
 
 export interface RichChatInputRef {
@@ -81,6 +82,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       setSelectedToolsets,
       placeholder,
       mentionPosition = 'bottom-start',
+      nodeId,
     },
     ref,
   ) => {
@@ -111,7 +113,7 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     const popupInstanceRef = useRef<any>(null);
 
     // Get all available items including canvas nodes with fallback data
-    const allItems = useListMentionItems();
+    const allItems = useListMentionItems(nodeId);
 
     // Keep latest items in a ref so Mention suggestion always sees fresh data
     const allItemsRef = useRef<MentionItem[]>(allItems);

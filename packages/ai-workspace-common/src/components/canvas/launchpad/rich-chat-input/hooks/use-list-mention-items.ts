@@ -10,7 +10,7 @@ import {
   useListTools,
 } from '@refly-packages/ai-workspace-common/queries/queries';
 
-export const useListMentionItems = (): MentionItem[] => {
+export const useListMentionItems = (filterNodeId?: string): MentionItem[] => {
   const { t, i18n } = useTranslation();
   const currentLanguage = i18n.languages?.[0] || 'en';
 
@@ -45,7 +45,9 @@ export const useListMentionItems = (): MentionItem[] => {
     // Get skillResponse nodes for step records
     const stepRecordItems: MentionItem[] =
       nodes
-        ?.filter((node) => node.type === 'skillResponse')
+        ?.filter(
+          (node) => node.type === 'skillResponse' && (!filterNodeId || node.id !== filterNodeId),
+        )
         ?.map((node) => ({
           name: node.data?.title ?? t('canvas.richChatInput.untitledStep'),
           description: t('canvas.richChatInput.stepRecord'),

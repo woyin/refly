@@ -59,6 +59,8 @@ export interface ChatComposerProps {
 
   // Custom actions
   customActions?: CustomAction[];
+
+  nodeId?: string;
 }
 
 export interface ChatComposerRef {
@@ -95,6 +97,7 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
     isExecuting = false,
     enableChatModeSelector = false,
     customActions,
+    nodeId,
   } = props;
 
   const { handleUploadImage, handleUploadMultipleImages } = useUploadImage();
@@ -211,6 +214,7 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
           mentionPosition={mentionPosition}
           selectedToolsets={selectedToolsets}
           setSelectedToolsets={onSelectedToolsetsChange}
+          nodeId={nodeId}
         />
       ) : (
         <ChatInput
