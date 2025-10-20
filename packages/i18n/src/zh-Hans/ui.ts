@@ -3823,6 +3823,14 @@ const translations = {
     unshareSuccess: '{{title}} 已取消分享',
     unshareFailed: '取消分享 {{title}} 失败',
     usedToolsetsTitle: '工作流工具',
+    tableTitle: {
+      workflowName: '标题',
+      status: '状态',
+      tools: '工具',
+      owner: '创建人',
+      lastModified: '更新时间',
+      actions: '操作',
+    },
   },
   appManager: {
     title: '我的模版',
@@ -3833,6 +3841,7 @@ const translations = {
     noSearchResults: '没有找到相关模版',
     unpublishSuccess: '{{title}} 取消发布成功',
     unpublishFailed: '{{title}} 取消发布失败',
+    deleteConfirm: '确定要撤销模版{{title}}吗',
   },
 };
 

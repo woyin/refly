@@ -54,7 +54,7 @@ export class CanvasController {
     @Query('projectId') projectId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
-    @Query('order', new DefaultValuePipe('creationDesc')) order: ListOrder,
+    @Query('order', new DefaultValuePipe('updationDesc')) order: ListOrder,
     @Query('keyword') keyword: string,
   ): Promise<ListCanvasResponse> {
     const canvases = await this.canvasService.listCanvases(user, {

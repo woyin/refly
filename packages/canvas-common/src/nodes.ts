@@ -102,7 +102,7 @@ export const getNodeDefaultMetadata = (nodeType: CanvasNodeType) => {
         status: 'generating', // Initial generation status
         language: 'typescript', // Default programming language
         style: {}, // Code styling options
-        activeTab: 'code', // Default active tab in the artifact view
+        activeTab: 'preview', // Default active tab in the artifact view
       } as CodeArtifactNodeMeta;
 
     default:

@@ -890,7 +890,7 @@ export const ShareUserSchema = {
 export const ListOrderSchema = {
   type: 'string',
   description: 'List order',
-  enum: ['creationAsc', 'creationDesc'],
+  enum: ['creationAsc', 'creationDesc', 'updationAsc', 'updationDesc'],
 } as const;
 
 export const CanvasStatusSchema = {

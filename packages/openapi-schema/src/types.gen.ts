@@ -567,7 +567,7 @@ export type ShareUser = {
 /**
  * List order
  */
-export type ListOrder = 'creationAsc' | 'creationDesc';
+export type ListOrder = 'creationAsc' | 'creationDesc' | 'updationAsc' | 'updationDesc';
 
 /**
  * Canvas status

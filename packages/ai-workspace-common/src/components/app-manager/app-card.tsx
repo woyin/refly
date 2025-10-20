@@ -1,6 +1,6 @@
 import { WorkflowApp } from '@refly/openapi-schema';
 import { HoverCardContainer } from '@refly-packages/ai-workspace-common/components/common/hover-card';
-import { Avatar, Button, message } from 'antd';
+import { Avatar, Button, message, Popconfirm } from 'antd';
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useTranslation } from 'react-i18next';
@@ -49,14 +49,30 @@ export const AppCard = ({ data, onDelete }: { data: WorkflowApp; onDelete?: () =
       <Button type="primary" onClick={(e) => handleViewButtonClick(e)} className="flex-1">
         {t('appManager.view')}
       </Button>
-      <Button
-        type="default"
-        onClick={(e) => handleUnpublish(e)}
-        className="flex-1"
-        loading={isDeleting}
+      <Popconfirm
+        title={
+          <div className="max-w-[300px] max-h-[200px] overflow-y-auto text-sm">
+            {t('appManager.deleteConfirm', { title: data.title })}
+          </div>
+        }
+        onConfirm={(e) => handleUnpublish(e)}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        okButtonProps={{ loading: isDeleting }}
+        onPopupClick={(e) => {
+          e.stopPropagation();
+        }}
       >
-        {t('appManager.unpublish')}
-      </Button>
+        <Button
+          type="default"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          className="flex-1"
+        >
+          {t('appManager.unpublish')}
+        </Button>
+      </Popconfirm>
     </>
   );
 

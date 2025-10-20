@@ -3788,6 +3788,14 @@ const translations = {
     unshareSuccess: '{{title}} has been unshared, only you can view it',
     unshareFailed: 'Failed to unshare workflow {{title}}',
     usedToolsetsTitle: 'Workflow Tools',
+    tableTitle: {
+      workflowName: ' Title',
+      status: 'Status',
+      tools: 'Tools',
+      owner: 'Owner',
+      lastModified: 'Last Modified',
+      actions: 'Actions',
+    },
   },
   appManager: {
     title: 'My Templates',
@@ -3798,6 +3806,7 @@ const translations = {
     noSearchResults: 'No search results',
     unpublishSuccess: '{{title}} unpublish successfully',
     unpublishFailed: '{{title}} unpublish failed',
+    deleteConfirm: 'Are you sure you want to revoke the template {{title}}?',
   },
 };
 

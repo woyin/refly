@@ -52,7 +52,7 @@ export const RecentWorkflow = memo(({ canvases }: { canvases: SiderData[] }) => 
               <div className="flex items-center gap-1 flex-shrink-0">
                 <WiTime3 className="w-4 h-4 text-refly-text-2" />
                 <span className="text-refly-text-2 text-xs leading-4 whitespace-nowrap">
-                  {time(canvas.createdAt, language as LOCALE)
+                  {time(canvas.updatedAt, language as LOCALE)
                     ?.utc()
                     ?.fromNow()}
                 </span>
