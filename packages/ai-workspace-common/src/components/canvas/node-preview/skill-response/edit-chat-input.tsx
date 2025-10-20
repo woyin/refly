@@ -377,6 +377,7 @@ const EditChatInputComponent = (props: EditChatInputProps) => {
         handleSendMessage={handleSendMessage}
         contextItems={editContextItems}
         setContextItems={setEditContextItems}
+        resultId={resultId}
         modelInfo={editModelInfo}
         setModelInfo={setEditModelInfo}
         runtimeConfig={editRuntimeConfig}

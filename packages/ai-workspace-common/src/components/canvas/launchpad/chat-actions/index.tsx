@@ -2,7 +2,11 @@ import { Button, Tooltip, Upload, FormInstance } from 'antd';
 import { memo, useMemo, useRef, useCallback } from 'react';
 import { ImageOutline, Send, Stop } from 'refly-icons';
 import { useTranslation } from 'react-i18next';
-import { useChatStoreShallow, useUserStoreShallow } from '@refly/stores';
+import {
+  useActionResultStoreShallow,
+  useChatStoreShallow,
+  useUserStoreShallow,
+} from '@refly/stores';
 import { getRuntime } from '@refly/utils/env';
 import { ModelSelector } from './model-selector';
 import { ModelInfo } from '@refly/openapi-schema';
@@ -26,6 +30,7 @@ interface ChatActionsProps {
   setModel: (model: ModelInfo | null) => void;
   runtimeConfig?: SkillRuntimeConfig;
   setRuntimeConfig?: (runtimeConfig: SkillRuntimeConfig) => void;
+  resultId?: string;
   className?: string;
   form?: FormInstance;
   handleSendMessage: () => void;
@@ -45,6 +50,7 @@ export const ChatActions = memo(
       query,
       model,
       setModel,
+      resultId,
       handleSendMessage,
       customActions,
       className,
@@ -61,6 +67,9 @@ export const ChatActions = memo(
     const { chatMode, setChatMode } = useChatStoreShallow((state) => ({
       chatMode: state.chatMode,
       setChatMode: state.setChatMode,
+    }));
+    const { result } = useActionResultStoreShallow((state) => ({
+      result: resultId ? state.resultMap[resultId] : undefined,
     }));
 
     const handleSendClick = useCallback(() => {
@@ -96,10 +105,15 @@ export const ChatActions = memo(
       const hasContextItems = contextItems?.length > 0;
       return hasQuery || hasContextItems;
     }, [query, contextItems]);
-    const canSendMessage = useMemo(
-      () => !userStore.isLogin || canSendEmptyMessage,
-      [userStore.isLogin, canSendEmptyMessage],
-    );
+
+    const canSendMessage = useMemo(() => {
+      if (!result) {
+        return !userStore.isLogin || canSendEmptyMessage;
+      }
+
+      // Only allow sending message if the result is not waiting or executing
+      return result.status !== 'waiting' && result.status !== 'executing' && canSendEmptyMessage;
+    }, [userStore.isLogin, canSendEmptyMessage, result]);
 
     const containerRef = useRef<HTMLDivElement>(null);
 

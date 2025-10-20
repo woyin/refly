@@ -1177,6 +1177,7 @@ const translations = {
       placeholder: '描述你的需求...',
       chatInputPlaceholder: '输入任务描述，Agent 将生成可复用的工作流',
       commonChatInputPlaceholder: '输入任务，@ 可以快速选择变量/资源/工具等',
+      actionIsRunning: '当前提问正在处理中，请等待完成后再次发送',
     },
     contextMenu: {
       createGroup: '创建分组',

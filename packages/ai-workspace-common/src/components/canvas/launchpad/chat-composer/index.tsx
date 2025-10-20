@@ -13,8 +13,9 @@ import {
 } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/chat-actions';
 import { useUploadImage } from '@refly-packages/ai-workspace-common/hooks/use-upload-image';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
-import { useChatStoreShallow } from '@refly/stores';
+import { useActionResultStore, useChatStoreShallow } from '@refly/stores';
 import { useTranslation } from 'react-i18next';
+import { message } from 'antd';
 
 export interface ChatComposerProps {
   query: string;
@@ -42,6 +43,9 @@ export interface ChatComposerProps {
   className?: string;
   contextClassName?: string;
   actionsClassName?: string;
+
+  // Action result ID
+  resultId?: string;
 
   mentionPosition?: 'top-start' | 'bottom-start';
 
@@ -85,6 +89,7 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
     inputClassName = 'px-1 py-0',
     maxRows = 6,
     onFocus,
+    resultId,
     className = '',
     contextClassName = '',
     actionsClassName = '',
@@ -183,6 +188,20 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
     [handleUploadMultipleImages, setContextItems, canvasId],
   );
 
+  const handleSendMessageInternal = useCallback(() => {
+    // If resultId is provided, check if the result is executing
+    if (resultId) {
+      const { resultMap } = useActionResultStore.getState();
+      const result = resultMap[resultId];
+      if (result && (result.status === 'waiting' || result.status === 'executing')) {
+        message.warning(t('canvas.launchpad.actionIsRunning'));
+        return;
+      }
+    }
+
+    handleSendMessage();
+  }, [resultId, handleSendMessage]);
+
   return (
     <div className={`flex flex-col gap-3 h-full box-border ${className}`}>
       <ContextManager
@@ -201,7 +220,7 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
           }}
           inputClassName={inputClassName}
           maxRows={maxRows}
-          handleSendMessage={handleSendMessage}
+          handleSendMessage={handleSendMessageInternal}
           onUploadImage={handleImageUpload as (file: File) => Promise<void>}
           onUploadMultipleImages={handleMultipleImagesUpload as (files: File[]) => Promise<void>}
           onFocus={onFocus}
@@ -222,7 +241,7 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
           }}
           inputClassName={inputClassName}
           maxRows={maxRows}
-          handleSendMessage={handleSendMessage}
+          handleSendMessage={handleSendMessageInternal}
           onUploadImage={handleImageUpload as (file: File) => Promise<void>}
           onUploadMultipleImages={handleMultipleImagesUpload as (files: File[]) => Promise<void>}
           onFocus={onFocus}
@@ -235,7 +254,8 @@ const ChatComposerComponent = forwardRef<ChatComposerRef, ChatComposerProps>((pr
         query={query}
         model={modelInfo}
         setModel={setModelInfo}
-        handleSendMessage={handleSendMessage}
+        resultId={resultId}
+        handleSendMessage={handleSendMessageInternal}
         handleAbort={handleAbort ?? (() => {})}
         onUploadImage={handleImageUpload as (file: File) => Promise<void>}
         contextItems={contextItems}

@@ -263,10 +263,21 @@ export const SkillResponseNode = memo(
     const currentSkill = actionMeta || selectedSkill;
 
     const { startPolling, resetFailedState } = useActionPolling();
-    const { isStreaming, removeStreamResult } = useActionResultStoreShallow((state) => ({
+    const { result, isStreaming, removeStreamResult } = useActionResultStoreShallow((state) => ({
+      result: state.resultMap[entityId],
       isStreaming: !!state.streamResults[entityId],
       removeStreamResult: state.removeStreamResult,
     }));
+
+    // Sync node status with action result status
+    useEffect(() => {
+      if (result && result.status !== data?.metadata?.status) {
+        setNodeData(id, {
+          ...data,
+          metadata: { ...data?.metadata, status: result.status },
+        });
+      }
+    }, [result, data, id, setNodeData]);
 
     // Use pilot recovery hook for pilot steps
     const { recoverSteps } = usePilotRecovery({
