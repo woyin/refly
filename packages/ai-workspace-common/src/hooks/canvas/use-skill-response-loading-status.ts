@@ -10,9 +10,13 @@ export const useSkillResponseLoadingStatus = (_canvasId: string) => {
     streamResults: state.streamResults,
   }));
 
-  const loadingStatus = useMemo(() => {
-    const skillResponseNodes = getNodes().filter((node) => node.type === 'skillResponse');
+  const nodes = getNodes();
+  const skillResponseNodes = useMemo(
+    () => nodes.filter((node) => node.type === 'skillResponse'),
+    [nodes],
+  );
 
+  const loadingStatus = useMemo(() => {
     if (skillResponseNodes.length === 0) {
       return {
         isLoading: false,
@@ -42,7 +46,7 @@ export const useSkillResponseLoadingStatus = (_canvasId: string) => {
       loadingCount,
       totalCount: skillResponseNodes.length,
     };
-  }, [getNodes, streamResults]);
+  }, [getNodes, streamResults, skillResponseNodes]);
 
-  return loadingStatus;
+  return { ...loadingStatus, skillResponseNodes, nodes };
 };

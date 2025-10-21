@@ -385,7 +385,7 @@ export class VariableExtractionService {
         this.prisma.variableExtractionHistory.findMany({
           where: { uid, status: 'applied' },
           orderBy: { createdAt: 'desc' },
-          take: 20,
+          take: 3,
         }),
         this.getRecentVariablePatterns(canvasId),
       ]);

@@ -32,8 +32,16 @@ export function buildAppPublishPrompt(
   canvasContext: CanvasContext,
   historicalData?: HistoricalData,
 ): string {
+  // Analyze which variables are actually used in canvas nodes
+  const usedVariables = analyzeVariableUsage(canvasData.nodes, canvasData.variables);
+
+  // Filter variables to only include those that are actually used
+  const filteredVariables = canvasData.variables.filter((variable) =>
+    usedVariables.has(variable.name),
+  );
+
   const nodesText = buildNodesText(canvasData.nodes);
-  const variablesText = buildVariablesText(canvasData.variables);
+  const variablesText = buildVariablesText(filteredVariables);
   const canvasContextText = buildCanvasContextText(canvasContext);
   const historicalContext = historicalData ? buildHistoricalContext(historicalData) : '';
 
@@ -72,9 +80,11 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 - Focus on user benefits and outcomes
 
 ### 2. Variable Integration
+- **CRITICAL**: Only include variables that are actually used in Canvas Nodes and Prompts
 - Replace specific values with {{variable_name}} placeholders
-- Ensure all variables are properly represented
+- Ensure all variables are properly represented in the template
 - Maintain semantic meaning while making it parameterizable
+- **Variable Usage Validation**: Only variables that appear in {{variable_name}} format within the Canvas Nodes should be included in the template
 
 ### 3. Template Structure
 - Start with a clear description of what the workflow accomplishes
@@ -140,16 +150,18 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 3. **Completeness**: Include all necessary variables and context
 4. **Actionability**: Users should know exactly what to provide and expect
 5. **Professionalism**: Maintain a helpful, trustworthy tone
+6. **Variable Usage Validation**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
 
 ## Critical Focus: Workflow Publishing Template String
 
 The **"content"** field in the template object is the most important output - this is the **workflow publishing template string** that will be used by users. It must:
 
 - **Be Natural and Conversational**: Sound like a helpful assistant explaining what they'll do
-- **Include All Variables**: Every extracted variable must be represented with {{variable_name}} placeholders
+- **Include Only Used Variables**: Only variables that are actually referenced in Canvas Nodes with {{variable_name}} format should be included
 - **Maintain Original Intent**: Preserve the user's original goal and requirements
 - **Be Self-Contained**: Users should understand the complete workflow from this single template
 - **Use Proper Variable Format**: All placeholders must use {{variable_name}} format exactly
+- **Variable Usage Validation**: If Canvas Nodes don't contain any {{variable_name}} references, the template should not include any variable placeholders
 
 ### Template String Examples:
 
@@ -160,6 +172,9 @@ The **"content"** field in the template object is the most important output - th
 **Before (Technical)**: "Generate travel itinerary based on destination, dates, and preferences"
 
 **After (User-friendly)**: "I'll create a personalized travel plan for your trip to {{destination}} from {{departure_city}} during {{dates}}. I'll arrange {{accommodation}} accommodations and {{food}} dining options, maintaining a {{pace}} pace with {{daily_routes}} for your {{goal}}."
+
+**Example with No Variables Used**: If Canvas Nodes contain no {{variable_name}} references, the template should be:
+"I'll help you create a comprehensive travel itinerary based on your preferences and requirements. I'll analyze your destination, dates, and specific needs to provide a detailed plan with accommodations, dining options, and daily activities."
 
 ${APP_PUBLISH_EXAMPLES}
 
@@ -172,10 +187,12 @@ ${APP_PUBLISH_EXAMPLES}
    - End with clear expectations of what will be delivered
 
 2. **Variable Integration**:
+   - **CRITICAL**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
    - Replace specific values with descriptive placeholders
    - Maintain the original semantic meaning
-   - Ensure all extracted variables are represented
+   - Ensure all used variables are represented
    - Use consistent naming conventions
+   - **No Variables Case**: If no variables are used in Canvas Nodes, create a template without any {{variable_name}} placeholders
 
 3. **User Experience Focus**:
    - Templates should be immediately understandable
@@ -185,9 +202,44 @@ ${APP_PUBLISH_EXAMPLES}
 
 4. **Quality Assurance**:
    - Every template string must be complete and self-contained
-   - All variables must be properly integrated
+   - Only variables that are actually used in Canvas Nodes should be included
    - Templates should maintain the original workflow intent
-   - Language should be professional yet approachable`;
+   - Language should be professional yet approachable
+   - **Variable Usage Validation**: Verify that all {{variable_name}} placeholders in the template correspond to variables actually referenced in Canvas Nodes`;
+}
+
+/**
+ * Analyze which variables are actually used in canvas nodes
+ * Returns a set of variable names that are referenced in node content
+ */
+function analyzeVariableUsage(nodes: CanvasNode[], variables: WorkflowVariable[]): Set<string> {
+  const usedVariables = new Set<string>();
+
+  if (!nodes?.length || !variables?.length) {
+    return usedVariables;
+  }
+
+  // Get all variable names
+  const variableNames = variables.map((v) => v.name);
+
+  // Check each node for variable references
+  for (const node of nodes) {
+    const content = node.data?.content || node.content || '';
+    if (typeof content === 'string' && content.length > 0) {
+      // Check for {{variable_name}} pattern
+      const variablePattern = /\{\{([^}]+)\}\}/g;
+      let match: RegExpExecArray | null = variablePattern.exec(content);
+      while (match !== null) {
+        const variableName = match[1]?.trim();
+        if (variableName && variableNames.includes(variableName)) {
+          usedVariables.add(variableName);
+        }
+        match = variablePattern.exec(content);
+      }
+    }
+  }
+
+  return usedVariables;
 }
 
 /**

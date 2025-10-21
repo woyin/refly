@@ -158,7 +158,9 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     if (access === 'off') return;
     // Copy link to clipboard immediately for better UX
     const newShareLink = getShareLink('canvas', shareRecord?.shareId ?? '');
+
     await navigator.clipboard.writeText(newShareLink);
+
     setLinkCopied(true);
     // Reset copied state after 3 seconds
     setTimeout(() => setLinkCopied(false), 3000);
@@ -176,6 +178,8 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   }, [workflowAppLink, t]);
 
   const handlePublishToCommunity = useCallback(() => {
+    if (toolbarLoading || !skillResponseNodes?.length) return;
+
     setCreateTemplateModalVisible(true);
     setOpen(false);
   }, []);
@@ -278,7 +282,8 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     return { total, executing, finished, failed, waiting };
   }, [nodeExecutions]);
 
-  const { isLoading: skillResponseLoading } = useSkillResponseLoadingStatus(canvasId);
+  const { isLoading: skillResponseLoading, skillResponseNodes } =
+    useSkillResponseLoadingStatus(canvasId);
 
   const toolbarLoading =
     executionStats.executing > 0 || executionStats.waiting > 0 || skillResponseLoading;
@@ -394,7 +399,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
             placement="top"
           >
             <Button
-              disabled={toolbarLoading}
+              disabled={toolbarLoading || !skillResponseNodes?.length}
               loading={toolbarLoading}
               type="primary"
               size="small"
