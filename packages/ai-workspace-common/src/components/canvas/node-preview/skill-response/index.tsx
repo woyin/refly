@@ -353,7 +353,9 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
         )}
       </div>
 
-      {outputStep && <ActionContainer result={result} step={outputStep} nodeId={node.id} />}
+      {outputStep && result?.status === 'finish' && (
+        <ActionContainer result={result} step={outputStep} nodeId={node.id} />
+      )}
 
       {knowledgeBaseStore?.sourceListDrawerVisible ? (
         <SourceListModal classNames="source-list-modal" />
