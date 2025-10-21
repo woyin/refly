@@ -32,16 +32,8 @@ export function buildAppPublishPrompt(
   canvasContext: CanvasContext,
   historicalData?: HistoricalData,
 ): string {
-  // Analyze which variables are actually used in canvas nodes
-  const usedVariables = analyzeVariableUsage(canvasData.nodes, canvasData.variables);
-
-  // Filter variables to only include those that are actually used
-  const filteredVariables = canvasData.variables.filter((variable) =>
-    usedVariables.has(variable.name),
-  );
-
   const nodesText = buildNodesText(canvasData.nodes);
-  const variablesText = buildVariablesText(filteredVariables);
+  const variablesText = buildVariablesText(canvasData.variables);
   const canvasContextText = buildCanvasContextText(canvasContext);
   const historicalContext = historicalData ? buildHistoricalContext(historicalData) : '';
 
@@ -74,34 +66,45 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 
 ## Template Generation Guidelines
 
-### 1. Natural Language Conversion
+### 1. Language Consistency (CRITICAL)
+- **MUST maintain the same language as used in Canvas Nodes and Prompts**
+- If Canvas Nodes contain Chinese text, generate templates in Chinese
+- If Canvas Nodes contain English text, generate templates in English
+- If Canvas Nodes contain mixed languages, follow the primary language pattern
+- **Language Detection**: Analyze the Canvas Nodes content to determine the user's preferred language
+- **Consistency Requirement**: All template fields (title, description, content) must use the same language as the Canvas Nodes
+
+### 2. Natural Language Conversion
 - Convert technical workflow descriptions into user-friendly language
 - Use clear, actionable language that explains what the workflow does
 - Focus on user benefits and outcomes
+- **Maintain language consistency with Canvas Nodes**
 
-### 2. Variable Integration
+### 3. Variable Integration
 - **CRITICAL**: Only include variables that are actually used in Canvas Nodes and Prompts
 - Replace specific values with {{variable_name}} placeholders
 - Ensure all variables are properly represented in the template
 - Maintain semantic meaning while making it parameterizable
 - **Variable Usage Validation**: Only variables that appear in {{variable_name}} format within the Canvas Nodes should be included in the template
 
-### 3. Template Structure
+### 4. Template Structure
 - Start with a clear description of what the workflow accomplishes
 - Explain what inputs are needed (variables)
 - Describe the expected output or result
 - Use conversational, helpful tone
+- **Maintain language consistency with Canvas Nodes**
 
-### 4. Variable Type Handling
+### 5. Variable Type Handling
 - **string**: Use descriptive placeholders like "{{topic}}" or "{{style}}"
 - **resource**: Use file-related placeholders like "{{upload_file}}" or "{{document}}"
 - **option**: Use selection-related placeholders like "{{format}}" or "{{mode}}"
 
-### 5. Quality Standards
+### 6. Quality Standards
 - Templates should be self-explanatory
 - Variables should have clear, descriptive names
 - Maintain workflow functionality while improving usability
 - Ensure consistency with existing variable names
+- **Language consistency is mandatory - all output must match Canvas Nodes language**
 
 ## Output Format Requirements
 
@@ -145,17 +148,19 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 \`\`\`
 
 ## Key Principles
-1. **Clarity**: Users should immediately understand what the workflow does
-2. **Simplicity**: Avoid technical jargon, use everyday language
-3. **Completeness**: Include all necessary variables and context
-4. **Actionability**: Users should know exactly what to provide and expect
-5. **Professionalism**: Maintain a helpful, trustworthy tone
-6. **Variable Usage Validation**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
+1. **Language Consistency**: **CRITICAL** - All template fields must use the same language as Canvas Nodes
+2. **Clarity**: Users should immediately understand what the workflow does
+3. **Simplicity**: Avoid technical jargon, use everyday language
+4. **Completeness**: Include all necessary variables and context
+5. **Actionability**: Users should know exactly what to provide and expect
+6. **Professionalism**: Maintain a helpful, trustworthy tone
+7. **Variable Usage Validation**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
 
 ## Critical Focus: Workflow Publishing Template String
 
 The **"content"** field in the template object is the most important output - this is the **workflow publishing template string** that will be used by users. It must:
 
+- **Language Consistency**: **CRITICAL** - Must use the same language as Canvas Nodes
 - **Be Natural and Conversational**: Sound like a helpful assistant explaining what they'll do
 - **Include Only Used Variables**: Only variables that are actually referenced in Canvas Nodes with {{variable_name}} format should be included
 - **Maintain Original Intent**: Preserve the user's original goal and requirements
@@ -205,41 +210,8 @@ ${APP_PUBLISH_EXAMPLES}
    - Only variables that are actually used in Canvas Nodes should be included
    - Templates should maintain the original workflow intent
    - Language should be professional yet approachable
+   - **Language Consistency**: **CRITICAL** - All template fields must match the language used in Canvas Nodes
    - **Variable Usage Validation**: Verify that all {{variable_name}} placeholders in the template correspond to variables actually referenced in Canvas Nodes`;
-}
-
-/**
- * Analyze which variables are actually used in canvas nodes
- * Returns a set of variable names that are referenced in node content
- */
-function analyzeVariableUsage(nodes: CanvasNode[], variables: WorkflowVariable[]): Set<string> {
-  const usedVariables = new Set<string>();
-
-  if (!nodes?.length || !variables?.length) {
-    return usedVariables;
-  }
-
-  // Get all variable names
-  const variableNames = variables.map((v) => v.name);
-
-  // Check each node for variable references
-  for (const node of nodes) {
-    const content = node.data?.content || node.content || '';
-    if (typeof content === 'string' && content.length > 0) {
-      // Check for {{variable_name}} pattern
-      const variablePattern = /\{\{([^}]+)\}\}/g;
-      let match: RegExpExecArray | null = variablePattern.exec(content);
-      while (match !== null) {
-        const variableName = match[1]?.trim();
-        if (variableName && variableNames.includes(variableName)) {
-          usedVariables.add(variableName);
-        }
-        match = variablePattern.exec(content);
-      }
-    }
-  }
-
-  return usedVariables;
 }
 
 /**
