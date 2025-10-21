@@ -1,4 +1,9 @@
-import { WorkflowVariable, CanvasContext, HistoricalData } from './variable-extraction.dto';
+import {
+  WorkflowVariable,
+  CanvasContext,
+  HistoricalData,
+  CanvasContentItem,
+} from './variable-extraction.dto';
 
 // Import examples for reference and testing
 import { APP_PUBLISH_EXAMPLES } from './examples';
@@ -13,10 +18,16 @@ interface CanvasNode {
     content?: string;
   };
   content?: string;
+  input?: {
+    originalQuery?: string;
+    query?: string;
+    [key: string]: any;
+  };
 }
 
 interface CanvasDataInput {
   nodes: CanvasNode[];
+  contentItems: CanvasContentItem[];
   variables: WorkflowVariable[];
   title?: string;
   description?: string;
@@ -32,8 +43,12 @@ export function buildAppPublishPrompt(
   canvasContext: CanvasContext,
   historicalData?: HistoricalData,
 ): string {
-  const nodesText = buildNodesText(canvasData.nodes);
-  const variablesText = buildVariablesText(canvasData.variables);
+  const nodesText = buildNodesText(canvasData.contentItems);
+
+  // Filter variables to only include those actually used in canvas nodes
+  const usedVariables = filterUsedVariables(canvasData.variables, canvasData.contentItems);
+  const variablesText = buildVariablesText(usedVariables);
+
   const canvasContextText = buildCanvasContextText(canvasContext);
   const historicalContext = historicalData ? buildHistoricalContext(historicalData) : '';
 
@@ -215,18 +230,45 @@ ${APP_PUBLISH_EXAMPLES}
 }
 
 /**
+ * Extract variable references from originalQuery string
+ * Handles patterns like @{type=var,id=var-xxx,name=xxx}
+ */
+function extractVariableReferences(originalQuery: string): string[] {
+  if (!originalQuery || typeof originalQuery !== 'string') {
+    return [];
+  }
+
+  // Match pattern: @{type=var,id=var-xxx,name=xxx}
+  const variablePattern = /@\{type=var,id=([^,]+),name=([^}]+)\}/g;
+  const matches: string[] = [];
+  let match: RegExpExecArray | null;
+
+  match = variablePattern.exec(originalQuery);
+  while (match !== null) {
+    const variableName = match[2]; // Extract the name part
+    if (variableName && !matches.includes(variableName)) {
+      matches.push(variableName);
+    }
+    match = variablePattern.exec(originalQuery);
+  }
+
+  return matches;
+}
+
+/**
  * Build nodes text - format canvas nodes into readable description
  */
-function buildNodesText(nodes: CanvasNode[]): string {
-  if (!nodes?.length) {
+function buildNodesText(contentItems: CanvasContentItem[]): string {
+  if (!contentItems?.length) {
     return '- No workflow nodes found';
   }
 
-  return nodes
+  return contentItems
     .map((node, index) => {
       const nodeType = node.type || 'unknown';
-      const nodeTitle = node.data?.title || node.title || `Node ${index + 1}`;
-      const nodeContent = node.data?.content || node.content || '';
+      const nodeTitle = node?.title || node.title || `Node ${index + 1}`;
+      const nodeContent = node?.content || node.content || '';
+      const originalQuery = node.input?.originalQuery || '';
 
       let description = `- ${nodeTitle} (${nodeType})`;
       if (nodeContent && typeof nodeContent === 'string' && nodeContent.length > 0) {
@@ -235,9 +277,44 @@ function buildNodesText(nodes: CanvasNode[]): string {
         description += `\n  Content: ${truncatedContent}`;
       }
 
+      // Add originalQuery information if available
+      if (originalQuery && typeof originalQuery === 'string' && originalQuery.length > 0) {
+        const truncatedQuery =
+          originalQuery.length > 100 ? `${originalQuery.substring(0, 100)}...` : originalQuery;
+        description += `\n  Original Query: ${truncatedQuery}`;
+      }
+
       return description;
     })
     .join('\n');
+}
+
+/**
+ * Filter variables to only include those actually used in canvas nodes
+ */
+function filterUsedVariables(
+  variables: WorkflowVariable[],
+  contentItems: CanvasContentItem[],
+): WorkflowVariable[] {
+  if (!variables?.length || !contentItems?.length) {
+    return variables || [];
+  }
+
+  // Extract all variable references from all nodes' originalQuery fields
+  const usedVariableNames = new Set<string>();
+
+  for (const node of contentItems) {
+    const originalQuery = node.input?.originalQuery || '';
+    if (originalQuery) {
+      const variableRefs = extractVariableReferences(originalQuery);
+      for (const name of variableRefs) {
+        usedVariableNames.add(name);
+      }
+    }
+  }
+
+  // Filter variables to only include those that are actually used
+  return variables.filter((variable) => usedVariableNames.has(variable.name));
 }
 
 /**
