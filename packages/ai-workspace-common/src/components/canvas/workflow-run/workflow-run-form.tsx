@@ -1,6 +1,6 @@
 import type { WorkflowVariable, WorkflowExecutionStatus } from '@refly/openapi-schema';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, notification } from 'antd';
+import { Button, Form, Input, notification, Select, Typography } from 'antd';
 import { Play, Copy } from 'refly-icons';
 import { IconShare } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -11,6 +11,33 @@ import EmptyImage from '@refly-packages/ai-workspace-common/assets/noResource.sv
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { useNavigate } from 'react-router-dom';
 import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
+import { ResourceUpload } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/resource-upload';
+import { useFileUpload } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables';
+import { getFileType } from '@refly-packages/ai-workspace-common/components/canvas/workflow-variables/utils';
+
+const RequiredTagText = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex-shrink-0 text-[10px] text-refly-text-2 leading-[16px] px-1 border-[1px] border-solid border-refly-Card-Border rounded-[4px]">
+      {t('canvas.workflow.variables.required') || 'Required'}
+    </div>
+  );
+};
+
+const FormItemLabel = ({ name, required }: { name: string; required: boolean }) => {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <Typography.Paragraph
+        ellipsis={{ rows: 1, tooltip: true }}
+        className="!m-0 text-xs font-semibold text-refly-text-0 leading-4"
+      >
+        {name}
+      </Typography.Paragraph>
+
+      {required && <RequiredTagText />}
+    </div>
+  );
+};
 
 const EmptyContent = () => {
   const { t } = useTranslation();
@@ -74,6 +101,132 @@ export const WorkflowRunForm = ({
 
   // Check if form should be disabled
   const isFormDisabled = loading || isRunning || isPolling;
+
+  // File upload hook
+  const {
+    uploading,
+    handleFileUpload: uploadFile,
+    handleRefreshFile: refreshFile,
+  } = useFileUpload();
+
+  const convertFormValueToVariable = useCallback(() => {
+    const newVariables: WorkflowVariable[] = [];
+    for (const variable of workflowVariables) {
+      const value = variableValues[variable.name];
+      if (variable.variableType === 'string') {
+        newVariables.push({
+          ...variable,
+          value: [{ type: 'text', text: value }],
+        });
+      } else if (variable.variableType === 'option') {
+        // Handle both array and single value cases
+        const valueArray = Array.isArray(value) ? value : value ? [value] : [];
+        newVariables.push({
+          ...variable,
+          value: valueArray.map((v) => ({ type: 'text', text: v })),
+        });
+      } else if (variable.variableType === 'resource') {
+        const v = Array.isArray(value) ? value[0] : undefined;
+        const entityId = variable?.value?.[0]?.resource?.entityId;
+
+        if (v) {
+          newVariables.push({
+            ...variable,
+            value: [
+              {
+                type: 'resource',
+                resource: {
+                  name: v.name,
+                  storageKey: v.url,
+                  fileType: getFileType(v.name),
+                  ...(entityId && { entityId }),
+                },
+              },
+            ],
+          });
+        }
+      }
+    }
+    return newVariables;
+  }, [workflowVariables, variableValues]);
+
+  // Handle form value changes
+  const handleValueChange = (variableName: string, value: any) => {
+    setVariableValues((prev) => ({
+      ...prev,
+      [variableName]: value,
+    }));
+  };
+
+  // Handle file upload for resource type variables
+  const handleFileUpload = useCallback(
+    async (file: File, variableName: string) => {
+      const currentFileList = variableValues[variableName] || [];
+      const result = await uploadFile(file, currentFileList);
+
+      if (result && typeof result === 'object' && 'storageKey' in result) {
+        // Create new file with storageKey
+        const newFile: UploadFile = {
+          uid: result.uid,
+          name: file.name,
+          status: 'done',
+          url: result.storageKey, // Store storageKey in url field
+        };
+
+        // Replace the file list with the new file (single file limit)
+        const newFileList = [newFile];
+        handleValueChange(variableName, newFileList);
+        form.setFieldsValue({
+          [variableName]: newFileList,
+        });
+        return false; // Prevent default upload behavior
+      }
+      return false;
+    },
+    [uploadFile, variableValues],
+  );
+
+  // Handle file removal for resource type variables
+  const handleFileRemove = useCallback(
+    (file: UploadFile, variableName: string) => {
+      const currentFileList = variableValues[variableName] || [];
+      const newFileList = currentFileList.filter((f: UploadFile) => f.uid !== file.uid);
+      handleValueChange(variableName, newFileList);
+      form.setFieldsValue({
+        [variableName]: newFileList,
+      });
+    },
+    [variableValues, handleValueChange],
+  );
+
+  // Handle file refresh for resource type variables
+  const handleRefreshFile = useCallback(
+    (variableName: string) => {
+      const currentFileList = variableValues[variableName] || [];
+      // Find the variable to get its resourceTypes
+      const variable = workflowVariables.find((v) => v.name === variableName);
+      const resourceTypes = variable?.resourceTypes;
+
+      refreshFile(
+        currentFileList,
+        (newFileList: UploadFile[]) => {
+          handleValueChange(variableName, newFileList);
+          form.setFieldsValue({
+            [variableName]: newFileList,
+          });
+        },
+        resourceTypes,
+      );
+    },
+    [refreshFile, variableValues, handleValueChange, form, workflowVariables],
+  );
+
+  // Update form values when workflowVariables change
+  useEffect(() => {
+    const newValues = convertVariableToFormValue();
+    setVariableValues(newValues);
+    form.setFieldsValue(newValues);
+  }, [workflowVariables, form]);
 
   // Check if all required fields are filled
   const isFormValid = useMemo(() => {
@@ -165,6 +318,8 @@ export const WorkflowRunForm = ({
     }
   }, [templateContent, workflowVariables]);
 
+  console.log({ templateContent });
+
   const handleRun = async () => {
     if (loading || isRunning) {
       return;
@@ -179,41 +334,51 @@ export const WorkflowRunForm = ({
     }
 
     try {
-      // Validate form before running
-      // Validate templateVariables values
-      const hasInvalidValues = templateVariables.some((variable) => {
-        if (!variable.value || variable.value.length === 0) {
-          return true;
+      // If validation passes, proceed with running
+      let newVariables: WorkflowVariable[];
+
+      if (templateContent) {
+        // Validate form before running
+        // Validate templateVariables values
+        const hasInvalidValues = templateVariables.some((variable) => {
+          if (!variable.value || variable.value.length === 0) {
+            return true;
+          }
+
+          return variable.value.every((val) => {
+            if (variable.variableType === 'string') {
+              return !val.text || val.text.trim() === '';
+            }
+            if (variable.variableType === 'option') {
+              return !val.text || val.text.trim() === '';
+            }
+            if (variable.variableType === 'resource') {
+              return !val.resource || !val.resource.storageKey;
+            }
+            return true;
+          });
+        });
+
+        if (hasInvalidValues) {
+          // Show validation error notification
+          notification.warning({
+            message: t(
+              'canvas.workflow.run.validationError',
+              'Please fill in all required fields before running the workflow',
+            ),
+            duration: 4,
+          });
+          return;
         }
 
-        return variable.value.every((val) => {
-          if (variable.variableType === 'string') {
-            return !val.text || val.text.trim() === '';
-          }
-          if (variable.variableType === 'option') {
-            return !val.text || val.text.trim() === '';
-          }
-          if (variable.variableType === 'resource') {
-            return !val.resource || !val.resource.storageKey;
-          }
-          return true;
-        });
-      });
+        newVariables = templateVariables;
+      } else {
+        // Validate form before running
+        await form.validateFields();
 
-      if (hasInvalidValues) {
-        // Show validation error notification
-        notification.warning({
-          message: t(
-            'canvas.workflow.run.validationError',
-            'Please fill in all required fields before running the workflow',
-          ),
-          duration: 4,
-        });
-        return;
+        // If validation passes, proceed with running
+        newVariables = convertFormValueToVariable();
       }
-
-      // If validation passes, proceed with running
-      const newVariables = templateVariables;
 
       // Set running state - use external callback if provided, otherwise use internal state
       if (onRunningChange) {
@@ -292,6 +457,94 @@ export const WorkflowRunForm = ({
     }
   };
 
+  // Render form field based on variable type
+  const renderFormField = (variable: WorkflowVariable) => {
+    if (!variable) {
+      return null;
+    }
+    const { name, required, variableType, options, isSingle, resourceTypes } = variable;
+    const value = variableValues[name];
+
+    if (variableType === 'string') {
+      return (
+        <Form.Item
+          key={name}
+          label={<FormItemLabel name={name} required={required} />}
+          name={name}
+          rules={
+            required
+              ? [{ required: true, message: t('canvas.workflow.variables.inputPlaceholder') }]
+              : []
+          }
+          data-field-name={name}
+        >
+          <Input
+            variant="filled"
+            placeholder={t('canvas.workflow.variables.inputPlaceholder')}
+            value={value}
+            onChange={(e) => handleValueChange(name, e.target.value)}
+            data-field-name={name}
+            disabled={isFormDisabled}
+          />
+        </Form.Item>
+      );
+    }
+
+    if (variableType === 'option') {
+      return (
+        <Form.Item
+          key={name}
+          label={<FormItemLabel name={name} required={required} />}
+          name={name}
+          rules={
+            required
+              ? [{ required: true, message: t('canvas.workflow.variables.selectPlaceholder') }]
+              : []
+          }
+        >
+          <Select
+            variant="filled"
+            placeholder={t('canvas.workflow.variables.selectPlaceholder')}
+            mode={isSingle ? undefined : 'multiple'}
+            value={value}
+            onChange={(val) => handleValueChange(name, val)}
+            options={options?.map((opt) => ({ label: opt, value: opt })) ?? []}
+            data-field-name={name}
+            disabled={isFormDisabled}
+          />
+        </Form.Item>
+      );
+    }
+
+    if (variableType === 'resource') {
+      return (
+        <Form.Item
+          key={name}
+          label={<FormItemLabel name={name} required={required} />}
+          name={name}
+          rules={
+            required
+              ? [{ required: true, message: t('canvas.workflow.variables.uploadPlaceholder') }]
+              : []
+          }
+        >
+          <ResourceUpload
+            value={value || []}
+            onUpload={(file) => handleFileUpload(file, name)}
+            onRemove={(file) => handleFileRemove(file, name)}
+            onRefresh={() => handleRefreshFile(name)}
+            resourceTypes={resourceTypes}
+            disabled={uploading || isFormDisabled}
+            maxCount={1}
+            data-field-name={name}
+          />
+        </Form.Item>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
       {
@@ -317,6 +570,15 @@ export const WorkflowRunForm = ({
                   )}
                 </div>
               </div>
+            ) : workflowVariables.length > 0 ? (
+              <Form
+                form={form}
+                layout="vertical"
+                className="space-y-3 sm:space-y-4"
+                initialValues={variableValues}
+              >
+                {workflowVariables.map((variable) => renderFormField(variable))}
+              </Form>
             ) : loading ? null : (
               <EmptyContent />
             )}
