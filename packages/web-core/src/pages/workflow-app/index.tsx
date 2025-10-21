@@ -227,8 +227,6 @@ const WorkflowAppPage: React.FC = () => {
     ];
   }, [t]);
 
-  console.log({ workflowApp });
-
   return (
     <ReactFlowProvider>
       <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>

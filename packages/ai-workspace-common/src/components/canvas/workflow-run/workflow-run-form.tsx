@@ -292,8 +292,6 @@ export const WorkflowRunForm = ({
     }
   };
 
-  console.log({ workflowApp });
-
   return (
     <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
       {
