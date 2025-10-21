@@ -1,4 +1,4 @@
-import { ActionStep, Artifact, ActionResult } from '@refly/openapi-schema';
+import { ActionStep, Artifact, ActionResult, ToolCallResult } from '@refly/openapi-schema';
 import { aggregateTokenUsage } from './models';
 
 const STEP_ORDER = {
@@ -83,6 +83,24 @@ export const mergeStepsByName = (
         ...(incoming?.structuredData ?? {}),
       } as Record<string, unknown>;
 
+      const mergedToolCalls = (() => {
+        const a = Array.isArray(prev?.toolCalls) ? (prev?.toolCalls ?? []) : [];
+        const b = Array.isArray(incoming?.toolCalls) ? (incoming?.toolCalls ?? []) : [];
+        if (!a.length && !b.length) return undefined;
+        const callById = new Map<string, ToolCallResult>();
+        for (const call of a) {
+          if (call?.callId) {
+            callById.set(call.callId, { ...call });
+          }
+        }
+        for (const call of b) {
+          if (!call?.callId) continue;
+          const existing = callById.get(call.callId) ?? {};
+          callById.set(call.callId, { ...existing, ...call });
+        }
+        return Array.from(callById.values());
+      })();
+
       const merged: ActionStep = {
         name: incoming.name,
         content: mergeStringsKeepLongest(prev?.content, incoming?.content),
@@ -94,6 +112,7 @@ export const mergeStepsByName = (
         structuredData: mergedStructuredData,
         logs: mergedLogs,
         tokenUsage: mergedTokenUsage,
+        toolCalls: mergedToolCalls,
       };
 
       oldMap.set(incoming.name, merged);

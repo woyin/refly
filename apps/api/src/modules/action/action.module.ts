@@ -1,12 +1,13 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { ActionController } from './action.controller';
-import { ActionService } from './action.service';
 import { CommonModule } from '../common/common.module';
 import { ProviderModule } from '../provider/provider.module';
 import { SkillModule } from '../skill/skill.module';
+import { ToolCallModule } from '../tool-call/tool-call.module';
+import { ActionController } from './action.controller';
+import { ActionService } from './action.service';
 
 @Module({
-  imports: [CommonModule, ProviderModule, forwardRef(() => SkillModule)],
+  imports: [CommonModule, ProviderModule, ToolCallModule, forwardRef(() => SkillModule)],
   controllers: [ActionController],
   providers: [ActionService],
   exports: [ActionService],

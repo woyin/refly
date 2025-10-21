@@ -1,10 +1,30 @@
-import React, { useState } from 'react';
+import { ToolOutlined } from '@ant-design/icons';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MarkdownMode } from '../../types';
-import { ToolOutlined } from '@ant-design/icons';
+import { ToolCallStatus, parseToolCallStatus } from './types';
 
 // SVG icons for the component
-const CheckIcon = () => (
+const ExecutingIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400 animate-spin"
+    style={{ animationDuration: '1.1s' }}
+  >
+    <circle cx="12" cy="12" r="10" className="opacity-30" />
+    <path d="M12 2a10 10 0 0 1 10 10" />
+  </svg>
+);
+
+const CompletedIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="18"
@@ -21,8 +41,30 @@ const CheckIcon = () => (
   </svg>
 );
 
+const FailedIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="w-[18px] h-[18px] text-red-500 dark:text-red-400"
+  >
+    <path d="M18 6 6 18" />
+    <path d="M6 6l12 12" />
+  </svg>
+);
+
 interface ToolCallProps {
   'data-tool-name'?: string;
+  'data-tool-call-id'?: string;
+  'data-tool-call-status'?: string;
+  'data-tool-created-at'?: string;
+  'data-tool-updated-at'?: string;
   'data-tool-arguments'?: string;
   'data-tool-result'?: string;
   'data-tool-type'?: 'use' | 'result';
@@ -35,6 +77,7 @@ interface ToolCallProps {
   'data-tool-video-http-url'?: string;
   'data-tool-video-name'?: string;
   'data-tool-video-format'?: string;
+  'data-tool-error'?: string;
   id?: string;
   mode?: MarkdownMode;
 }
@@ -65,10 +108,38 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
   };
 
   // Format the content for result
-  const resultContent = props['data-tool-result'] || '';
-
+  const resultContent = props['data-tool-error'] || props['data-tool-result'] || '';
   // Check if result exists
-  const hasResult = !!resultContent;
+  const hasResult = !!resultContent || !!props['data-tool-error'];
+  const toolCallStatus =
+    parseToolCallStatus(props['data-tool-call-status']) ?? ToolCallStatus.EXECUTING;
+
+  // Compute execution duration when timestamps are provided
+  const durationText = useMemo(() => {
+    const createdAtStr = props['data-tool-created-at'] ?? '0';
+    const updatedAtStr = props['data-tool-updated-at'] ?? '0';
+    const createdAt = Number(createdAtStr);
+    const updatedAt = Number(updatedAtStr);
+    if (
+      !Number.isFinite(createdAt) ||
+      !Number.isFinite(updatedAt) ||
+      updatedAt <= 0 ||
+      createdAt <= 0
+    ) {
+      return '';
+    }
+    const ms = Math.max(0, updatedAt - createdAt);
+    if (ms < 1000) {
+      return `${ms}ms`;
+    }
+    const seconds = ms / 1000;
+    if (seconds < 60) {
+      return `${seconds.toFixed(2)}s`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainSec = Math.floor(seconds % 60);
+    return `${minutes}m ${remainSec}s`;
+  }, [props['data-tool-created-at'], props['data-tool-updated-at']]);
 
   return (
     <>
@@ -95,12 +166,25 @@ const ToolCall: React.FC<ToolCallProps> = (props) => {
           <div className="flex-1 text-[15px] font-medium tracking-tight text-gray-900 dark:text-gray-100">
             {`${toolsetKey} | ${toolName}`}
           </div>
-          {/* Check icon for results, with adjusted margin */}
-          {hasResult && (
+          {/* Status indicator */}
+          {toolCallStatus === ToolCallStatus.EXECUTING && (
+            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+              <ExecutingIcon />
+            </span>
+          )}
+          {toolCallStatus === ToolCallStatus.COMPLETED && (
             <span className="ml-2 flex items-center">
-              {' '}
-              {/* Adjusted margin from ml-1 to ml-2 */}
-              <CheckIcon />
+              <CompletedIcon />
+              {durationText && (
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                  {durationText}
+                </span>
+              )}
+            </span>
+          )}
+          {toolCallStatus === ToolCallStatus.FAILED && (
+            <span className="ml-2 flex items-center">
+              <FailedIcon />
             </span>
           )}
         </div>

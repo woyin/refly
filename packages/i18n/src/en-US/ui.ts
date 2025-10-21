@@ -3000,6 +3000,8 @@ const translations = {
   },
   components: {
     markdown: {
+      parameters: 'Parameters:',
+      result: 'Result:',
       copySuccess: 'Copied to clipboard',
       emptyCode: 'Cannot create empty code artifact',
       codeArtifactCreated: 'Code artifact created',

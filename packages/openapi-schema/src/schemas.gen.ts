@@ -2176,6 +2176,13 @@ export const ActionStepSchema = {
         $ref: '#/components/schemas/TokenUsageItem',
       },
     },
+    toolCalls: {
+      type: 'array',
+      description: 'Tool calls in this step',
+      items: {
+        $ref: '#/components/schemas/ToolCallResult',
+      },
+    },
   },
 } as const;
 
@@ -2338,6 +2345,13 @@ export const ActionResultSchema = {
       description: 'Action toolsets',
       items: {
         $ref: '#/components/schemas/GenericToolset',
+      },
+    },
+    toolCalls: {
+      type: 'array',
+      description: 'Tool calls during action execution',
+      items: {
+        $ref: '#/components/schemas/ToolCallResult',
       },
     },
     outputUrl: {
@@ -4333,6 +4347,8 @@ export const SkillEventTypeSchema = {
     'structured_data',
     'token_usage',
     'create_node',
+    'tool_call_start',
+    'tool_call_stream',
     'error',
   ],
 } as const;
@@ -4396,6 +4412,80 @@ export const SkillEventSchema = {
     originError: {
       type: 'string',
       description: 'Original error message. Only present when `event` is `error`.',
+    },
+    toolCallResult: {
+      description: 'Tool call result data.',
+      $ref: '#/components/schemas/ToolCallResult',
+    },
+  },
+} as const;
+
+export const ToolCallResultSchema = {
+  type: 'object',
+  required: ['callId', 'status', 'createdAt', 'updatedAt'],
+  properties: {
+    callId: {
+      type: 'string',
+      description: 'Tool call ID (run_id from LangChain)',
+    },
+    uid: {
+      type: 'string',
+      description: 'User ID',
+    },
+    toolsetId: {
+      type: 'string',
+      description: 'Toolset ID (toolsetKey)',
+    },
+    toolName: {
+      type: 'string',
+      description: 'Tool name',
+    },
+    stepName: {
+      type: 'string',
+      description: 'Step name (the action step in which this tool was called)',
+    },
+    input: {
+      oneOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'string',
+        },
+      ],
+      description: 'Tool input arguments',
+    },
+    output: {
+      oneOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'string',
+        },
+      ],
+      description: 'Tool output result',
+    },
+    error: {
+      type: 'string',
+      description: 'Error message if tool execution failed',
+    },
+    status: {
+      type: 'string',
+      description: 'Tool call status',
+      enum: ['executing', 'completed', 'failed'],
+    },
+    createdAt: {
+      type: 'number',
+      description: 'Tool call start timestamp (milliseconds)',
+    },
+    updatedAt: {
+      type: 'number',
+      description: 'Tool call last update timestamp (milliseconds)',
+    },
+    deletedAt: {
+      type: 'number',
+      description: 'Tool call deletion timestamp (milliseconds)',
     },
   },
 } as const;

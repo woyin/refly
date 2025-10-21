@@ -1,5 +1,6 @@
 import { visit } from 'unist-util-visit';
-import { processRawNode, processParagraphNode, processCodeNode } from './nodeProcessor';
+import { processCodeNode, processParagraphNode, processRawNode } from './nodeProcessor';
+import { TOOL_USE_TAG_RENDER } from './toolProcessor';
 
 export { TOOL_USE_TAG_RENDER } from './toolProcessor';
 
@@ -30,6 +31,53 @@ function rehypePlugin() {
         return codeResult;
       }
     });
+
+    // Post-pass: merge duplicated tool nodes by callId, keeping the first occurrence
+    const toolNodes: Array<{ node: any; index: number; parent: any }> = [];
+    visit(tree, (node: any, index: number | null, parent: any) => {
+      if (
+        node?.type === 'element' &&
+        node?.tagName === TOOL_USE_TAG_RENDER &&
+        parent &&
+        typeof index === 'number'
+      ) {
+        toolNodes.push({ node, index, parent });
+      }
+    });
+
+    const firstByCallId = new Map<string, { node: any; index: number; parent: any }>();
+    const toRemove: Array<{ index: number; parent: any }> = [];
+
+    for (const entry of toolNodes) {
+      const callId = entry.node?.properties?.['data-tool-call-id'];
+      if (!callId) continue;
+
+      const existing = firstByCallId.get(callId);
+      if (!existing) {
+        firstByCallId.set(callId, entry);
+      } else {
+        // Merge properties from later node into the first one, preferring non-empty values
+        const targetProps = existing.node.properties ?? {};
+        const sourceProps = entry.node.properties ?? {};
+        for (const key of Object.keys(sourceProps)) {
+          const val = sourceProps[key];
+          if (val !== undefined && val !== null && String(val).trim() !== '') {
+            targetProps[key] = val;
+          }
+        }
+        existing.node.properties = targetProps;
+        // Mark the later duplicate for removal
+        toRemove.push({ index: entry.index, parent: entry.parent });
+      }
+    }
+
+    // Remove duplicates from the tree (in reverse order to keep indices valid)
+    const sortedRemovals = toRemove.sort((a, b) => b.index - a.index);
+    for (const { index, parent } of sortedRemovals) {
+      if (Array.isArray(parent?.children)) {
+        parent.children.splice(index, 1);
+      }
+    }
   };
 }
 

@@ -30,6 +30,7 @@ import { SkillInvokerService } from './skill-invoker.service';
 import { isDesktop } from '../../utils/runtime';
 import { ActionModule } from '../action/action.module';
 import { ToolModule } from '../tool/tool.module';
+import { ToolCallModule } from '../tool-call/tool-call.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ToolModule } from '../tool/tool.module';
     CodeArtifactModule,
     ProviderModule,
     ToolModule,
+    ToolCallModule,
     McpServerModule,
     MediaGeneratorModule,
     ...(isDesktop()
