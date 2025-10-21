@@ -849,6 +849,7 @@ export class CanvasService {
         return {
           id: resultId,
           title,
+          input: safeParseJSON(result.input ?? '{}'),
           contentPreview: answer,
           content: steps.map((s) => s.content).join('\n\n'),
           type: 'skillResponse',

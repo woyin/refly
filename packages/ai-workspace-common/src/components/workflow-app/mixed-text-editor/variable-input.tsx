@@ -12,7 +12,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
     isModified = false,
   }) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [inputWidth, setInputWidth] = useState(60);
+    const [inputWidth, setInputWidth] = useState(112);
     const hiddenRef = useRef<HTMLSpanElement>(null);
     const isEmpty = !value || value.trim() === '';
 
@@ -24,7 +24,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
           if (hiddenRef.current) {
             const text = e.target.value || placeholder || '';
             hiddenRef.current.textContent = text;
-            const width = Math.max(hiddenRef.current.offsetWidth + 16, 60);
+            const width = Math.max(hiddenRef.current.offsetWidth + 16, 112);
             setInputWidth(Math.min(width, window.innerWidth * 0.8));
           }
         }, 0);
@@ -48,7 +48,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
           if (hiddenRef.current) {
             const text = target.value || placeholder || '';
             hiddenRef.current.textContent = text;
-            const width = Math.max(hiddenRef.current.offsetWidth + 16, 60);
+            const width = Math.max(hiddenRef.current.offsetWidth + 16, 112);
             setInputWidth(Math.min(width, window.innerWidth * 0.8));
           }
         }, 0);
@@ -61,7 +61,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
       if (hiddenRef.current) {
         const text = value || placeholder || '';
         hiddenRef.current.textContent = text;
-        const width = Math.max(hiddenRef.current.offsetWidth + 16, 60); // Add padding
+        const width = Math.max(hiddenRef.current.offsetWidth + 16, 112); // Add padding
         setInputWidth(Math.min(width, window.innerWidth * 0.8)); // Max 80% of viewport
       }
     }, [value, placeholder]);
@@ -122,7 +122,8 @@ const VariableInput: React.FC<VariableInputProps> = memo(
             padding: '4px 8px',
             height: '26px',
             width: `${inputWidth}px`,
-            minWidth: '60px',
+            minWidth: '112px',
+            textAlign: 'center',
             maxWidth: '100%',
             fontFamily: 'PingFang SC',
             fontSize: '16px',
