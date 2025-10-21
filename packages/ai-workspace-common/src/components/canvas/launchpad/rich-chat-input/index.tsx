@@ -86,7 +86,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
     },
     ref,
   ) => {
-    console.log('query', JSON.stringify(query));
     const { t } = useTranslation();
     const [isDragging, setIsDragging] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -178,7 +177,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Helper function to insert mention into editor
     const insertMention = useCallback((editor: any, range: any, attrs: any) => {
-      console.log('insertMention', range, attrs);
       editor
         .chain()
         .focus()
@@ -197,7 +195,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     const handleCommand = useCallback(
       ({ editor, range, props }: { editor: any; range: any; props: MentionItem }) => {
-        console.log('handleCommand', range, props);
         const item = props;
 
         // For step and result records, add to context instead of inserting text
@@ -206,11 +203,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           item.source === 'resultRecord' ||
           item.source === 'myUpload'
         ) {
-          if (setContextItems && (item.entityId || item.nodeId)) {
-            const contextItem = createContextItemFromMentionItem(item);
-            addToContextItems(contextItem);
-          }
-
           const mediaUrl =
             item.metadata?.imageUrl || item.metadata?.videoUrl || item.metadata?.audioUrl;
 
@@ -224,12 +216,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             resourceMeta: item.metadata?.resourceMeta,
             entityId: item.entityId || item.nodeId || item.variableId || item.name,
           });
-        } else if (item.source === 'toolsets' || item.source === 'tools') {
-          // Add toolset to selected toolsets
-          if (setSelectedToolsets && item.toolsetId && item.toolset) {
-            addToSelectedToolsets(item.toolset);
-          }
 
+          setTimeout(() => {
+            if (setContextItems && (item.entityId || item.nodeId)) {
+              const contextItem = createContextItemFromMentionItem(item);
+              addToContextItems(contextItem);
+            }
+          }, 1000);
+        } else if (item.source === 'toolsets' || item.source === 'tools') {
           // Insert a tool mention with toolset metadata stored in node attrs
           insertMention(editor, range, {
             id: item.toolsetId || item.name,
@@ -240,6 +234,13 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             toolset: item.toolset,
             toolsetId: item.toolsetId,
           });
+
+          setTimeout(() => {
+            // Add toolset to selected toolsets
+            if (setSelectedToolsets && item.toolsetId && item.toolset) {
+              addToSelectedToolsets(item.toolset);
+            }
+          }, 1000);
         } else if (item.variableType === 'resource') {
           // For resource type variables, find the corresponding resource data and add to context
           if (item.variableValue?.length && item.variableValue[0]?.resource) {
@@ -259,8 +260,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             };
 
-            addToContextItems(contextItem);
-
             insertMention(editor, range, {
               id: resourceValue.entityId,
               label: resourceValue.name,
@@ -271,6 +270,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               resourceMeta: resource?.data,
               entityId: resourceValue.entityId,
             });
+
+            setTimeout(() => {
+              addToContextItems(contextItem);
+            }, 1000);
           }
         } else {
           // For regular variables (startNode and resourceLibrary), insert as normal mention
@@ -376,7 +379,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
       },
       [placeholder],
     );
-    // console.log('editor json', JSON.stringify(editor?.getJSON(), null, 2));
 
     // Expose focus method through ref
     useImperativeHandle(
