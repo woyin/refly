@@ -52,43 +52,43 @@ export const AtomicInlineKeymap = Extension.create({
       }
     };
 
-    const modeBackspace = ({ editor }: { editor: EditorInstance }) => {
-      try {
-        const state = editor?.state;
-        const { selection } = state ?? {};
-        if (!selection) return false;
+    // const modeBackspace = ({ editor }: { editor: EditorInstance }) => {
+    //   try {
+    //     const state = editor?.state;
+    //     const { selection } = state ?? {};
+    //     if (!selection) return false;
 
-        const $from = selection.$from;
-        const to = selection.from;
-        const parentStart = $from.start();
+    //     const $from = selection.$from;
+    //     const to = selection.from;
+    //     const parentStart = $from.start();
 
-        // Find the previous hardBreak inside the same parent (i.e., line start)
-        let from = parentStart;
-        let scanPos = to;
-        while (scanPos > parentStart) {
-          const $pos = state?.doc?.resolve(scanPos);
-          const nodeBefore = $pos?.nodeBefore as any;
-          if (nodeBefore?.type?.name === 'hardBreak') {
-            // Delete from right after the hardBreak to the cursor
-            from = scanPos;
-            break;
-          }
-          scanPos -= 1;
-        }
+    //     // Find the previous hardBreak inside the same parent (i.e., line start)
+    //     let from = parentStart;
+    //     let scanPos = to;
+    //     while (scanPos > parentStart) {
+    //       const $pos = state?.doc?.resolve(scanPos);
+    //       const nodeBefore = $pos?.nodeBefore as any;
+    //       if (nodeBefore?.type?.name === 'hardBreak') {
+    //         // Delete from right after the hardBreak to the cursor
+    //         from = scanPos;
+    //         break;
+    //       }
+    //       scanPos -= 1;
+    //     }
 
-        if (from < to) {
-          editor.chain().focus().deleteRange({ from, to }).run();
-          return true;
-        }
-        return false;
-      } catch {
-        return false;
-      }
-    };
+    //     if (from < to) {
+    //       editor.chain().focus().deleteRange({ from, to }).run();
+    //       return true;
+    //     }
+    //     return false;
+    //   } catch {
+    //     return false;
+    //   }
+    // };
 
     return {
       Backspace: backspace,
-      'Mod-Backspace': modeBackspace,
+      // 'Mod-Backspace': modeBackspace,
     } as const;
   },
 });
