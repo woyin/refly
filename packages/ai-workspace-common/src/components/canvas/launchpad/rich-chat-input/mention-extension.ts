@@ -1,54 +1,10 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
 import Mention from '@tiptap/extension-mention';
-import { ReactRenderer } from '@tiptap/react';
+import { ReactRenderer, ReactNodeViewRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
-import { NodeIcon } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/node-icon';
-import { getVariableIcon } from '@refly-packages/ai-workspace-common/components/canvas/launchpad/variable/getVariableIcon';
-import type { CanvasNodeType } from '@refly/openapi-schema';
 import { MentionList } from './mentionList';
 import type { MentionItem } from './mentionList';
-import { ToolsetIcon } from '@refly-packages/ai-workspace-common/components/canvas/common/toolset-icon';
-
-// Helper function to render NodeIcon consistently
-const renderNodeIcon = (source: string, variableType: string, nodeAttrs: any) => {
-  if (source === 'variables') {
-    return getVariableIcon(variableType);
-  } else if (source === 'stepRecord') {
-    return React.createElement(NodeIcon, {
-      type: 'skillResponse' as CanvasNodeType,
-      small: true,
-      filled: false,
-      className: '!w-3.5 !h-3.5',
-    });
-  } else if (source === 'resultRecord' || source === 'myUpload') {
-    const nodeType = variableType || 'document';
-    return React.createElement(NodeIcon, {
-      type: nodeType as CanvasNodeType,
-      small: true,
-      filled: false,
-      url: nodeType === 'image' ? nodeAttrs.url : undefined,
-      resourceType: nodeAttrs.resourceType,
-      resourceMeta: nodeAttrs.resourceMeta,
-      className: '!w-3.5 !h-3.5',
-    });
-  } else if (source === 'toolsets' || source === 'tools') {
-    return React.createElement(ToolsetIcon, {
-      toolset: nodeAttrs.toolset,
-      isBuiltin: nodeAttrs.toolset?.builtin,
-      disableInventoryLookup: true,
-      config: { size: 14, className: 'flex-shrink-0', builtinClassName: '!w-3.5 !h-3.5' },
-    });
-  } else {
-    const nodeType = variableType || 'document';
-    return React.createElement(NodeIcon, {
-      type: nodeType as CanvasNodeType,
-      small: true,
-      filled: false,
-      className: '!w-3.5 !h-3.5',
-    });
-  }
-};
+import MentionNodeView from './mention-node-view';
 
 // Custom Mention extension with icon support
 const CustomMention = Mention.extend({
@@ -161,55 +117,7 @@ const CustomMention = Mention.extend({
     };
   },
   addNodeView() {
-    return ({ node }) => {
-      const dom = document.createElement('span');
-      dom.className = 'mention';
-      // Ensure mention node view behaves as an atomic, non-editable inline
-      // element so browser selection cannot land inside its text content.
-      // This allows Cmd/Ctrl+A and Backspace/Delete to remove the whole node
-      // correctly when the selection spans it.
-      dom.setAttribute('contenteditable', 'false');
-      dom.setAttribute('draggable', 'false');
-      dom.setAttribute('data-mention', 'true');
-      (dom as any).spellcheck = false;
-
-      // Create icon container
-      const iconContainer = document.createElement('span');
-      iconContainer.className = 'mention-icon';
-      iconContainer.setAttribute('aria-hidden', 'true');
-
-      // Create text container
-      const textContainer = document.createElement('span');
-      textContainer.className = 'mention-text';
-      textContainer.textContent = node.attrs.label || node.attrs.id;
-      textContainer.setAttribute('aria-hidden', 'true');
-
-      const variableType = node.attrs.variableType || node.attrs.source;
-      const source = node.attrs.source;
-
-      let reactRoot: any = null;
-      reactRoot = createRoot(iconContainer);
-
-      // Use NodeIcon based on source type
-      reactRoot.render(renderNodeIcon(source, variableType, node.attrs));
-
-      dom.appendChild(iconContainer);
-      dom.appendChild(textContainer);
-
-      return {
-        dom,
-        destroy() {
-          // Clean up React root when the node is destroyed
-          if (reactRoot) {
-            try {
-              reactRoot.unmount();
-            } catch {
-              // Ignore cleanup errors
-            }
-          }
-        },
-      };
-    };
+    return ReactNodeViewRenderer(MentionNodeView);
   },
 });
 
@@ -275,7 +183,7 @@ export const createMentionExtension = ({
         };
 
         return {
-          onStart: (props: any) => {
+          onStart: (props) => {
             latestProps = props; // Store latest props
             component = new ReactRenderer(MentionList, {
               props: {
@@ -343,7 +251,7 @@ export const createMentionExtension = ({
             // Store popup instance for manual control
             // Note: This is not accessible here, so we'll need to handle popup instance management differently
           },
-          onUpdate(props: any) {
+          onUpdate(props) {
             latestProps = props; // Update latest props
             component.updateProps({ ...props, query: props.query || '' });
             // Update the reference rect while guarding against null during IME composition
@@ -365,8 +273,18 @@ export const createMentionExtension = ({
               }
             });
           },
+          onKeyDown(props) {
+            if (props.event.key === 'Escape') {
+              component.destroy();
+
+              return true;
+            }
+
+            return component.ref?.onKeyDown(props);
+          },
           onExit() {
             popup[0].destroy();
+            component.element.remove();
             component.destroy();
           },
         };

@@ -19,8 +19,6 @@ export const mentionStyles = `
   [data-cy="rich-chat-input"] .ProseMirror p {
     margin: 0;
     padding: 0;
-    line-height: 26px;
-    font-size: 16px;
     color: var(--refly-text-0, #1C1F23);
     font-family: "PingFang SC";
     font-style: normal;
@@ -32,6 +30,8 @@ export const mentionStyles = `
     display: inline-flex;
     align-items: center;
     line-height: 1;
+    vertical-align: middle;
+    height: 26px;
   }
   
   /* Show placeholder text when paragraph is empty */
@@ -41,12 +41,10 @@ export const mentionStyles = `
     float: left;
     color: var(--refly-text-3, #9ca3af);
     pointer-events: none;
-    line-height: 26px;
-    font-size: 15px;
   }
   
   [data-cy="rich-chat-input"] .mention {
-    background-color: var(--refly-fill-default);
+    background-color: var(--refly-tertiary-default);
     border-radius: 4px;
     padding: 2px 4px 2px;
     border: 1px solid var(--refly-Card-Border);

@@ -31,6 +31,7 @@ import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks
 import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { type MentionItem } from './mentionList';
 import { createMentionExtension } from './mention-extension';
+import AtomicInlineKeymap from './atomic-inline-keymap';
 import {
   serializeDocToTokens,
   buildNodesFromContent,
@@ -203,30 +204,27 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
           item.source === 'resultRecord' ||
           item.source === 'myUpload'
         ) {
-          if (setContextItems && item.entityId) {
-            const contextItem = createContextItemFromMentionItem(item);
-            addToContextItems(contextItem);
+          const mediaUrl =
+            item.metadata?.imageUrl || item.metadata?.videoUrl || item.metadata?.audioUrl;
 
-            const url =
-              item.metadata?.imageUrl || item.metadata?.videoUrl || item.metadata?.audioUrl;
+          insertMention(editor, range, {
+            id: item.entityId || item.nodeId || item.variableId || item.name,
+            label: item.name,
+            source: item.source,
+            variableType: item.variableType || item.source,
+            url: mediaUrl,
+            resourceType: item.metadata?.resourceType,
+            resourceMeta: item.metadata?.resourceMeta,
+            entityId: item.entityId || item.nodeId || item.variableId || item.name,
+          });
 
-            insertMention(editor, range, {
-              id: item.entityId || item.nodeId || item.name,
-              label: item.name,
-              source: item.source,
-              variableType: item.variableType || item.source,
-              url: url,
-              resourceType: item.metadata?.resourceType,
-              resourceMeta: item.metadata?.resourceMeta,
-              entityId: item.entityId || item.nodeId,
-            });
-          }
+          setTimeout(() => {
+            if (setContextItems && (item.entityId || item.nodeId)) {
+              const contextItem = createContextItemFromMentionItem(item);
+              addToContextItems(contextItem);
+            }
+          }, 1000);
         } else if (item.source === 'toolsets' || item.source === 'tools') {
-          // Add toolset to selected toolsets
-          if (setSelectedToolsets && item.toolsetId && item.toolset) {
-            addToSelectedToolsets(item.toolset);
-          }
-
           // Insert a tool mention with toolset metadata stored in node attrs
           insertMention(editor, range, {
             id: item.toolsetId || item.name,
@@ -237,6 +235,13 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
             toolset: item.toolset,
             toolsetId: item.toolsetId,
           });
+
+          setTimeout(() => {
+            // Add toolset to selected toolsets
+            if (setSelectedToolsets && item.toolsetId && item.toolset) {
+              addToSelectedToolsets(item.toolset);
+            }
+          }, 1000);
         } else if (item.variableType === 'resource') {
           // For resource type variables, find the corresponding resource data and add to context
           if (item.variableValue?.length && item.variableValue[0]?.resource) {
@@ -256,8 +261,6 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               },
             };
 
-            addToContextItems(contextItem);
-
             insertMention(editor, range, {
               id: resourceValue.entityId,
               label: resourceValue.name,
@@ -268,6 +271,10 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
               resourceMeta: resource?.data,
               entityId: resourceValue.entityId,
             });
+
+            setTimeout(() => {
+              addToContextItems(contextItem);
+            }, 1000);
           }
         } else {
           // For regular variables (startNode and resourceLibrary), insert as normal mention
@@ -344,8 +351,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Create all extensions array
     const extensions = useMemo(
-      () => [StarterKit, mentionExtension, placeholderExtension, PasteCleanupExtension],
-      [mentionExtension, placeholderExtension, PasteCleanupExtension],
+      () => [
+        AtomicInlineKeymap,
+        StarterKit,
+        mentionExtension,
+        placeholderExtension,
+        PasteCleanupExtension,
+      ],
+      [mentionExtension, placeholderExtension, PasteCleanupExtension, AtomicInlineKeymap],
     );
 
     const editor = useEditor(
