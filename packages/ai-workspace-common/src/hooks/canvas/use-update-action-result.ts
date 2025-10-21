@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { useReactFlow } from '@xyflow/react';
-import { ActionResult, ActionStep, SkillEvent } from '@refly/openapi-schema';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
-import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
 import { CanvasNodeData, ResponseNodeMeta } from '@refly/canvas-common';
+import { ActionResult, ActionStep, SkillEvent } from '@refly/openapi-schema';
+import { useActionResultStore, useActionResultStoreShallow } from '@refly/stores';
 import { aggregateTokenUsage, mergeActionResults } from '@refly/utils';
-import { useSetNodeDataByEntity } from './use-set-node-data-by-entity';
+import { useReactFlow } from '@xyflow/react';
+import { useCallback, useEffect, useRef } from 'react';
 import { processContentPreview } from '../../utils/content';
+import { useSetNodeDataByEntity } from './use-set-node-data-by-entity';
 
 const FLUSH_INTERVAL_MS = 150; // Debounce interval for heavy flush
 const MAX_WAIT_MS = 1500; // Hard cap to prevent starvation under continuous streams
@@ -103,6 +103,48 @@ export const useUpdateActionResult = () => {
   }));
   const { getNodes } = useReactFlow();
   const setNodeDataByEntity = useSetNodeDataByEntity();
+  const contentCacheRef = useRef<Record<string, { version?: number; preview: string }>>({});
+
+  const buildNodeUpdates = useCallback(
+    (resultId: string, payload: Partial<ActionResult>) => {
+      const updates = generateFullNodeDataUpdates(payload);
+      const nextPreview = updates.contentPreview ?? '';
+      const normalizedPreview = nextPreview.trim();
+      const status = payload.status;
+      const version = payload.version;
+      const cacheEntry = contentCacheRef.current[resultId];
+      const isStreamingStatus = status === 'executing' || status === 'waiting';
+
+      if (normalizedPreview) {
+        contentCacheRef.current[resultId] = {
+          version,
+          preview: nextPreview,
+        };
+        return updates;
+      }
+
+      const canReuseCachedPreview =
+        isStreamingStatus &&
+        cacheEntry &&
+        cacheEntry.preview &&
+        (version === undefined ||
+          cacheEntry.version === undefined ||
+          cacheEntry.version === version);
+
+      if (canReuseCachedPreview) {
+        updates.contentPreview = cacheEntry.preview;
+      } else if (!isStreamingStatus || (version !== undefined && cacheEntry?.version !== version)) {
+        delete contentCacheRef.current[resultId];
+      }
+
+      if (!isStreamingStatus && !normalizedPreview) {
+        delete contentCacheRef.current[resultId];
+      }
+
+      return updates;
+    },
+    [contentCacheRef],
+  );
 
   // Accumulator for heavy updates per resultId
   const accumRef = useRef<
@@ -171,7 +213,7 @@ export const useUpdateActionResult = () => {
           !(nodeVersion !== undefined && resultVersion !== undefined && nodeVersion > resultVersion)
         ) {
           const nodeUpdates = JSON.parse(
-            JSON.stringify(generateFullNodeDataUpdates(merged as Partial<ActionResult>)),
+            JSON.stringify(buildNodeUpdates(resultId, merged as Partial<ActionResult>)),
           );
 
           if (
@@ -280,7 +322,7 @@ export const useUpdateActionResult = () => {
         }
 
         const nodeUpdates = JSON.parse(
-          JSON.stringify(generateFullNodeDataUpdates(payload as Partial<ActionResult>)),
+          JSON.stringify(buildNodeUpdates(resultId, payload as Partial<ActionResult>)),
         );
 
         if (
@@ -316,6 +358,13 @@ export const useUpdateActionResult = () => {
         scheduleFlush(resultId, false);
       }
     },
-    [clearAccumulator, getNodes, scheduleFlush, setNodeDataByEntity, updateActionResult],
+    [
+      buildNodeUpdates,
+      clearAccumulator,
+      getNodes,
+      scheduleFlush,
+      setNodeDataByEntity,
+      updateActionResult,
+    ],
   );
 };

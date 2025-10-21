@@ -14,6 +14,7 @@ import {
   ProviderItem,
   SkillEvent,
   TokenUsageItem,
+  ToolCallResult,
   User,
 } from '@refly/openapi-schema';
 import {
@@ -114,26 +115,34 @@ export class SkillInvokerService {
       ];
     }
 
-    return [
-      new HumanMessage({ content: messageContent }),
-      ...(steps?.length > 0
-        ? steps.map(
-            (step) =>
-              new AIMessage({
-                content: getWholeParsedContent(step.reasoningContent, step.content),
-                additional_kwargs: {
-                  skillMeta: result.actionMeta,
-                  structuredData: step.structuredData,
-                  type: result.type,
-                  tplConfig:
-                    typeof result.tplConfig === 'string'
-                      ? safeParseJSON(result.tplConfig)
-                      : result.tplConfig,
-                },
-              }),
-          )
-        : []),
-    ];
+    // Build consolidated tool call history by step from DB to avoid duplicating start/stream/end fragments
+    const toolCallsByStep = await this.toolCallService.fetchConsolidatedToolUseOutputByStep(
+      result.resultId,
+      result.version,
+    );
+
+    const aiMessages =
+      steps?.length > 0
+        ? steps.map((step) => {
+            const toolCallOutputs: ToolCallResult[] = toolCallsByStep?.get(step?.name ?? '') ?? [];
+            const mergedContent = getWholeParsedContent(step.reasoningContent, step.content ?? '');
+            return new AIMessage({
+              content: mergedContent,
+              additional_kwargs: {
+                skillMeta: result.actionMeta,
+                structuredData: step.structuredData,
+                type: result.type,
+                tplConfig:
+                  typeof result.tplConfig === 'string'
+                    ? safeParseJSON(result.tplConfig)
+                    : result.tplConfig,
+                toolCalls: toolCallOutputs,
+              },
+            });
+          })
+        : [];
+    console.log('aiMessages', aiMessages);
+    return [new HumanMessage({ content: messageContent }), ...aiMessages];
   }
 
   private async buildInvokeConfig(
@@ -534,6 +543,8 @@ export class SkillInvokerService {
 
       // tool callId, now we use first time returned run_id as tool call id
       const startTs = Date.now();
+
+      const toolCallIds: Set<string> = new Set();
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
@@ -625,24 +636,27 @@ export class SkillInvokerService {
             };
 
             if (event.event === 'on_tool_start') {
-              await persistToolCall(ToolCallStatus.EXECUTING, {
-                input: event.data?.input,
-                output: '',
-              });
-              // Send XML for executing state
-              const xmlContent = buildToolUseXML(false, '', Date.now());
-              if (xmlContent && res) {
-                resultAggregator.handleStreamContent(runMeta, xmlContent, '');
-                this.toolCallService.emitToolUseStream(res, {
-                  resultId,
-                  step: runMeta?.step,
-                  xmlContent,
-                  toolCallId,
-                  toolName,
-                  event_name: 'tool_call',
+              if (!toolCallIds.has(toolCallId)) {
+                toolCallIds.add(toolCallId);
+                await persistToolCall(ToolCallStatus.EXECUTING, {
+                  input: event.data?.input,
+                  output: '',
                 });
+                // Send XML for executing state
+                const xmlContent = buildToolUseXML(false, '', Date.now());
+                if (xmlContent && res) {
+                  resultAggregator.handleStreamContent(runMeta, xmlContent, '');
+                  this.toolCallService.emitToolUseStream(res, {
+                    resultId,
+                    step: runMeta?.step,
+                    xmlContent,
+                    toolCallId,
+                    toolName,
+                    event_name: 'tool_call_start',
+                  });
+                }
+                break;
               }
-              break;
             }
             if (event.event === 'on_tool_error') {
               const errorMsg = String((event.data as any)?.error ?? 'Tool execution failed');
@@ -661,7 +675,7 @@ export class SkillInvokerService {
                   xmlContent,
                   toolCallId,
                   toolName,
-                  event_name: 'stream',
+                  event_name: 'tool_call_stream',
                 });
               }
               this.toolCallService.releaseToolCallId({
@@ -671,6 +685,7 @@ export class SkillInvokerService {
                 toolsetId,
                 runId,
               });
+              toolCallIds.delete(toolCallId);
               break;
             }
             if (event.event === 'on_tool_end') {
@@ -695,7 +710,7 @@ export class SkillInvokerService {
                     xmlContent,
                     toolCallId,
                     toolName,
-                    event_name: 'stream',
+                    event_name: 'tool_call_stream',
                   });
                 }
               }
@@ -706,6 +721,7 @@ export class SkillInvokerService {
                 toolsetId,
                 runId,
               });
+              toolCallIds.delete(toolCallId);
               break;
             }
             break;

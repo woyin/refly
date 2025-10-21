@@ -1,4 +1,5 @@
 import { ToolCallStatus } from '@refly-packages/ai-workspace-common/components/markdown/plugins/tool-call/types';
+import { ToolCallResult } from '@refly/openapi-schema';
 
 // Define the tool use and tool result tags directly here to avoid circular dependencies
 export const TOOL_USE_TAG = 'tool_use';
@@ -414,24 +415,6 @@ export const processToolUseInText = (
   return { toolNode, textNodes, fullMatch };
 };
 
-// -----------------------
-// Parsed tool call helpers
-// -----------------------
-
-export type ParsedToolCall = {
-  callId: string;
-  status: 'executing' | 'completed' | 'failed';
-  createdAt: number;
-  updatedAt: number;
-  toolsetId?: string;
-  toolName?: string;
-  stepName?: string;
-  input?: Record<string, unknown>;
-  output?: unknown;
-  error?: string;
-  uid?: string;
-};
-
 /**
  * Parse a single tool_use XML block from the given chunk content into a normalized object.
  * Returns null if no valid tool_use is found.
@@ -439,7 +422,7 @@ export type ParsedToolCall = {
 export const parseToolCallFromChunk = (
   content: string,
   stepName?: string,
-): ParsedToolCall | null => {
+): ToolCallResult | null => {
   if (!content || !hasToolUseTag(content)) {
     return null;
   }
@@ -479,7 +462,7 @@ export const parseToolCallFromChunk = (
   const argsStr = attrs['data-tool-arguments'];
   const resultStr = attrs['data-tool-result'];
 
-  const parsed: ParsedToolCall = {
+  const parsed: ToolCallResult = {
     callId,
     status,
     createdAt,
@@ -488,7 +471,7 @@ export const parseToolCallFromChunk = (
     toolName: attrs['data-tool-name'] ?? undefined,
     stepName,
     input: safeParse(argsStr) as Record<string, unknown> | undefined,
-    output: safeParse(resultStr),
+    output: safeParse(resultStr) as Record<string, unknown> | undefined,
     error: status === 'failed' ? String(resultStr ?? '') : undefined,
     uid: undefined,
   };
@@ -500,9 +483,9 @@ export const parseToolCallFromChunk = (
  * Merge a parsed tool call into an existing array by callId (idempotent update).
  */
 export const mergeToolCallById = (
-  existing: ParsedToolCall[] | undefined,
-  next: ParsedToolCall,
-): ParsedToolCall[] => {
+  existing: ToolCallResult[],
+  next: ToolCallResult,
+): ToolCallResult[] => {
   const list = Array.isArray(existing) ? [...existing] : [];
   const idx = list.findIndex((tc) => tc.callId === next.callId);
   if (idx === -1) {

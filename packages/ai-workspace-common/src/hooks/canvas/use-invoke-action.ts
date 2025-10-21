@@ -39,6 +39,8 @@ import { useActionPolling } from './use-action-polling';
 import { useUpdateActionResult } from './use-update-action-result';
 
 export const useInvokeAction = (params?: { source?: string }) => {
+  const latestStepsRef = useRef(new Map<string, ActionStep[]>());
+
   const { source } = params || {};
 
   const setNodeDataByEntity = useSetNodeDataByEntity();
@@ -159,8 +161,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   ): void => {
     const parsed = parseToolCallFromChunk(content, step?.name);
     if (!parsed) return;
-    const merged = mergeToolCallById(updatedStep.toolCalls as any, parsed as any);
-    updatedStep.toolCalls = merged as any;
+    updatedStep.toolCalls = mergeToolCallById(updatedStep.toolCalls, parsed);
   };
 
   const onSkillStreamArtifact = (_resultId: string, artifact: Artifact, content: string) => {
@@ -189,6 +190,28 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
   };
 
+  // utils: get latest steps either from cache or store
+  const getLatestSteps = (resultId: string): ActionStep[] => {
+    const cached = latestStepsRef.current.get(resultId);
+    if (cached && cached.length > 0) return cached;
+
+    const storeSteps = useActionResultStore.getState().resultMap[resultId]?.steps ?? [];
+    return storeSteps;
+  };
+
+  // utils: set latest steps cache
+  const setLatestSteps = (resultId: string, steps: ActionStep[]) => {
+    latestStepsRef.current.set(resultId, steps);
+  };
+
+  const clearLatestSteps = (resultId?: string) => {
+    if (!resultId) {
+      latestStepsRef.current.clear();
+    } else {
+      latestStepsRef.current.delete(resultId);
+    }
+  };
+
   const onSkillStream = (skillEvent: SkillEvent) => {
     const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
     const { resultMap } = useActionResultStore.getState();
@@ -206,9 +229,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
         (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
     }
 
-    // Update toolCalls with tool_use XML parsed from the current chunk
-    updateToolCallsFromXml(updatedStep, step, content);
-
     const payload = {
       steps: getUpdatedSteps(result.steps ?? [], updatedStep),
     };
@@ -218,10 +238,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
 
     onUpdateResult(resultId, payload, skillEvent);
-  };
-
-  const onToolCall = (skillEvent: SkillEvent) => {
-    onSkillStream(skillEvent);
   };
 
   const onSkillStructedData = (skillEvent: SkillEvent) => {
@@ -304,6 +320,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   };
 
   const onSkillEnd = (skillEvent: SkillEvent) => {
+    clearLatestSteps(skillEvent.resultId);
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[skillEvent.resultId];
 
@@ -325,7 +342,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
     };
     onUpdateResult(skillEvent.resultId, payload, skillEvent);
 
-    // Clear current resultId when conversation ends
     if (globalCurrentResultIdRef.current === skillEvent.resultId) {
       globalCurrentResultIdRef.current = '';
     }
@@ -351,7 +367,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
             },
           );
         } else {
-          // For other artifact types, just update status
           setNodeDataByEntity(
             {
               type: artifact.type,
@@ -371,6 +386,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   };
 
   const onSkillError = (skillEvent: SkillEvent) => {
+    clearLatestSteps(skillEvent.resultId);
     const runtime = getRuntime();
     const { originError, resultId } = skillEvent;
 
@@ -414,6 +430,45 @@ export const useInvokeAction = (params?: { source?: string }) => {
         return;
       }
     }
+  };
+
+  const onToolCallStart = (skillEvent: SkillEvent) => {
+    onToolCallStream(skillEvent);
+  };
+
+  // process tool call stream event
+  const onToolCallStream = (skillEvent: SkillEvent) => {
+    const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
+    if (!resultId || !step) return;
+
+    // get latest steps either from cache or store
+    const currentSteps = getLatestSteps(resultId);
+
+    const existingStep = currentSteps.find((s) => s.name === step.name);
+    const updatedStep: ActionStep = existingStep
+      ? { ...existingStep }
+      : {
+          ...step,
+          content: '',
+          reasoningContent: '',
+          artifacts: [],
+          structuredData: {},
+        };
+
+    // merge text
+    updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+    updatedStep.reasoningContent = (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
+
+    // merge tool calls status
+    updateToolCallsFromXml(updatedStep, step, content);
+
+    // update based on latest steps
+    const mergedSteps = getUpdatedSteps(currentSteps, updatedStep);
+    setLatestSteps(resultId, mergedSteps);
+    if (artifact) {
+      onSkillStreamArtifact(resultId, artifact, updatedStep.content ?? '');
+    }
+    onUpdateResult(resultId, { steps: mergedSteps }, skillEvent);
   };
 
   const onCompleted = () => {};
@@ -548,7 +603,8 @@ export const useInvokeAction = (params?: { source?: string }) => {
         onStart: wrapEventHandler(onStart),
         onSkillStart: wrapEventHandler(onSkillStart),
         onSkillStream: wrapEventHandler(onSkillStream),
-        onToolCall: wrapEventHandler(onToolCall),
+        onToolCallStart: wrapEventHandler(onToolCallStart),
+        onToolCallStream: wrapEventHandler(onToolCallStream),
         onSkillLog: wrapEventHandler(onSkillLog),
         onSkillArtifact: wrapEventHandler(onSkillArtifact),
         onSkillStructedData: wrapEventHandler(onSkillStructedData),

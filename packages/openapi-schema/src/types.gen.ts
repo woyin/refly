@@ -3117,7 +3117,8 @@ export type SkillEventType =
   | 'structured_data'
   | 'token_usage'
   | 'create_node'
-  | 'tool_call'
+  | 'tool_call_start'
+  | 'tool_call_stream'
   | 'error';
 
 export type SkillEvent = {

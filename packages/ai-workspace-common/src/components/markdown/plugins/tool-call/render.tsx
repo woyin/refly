@@ -16,10 +16,11 @@ const ExecutingIcon = () => (
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
-    className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400"
+    className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400 animate-spin"
+    style={{ animationDuration: '1.1s' }}
   >
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12,6 12,12 16,14" />
+    <circle cx="12" cy="12" r="10" className="opacity-30" />
+    <path d="M12 2a10 10 0 0 1 10 10" />
   </svg>
 );
 

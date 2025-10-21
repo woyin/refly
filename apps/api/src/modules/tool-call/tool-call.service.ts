@@ -1,9 +1,10 @@
-import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import type { ActionStepMeta } from '@refly/openapi-schema';
+import type { ActionStepMeta, ToolCallResult } from '@refly/openapi-schema';
 import type { Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { ActionResult, ActionStatus } from '../../generated/client';
 import { writeSSEResponse } from '../../utils/response';
+import { toolCallResultPO2DTO } from '../action/action.dto';
 import { PrismaService } from '../common/prisma.service';
 
 export type ToolEventPayload = {
@@ -134,7 +135,7 @@ export class ToolCallService {
       xmlContent: string;
       toolCallId: string;
       toolName?: string;
-      event_name: 'tool_call' | 'stream';
+      event_name: 'tool_call_start' | 'tool_call_stream';
     },
   ): void {
     if (!res) {
@@ -193,6 +194,37 @@ export class ToolCallService {
       },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  /**
+   * Build consolidated tool call history entries grouped by step name for a given result.
+   * Only final tool call results are returned to avoid duplicating streaming fragments.
+   */
+  async fetchConsolidatedToolUseOutputByStep(
+    resultId: string,
+    version: number,
+  ): Promise<Map<string, ToolCallResult[]>> {
+    const toolCalls = await this.fetchToolCalls(resultId, version);
+
+    const byStep = new Map<string, ToolCallResult[]>();
+
+    for (const call of toolCalls ?? []) {
+      const stepName = call?.stepName ?? '';
+      if (!stepName) {
+        continue;
+      }
+
+      if (call?.status === ToolCallStatus.EXECUTING) {
+        continue;
+      }
+
+      const dto = toolCallResultPO2DTO(call);
+      const list = byStep.get(stepName) ?? [];
+      list.push(dto);
+      byStep.set(stepName, list);
+    }
+
+    return byStep;
   }
 
   groupToolCallsByStep(
