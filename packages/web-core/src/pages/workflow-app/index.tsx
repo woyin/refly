@@ -264,19 +264,17 @@ const WorkflowAppPage: React.FC = () => {
 
                   {/* Workflow Form */}
                   <div className="mb-6 sm:mb-8">
-                    {workflowApp?.templateContent && (
-                      <WorkflowRunForm
-                        workflowApp={workflowApp}
-                        workflowVariables={workflowVariables}
-                        onSubmitVariables={onSubmit}
-                        loading={isLoading}
-                        onCopyWorkflow={handleCopyWorkflow}
-                        onCopyShareLink={handleCopyShareLink}
-                        isRunning={isRunning}
-                        templateContent={workflowApp?.templateContent}
-                        className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 border border-refly-Card-Border shadow-sm"
-                      />
-                    )}
+                    <WorkflowRunForm
+                      workflowApp={workflowApp}
+                      workflowVariables={workflowVariables}
+                      onSubmitVariables={onSubmit}
+                      loading={isLoading}
+                      onCopyWorkflow={handleCopyWorkflow}
+                      onCopyShareLink={handleCopyShareLink}
+                      isRunning={isRunning}
+                      templateContent={workflowApp?.templateContent}
+                      className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 border border-refly-Card-Border shadow-sm"
+                    />
                   </div>
 
                   {logs.length > 0 && (

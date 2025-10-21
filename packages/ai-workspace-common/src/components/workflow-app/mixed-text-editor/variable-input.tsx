@@ -122,7 +122,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
             padding: '4px 8px',
             height: '26px',
             width: `${inputWidth}px`,
-            minWidth: '40px',
+            minWidth: '112px',
             textAlign: 'center',
             maxWidth: '100%',
             fontFamily: 'PingFang SC',

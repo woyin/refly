@@ -63,7 +63,7 @@ const FileInput: React.FC<FileInputProps> = memo(
       >
         <div
           className={`
-            inline-flex items-center justify-between min-w-[60px] cursor-pointer
+            inline-flex items-center justify-between min-w-[112px] cursor-pointer
             border-b border-dashed border-refly-Card-Border rounded-none
             transition-all duration-200 ease-in-out
             ${isHovered ? 'border-refly-primary-hover' : 'border-refly-Card-Border'}
