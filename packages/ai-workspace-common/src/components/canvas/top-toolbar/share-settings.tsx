@@ -178,8 +178,6 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
   }, [workflowAppLink, t]);
 
   const handlePublishToCommunity = useCallback(() => {
-    if (toolbarLoading || !skillResponseNodes?.length) return;
-
     setCreateTemplateModalVisible(true);
     setOpen(false);
   }, []);
@@ -434,6 +432,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
       workflowAppLink,
       copyWorkflowAppLink,
       toolbarLoading,
+      skillResponseNodes?.length,
     ],
   );
 
