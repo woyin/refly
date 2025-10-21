@@ -31,6 +31,7 @@ import { useGetProjectCanvasId } from '@refly-packages/ai-workspace-common/hooks
 import { useListResources } from '@refly-packages/ai-workspace-common/queries/queries';
 import { type MentionItem } from './mentionList';
 import { createMentionExtension } from './mention-extension';
+import AtomicInlineKeymap from './atomic-inline-keymap';
 import {
   serializeDocToTokens,
   buildNodesFromContent,
@@ -350,8 +351,14 @@ const RichChatInputComponent = forwardRef<RichChatInputRef, RichChatInputProps>(
 
     // Create all extensions array
     const extensions = useMemo(
-      () => [StarterKit, mentionExtension, placeholderExtension, PasteCleanupExtension],
-      [mentionExtension, placeholderExtension, PasteCleanupExtension],
+      () => [
+        AtomicInlineKeymap,
+        StarterKit,
+        mentionExtension,
+        placeholderExtension,
+        PasteCleanupExtension,
+      ],
+      [mentionExtension, placeholderExtension, PasteCleanupExtension, AtomicInlineKeymap],
     );
 
     const editor = useEditor(
