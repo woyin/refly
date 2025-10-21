@@ -40,7 +40,7 @@ export const AtomicInlineKeymap = Extension.create({
             editor
               .chain()
               .focus()
-              .deleteRange({ from: pos - leftBefore.nodeSize, to: pos })
+              .deleteRange({ from: pos - 1, to: pos })
               .run();
             return true;
           }
