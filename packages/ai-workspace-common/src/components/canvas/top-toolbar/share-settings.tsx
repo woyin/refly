@@ -440,6 +440,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         visible={createTemplateModalVisible}
         setVisible={setCreateTemplateModalVisible}
         onPublishSuccess={handlePublishSuccess}
+        appId={latestWorkflowApp?.appId}
       />
       <Popover
         className="canvas-share-setting-popover"

@@ -24,6 +24,7 @@ import { ShareRateLimitService } from './share-rate-limit.service';
 import { ShareExtraData } from './share.dto';
 import { SHARE_CODE_PREFIX } from './const';
 import { safeParseJSON } from '@refly/utils';
+import { generateCoverUrl } from '../workflow-app/workflow-app.dto';
 
 function genShareId(entityType: keyof typeof SHARE_CODE_PREFIX): string {
   return SHARE_CODE_PREFIX[entityType] + createId();
@@ -1031,6 +1032,12 @@ export class ShareCreationService {
       appId: workflowApp.appId,
       title: title || canvasDataWithId.title,
       description: workflowApp.description,
+      remixEnabled: workflowApp.remixEnabled,
+
+      coverUrl: workflowApp.coverStorageKey
+        ? generateCoverUrl(workflowApp.coverStorageKey)
+        : undefined,
+      templateContent: workflowApp.templateContent,
       query: workflowApp.query,
       variables: JSON.parse(workflowApp.variables || '[]'),
       canvasData: canvasDataWithId, // Use the extended canvas data with canvasId

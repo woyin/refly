@@ -593,7 +593,7 @@ export const ToolsDependencyChecker = ({ canvasId, canvasData }: ToolsDependency
     <Tooltip title={t('tools.useTools')} placement="bottom">
       <Button
         className={cn(
-          'gap-0 h-7 w-auto flex items-center justify-center hover:bg-refly-tertiary-hover',
+          'gap-0 h-7 w-auto flex items-center justify-center hover:bg-refly-tertiary-hover rounded-2xl',
           {
             '!w-7': !currentToolsinInstalled?.length,
             'bg-refly-bg-control-z0': currentToolsinInstalled?.length,

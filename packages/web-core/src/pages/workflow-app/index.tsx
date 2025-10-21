@@ -14,7 +14,6 @@ import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common
 import { ReactFlowProvider } from '@refly-packages/ai-workspace-common/components/canvas';
 import SettingModal from '@refly-packages/ai-workspace-common/components/settings';
 import { useSiderStoreShallow, useCanvasOperationStoreShallow } from '@refly/stores';
-import { ToolsDependencyChecker } from '@refly-packages/ai-workspace-common/components/canvas/tools-dependency';
 import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canvas';
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { logEvent } from '@refly/telemetry-web';
@@ -235,7 +234,6 @@ const WorkflowAppPage: React.FC = () => {
           <Helmet>
             <title>{workflowApp?.title ?? ''}</title>
           </Helmet>
-
           {/* Header */}
           <div className="bg-refly-bg-float-z3 border-b border-refly-Card-Border">
             <div className="mx-auto px-4 sm:px-6 lg:px-8">
@@ -247,7 +245,6 @@ const WorkflowAppPage: React.FC = () => {
               </div>
             </div>
           </div>
-
           {/* Main Content */}
           {
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -267,45 +264,44 @@ const WorkflowAppPage: React.FC = () => {
 
                   {/* Workflow Form */}
                   <div className="mb-6 sm:mb-8">
-                    {
+                    {workflowApp?.templateContent && (
                       <WorkflowRunForm
+                        workflowApp={workflowApp}
                         workflowVariables={workflowVariables}
                         onSubmitVariables={onSubmit}
                         loading={isLoading}
                         onCopyWorkflow={handleCopyWorkflow}
                         onCopyShareLink={handleCopyShareLink}
                         isRunning={isRunning}
-                        className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border shadow-sm"
+                        templateContent={workflowApp?.templateContent}
+                        className="max-h-[500px] sm:max-h-[600px] bg-refly-bg-float-z3 border border-refly-Card-Border shadow-sm"
                       />
-                    }
+                    )}
                   </div>
 
-                  {/* Tools Dependency Form */}
-                  {workflowApp?.canvasData && (
-                    <div className="mb-6 sm:mb-8">
-                      <ToolsDependencyChecker canvasData={workflowApp.canvasData} />
-                    </div>
+                  {logs.length > 0 && (
+                    <>
+                      {/* Tabs */}
+                      <div className="mb-4 sm:mb-6 flex justify-center">
+                        <Segmented
+                          className="max-w-sm sm:max-w-md mx-auto"
+                          shape="round"
+                          options={segmentedOptions}
+                          value={activeTab}
+                          onChange={(value) => setActiveTab(value)}
+                        />
+                      </div>
+
+                      {/* Content Area */}
+                      <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border min-h-[200px]">
+                        {activeTab === 'products' ? (
+                          <WorkflowAppProducts products={products || []} />
+                        ) : activeTab === 'runLogs' ? (
+                          <WorkflowAppRunLogs nodeExecutions={logs || []} />
+                        ) : null}
+                      </div>
+                    </>
                   )}
-
-                  {/* Tabs */}
-                  <div className="mb-4 sm:mb-6 flex justify-center">
-                    <Segmented
-                      className="max-w-sm sm:max-w-md mx-auto"
-                      shape="round"
-                      options={segmentedOptions}
-                      value={activeTab}
-                      onChange={(value) => setActiveTab(value)}
-                    />
-                  </div>
-
-                  {/* Content Area */}
-                  <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border min-h-[200px]">
-                    {activeTab === 'products' ? (
-                      <WorkflowAppProducts products={products || []} />
-                    ) : activeTab === 'runLogs' ? (
-                      <WorkflowAppRunLogs nodeExecutions={logs || []} />
-                    ) : null}
-                  </div>
                 </>
               )}
             </div>

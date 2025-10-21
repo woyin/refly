@@ -24,6 +24,7 @@ import { ShareCreationService } from '../share/share-creation.service';
 import { ShareNotFoundError, WorkflowAppNotFoundError } from '@refly/errors';
 import { ToolService } from '../tool/tool.service';
 import { CanvasSyncService } from '../canvas-sync/canvas-sync.service';
+import { VariableExtractionService } from '../variable-extraction/variable-extraction.service';
 import { initEmptyCanvasState, ResponseNodeMeta } from '@refly/canvas-common';
 
 /**
@@ -53,11 +54,13 @@ export class WorkflowAppService {
     private readonly shareCreationService: ShareCreationService,
     private readonly toolService: ToolService,
     private readonly canvasSyncService: CanvasSyncService,
+    private readonly variableExtractionService: VariableExtractionService,
   ) {}
 
   async createWorkflowApp(user: User, body: CreateWorkflowAppRequest) {
     const { canvasId, title, query, variables, description } = body;
     const coverStorageKey = (body as any).coverStorageKey;
+    const remixEnabled = (body as any).remixEnabled ?? false;
 
     const existingWorkflowApp = await this.prisma.workflowApp.findFirst({
       where: { canvasId, uid: user.uid, deletedAt: null },
@@ -94,6 +97,22 @@ export class WorkflowAppService {
       visibility: 'public',
     });
 
+    // Generate app template content
+    let templateContent: string | null = null;
+    try {
+      const templateResult = await this.variableExtractionService.generateAppPublishTemplate(
+        user,
+        canvasId,
+      );
+      templateContent = templateResult.templateContent;
+      this.logger.log(`Generated template content for workflow app: ${appId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate template content for workflow app ${appId}: ${error.stack}`,
+      );
+      // Don't throw error, just log it - workflow app creation should still succeed
+    }
+
     if (existingWorkflowApp) {
       await this.prisma.workflowApp.update({
         where: { appId },
@@ -104,6 +123,8 @@ export class WorkflowAppService {
           description,
           storageKey,
           coverStorageKey: coverStorageKey as any,
+          templateContent,
+          remixEnabled,
           updatedAt: new Date(),
         },
       });
@@ -119,6 +140,8 @@ export class WorkflowAppService {
           canvasId,
           storageKey,
           coverStorageKey: coverStorageKey as any,
+          templateContent,
+          remixEnabled,
         },
       });
     }
