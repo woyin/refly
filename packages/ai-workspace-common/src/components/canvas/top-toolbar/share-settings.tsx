@@ -432,6 +432,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
       workflowAppLink,
       copyWorkflowAppLink,
       toolbarLoading,
+      skillResponseNodes?.length,
     ],
   );
 
