@@ -444,6 +444,8 @@ export class VariableExtractionService {
       // 1. Get Canvas data and content items
       const contentItems = await this.canvasService.getCanvasContentItems(user, canvasId, true);
 
+      const skillResponses = await this.canvasService.getCanvasSkillResponses(user, canvasId);
+
       // 2. Get Canvas workflow information (including existing variables)
       const canvasData = await this.getCanvasWorkflowData(user, canvasId);
 
@@ -473,6 +475,7 @@ export class VariableExtractionService {
         canvasData,
         variables,
         contentItems,
+        skillResponses,
         analysis,
         // Context metadata
         extractionContext: {
@@ -487,6 +490,7 @@ export class VariableExtractionService {
         canvasData: { nodes: [] },
         variables: [],
         contentItems: [],
+        skillResponses: [],
         analysis: {
           complexity: 0,
           nodeCount: 0,
@@ -1291,6 +1295,7 @@ export class VariableExtractionService {
         {
           nodes: context.canvasData.nodes || [],
           contentItems: context.contentItems,
+          skillResponses: context.skillResponses,
           variables: context.variables,
           title: context.canvasData.title,
           description: context.canvasData.description,

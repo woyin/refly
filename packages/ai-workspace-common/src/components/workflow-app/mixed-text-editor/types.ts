@@ -2,7 +2,7 @@ import { WorkflowVariable } from '@refly/openapi-schema';
 
 export interface TextSegment {
   type: 'text' | 'variable';
-  content: string;
+  content: string | string[]; // Support both single and multi-select values
   id?: string;
   placeholder?: string;
   variable?: WorkflowVariable;
