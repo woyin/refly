@@ -172,12 +172,16 @@ export class CanvasService {
     };
   }
 
-  async getCanvasRawData(user: User, canvasId: string): Promise<RawCanvasData> {
+  async getCanvasRawData(
+    user: User,
+    canvasId: string,
+    options?: { checkOwnership?: boolean },
+  ): Promise<RawCanvasData> {
     const canvas = await this.prisma.canvas.findFirst({
       where: {
         canvasId,
-        uid: user.uid,
         deletedAt: null,
+        ...(options?.checkOwnership ? { uid: user.uid } : {}),
       },
     });
 
@@ -1098,7 +1102,7 @@ export class CanvasService {
    * @param canvasId - The target canvas ID
    * @returns Processed variables with updated resource information
    */
-  private async processResourceVariables(
+  async processResourceVariables(
     user: User,
     canvasId: string,
     variables: WorkflowVariable[],

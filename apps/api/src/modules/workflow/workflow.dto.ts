@@ -17,6 +17,7 @@ export interface RunWorkflowJobData {
   user: JobUser;
   executionId: string;
   nodeId: string;
+  nodeBehavior?: 'create' | 'update';
 }
 
 export interface PollWorkflowJobData {

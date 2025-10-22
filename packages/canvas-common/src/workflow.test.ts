@@ -160,13 +160,13 @@ describe('prepareNodeExecutions', () => {
     });
   });
 
-  it('computes start nodes automatically and marks subtree nodes as waiting (isNewCanvas=false)', () => {
+  it('computes start nodes automatically and marks subtree nodes as waiting (nodeBehavior=update)', () => {
     const canvas = buildCanvas();
     const { nodeExecutions, startNodes } = prepareNodeExecutions({
       executionId: 'exec1',
       canvasData: canvas,
       variables,
-      isNewCanvas: false,
+      nodeBehavior: 'update',
     });
 
     expect(startNodes).toEqual(['S']);
@@ -345,27 +345,27 @@ describe('prepareNodeExecutions', () => {
     ] as WorkflowNode[]);
   });
 
-  it('uses provided startNodes when isNewCanvas=false', () => {
+  it('uses provided startNodes when nodeBehavior=update', () => {
     const canvas = buildCanvas();
     const { startNodes } = prepareNodeExecutions({
       executionId: 'exec3',
       canvasData: canvas,
       variables,
-      startNodes: ['C'], // This should be used when isNewCanvas=false
-      isNewCanvas: false,
+      startNodes: ['C'], // This should be used when nodeBehavior=update
+      nodeBehavior: 'update',
     });
 
     expect(startNodes).toEqual(['C']);
   });
 
-  it('ignores provided startNodes and auto-detects root nodes when isNewCanvas=true', () => {
+  it('ignores provided startNodes and auto-detects root nodes when nodeBehavior=create', () => {
     const canvas = buildCanvas();
     const { nodeExecutions, startNodes } = prepareNodeExecutions({
       executionId: 'exec2',
       canvasData: canvas,
       variables,
-      startNodes: ['B'], // This should be ignored when isNewCanvas=true
-      isNewCanvas: true,
+      startNodes: ['B'], // This should be ignored when nodeBehavior=create
+      nodeBehavior: 'create',
     });
 
     // startNodes should be auto-detected (node A has no parents), mapped to new id N1

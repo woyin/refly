@@ -7,7 +7,6 @@ import { MiscModule } from '../misc/misc.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { ShareModule } from '../share/share.module';
 import { ToolModule } from '../tool/tool.module';
-import { CanvasSyncModule } from '../canvas-sync/canvas-sync.module';
 import { VariableExtractionModule } from '../variable-extraction/variable-extraction.module';
 
 @Module({
@@ -18,7 +17,6 @@ import { VariableExtractionModule } from '../variable-extraction/variable-extrac
     WorkflowModule,
     ShareModule,
     ToolModule,
-    CanvasSyncModule,
     VariableExtractionModule,
   ],
   controllers: [WorkflowAppController],
