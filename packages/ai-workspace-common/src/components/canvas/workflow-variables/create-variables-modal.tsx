@@ -157,10 +157,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
             }
           } else if (defaultValue.variableType === 'option') {
             // Extract the selected value from the VariableValue array
-            const selectedValue =
-              defaultValue.value && defaultValue.value.length > 0
-                ? defaultValue.value[0].text || ''
-                : '';
+            const selectedValue = defaultValue?.value?.map((v) => v.text) || [];
 
             const newOptionFormData = {
               ...optionFormData,
@@ -436,13 +433,13 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
             selectedValue &&
             (Array.isArray(selectedValue) ? selectedValue.length > 0 : selectedValue)
           ) {
-            const textValue = Array.isArray(selectedValue) ? selectedValue[0] : selectedValue;
-            finalValue = [
-              {
-                type: 'text',
-                text: textValue,
-              },
-            ];
+            const selectedValueArray = Array.isArray(selectedValue)
+              ? selectedValue
+              : [selectedValue];
+            finalValue = selectedValueArray.map((value: string) => ({
+              type: 'text',
+              text: value,
+            }));
           }
         } else {
           finalValue = [];
