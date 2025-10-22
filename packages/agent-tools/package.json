@@ -18,6 +18,7 @@
     "@notionhq/client": "^5.1.0",
     "@refly/openapi-schema": "workspace:*",
     "@scalebox/sdk": "^2.0.2",
+    "apify-client": "^2.19.0",
     "googleapis": "^159.0.0",
     "got-scraping": "^4.1.2",
     "gpt-tokenizer": "^2.9.0",
