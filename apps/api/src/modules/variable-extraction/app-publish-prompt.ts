@@ -72,7 +72,7 @@ ${canvasData.description ? `- Description: ${canvasData.description}` : ''}
 ### Canvas Nodes and Prompts
 ${nodesText}
 
-### Existing Variables
+### Existing Variables counts:  ${usedVariables.length}
 ${variablesText}
 
 ### Workflow Context
@@ -96,10 +96,13 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 - Focus on user benefits and outcomes
 - **Maintain language consistency with Canvas Nodes**
 
-### 3. Variable Integration
-- **CRITICAL**: Only include variables that are actually used in Canvas Nodes and Prompts
-- **ABSOLUTE RULE**: If no variables exist (variablesText is empty or shows "No existing variables"), the template.content MUST NOT contain any {{variable_name}} placeholders
-- **ABSOLUTE RULE**: Only when variables exist and are actually used in Canvas Nodes should {{variable_name}} placeholders be included in template.content
+### 3. Variable Integration (CRITICAL RULES)
+- **ABSOLUTE RULE #1**: If variablesText is empty or shows "No existing variables", template.content MUST NOT contain ANY {{variable_name}} placeholders
+- **ABSOLUTE RULE #2**: The number of {{variable_name}} placeholders in template.content MUST exactly match the number of variables provided
+- **ABSOLUTE RULE #3**: Only include variables that are actually used in Canvas Nodes and Prompts
+- **ABSOLUTE RULE #4**: Only when variables exist and are actually used in Canvas Nodes should {{variable_name}} placeholders be included in template.content
+- **Variable Count Validation**: If 3 variables exist, template.content must contain exactly 3 {{variable_name}} placeholders
+- **No Variables Case**: If 0 variables exist, template.content must contain 0 {{variable_name}} placeholders
 - Replace specific values with {{variable_name}} placeholders ONLY when variables are present
 - Ensure all variables are properly represented in the template ONLY when they exist
 - Maintain semantic meaning while making it parameterizable
@@ -127,6 +130,8 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 - Ensure consistency with existing variable names ONLY when variables exist
 - **Language consistency is mandatory - all output must match Canvas Nodes language**
 - **CRITICAL**: Template.content must be variable-free when no variables exist
+- **VARIABLE COUNT VALIDATION**: The number of {{variable_name}} placeholders in template.content must exactly match the number of variables provided
+- **ZERO VARIABLES RULE**: If variablesText shows "No existing variables", template.content must contain ZERO {{variable_name}} placeholders
 
 ## Output Format Requirements
 
@@ -190,6 +195,8 @@ The **"content"** field in the template object is the most important output - th
 - **Use Proper Variable Format**: All placeholders must use {{variable_name}} format exactly
 - **ABSOLUTE RULE**: If Canvas Nodes don't contain any {{variable_name}} references OR if variablesText shows "No existing variables", the template.content MUST NOT include any variable placeholders
 - **CRITICAL CONSTRAINT**: template.content can ONLY contain {{variable_name}} placeholders when variables actually exist and are used
+- **VARIABLE COUNT MATCH**: The number of {{variable_name}} placeholders in template.content must exactly equal the number of variables provided
+- **ZERO VARIABLES ENFORCEMENT**: If variablesText shows "No existing variables", template.content must contain ZERO {{variable_name}} placeholders
 
 ### Template String Examples:
 
@@ -217,6 +224,8 @@ ${APP_PUBLISH_EXAMPLES}
 2. **Variable Integration**:
    - **CRITICAL**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
    - **ABSOLUTE RULE**: If variablesText shows "No existing variables" or is empty, template.content MUST NOT contain any {{variable_name}} placeholders
+   - **VARIABLE COUNT VALIDATION**: The number of {{variable_name}} placeholders in template.content must exactly match the number of variables provided
+   - **ZERO VARIABLES ENFORCEMENT**: If 0 variables exist, template.content must contain 0 {{variable_name}} placeholders
    - Replace specific values with descriptive placeholders ONLY when variables exist
    - Maintain the original semantic meaning
    - Ensure all used variables are represented ONLY when they exist
@@ -238,7 +247,9 @@ ${APP_PUBLISH_EXAMPLES}
    - **Language Consistency**: **CRITICAL** - All template fields must match the language used in Canvas Nodes
    - **Variable Usage Validation**: Verify that all {{variable_name}} placeholders in the template correspond to variables actually referenced in Canvas Nodes
    - **ABSOLUTE RULE**: If no variables exist (variablesText is empty or shows "No existing variables"), template.content MUST NOT contain any {{variable_name}} placeholders
-   - **CRITICAL CONSTRAINT**: template.content can ONLY contain {{variable_name}} placeholders when variables actually exist and are used`;
+   - **CRITICAL CONSTRAINT**: template.content can ONLY contain {{variable_name}} placeholders when variables actually exist and are used
+   - **VARIABLE COUNT ENFORCEMENT**: The number of {{variable_name}} placeholders in template.content must exactly match the number of variables provided
+   - **ZERO VARIABLES RULE**: If variablesText shows "No existing variables", template.content must contain ZERO {{variable_name}} placeholders`;
 }
 
 /**
