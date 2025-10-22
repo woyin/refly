@@ -652,7 +652,7 @@ export class SkillInvokerService {
                     xmlContent,
                     toolCallId,
                     toolName,
-                    event_name: 'tool_call_start',
+                    event_name: 'stream',
                   });
                 }
                 break;
@@ -675,7 +675,7 @@ export class SkillInvokerService {
                   xmlContent,
                   toolCallId,
                   toolName,
-                  event_name: 'tool_call_stream',
+                  event_name: 'stream',
                 });
               }
               this.toolCallService.releaseToolCallId({
@@ -710,7 +710,7 @@ export class SkillInvokerService {
                     xmlContent,
                     toolCallId,
                     toolName,
-                    event_name: 'tool_call_stream',
+                    event_name: 'stream',
                   });
                 }
               }

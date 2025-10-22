@@ -63,8 +63,6 @@ export class ActionService {
     const toolCalls = await this.toolCallService.fetchToolCalls(result.resultId, result.version);
     const toolCallsByStep = this.toolCallService.groupToolCallsByStep(steps, toolCalls);
     const stepsWithToolCalls = this.toolCallService.attachToolCallsToSteps(steps, toolCallsByStep);
-    await this.toolCallService.deriveAndUpdateActionStatus(result, toolCalls);
-
     return { ...result, steps: stepsWithToolCalls, modelInfo };
   }
 
