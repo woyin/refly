@@ -36,17 +36,35 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
         // Add the variable
         const variableName = match[1].trim();
         const variable = variables.find((v) => v.name === variableName);
-        const currentValue = variable?.value?.[0]?.text || '';
+
+        // Handle both single and multi-select values
+        let currentValue: string | string[];
+        if (variable?.variableType === 'option' && variable?.isSingle === false) {
+          // Multi-select: extract all text values
+          currentValue = variable.value?.map((v) => v.text).filter(Boolean) || [];
+        } else {
+          // Single select or other types: use first value
+          currentValue = variable?.value?.[0]?.text || '';
+        }
 
         // Determine state: compare current value with original value
-        const isEmpty = !currentValue || currentValue.trim() === '';
+        const isEmpty = Array.isArray(currentValue)
+          ? currentValue.length === 0
+          : !currentValue || currentValue.trim() === '';
 
         // Find original value for comparison
         const originalVariable = originalVariables.find((v) => v.name === variableName);
-        const originalValue = originalVariable?.value?.[0]?.text || '';
+        let originalValue: string | string[];
+        if (originalVariable?.variableType === 'option' && originalVariable?.isSingle === false) {
+          originalValue = originalVariable.value?.map((v) => v.text).filter(Boolean) || [];
+        } else {
+          originalValue = originalVariable?.value?.[0]?.text || '';
+        }
 
-        const isDefaultValue = !isEmpty && currentValue === originalValue;
-        const isModified = !isEmpty && currentValue !== originalValue;
+        const isDefaultValue =
+          !isEmpty && JSON.stringify(currentValue) === JSON.stringify(originalValue);
+        const isModified =
+          !isEmpty && JSON.stringify(currentValue) !== JSON.stringify(originalValue);
 
         segments.push({
           type: 'variable',
@@ -142,6 +160,7 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                   }
                   isDefaultValue={segment.isDefaultValue}
                   isModified={segment.isModified}
+                  isSingle={segment.variable.isSingle ?? true}
                 />
               );
             }
@@ -184,7 +203,7 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
               <VariableInput
                 key={`${segment.id}-${index}`}
                 id={segment.id || ''}
-                value={segment.content}
+                value={Array.isArray(segment.content) ? segment.content[0] || '' : segment.content}
                 placeholder={segment.variable?.name || segment.placeholder}
                 onChange={(value) => handleVariableChange(segment.id || '', value)}
                 disabled={disabled}
