@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { ActionStepMeta, ToolCallResult } from '@refly/openapi-schema';
 import type { Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import { ActionResult, ActionStatus } from '../../generated/client';
 import { writeSSEResponse } from '../../utils/response';
 import { toolCallResultPO2DTO } from '../action/action.dto';
 import { PrismaService } from '../common/prisma.service';
@@ -83,7 +82,6 @@ export class ToolCallService {
     const { toolCallId, includeResult, errorMsg, metadata, input, output, startTs, updatedTs } =
       params;
     const { name, type, toolsetKey, toolsetName } = metadata ?? {};
-
     if (!toolsetKey) return null;
 
     const codeBlockWrapper = (content: string) => {
@@ -135,7 +133,7 @@ export class ToolCallService {
       xmlContent: string;
       toolCallId: string;
       toolName?: string;
-      event_name: 'tool_call_start' | 'tool_call_stream';
+      event_name: 'stream' | 'tool_call_stream';
     },
   ): void {
     if (!res) {
@@ -254,38 +252,35 @@ export class ToolCallService {
     steps: T[],
     toolCallsByStep: Map<string, any[]>,
   ): Array<T & { toolCalls?: any[] }> {
-    return steps.map((step) => ({
-      ...step,
-      toolCalls: toolCallsByStep.get(step.name),
-    }));
-  }
-
-  async deriveAndUpdateActionStatus(result: ActionResult, toolCalls: Array<{ status: string }>) {
-    let actionStatus = result.status;
-
-    if (toolCalls.length > 0) {
-      const hasFailed = toolCalls.some((tc) => tc.status === 'failed');
-      const hasExecuting = toolCalls.some((tc) => tc.status === 'executing');
-      const allCompleted = toolCalls.every((tc) => tc.status === 'completed');
-
-      if (hasFailed) {
-        actionStatus = ActionStatus.failed;
-      } else if (hasExecuting) {
-        actionStatus = ActionStatus.executing;
-      } else if (allCompleted) {
-        actionStatus = ActionStatus.finish;
-      }
-
-      if (actionStatus !== result.status) {
-        await this.prisma.actionResult.update({
-          where: { pk: result.pk },
-          data: { status: actionStatus },
+    return steps.map((step) => {
+      const toolCalls = toolCallsByStep.get(step.name);
+      const calls = Array.isArray(toolCalls) ? toolCalls : [];
+      const xmlContents = calls.map((call) => {
+        if (!call || typeof call !== 'object' || !call?.callId) {
+          return null;
+        }
+        return this.generateToolUseXML({
+          toolCallId: call?.callId ?? '',
+          includeResult: (call?.status ?? ToolCallStatus.EXECUTING) !== ToolCallStatus.EXECUTING,
+          errorMsg: call?.error ?? undefined,
+          metadata: {
+            name: call?.toolName ?? '',
+            type: call?.toolsetKey ?? '',
+            toolsetKey: call?.toolsetId ?? '',
+            toolsetName: call?.toolsetName ?? '',
+          },
+          input: call?.input ?? undefined,
+          output: call?.output ?? undefined,
+          startTs: call?.createdAt ?? 0,
+          updatedTs: call?.updatedAt ?? call?.createdAt ?? 0,
         });
-        result.status = actionStatus;
-      }
-    }
-
-    return actionStatus;
+      });
+      return {
+        ...step,
+        toolCalls,
+        content: xmlContents.length > 0 ? xmlContents.join('\n') : undefined,
+      };
+    });
   }
 
   generateToolCallId(params: {

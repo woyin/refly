@@ -220,7 +220,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
     if (!result || !step) {
       return;
     }
-    const updatedStep: ActionStep = getLatestSteps(resultId).find((s) => s.name === step.name);
+    const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
     updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
     if (!updatedStep.reasoningContent) {
       updatedStep.reasoningContent = reasoningContent ?? '';
@@ -432,11 +432,12 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
   };
 
+  // deprecated, use stream instead
   const onToolCallStart = (skillEvent: SkillEvent) => {
     onToolCallStream(skillEvent);
   };
 
-  // process tool call stream event
+  // deprecated, use stream instead
   const onToolCallStream = (skillEvent: SkillEvent) => {
     const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
     if (!resultId || !step) return;
