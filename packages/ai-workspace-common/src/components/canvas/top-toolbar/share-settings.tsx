@@ -116,6 +116,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
 
     return result;
   }, [workflowAppsData, canvasId]);
+
   const workflowAppLink = useMemo(
     () =>
       latestWorkflowApp?.shareId ? getShareLink('workflowApp', latestWorkflowApp.shareId) : '',
