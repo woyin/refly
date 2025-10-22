@@ -41,22 +41,25 @@ export const ApifyToolsetDefinition: ToolsetDefinition = {
     {
       name: 'runActor',
       descriptionDict: {
-        en: 'Run an Apify Actor with input data',
-        'zh-CN': '使用输入数据运行 Apify Actor',
+        en: 'Run an Apify Actor with input data. Use this tool LAST in the workflow - only after you have obtained the Input Schema from fetchActorDetails tool. Provide the exact input parameters that match the schema retrieved.',
+        'zh-CN':
+          '使用输入数据运行 Apify Actor。这是工作流的最后一步 - 只有在从 fetchActorDetails 工具获取输入模式后才能使用。请提供与获取的模式完全匹配的输入参数。',
       },
     },
     {
       name: 'searchActors',
       descriptionDict: {
-        en: 'Search the Apify Store for Actors using keywords',
-        'zh-CN': '使用关键词搜索 Apify Store 中的 Actors',
+        en: 'Search the Apify Store for Actors using keywords. Use this tool FIRST to find relevant Actors and obtain their names (format: username/actor-name, e.g., apify/rag-web-browser). Extract the actor names from URLs like https://apify.com/clockworks/tiktok-scraper to get "clockworks/tiktok-scraper".',
+        'zh-CN':
+          '使用关键词搜索 Apify Store 中的 Actors。这是工作流的第一步，用于查找相关 Actors 并获取它们的名称（格式：username/actor-name，例如：apify/rag-web-browser）。从类似 https://apify.com/clockworks/tiktok-scraper 的 URL 中提取 actor 名称，得到 "clockworks/tiktok-scraper"。',
       },
     },
     {
       name: 'fetchActorDetails',
       descriptionDict: {
-        en: 'Get detailed information about an Apify Actor',
-        'zh-CN': '获取 Apify Actor 的详细信息',
+        en: 'Get detailed information about an Apify Actor, especially the Input Schema. Use this tool SECOND in the workflow - after finding actor names with searchActors. This will provide the exact input parameters and their types that you need for running the Actor.',
+        'zh-CN':
+          '获取 Apify Actor 的详细信息，特别是输入模式（Input Schema）。这是工作流的第二步 - 在使用 searchActors 找到 actor 名称后使用。这将提供运行 Actor 所需的准确输入参数及其类型。',
       },
     },
   ],
@@ -93,7 +96,8 @@ export class ApifyRunActor extends AgentBaseTool<ApifyToolParams> {
     input: z.record(z.any()).describe('Input data for the Actor'),
   });
 
-  description = 'Run an Apify Actor with input data';
+  description =
+    'Run an Apify Actor with input data. Use this tool LAST in the workflow - only after you have obtained the Input Schema from fetchActorDetails tool. Provide the exact input parameters that match the schema retrieved.';
 
   protected params: ApifyToolParams;
 
@@ -161,16 +165,18 @@ export class ApifySearchActors extends AgentBaseTool<ApifyToolParams> {
       .describe('The number of elements to skip at the start. The default value is 0.'),
   });
 
-  description = `Search the Apify Store for Actors or Model Context Protocol (MCP) servers using keywords.
+  description = `Search the Apify Store for Actors using keywords. Use this tool FIRST to find relevant Actors and obtain their names (format: username/actor-name, e.g., apify/rag-web-browser). Extract the actor names from URLs like https://apify.com/clockworks/tiktok-scraper to get "clockworks/tiktok-scraper".
+
 Apify Store features solutions for web scraping, automation, and AI agents (e.g., Instagram, TikTok, LinkedIn, flights, bookings).
 
 The results will include curated Actor cards with title, description, pricing model, usage statistics, and ratings.
 For best results, use simple space-separated keywords (e.g., "instagram posts", "twitter profile", "playwright mcp").
-For detailed information about a specific Actor, use the runActor tool.
+After finding actors, use fetchActorDetails to get the Input Schema before running any Actor.
 
-USAGE:
-- Use when you need to discover Actors for a specific task or find MCP servers.
-- Use to explore available tools in the Apify ecosystem based on keywords.
+WORKFLOW:
+1. Use searchActors to find relevant Actors and extract their names
+2. Use fetchActorDetails with the actor name to get Input Schema
+3. Use runActor with the proper input parameters from the schema
 
 USAGE EXAMPLES:
 - user_input: Find Actors for scraping e-commerce
@@ -240,12 +246,19 @@ export class ApifyFetchActorDetails extends AgentBaseTool<ApifyToolParams> {
       ),
   });
 
-  description = `Get detailed information about an Actor by its ID or full name (format: "username/name", e.g., "apify/rag-web-browser").
+  description = `Get detailed information about an Apify Actor, especially the Input Schema. Use this tool SECOND in the workflow - after finding actor names with searchActors. This will provide the exact input parameters and their types that you need for running the Actor.
+
 This returns the Actor's title, description, URL, README (documentation), input schema, pricing/usage information, and basic stats.
-Present the information in a user-friendly Actor card.
+Present the information in a user-friendly Actor card with the Input Schema clearly highlighted.
+
+WORKFLOW:
+1. Use searchActors to find relevant Actors and extract their names
+2. Use fetchActorDetails with the actor name to get Input Schema ← YOU ARE HERE
+3. Use runActor with the proper input parameters from the schema
 
 USAGE:
-- Use when a user asks about an Actor's details, input schema, README, or how to use it.
+- Use when you have an actor name and need to know its Input Schema for running it.
+- Focus on extracting the input parameters and their types from the schema.
 
 USAGE EXAMPLES:
 - user_input: How to use apify/rag-web-browser
