@@ -6,8 +6,7 @@ import {
   type ToolCallResult,
 } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
-// Use package subpath export; requires tsconfig moduleResolution: node16/nodenext/bundler
-import { Sandbox } from 'novita-sandbox/code-interpreter';
+import { Sandbox } from 'novita-sandbox';
 
 /**
  * Toolset definition for PPIO Sandbox (code-interpreter).
@@ -27,7 +26,6 @@ export const PPIOToolsetDefinition: ToolsetDefinition = {
   tools: [
     { name: 'create', descriptionDict: { en: 'Create a sandbox', 'zh-CN': '创建沙箱' } },
     { name: 'connect', descriptionDict: { en: 'Connect to a sandbox', 'zh-CN': '连接沙箱' } },
-    { name: 'runCode', descriptionDict: { en: 'Run code', 'zh-CN': '运行代码' } },
     { name: 'isRunning', descriptionDict: { en: 'Check running state', 'zh-CN': '检查运行状态' } },
     { name: 'getInfo', descriptionDict: { en: 'Get sandbox info', 'zh-CN': '获取沙箱信息' } },
     { name: 'setTimeout', descriptionDict: { en: 'Update timeout', 'zh-CN': '更新超时时间' } },
@@ -148,47 +146,6 @@ export class PPIOConnect extends AgentBaseTool<PPIOToolParams> {
         status: 'error',
         error: 'Failed to connect sandbox',
         summary: error instanceof Error ? error.message : 'Unknown error during sandbox connect',
-      };
-    }
-  }
-}
-
-/**
- * runCode
- */
-export class PPIORunCode extends AgentBaseTool<PPIOToolParams> {
-  name = 'runCode';
-  toolsetKey = PPIOToolsetDefinition.key;
-
-  schema = z.object({
-    sandboxId: z.string(),
-    code: z.string(),
-    language: z.enum(['python', 'ts', 'js', 'r', 'java', 'bash']).describe('Execution language'),
-  });
-
-  description = 'Run code in a specified language using sandbox.runCode';
-  protected params: PPIOToolParams;
-
-  constructor(params: PPIOToolParams) {
-    super(params);
-    this.params = params;
-  }
-
-  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
-    try {
-      ensureApiKey(this.params?.apiKey ?? '');
-      const sbx = await Sandbox.connect(input?.sandboxId ?? '');
-      const res = await sbx.runCode(input?.code ?? '', { language: input?.language });
-      return {
-        status: 'success',
-        data: { logs: res?.logs ?? {}, result: res?.text ?? res ?? {} },
-        summary: 'Code executed',
-      };
-    } catch (error) {
-      return {
-        status: 'error',
-        error: 'Failed to run code',
-        summary: error instanceof Error ? error.message : 'Unknown error during runCode',
       };
     }
   }
@@ -534,7 +491,6 @@ export class PPIOToolset extends AgentBaseToolset<PPIOToolParams> {
   tools = [
     PPIOCreate,
     PPIOConnect,
-    PPIORunCode,
     PPIOIsRunning,
     PPIOGetInfo,
     PPIOSetTimeout,
