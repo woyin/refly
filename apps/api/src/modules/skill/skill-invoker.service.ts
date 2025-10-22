@@ -583,9 +583,7 @@ export class SkillInvokerService {
 
               const toolMsg: any = event.data.output;
               const resultStr =
-                typeof toolMsg?.content === 'string'
-                  ? (toolMsg.content as string)
-                  : JSON.stringify(toolMsg?.content ?? '');
+                typeof toolMsg === 'string' ? (toolMsg as string) : JSON.stringify(toolMsg ?? '');
 
               const content = event.data?.output
                 ? codeBlockWrapper(`
