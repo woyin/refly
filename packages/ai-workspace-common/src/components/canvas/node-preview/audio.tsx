@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import type { CanvasNode } from '@refly/canvas-common';
 import type { IContextItem } from '@refly/common-types';
-import type { ModelInfo } from '@refly/openapi-schema';
+import type { GenericToolset, ModelInfo } from '@refly/openapi-schema';
 import { PreviewChatInput } from './skill-response/preview-chat-input';
 import { EditChatInput } from './skill-response/edit-chat-input';
 import { cn } from '@refly/utils/cn';
@@ -37,6 +37,8 @@ const AudioNodePreviewComponent = ({ node }: AudioNodePreviewProps) => {
   const [hasError, setHasError] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const entityId = node?.data?.entityId ?? '';
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
+
   useEffect(() => {
     setCurrentUrl(originalUrl);
     setFallbackIndex(0);
@@ -87,6 +89,8 @@ const AudioNodePreviewComponent = ({ node }: AudioNodePreviewProps) => {
             }
           }
           setEditMode={setEditMode}
+          selectedToolsets={selectedToolsets}
+          setSelectedToolsets={setSelectedToolsets}
         />
         <PreviewChatInput
           enabled={!editMode}

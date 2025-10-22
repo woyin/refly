@@ -41,6 +41,7 @@ interface SkillResponseNodePreviewProps {
 }
 
 const OUTPUT_STEP_NAMES = ['answerQuestion', 'generateDocument', 'generateCodeArtifact'];
+const EMPTY_TOOLSET: GenericToolset = { id: 'empty', type: 'regular', name: 'empty' };
 
 const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNodePreviewProps) => {
   const { result, isStreaming, updateActionResult } = useActionResultStoreShallow((state) => ({
@@ -66,13 +67,17 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
 
   const nodeSelectedToolsets = node?.data?.metadata?.selectedToolsets;
   const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>(
-    nodeSelectedToolsets ?? [],
+    nodeSelectedToolsets?.length > 0 ? nodeSelectedToolsets : [EMPTY_TOOLSET],
   );
 
   const shareId = node.data?.metadata?.shareId;
   const { data: shareData } = useFetchShareData(shareId);
 
   const [statusText, setStatusText] = useState('');
+
+  useEffect(() => {
+    setSelectedToolsets(nodeSelectedToolsets?.length > 0 ? nodeSelectedToolsets : [EMPTY_TOOLSET]);
+  }, [nodeSelectedToolsets]);
 
   useEffect(() => {
     if (shareData && !result) {

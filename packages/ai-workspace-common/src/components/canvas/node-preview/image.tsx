@@ -9,6 +9,7 @@ import { cn } from '@refly/utils/cn';
 import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
 import { MediaActionContainer } from './media-action-container';
 import { ImagePreview } from '@refly-packages/ai-workspace-common/components/common/image-preview';
+import type { GenericToolset } from '@refly/openapi-schema';
 
 interface ImageNodePreviewProps {
   node: CanvasNode<ImageNodeMeta>;
@@ -23,6 +24,7 @@ const ImageNodePreviewComponent = ({ node }: ImageNodePreviewProps) => {
   const [editMode, setEditMode] = useState(false);
   const [isPreviewModalVisible, setIsPreviewModalVisible] = useState(false);
   const entityId = node?.data?.entityId ?? '';
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
   if (!imageUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-500">
@@ -57,6 +59,8 @@ const ImageNodePreviewComponent = ({ node }: ImageNodePreviewProps) => {
             }
           }
           setEditMode={setEditMode}
+          selectedToolsets={selectedToolsets}
+          setSelectedToolsets={setSelectedToolsets}
         />
         <PreviewChatInput
           enabled={!editMode}
