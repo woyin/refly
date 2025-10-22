@@ -302,7 +302,7 @@ function filterUsedVariables(
   const usedVariableNames = new Set<string>();
 
   for (const node of skillResponses) {
-    const originalQuery = (node.data as any).metadata.query || '';
+    const originalQuery = (node.data as any).metadata?.structuredData?.query || '';
     if (originalQuery) {
       const variableRefs = extractVariableReferences(originalQuery);
       for (const name of variableRefs) {
