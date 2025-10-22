@@ -250,12 +250,42 @@ export const CreateWorkflowAppModal = ({
       const shareId = data?.data?.shareId ?? '';
 
       if (data?.success && shareId) {
+        const workflowAppLink = getShareLink('workflowApp', shareId);
+
+        // Copy to clipboard with error handling
+        const copyToClipboard = async () => {
+          try {
+            await navigator.clipboard.writeText(workflowAppLink);
+          } catch (error) {
+            // Fallback for when document is not focused or clipboard API fails
+            console.warn('Clipboard API failed, using fallback:', error);
+            // Create a temporary textarea element for fallback copy
+            const textarea = document.createElement('textarea');
+            textarea.value = workflowAppLink;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+              document.execCommand('copy');
+            } catch (fallbackError) {
+              console.error('Fallback copy failed:', fallbackError);
+              message.error('Failed to copy link to clipboard');
+            }
+            document.body.removeChild(textarea);
+          }
+        };
+
+        // Copy to clipboard immediately after creation
+        await copyToClipboard();
+
         setVisible(false);
+
         const messageInstance = messageApi.open({
           content: <SuccessMessage shareId={shareId} onClose={() => messageInstance()} />,
           duration: 0, // Set to 0 to prevent auto-close
         });
-        // Trigger refresh of workflow apps data
+
         onPublishSuccess?.();
       } else if (!data?.success) {
         message.error(t('common.operationFailed'));
