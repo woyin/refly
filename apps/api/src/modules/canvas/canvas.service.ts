@@ -791,6 +791,24 @@ export class CanvasService {
     );
   }
 
+  async getCanvasSkillResponses(user: User, canvasId: string) {
+    const canvas = await this.prisma.canvas.findFirst({
+      where: { canvasId, uid: user.uid, deletedAt: null },
+    });
+    if (!canvas) {
+      throw new CanvasNotFoundError();
+    }
+
+    // Get skillResponse nodes from canvas data
+    const { nodes } = await this.canvasSyncService.getCanvasData(user, { canvasId }, canvas);
+    const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
+
+    // Extract resultIds from skillResponse nodes
+    const skillResponses = skillResponseNodes.filter((node) => node.data?.entityId);
+
+    return skillResponses;
+  }
+
   async getCanvasContentItems(user: User, canvasId: string, needAllNodes = false) {
     const canvas = await this.prisma.canvas.findFirst({
       where: { canvasId, uid: user.uid, deletedAt: null },
@@ -798,6 +816,15 @@ export class CanvasService {
     if (!canvas) {
       throw new CanvasNotFoundError();
     }
+
+    // Get skillResponse nodes from canvas data
+    const { nodes } = await this.canvasSyncService.getCanvasData(user, { canvasId }, canvas);
+    const skillResponseNodes = nodes.filter((node) => node.type === 'skillResponse');
+
+    // Extract resultIds from skillResponse nodes
+    const resultIds = skillResponseNodes
+      .map((node) => node.data?.entityId)
+      .filter((entityId) => entityId);
 
     const results = await this.prisma.actionResult.findMany({
       select: {
@@ -809,7 +836,12 @@ export class CanvasService {
         history: true,
       },
       orderBy: { version: 'desc' },
-      where: { targetId: canvasId, targetType: 'canvas', type: 'skill' },
+      where: {
+        targetId: canvasId,
+        targetType: 'canvas',
+        type: 'skill',
+        resultId: { in: resultIds },
+      },
     });
 
     // Deduplicate results by resultId, keeping the maximum version

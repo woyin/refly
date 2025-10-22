@@ -28,6 +28,7 @@ interface CanvasNode {
 interface CanvasDataInput {
   nodes: CanvasNode[];
   contentItems: CanvasContentItem[];
+  skillResponses: CanvasNode[];
   variables: WorkflowVariable[];
   title?: string;
   description?: string;
@@ -43,10 +44,10 @@ export function buildAppPublishPrompt(
   canvasContext: CanvasContext,
   historicalData?: HistoricalData,
 ): string {
-  const nodesText = buildNodesText(canvasData.contentItems);
+  const nodesText = buildNodesText(canvasData.skillResponses);
 
   // Filter variables to only include those actually used in canvas nodes
-  const usedVariables = filterUsedVariables(canvasData.variables, canvasData.contentItems);
+  const usedVariables = filterUsedVariables(canvasData.variables, canvasData.skillResponses);
   const variablesText = buildVariablesText(usedVariables);
 
   const canvasContextText = buildCanvasContextText(canvasContext);
@@ -97,29 +98,35 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 
 ### 3. Variable Integration
 - **CRITICAL**: Only include variables that are actually used in Canvas Nodes and Prompts
-- Replace specific values with {{variable_name}} placeholders
-- Ensure all variables are properly represented in the template
+- **ABSOLUTE RULE**: If no variables exist (variablesText is empty or shows "No existing variables"), the template.content MUST NOT contain any {{variable_name}} placeholders
+- **ABSOLUTE RULE**: Only when variables exist and are actually used in Canvas Nodes should {{variable_name}} placeholders be included in template.content
+- Replace specific values with {{variable_name}} placeholders ONLY when variables are present
+- Ensure all variables are properly represented in the template ONLY when they exist
 - Maintain semantic meaning while making it parameterizable
 - **Variable Usage Validation**: Only variables that appear in {{variable_name}} format within the Canvas Nodes should be included in the template
 
 ### 4. Template Structure
 - Start with a clear description of what the workflow accomplishes
-- Explain what inputs are needed (variables)
+- Explain what inputs are needed (variables) ONLY if variables exist
 - Describe the expected output or result
 - Use conversational, helpful tone
 - **Maintain language consistency with Canvas Nodes**
+- **CRITICAL**: If no variables exist, do not mention "inputs" or "variables" in the template
 
 ### 5. Variable Type Handling
+- **ONLY APPLY WHEN VARIABLES EXIST**: These rules only apply when variables are present
 - **string**: Use descriptive placeholders like "{{topic}}" or "{{style}}"
 - **resource**: Use file-related placeholders like "{{upload_file}}" or "{{document}}"
 - **option**: Use selection-related placeholders like "{{format}}" or "{{mode}}"
+- **NO VARIABLES CASE**: If no variables exist, do not use any placeholders in template.content
 
 ### 6. Quality Standards
 - Templates should be self-explanatory
-- Variables should have clear, descriptive names
+- Variables should have clear, descriptive names ONLY when variables exist
 - Maintain workflow functionality while improving usability
-- Ensure consistency with existing variable names
+- Ensure consistency with existing variable names ONLY when variables exist
 - **Language consistency is mandatory - all output must match Canvas Nodes language**
+- **CRITICAL**: Template.content must be variable-free when no variables exist
 
 ## Output Format Requirements
 
@@ -181,7 +188,8 @@ The **"content"** field in the template object is the most important output - th
 - **Maintain Original Intent**: Preserve the user's original goal and requirements
 - **Be Self-Contained**: Users should understand the complete workflow from this single template
 - **Use Proper Variable Format**: All placeholders must use {{variable_name}} format exactly
-- **Variable Usage Validation**: If Canvas Nodes don't contain any {{variable_name}} references, the template should not include any variable placeholders
+- **ABSOLUTE RULE**: If Canvas Nodes don't contain any {{variable_name}} references OR if variablesText shows "No existing variables", the template.content MUST NOT include any variable placeholders
+- **CRITICAL CONSTRAINT**: template.content can ONLY contain {{variable_name}} placeholders when variables actually exist and are used
 
 ### Template String Examples:
 
@@ -208,11 +216,13 @@ ${APP_PUBLISH_EXAMPLES}
 
 2. **Variable Integration**:
    - **CRITICAL**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
-   - Replace specific values with descriptive placeholders
+   - **ABSOLUTE RULE**: If variablesText shows "No existing variables" or is empty, template.content MUST NOT contain any {{variable_name}} placeholders
+   - Replace specific values with descriptive placeholders ONLY when variables exist
    - Maintain the original semantic meaning
-   - Ensure all used variables are represented
-   - Use consistent naming conventions
+   - Ensure all used variables are represented ONLY when they exist
+   - Use consistent naming conventions ONLY when variables exist
    - **No Variables Case**: If no variables are used in Canvas Nodes, create a template without any {{variable_name}} placeholders
+   - **CRITICAL CONSTRAINT**: template.content can ONLY contain {{variable_name}} placeholders when variables actually exist and are used
 
 3. **User Experience Focus**:
    - Templates should be immediately understandable
@@ -226,7 +236,9 @@ ${APP_PUBLISH_EXAMPLES}
    - Templates should maintain the original workflow intent
    - Language should be professional yet approachable
    - **Language Consistency**: **CRITICAL** - All template fields must match the language used in Canvas Nodes
-   - **Variable Usage Validation**: Verify that all {{variable_name}} placeholders in the template correspond to variables actually referenced in Canvas Nodes`;
+   - **Variable Usage Validation**: Verify that all {{variable_name}} placeholders in the template correspond to variables actually referenced in Canvas Nodes
+   - **ABSOLUTE RULE**: If no variables exist (variablesText is empty or shows "No existing variables"), template.content MUST NOT contain any {{variable_name}} placeholders
+   - **CRITICAL CONSTRAINT**: template.content can ONLY contain {{variable_name}} placeholders when variables actually exist and are used`;
 }
 
 /**
@@ -258,15 +270,15 @@ function extractVariableReferences(originalQuery: string): string[] {
 /**
  * Build nodes text - format canvas nodes into readable description
  */
-function buildNodesText(contentItems: CanvasContentItem[]): string {
-  if (!contentItems?.length) {
+function buildNodesText(skillResponses: CanvasNode[]): string {
+  if (!skillResponses?.length) {
     return '- No workflow nodes found';
   }
 
-  return contentItems
+  return skillResponses
     .map((node, index) => {
       const nodeType = node.type || 'unknown';
-      const nodeTitle = node?.title || node.title || `Node ${index + 1}`;
+      const nodeTitle = node?.title || node.data.title || `Node ${index + 1}`;
 
       const description = `- ${nodeTitle} (${nodeType})`;
 
@@ -280,17 +292,17 @@ function buildNodesText(contentItems: CanvasContentItem[]): string {
  */
 function filterUsedVariables(
   variables: WorkflowVariable[],
-  contentItems: CanvasContentItem[],
+  skillResponses: CanvasNode[],
 ): WorkflowVariable[] {
-  if (!variables?.length || !contentItems?.length) {
+  if (!variables?.length || !skillResponses?.length) {
     return variables || [];
   }
 
   // Extract all variable references from all nodes' originalQuery fields
   const usedVariableNames = new Set<string>();
 
-  for (const node of contentItems) {
-    const originalQuery = node.input?.originalQuery || '';
+  for (const node of skillResponses) {
+    const originalQuery = (node.data as any).metadata.query || '';
     if (originalQuery) {
       const variableRefs = extractVariableReferences(originalQuery);
       for (const name of variableRefs) {
