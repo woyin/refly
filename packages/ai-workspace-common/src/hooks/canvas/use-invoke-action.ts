@@ -220,7 +220,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
     if (!result || !step) {
       return;
     }
-    const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
+    const updatedStep: ActionStep = getLatestSteps(resultId).find((s) => s.name === step.name);
     updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
     if (!updatedStep.reasoningContent) {
       updatedStep.reasoningContent = reasoningContent ?? '';
