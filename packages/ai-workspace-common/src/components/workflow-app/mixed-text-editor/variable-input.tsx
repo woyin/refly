@@ -24,8 +24,8 @@ const VariableInput: React.FC<VariableInputProps> = memo(
           if (hiddenRef.current) {
             const text = e.target.value || placeholder || '';
             hiddenRef.current.textContent = text;
-            const width = Math.max(hiddenRef.current.offsetWidth + 16, 30);
-            setInputWidth(Math.min(width, window.innerWidth * 0.8));
+            const width = Math.max(hiddenRef.current.offsetWidth + 30, 30);
+            setInputWidth(Math.min(width, window.innerWidth * 1));
           }
         });
       },
@@ -44,14 +44,14 @@ const VariableInput: React.FC<VariableInputProps> = memo(
       (e: React.FormEvent<HTMLInputElement>) => {
         // Handle paste, cut, and other input events
         const target = e.target as HTMLInputElement;
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           if (hiddenRef.current) {
             const text = target.value || placeholder || '';
             hiddenRef.current.textContent = text;
-            const width = Math.max(hiddenRef.current.offsetWidth + 16, 30);
-            setInputWidth(Math.min(width, window.innerWidth * 0.8));
+            const width = Math.max(hiddenRef.current.offsetWidth + 30, 30);
+            setInputWidth(Math.min(width, window.innerWidth * 1));
           }
-        }, 0);
+        });
       },
       [placeholder],
     );
@@ -61,8 +61,8 @@ const VariableInput: React.FC<VariableInputProps> = memo(
       if (hiddenRef.current) {
         const text = value || placeholder || '';
         hiddenRef.current.textContent = text;
-        const width = Math.max(hiddenRef.current.offsetWidth + 16, 30); // Add padding
-        setInputWidth(Math.min(width, window.innerWidth * 0.8)); // Max 80% of viewport
+        const width = Math.max(hiddenRef.current.offsetWidth + 30, 30); // Add padding
+        setInputWidth(Math.min(width, window.innerWidth * 1)); // Max 80% of viewport
       }
     }, [value, placeholder]);
 
