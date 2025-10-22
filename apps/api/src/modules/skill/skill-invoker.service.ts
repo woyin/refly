@@ -1,60 +1,61 @@
 import { Injectable, Logger, Optional } from '@nestjs/common';
 
-import * as Y from 'yjs';
-import { EventEmitter } from 'node:events';
-import { Response } from 'express';
-import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { DirectConnection } from '@hocuspocus/server';
 import { AIMessageChunk, BaseMessage, MessageContentComplex } from '@langchain/core/dist/messages';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { InjectQueue } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
+import { ProjectNotFoundError } from '@refly/errors';
 import {
-  User,
   ActionResult,
   ActionStep,
   Artifact,
-  SkillEvent,
-  TokenUsageItem,
   CreditBilling,
   ProviderItem,
+  SkillEvent,
+  TokenUsageItem,
+  ToolCallResult,
+  User,
 } from '@refly/openapi-schema';
-import { InvokeSkillJobData } from './skill.dto';
-import { PrismaService } from '../common/prisma.service';
-import { ConfigService } from '@nestjs/config';
-import { safeParseJSON } from '@refly/utils';
 import {
-  SkillRunnableConfig,
-  SkillEventMap,
-  SkillRunnableMeta,
   BaseSkill,
   SkillEngine,
+  SkillEventMap,
+  SkillRunnableConfig,
+  SkillRunnableMeta,
   createSkillInventory,
 } from '@refly/skill-template';
-import { MiscService } from '../misc/misc.service';
-import { ResultAggregator } from '../../utils/result';
-import { DirectConnection } from '@hocuspocus/server';
-import { getWholeParsedContent } from '@refly/utils';
-import { ProjectNotFoundError } from '@refly/errors';
-import { projectPO2DTO } from '../project/project.dto';
-import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
-import { SyncBatchTokenCreditUsageJobData, CreditUsageStep } from '../credit/credit.dto';
+import { getWholeParsedContent, safeParseJSON } from '@refly/utils';
+import { Queue } from 'bullmq';
+import { Response } from 'express';
+import { EventEmitter } from 'node:events';
+import * as Y from 'yjs';
 import {
   QUEUE_AUTO_NAME_CANVAS,
   QUEUE_SYNC_PILOT_STEP,
   QUEUE_SYNC_REQUEST_USAGE,
-  QUEUE_SYNC_TOKEN_USAGE,
   QUEUE_SYNC_TOKEN_CREDIT_USAGE,
+  QUEUE_SYNC_TOKEN_USAGE,
   QUEUE_SYNC_WORKFLOW,
 } from '../../utils/const';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { writeSSEResponse } from '../../utils/response';
 import { genBaseRespDataFromError } from '../../utils/exception';
-import { SyncPilotStepJobData } from '../pilot/pilot.processor';
+import { extractChunkContent } from '../../utils/llm';
+import { writeSSEResponse } from '../../utils/response';
+import { ResultAggregator } from '../../utils/result';
+import { ActionService } from '../action/action.service';
 import { AutoNameCanvasJobData } from '../canvas/canvas.dto';
-import { SyncWorkflowJobData } from '../workflow/workflow.dto';
+import { PrismaService } from '../common/prisma.service';
+import { CreditUsageStep, SyncBatchTokenCreditUsageJobData } from '../credit/credit.dto';
+import { MiscService } from '../misc/misc.service';
+import { SyncPilotStepJobData } from '../pilot/pilot.processor';
+import { projectPO2DTO } from '../project/project.dto';
 import { ProviderService } from '../provider/provider.service';
 import { SkillEngineService } from '../skill/skill-engine.service';
-import { ActionService } from '../action/action.service';
-import { extractChunkContent } from '../../utils/llm';
+import { SyncRequestUsageJobData, SyncTokenUsageJobData } from '../subscription/subscription.dto';
+import { ToolCallService, ToolCallStatus } from '../tool-call/tool-call.service';
 import { ToolService } from '../tool/tool.service';
+import { SyncWorkflowJobData } from '../workflow/workflow.dto';
+import { InvokeSkillJobData } from './skill.dto';
 
 @Injectable()
 export class SkillInvokerService {
@@ -69,6 +70,7 @@ export class SkillInvokerService {
     private readonly miscService: MiscService,
     private readonly providerService: ProviderService,
     private readonly toolService: ToolService,
+    private readonly toolCallService: ToolCallService,
     private readonly skillEngineService: SkillEngineService,
     private readonly actionService: ActionService,
     @Optional()
@@ -113,26 +115,34 @@ export class SkillInvokerService {
       ];
     }
 
-    return [
-      new HumanMessage({ content: messageContent }),
-      ...(steps?.length > 0
-        ? steps.map(
-            (step) =>
-              new AIMessage({
-                content: getWholeParsedContent(step.reasoningContent, step.content),
-                additional_kwargs: {
-                  skillMeta: result.actionMeta,
-                  structuredData: step.structuredData,
-                  type: result.type,
-                  tplConfig:
-                    typeof result.tplConfig === 'string'
-                      ? safeParseJSON(result.tplConfig)
-                      : result.tplConfig,
-                },
-              }),
-          )
-        : []),
-    ];
+    // Build consolidated tool call history by step from DB to avoid duplicating start/stream/end fragments
+    const toolCallsByStep = await this.toolCallService.fetchConsolidatedToolUseOutputByStep(
+      result.resultId,
+      result.version,
+    );
+
+    const aiMessages =
+      steps?.length > 0
+        ? steps.map((step) => {
+            const toolCallOutputs: ToolCallResult[] = toolCallsByStep?.get(step?.name ?? '') ?? [];
+            const mergedContent = getWholeParsedContent(step.reasoningContent, step.content ?? '');
+            return new AIMessage({
+              content: mergedContent,
+              additional_kwargs: {
+                skillMeta: result.actionMeta,
+                structuredData: step.structuredData,
+                type: result.type,
+                tplConfig:
+                  typeof result.tplConfig === 'string'
+                    ? safeParseJSON(result.tplConfig)
+                    : result.tplConfig,
+                toolCalls: toolCallOutputs,
+              },
+            });
+          })
+        : [];
+    console.log('aiMessages', aiMessages);
+    return [new HumanMessage({ content: messageContent }), ...aiMessages];
   }
 
   private async buildInvokeConfig(
@@ -531,9 +541,10 @@ export class SkillInvokerService {
       // Start initial network timeout
       createNetworkTimeout();
 
-      // Track whether a tool is currently executing to suppress duplicate streaming
-      let isToolExecuting = false;
+      // tool callId, now we use first time returned run_id as tool call id
+      const startTs = Date.now();
 
+      const toolCallIds: Set<string> = new Set();
       for await (const event of skill.streamEvents(input, {
         ...config,
         version: 'v2',
@@ -557,74 +568,161 @@ export class SkillInvokerService {
         // Record stream output for simple timeout tracking
         lastOutputTime = Date.now();
         hasAnyOutput = true;
-
         switch (event.event) {
           case 'on_tool_end':
+          case 'on_tool_error':
           case 'on_tool_start': {
-            // Toggle tool execution flag
-            if (event.event === 'on_tool_start') {
-              isToolExecuting = true;
+            // Skip non-tool user-visible helpers like commonQnA, and ensure toolsetKey exists
+            const { toolsetKey } = event.metadata ?? {};
+            if (!toolsetKey) {
+              break;
             }
-            if (event.event === 'on_tool_end') {
-              isToolExecuting = false;
-            }
-            // Extract tool_call_chunks from AIMessageChunk
-            if (event.metadata.langgraph_node === 'tools' && event.data?.output) {
-              // Update result content and forward stream events to client
+            const stepName = runMeta?.step?.name;
+            const toolsetId = toolsetKey;
+            const toolName = String(event.metadata?.name ?? '');
+            const runId = event?.run_id ? String(event.run_id) : undefined;
+            const toolCallId = this.toolCallService.getOrCreateToolCallId({
+              resultId,
+              version,
+              toolName,
+              toolsetId,
+              runId,
+            });
+            const buildToolUseXML = (includeResult: boolean, errorMsg: string, updatedTs: number) =>
+              this.toolCallService.generateToolUseXML({
+                toolCallId,
+                includeResult,
+                errorMsg,
+                metadata: {
+                  name: toolName,
+                  type: event.metadata?.type as string | undefined,
+                  toolsetKey: toolsetId,
+                  toolsetName: event.metadata?.toolsetName,
+                },
+                input: event.data?.input,
+                output: event.data?.output,
+                startTs: startTs,
+                updatedTs: updatedTs,
+              });
 
-              const { name, type, toolsetKey, toolsetName } = event.metadata ?? {};
-              // Skip non-tool user-visible helpers like commonQnA, and ensure toolsetKey exists
-              if (!toolsetKey) {
+            const persistToolCall = async (
+              status: ToolCallStatus,
+              data: {
+                input: string | undefined;
+                output: string | undefined;
+                errorMessage?: string;
+              },
+            ) => {
+              const input = data.input;
+              const output = data.output;
+              const errorMessage = String(data.errorMessage ?? '');
+              const createdAt = startTs;
+              const updatedAt = Date.now();
+              await this.toolCallService.persistToolCallResult(
+                res,
+                user.uid,
+                { resultId, version },
+                toolsetId,
+                toolName,
+                input,
+                output,
+                status,
+                toolCallId,
+                stepName,
+                createdAt,
+                updatedAt,
+                errorMessage,
+              );
+            };
+
+            if (event.event === 'on_tool_start') {
+              if (!toolCallIds.has(toolCallId)) {
+                toolCallIds.add(toolCallId);
+                await persistToolCall(ToolCallStatus.EXECUTING, {
+                  input: event.data?.input,
+                  output: '',
+                });
+                // Send XML for executing state
+                const xmlContent = buildToolUseXML(false, '', Date.now());
+                if (xmlContent && res) {
+                  resultAggregator.handleStreamContent(runMeta, xmlContent, '');
+                  this.toolCallService.emitToolUseStream(res, {
+                    resultId,
+                    step: runMeta?.step,
+                    xmlContent,
+                    toolCallId,
+                    toolName,
+                    event_name: 'tool_call_start',
+                  });
+                }
                 break;
               }
-
-              const codeBlockWrapper = (content: string) =>
-                `\n\n\`\`\`tool_use\n${content}\`\`\`\n\n`;
-
-              const toolMsg: any = event.data.output;
-              const resultStr =
-                typeof toolMsg === 'string' ? (toolMsg as string) : JSON.stringify(toolMsg ?? '');
-
-              const content = event.data?.output
-                ? codeBlockWrapper(`
-<tool_use>
-<name>${name}</name>
-<type>${type}</type>
-<toolsetKey>${toolsetKey}</toolsetKey>
-<toolsetName>${toolsetName}</toolsetName>
-<arguments>
-${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
-</arguments>
-<result>
-${resultStr}
-</result>
-</tool_use>
-`)
-                : codeBlockWrapper(`
-<tool_use>
-<name>${name}</name>
-<type>${type}</type>
-<toolsetKey>${toolsetKey}</toolsetKey>
-<toolsetName>${toolsetName}</toolsetName>
-<arguments>
-${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
-</arguments>
-</tool_use>
-`);
-              resultAggregator.handleStreamContent(runMeta, content, '');
-
-              if (res) {
-                writeSSEResponse(res, {
-                  event: 'stream',
+            }
+            if (event.event === 'on_tool_error') {
+              const errorMsg = String((event.data as any)?.error ?? 'Tool execution failed');
+              await persistToolCall(ToolCallStatus.FAILED, {
+                input: undefined,
+                output: event.data?.output,
+                errorMessage: errorMsg,
+              });
+              // Send XML for failed state
+              const xmlContent = buildToolUseXML(false, errorMsg, Date.now());
+              if (xmlContent && res) {
+                resultAggregator.handleStreamContent(runMeta, xmlContent, '');
+                this.toolCallService.emitToolUseStream(res, {
                   resultId,
-                  content,
                   step: runMeta?.step,
-                  structuredData: {
-                    toolCallId: event.run_id,
-                    name: event.name,
-                  },
+                  xmlContent,
+                  toolCallId,
+                  toolName,
+                  event_name: 'tool_call_stream',
                 });
               }
+              this.toolCallService.releaseToolCallId({
+                resultId,
+                version,
+                toolName,
+                toolsetId,
+                runId,
+              });
+              toolCallIds.delete(toolCallId);
+              break;
+            }
+            if (event.event === 'on_tool_end') {
+              await persistToolCall(ToolCallStatus.COMPLETED, {
+                input: undefined,
+                output: event.data?.output,
+              });
+              // Extract tool_call_chunks from AIMessageChunk
+              if (event.metadata.langgraph_node === 'tools' && event.data?.output) {
+                const { toolsetKey } = event.metadata ?? {};
+                // Skip non-tool user-visible helpers like commonQnA, and ensure toolsetKey exists
+                if (!toolsetKey) {
+                  break;
+                }
+
+                const xmlContent = buildToolUseXML(true, '', Date.now());
+                if (xmlContent && res) {
+                  resultAggregator.handleStreamContent(runMeta, xmlContent, '');
+                  this.toolCallService.emitToolUseStream(res, {
+                    resultId,
+                    step: runMeta?.step,
+                    xmlContent,
+                    toolCallId,
+                    toolName,
+                    event_name: 'tool_call_stream',
+                  });
+                }
+              }
+              this.toolCallService.releaseToolCallId({
+                resultId,
+                version,
+                toolName,
+                toolsetId,
+                runId,
+              });
+              toolCallIds.delete(toolCallId);
+              break;
             }
             break;
           }
@@ -632,9 +730,9 @@ ${event.data?.input ? JSON.stringify(event.data?.input?.input) : ''}
             // Suppress streaming content when inside tool execution to avoid duplicate outputs
             // Tools like generateDoc stream to their own targets (e.g., documents) and should not
             // also stream to the skill response channel.
-            if (isToolExecuting || event?.metadata?.langgraph_node === 'tools') {
-              break;
-            }
+            // if (event?.metadata?.langgraph_node === 'tools') {
+            //   break;
+            // }
 
             const { content, reasoningContent } = extractChunkContent(chunk);
 

@@ -1110,7 +1110,7 @@ export class MiscService implements OnModuleInit {
       this.logger.log(`Successfully fetched and cached favicon for domain: ${domain}`);
       return { data: buffer, contentType };
     } catch (error) {
-      this.logger.error(`Failed to get favicon for domain ${domain}:`, error);
+      this.logger.error(`Failed to get favicon for domain ${domain}: ${error.stack}`);
       throw new Error(`Unable to retrieve favicon for domain: ${domain}`);
     }
   }

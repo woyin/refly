@@ -35,6 +35,11 @@ export interface CanvasContentItem {
   content?: string;
   contentPreview?: string;
   inputIds?: string[];
+  input?: {
+    originalQuery?: string;
+    query?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface CanvasDetailModel extends CanvasModel {

@@ -131,7 +131,7 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                   key={`${segment.id}-${index}`}
                   id={segment.id || ''}
                   value={segment.content}
-                  placeholder={segment.placeholder}
+                  placeholder={segment.variable?.name || segment.placeholder}
                   onChange={(value) => handleVariableChange(segment.id || '', value)}
                   disabled={disabled}
                   options={
@@ -170,7 +170,7 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                   key={`${segment.id}-${index}`}
                   id={segment.id || ''}
                   value={currentFile}
-                  placeholder={segment.placeholder}
+                  placeholder={segment.variable?.name || segment.placeholder}
                   onChange={(value) => handleVariableChange(segment.id || '', value)}
                   disabled={disabled}
                   accept={acceptTypes}
@@ -185,7 +185,7 @@ const MixedTextEditor: React.FC<MixedTextEditorProps> = memo(
                 key={`${segment.id}-${index}`}
                 id={segment.id || ''}
                 value={segment.content}
-                placeholder={segment.placeholder}
+                placeholder={segment.variable?.name || segment.placeholder}
                 onChange={(value) => handleVariableChange(segment.id || '', value)}
                 disabled={disabled}
                 isDefaultValue={segment.isDefaultValue}

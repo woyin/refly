@@ -385,7 +385,7 @@ export class VariableExtractionService {
         this.prisma.variableExtractionHistory.findMany({
           where: { uid, status: 'applied' },
           orderBy: { createdAt: 'desc' },
-          take: 20,
+          take: 3,
         }),
         this.getRecentVariablePatterns(canvasId),
       ]);
@@ -1286,19 +1286,16 @@ export class VariableExtractionService {
       // 1. Build enhanced context for the canvas
       const context = await this.buildEnhancedContext(canvasId, user);
 
-      // 2. Get comprehensive historical data
-      const historicalData = await this.getComprehensiveHistoricalData(user.uid, canvasId);
-
-      // 3. Build APP publish prompt
+      // 2. Build APP publish prompt
       const appPublishPrompt = buildAppPublishPrompt(
         {
           nodes: context.canvasData.nodes || [],
+          contentItems: context.contentItems,
           variables: context.variables,
           title: context.canvasData.title,
           description: context.canvasData.description,
         },
         context.analysis,
-        historicalData,
       );
 
       // 4. Execute LLM template generation

@@ -85,6 +85,8 @@ export abstract class BaseSkill {
         eventData.event = 'structured_data';
       } else if (eventData.artifact) {
         eventData.event = 'artifact';
+      } else if (eventData.toolCallResult) {
+        eventData.event = 'tool_call_stream';
       }
     }
 
@@ -264,6 +266,8 @@ export interface SkillEventMap {
   structured_data: [data: SkillEvent];
   token_usage: [data: SkillEvent];
   invoke_skill: [data: SkillEvent];
+  tool_call_start: [data: SkillEvent];
+  tool_call_stream: [data: SkillEvent];
   error: [data: SkillEvent];
 }
 

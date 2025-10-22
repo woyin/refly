@@ -1,33 +1,39 @@
-import { useEffect, useState, useMemo, memo, useCallback } from 'react';
-import { Button, Divider, Result, Skeleton, Spin } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { useActionResultStoreShallow } from '@refly/stores';
-import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
-import { ActionResult, GenericToolset } from '@refly/openapi-schema';
-import { CanvasNode, ResponseNodeMeta } from '@refly/canvas-common';
-import { Thinking } from 'refly-icons';
-import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
-import { ActionStepCard } from './action-step';
-import { convertResultContextToItems, purgeContextItems } from '@refly/canvas-common';
-import { PreviewChatInput } from './preview-chat-input';
-import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
-import { useKnowledgeBaseStoreShallow } from '@refly/stores';
-import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
 import { EditChatInput } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/edit-chat-input';
-import { cn } from '@refly/utils/cn';
-import { useReactFlow } from '@xyflow/react';
-import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
-import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
+import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
+import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
 import { locateToNodePreviewEmitter } from '@refly-packages/ai-workspace-common/events/locateToNodePreview';
-import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
-import { processContentPreview } from '@refly-packages/ai-workspace-common/utils/content';
-import { useUserStore } from '@refly/stores';
-import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
 import { useNodeData } from '@refly-packages/ai-workspace-common/hooks/canvas';
+import { useActionPolling } from '@refly-packages/ai-workspace-common/hooks/canvas/use-action-polling';
+import { useDeleteNode } from '@refly-packages/ai-workspace-common/hooks/canvas/use-delete-node';
+import { useInvokeAction } from '@refly-packages/ai-workspace-common/hooks/canvas/use-invoke-action';
+import { useFetchShareData } from '@refly-packages/ai-workspace-common/hooks/use-fetch-share-data';
+import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
+import { processContentPreview } from '@refly-packages/ai-workspace-common/utils/content';
+import {
+  CanvasNode,
+  convertResultContextToItems,
+  purgeContextItems,
+  ResponseNodeMeta,
+} from '@refly/canvas-common';
+import { ActionResult, GenericToolset } from '@refly/openapi-schema';
+import {
+  useActionResultStoreShallow,
+  useKnowledgeBaseStoreShallow,
+  useUserStore,
+} from '@refly/stores';
+import { cn } from '@refly/utils/cn';
 import { sortSteps } from '@refly/utils/step';
+import { useReactFlow } from '@xyflow/react';
+import { Button, Divider, Result, Skeleton, Spin } from 'antd';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Thinking } from 'refly-icons';
 import { ActionContainer } from './action-container';
+import { ActionStepCard } from './action-step';
 import { FailureNotice } from './failure-notice';
+import { PreviewChatInput } from './preview-chat-input';
 
 interface SkillResponseNodePreviewProps {
   node: CanvasNode<ResponseNodeMeta>;
@@ -214,11 +220,13 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     resetFailedState(resultId);
 
     // Update node status immediately to show "waiting" state
+    const nextVersion = (node.data?.metadata?.version || 0) + 1;
     setNodeData(node.id, {
       ...node.data,
       metadata: {
         ...node.data?.metadata,
         status: 'waiting',
+        version: nextVersion,
       },
     });
 
@@ -231,6 +239,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
         },
         contextItems,
         selectedToolsets: nodeSelectedToolsets,
+        version: nextVersion,
       },
       {
         entityId: canvasId,

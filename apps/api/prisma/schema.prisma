@@ -1528,19 +1528,28 @@ model Toolset {
 
 model ToolCallResult {
   /// Primary key
-  pk        Int       @id @default(autoincrement())
+  pk        Int     @id @default(autoincrement())
+  /// Result ID
+  resultId  String  @map("result_id")
+  /// Result version
+  version   Int     @default(0) @map("version")
   /// Call ID
-  callId    String    @unique @map("call_id")
+  callId    String  @unique @map("call_id")
   /// UID
-  uid       String    @map("uid")
+  uid       String  @map("uid")
   /// Toolset ID
-  toolsetId String    @map("toolset_id")
+  toolsetId String  @map("toolset_id")
   /// Tool name
-  toolName  String    @map("tool_name")
+  toolName  String  @map("tool_name")
+  /// Step name
+  stepName  String? @map("step_name")
   /// Input data
-  input     String    @map("input")
+  input     String  @map("input")
   /// Output data
-  output    String    @map("output")
+  output    String  @map("output")
+
+  /// Status: enum
+  status    String    @default("executing") @map("status")
   /// Error message
   error     String?   @map("error")
   /// Create timestamp
@@ -1550,6 +1559,7 @@ model ToolCallResult {
   /// Deletion timestamp
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz()
 
+  @@index([resultId, version])
   @@index([toolsetId, deletedAt])
   @@index([toolName, deletedAt])
   @@map("tool_call_results")

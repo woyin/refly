@@ -1,15 +1,23 @@
+import { ToolCallStatus } from '@refly-packages/ai-workspace-common/components/markdown/plugins/tool-call/types';
+import { ToolCallResult } from '@refly/openapi-schema';
+
 // Define the tool use and tool result tags directly here to avoid circular dependencies
 export const TOOL_USE_TAG = 'tool_use';
 export const TOOL_USE_TAG_RENDER = 'reflyToolUse';
 
 // Pre-compiled regular expressions for better performance
 const TOOL_USE_REGEX = new RegExp(`<${TOOL_USE_TAG}[^>]*>([\\s\\S]*?)</${TOOL_USE_TAG}>`, 'i');
+const CALL_ID_REGEX = /<callId>([\s\S]*?)<\/callId>/i;
 const NAME_REGEX = /<name>([\s\S]*?)<\/name>/i;
 const TYPE_REGEX = /<type>([\s\S]*?)<\/type>/i;
+const TOOL_CALL_STATUS_REGEX = /<status>([\s\S]*?)<\/status>/i;
+const CREATED_AT_REGEX = /<createdAt>([\s\S]*?)<\/createdAt>/i;
+const UPDATED_AT_REGEX = /<updatedAt>([\s\S]*?)<\/updatedAt>/i;
 const TOOLSET_KEY_REGEX = /<toolsetKey>([\s\S]*?)<\/toolsetKey>/i;
 const TOOLSET_NAME_REGEX = /<toolsetName>([\s\S]*?)<\/toolsetName>/i;
 const ARGUMENTS_REGEX = /<arguments>([\s\S]*?)<\/arguments>/i;
 const RESULT_REGEX = /<result>([\s\S]*?)<\/result>/i;
+const ERROR_REGEX = /<error>([\s\S]*?)<\/error>/i;
 
 // Media URL patterns with named groups for efficient extraction
 const MEDIA_PATTERNS = {
@@ -273,6 +281,10 @@ export const extractToolAttributes = (
 ): Record<string, string> => {
   const attributes: Record<string, string> = {};
 
+  // Extract callId for linking with SSE tool_call_event
+  const callId = safeExtract(content, CALL_ID_REGEX);
+  if (callId) attributes['data-tool-call-id'] = callId;
+
   // Extract basic tool information
   const toolName = safeExtract(content, NAME_REGEX);
   if (toolName) attributes['data-tool-name'] = toolName;
@@ -297,6 +309,18 @@ export const extractToolAttributes = (
     const mediaAttributes = extractAllMediaAttributes(resultStr, argsStr, linkElements);
     Object.assign(attributes, mediaAttributes);
   }
+
+  const toolCallStatus = safeExtract(content, TOOL_CALL_STATUS_REGEX);
+  if (toolCallStatus) attributes['data-tool-call-status'] = toolCallStatus;
+
+  const createdAt = safeExtract(content, CREATED_AT_REGEX);
+  if (createdAt) attributes['data-tool-created-at'] = createdAt;
+
+  const updatedAt = safeExtract(content, UPDATED_AT_REGEX);
+  if (updatedAt) attributes['data-tool-updated-at'] = updatedAt;
+
+  const errorStr = safeExtract(content, ERROR_REGEX);
+  if (errorStr) attributes['data-tool-error'] = errorStr;
 
   return attributes;
 };
@@ -389,4 +413,85 @@ export const processToolUseInText = (
   const textNodes = splitTextByToolUse(text, fullMatch, nodeType);
 
   return { toolNode, textNodes, fullMatch };
+};
+
+/**
+ * Parse a single tool_use XML block from the given chunk content into a normalized object.
+ * Returns null if no valid tool_use is found.
+ */
+export const parseToolCallFromChunk = (
+  content: string,
+  stepName?: string,
+): ToolCallResult | null => {
+  if (!content || !hasToolUseTag(content)) {
+    return null;
+  }
+  const inner = extractToolUseContent(content);
+  if (!inner) {
+    return null;
+  }
+  const attrs = extractToolAttributes(inner);
+  const callId = attrs['data-tool-call-id'] ?? '';
+  if (!callId) {
+    return null;
+  }
+
+  // the status is always failed if the result is not present
+  const status = (attrs['data-tool-call-status'] ?? ToolCallStatus.FAILED.toString()) as
+    | 'executing'
+    | 'completed'
+    | 'failed';
+
+  const toMs = (val?: string): number | undefined => {
+    const n = Number(val ?? '');
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+
+  const createdAt = toMs(attrs['data-tool-created-at']) ?? Date.now();
+  const updatedAt = toMs(attrs['data-tool-updated-at']) ?? Date.now();
+
+  const safeParse = (str?: string): unknown => {
+    if (!str) return undefined;
+    try {
+      return JSON.parse(str);
+    } catch {
+      return str;
+    }
+  };
+
+  const argsStr = attrs['data-tool-arguments'];
+  const resultStr = attrs['data-tool-result'];
+
+  const parsed: ToolCallResult = {
+    callId,
+    status,
+    createdAt,
+    updatedAt,
+    toolsetId: attrs['data-tool-toolset-key'] ?? undefined,
+    toolName: attrs['data-tool-name'] ?? undefined,
+    stepName,
+    input: safeParse(argsStr) as Record<string, unknown> | undefined,
+    output: safeParse(resultStr) as Record<string, unknown> | undefined,
+    error: status === 'failed' ? String(resultStr ?? '') : undefined,
+    uid: undefined,
+  };
+
+  return parsed;
+};
+
+/**
+ * Merge a parsed tool call into an existing array by callId (idempotent update).
+ */
+export const mergeToolCallById = (
+  existing: ToolCallResult[],
+  next: ToolCallResult,
+): ToolCallResult[] => {
+  const list = Array.isArray(existing) ? [...existing] : [];
+  const idx = list.findIndex((tc) => tc.callId === next.callId);
+  if (idx === -1) {
+    list.push(next);
+    return list;
+  }
+  list[idx] = { ...list[idx], ...next };
+  return list;
 };

@@ -1,13 +1,14 @@
-import { ActionDetail } from '../action/action.dto';
-import { PrismaService } from '../common/prisma.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { ActionResultNotFoundError } from '@refly/errors';
-import { ActionResult } from '../../generated/client';
 import { AbortActionRequest, EntityType, GetActionResultData, User } from '@refly/openapi-schema';
 import { batchReplaceRegex, genActionResultID, pick } from '@refly/utils';
 import pLimit from 'p-limit';
-import { ProviderService } from '../provider/provider.service';
+import { ActionResult } from '../../generated/client';
+import { ActionDetail } from '../action/action.dto';
+import { PrismaService } from '../common/prisma.service';
 import { providerItem2ModelInfo } from '../provider/provider.dto';
+import { ProviderService } from '../provider/provider.service';
+import { ToolCallService } from '../tool-call/tool-call.service';
 
 @Injectable()
 export class ActionService {
@@ -22,6 +23,7 @@ export class ActionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly providerService: ProviderService,
+    private readonly toolCallService: ToolCallService,
   ) {}
 
   async getActionResult(user: User, param: GetActionResultData['query']): Promise<ActionDetail> {
@@ -58,7 +60,12 @@ export class ActionService {
       orderBy: { order: 'asc' },
     });
 
-    return { ...result, steps, modelInfo };
+    const toolCalls = await this.toolCallService.fetchToolCalls(result.resultId, result.version);
+    const toolCallsByStep = this.toolCallService.groupToolCallsByStep(steps, toolCalls);
+    const stepsWithToolCalls = this.toolCallService.attachToolCallsToSteps(steps, toolCallsByStep);
+    await this.toolCallService.deriveAndUpdateActionStatus(result, toolCalls);
+
+    return { ...result, steps: stepsWithToolCalls, modelInfo };
   }
 
   async duplicateActionResults(

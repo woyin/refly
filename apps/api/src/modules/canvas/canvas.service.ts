@@ -808,12 +808,30 @@ export class CanvasService {
         context: true,
         history: true,
       },
-      where: { targetId: canvasId, targetType: 'canvas' },
+      orderBy: { version: 'desc' },
+      where: { targetId: canvasId, targetType: 'canvas', type: 'skill' },
     });
+
+    // Deduplicate results by resultId, keeping the maximum version
+    const deduplicatedResults = results.reduce(
+      (acc, current) => {
+        const existing = acc.find((item) => item.resultId === current.resultId);
+        if (!existing || current.version > existing.version) {
+          const index = acc.findIndex((item) => item.resultId === current.resultId);
+          if (index !== -1) {
+            acc[index] = current;
+          } else {
+            acc.push(current);
+          }
+        }
+        return acc;
+      },
+      [] as typeof results,
+    );
 
     // Collect content items for title generation
     const contentItems: CanvasContentItem[] = await Promise.all(
-      results.map(async (result) => {
+      deduplicatedResults.map(async (result) => {
         const { resultId, version, title } = result;
         const steps = await this.prisma.actionStep.findMany({
           where: { resultId, version },
@@ -849,6 +867,7 @@ export class CanvasService {
         return {
           id: resultId,
           title,
+          input: safeParseJSON(result.input ?? '{}'),
           contentPreview: answer,
           content: steps.map((s) => s.content).join('\n\n'),
           type: 'skillResponse',

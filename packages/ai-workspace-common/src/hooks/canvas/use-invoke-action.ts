@@ -1,5 +1,15 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
+import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
+import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
+import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
+import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
+import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
+import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
+import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
+import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
 import {
+  ActionResult,
+  ActionStatus,
   ActionStep,
   ActionStepMeta,
   Artifact,
@@ -7,34 +17,30 @@ import {
   Entity,
   InvokeSkillRequest,
   SkillEvent,
-  ActionStatus,
-  ActionResult,
 } from '@refly/openapi-schema';
-import { ssePost } from '@refly-packages/ai-workspace-common/utils/sse-post';
-import { getRuntime } from '@refly/utils/env';
-import { useSetNodeDataByEntity } from '@refly-packages/ai-workspace-common/hooks/canvas/use-set-node-data-by-entity';
 import { useActionResultStore } from '@refly/stores';
-import { aggregateTokenUsage, genActionResultID, detectActualTypeFromType } from '@refly/utils';
-import { SkillNodeMeta, convertContextItemsToInvokeParams } from '@refly/canvas-common';
-import { useFindThreadHistory } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-thread-history';
-import { useActionPolling } from './use-action-polling';
-import { useFindMemo } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-memo';
-import { useUpdateActionResult } from './use-update-action-result';
-import { useSubscriptionUsage } from '../use-subscription-usage';
-import { useFindImages } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-images';
-import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
-import { useFindWebsite } from '@refly-packages/ai-workspace-common/hooks/canvas/use-find-website';
-import { codeArtifactEmitter } from '@refly-packages/ai-workspace-common/events/codeArtifact';
-import { deletedNodesEmitter } from '@refly-packages/ai-workspace-common/events/deleted-nodes';
 import { logEvent } from '@refly/telemetry-web';
+import { aggregateTokenUsage, detectActualTypeFromType, genActionResultID } from '@refly/utils';
+import { ARTIFACT_TAG_CLOSED_REGEX, getArtifactContentAndAttributes } from '@refly/utils/artifact';
+import { getRuntime } from '@refly/utils/env';
+import { useCallback, useEffect, useRef } from 'react';
 import {
-  useAbortAction,
+  mergeToolCallById,
+  parseToolCallFromChunk,
+} from '../../components/markdown/plugins/tool-call/toolProcessor';
+import { useSubscriptionUsage } from '../use-subscription-usage';
+import {
   globalAbortControllerRef,
-  globalIsAbortedRef,
   globalCurrentResultIdRef,
+  globalIsAbortedRef,
+  useAbortAction,
 } from './use-abort-action';
+import { useActionPolling } from './use-action-polling';
+import { useUpdateActionResult } from './use-update-action-result';
 
 export const useInvokeAction = (params?: { source?: string }) => {
+  const latestStepsRef = useRef(new Map<string, ActionStep[]>());
+
   const { source } = params || {};
 
   const setNodeDataByEntity = useSetNodeDataByEntity();
@@ -147,6 +153,17 @@ export const useInvokeAction = (params?: { source?: string }) => {
     return steps.map((step) => (step.name === updatedStep.name ? updatedStep : step));
   };
 
+  // Update toolCalls on a step by parsing tool_use XML in the current chunk content
+  const updateToolCallsFromXml = (
+    updatedStep: ActionStep,
+    step: ActionStepMeta | undefined,
+    content: string,
+  ): void => {
+    const parsed = parseToolCallFromChunk(content, step?.name);
+    if (!parsed) return;
+    updatedStep.toolCalls = mergeToolCallById(updatedStep.toolCalls, parsed);
+  };
+
   const onSkillStreamArtifact = (_resultId: string, artifact: Artifact, content: string) => {
     // Handle code artifact content if this is a code artifact stream
     if (artifact && artifact.type === 'codeArtifact') {
@@ -173,6 +190,28 @@ export const useInvokeAction = (params?: { source?: string }) => {
     }
   };
 
+  // utils: get latest steps either from cache or store
+  const getLatestSteps = (resultId: string): ActionStep[] => {
+    const cached = latestStepsRef.current.get(resultId);
+    if (cached && cached.length > 0) return cached;
+
+    const storeSteps = useActionResultStore.getState().resultMap[resultId]?.steps ?? [];
+    return storeSteps;
+  };
+
+  // utils: set latest steps cache
+  const setLatestSteps = (resultId: string, steps: ActionStep[]) => {
+    latestStepsRef.current.set(resultId, steps);
+  };
+
+  const clearLatestSteps = (resultId?: string) => {
+    if (!resultId) {
+      latestStepsRef.current.clear();
+    } else {
+      latestStepsRef.current.delete(resultId);
+    }
+  };
+
   const onSkillStream = (skillEvent: SkillEvent) => {
     const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
     const { resultMap } = useActionResultStore.getState();
@@ -181,7 +220,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
     if (!result || !step) {
       return;
     }
-    const updatedStep: ActionStep = findOrCreateStep(result.steps ?? [], step);
+    const updatedStep: ActionStep = getLatestSteps(resultId).find((s) => s.name === step.name);
     updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
     if (!updatedStep.reasoningContent) {
       updatedStep.reasoningContent = reasoningContent ?? '';
@@ -281,6 +320,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   };
 
   const onSkillEnd = (skillEvent: SkillEvent) => {
+    clearLatestSteps(skillEvent.resultId);
     const { resultMap } = useActionResultStore.getState();
     const result = resultMap[skillEvent.resultId];
 
@@ -302,7 +342,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
     };
     onUpdateResult(skillEvent.resultId, payload, skillEvent);
 
-    // Clear current resultId when conversation ends
     if (globalCurrentResultIdRef.current === skillEvent.resultId) {
       globalCurrentResultIdRef.current = '';
     }
@@ -328,7 +367,6 @@ export const useInvokeAction = (params?: { source?: string }) => {
             },
           );
         } else {
-          // For other artifact types, just update status
           setNodeDataByEntity(
             {
               type: artifact.type,
@@ -348,6 +386,7 @@ export const useInvokeAction = (params?: { source?: string }) => {
   };
 
   const onSkillError = (skillEvent: SkillEvent) => {
+    clearLatestSteps(skillEvent.resultId);
     const runtime = getRuntime();
     const { originError, resultId } = skillEvent;
 
@@ -391,6 +430,45 @@ export const useInvokeAction = (params?: { source?: string }) => {
         return;
       }
     }
+  };
+
+  const onToolCallStart = (skillEvent: SkillEvent) => {
+    onToolCallStream(skillEvent);
+  };
+
+  // process tool call stream event
+  const onToolCallStream = (skillEvent: SkillEvent) => {
+    const { resultId, content = '', reasoningContent = '', step, artifact } = skillEvent;
+    if (!resultId || !step) return;
+
+    // get latest steps either from cache or store
+    const currentSteps = getLatestSteps(resultId);
+
+    const existingStep = currentSteps.find((s) => s.name === step.name);
+    const updatedStep: ActionStep = existingStep
+      ? { ...existingStep }
+      : {
+          ...step,
+          content: '',
+          reasoningContent: '',
+          artifacts: [],
+          structuredData: {},
+        };
+
+    // merge text
+    updatedStep.content = (updatedStep.content ?? '') + (content ?? '');
+    updatedStep.reasoningContent = (updatedStep.reasoningContent ?? '') + (reasoningContent ?? '');
+
+    // merge tool calls status
+    updateToolCallsFromXml(updatedStep, step, content);
+
+    // update based on latest steps
+    const mergedSteps = getUpdatedSteps(currentSteps, updatedStep);
+    setLatestSteps(resultId, mergedSteps);
+    if (artifact) {
+      onSkillStreamArtifact(resultId, artifact, updatedStep.content ?? '');
+    }
+    onUpdateResult(resultId, { steps: mergedSteps }, skillEvent);
   };
 
   const onCompleted = () => {};
@@ -525,6 +603,8 @@ export const useInvokeAction = (params?: { source?: string }) => {
         onStart: wrapEventHandler(onStart),
         onSkillStart: wrapEventHandler(onSkillStart),
         onSkillStream: wrapEventHandler(onSkillStream),
+        onToolCallStart: wrapEventHandler(onToolCallStart),
+        onToolCallStream: wrapEventHandler(onToolCallStream),
         onSkillLog: wrapEventHandler(onSkillLog),
         onSkillArtifact: wrapEventHandler(onSkillArtifact),
         onSkillStructedData: wrapEventHandler(onSkillStructedData),

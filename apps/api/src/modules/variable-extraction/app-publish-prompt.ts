@@ -1,4 +1,9 @@
-import { WorkflowVariable, CanvasContext, HistoricalData } from './variable-extraction.dto';
+import {
+  WorkflowVariable,
+  CanvasContext,
+  HistoricalData,
+  CanvasContentItem,
+} from './variable-extraction.dto';
 
 // Import examples for reference and testing
 import { APP_PUBLISH_EXAMPLES } from './examples';
@@ -13,10 +18,16 @@ interface CanvasNode {
     content?: string;
   };
   content?: string;
+  input?: {
+    originalQuery?: string;
+    query?: string;
+    [key: string]: any;
+  };
 }
 
 interface CanvasDataInput {
   nodes: CanvasNode[];
+  contentItems: CanvasContentItem[];
   variables: WorkflowVariable[];
   title?: string;
   description?: string;
@@ -32,8 +43,12 @@ export function buildAppPublishPrompt(
   canvasContext: CanvasContext,
   historicalData?: HistoricalData,
 ): string {
-  const nodesText = buildNodesText(canvasData.nodes);
-  const variablesText = buildVariablesText(canvasData.variables);
+  const nodesText = buildNodesText(canvasData.contentItems);
+
+  // Filter variables to only include those actually used in canvas nodes
+  const usedVariables = filterUsedVariables(canvasData.variables, canvasData.contentItems);
+  const variablesText = buildVariablesText(usedVariables);
+
   const canvasContextText = buildCanvasContextText(canvasContext);
   const historicalContext = historicalData ? buildHistoricalContext(historicalData) : '';
 
@@ -66,32 +81,45 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 
 ## Template Generation Guidelines
 
-### 1. Natural Language Conversion
+### 1. Language Consistency (CRITICAL)
+- **MUST maintain the same language as used in Canvas Nodes and Prompts**
+- If Canvas Nodes contain Chinese text, generate templates in Chinese
+- If Canvas Nodes contain English text, generate templates in English
+- If Canvas Nodes contain mixed languages, follow the primary language pattern
+- **Language Detection**: Analyze the Canvas Nodes content to determine the user's preferred language
+- **Consistency Requirement**: All template fields (title, description, content) must use the same language as the Canvas Nodes
+
+### 2. Natural Language Conversion
 - Convert technical workflow descriptions into user-friendly language
 - Use clear, actionable language that explains what the workflow does
 - Focus on user benefits and outcomes
+- **Maintain language consistency with Canvas Nodes**
 
-### 2. Variable Integration
+### 3. Variable Integration
+- **CRITICAL**: Only include variables that are actually used in Canvas Nodes and Prompts
 - Replace specific values with {{variable_name}} placeholders
-- Ensure all variables are properly represented
+- Ensure all variables are properly represented in the template
 - Maintain semantic meaning while making it parameterizable
+- **Variable Usage Validation**: Only variables that appear in {{variable_name}} format within the Canvas Nodes should be included in the template
 
-### 3. Template Structure
+### 4. Template Structure
 - Start with a clear description of what the workflow accomplishes
 - Explain what inputs are needed (variables)
 - Describe the expected output or result
 - Use conversational, helpful tone
+- **Maintain language consistency with Canvas Nodes**
 
-### 4. Variable Type Handling
+### 5. Variable Type Handling
 - **string**: Use descriptive placeholders like "{{topic}}" or "{{style}}"
 - **resource**: Use file-related placeholders like "{{upload_file}}" or "{{document}}"
 - **option**: Use selection-related placeholders like "{{format}}" or "{{mode}}"
 
-### 5. Quality Standards
+### 6. Quality Standards
 - Templates should be self-explanatory
 - Variables should have clear, descriptive names
 - Maintain workflow functionality while improving usability
 - Ensure consistency with existing variable names
+- **Language consistency is mandatory - all output must match Canvas Nodes language**
 
 ## Output Format Requirements
 
@@ -135,21 +163,25 @@ ${historicalContext ? `### Historical Learning Context\n${historicalContext}` : 
 \`\`\`
 
 ## Key Principles
-1. **Clarity**: Users should immediately understand what the workflow does
-2. **Simplicity**: Avoid technical jargon, use everyday language
-3. **Completeness**: Include all necessary variables and context
-4. **Actionability**: Users should know exactly what to provide and expect
-5. **Professionalism**: Maintain a helpful, trustworthy tone
+1. **Language Consistency**: **CRITICAL** - All template fields must use the same language as Canvas Nodes
+2. **Clarity**: Users should immediately understand what the workflow does
+3. **Simplicity**: Avoid technical jargon, use everyday language
+4. **Completeness**: Include all necessary variables and context
+5. **Actionability**: Users should know exactly what to provide and expect
+6. **Professionalism**: Maintain a helpful, trustworthy tone
+7. **Variable Usage Validation**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
 
 ## Critical Focus: Workflow Publishing Template String
 
 The **"content"** field in the template object is the most important output - this is the **workflow publishing template string** that will be used by users. It must:
 
+- **Language Consistency**: **CRITICAL** - Must use the same language as Canvas Nodes
 - **Be Natural and Conversational**: Sound like a helpful assistant explaining what they'll do
-- **Include All Variables**: Every extracted variable must be represented with {{variable_name}} placeholders
+- **Include Only Used Variables**: Only variables that are actually referenced in Canvas Nodes with {{variable_name}} format should be included
 - **Maintain Original Intent**: Preserve the user's original goal and requirements
 - **Be Self-Contained**: Users should understand the complete workflow from this single template
 - **Use Proper Variable Format**: All placeholders must use {{variable_name}} format exactly
+- **Variable Usage Validation**: If Canvas Nodes don't contain any {{variable_name}} references, the template should not include any variable placeholders
 
 ### Template String Examples:
 
@@ -160,6 +192,9 @@ The **"content"** field in the template object is the most important output - th
 **Before (Technical)**: "Generate travel itinerary based on destination, dates, and preferences"
 
 **After (User-friendly)**: "I'll create a personalized travel plan for your trip to {{destination}} from {{departure_city}} during {{dates}}. I'll arrange {{accommodation}} accommodations and {{food}} dining options, maintaining a {{pace}} pace with {{daily_routes}} for your {{goal}}."
+
+**Example with No Variables Used**: If Canvas Nodes contain no {{variable_name}} references, the template should be:
+"I'll help you create a comprehensive travel itinerary based on your preferences and requirements. I'll analyze your destination, dates, and specific needs to provide a detailed plan with accommodations, dining options, and daily activities."
 
 ${APP_PUBLISH_EXAMPLES}
 
@@ -172,10 +207,12 @@ ${APP_PUBLISH_EXAMPLES}
    - End with clear expectations of what will be delivered
 
 2. **Variable Integration**:
+   - **CRITICAL**: Only include variables that are actually referenced in Canvas Nodes with {{variable_name}} format
    - Replace specific values with descriptive placeholders
    - Maintain the original semantic meaning
-   - Ensure all extracted variables are represented
+   - Ensure all used variables are represented
    - Use consistent naming conventions
+   - **No Variables Case**: If no variables are used in Canvas Nodes, create a template without any {{variable_name}} placeholders
 
 3. **User Experience Focus**:
    - Templates should be immediately understandable
@@ -185,35 +222,103 @@ ${APP_PUBLISH_EXAMPLES}
 
 4. **Quality Assurance**:
    - Every template string must be complete and self-contained
-   - All variables must be properly integrated
+   - Only variables that are actually used in Canvas Nodes should be included
    - Templates should maintain the original workflow intent
-   - Language should be professional yet approachable`;
+   - Language should be professional yet approachable
+   - **Language Consistency**: **CRITICAL** - All template fields must match the language used in Canvas Nodes
+   - **Variable Usage Validation**: Verify that all {{variable_name}} placeholders in the template correspond to variables actually referenced in Canvas Nodes`;
+}
+
+/**
+ * Extract variable references from originalQuery string
+ * Handles patterns like @{type=var,id=var-xxx,name=xxx}
+ */
+function extractVariableReferences(originalQuery: string): string[] {
+  if (!originalQuery || typeof originalQuery !== 'string') {
+    return [];
+  }
+
+  // Match pattern: @{type=var,id=var-xxx,name=xxx} or @{type=resource,id=r-xxx,name=xxx}
+  const variablePattern = /@\{type=(?:var|resource),id=([^,]+),name=([^}]+)\}/g;
+  const matches: string[] = [];
+  let match: RegExpExecArray | null;
+
+  match = variablePattern.exec(originalQuery);
+  while (match !== null) {
+    const variableName = match[2]; // Extract the name part
+    if (variableName && !matches.includes(variableName)) {
+      matches.push(variableName);
+    }
+    match = variablePattern.exec(originalQuery);
+  }
+
+  return matches;
 }
 
 /**
  * Build nodes text - format canvas nodes into readable description
  */
-function buildNodesText(nodes: CanvasNode[]): string {
-  if (!nodes?.length) {
+function buildNodesText(contentItems: CanvasContentItem[]): string {
+  if (!contentItems?.length) {
     return '- No workflow nodes found';
   }
 
-  return nodes
+  return contentItems
     .map((node, index) => {
       const nodeType = node.type || 'unknown';
-      const nodeTitle = node.data?.title || node.title || `Node ${index + 1}`;
-      const nodeContent = node.data?.content || node.content || '';
+      const nodeTitle = node?.title || node.title || `Node ${index + 1}`;
 
-      let description = `- ${nodeTitle} (${nodeType})`;
-      if (nodeContent && typeof nodeContent === 'string' && nodeContent.length > 0) {
-        const truncatedContent =
-          nodeContent.length > 100 ? `${nodeContent.substring(0, 100)}...` : nodeContent;
-        description += `\n  Content: ${truncatedContent}`;
-      }
+      const description = `- ${nodeTitle} (${nodeType})`;
 
       return description;
     })
     .join('\n');
+}
+
+/**
+ * Filter variables to only include those actually used in canvas nodes
+ */
+function filterUsedVariables(
+  variables: WorkflowVariable[],
+  contentItems: CanvasContentItem[],
+): WorkflowVariable[] {
+  if (!variables?.length || !contentItems?.length) {
+    return variables || [];
+  }
+
+  // Extract all variable references from all nodes' originalQuery fields
+  const usedVariableNames = new Set<string>();
+
+  for (const node of contentItems) {
+    const originalQuery = node.input?.originalQuery || '';
+    if (originalQuery) {
+      const variableRefs = extractVariableReferences(originalQuery);
+      for (const name of variableRefs) {
+        usedVariableNames.add(name);
+      }
+    }
+  }
+
+  // Filter variables to only include those that are actually used
+  return variables.filter((variable) => {
+    // Check if variable name is used
+    if (usedVariableNames.has(variable.name)) {
+      return true;
+    }
+
+    // Check if any resource name in variable values is used
+    if (variable.value && Array.isArray(variable.value)) {
+      for (const valueItem of variable.value) {
+        if (valueItem.type === 'resource' && valueItem.resource?.name) {
+          if (usedVariableNames.has(valueItem.resource.name)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  });
 }
 
 /**

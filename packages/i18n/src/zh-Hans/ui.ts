@@ -891,6 +891,7 @@ const translations = {
     publish: '发布',
     publishTemplateTooltip: '将画布发布为模板',
     waitForAgentsToFinish: '请等待所有 Agent 运行结束后再发布',
+    noSkillResponseNodes: '请先在画布中添加 Agent 节点后再发布',
     latestPublishedApp: '最新发布的应用',
     linkShare: '链接分享',
     updateCanvasPermissionSuccess: '更新画布权限成功',
@@ -2946,6 +2947,8 @@ const translations = {
   },
   components: {
     markdown: {
+      parameters: '参数：',
+      result: '结果：',
       copySuccess: '已复制到剪贴板',
       emptyCode: '无法创建空代码组件',
       codeArtifactCreated: '代码组件已创建',

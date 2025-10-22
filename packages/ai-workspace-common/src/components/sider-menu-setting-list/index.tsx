@@ -14,7 +14,6 @@ import {
   InterfaceLight,
   ArrowRight,
   Cuttools,
-  Contact,
   Exit,
   Parse,
   Account,
@@ -195,10 +194,6 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
     setShowSettingModal(true);
   }, [setSettingsModalActiveTab, setShowSettingModal]);
 
-  const handleContactUsClick = useCallback(() => {
-    window.open('https://docs.refly.ai/community/contact-us', '_blank');
-  }, []);
-
   const handleChromeExtensionClick = useCallback(() => {
     window.open(EXTENSION_DOWNLOAD_LINK, '_blank');
   }, []);
@@ -299,15 +294,7 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
       {
         type: 'divider' as const,
       },
-      {
-        key: 'contact-us',
-        label: (
-          <DropdownItem icon={<Contact size={18} />}>
-            {t('loggedHomePage.siderMenu.contactUs')}
-          </DropdownItem>
-        ),
-        onClick: handleContactUsClick,
-      },
+
       {
         key: 'chrome-extension',
         label: (
@@ -334,7 +321,6 @@ export const SiderMenuSettingList = (props: SiderMenuSettingListProps) => {
       handleSettingsClick,
       themeMode,
       themeDropdownItems,
-      handleContactUsClick,
       handleChromeExtensionClick,
       handleLogoutClick,
     ],

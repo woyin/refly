@@ -12,7 +12,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
     isModified = false,
   }) => {
     const [isFocused, setIsFocused] = useState(false);
-    const [inputWidth, setInputWidth] = useState(60);
+    const [inputWidth, setInputWidth] = useState(30);
     const hiddenRef = useRef<HTMLSpanElement>(null);
     const isEmpty = !value || value.trim() === '';
 
@@ -20,14 +20,14 @@ const VariableInput: React.FC<VariableInputProps> = memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         onChange(e.target.value);
         // Trigger width recalculation immediately after value change
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           if (hiddenRef.current) {
             const text = e.target.value || placeholder || '';
             hiddenRef.current.textContent = text;
-            const width = Math.max(hiddenRef.current.offsetWidth + 16, 60);
+            const width = Math.max(hiddenRef.current.offsetWidth + 16, 30);
             setInputWidth(Math.min(width, window.innerWidth * 0.8));
           }
-        }, 0);
+        });
       },
       [onChange, placeholder],
     );
@@ -48,7 +48,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
           if (hiddenRef.current) {
             const text = target.value || placeholder || '';
             hiddenRef.current.textContent = text;
-            const width = Math.max(hiddenRef.current.offsetWidth + 16, 60);
+            const width = Math.max(hiddenRef.current.offsetWidth + 16, 30);
             setInputWidth(Math.min(width, window.innerWidth * 0.8));
           }
         }, 0);
@@ -61,7 +61,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
       if (hiddenRef.current) {
         const text = value || placeholder || '';
         hiddenRef.current.textContent = text;
-        const width = Math.max(hiddenRef.current.offsetWidth + 16, 60); // Add padding
+        const width = Math.max(hiddenRef.current.offsetWidth + 16, 30); // Add padding
         setInputWidth(Math.min(width, window.innerWidth * 0.8)); // Max 80% of viewport
       }
     }, [value, placeholder]);
@@ -110,8 +110,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}
         focus:border-refly-primary-default
         hover:border-refly-primary-hover
-        placeholder:text-refly-text-3
-      `}
+      placeholder:text-[rgba(14,159,119,0.50)]      `}
           style={{
             borderWidth: '0 0 1.5px 0',
             borderStyle: 'dashed',
@@ -122,7 +121,8 @@ const VariableInput: React.FC<VariableInputProps> = memo(
             padding: '4px 8px',
             height: '26px',
             width: `${inputWidth}px`,
-            minWidth: '60px',
+            minWidth: '30px',
+            textAlign: 'center',
             maxWidth: '100%',
             fontFamily: 'PingFang SC',
             fontSize: '16px',

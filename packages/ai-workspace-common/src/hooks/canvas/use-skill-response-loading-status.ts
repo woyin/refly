@@ -1,18 +1,21 @@
 import { useMemo } from 'react';
-import { useReactFlow } from '@xyflow/react';
 import { useActionResultStoreShallow } from '@refly/stores';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 
 export const useSkillResponseLoadingStatus = (_canvasId: string) => {
-  const { getNodes } = useReactFlow();
+  const { nodes } = useRealtimeCanvasData();
 
   // 只订阅 streamResults，避免不必要的重渲染
   const { streamResults } = useActionResultStoreShallow((state) => ({
     streamResults: state.streamResults,
   }));
 
-  const loadingStatus = useMemo(() => {
-    const skillResponseNodes = getNodes().filter((node) => node.type === 'skillResponse');
+  const skillResponseNodes = useMemo(
+    () => nodes.filter((node) => node.type === 'skillResponse'),
+    [nodes],
+  );
 
+  const loadingStatus = useMemo(() => {
     if (skillResponseNodes.length === 0) {
       return {
         isLoading: false,
@@ -42,7 +45,7 @@ export const useSkillResponseLoadingStatus = (_canvasId: string) => {
       loadingCount,
       totalCount: skillResponseNodes.length,
     };
-  }, [getNodes, streamResults]);
+  }, [streamResults, skillResponseNodes]);
 
-  return loadingStatus;
+  return { ...loadingStatus, skillResponseNodes, nodes };
 };

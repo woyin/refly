@@ -1662,6 +1662,10 @@ export type ActionStep = {
    * Token usage
    */
   tokenUsage?: Array<TokenUsageItem>;
+  /**
+   * Tool calls in this step
+   */
+  toolCalls?: Array<ToolCallResult>;
 };
 
 /**
@@ -1794,6 +1798,10 @@ export type ActionResult = {
    * Action toolsets
    */
   toolsets?: Array<GenericToolset>;
+  /**
+   * Tool calls during action execution
+   */
+  toolCalls?: Array<ToolCallResult>;
   /**
    * Media generation output URL (for media type actions)
    */
@@ -3109,6 +3117,8 @@ export type SkillEventType =
   | 'structured_data'
   | 'token_usage'
   | 'create_node'
+  | 'tool_call_start'
+  | 'tool_call_stream'
   | 'error';
 
 export type SkillEvent = {
@@ -3170,7 +3180,75 @@ export type SkillEvent = {
    * Original error message. Only present when `event` is `error`.
    */
   originError?: string;
+  /**
+   * Tool call result data.
+   */
+  toolCallResult?: ToolCallResult;
 };
+
+export type ToolCallResult = {
+  /**
+   * Tool call ID (run_id from LangChain)
+   */
+  callId: string;
+  /**
+   * User ID
+   */
+  uid?: string;
+  /**
+   * Toolset ID (toolsetKey)
+   */
+  toolsetId?: string;
+  /**
+   * Tool name
+   */
+  toolName?: string;
+  /**
+   * Step name (the action step in which this tool was called)
+   */
+  stepName?: string;
+  /**
+   * Tool input arguments
+   */
+  input?:
+    | {
+        [key: string]: unknown;
+      }
+    | string;
+  /**
+   * Tool output result
+   */
+  output?:
+    | {
+        [key: string]: unknown;
+      }
+    | string;
+  /**
+   * Error message if tool execution failed
+   */
+  error?: string;
+  /**
+   * Tool call status
+   */
+  status: 'executing' | 'completed' | 'failed';
+  /**
+   * Tool call start timestamp (milliseconds)
+   */
+  createdAt: number;
+  /**
+   * Tool call last update timestamp (milliseconds)
+   */
+  updatedAt: number;
+  /**
+   * Tool call deletion timestamp (milliseconds)
+   */
+  deletedAt?: number;
+};
+
+/**
+ * Tool call status
+ */
+export type status2 = 'executing' | 'completed' | 'failed';
 
 export type ShareRecord = {
   /**
@@ -5345,7 +5423,7 @@ export type ProviderTestResult = {
 /**
  * Test result status
  */
-export type status2 = 'success' | 'failed' | 'unknown';
+export type status3 = 'success' | 'failed' | 'unknown';
 
 export type TestProviderConnectionResponse = BaseResponse & {
   data?: ProviderTestResult;
