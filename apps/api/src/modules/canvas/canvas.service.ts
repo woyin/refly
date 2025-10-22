@@ -808,7 +808,9 @@ export class CanvasService {
         context: true,
         history: true,
       },
-      where: { targetId: canvasId, targetType: 'canvas' },
+      orderBy: { version: 'desc' },
+      where: { targetId: canvasId, targetType: 'canvas', type: 'skill' },
+      take: 1,
     });
 
     // Collect content items for title generation

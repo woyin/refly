@@ -238,8 +238,8 @@ function extractVariableReferences(originalQuery: string): string[] {
     return [];
   }
 
-  // Match pattern: @{type=var,id=var-xxx,name=xxx}
-  const variablePattern = /@\{type=var,id=([^,]+),name=([^}]+)\}/g;
+  // Match pattern: @{type=var,id=var-xxx,name=xxx} or @{type=resource,id=r-xxx,name=xxx}
+  const variablePattern = /@\{type=(?:var|resource),id=([^,]+),name=([^}]+)\}/g;
   const matches: string[] = [];
   let match: RegExpExecArray | null;
 
@@ -267,22 +267,8 @@ function buildNodesText(contentItems: CanvasContentItem[]): string {
     .map((node, index) => {
       const nodeType = node.type || 'unknown';
       const nodeTitle = node?.title || node.title || `Node ${index + 1}`;
-      const nodeContent = node?.content || node.content || '';
-      const originalQuery = node.input?.originalQuery || '';
 
-      let description = `- ${nodeTitle} (${nodeType})`;
-      if (nodeContent && typeof nodeContent === 'string' && nodeContent.length > 0) {
-        const truncatedContent =
-          nodeContent.length > 100 ? `${nodeContent.substring(0, 100)}...` : nodeContent;
-        description += `\n  Content: ${truncatedContent}`;
-      }
-
-      // Add originalQuery information if available
-      if (originalQuery && typeof originalQuery === 'string' && originalQuery.length > 0) {
-        const truncatedQuery =
-          originalQuery.length > 100 ? `${originalQuery.substring(0, 100)}...` : originalQuery;
-        description += `\n  Original Query: ${truncatedQuery}`;
-      }
+      const description = `- ${nodeTitle} (${nodeType})`;
 
       return description;
     })
@@ -314,7 +300,25 @@ function filterUsedVariables(
   }
 
   // Filter variables to only include those that are actually used
-  return variables.filter((variable) => usedVariableNames.has(variable.name));
+  return variables.filter((variable) => {
+    // Check if variable name is used
+    if (usedVariableNames.has(variable.name)) {
+      return true;
+    }
+
+    // Check if any resource name in variable values is used
+    if (variable.value && Array.isArray(variable.value)) {
+      for (const valueItem of variable.value) {
+        if (valueItem.type === 'resource' && valueItem.resource?.name) {
+          if (usedVariableNames.has(valueItem.resource.name)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  });
 }
 
 /**
