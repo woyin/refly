@@ -110,8 +110,7 @@ const VariableInput: React.FC<VariableInputProps> = memo(
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text'}
         focus:border-refly-primary-default
         hover:border-refly-primary-hover
-        placeholder:text-refly-text-3
-      `}
+      placeholder:text-[rgba(14,159,119,0.50)]      `}
           style={{
             borderWidth: '0 0 1.5px 0',
             borderStyle: 'dashed',
