@@ -6,6 +6,7 @@ import { PreviewChatInput } from './skill-response/preview-chat-input';
 import { EditChatInput } from './skill-response/edit-chat-input';
 import { cn } from '@refly/utils/cn';
 import { MediaActionContainer } from './media-action-container';
+import type { GenericToolset } from '@refly/openapi-schema';
 
 type VideoNodeMeta = {
   videoUrl?: string;
@@ -29,6 +30,7 @@ const VideoNodePreviewComponent = ({ node }: VideoNodePreviewProps) => {
   const entityId = node?.data?.entityId ?? '';
   const modelInfo: ModelInfo | undefined = node?.data?.metadata?.modelInfo;
   const [editMode, setEditMode] = useState(false);
+  const [selectedToolsets, setSelectedToolsets] = useState<GenericToolset[]>([]);
 
   if (!videoUrl) {
     return (
@@ -64,6 +66,8 @@ const VideoNodePreviewComponent = ({ node }: VideoNodePreviewProps) => {
             }
           }
           setEditMode={setEditMode}
+          selectedToolsets={selectedToolsets}
+          setSelectedToolsets={setSelectedToolsets}
         />
         <PreviewChatInput
           enabled={!editMode}
