@@ -10,9 +10,10 @@ const colors = {
 } as const;
 
 /**
- * Footer section component following Figma design specifications
- * - Width: 1072px
- * - Padding: 24px 0px 80px
+ * Footer section component with responsive design
+ * - Desktop: 1072px max-width with horizontal layout
+ * - Tablet: Responsive padding and spacing
+ * - Mobile: Stacked layout with optimized spacing
  * - Logo with navigation links
  * - Copyright and legal links
  * - Social media icons
@@ -22,23 +23,28 @@ const FooterSection: React.FC = () => {
 
   return (
     <div
-      className="w-full max-w-[1072px] mx-auto px-4"
+      className="w-full max-w-[1072px] mx-auto px-4 sm:px-6 lg:px-8"
       style={{
         padding: '24px 0px 80px',
       }}
     >
       {/* Top section with logo and navigation */}
       <div
-        className="flex justify-between items-center pb-6"
+        className="flex flex-col sm:flex-row sm:justify-between sm:items-center pb-6 gap-4 sm:gap-0"
         style={{
           borderBottom: `1px solid ${colors['refly-line']}`,
         }}
       >
         {/* Logo block */}
-        <Logo />
+        <div className="flex justify-center sm:justify-start">
+          <Logo />
+        </div>
 
         {/* Navigation links */}
-        <div className="flex items-center gap-6" style={{ gap: '24px' }}>
+        <div
+          className="flex flex-wrap justify-center sm:justify-end items-center gap-3 sm:gap-6"
+          style={{ gap: '24px' }}
+        >
           <a
             href="/"
             className="text-sm font-semibold hover:opacity-70 transition-opacity"
@@ -53,7 +59,7 @@ const FooterSection: React.FC = () => {
             {t('landingPage.footer.navigation.homepage')}
           </a>
           <div
-            className="w-px"
+            className="w-px hidden sm:block"
             style={{
               height: '12px',
               backgroundColor: colors['refly-line'],
@@ -75,7 +81,7 @@ const FooterSection: React.FC = () => {
             {t('landingPage.footer.navigation.docs')}
           </a>
           <div
-            className="w-px"
+            className="w-px hidden sm:block"
             style={{
               height: '12px',
               backgroundColor: colors['refly-line'],
@@ -97,7 +103,7 @@ const FooterSection: React.FC = () => {
             {t('landingPage.footer.navigation.guides')}
           </a>
           <div
-            className="w-px"
+            className="w-px hidden sm:block"
             style={{
               height: '12px',
               backgroundColor: colors['refly-line'],
@@ -122,11 +128,14 @@ const FooterSection: React.FC = () => {
       </div>
 
       {/* Bottom section with copyright and links */}
-      <div className="flex justify-between items-center mt-5">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-5 gap-4 sm:gap-0">
         {/* Left side - Copyright and legal links */}
-        <div className="flex items-center" style={{ gap: '12px' }}>
+        <div
+          className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 sm:gap-3"
+          style={{ gap: '12px' }}
+        >
           <span
-            className="text-sm"
+            className="text-sm text-center sm:text-left"
             style={{
               fontFamily: 'PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif',
               fontSize: '14px',
@@ -137,40 +146,42 @@ const FooterSection: React.FC = () => {
           >
             {t('landingPage.footer.copyright')}
           </span>
-          <a
-            href="https://docs.refly.ai/about/privacy-policy"
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm hover:opacity-70 transition-opacity underline cursor-pointer"
-            style={{
-              fontFamily: 'PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif',
-              fontSize: '14px',
-              fontWeight: 400,
-              lineHeight: '1.4285714285714286em',
-              color: colors['refly-text-2'],
-            }}
-          >
-            {t('landingPage.footer.about.privacy')}
-          </a>
-          <a
-            href="https://docs.refly.ai/about/terms-of-service"
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm hover:opacity-70 transition-opacity underline cursor-pointer"
-            style={{
-              fontFamily: 'PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif',
-              fontSize: '14px',
-              fontWeight: 400,
-              lineHeight: '1.4285714285714286em',
-              color: colors['refly-text-2'],
-            }}
-          >
-            {t('landingPage.footer.about.terms')}
-          </a>
+          <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">
+            <a
+              href="https://docs.refly.ai/about/privacy-policy"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm hover:opacity-70 transition-opacity underline cursor-pointer"
+              style={{
+                fontFamily: 'PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontSize: '14px',
+                fontWeight: 400,
+                lineHeight: '1.4285714285714286em',
+                color: colors['refly-text-2'],
+              }}
+            >
+              {t('landingPage.footer.about.privacy')}
+            </a>
+            <a
+              href="https://docs.refly.ai/about/terms-of-service"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm hover:opacity-70 transition-opacity underline cursor-pointer"
+              style={{
+                fontFamily: 'PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif',
+                fontSize: '14px',
+                fontWeight: 400,
+                lineHeight: '1.4285714285714286em',
+                color: colors['refly-text-2'],
+              }}
+            >
+              {t('landingPage.footer.about.terms')}
+            </a>
+          </div>
         </div>
 
         {/* Right side - Social media icons */}
-        <div className="flex items-center" style={{ gap: '16px' }}>
+        <div className="flex items-center justify-center sm:justify-end" style={{ gap: '16px' }}>
           {/* Twitter/X icon */}
           <a
             href="https://twitter.com/refly_ai"

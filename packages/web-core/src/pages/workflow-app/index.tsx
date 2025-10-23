@@ -18,6 +18,7 @@ import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-log
 import { logEvent } from '@refly/telemetry-web';
 import { Helmet } from 'react-helmet';
 import FooterSection from '@refly-packages/ai-workspace-common/components/workflow-app/FooterSection';
+import WhyChooseRefly from './WhyChooseRefly';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -265,7 +266,7 @@ const WorkflowAppPage: React.FC = () => {
           </div>
 
           {/* Main Content - flex-1 to take remaining space */}
-          <div className="flex-1 mb-[100px]">
+          <div className="flex-1">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
               {isLoading ? (
                 <LoadingContent />
@@ -326,6 +327,9 @@ const WorkflowAppPage: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Why Choose Refly Section */}
+          <WhyChooseRefly />
 
           {/* Footer Section - always at bottom */}
           <FooterSection />
