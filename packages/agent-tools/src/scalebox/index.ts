@@ -100,8 +100,6 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
   configItems: [],
 };
 
-type Language = 'python' | 'javascript' | 'typescript' | 'r' | 'java' | 'bash' | 'node' | 'deno';
-
 interface ScaleboxToolParams {
   apiKey: string;
 }
@@ -112,13 +110,6 @@ function ensureApiKey(apiKey: string): void {
     process.env.SCALEBOX_API_KEY = apiKey ?? '';
   }
 }
-
-const normalizeLanguage = (
-  lang: Language,
-): 'python' | 'r' | 'node' | 'typescript' | 'java' | 'bash' => {
-  if (lang === 'javascript' || lang === 'node' || lang === 'deno') return 'node';
-  return lang as 'python' | 'r' | 'typescript' | 'java' | 'bash';
-};
 
 /**
  * create
@@ -713,7 +704,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
         apiKey: this.params?.apiKey ?? '',
       });
       const res = await (sbx as any).runCode(input?.code ?? '', {
-        language: normalizeLanguage(input?.language ?? 'python'),
+        language: input?.language ?? 'python',
       });
       const stdout = res?.logs?.stdout ?? '';
       const stderr = res?.logs?.stderr ?? '';
@@ -765,7 +756,7 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
       const CI: any = CodeInterpreter as any;
       const interpreter = new CI(sbx as any, (sbx as any)?.config ?? {}, undefined);
       const res = await interpreter?.runCode?.(input?.code ?? '', {
-        language: normalizeLanguage((input?.language ?? 'python') as any) as any,
+        language: input?.language ?? 'python',
         cwd: input?.cwd ?? undefined,
       } as any);
       const stdout = res?.logs?.stdout ?? '';
