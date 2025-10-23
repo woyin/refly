@@ -100,6 +100,8 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
   configItems: [],
 };
 
+type Language = 'python' | 'javascript' | 'typescript' | 'r' | 'java' | 'bash' | 'node' | 'deno';
+
 interface ScaleboxToolParams {
   apiKey: string;
 }
@@ -112,11 +114,10 @@ function ensureApiKey(apiKey: string): void {
 }
 
 const normalizeLanguage = (
-  lang: 'python' | 'r' | 'nodejs' | 'typescript' | 'ijava' | 'java' | 'bash',
+  lang: Language,
 ): 'python' | 'r' | 'node' | 'typescript' | 'java' | 'bash' => {
-  if (lang === 'nodejs') return 'node';
-  if (lang === 'ijava') return 'java';
-  return lang as unknown as 'python' | 'r' | 'node' | 'typescript' | 'java' | 'bash';
+  if (lang === 'javascript' || lang === 'node' || lang === 'deno') return 'node';
+  return lang as 'python' | 'r' | 'typescript' | 'java' | 'bash';
 };
 
 /**
@@ -693,7 +694,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
     sandboxId: z.string(),
     code: z.string(),
     language: z
-      .enum(['python', 'r', 'nodejs', 'typescript', 'ijava', 'java', 'bash'])
+      .enum(['python', 'javascript', 'typescript', 'r', 'java', 'bash', 'node', 'deno'])
       .describe('Execution language'),
   });
 
@@ -742,7 +743,7 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
     sandboxId: z.string(),
     code: z.string(),
     language: z
-      .enum(['python', 'r', 'nodejs', 'typescript', 'ijava', 'java', 'bash'])
+      .enum(['python', 'javascript', 'typescript', 'r', 'java', 'bash', 'node', 'deno'])
       .describe('Execution language'),
     cwd: z.string().optional(),
   });

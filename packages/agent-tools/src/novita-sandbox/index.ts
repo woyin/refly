@@ -6,14 +6,52 @@ import {
   type ToolCallResult,
 } from '../base';
 import { ToolsetDefinition } from '@refly/openapi-schema';
-import { Sandbox } from 'novita-sandbox';
+
+/**
+ * Lazy loader for ESM-only 'novita-sandbox' in a CJS environment.
+ * Tries main entry then potential subpath exports and caches the resolved API.
+ */
+type SandboxStaticAPI = {
+  create: (opts: { timeoutMs: number }) => Promise<any>;
+  connect: (sandboxId: string) => Promise<any>;
+  list: (opts: { query?: Record<string, unknown> }) => {
+    hasNext: boolean;
+    nextItems: () => Promise<any[]>;
+  };
+};
+
+let cachedSandboxApi: SandboxStaticAPI | null = null;
+
+async function loadSandbox(): Promise<SandboxStaticAPI> {
+  if (cachedSandboxApi) return cachedSandboxApi;
+  let mod: any = null;
+  try {
+    // Prefer code-interpreter subpath to ensure instance has runCode capability
+    const subModuleSpecifier = 'novita-sandbox/code-interpreter';
+    mod = await import(subModuleSpecifier);
+  } catch {}
+  if (!mod) {
+    try {
+      mod = await import('novita-sandbox');
+    } catch {}
+  }
+  if (!mod) {
+    throw new Error('Failed to load novita-sandbox module');
+  }
+  const candidate = mod?.Sandbox ?? mod?.default?.Sandbox ?? mod?.default ?? mod;
+  if (!candidate?.create || !candidate?.connect || !candidate?.list) {
+    throw new Error('Invalid novita-sandbox API shape');
+  }
+  cachedSandboxApi = candidate as SandboxStaticAPI;
+  return cachedSandboxApi;
+}
 
 /**
  * Toolset definition for Novita Sandbox (code-interpreter).
  * Provides sandbox lifecycle, file I/O, command execution, code execution, and listing.
  */
 export const NovitaSandboxToolsetDefinition: ToolsetDefinition = {
-  key: 'novita',
+  key: 'novita_sandbox',
   domain: 'https://novita.ai/',
   labelDict: {
     en: 'Novita Sandbox',
@@ -26,6 +64,11 @@ export const NovitaSandboxToolsetDefinition: ToolsetDefinition = {
   tools: [
     { name: 'create', descriptionDict: { en: 'Create a sandbox', 'zh-CN': '创建沙箱' } },
     { name: 'connect', descriptionDict: { en: 'Connect to a sandbox', 'zh-CN': '连接沙箱' } },
+    {
+      name: 'createCodeContext',
+      descriptionDict: { en: 'Create a code context', 'zh-CN': '创建代码上下文' },
+    },
+    { name: 'runCode', descriptionDict: { en: 'Run code', 'zh-CN': '运行代码' } },
     { name: 'isRunning', descriptionDict: { en: 'Check running state', 'zh-CN': '检查运行状态' } },
     { name: 'getInfo', descriptionDict: { en: 'Get sandbox info', 'zh-CN': '获取沙箱信息' } },
     { name: 'setTimeout', descriptionDict: { en: 'Update timeout', 'zh-CN': '更新超时时间' } },
@@ -94,6 +137,7 @@ export class NovitaSandboxCreate extends AgentBaseTool<NovitaSandboxToolParams> 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sandbox = await Sandbox.create({ timeoutMs: input?.timeoutMs ?? 300000 });
       const info = await sandbox?.getInfo?.();
       return {
@@ -134,6 +178,7 @@ export class NovitaSandboxConnect extends AgentBaseTool<NovitaSandboxToolParams>
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       const info = await sbx?.getInfo?.();
       return {
@@ -146,6 +191,123 @@ export class NovitaSandboxConnect extends AgentBaseTool<NovitaSandboxToolParams>
         status: 'error',
         error: 'Failed to connect sandbox',
         summary: error instanceof Error ? error.message : 'Unknown error during sandbox connect',
+      };
+    }
+  }
+}
+
+export class NovitaSandboxRunCode extends AgentBaseTool<NovitaSandboxToolParams> {
+  name = 'runCode';
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
+
+  schema = z.object({
+    sandboxId: z.string(),
+    code: z.string(),
+    language: z
+      .enum(['python', 'ts', 'js', 'r', 'java', 'bash'])
+      .default('python')
+      .describe('Execution language'),
+    envs: z.record(z.string()).optional(),
+    timeoutMs: z.number().optional(),
+    requestTimeoutMs: z.number().optional(),
+    context: z
+      .object({
+        id: z.string().optional(),
+        language: z.string().optional(),
+        cwd: z.string().optional(),
+      })
+      .optional(),
+  });
+
+  description = 'Run code in a specified language using sandbox.runCode';
+  protected params: NovitaSandboxToolParams;
+
+  constructor(params: NovitaSandboxToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
+      const sbx = await Sandbox.connect(input?.sandboxId ?? '');
+      const res = await sbx.runCode(input?.code ?? '', {
+        language: input?.language ?? 'python',
+        envs: input?.envs ?? undefined,
+        timeoutMs: input?.timeoutMs ?? undefined,
+        requestTimeoutMs: input?.requestTimeoutMs ?? undefined,
+        context: input?.context ?? undefined,
+      });
+      return {
+        status: 'success',
+        data: {
+          text: res?.text ?? undefined,
+          results: Array.isArray(res?.results) ? res?.results : [],
+          logs: {
+            stdout: res?.logs?.stdout ?? [],
+            stderr: res?.logs?.stderr ?? [],
+          },
+          error: res?.error ?? undefined,
+        },
+        summary: 'Code executed',
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Failed to run code',
+        summary: error instanceof Error ? error.message : 'Unknown error during runCode',
+      };
+    }
+  }
+}
+
+/**
+ * createCodeContext
+ */
+export class NovitaSandboxCreateCodeContext extends AgentBaseTool<NovitaSandboxToolParams> {
+  name = 'createCodeContext';
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
+
+  schema = z.object({
+    sandboxId: z.string(),
+    cwd: z.string().optional(),
+    language: z.string().optional(),
+    requestTimeoutMs: z.number().optional(),
+  });
+
+  description = 'Create a code execution context within a sandbox';
+  protected params: NovitaSandboxToolParams;
+
+  constructor(params: NovitaSandboxToolParams) {
+    super(params);
+    this.params = params;
+  }
+
+  async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    try {
+      ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
+      const sbx = await Sandbox.connect(input?.sandboxId ?? '');
+      const context = await sbx.createCodeContext({
+        cwd: input?.cwd ?? undefined,
+        language: input?.language ?? undefined,
+        requestTimeoutMs: input?.requestTimeoutMs ?? undefined,
+      });
+      return {
+        status: 'success',
+        data: {
+          id: context?.id ?? undefined,
+          language: context?.language ?? undefined,
+          cwd: context?.cwd ?? undefined,
+        },
+        summary: 'Code context created',
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        error: 'Failed to create code context',
+        summary: error instanceof Error ? error.message : 'Unknown error during createCodeContext',
       };
     }
   }
@@ -171,6 +333,7 @@ export class NovitaSandboxIsRunning extends AgentBaseTool<NovitaSandboxToolParam
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       const info = await sbx?.getInfo?.();
       const state = info?.state ?? '';
@@ -209,6 +372,7 @@ export class NovitaSandboxGetInfo extends AgentBaseTool<NovitaSandboxToolParams>
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       const info = await sbx?.getInfo?.();
       return { status: 'success', data: info ?? {}, summary: 'Sandbox info fetched' };
@@ -242,6 +406,7 @@ export class NovitaSandboxSetTimeout extends AgentBaseTool<NovitaSandboxToolPara
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       await sbx?.setTimeout?.(input?.timeoutMs ?? 0);
       return { status: 'success', data: { ok: true }, summary: 'Timeout updated' };
@@ -275,6 +440,7 @@ export class NovitaSandboxKill extends AgentBaseTool<NovitaSandboxToolParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       await sbx?.kill?.();
       return { status: 'success', data: { killed: true }, summary: 'Sandbox killed' };
@@ -308,6 +474,7 @@ export class NovitaSandboxFilesRead extends AgentBaseTool<NovitaSandboxToolParam
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       const content = await sbx?.files?.read?.(input?.path ?? '');
       return { status: 'success', data: { content: content ?? '' }, summary: 'File read' };
@@ -341,6 +508,7 @@ export class NovitaSandboxFilesWrite extends AgentBaseTool<NovitaSandboxToolPara
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       const res = await sbx?.files?.write?.(input?.path ?? '', input?.content ?? '');
       return { status: 'success', data: res ?? { written: true }, summary: 'File written' };
@@ -380,6 +548,7 @@ export class NovitaSandboxFilesWriteMany extends AgentBaseTool<NovitaSandboxTool
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       // Ensure strict element shape for SDK's WriteEntry[] typing
       const files: Array<{ path: string; data: string }> = Array.isArray(input?.files)
@@ -418,6 +587,7 @@ export class NovitaSandboxCommandsRun extends AgentBaseTool<NovitaSandboxToolPar
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const sbx = await Sandbox.connect(input?.sandboxId ?? '');
       const result = await sbx?.commands?.run?.(input?.command ?? '');
       return {
@@ -463,6 +633,7 @@ export class NovitaSandboxList extends AgentBaseTool<NovitaSandboxToolParams> {
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     try {
       ensureApiKey(this.params?.apiKey ?? '');
+      const Sandbox = await loadSandbox();
       const paginator = Sandbox.list({ query: input?.query ?? undefined });
       const items: any[] = [];
       let pages = 0;
@@ -491,6 +662,8 @@ export class NovitaSandboxToolset extends AgentBaseToolset<NovitaSandboxToolPara
   tools = [
     NovitaSandboxCreate,
     NovitaSandboxConnect,
+    NovitaSandboxCreateCodeContext,
+    NovitaSandboxRunCode,
     NovitaSandboxIsRunning,
     NovitaSandboxGetInfo,
     NovitaSandboxSetTimeout,
