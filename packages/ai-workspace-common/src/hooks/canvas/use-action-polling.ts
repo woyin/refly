@@ -100,7 +100,7 @@ export const useActionPolling = () => {
             return;
           }
         }
-
+        onUpdateResult(resultId, result.data);
         updateLastPollTime(resultId);
       } catch (error) {
         console.error('Polling error:', error);

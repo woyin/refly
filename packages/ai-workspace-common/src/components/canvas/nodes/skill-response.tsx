@@ -46,7 +46,6 @@ import { truncateContent } from '@refly-packages/ai-workspace-common/utils/conte
 import { usePilotStoreShallow } from '@refly/stores';
 import cn from 'classnames';
 import { NodeActionButtons } from './shared/node-action-buttons';
-import { NodeExecutionOverlay } from './shared/node-execution-overlay';
 import { NodeExecutionStatus } from './shared/node-execution-status';
 
 import { MultimodalContentPreview } from '@refly-packages/ai-workspace-common/components/canvas/nodes/shared/multimodal-content-preview';
@@ -809,8 +808,6 @@ export const SkillResponseNode = memo(
             />
           </>
         )}
-
-        <NodeExecutionOverlay status={executionStatus} />
 
         <div
           style={nodeStyle}

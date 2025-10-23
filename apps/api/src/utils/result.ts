@@ -1,9 +1,11 @@
-import { Prisma } from '../generated/client';
 import { ActionLog, Artifact, SkillEvent, TokenUsageItem } from '@refly/openapi-schema';
 import { SkillRunnableMeta } from '@refly/skill-template';
 
 import { aggregateTokenUsage } from '@refly/utils';
-interface StepData {
+import { Prisma } from '../generated/client';
+import { StepService } from '../modules/step/step.service';
+
+export interface StepData {
   name: string;
   content: string;
   reasoningContent: string;
@@ -29,6 +31,12 @@ export class ResultAggregator {
    */
   private aborted = false;
 
+  constructor(
+    private readonly stepService: StepService,
+    private readonly resultId: string,
+    private readonly version: number,
+  ) {}
+
   private getOrInitData(_step: string): StepData {
     let step = _step;
     if (!step) {
@@ -51,6 +59,27 @@ export class ResultAggregator {
       logs: [],
       usageItems: [],
     };
+  }
+
+  private async persistSteps() {
+    try {
+      // Generate Map with step name as key and StepData as value
+      const stepsMap = new Map<string, StepData>();
+      for (const step of Object.values(this.data)) {
+        stepsMap.set(step.name, step);
+      }
+
+      if (stepsMap.size > 0) {
+        // Convert Map to Record for Redis storage
+        const steps: Record<string, StepData> = Object.fromEntries(stepsMap);
+        const cacheKey = this.stepService.buildCacheKey(this.resultId, this.version);
+        // adjust the order of tool calls
+        await this.stepService.setCache(cacheKey, steps);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to persist step snapshot to Redis', error);
+    }
   }
 
   abort() {
@@ -96,12 +125,14 @@ export class ResultAggregator {
         }
     }
     this.data[step.name] = step;
+    void this.persistSteps();
   }
 
   addUsageItem(meta: SkillRunnableMeta, usage: TokenUsageItem) {
     const step = this.getOrInitData(meta.step?.name);
     step.usageItems.push(usage);
     this.data[step.name] = step;
+    void this.persistSteps();
   }
 
   handleStreamContent(meta: SkillRunnableMeta, content: string, reasoningContent?: string) {
@@ -118,15 +149,17 @@ export class ResultAggregator {
     }
 
     this.data[step.name] = step;
+    this.persistSteps();
   }
 
-  getSteps({
+  async getSteps({
     resultId,
     version,
   }: {
     resultId: string;
     version: number;
-  }): Prisma.ActionStepCreateManyInput[] {
+  }): Promise<Prisma.ActionStepCreateManyInput[]> {
+    await this.persistSteps();
     return this.stepNames.map((stepName, order) => {
       const { name, content, structuredData, artifacts, usageItems, logs, reasoningContent } =
         this.data[stepName];
@@ -146,5 +179,9 @@ export class ResultAggregator {
         logs: JSON.stringify(logs),
       };
     });
+  }
+
+  async clearCache() {
+    await this.stepService.clearCache(this.resultId, this.version);
   }
 }

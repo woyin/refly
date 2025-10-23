@@ -4,6 +4,7 @@ import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { SkillService } from './skill.service';
 import { SkillController } from './skill.controller';
 import { CommonModule } from '../common/common.module';
+import { StepModule } from '../step/step.module';
 import { SearchModule } from '../search/search.module';
 import { RAGModule } from '../rag/rag.module';
 import {
@@ -35,6 +36,7 @@ import { ToolCallModule } from '../tool-call/tool-call.module';
 @Module({
   imports: [
     CommonModule,
+    StepModule,
     forwardRef(() => ActionModule),
     LabelModule,
     SearchModule,

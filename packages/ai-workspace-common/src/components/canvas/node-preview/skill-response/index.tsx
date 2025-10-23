@@ -1,5 +1,4 @@
 import { EditChatInput } from '@refly-packages/ai-workspace-common/components/canvas/node-preview/skill-response/edit-chat-input';
-import { IconLoading } from '@refly-packages/ai-workspace-common/components/common/icon';
 import { SourceListModal } from '@refly-packages/ai-workspace-common/components/source-list/source-list-modal';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { actionEmitter } from '@refly-packages/ai-workspace-common/events/action';
@@ -26,7 +25,7 @@ import {
 import { cn } from '@refly/utils/cn';
 import { sortSteps } from '@refly/utils/step';
 import { useReactFlow } from '@xyflow/react';
-import { Button, Divider, Result, Skeleton, Spin } from 'antd';
+import { Button, Divider, Result, Skeleton } from 'antd';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Thinking } from 'refly-icons';
@@ -321,13 +320,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
             />
           </div>
         ) : (
-          <Spin
-            spinning={!isStreaming && result?.status === 'executing'}
-            indicator={<IconLoading className="animate-spin" />}
-            size="large"
-            tip={t('canvas.skillResponse.generating')}
-            wrapperClassName="h-full w-full flex flex-col"
-          >
+          <div className="h-full w-full flex flex-col">
             <div
               className={cn(
                 'h-full overflow-auto preview-container transition-opacity duration-500',
@@ -363,7 +356,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
                 <FailureNotice result={result} handleRetry={handleRetry} />
               )}
             </div>
-          </Spin>
+          </div>
         )}
       </div>
 
