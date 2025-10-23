@@ -76,7 +76,7 @@ AccessOptionItem.displayName = 'AccessOptionItem';
 const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const { syncCanvasData } = useCanvasContext();
+  const { forceSyncState } = useCanvasContext();
   const [createTemplateModalVisible, setCreateTemplateModalVisible] = useState(false);
   const [access, setAccess] = useState<ShareAccess>('off');
   const [updateLoading, setUpdateLoading] = useState(false);
@@ -133,7 +133,7 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
         setUpdateShareLoading(true);
 
         // Make sure the canvas data is synced to the remote
-        await syncCanvasData({ syncRemote: true });
+        await forceSyncState({ syncRemote: true });
 
         const { data, error } = await getClient().createShare({
           body: {
@@ -180,11 +180,11 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
 
   const handlePublishToCommunity = useCallback(async () => {
     // Make sure the canvas data is synced to the remote
-    await syncCanvasData({ syncRemote: true });
+    await forceSyncState({ syncRemote: true });
 
     setCreateTemplateModalVisible(true);
     setOpen(false);
-  }, [syncCanvasData]);
+  }, [forceSyncState]);
 
   const handlePublishSuccess = useCallback(async () => {
     // Refresh workflow apps data after successful publish

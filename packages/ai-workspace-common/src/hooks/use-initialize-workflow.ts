@@ -22,7 +22,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
     setCanvasExecutionId: state.setCanvasExecutionId,
   }));
 
-  const { syncCanvasData } = useCanvasContext();
+  const { forceSyncState } = useCanvasContext();
 
   // Use the polling hook for workflow execution monitoring
   const {
@@ -61,7 +61,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
     async (param: InitializeWorkflowRequest) => {
       try {
         setLoading(true);
-        await syncCanvasData({ syncRemote: true });
+        await forceSyncState({ syncRemote: true });
 
         const { data, error } = await getClient().initializeWorkflow({
           body: param,
@@ -86,14 +86,14 @@ export const useInitializeWorkflow = (canvasId?: string) => {
         setLoading(false);
       }
     },
-    [t, canvasId, setCanvasExecutionId, syncCanvasData],
+    [t, canvasId, setCanvasExecutionId, forceSyncState],
   );
 
   const initializeWorkflowInNewCanvas = useCallback(
     async (canvasId: string) => {
       try {
         setNewModeLoading(true);
-        await syncCanvasData({ syncRemote: true });
+        await forceSyncState({ syncRemote: true });
 
         const newCanvasId = genCanvasID();
 

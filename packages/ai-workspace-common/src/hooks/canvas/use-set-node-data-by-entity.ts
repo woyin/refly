@@ -12,7 +12,7 @@ import { deepmerge } from '@refly/utils';
 
 export const useSetNodeDataByEntity = () => {
   const { getNodes, setNodes } = useReactFlow<CanvasNode<any>>();
-  const { syncCanvasData } = useCanvasContext();
+  const { forceSyncState } = useCanvasContext();
 
   return useCallback(
     (filter: CanvasNodeFilter, nodeData: Partial<CanvasNodeData>) => {
@@ -34,9 +34,9 @@ export const useSetNodeDataByEntity = () => {
           data: n.id === node.id ? deepmerge(n.data, nodeData) : n.data,
         }));
         setNodes(updatedNodes);
-        syncCanvasData();
+        forceSyncState();
       }
     },
-    [setNodes, syncCanvasData],
+    [setNodes, forceSyncState],
   );
 };
