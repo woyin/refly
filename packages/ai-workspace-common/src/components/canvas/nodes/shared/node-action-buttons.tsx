@@ -21,15 +21,15 @@ import {
   AddContext,
 } from 'refly-icons';
 import cn from 'classnames';
-import { useReactFlow, useStore } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
 import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useActionResultStoreShallow, useCanvasStoreShallow } from '@refly/stores';
-import { useShallow } from 'zustand/react/shallow';
 import CommonColorPicker from './color-picker';
 import { logEvent } from '@refly/telemetry-web';
+import { useRealtimeCanvasData } from '@refly-packages/ai-workspace-common/hooks/canvas/use-realtime-canvas-data';
 
 type ActionButtonType = {
   key: string;
@@ -75,12 +75,7 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
       );
     }, [nodeType]);
 
-    const { nodes } = useStore(
-      useShallow((state) => ({
-        nodes: state.nodes,
-        edges: state.edges,
-      })),
-    );
+    const { nodes } = useRealtimeCanvasData();
 
     const selectedNodes = nodes.filter((node) => node.selected) || [];
     const isMultiSelected = selectedNodes.length > 1;
@@ -211,7 +206,6 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
 
       workflowRun.initializeWorkflow({
         canvasId,
-        variables: [],
         startNodes: [nodeId],
       });
     }, [canvasId, nodeId, isRunningWorkflow, workflowRun]);
