@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 
 import { CanvasNodeData, WorkflowNodeExecution } from '@refly/openapi-schema';
 import { Empty, Modal } from 'antd';
@@ -117,7 +116,7 @@ export const WorkflowAppProducts = ({ products }: { products: WorkflowNodeExecut
             </div>
           ))}
 
-          <EndMessage />
+          {/* <EndMessage /> */}
         </>
       )}
 

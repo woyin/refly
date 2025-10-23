@@ -565,7 +565,7 @@ export const WorkflowRunForm = ({
                 <>
                   <Form
                     form={form}
-                    layout="vertical"
+                    layout="horizontal"
                     className="space-y-3 sm:space-y-4"
                     initialValues={variableValues}
                   >
