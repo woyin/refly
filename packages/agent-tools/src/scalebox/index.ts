@@ -14,7 +14,7 @@ import { Sandbox, CodeInterpreter } from '@scalebox/sdk';
  */
 export const ScaleboxToolsetDefinition: ToolsetDefinition = {
   key: 'scalebox',
-  domain: 'https://scalebox.dev',
+  domain: 'https://www.cloudsway.ai/',
   labelDict: {
     en: 'Scalebox',
     'zh-CN': 'Scalebox',
@@ -89,8 +89,8 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
           inputProps: { passwordType: true },
           labelDict: { en: 'API Key', 'zh-CN': 'API 密钥' },
           descriptionDict: {
-            en: 'The API key for Scalebox (SBX_API_KEY)',
-            'zh-CN': 'Scalebox 的 API 密钥（SBX_API_KEY）',
+            en: 'The API key for Scalebox (SCALEBOX_API_KEY)',
+            'zh-CN': 'Scalebox 的 API 密钥（SCALEBOX_API_KEY）',
           },
           required: true,
         },
@@ -102,6 +102,13 @@ export const ScaleboxToolsetDefinition: ToolsetDefinition = {
 
 interface ScaleboxToolParams {
   apiKey: string;
+}
+
+function ensureApiKey(apiKey: string): void {
+  // Set env var expected by SDK; avoids passing credentials in every call
+  if (!process.env.SCALEBOX_API_KEY || process.env.SCALEBOX_API_KEY !== apiKey) {
+    process.env.SCALEBOX_API_KEY = apiKey ?? '';
+  }
 }
 
 const normalizeLanguage = (
@@ -135,6 +142,7 @@ export class ScaleboxCreate extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sandbox = await Sandbox.create(input?.type ?? 'code-interpreter', {
         timeoutMs: input?.timeoutMs ?? 300000,
@@ -181,6 +189,7 @@ export class ScaleboxConnect extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -222,6 +231,7 @@ export class ScaleboxIsRunning extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -260,6 +270,7 @@ export class ScaleboxGetInfo extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -294,6 +305,7 @@ export class ScaleboxSetTimeout extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -330,6 +342,7 @@ export class ScaleboxKill extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -364,6 +377,7 @@ export class ScaleboxFilesRead extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -402,6 +416,7 @@ export class ScaleboxFilesWrite extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -436,6 +451,7 @@ export class ScaleboxFilesList extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -472,6 +488,7 @@ export class ScaleboxFilesMakeDir extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -506,6 +523,7 @@ export class ScaleboxFilesMove extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -540,6 +558,7 @@ export class ScaleboxFilesRemove extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -582,6 +601,7 @@ export class ScaleboxCommandsRun extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -636,6 +656,7 @@ export class ScaleboxPtyExec extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -685,6 +706,7 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -734,6 +756,7 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
@@ -786,6 +809,7 @@ export class ScaleboxList extends AgentBaseTool<ScaleboxToolParams> {
   }
 
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
+    ensureApiKey(this.params?.apiKey ?? '');
     try {
       const paginator = Sandbox.list({ apiKey: this.params.apiKey });
       const items: any[] = [];

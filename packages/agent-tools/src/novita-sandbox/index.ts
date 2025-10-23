@@ -9,15 +9,15 @@ import { ToolsetDefinition } from '@refly/openapi-schema';
 import { Sandbox } from 'novita-sandbox';
 
 /**
- * Toolset definition for PPIO Sandbox (code-interpreter).
+ * Toolset definition for Novita Sandbox (code-interpreter).
  * Provides sandbox lifecycle, file I/O, command execution, code execution, and listing.
  */
-export const PPIOToolsetDefinition: ToolsetDefinition = {
-  key: 'ppio',
-  domain: 'https://ppio.cn',
+export const NovitaSandboxToolsetDefinition: ToolsetDefinition = {
+  key: 'novita',
+  domain: 'https://novita.ai/',
   labelDict: {
-    en: 'PPIO Sandbox',
-    'zh-CN': 'PPIO 沙箱',
+    en: 'Novita Sandbox',
+    'zh-CN': 'Novita 沙箱',
   },
   descriptionDict: {
     en: 'Secure, isolated sandbox for running multi-language code with file and command access.',
@@ -50,8 +50,8 @@ export const PPIOToolsetDefinition: ToolsetDefinition = {
           inputProps: { passwordType: true },
           labelDict: { en: 'API Key', 'zh-CN': 'API 密钥' },
           descriptionDict: {
-            en: 'PPIO API key (NOVITA_API_KEY)',
-            'zh-CN': 'PPIO 的 API 密钥（NOVITA_API_KEY）',
+            en: 'NovitaSandbox API key (NOVITA_API_KEY)',
+            'zh-CN': 'NovitaSandbox 的 API 密钥（NOVITA_API_KEY）',
           },
           required: true,
         },
@@ -61,7 +61,7 @@ export const PPIOToolsetDefinition: ToolsetDefinition = {
   configItems: [],
 };
 
-interface PPIOToolParams {
+interface NovitaSandboxToolParams {
   apiKey: string;
 }
 
@@ -75,18 +75,18 @@ function ensureApiKey(apiKey: string): void {
 /**
  * create
  */
-export class PPIOCreate extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxCreate extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'create';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({
     timeoutMs: z.number().describe('Timeout in milliseconds').default(300000),
   });
 
-  description = 'Create a PPIO sandbox';
-  protected params: PPIOToolParams;
+  description = 'Create a NovitaSandbox sandbox';
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -117,16 +117,16 @@ export class PPIOCreate extends AgentBaseTool<PPIOToolParams> {
 /**
  * connect
  */
-export class PPIOConnect extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxConnect extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'connect';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string().describe('Existing sandbox id to connect') });
 
-  description = 'Connect to an existing PPIO sandbox';
-  protected params: PPIOToolParams;
+  description = 'Connect to an existing NovitaSandbox sandbox';
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -154,16 +154,16 @@ export class PPIOConnect extends AgentBaseTool<PPIOToolParams> {
 /**
  * isRunning (derived from getInfo.state)
  */
-export class PPIOIsRunning extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxIsRunning extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'isRunning';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string().describe('Sandbox id') });
 
   description = 'Check if sandbox is running';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -192,16 +192,16 @@ export class PPIOIsRunning extends AgentBaseTool<PPIOToolParams> {
 /**
  * getInfo
  */
-export class PPIOGetInfo extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxGetInfo extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'getInfo';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string().describe('Sandbox id') });
 
   description = 'Get sandbox information';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -225,16 +225,16 @@ export class PPIOGetInfo extends AgentBaseTool<PPIOToolParams> {
 /**
  * setTimeout
  */
-export class PPIOSetTimeout extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxSetTimeout extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'setTimeout';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string(), timeoutMs: z.number() });
 
   description = 'Set sandbox timeout (ms)';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -258,16 +258,16 @@ export class PPIOSetTimeout extends AgentBaseTool<PPIOToolParams> {
 /**
  * kill
  */
-export class PPIOKill extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxKill extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'kill';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string() });
 
   description = 'Kill a sandbox';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -291,16 +291,16 @@ export class PPIOKill extends AgentBaseTool<PPIOToolParams> {
 /**
  * files.read
  */
-export class PPIOFilesRead extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxFilesRead extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'filesRead';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string(), path: z.string() });
 
   description = 'Read a file from sandbox';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -324,16 +324,16 @@ export class PPIOFilesRead extends AgentBaseTool<PPIOToolParams> {
 /**
  * files.write (single)
  */
-export class PPIOFilesWrite extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxFilesWrite extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'filesWrite';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string(), path: z.string(), content: z.string() });
 
   description = 'Write a single file to sandbox';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -357,9 +357,9 @@ export class PPIOFilesWrite extends AgentBaseTool<PPIOToolParams> {
 /**
  * files.write (multiple)
  */
-export class PPIOFilesWriteMany extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxFilesWriteMany extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'filesWriteMany';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({
     sandboxId: z.string(),
@@ -370,9 +370,9 @@ export class PPIOFilesWriteMany extends AgentBaseTool<PPIOToolParams> {
   });
 
   description = 'Write multiple files to sandbox';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -401,16 +401,16 @@ export class PPIOFilesWriteMany extends AgentBaseTool<PPIOToolParams> {
 /**
  * commands.run
  */
-export class PPIOCommandsRun extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxCommandsRun extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'commandsRun';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({ sandboxId: z.string(), command: z.string().describe('Command to run') });
 
   description = 'Run a shell command synchronously';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -442,9 +442,9 @@ export class PPIOCommandsRun extends AgentBaseTool<PPIOToolParams> {
 /**
  * list sandboxes (with optional query)
  */
-export class PPIOList extends AgentBaseTool<PPIOToolParams> {
+export class NovitaSandboxList extends AgentBaseTool<NovitaSandboxToolParams> {
   name = 'list';
-  toolsetKey = PPIOToolsetDefinition.key;
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
 
   schema = z.object({
     query: z.record(z.any()).optional().describe('Optional query, e.g., { state: ["running"] }'),
@@ -453,9 +453,9 @@ export class PPIOList extends AgentBaseTool<PPIOToolParams> {
   });
 
   description = 'List sandboxes with pagination';
-  protected params: PPIOToolParams;
+  protected params: NovitaSandboxToolParams;
 
-  constructor(params: PPIOToolParams) {
+  constructor(params: NovitaSandboxToolParams) {
     super(params);
     this.params = params;
   }
@@ -486,19 +486,19 @@ export class PPIOList extends AgentBaseTool<PPIOToolParams> {
   }
 }
 
-export class PPIOToolset extends AgentBaseToolset<PPIOToolParams> {
-  toolsetKey = PPIOToolsetDefinition.key;
+export class NovitaSandboxToolset extends AgentBaseToolset<NovitaSandboxToolParams> {
+  toolsetKey = NovitaSandboxToolsetDefinition.key;
   tools = [
-    PPIOCreate,
-    PPIOConnect,
-    PPIOIsRunning,
-    PPIOGetInfo,
-    PPIOSetTimeout,
-    PPIOKill,
-    PPIOFilesRead,
-    PPIOFilesWrite,
-    PPIOFilesWriteMany,
-    PPIOCommandsRun,
-    PPIOList,
-  ] satisfies readonly AgentToolConstructor<PPIOToolParams>[];
+    NovitaSandboxCreate,
+    NovitaSandboxConnect,
+    NovitaSandboxIsRunning,
+    NovitaSandboxGetInfo,
+    NovitaSandboxSetTimeout,
+    NovitaSandboxKill,
+    NovitaSandboxFilesRead,
+    NovitaSandboxFilesWrite,
+    NovitaSandboxFilesWriteMany,
+    NovitaSandboxCommandsRun,
+    NovitaSandboxList,
+  ] satisfies readonly AgentToolConstructor<NovitaSandboxToolParams>[];
 }

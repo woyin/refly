@@ -20,7 +20,7 @@ import { BrowserUseToolset, BrowserUseToolsetDefinition } from './browser-use';
 import { E2BToolset, E2BToolsetDefinition } from './e2b';
 import { ScaleboxToolset, ScaleboxToolsetDefinition } from './scalebox';
 import { ApifyToolset, ApifyToolsetDefinition } from './apify';
-import { PPIOToolset, PPIOToolsetDefinition } from './ppio';
+import { NovitaSandboxToolset, NovitaSandboxToolsetDefinition } from './novita-sandbox';
 
 export type AnyToolsetClass = new (...args: any[]) => AgentBaseToolset<any>;
 
@@ -111,8 +111,8 @@ export const toolsetInventory: Record<
     class: ApifyToolset,
     definition: ApifyToolsetDefinition,
   },
-  [PPIOToolsetDefinition.key]: {
-    class: PPIOToolset,
-    definition: PPIOToolsetDefinition,
+  [NovitaSandboxToolsetDefinition.key]: {
+    class: NovitaSandboxToolset,
+    definition: NovitaSandboxToolsetDefinition,
   },
 };
