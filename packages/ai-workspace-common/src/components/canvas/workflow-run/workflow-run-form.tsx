@@ -537,7 +537,9 @@ export const WorkflowRunForm = ({
     <div className={cn('w-full h-full gap-3 flex flex-col rounded-2xl', className)}>
       {
         <>
-          {templateContent ? (
+          {/* default show Form */}
+          {/* biome-ignore lint/correctness/noConstantCondition: <explanation> */}
+          {false ? (
             <div className="space-y-4">
               <div className="bg-refly-bg-content-z2 rounded-2xl shadow-[0px_2px_20px_4px_rgba(0,0,0,0.04)] p-4">
                 <MixedTextEditor
