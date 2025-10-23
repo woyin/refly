@@ -93,7 +93,7 @@ const translations = {
     },
     dropImageHere: 'Drop image here',
     presetColors: 'Preset Colors',
-    duplicate: 'Duplicate',
+    duplicate: 'copy',
     shareSuccess: 'Share link copied to clipboard!',
     shareError: 'Share failed, please try again!',
     readonlyWarning: 'Read-Only Mode',

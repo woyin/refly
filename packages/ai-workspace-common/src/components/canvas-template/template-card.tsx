@@ -62,7 +62,7 @@ export const TemplateCard = ({ template, className, showUser = true }: TemplateC
         return;
       }
       if (template.shareId) {
-        duplicateCanvas(template.shareId, template.templateId);
+        duplicateCanvas({ shareId: template.shareId, templateId: template.templateId });
       }
     },
     [template, duplicateCanvas, isLogin, setLoginModalOpen],

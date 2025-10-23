@@ -28,8 +28,6 @@ import {
   useCanvasStore,
   useCanvasStoreShallow,
   useCanvasNodesStore,
-  useUserStore,
-  useUserStoreShallow,
   usePilotStoreShallow,
   useCanvasResourcesPanelStoreShallow,
 } from '@refly/stores';
@@ -51,10 +49,7 @@ import { useDragDropPaste } from '@refly-packages/ai-workspace-common/hooks/canv
 
 import '@xyflow/react/dist/style.css';
 import './index.scss';
-import {
-  useGetPilotSessionDetail,
-  useUpdateSettings,
-} from '@refly-packages/ai-workspace-common/queries';
+import { useGetPilotSessionDetail } from '@refly-packages/ai-workspace-common/queries';
 import { EmptyGuide } from './empty-guide';
 import { useLinearThreadReset } from '@refly-packages/ai-workspace-common/hooks/canvas/use-linear-thread-reset';
 import HelperLines from './common/helper-line/index';
@@ -214,34 +209,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   }));
 
   const { handleNodePreview } = useNodePreviewControl({ canvasId });
-
-  const interactionMode = useUserStore.getState().localSettings.canvasMode;
-  const { isLogin, setLocalSettings } = useUserStoreShallow((state) => ({
-    isLogin: state.isLogin,
-    setLocalSettings: state.setLocalSettings,
-  }));
-  const { mutate: updateSettings } = useUpdateSettings();
-
-  const toggleInteractionMode = useCallback(
-    (mode: 'mouse' | 'touchpad') => {
-      const { localSettings } = useUserStore.getState();
-      setLocalSettings({
-        ...localSettings,
-        canvasMode: mode,
-      });
-      if (isLogin) {
-        updateSettings({
-          body: {
-            preferences: {
-              operationMode: mode,
-            },
-          },
-        });
-      }
-      message.success(t(`canvas.toolbar.modeChangeSuccess.${mode}`));
-    },
-    [setLocalSettings, isLogin, updateSettings],
-  );
 
   // Use the reset hook to handle canvas ID changes
   useLinearThreadReset(canvasId);
@@ -1055,7 +1022,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
   );
   return (
     <Spin
-      className="w-full h-full"
+      className="canvas-spin w-full h-full"
       style={{ maxHeight: '100%' }}
       spinning={(readonly && shareLoading) || loading}
       tip={connectionTimeout ? t('common.connectionFailed') : t('common.loading')}
@@ -1074,7 +1041,7 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           extra={t('canvas.connectionTimeout.extra')}
         />
       </Modal>
-      <div className="w-full h-[calc(100vh-16px)] relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
+      <div className="w-full h-full relative flex flex-col overflow-hidden border-[1px] border-solid border-refly-Card-Border rounded-xl shadow-sm">
         {!readonly && (
           <AnimatePresence mode="wait">
             {isPilotOpen ? (
@@ -1153,7 +1120,6 @@ const Flow = memo(({ canvasId }: { canvasId: string }) => {
           </AnimatePresence>
         )}
 
-        <TopToolbar canvasId={canvasId} mode={interactionMode} changeMode={toggleInteractionMode} />
         <div className="flex-grow relative">
           <style>{selectionStyles}</style>
           {readonly && (
@@ -1358,9 +1324,10 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
       <ReactFlowProvider>
         <CanvasProvider readonly={readonly} canvasId={canvasId}>
           <UploadNotification />
+          <TopToolbar canvasId={canvasId} />
 
           <Splitter
-            className="canvas-splitter w-full h-[calc(100vh-16px)]"
+            className="canvas-splitter w-full flex-grow overflow-hidden"
             onResize={handlePanelResize}
           >
             <Splitter.Panel>

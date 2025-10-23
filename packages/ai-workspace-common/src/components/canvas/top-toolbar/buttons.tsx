@@ -174,45 +174,41 @@ const MoreMenu = memo(
 );
 MoreMenu.displayName = 'MoreMenu';
 
-export const ToolbarButtons = memo(
-  (_: {
-    canvasTitle: string;
-    mode: 'mouse' | 'touchpad';
-    changeMode: (mode: 'mouse' | 'touchpad') => void;
-  }) => {
-    const { t } = useTranslation();
+export const ToolbarButtons = memo(() => {
+  const { t } = useTranslation();
 
-    const { sidePanelVisible, setSidePanelVisible, showWorkflowRun, setShowWorkflowRun } =
-      useCanvasResourcesPanelStoreShallow((state) => ({
-        sidePanelVisible: state.sidePanelVisible,
-        setSidePanelVisible: state.setSidePanelVisible,
-        showWorkflowRun: state.showWorkflowRun,
-        setShowWorkflowRun: state.setShowWorkflowRun,
-      }));
+  const { sidePanelVisible, setSidePanelVisible, showWorkflowRun, setShowWorkflowRun } =
+    useCanvasResourcesPanelStoreShallow((state) => ({
+      sidePanelVisible: state.sidePanelVisible,
+      setSidePanelVisible: state.setSidePanelVisible,
+      showWorkflowRun: state.showWorkflowRun,
+      setShowWorkflowRun: state.setShowWorkflowRun,
+    }));
 
-    const handleResourcesPanelOpen = useCallback(() => {
-      setSidePanelVisible(true);
-      setShowWorkflowRun(false);
-    }, [setSidePanelVisible, setShowWorkflowRun]);
+  const handleResourcesPanelOpen = useCallback(() => {
+    setSidePanelVisible(true);
+    setShowWorkflowRun(false);
+  }, [setSidePanelVisible, setShowWorkflowRun]);
 
-    return (
-      <>
-        <div className="flex items-center">
-          {(!sidePanelVisible || showWorkflowRun) && (
-            <>
-              <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
+  return (
+    <>
+      <div className="flex items-center">
+        {(!sidePanelVisible || showWorkflowRun) && (
+          <>
+            <Divider type="vertical" className="h-5 bg-refly-Card-Border" />
 
-              <Tooltip title={t('canvas.toolbar.openResourcesPanel')} arrow={false}>
-                <Button
-                  type="text"
-                  icon={<Resource size={18} />}
-                  onClick={handleResourcesPanelOpen}
-                />
-              </Tooltip>
-            </>
-          )}
-        </div>
-      </>
-    );
-  },
-);
+            <Tooltip title={t('canvas.toolbar.openResourcesPanel')} arrow={false}>
+              <Button
+                type="text"
+                icon={<Resource size={18} />}
+                onClick={handleResourcesPanelOpen}
+              />
+            </Tooltip>
+          </>
+        )}
+      </div>
+    </>
+  );
+});
+
+ToolbarButtons.displayName = 'ToolbarButtons';
