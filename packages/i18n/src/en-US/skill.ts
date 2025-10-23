@@ -37,6 +37,10 @@ const translations = {
         name: 'Question Answering',
         description: 'Generating answer...',
       },
+      start: {
+        name: 'Start',
+        description: 'Analyzing requirements...',
+      },
     },
   },
   customPrompt: {

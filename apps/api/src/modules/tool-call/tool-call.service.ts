@@ -1,11 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { ActionStepMeta, ToolCallResult } from '@refly/openapi-schema';
+import type { ActionStepMeta } from '@refly/openapi-schema';
 import type { Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { writeSSEResponse } from '../../utils/response';
-import { toolCallResultPO2DTO } from '../action/action.dto';
 import { PrismaService } from '../common/prisma.service';
-
+import { ActionStep, ToolCallResult } from '../../generated/client';
 export type ToolEventPayload = {
   run_id?: string;
   metadata?: { toolsetKey?: string; name?: string };
@@ -133,7 +132,7 @@ export class ToolCallService {
       xmlContent: string;
       toolCallId: string;
       toolName?: string;
-      event_name: 'stream' | 'tool_call_stream';
+      event_name: 'stream';
     },
   ): void {
     if (!res) {
@@ -190,7 +189,7 @@ export class ToolCallService {
         version,
         deletedAt: null,
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { pk: 'asc' },
     });
   }
 
@@ -215,30 +214,38 @@ export class ToolCallService {
       if (call?.status === ToolCallStatus.EXECUTING) {
         continue;
       }
-
-      const dto = toolCallResultPO2DTO(call);
       const list = byStep.get(stepName) ?? [];
-      list.push(dto);
+      list.push(call);
       byStep.set(stepName, list);
     }
 
     return byStep;
   }
 
-  groupToolCallsByStep(
-    steps: Array<{ name: string }>,
-    toolCalls: Array<{ stepName?: string | null }>,
-  ): Map<string, any[]> {
-    const existingStepNames = new Set(steps.map((step) => step.name));
+  /**
+   * Attach tool calls to steps and merge XML content
+   * This method combines grouping and content merging in one operation:
+   * 1. Groups tool calls by step name (with fallback to last step)
+   * 2. Generates XML content for each tool call
+   * 3. Merges XML content into step.content
+   *
+   * @param steps - Array of steps with name and optional content
+   * @param toolCalls - Array of tool calls with optional stepName
+   * @returns Steps with attached tool calls and merged XML content
+   */
+  attachToolCallsToSteps(steps: ActionStep[], toolCalls: ToolCallResult[]): Array<ActionStep> {
+    if (!steps || steps.length === 0) {
+      return [];
+    }
+
+    // Step 1: Group tool calls by step name
+    const existingStepNames = new Set(steps.map((s) => s.name));
     const fallbackStepName = steps.length > 0 ? steps[steps.length - 1].name : undefined;
 
-    return toolCalls.reduce<Map<string, any[]>>((acc, call) => {
-      let key = call.stepName ?? undefined;
+    const toolCallsByStep = toolCalls.reduce<Map<string, ToolCallResult[]>>((acc, call) => {
+      let key = call.stepName;
       if (!key || !existingStepNames.has(key)) {
-        key = fallbackStepName ?? key ?? '';
-      }
-      if (!key) {
-        return acc;
+        key = fallbackStepName;
       }
       if (!acc.has(key)) {
         acc.set(key, []);
@@ -246,39 +253,52 @@ export class ToolCallService {
       acc.get(key)!.push(call);
       return acc;
     }, new Map());
-  }
 
-  attachToolCallsToSteps<T extends { name: string }>(
-    steps: T[],
-    toolCallsByStep: Map<string, any[]>,
-  ): Array<T & { toolCalls?: any[] }> {
+    // Step 2: Attach tool calls to each step and merge XML content
     return steps.map((step) => {
       const toolCalls = toolCallsByStep.get(step.name);
       const calls = Array.isArray(toolCalls) ? toolCalls : [];
-      const xmlContents = calls.map((call) => {
-        if (!call || typeof call !== 'object' || !call?.callId) {
-          return null;
-        }
-        return this.generateToolUseXML({
-          toolCallId: call?.callId ?? '',
-          includeResult: (call?.status ?? ToolCallStatus.EXECUTING) !== ToolCallStatus.EXECUTING,
-          errorMsg: call?.error ?? undefined,
-          metadata: {
-            name: call?.toolName ?? '',
-            type: call?.toolsetKey ?? '',
-            toolsetKey: call?.toolsetId ?? '',
-            toolsetName: call?.toolsetName ?? '',
-          },
-          input: call?.input ?? undefined,
-          output: call?.output ?? undefined,
-          startTs: call?.createdAt ?? 0,
-          updatedTs: call?.updatedAt ?? call?.createdAt ?? 0,
-        });
-      });
+
+      // Generate XML content for all tool calls
+      const xmlContents = calls
+        .map((call) => {
+          if (!call || typeof call !== 'object' || !call?.callId) {
+            return null;
+          }
+          return this.generateToolUseXML({
+            toolCallId: call.callId,
+            includeResult: call?.status !== ToolCallStatus.EXECUTING,
+            errorMsg: call.error,
+            metadata: {
+              name: call.toolName,
+              type: call.toolsetId,
+              toolsetKey: call.toolsetId,
+              // Note: toolsetName is not stored in ToolCallResult DB table
+              // Using toolsetId as fallback. For accurate toolset names, consider:
+              // 1. Adding toolsetName column to ToolCallResult table, OR
+              // 2. Fetching from Toolset table using toolsetId
+              toolsetName: call.toolsetId,
+            },
+            input: call.input,
+            output: call.output,
+            startTs: call.createdAt.getTime(),
+            updatedTs: call.updatedAt.getTime() ?? call.createdAt.getTime(),
+          });
+        })
+        .filter((xml) => xml !== null);
+
+      // Merge XML content into step.content
+      const stepContent = step.content ?? '';
+      const toolCallContent = xmlContents.length > 0 ? xmlContents.join('\n') : '';
+      const mergedContent =
+        stepContent && toolCallContent
+          ? `${toolCallContent}\n${stepContent}`
+          : toolCallContent || stepContent || '';
+
       return {
         ...step,
-        toolCalls,
-        content: xmlContents.length > 0 ? xmlContents.join('\n') : undefined,
+        toolCalls: calls,
+        content: mergedContent,
       };
     });
   }

@@ -41,6 +41,7 @@ export function toolCallResultPO2DTO(toolCall: ToolCallResultModel): ToolCallRes
     uid: toolCall.uid,
     toolsetId: toolCall.toolsetId,
     toolName: toolCall.toolName,
+    stepName: toolCall.stepName,
     input: safeParseJSON(toolCall.input || '{}'),
     output: safeParseJSON(toolCall.output || '{}'),
     error: toolCall.error || '',
