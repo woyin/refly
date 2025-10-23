@@ -21,7 +21,7 @@ export const useNodeOperations = () => {
   const { removeContextItem } = useContextPanelStoreShallow((state) => ({
     removeContextItem: state.removeContextItem,
   }));
-  const { syncCanvasData } = useCanvasContext();
+  const { forceSyncState } = useCanvasContext();
 
   // Add helper line states
   const [helperLineHorizontal, setHelperLineHorizontal] = useState<number | undefined>(undefined);
@@ -89,9 +89,9 @@ export const useNodeOperations = () => {
         elevateNodesOnSelect: false,
       });
       setState({ nodes: cleanedNodes });
-      syncCanvasData();
+      forceSyncState();
     },
-    [syncCanvasData],
+    [forceSyncState],
   );
 
   const onNodesChange = useCallback(

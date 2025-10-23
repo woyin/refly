@@ -75,7 +75,6 @@ import { NodePreviewContainer } from '@refly-packages/ai-workspace-common/compon
 import { useHandleOrphanNode } from '@refly-packages/ai-workspace-common/hooks/use-handle-orphan-node';
 import { WorkflowRun } from './workflow-run';
 import { useMatch } from '@refly-packages/ai-workspace-common/utils/router';
-import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { UploadNotification } from '@refly-packages/ai-workspace-common/components/common/upload-notification';
 
@@ -1257,8 +1256,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   const isPreviewCanvas = useMatch('/preview/canvas/:shareId');
   const { canvasId, readonly } = props;
   const setCurrentCanvasId = useCanvasStoreShallow((state) => state.setCurrentCanvasId);
-  const { initializeWorkflow, loading, executionId, workflowStatus, isPolling, pollingError } =
-    useInitializeWorkflow(canvasId);
+
   const {
     sidePanelVisible,
     resourcesPanelWidth,
@@ -1358,18 +1356,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
   return (
     <EditorPerformanceProvider>
       <ReactFlowProvider>
-        <CanvasProvider
-          readonly={readonly}
-          canvasId={canvasId}
-          workflowRun={{
-            initialize: (startNodes?: string[]) => initializeWorkflow({ canvasId, startNodes }),
-            loading,
-            executionId,
-            workflowStatus,
-            isPolling,
-            pollingError,
-          }}
-        >
+        <CanvasProvider readonly={readonly} canvasId={canvasId}>
           <UploadNotification />
 
           <Splitter
@@ -1386,14 +1373,7 @@ export const Canvas = (props: { canvasId: string; readonly?: boolean }) => {
               max={maxPanelWidth}
             >
               {showWorkflowRun && !readonly && !isPreviewCanvas ? (
-                <WorkflowRun
-                  initializeWorkflow={initializeWorkflow}
-                  loading={loading}
-                  executionId={executionId}
-                  workflowStatus={workflowStatus}
-                  isPolling={isPolling}
-                  pollingError={pollingError}
-                />
+                <WorkflowRun />
               ) : (
                 <Popover
                   classNames={{

@@ -79,23 +79,28 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   }, [nodeSelectedToolsets]);
 
   useEffect(() => {
-    if (shareData && !result) {
+    if (shareData && !result && shareData.resultId === resultId) {
       updateActionResult(resultId, shareData);
       setLoading(false);
     }
   }, [shareData, result, resultId, updateActionResult]);
 
-  const fetchActionResult = async (resultId: string) => {
+  const fetchActionResult = async (resultId: string, options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
     const { isLogin } = useUserStore.getState();
     if (!isLogin) {
       return;
     }
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     const { data, error } = await getClient().getActionResult({
       query: { resultId },
     });
-    setLoading(false);
+    if (!silent) {
+      setLoading(false);
+    }
 
     if (error || !data?.success) {
       return;
@@ -124,12 +129,13 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
     if (isStreaming) {
       return;
     }
-    if (!result && !shareId) {
-      fetchActionResult(resultId);
+    if (!shareId) {
+      // Always refresh in background to keep store up-to-date
+      fetchActionResult(resultId, { silent: !!result });
     } else if (result) {
       setLoading(false);
     }
-  }, [resultId, result, shareId, isStreaming]);
+  }, [resultId, shareId, isStreaming]);
 
   const scrollToBottom = useCallback(
     (event: { resultId: string; payload: ActionResult }) => {
