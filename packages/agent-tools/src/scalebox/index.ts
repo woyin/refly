@@ -579,8 +579,7 @@ export class ScaleboxCommandsRun extends AgentBaseTool<ScaleboxToolParams> {
     command: z.string().describe('Command to run'),
   });
 
-  description =
-    'Run a shell command synchronously; background mode still waits for completion to return output';
+  description = 'Run a shell command synchronously';
   protected params: ScaleboxToolParams;
 
   constructor(params: ScaleboxToolParams) {
