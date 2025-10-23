@@ -243,7 +243,7 @@ const WorkflowAppPage: React.FC = () => {
             <title>{workflowApp?.title ?? ''}</title>
           </Helmet>
           {/* Header */}
-          <div className="border-b border-refly-line relative overflow-hidden">
+          <div className="border-b border-refly-line relative overflow-hidden height-[64px]">
             {/* Background overlay for better text readability */}
             <div
               className="absolute inset-0 backdrop-blur-sm"
