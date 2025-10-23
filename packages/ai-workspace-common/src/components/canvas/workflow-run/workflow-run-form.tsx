@@ -562,14 +562,23 @@ export const WorkflowRunForm = ({
             <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
               {/* Show loading state when loading */}
               {workflowVariables.length > 0 ? (
-                <Form
-                  form={form}
-                  layout="vertical"
-                  className="space-y-3 sm:space-y-4"
-                  initialValues={variableValues}
-                >
-                  {workflowVariables.map((variable) => renderFormField(variable))}
-                </Form>
+                <>
+                  <Form
+                    form={form}
+                    layout="vertical"
+                    className="space-y-3 sm:space-y-4"
+                    initialValues={variableValues}
+                  >
+                    {workflowVariables.map((variable) => renderFormField(variable))}
+                  </Form>
+
+                  {/* Tools Dependency Form */}
+                  {workflowApp?.canvasData && (
+                    <div className="mt-5 ">
+                      <ToolsDependencyChecker canvasData={workflowApp?.canvasData} />
+                    </div>
+                  )}
+                </>
               ) : loading ? null : (
                 <EmptyContent />
               )}
