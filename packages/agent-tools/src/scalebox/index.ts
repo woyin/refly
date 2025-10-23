@@ -140,13 +140,13 @@ export class ScaleboxCreate extends AgentBaseTool<ScaleboxToolParams> {
         timeoutMs: input?.timeoutMs ?? 300000,
         metadata: input?.metadata ?? {},
         apiKey: this.params?.apiKey ?? '',
-      } as any);
+      });
 
       const info = await sandbox?.getInfo?.();
       return {
         status: 'success',
         data: {
-          sandboxId: (info as any)?.id ?? (info as any)?.sandboxId ?? undefined,
+          sandboxId: info.sandboxId ?? undefined,
           info: info ?? {},
         },
         summary: 'Sandbox created successfully',
@@ -577,10 +577,6 @@ export class ScaleboxCommandsRun extends AgentBaseTool<ScaleboxToolParams> {
   schema = z.object({
     sandboxId: z.string(),
     command: z.string().describe('Command to run'),
-    background: z
-      .boolean()
-      .describe('Run in background; if true, waits until finish anyway')
-      .default(false),
   });
 
   description =
@@ -598,20 +594,13 @@ export class ScaleboxCommandsRun extends AgentBaseTool<ScaleboxToolParams> {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
       });
-      const result = await sbx?.commands?.run?.(input?.command ?? '', {
-        background: input?.background ?? false,
-      });
-      // If background true, SDK may return a handle; attempt to wait if available
-      const final =
-        result && typeof (result as any)?.wait === 'function'
-          ? await (result as any).wait()
-          : result;
+      const result = await sbx?.commands?.run?.(input?.command ?? '');
       return {
         status: 'success',
         data: {
-          stdout: final?.stdout ?? '',
-          stderr: final?.stderr ?? '',
-          exitCode: final?.exitCode ?? 0,
+          stdout: result?.stdout ?? '',
+          stderr: result?.stderr ?? '',
+          exitCode: result?.exitCode ?? 0,
         },
         summary: 'Command executed',
       };
@@ -703,14 +692,14 @@ export class ScaleboxRunCode extends AgentBaseTool<ScaleboxToolParams> {
       const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
         apiKey: this.params?.apiKey ?? '',
       });
-      const res = await (sbx as any).runCode(input?.code ?? '', {
+      const res = await sbx?.runCode(input?.code ?? '', {
         language: input?.language ?? 'python',
       });
       const stdout = res?.logs?.stdout ?? '';
       const stderr = res?.logs?.stderr ?? '';
       return {
         status: 'success',
-        data: { logs: { stdout, stderr }, formats: (res as any)?.formats ?? {} },
+        data: { logs: { stdout, stderr } },
         summary: 'Code executed',
       };
     } catch (error) {
@@ -731,7 +720,6 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
   toolsetKey = ScaleboxToolsetDefinition.key;
 
   schema = z.object({
-    sandboxId: z.string(),
     code: z.string(),
     language: z
       .enum(['python', 'javascript', 'typescript', 'r', 'java', 'bash', 'node', 'deno'])
@@ -750,15 +738,13 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
   async _call(input: z.infer<typeof this.schema>): Promise<ToolCallResult> {
     ensureApiKey(this.params?.apiKey ?? '');
     try {
-      const sbx = await Sandbox.connect(input?.sandboxId ?? '', {
-        apiKey: this.params?.apiKey ?? '',
+      const interpreter = await CodeInterpreter.create({
+        templateId: 'code-interpreter',
       });
-      const CI: any = CodeInterpreter as any;
-      const interpreter = new CI(sbx as any, (sbx as any)?.config ?? {}, undefined);
       const res = await interpreter?.runCode?.(input?.code ?? '', {
         language: input?.language ?? 'python',
         cwd: input?.cwd ?? undefined,
-      } as any);
+      });
       const stdout = res?.logs?.stdout ?? '';
       const stderr = res?.logs?.stderr ?? '';
       try {
@@ -766,7 +752,7 @@ export class ScaleboxInterpreterRunCode extends AgentBaseTool<ScaleboxToolParams
       } catch {}
       return {
         status: 'success',
-        data: { logs: { stdout, stderr }, formats: (res as any)?.formats ?? {} },
+        data: { logs: { stdout, stderr }, formats: res ?? {} },
         summary: 'Code executed via interpreter',
       };
     } catch (error) {
