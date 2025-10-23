@@ -8,6 +8,7 @@ import { useHandleSiderData } from '@refly-packages/ai-workspace-common/hooks/us
 import { useWorkflowExecutionPolling } from './use-workflow-execution-polling';
 import { useCanvasStoreShallow } from '@refly/stores';
 import { InitializeWorkflowRequest } from '@refly/openapi-schema';
+import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 
 export const useInitializeWorkflow = (canvasId?: string) => {
   const { t } = useTranslation();
@@ -20,6 +21,8 @@ export const useInitializeWorkflow = (canvasId?: string) => {
     executionId: canvasId ? state.canvasExecutionId[canvasId] || null : null,
     setCanvasExecutionId: state.setCanvasExecutionId,
   }));
+
+  const { syncCanvasData } = useCanvasContext();
 
   // Use the polling hook for workflow execution monitoring
   const {
@@ -58,6 +61,8 @@ export const useInitializeWorkflow = (canvasId?: string) => {
     async (param: InitializeWorkflowRequest) => {
       try {
         setLoading(true);
+        await syncCanvasData({ syncRemote: true });
+
         const { data, error } = await getClient().initializeWorkflow({
           body: param,
         });
@@ -81,13 +86,15 @@ export const useInitializeWorkflow = (canvasId?: string) => {
         setLoading(false);
       }
     },
-    [t, canvasId, setCanvasExecutionId],
+    [t, canvasId, setCanvasExecutionId, syncCanvasData],
   );
 
   const initializeWorkflowInNewCanvas = useCallback(
     async (canvasId: string) => {
       try {
         setNewModeLoading(true);
+        await syncCanvasData({ syncRemote: true });
+
         const newCanvasId = genCanvasID();
 
         const { error } = await getClient().initializeWorkflow({

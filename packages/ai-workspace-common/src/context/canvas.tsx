@@ -73,16 +73,6 @@ interface CanvasContextType {
     refetchWorkflowVariables: () => void;
   };
 
-  // Workflow run shared state/actions across Canvas
-  workflowRun?: {
-    initialize: (startNodes?: string[]) => void;
-    loading: boolean;
-    executionId: string | null | undefined;
-    workflowStatus?: any;
-    isPolling?: boolean;
-    pollingError?: any;
-  };
-
   syncCanvasData: (options?: { syncRemote?: boolean }) => Promise<void>;
   undo: () => Promise<void>;
   redo: () => Promise<void>;
@@ -161,19 +151,10 @@ export const CanvasProvider = ({
   canvasId,
   readonly = false,
   children,
-  workflowRun,
 }: {
   canvasId: string;
   readonly?: boolean;
   children: React.ReactNode;
-  workflowRun?: {
-    initialize: (startNodes?: string[]) => void;
-    loading: boolean;
-    executionId: string | null | undefined;
-    workflowStatus?: any;
-    isPolling?: boolean;
-    pollingError?: any;
-  };
 }) => {
   const { t } = useTranslation();
   const [modal, contextHolder] = Modal.useModal();
@@ -710,7 +691,6 @@ export const CanvasProvider = ({
         syncFailureCount,
         shareData: canvasData ?? undefined,
         lastUpdated,
-        workflowRun,
         syncCanvasData: async (options?: { syncRemote?: boolean }) => {
           await syncCanvasData();
           syncCanvasData.flush();

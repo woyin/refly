@@ -24,6 +24,7 @@ import cn from 'classnames';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { copyToClipboard } from '@refly-packages/ai-workspace-common/utils';
 import { useGetNodeContent } from '@refly-packages/ai-workspace-common/hooks/canvas/use-get-node-content';
+import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 import { nodeOperationsEmitter } from '@refly-packages/ai-workspace-common/events/nodeOperations';
 import { useActionResultStoreShallow, useCanvasStoreShallow } from '@refly/stores';
 import { useShallow } from 'zustand/react/shallow';
@@ -56,7 +57,8 @@ type NodeActionButtonsProps = {
 export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
   ({ nodeId, nodeType, isNodeHovered, bgColor, onChangeBackground, isExtracting }) => {
     const { t } = useTranslation();
-    const { readonly, canvasId, workflowRun } = useCanvasContext();
+    const { readonly, canvasId } = useCanvasContext();
+    const workflowRun = useInitializeWorkflow(canvasId);
     const { getNode } = useReactFlow();
     const node = useMemo(() => getNode(nodeId), [nodeId, getNode]);
     const { fetchNodeContent } = useGetNodeContent(node);
@@ -64,8 +66,8 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
     const buttonContainerRef = useRef<HTMLDivElement>(null);
 
     // Shared workflow state from CanvasProvider
-    const initializing = workflowRun?.loading ?? false;
-    const isPolling = workflowRun?.isPolling ?? false;
+    const initializing = workflowRun.loading;
+    const isPolling = workflowRun.isPolling;
 
     const showMoreButton = useMemo(() => {
       return !['skill', 'mediaSkill', 'mediaSkillResponse', 'video', 'audio', 'image'].includes(
@@ -207,7 +209,11 @@ export const NodeActionButtons: FC<NodeActionButtonsProps> = memo(
         nodeId,
       });
 
-      workflowRun?.initialize?.([nodeId]);
+      workflowRun.initializeWorkflow({
+        canvasId,
+        variables: [],
+        startNodes: [nodeId],
+      });
     }, [canvasId, nodeId, isRunningWorkflow, workflowRun]);
 
     const actionButtons = useMemo(() => {

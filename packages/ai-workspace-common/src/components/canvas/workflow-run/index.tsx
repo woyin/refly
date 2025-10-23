@@ -5,27 +5,12 @@ import { useCanvasResourcesPanelStoreShallow } from '@refly/stores';
 import { useCanvasContext } from '@refly-packages/ai-workspace-common/context/canvas';
 import { WorkflowRunForm } from './workflow-run-form';
 import './index.scss';
-import { FC, useCallback, useState } from 'react';
-import { InitializeWorkflowRequest, WorkflowVariable } from '@refly/openapi-schema';
+import { useCallback, useState } from 'react';
+import { WorkflowVariable } from '@refly/openapi-schema';
 import { logEvent } from '@refly/telemetry-web';
+import { useInitializeWorkflow } from '@refly-packages/ai-workspace-common/hooks/use-initialize-workflow';
 
-interface WorkflowRunProps {
-  initializeWorkflow: (param: InitializeWorkflowRequest) => Promise<boolean>;
-  loading: boolean;
-  executionId?: string | null;
-  workflowStatus?: any;
-  isPolling?: boolean;
-  pollingError?: any;
-}
-
-export const WorkflowRun: FC<WorkflowRunProps> = ({
-  initializeWorkflow,
-  loading,
-  executionId,
-  workflowStatus,
-  isPolling,
-  pollingError,
-}) => {
+export const WorkflowRun = () => {
   const { t } = useTranslation();
   const { setShowWorkflowRun, setSidePanelVisible } = useCanvasResourcesPanelStoreShallow(
     (state) => ({
@@ -36,6 +21,9 @@ export const WorkflowRun: FC<WorkflowRunProps> = ({
 
   const { workflow, canvasId } = useCanvasContext();
   const { workflowVariables, workflowVariablesLoading, refetchWorkflowVariables } = workflow;
+
+  const { initializeWorkflow, loading, executionId, workflowStatus, isPolling, pollingError } =
+    useInitializeWorkflow(canvasId);
 
   const [isRunning, setIsRunning] = useState(false);
 
