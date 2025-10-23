@@ -178,10 +178,13 @@ const ShareSettings = React.memo(({ canvasId, canvasTitle }: ShareSettingsProps)
     }
   }, [workflowAppLink, t]);
 
-  const handlePublishToCommunity = useCallback(() => {
+  const handlePublishToCommunity = useCallback(async () => {
+    // Make sure the canvas data is synced to the remote
+    await syncCanvasData({ syncRemote: true });
+
     setCreateTemplateModalVisible(true);
     setOpen(false);
-  }, []);
+  }, [syncCanvasData]);
 
   const handlePublishSuccess = useCallback(async () => {
     // Refresh workflow apps data after successful publish
