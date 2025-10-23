@@ -79,7 +79,7 @@ const SkillResponseNodePreviewComponent = ({ node, resultId }: SkillResponseNode
   }, [nodeSelectedToolsets]);
 
   useEffect(() => {
-    if (shareData && !result) {
+    if (shareData && !result && shareData.resultId === resultId) {
       updateActionResult(resultId, shareData);
       setLoading(false);
     }
