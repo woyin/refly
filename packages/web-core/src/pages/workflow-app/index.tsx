@@ -7,7 +7,6 @@ import { CanvasNodeType, WorkflowNodeExecution, WorkflowVariable } from '@refly/
 import { GithubStar } from '@refly-packages/ai-workspace-common/components/common/github-star';
 import { Logo } from '@refly-packages/ai-workspace-common/components/common/logo';
 import { WorkflowAppProducts } from '@refly-packages/ai-workspace-common/components/workflow-app/products';
-import { WorkflowAppRunLogs } from '@refly-packages/ai-workspace-common/components/workflow-app/run-logs';
 import getClient from '@refly-packages/ai-workspace-common/requests/proxiedRequest';
 import { WorkflowRunForm } from '@refly-packages/ai-workspace-common/components/canvas/workflow-run/workflow-run-form';
 import { useWorkflowExecutionPolling } from '@refly-packages/ai-workspace-common/hooks/use-workflow-execution-polling';
@@ -18,6 +17,7 @@ import { CanvasProvider } from '@refly-packages/ai-workspace-common/context/canv
 import { useIsLogin } from '@refly-packages/ai-workspace-common/hooks/use-is-login';
 import { logEvent } from '@refly/telemetry-web';
 import { Helmet } from 'react-helmet';
+import FooterSection from '@refly-packages/ai-workspace-common/components/workflow-app/FooterSection';
 
 const WorkflowAppPage: React.FC = () => {
   const { t } = useTranslation();
@@ -78,7 +78,7 @@ const WorkflowAppPage: React.FC = () => {
           message: t('workflowApp.run.completed') || 'App run successfully',
         });
         // Auto switch to products tab when workflow completes successfully
-        setActiveTab('products');
+        products.length > 0 && setActiveTab('products');
       } else if (status === 'failed') {
         notification.error({
           message: t('workflowApp.run.failed') || 'App run failed',
@@ -216,10 +216,10 @@ const WorkflowAppPage: React.FC = () => {
 
   const segmentedOptions = useMemo(() => {
     return [
-      {
-        label: t('workflowApp.runLogs'),
-        value: 'runLogs',
-      },
+      // {
+      //   label: t('workflowApp.runLogs'),
+      //   value: 'runLogs',
+      // },
       {
         label: t('workflowApp.products'),
         value: 'products',
@@ -230,13 +230,31 @@ const WorkflowAppPage: React.FC = () => {
   return (
     <ReactFlowProvider>
       <CanvasProvider readonly={true} canvasId={workflowApp?.canvasData?.canvasId ?? ''}>
-        <div className="min-h-screen bg-refly-bg-body-z0">
+        <div
+          className="flex flex-col h-[100%]"
+          // style={{
+          //   backgroundImage: `url(${bgImage})`,
+          //   backgroundSize: '100% auto',
+          //   backgroundPosition: 'center top',
+          //   backgroundRepeat: 'no-repeat',
+          // }}
+        >
           <Helmet>
             <title>{workflowApp?.title ?? ''}</title>
           </Helmet>
           {/* Header */}
-          <div className="bg-refly-bg-float-z3 border-b border-refly-Card-Border">
-            <div className="mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="border-b border-refly-line relative h-[64px]">
+            {/* Background overlay for better text readability */}
+            <div
+              className="absolute inset-0 backdrop-blur-sm"
+              // style={{
+              //   backgroundImage: `url(${bgImage})`,
+              //   backgroundSize: '100% auto',
+              //   backgroundPosition: 'center top',
+              //   backgroundRepeat: 'no-repeat',
+              // }}
+            />
+            <div className="relative mx-auto px-4 sm:px-6 lg:px-8 ">
               <div className="flex items-center justify-between h-16">
                 <div className="flex items-center gap-3">
                   <Logo onClick={() => navigate?.('/')} />
@@ -245,8 +263,9 @@ const WorkflowAppPage: React.FC = () => {
               </div>
             </div>
           </div>
-          {/* Main Content */}
-          {
+
+          {/* Main Content - flex-1 to take remaining space */}
+          <div className="flex-1 mb-[100px]">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
               {isLoading ? (
                 <LoadingContent />
@@ -280,30 +299,36 @@ const WorkflowAppPage: React.FC = () => {
                   {logs.length > 0 && (
                     <>
                       {/* Tabs */}
-                      <div className="mb-4 sm:mb-6 flex justify-center">
-                        <Segmented
-                          className="max-w-sm sm:max-w-md mx-auto"
-                          shape="round"
-                          options={segmentedOptions}
-                          value={activeTab}
-                          onChange={(value) => setActiveTab(value)}
-                        />
-                      </div>
+                      {products.length > 0 && (
+                        <div className="mb-4 sm:mb-6 flex justify-center">
+                          <Segmented
+                            className="max-w-sm sm:max-w-md mx-auto"
+                            shape="round"
+                            options={segmentedOptions}
+                            value={activeTab}
+                            onChange={(value) => setActiveTab(value)}
+                          />
+                        </div>
+                      )}
 
                       {/* Content Area */}
-                      <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border min-h-[200px]">
+                      <div className="bg-refly-bg-float-z3 rounded-lg border border-refly-Card-Border">
                         {activeTab === 'products' ? (
                           <WorkflowAppProducts products={products || []} />
-                        ) : activeTab === 'runLogs' ? (
-                          <WorkflowAppRunLogs nodeExecutions={logs || []} />
-                        ) : null}
+                        ) : activeTab ===
+                          'runLogs' ? // <WorkflowAppRunLogs nodeExecutions={logs || []} />
+
+                        null : null}
                       </div>
                     </>
                   )}
                 </>
               )}
             </div>
-          }
+          </div>
+
+          {/* Footer Section - always at bottom */}
+          <FooterSection />
         </div>
 
         {/* Settings Modal */}

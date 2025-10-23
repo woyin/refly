@@ -629,6 +629,13 @@ const translations = {
         privacy: '隐私政策',
         terms: '服务条款',
       },
+      navigation: {
+        homepage: '首页',
+        docs: '文档',
+        guides: '指南',
+        contactUs: '联系我们',
+      },
+      copyright: '© 2025 Powerformer, Inc. 版权所有',
       contactUs: {
         title: '联系我们',
         community: '社区',

@@ -1,7 +1,6 @@
 import { time } from '@refly-packages/ai-workspace-common/utils/time';
 import { LOCALE } from '@refly/common-types';
 import { useTranslation } from 'react-i18next';
-import { EndMessage } from '@refly-packages/ai-workspace-common/components/workspace/scroll-loading';
 
 import { CanvasNodeType, WorkflowNodeExecution } from '@refly/openapi-schema';
 import { cn } from '@refly/utils/cn';
@@ -317,7 +316,7 @@ export const WorkflowAppRunLogs = ({
             );
           })}
 
-          <EndMessage />
+          {/* <EndMessage /> */}
         </>
       )}
     </div>

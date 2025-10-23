@@ -683,6 +683,13 @@ const translations = {
         privacy: 'Privacy Policy',
         terms: 'Terms of Service',
       },
+      navigation: {
+        homepage: 'Homepage',
+        docs: 'Docs',
+        guides: 'Guides',
+        contactUs: 'Contact Us',
+      },
+      copyright: '© 2025 by Powerformer, Inc.',
       contactUs: {
         title: 'Contact Us',
         community: 'Community',
