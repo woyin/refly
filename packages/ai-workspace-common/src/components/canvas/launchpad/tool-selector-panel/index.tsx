@@ -67,15 +67,15 @@ export const ToolSelectorPopover: React.FC<ToolsetSelectorPopoverProps> = ({
     if (hasNoSelection && hasBuiltin) {
       onSelectedToolsetsChange?.(builtinToolsets);
       setSelectedToolsets?.(builtinToolsets);
-      hasInitializedBuiltinToolsets.current = true;
     }
+    hasInitializedBuiltinToolsets.current = true;
   }, [selectedToolsets, builtinToolsets, onSelectedToolsetsChange, setSelectedToolsets]);
 
   useEffect(() => {
     if (selectedToolsets?.length && toolsets?.length) {
       const availableToolsetIds = new Set(toolsets.map((toolset) => toolset.id));
-      const filteredSelectedToolsets = selectedToolsets.filter((toolset) =>
-        availableToolsetIds.has(toolset.id),
+      const filteredSelectedToolsets = selectedToolsets.filter(
+        (toolset) => availableToolsetIds.has(toolset.id) && toolset.id !== 'empty',
       );
 
       if (filteredSelectedToolsets.length !== selectedToolsets.length) {

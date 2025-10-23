@@ -157,10 +157,7 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
             }
           } else if (defaultValue.variableType === 'option') {
             // Extract the selected value from the VariableValue array
-            const selectedValue =
-              defaultValue.value && defaultValue.value.length > 0
-                ? defaultValue.value[0].text || ''
-                : '';
+            const selectedValue = defaultValue?.value?.map((v) => v.text) || [];
 
             const newOptionFormData = {
               ...optionFormData,
@@ -436,13 +433,13 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
             selectedValue &&
             (Array.isArray(selectedValue) ? selectedValue.length > 0 : selectedValue)
           ) {
-            const textValue = Array.isArray(selectedValue) ? selectedValue[0] : selectedValue;
-            finalValue = [
-              {
-                type: 'text',
-                text: textValue,
-              },
-            ];
+            const selectedValueArray = Array.isArray(selectedValue)
+              ? selectedValue
+              : [selectedValue];
+            finalValue = selectedValueArray.map((value: string) => ({
+              type: 'text',
+              text: value,
+            }));
           }
         } else {
           finalValue = [];
@@ -561,15 +558,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
       handleDragStart,
     ]);
 
-    const handleNameBlur = useCallback(() => {
-      const value = form.getFieldValue('name');
-      if (value) {
-        // Remove all spaces from the variable name
-        const trimmedValue = value.replace(/\s/g, '');
-        form.setFieldValue('name', trimmedValue);
-      }
-    }, [form]);
-
     return (
       <Modal
         className="create-variables-modal"
@@ -636,14 +624,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                         return Promise.resolve();
                       }
 
-                      // Check if the value contains spaces
-                      if (/\s/.test(value)) {
-                        throw new Error(
-                          t('canvas.workflow.variables.noSpacesAllowed') ||
-                            'Variable name cannot contain spaces.',
-                        );
-                      }
-
                       // Check for duplicate names in workflowVariables array
                       const trimmedName = value.trim();
                       const duplicateVariable = workflowVariables?.find(
@@ -668,7 +648,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                   placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
                   maxLength={50}
                   showCount
-                  onBlur={handleNameBlur}
                 />
               </Form.Item>
               {renderForm()}
