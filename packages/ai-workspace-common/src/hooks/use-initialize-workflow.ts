@@ -129,7 +129,7 @@ export const useInitializeWorkflow = (canvasId?: string) => {
         setNewModeLoading(false);
       }
     },
-    [t, navigate, getCanvasList],
+    [t, navigate, getCanvasList, forceSyncState],
   );
 
   return {

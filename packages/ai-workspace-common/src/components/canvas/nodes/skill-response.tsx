@@ -273,19 +273,19 @@ export const SkillResponseNode = memo(
 
     // Sync node status with action result status
     useEffect(() => {
-      if (!result) return;
+      if (!result || !data) return;
 
-      const nodePreview = data?.contentPreview;
+      const nodePreview = data.contentPreview;
       const resultPreview = processContentPreview(result.steps?.map((s) => s?.content || ''));
 
-      const needsStatusUpdate = result.status !== data?.metadata?.status;
+      const needsStatusUpdate = result.status !== data.metadata?.status;
       const needsPreviewUpdate = nodePreview !== resultPreview;
 
       if (needsStatusUpdate || needsPreviewUpdate) {
         setNodeData(id, {
           ...data,
           ...(needsStatusUpdate && {
-            metadata: { ...data?.metadata, status: result.status },
+            metadata: { ...data.metadata, status: result.status },
           }),
           ...(needsPreviewUpdate && {
             contentPreview: resultPreview,
