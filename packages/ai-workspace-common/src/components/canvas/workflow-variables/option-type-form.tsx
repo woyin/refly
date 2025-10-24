@@ -195,8 +195,6 @@ export const OptionTypeForm: React.FC<OptionTypeFormProps> = React.memo(
                                 ),
                               })}
                               data-option-index={index}
-                              maxLength={200}
-                              showCount
                             />
                           ) : (
                             <div

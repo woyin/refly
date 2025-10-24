@@ -15,13 +15,17 @@ export const StringTypeForm: React.FC = React.memo(() => {
           required: true,
           message: t('canvas.workflow.variables.valueRequired') || 'Variable value is required',
         },
+        {
+          validator: (_, value) => {
+            if (value && value.trim() === '') {
+              return Promise.reject(new Error(t('canvas.workflow.variables.valueNotMeaningful')));
+            }
+            return Promise.resolve();
+          },
+        },
       ]}
     >
-      <Input
-        placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
-        maxLength={200}
-        showCount
-      />
+      <Input placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'} />
     </Form.Item>
   );
 });

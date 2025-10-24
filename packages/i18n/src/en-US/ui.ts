@@ -1335,6 +1335,7 @@ const translations = {
         descriptionPlaceholder: 'e.g., User name for the workflow',
         nameRequired: 'Name is required',
         valueRequired: 'Value is required',
+        valueNotMeaningful: 'Please enter meaningful content',
         namePattern: 'Invalid variable name format',
         duplicateName: 'Variable name already exists',
         loadError: 'Failed to load variables',

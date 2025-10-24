@@ -624,6 +624,12 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
                         return Promise.resolve();
                       }
 
+                      if (value && value.trim() === '') {
+                        return Promise.reject(
+                          new Error(t('canvas.workflow.variables.valueNotMeaningful')),
+                        );
+                      }
+
                       // Check for duplicate names in workflowVariables array
                       const trimmedName = value.trim();
                       const duplicateVariable = workflowVariables?.find(
@@ -646,8 +652,6 @@ export const CreateVariablesModal: React.FC<CreateVariablesModalProps> = React.m
               >
                 <Input
                   placeholder={t('canvas.workflow.variables.inputPlaceholder') || 'Please enter'}
-                  maxLength={50}
-                  showCount
                 />
               </Form.Item>
               {renderForm()}
